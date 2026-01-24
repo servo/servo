@@ -2268,11 +2268,22 @@ impl Handler {
         self.handle_any_user_prompts(self.webview_id()?)?;
 
         // Step 3-11 handled in script thread.
-        let (sender, receiver) = generic_channel::channel().unwrap();
-        let cmd = WebDriverScriptCommand::ElementClear(element.to_string(), sender);
-        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+        self.implicit_wait(|| {
+            let (sender, receiver) = generic_channel::channel().unwrap();
+            let cmd = WebDriverScriptCommand::ElementClear(element.to_string(), sender);
+            self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)
+                .map_err(|error| (ImplicitWaitCanEarlyReturn::Yes.into(), error))?;
+            wait_for_ipc_response_flatten(receiver)
+                .map(|_| (ImplicitWaitCanEarlyReturn::Yes.into(), ()))
+                .map_err(|error| {
+                    if error.error == ErrorStatus::ElementNotInteractable {
+                        (ImplicitWaitCanEarlyReturn::No.into(), error)
+                    } else {
+                        (ImplicitWaitCanEarlyReturn::Yes.into(), error)
+                    }
+                })
+        })?;
 
-        wait_for_ipc_response_flatten(receiver)?;
         Ok(WebDriverResponse::Void)
     }
 
