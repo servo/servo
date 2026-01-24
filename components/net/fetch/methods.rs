@@ -841,8 +841,8 @@ async fn wait_for_response(
                     }
                     target.process_response_chunk(request, vec);
                 },
-                Some(Data::Error(e)) => {
-                    response.set_network_error(e);
+                Some(Data::Error(network_error)) => {
+                    response.set_network_error(network_error);
                     break;
                 },
                 Some(Data::Done) => {
