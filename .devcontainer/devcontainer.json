@@ -1,0 +1,38 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+{
+	"name": "Ubuntu",
+	"image": "mcr.microsoft.com/devcontainers/base:noble",
+	"features": {
+		"ghcr.io/devcontainers/features/rust:1": {
+			"version": "1.91.0",
+			"profile": "default",
+			"components": "clippy,llvm-tools,rustc-dev,rust-analyzer,rust-src,rustfmt"
+		},
+		"ghcr.io/devcontainers-extra/features/uv:1": {
+			"version": "latest"
+		}
+	},
+	// Uncomment the following when using podman (rootless)
+	// Update the uid and gid, to your local users uid and gid (run `echo $UID` and `echo $GID`)
+	// "runArgs": ["--userns=keep-id:uid=1000,gid=1000"],
+	// "containerUser": "vscode",
+	
+	// Uncomment the following when using rootless docker 
+	// "containerUser": "root",
+	// "remoteUser": "root",
+	// "updateRemoteUserUID": false,
+
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// This takes more time on the first run compared to pulling a prebuilt image layer,
+	// but makes sure the bootstrapped dependencies are always up to date.
+	"postCreateCommand":
+		"./mach bootstrap --force",
+
+	"containerEnv": {
+		"CC": "clang",
+		"CXX": "clang++",
+		"UV_PROJECT_ENVIRONMENT": ".devcontainer-venv"
+	}
+}
