@@ -540,7 +540,7 @@ unsafe extern "C" fn invalid_constructor(
     _argc: libc::c_uint,
     _vp: *mut JSVal,
 ) -> bool {
-    throw_type_error(cx, "Illegal constructor.");
+    throw_type_error(cx, c"Illegal constructor.");
     false
 }
 
@@ -549,7 +549,7 @@ unsafe extern "C" fn non_new_constructor(
     _argc: libc::c_uint,
     _vp: *mut JSVal,
 ) -> bool {
-    throw_type_error(cx, "This constructor needs to be called with `new`.");
+    throw_type_error(cx, c"This constructor needs to be called with `new`.");
     false
 }
 
