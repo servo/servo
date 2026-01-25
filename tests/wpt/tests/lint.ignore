@@ -784,7 +784,7 @@ PARSE-FAILED: mathml/crashtests/mozilla/289180-1.xml
 # Invalid HTML syntax /> on non-void elements
 HTML INVALID SYNTAX: acid/*
 HTML INVALID SYNTAX: conformance-checkers/*
-HTML INVALID SYNTAX: css/css-scoping/shadow-cascade-order-001.html
+HTML INVALID SYNTAX: css/css-shadow/shadow-cascade-order-001.html
 HTML INVALID SYNTAX: dom/nodes/Document-createElement-namespace.html
 HTML INVALID SYNTAX: dom/nodes/Node-lookupNamespaceURI.html
 HTML INVALID SYNTAX: dom/nodes/Node-normalize.html

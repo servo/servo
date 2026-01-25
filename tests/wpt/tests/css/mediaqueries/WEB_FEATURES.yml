@@ -32,6 +32,10 @@ features:
 - name: color-gamut
   files:
   - mq-gamut-*
+- name: matchmedia
+  files:
+  - match-media-parsing.html
+  - media-query-matches-in-iframe.html
 - name: prefers-reduced-data
   files:
   - prefers-reduced-data.html

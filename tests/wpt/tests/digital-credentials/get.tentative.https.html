@@ -32,7 +32,6 @@
     const invalidData = [null, "", 123, true, false];
     for (const data of invalidData) {
       const options = makeGetOptions({ data });
-      await test_driver.bless("user activation");
       await promise_rejects_js(
         t,
         TypeError,
@@ -105,7 +104,6 @@
           requests: r
         },
       };
-      await test_driver.bless("user activation");
       await promise_rejects_js(
         t,
         TypeError,
@@ -245,7 +243,6 @@ promise_test(async t => {
 
   for (const badValue of throwingValues) {
     const options = makeGetOptions({ data: badValue });
-
     await promise_rejects_js(
       t,
       TypeError,

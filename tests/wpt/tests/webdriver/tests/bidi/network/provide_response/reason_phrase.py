@@ -43,11 +43,11 @@ async def test_reason_phrase_before_request_sent(
     response_started_event = await wait_for_future_safe(on_response_started)
     assert_response_event(
         response_started_event,
-        expected_response={"statusText": reason_phrase},
+        expected_event={"response": {"statusText": reason_phrase}},
     )
 
     response_completed_event = await wait_for_future_safe(on_response_completed)
     assert_response_event(
         response_completed_event,
-        expected_response={"statusText": reason_phrase},
+        expected_event={"response": {"statusText": reason_phrase}},
     )

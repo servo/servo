@@ -112,6 +112,36 @@ URLPattern = Union[URLPatternPattern, URLPatternString]
 
 class Network(BidiModule):
     @command
+    def add_data_collector(
+            self,
+            data_types: List[str],
+            max_encoded_data_size: int,
+            collector_type: Optional[str] = None,
+            contexts: Optional[List[str]] = None,
+            user_contexts: Optional[List[str]] = None) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "dataTypes": data_types,
+            "maxEncodedDataSize": max_encoded_data_size,
+        }
+
+        if collector_type is not None:
+            params["collectorType"] = collector_type
+
+        if contexts is not None:
+            params["contexts"] = contexts
+
+        if user_contexts is not None:
+            params["userContexts"] = user_contexts
+
+        return params
+
+    @add_data_collector.result
+    def _add_data_collector(self, result: Mapping[str, Any]) -> Any:
+        assert isinstance(result["collector"], str)
+
+        return result["collector"]
+
+    @command
     def add_intercept(
         self, phases: List[str], url_patterns: Optional[List[URLPattern]] = None, contexts: Optional[List[str]] = None
     ) -> Mapping[str, Any]:
@@ -129,25 +159,9 @@ class Network(BidiModule):
 
     @add_intercept.result
     def _add_intercept(self, result: Mapping[str, Any]) -> Any:
-        assert result["intercept"] is not None
+        assert isinstance(result["intercept"], str)
+
         return result["intercept"]
-
-    @command
-    def continue_with_auth(
-        self,
-        request: str,
-        action: str,
-        credentials: Optional[AuthCredentials] = None
-    ) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {
-            "request": request,
-            "action": action,
-        }
-
-        if action == "provideCredentials" and credentials is not None:
-            params["credentials"] = credentials
-
-        return params
 
     @command
     def continue_request(self,
@@ -210,9 +224,66 @@ class Network(BidiModule):
         return params
 
     @command
+    def continue_with_auth(
+        self,
+        request: str,
+        action: str,
+        credentials: Optional[AuthCredentials] = None
+    ) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "request": request,
+            "action": action,
+        }
+
+        if action == "provideCredentials" and credentials is not None:
+            params["credentials"] = credentials
+
+        return params
+
+    @command
+    def disown_data(
+            self,
+            request: str,
+            data_type: str,
+            collector: str) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "request": request,
+            "dataType": data_type,
+            "collector": collector,
+        }
+        return params
+
+    @command
     def fail_request(self, request: str) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {"request": request}
         return params
+
+    @command
+    def get_data(
+            self,
+            request: str,
+            data_type: str,
+            collector: Optional[str] = None,
+            disown: Optional[bool] = None) -> Mapping[str, Any]:
+        params: MutableMapping[str, Any] = {
+            "request": request,
+            "dataType": data_type,
+        }
+
+        if collector is not None:
+            params["collector"] = collector
+
+        if disown is not None:
+            params["disown"] = disown
+
+        return params
+
+    @get_data.result
+    def _get_data(self, result: Mapping[str, Any]) -> Any:
+        assert isinstance(result["bytes"]["type"], str)
+        assert isinstance(result["bytes"]["value"], str)
+
+        return result["bytes"]
 
     @command
     def provide_response(
@@ -250,50 +321,8 @@ class Network(BidiModule):
         return params
 
     @command
-    def add_data_collector(
-            self,
-            data_types: List[str],
-            max_encoded_data_size: int,
-            collector_type: Optional[str] = None,
-            contexts: Optional[List[str]] = None,
-            user_contexts: Optional[List[str]] = None) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {
-            "dataTypes": data_types,
-            "maxEncodedDataSize": max_encoded_data_size,
-        }
-
-        if collector_type is not None:
-            params["collectorType"] = collector_type
-
-        if contexts is not None:
-            params["contexts"] = contexts
-
-        if user_contexts is not None:
-            params["userContexts"] = user_contexts
-
-        return params
-
-    @add_data_collector.result
-    def _add_data_collector(self, result: Mapping[str, Any]) -> Any:
-        assert result["collector"] is not None
-        return result["collector"]
-
-    @command
     def remove_data_collector(self, collector: str) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {"collector": collector}
-        return params
-
-    @command
-    def disown_data(
-            self,
-            request: str,
-            data_type: str,
-            collector: str) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {
-            "request": request,
-            "dataType": data_type,
-            "collector": collector,
-        }
         return params
 
     @command
@@ -307,31 +336,6 @@ class Network(BidiModule):
             params["contexts"] = contexts
 
         return params
-
-    @command
-    def get_data(
-            self,
-            request: str,
-            data_type: str,
-            collector: Optional[str] = None,
-            disown: Optional[bool] = None) -> Mapping[str, Any]:
-        params: MutableMapping[str, Any] = {
-            "request": request,
-            "dataType": data_type,
-        }
-
-        if collector is not None:
-            params["collector"] = collector
-
-        if disown is not None:
-            params["disown"] = disown
-
-        return params
-
-    @get_data.result
-    def _get_data(self, result: Mapping[str, Any]) -> Any:
-        assert result["bytes"] is not None
-        return result["bytes"]
 
     @command
     def set_extra_headers(

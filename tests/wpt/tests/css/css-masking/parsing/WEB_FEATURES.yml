@@ -8,3 +8,6 @@ features:
   - mask-invalid.html
   - mask-position-*
   - mask-repeat-*
+- name: mask-type
+  files:
+  - mask-type-*

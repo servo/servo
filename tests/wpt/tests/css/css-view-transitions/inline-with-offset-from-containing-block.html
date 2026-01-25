@@ -4,13 +4,15 @@
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
 <link rel="author" href="mailto:khushalsagar@chromium.org">
 <link rel="match" href="inline-with-offset-from-containing-block-ref.html">
-<meta name="fuzzy" content="maxDifference=0-255; totalPixels=0-1633">
+<meta name="fuzzy" content="maxDifference=0-112; totalPixels=0-464">
 
 <script src="/common/reftest-wait.js"></script>
 <script src="/common/rendering-utils.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
 <style>
   :root {
     scrollbar-width: none;
+    font: 20px/1 Ahem;
   }
   .outer {
     transform: scale(2);
@@ -43,7 +45,7 @@
 </style>
 
 <div class="outer">
-  <a class="inner">Some text</a>
+  <a class="inner">A B</a>
 </div>
 
 <script>

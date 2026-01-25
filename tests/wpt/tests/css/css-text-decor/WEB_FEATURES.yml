@@ -5,3 +5,17 @@ features:
 - name: text-underline-offset
   files:
   - text-underline-offset-*
+- name: text-decoration
+  files:
+  - "*text-decoration-*"
+  - "!text-decoration-line-014.xht"
+  - "!text-decoration-color-selection-*"
+- name: text-decoration-line-blink
+  files:
+  - text-decoration-line-014.xht
+- name: text-decoration-selection
+  files:
+  - "text-decoration-color-selection-*"
+- name: text-underline-position
+  files:
+  - text-underline-position-*

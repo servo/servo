@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="timeout" content="long">
+  <meta http-equiv="Content-Security-Policy" content="connect-src 'self' 'unsafe-webtransport-hashes' https://{{domains[www1]}}:{{ports[webtransport-h3][0]}}/webtransport/handlers/echo.py; script-src 'self' 'unsafe-inline';">
+  <title>connect-src-webtransport-hashes</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<script>
+
+const url1 = "https://{{domains[www1]}}:{{ports[webtransport-h3][0]}}/webtransport/handlers/echo.py";
+const url2 = url1.replace("www1", "www2");
+
+const serverCertificateHashes = [
+  {algorithm: "sha-256", value: new Uint8Array(32)}
+];
+
+[
+  {url: url1, options: {}},
+  {url: url2, options: {}, expected: "connect-src"},
+  {url: url2, options: {serverCertificateHashes}},
+].forEach(({url, options, expected}) => promise_test(async t => {
+  const haveViolation = new Promise(r => window.onsecuritypolicyviolation = r);
+  try {
+    const wt = new WebTransport(url, options);
+    t.add_cleanup(() => wt.close());
+    wt.closed.catch(() => {});
+    await wt.ready;
+    assert_equals(expected, undefined, "allowed");
+  } catch (e) {
+    if (e.name != "WebTransportError") throw e;
+    const timeout = new Promise(r => t.step_timeout(() => r({}), 1000));
+    const {violatedDirective} = await Promise.race([haveViolation, timeout]);
+    assert_equals(violatedDirective, expected);
+  }
+}, `CSP connect-src url webtransport-hashes vs ${Object.keys(options)[0] || "WebTransport"}. Expecting ${expected}`));
+
+</script>
+</html>

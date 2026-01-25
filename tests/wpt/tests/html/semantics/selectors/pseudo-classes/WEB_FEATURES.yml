@@ -14,6 +14,13 @@ features:
   files:
   - checked-indeterminate.window.js
   - indeterminate*
+- name: input-selectors
+  files:
+  - checked-001-manual.html
+  - checked-type-change.html
+  - checked.html
+  - disabled.html
+  - enabled.html
 - name: placeholder-shown
   files:
   - placeholder-shown-type-change.html

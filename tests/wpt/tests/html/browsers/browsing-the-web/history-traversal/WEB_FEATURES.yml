@@ -1,3 +1,9 @@
 features:
 - name: history
-  files: "**"
+  files:
+  - "*"
+  # keep exclusions synced with mappings below
+  - "!hashchange_event.html"
+- name: hashchange
+  files:
+  - hashchange_event.html

@@ -1,4 +1,63 @@
 features:
+- name: selectors
+  files:
+  - '*'
+  # Exclude files mapped to specific selector features below
+  - '!dir-pseudo-*'
+  - '!dir-selector-*'
+  - '!dir-style-*'
+  - '!selectors-empty-001.xml'
+  - '!focus-visible-*'
+  - '!focus-within-*'
+  - '!has-*'
+  - '!selector-read-write-*'
+  - '!scope-*'
+  - '!modal-pseudo-class.html'
+  - '!not-*'
+  - '!first-child.html'
+  - '!last-child.html'
+  - '!only-child.html'
+  - '!nth-child-spurious-brace-crash.html'
+  - '!child-indexed-no-parent.html'
+  - '!nth-child-of-*'
+  - '!nth-child-and-nth-last-child.html'
+  - '!nth-child-specificity-*'
+  - '!nth-last-child-of-*'
+  - '!nth-last-child-specificity-*'
+  - '!nth-last-child-invalid.html'
+  - '!first-of-type.html'
+  - '!last-of-type.html'
+  - '!only-of-type.html'
+  - '!nth-of-type-namespace.html'
+  - '!user-invalid.html'
+  - '!user-valid.html'
+  - '!caret-color-visited-inheritance.html'
+  - '!hover-001-manual.html'
+  - '!hover-002.html'
+  - '!remove-hovered-element.html'
+  - '!focus-display-none-001.html'
+  - '!root-siblings.html'
+  - '!open-pseudo.html'
+  - '!heading.html'
+  - '!featureless-001.html'
+  - '!featureless-002.html'
+  - '!featureless-003.html'
+  - '!is-default-ns-*'
+  - '!is-nested.html'
+  - '!is-specificity.html'
+  - '!is-specificity-shadow.html'
+  - '!pseudo-where-crash.html'
+  - '!selection-image-001.html'
+  - '!valid-invalid-form-fieldset.html'
+  - '!selector-required.html'
+  - '!selector-required-type-change-*'
+  - '!pseudo-enabled-disabled.html'
+  # Exclude placeholder-shown tests (placeholder-shown feature), remove comment when #56691 is merged
+  - '!placeholder-shown.html'
+  - '!selector-placeholder-shown-*'
+  # Also exclude is-where-* tests (see TODO comment below)
+  - '!is-where-*'
+# Keep all additional mappings synced with `selectors` exclusions above
 - name: dir-pseudo
   files:
   - dir-pseudo-*
@@ -100,3 +159,6 @@ features:
   - valid-invalid-form-fieldset.html
   - selector-required.html
   - selector-required-type-change-*
+- name: input-selectors
+  files:
+  - pseudo-enabled-disabled.html

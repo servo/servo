@@ -3,14 +3,20 @@
 // (https://github.com/w3c/webref)
 // Source: MediaStreamTrack Insertable Media Processing using Streams (https://w3c.github.io/mediacapture-transform/)
 
+[Exposed=(Window,DedicatedWorker), Transferable]
+interface MediaStreamTrackHandle {
+   constructor(MediaStreamTrack track);
+};
+
 [Exposed=DedicatedWorker]
 interface MediaStreamTrackProcessor {
     constructor(MediaStreamTrackProcessorInit init);
     readonly attribute ReadableStream readable;
 };
 
+typedef (MediaStreamTrack or MediaStreamTrackHandle) MediaStreamTrackOrHandle;
 dictionary MediaStreamTrackProcessorInit {
-  required MediaStreamTrack track;
+  required MediaStreamTrackOrHandle track;
   [EnforceRange] unsigned short maxBufferSize;
 };
 

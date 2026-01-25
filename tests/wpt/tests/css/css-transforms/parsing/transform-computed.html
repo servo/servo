@@ -18,10 +18,19 @@
 <body>
 <div id="target"></div>
 <script>
-test_computed_value("transform", "perspective(none)", "matrix(1, 0, 0, 1, 0, 0)");
-test_computed_value("transform", "perspective(10px)", "matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -0.1, 0, 0, 0, 1)");
-
-// FIXME: This needs more tests to cover all the other transform functions.
+let props = ["transform"];
+if (CSS.supports("-webkit-transform", "none")) {
+  props.push("-webkit-transform");
+}
+if (CSS.supports("-moz-transform", "none")) {
+  props.push("-moz-transform");
+}
+for (let prop of props) {
+  test_computed_value(prop, "perspective(none)", "matrix(1, 0, 0, 1, 0, 0)");
+  test_computed_value(prop, "perspective(10px)", "matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, -0.1, 0, 0, 0, 1)");
+  test_computed_value(prop, "matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)", "matrix(1, 0, 0, 1, 0, 0)");
+  // FIXME: This needs more tests to cover all the other transform functions.
+}
 </script>
 </body>
 </html>

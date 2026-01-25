@@ -1219,7 +1219,7 @@ class MockRuntime {
       // The JavaScript bindings convert c_style_names to camelCase names.
       const options = {
         transportMethod:
-            vrMojom.XRPresentationTransportMethod.SUBMIT_AS_MAILBOX_HOLDER,
+            vrMojom.XRPresentationTransportMethod.SUBMIT_AS_TEST,
         waitForTransferNotification: true,
         waitForRenderNotification: true,
         waitForGpuFence: false,

@@ -21,6 +21,29 @@ features:
   - HTMLLinkElement-disabled-006.html
   - HTMLLinkElement-disabled-007.html
   - HTMLLinkElement-disabled-alternate.html
+- name: get-computed-style
+  files:
+  - computed-style-001.html
+  - computed-style-set-property.html
+  - getComputedStyle-animations-replaced-into-ib-split.html
+  - getComputedStyle-detached-subtree.html
+  - getComputedStyle-display-none-001.html
+  - getComputedStyle-display-none-002.html
+  - getComputedStyle-display-none-003.html
+  - getComputedStyle-dynamic-subdoc.html
+  - getComputedStyle-getter-v-properties.tentative.html
+  - getComputedStyle-insets-absolute-crash.html
+  - getComputedStyle-insets-absolute-logical-crash.html
+  - getComputedStyle-insets-multicol-absolute-crash.html
+  - getComputedStyle-layout-dependent-removed-ib-sibling.html
+  - getComputedStyle-layout-dependent-replaced-into-ib-split.html
+  - getComputedStyle-logical-enumeration.html
+  - getComputedStyle-property-order.html
+  - getComputedStyle-pseudo.html
+  - getComputedStyle-pseudo-checkmark.html
+  - getComputedStyle-pseudo-picker-icon.html
+  - getComputedStyle-pseudo-with-argument.html
+  - getComputedStyle-special-chars-crash.html
 - name: font-face
   files:
   - CSSFontFaceRule.html
@@ -59,6 +82,9 @@ features:
   - CSSConditionRule-conditionText.html
   # CSSMediaRule:
   - serialize-media-rule.html
+- name: matchmedia
+  files:
+  - mediaquery-sort-dedup.html
 - name: mutationobserver
   files:
   - MutationObserver-style.html

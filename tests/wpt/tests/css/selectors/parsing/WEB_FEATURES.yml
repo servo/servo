@@ -1,4 +1,20 @@
 features:
+- name: selectors
+  files:
+  - '*'
+  - '!parse-focus-visible.html'
+  - '!parse-has.html'
+  - '!parse-has-*'
+  - '!parse-state.html'
+  - '!parse-has-slotted.tentative.html'
+  - '!parse-not.html'
+  - '!parse-part.html'
+  - '!parse-heading.html'
+  - '!parse-is.html'
+  - '!parse-where.html'
+  - '!parse-is-where.html'
+  - '!parse-slotted.html'
+# Keep all mappings below synced with selectors exclusions above
 - name: focus-visible
   files:
   - parse-focus-visible.html
@@ -18,12 +34,14 @@ features:
 - name: shadow-parts
   files:
   - parse-part.html
+  - parse-slotted.html
 - name: heading-selectors
   files:
   - parse-heading.html
 - name: is
   files:
   - parse-is.html
+  - parse-is-where.html
 - name: where
   files:
   - parse-where.html

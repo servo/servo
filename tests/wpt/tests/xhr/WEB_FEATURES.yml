@@ -4,3 +4,24 @@ features:
 - name: base
   files:
   - open-url-base.htm
+# The classifier for "http-authentication" intentionally overlaps with the
+# above classifier for "xhr" because the boundary between the two features is
+# somewhat subjective.
+- name: http-authentication
+  files:
+  - send-authentication-basic-cors-not-enabled.htm
+  - send-authentication-basic-repeat-no-args.htm
+  - send-authentication-basic-setrequestheader-and-arguments.htm
+  - send-authentication-basic-setrequestheader-existing-session.htm
+  - send-authentication-basic-setrequestheader.htm
+  - send-authentication-basic.htm
+  - send-authentication-competing-names-passwords.htm
+  - send-authentication-existing-session-manual.htm
+  - send-authentication-prompt-2-manual.htm
+  - send-authentication-prompt-manual.htm
+# The classifier for "httpt2" intentionally overlaps with the above classifier
+# for "xhr" because the boundary between the two features is somewhat
+# subjective.
+- name: http2
+  files:
+  - status.h2.window.js

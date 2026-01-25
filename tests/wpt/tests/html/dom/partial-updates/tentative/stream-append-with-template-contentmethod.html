@@ -8,7 +8,7 @@
 <div contentname=p id="placeholder">Old content</div>
 <script>
 promise_test(async t => {
-    const writable = document.body.streamAppendHTMLUnsafe();
+    const writable = document.body.streamAppendHTMLUnsafe({runScripts: true});
     const writer = writable.getWriter();
     await writer.write('<template contentmethod="replace-children">');
     await writer.write("<div contentname=p>");

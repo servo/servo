@@ -57,7 +57,7 @@ test((t) => {
   );
 }, "Textarea wrapping transformation: Wrapping happens with LF newlines.");
 
-function assert_roundtrips(text) {
+function assert_roundtrips(text, exact = false) {
   test((t) => {
     const form = document.createElement("form");
     const textarea = document.createElement("textarea");
@@ -71,6 +71,9 @@ function assert_roundtrips(text) {
     });
     textarea.value = text;
     const formDataValue = new FormData(form).get("wrapTest");
+    if (exact) {
+      assert_equals(formDataValue, text, "Text expected to match");
+    }
     textarea.value = formDataValue;
     const newFormDataValue = new FormData(form).get("wrapTest");
     assert_equals(formDataValue, newFormDataValue, "Value should round-trip");
@@ -79,4 +82,6 @@ function assert_roundtrips(text) {
 
 assert_roundtrips("Some text that is too long for the specified character width.");
 assert_roundtrips("Some text that is too long for the\n\n\nspecified character width.");
-assert_roundtrips("exact  len");
+assert_roundtrips("exact  len", /* exact = */ true);
+assert_roundtrips("exact  len\nand then\nsome", /* exact = */ true);
+assert_roundtrips("One\ntwo\nthree\intermingled\n\nlines\nand so", /* exact = */ true);
