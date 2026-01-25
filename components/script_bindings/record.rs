@@ -42,7 +42,7 @@ impl RecordKey for DOMString {
     unsafe fn from_id(cx: *mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()> {
         match jsid_to_string(cx, id) {
             Some(s) => Ok(ConversionResult::Success(s)),
-            None => Ok(ConversionResult::Failure("Failed to get DOMString".into())),
+            None => Ok(ConversionResult::Failure(c"Failed to get DOMString".into())),
         }
     }
 }
@@ -119,7 +119,7 @@ where
     ) -> Result<ConversionResult<Self>, ()> {
         if !value.is_object() {
             return Ok(ConversionResult::Failure(
-                "Record value was not an object".into(),
+                c"Record value was not an object".into(),
             ));
         }
 
