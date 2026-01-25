@@ -8,7 +8,7 @@ use std::sync::Arc;
 use app_units::{AU_PER_PX, Au};
 use base::id::ScrollTreeNodeId;
 use clip::{Clip, ClipId};
-use euclid::{Point2D, Scale, SideOffsets2D, Size2D, Rect, UnknownUnit, Vector2D};
+use euclid::{Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
 use net_traits::image_cache::Image as CachedImage;
