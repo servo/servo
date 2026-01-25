@@ -12,6 +12,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::rc::Rc;
 
+use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::jsapi::{HandleValue as RawHandleValue, IsCyclicModule, JSObject, ModuleType};
 use js::jsval::{ObjectValue, UndefinedValue};
@@ -21,6 +22,7 @@ use js::rust::wrappers2::{
     GetRequestedModulesCount, JS_GetModulePrivate, ModuleEvaluate, ModuleLink,
 };
 use js::rust::{HandleValue, IntoHandle};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, Referrer};
 use script_bindings::settings_stack::run_a_callback;
 use servo_url::ServoUrl;
@@ -64,6 +66,8 @@ pub(crate) struct LoadState {
     #[no_trace]
     pub(crate) destination: Destination,
     pub(crate) fetch_client: ModuleOwner,
+    #[no_trace]
+    pub(crate) policy_container: Option<PolicyContainer>,
 }
 
 /// <https://tc39.es/ecma262/#graphloadingstate-record>
@@ -511,69 +515,82 @@ pub(crate) fn host_load_imported_module(
         ),
     };
 
-    let on_single_fetch_complete = move |module_tree: Option<Rc<ModuleTree>>| {
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let mut realm = CurrentRealm::assert(&mut cx);
-        let cx = &mut realm;
+    let policy_container = load_state
+        .clone()
+        .and_then(|state| state.policy_container.clone());
 
-        // Step 1. Let completion be null.
-        let completion = match module_tree {
-            // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
-            None => Err(gen_type_error(
-                &global_scope,
-                Error::Type(c"Module fetching failed".to_owned()),
-                CanGc::from_cx(cx),
-            )),
-            Some(module_tree) => {
-                // Step 3. Otherwise, if moduleScript's parse error is not null, then:
-                // Step 3.1 Let parseError be moduleScript's parse error.
-                if let Some(parse_error) = module_tree.get_parse_error() {
-                    // Step 3.3 If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
-                    // set loadState.[[ErrorToRethrow]] to parseError.
-                    load_state.as_ref().inspect(|load_state| {
-                        load_state
-                            .error_to_rethrow
-                            .borrow_mut()
-                            .get_or_insert(parse_error.clone());
-                    });
+    let on_single_fetch_complete =
+        move |cx: &mut JSContext, module_tree: Option<Rc<ModuleTree>>| {
+            // Step 1. Let completion be null.
+            let completion = match module_tree {
+                // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
+                None => Err(gen_type_error(
+                    &global_scope,
+                    Error::Type(c"Module fetching failed".to_owned()),
+                    CanGc::from_cx(cx),
+                )),
+                Some(module_tree) => {
+                    // Step 3. Otherwise, if moduleScript's parse error is not null, then:
+                    // Step 3.1 Let parseError be moduleScript's parse error.
+                    if let Some(parse_error) = module_tree.get_parse_error() {
+                        // Step 3.3 If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
+                        // set loadState.[[ErrorToRethrow]] to parseError.
+                        load_state.as_ref().inspect(|load_state| {
+                            load_state
+                                .error_to_rethrow
+                                .borrow_mut()
+                                .get_or_insert(parse_error.clone());
+                        });
 
-                    // Step 3.2 Set completion to ThrowCompletion(parseError).
-                    Err(parse_error.clone())
-                } else {
-                    // Step 4. Otherwise, set completion to NormalCompletion(moduleScript's record).
-                    Ok(module_tree)
-                }
-            },
+                        // Step 3.2 Set completion to ThrowCompletion(parseError).
+                        Err(parse_error.clone())
+                    } else {
+                        // Step 4. Otherwise, set completion to NormalCompletion(moduleScript's record).
+                        Ok(module_tree)
+                    }
+                },
+            };
+
+            // Step 5. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, completion).
+            let mut realm = CurrentRealm::assert(cx);
+            finish_loading_imported_module(
+                &mut realm,
+                referrer_module,
+                specifier,
+                payload,
+                completion,
+            );
         };
-
-        // Step 5. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, completion).
-        finish_loading_imported_module(cx, referrer_module, specifier, payload, completion);
-    };
 
     // Step 14 Fetch a single imported module script given url, fetchClient, destination, fetchOptions, settingsObject,
     // fetchReferrer, moduleRequest, and onSingleFetchComplete as defined below.
     // If loadState is not undefined and loadState.[[PerformFetch]] is not null, pass loadState.[[PerformFetch]] along as well.
     // Note: we don't have access to the requested `ModuleObject`, so we pass only its type.
     fetch_a_single_imported_module_script(
+        cx,
         url,
         fetch_client,
         destination,
         fetch_options,
         fetch_referrer,
         module_type,
+        policy_container,
         on_single_fetch_complete,
     );
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-single-imported-module-script>
+#[expect(clippy::too_many_arguments)]
 fn fetch_a_single_imported_module_script(
+    cx: &mut JSContext,
     url: ServoUrl,
     owner: ModuleOwner,
     destination: Destination,
     options: ScriptFetchOptions,
     referrer: Referrer,
     module_type: ModuleType,
-    on_complete: impl FnOnce(Option<Rc<ModuleTree>>) + 'static,
+    policy_container: Option<PolicyContainer>,
+    on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + 'static,
 ) {
     // TODO Step 1. Assert: moduleRequest.[[Attributes]] does not contain any Record entry such that entry.[[Key]] is not "type",
     // because we only asked for "type" attributes in HostGetSupportedImportAttributes.
@@ -583,14 +600,16 @@ fn fetch_a_single_imported_module_script(
     // Step 3. If the result of running the module type allowed steps given moduleType and settingsObject is false,
     // then run onComplete given null, and return.
     match module_type {
-        ModuleType::Unknown => return on_complete(None),
+        ModuleType::Unknown => return on_complete(cx, None),
         ModuleType::JavaScript | ModuleType::JSON => (),
     }
 
     // Step 4. Fetch a single module script given url, fetchClient, destination, options, settingsObject, referrer,
     // moduleRequest, false, and onComplete. If performFetch was given, pass it along as well.
     fetch_a_single_module_script(
+        cx,
         url,
+        None,
         owner,
         destination,
         options,
@@ -598,6 +617,7 @@ fn fetch_a_single_imported_module_script(
         Some(module_type),
         false,
         Some(IntroductionType::IMPORTED_MODULE),
+        policy_container,
         on_complete,
     );
 }

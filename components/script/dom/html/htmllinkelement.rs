@@ -296,7 +296,7 @@ impl VirtualMethods for HTMLLinkElement {
                 }
 
                 if self.relations.get().contains(LinkRelations::MODULE_PRELOAD) {
-                    self.fetch_and_process_modulepreload(CanGc::from_cx(cx));
+                    self.fetch_and_process_modulepreload(cx);
                 }
             },
             local_name!("href") => {
@@ -335,7 +335,7 @@ impl VirtualMethods for HTMLLinkElement {
 
                 // https://html.spec.whatwg.org/multipage/#link-type-modulepreload
                 if self.relations.get().contains(LinkRelations::MODULE_PRELOAD) {
-                    self.fetch_and_process_modulepreload(CanGc::from_cx(cx));
+                    self.fetch_and_process_modulepreload(cx);
                 }
             },
             local_name!("sizes") if self.relations.get().contains(LinkRelations::ICON) => {
@@ -475,7 +475,7 @@ impl VirtualMethods for HTMLLinkElement {
                     let link = DomRoot::from_ref(self);
                     self.owner_document().add_delayed_task(
                         task!(FetchModulePreload: |cx, link: DomRoot<HTMLLinkElement>| {
-                            link.fetch_and_process_modulepreload(CanGc::from_cx(cx));
+                            link.fetch_and_process_modulepreload(cx);
                         }),
                     );
                 }
@@ -949,7 +949,7 @@ impl HTMLLinkElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#link-type-modulepreload:fetch-and-process-the-linked-resource-2>
-    fn fetch_and_process_modulepreload(&self, can_gc: CanGc) {
+    fn fetch_and_process_modulepreload(&self, cx: &mut JSContext) {
         let el = self.upcast::<Element>();
         let href_attribute_value = el.get_string_attribute(&local_name!("href"));
 
@@ -1039,16 +1039,24 @@ impl HTMLLinkElement {
 
         // Step 14. Fetch a modulepreload module script graph given url, destination, settings object, options,
         // and with the following steps given result:
-        fetch_a_modulepreload_module(url, destination, &global, options, move |fetch_failed| {
-            // Step 1. If result is null, then fire an event named error at el, and return.
-            // Step 2. Fire an event named load at el.
-            let event = match fetch_failed {
-                true => atom!("error"),
-                false => atom!("load"),
-            };
+        fetch_a_modulepreload_module(
+            cx,
+            url,
+            destination,
+            &global,
+            options,
+            move |cx, fetch_failed| {
+                // Step 1. If result is null, then fire an event named error at el, and return.
+                // Step 2. Fire an event named load at el.
+                let event = match fetch_failed {
+                    true => atom!("error"),
+                    false => atom!("load"),
+                };
 
-            link.upcast::<EventTarget>().fire_event(event, can_gc);
-        });
+                link.upcast::<EventTarget>()
+                    .fire_event(event, CanGc::from_cx(cx));
+            },
+        );
     }
 }
 
