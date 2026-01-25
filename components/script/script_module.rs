@@ -20,12 +20,12 @@ use indexmap::map::Entry;
 use js::conversions::jsstr_to_string;
 use js::gc::MutableHandleValue;
 use js::jsapi::{
-    CompileModule1, ExceptionStackBehavior, GetModuleRequestSpecifier, GetModuleResolveHook,
-    Handle as RawHandle, HandleValue as RawHandleValue, Heap, JS_ClearPendingException,
-    JS_DefineProperty4, JS_NewStringCopyN, JSAutoRealm, JSContext, JSObject, JSPROP_ENUMERATE,
-    JSRuntime, ModuleErrorBehaviour, SetModuleDynamicImportHook, SetModuleMetadataHook,
-    SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks,
-    ThrowOnModuleEvaluationFailure, Value,
+    CompileModule1, ExceptionStackBehavior, GetModuleRequestSpecifier, GetModuleRequestType,
+    GetModuleResolveHook, Handle as RawHandle, HandleValue as RawHandleValue, Heap,
+    JS_ClearPendingException, JS_DefineProperty4, JS_NewStringCopyN, JSAutoRealm, JSContext,
+    JSObject, JSPROP_ENUMERATE, JSRuntime, ModuleErrorBehaviour, ModuleType,
+    SetModuleDynamicImportHook, SetModuleMetadataHook, SetModulePrivate, SetModuleResolveHook,
+    SetScriptPrivateReferenceHooks, ThrowOnModuleEvaluationFailure, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::realm::CurrentRealm;
@@ -159,6 +159,8 @@ impl ModuleScript {
     }
 }
 
+pub(crate) type ModuleRequest = (ServoUrl, ModuleType);
+
 #[derive(Clone, JSTraceable)]
 pub(crate) enum ModuleStatus {
     Fetching(DomRefCell<Option<Rc<Promise>>>),
@@ -204,11 +206,12 @@ impl ModuleTree {
         &self,
         global: &GlobalScope,
         specifier: &String,
+        module_type: ModuleType,
     ) -> Option<Rc<ModuleTree>> {
         self.loaded_modules
             .borrow()
             .get(specifier)
-            .and_then(|url| global.get_module_map_entry(url))
+            .and_then(|url| global.get_module_map_entry(&(url.clone(), module_type)))
             .and_then(|status| match status {
                 ModuleStatus::Fetching(_) => None,
                 ModuleStatus::Loaded(module_tree) => module_tree,
@@ -636,8 +639,8 @@ struct ModuleContext {
     data: Vec<u8>,
     /// The response metadata received to date.
     metadata: Option<Metadata>,
-    /// The initial URL requested.
-    url: ServoUrl,
+    /// Url and type of the requested module.
+    module_request: ModuleRequest,
     /// Options for the current script fetch
     options: ScriptFetchOptions,
     /// Indicates whether the request failed, and why
@@ -696,16 +699,19 @@ impl FetchResponseListener for ModuleContext {
         timing: ResourceFetchTiming,
     ) {
         let global = self.owner.global();
+        let (url, module_type) = &self.module_request;
 
         if let Some(window) = global.downcast::<Window>() {
             window
                 .Document()
-                .finish_load(LoadType::Script(self.url.clone()), CanGc::note());
+                .finish_load(LoadType::Script(url.clone()), CanGc::note());
         }
 
         network_listener::submit_timing(&self, &response, &timing, CanGc::note());
 
-        let Some(ModuleStatus::Fetching(pending)) = global.get_module_map_entry(&self.url) else {
+        let Some(ModuleStatus::Fetching(pending)) =
+            global.get_module_map_entry(&self.module_request)
+        else {
             return error!("Processing response for a non pending module request");
         };
         let promise = pending
@@ -717,7 +723,7 @@ impl FetchResponseListener for ModuleContext {
         // then set moduleMap[(url, moduleType)] to null, run onComplete given null, and abort these steps.
         if let (Err(error), _) | (_, Err(error)) = (response.as_ref(), self.status.as_ref()) {
             error!("Fetching module script failed {:?}", error);
-            global.set_module_map(self.url.clone(), ModuleStatus::Loaded(None));
+            global.set_module_map(self.module_request, ModuleStatus::Loaded(None));
             return promise.resolve_native(&(), CanGc::note());
         }
 
@@ -751,7 +757,9 @@ impl FetchResponseListener for ModuleContext {
 
         // Step 7.2 If mimeType is a JavaScript MIME type and moduleType is "javascript-or-wasm", then set moduleScript
         // to the result of creating a JavaScript module script given sourceText, settingsObject, response's URL, and options.
-        if mime_type.is_some_and(|mime| SCRIPT_JS_MIMES.contains(&mime.essence_str())) {
+        if mime_type.is_some_and(|mime| SCRIPT_JS_MIMES.contains(&mime.essence_str())) &&
+            let ModuleType::JavaScript = module_type
+        {
             if let Some(window) = global.downcast::<Window>() {
                 substitute_with_local_script(window, &mut source_text, final_url.clone());
             }
@@ -768,9 +776,9 @@ impl FetchResponseListener for ModuleContext {
             ));
             module_script = Some(module_tree);
         }
-        global.set_module_map(self.url.clone(), ModuleStatus::Loaded(module_script));
 
         // Step 8. Set moduleMap[(url, moduleType)] to moduleScript, and run onComplete given moduleScript.
+        global.set_module_map(self.module_request, ModuleStatus::Loaded(module_script));
         promise.resolve_native(&(), CanGc::note());
     }
 
@@ -783,7 +791,8 @@ impl FetchResponseListener for ModuleContext {
 impl ResourceTimingListener for ModuleContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         let initiator_type = InitiatorType::LocalName("module".to_string());
-        (initiator_type, self.url.clone())
+        let (url, _) = &self.module_request;
+        (initiator_type, url.clone())
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
@@ -838,10 +847,19 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     let promise = Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx);
 
     let jsstr = ptr::NonNull::new(unsafe { GetModuleRequestSpecifier(*cx, specifier) }).unwrap();
+    let module_type = unsafe { GetModuleRequestType(*cx, specifier) };
     let specifier = unsafe { jsstr_to_string(*cx, jsstr) };
 
     let payload = Payload::PromiseRecord(promise.clone());
-    host_load_imported_module(cx, None, reference_private, specifier, None, payload);
+    host_load_imported_module(
+        cx,
+        None,
+        reference_private,
+        specifier,
+        module_type,
+        None,
+        payload,
+    );
 
     true
 }
@@ -913,6 +931,7 @@ unsafe extern "C" fn HostResolveImportedModule(
     let module_data = unsafe { module_script_from_reference_private(&reference_private) };
     let jsstr =
         std::ptr::NonNull::new(unsafe { GetModuleRequestSpecifier(cx, specifier) }).unwrap();
+    let module_type = unsafe { GetModuleRequestType(cx, specifier) };
 
     let specifier = DOMString::from_string(unsafe { jsstr_to_string(cx, jsstr) });
     let url =
@@ -924,7 +943,7 @@ unsafe extern "C" fn HostResolveImportedModule(
     let parsed_url = url.unwrap();
 
     // Step 4 & 7.
-    let module = global_scope.get_module_map_entry(&parsed_url);
+    let module = global_scope.get_module_map_entry(&(parsed_url, module_type));
 
     // Step 9.
     assert!(module.as_ref().is_some_and(
@@ -1004,6 +1023,7 @@ pub(crate) fn fetch_an_external_module_script(
         Destination::Script,
         options,
         referrer,
+        None,
         true,
         Some(IntroductionType::SRC_SCRIPT),
         move |module_tree| {
@@ -1149,23 +1169,25 @@ pub(crate) fn fetch_a_single_module_script(
     destination: Destination,
     options: ScriptFetchOptions,
     referrer: Referrer,
+    module_type: Option<ModuleType>,
     is_top_level: bool,
     introduction_type: Option<&'static CStr>,
     on_complete: impl FnOnce(Option<Rc<ModuleTree>>) + 'static,
 ) {
     let global = owner.global();
 
-    // TODO Step 1. Let moduleType be "javascript-or-wasm".
-
-    // TODO Step 2. If moduleRequest was given, then set moduleType to the result of running the
+    // Step 1. Let moduleType be "javascript-or-wasm".
+    // Step 2. If moduleRequest was given, then set moduleType to the result of running the
     // module type from module request steps given moduleRequest.
+    let module_type = module_type.unwrap_or(ModuleType::JavaScript);
 
     // TODO Step 3. Assert: the result of running the module type allowed steps given moduleType and settingsObject is true.
     // Otherwise, we would not have reached this point because a failure would have been raised
     // when inspecting moduleRequest.[[Attributes]] in HostLoadImportedModule or fetch a single imported module script.
 
     // Step 4. Let moduleMap be settingsObject's module map.
-    let entry = global.get_module_map_entry(&url);
+    let module_request = (url.clone(), module_type.clone());
+    let entry = global.get_module_map_entry(&module_request);
 
     let pending = match entry {
         Some(ModuleStatus::Fetching(pending)) => pending,
@@ -1177,11 +1199,11 @@ pub(crate) fn fetch_a_single_module_script(
     };
 
     let global_scope = DomRoot::from_ref(&*global);
-    let request_url = url.clone();
+    let module_map_key = module_request.clone();
     let handler = ModuleHandler::new_boxed(Box::new(
         task!(fetch_completed: |global_scope: DomRoot<GlobalScope>| {
-            let url = request_url;
-            let module = global_scope.get_module_map_entry(&url);
+            let key = module_map_key;
+            let module = global_scope.get_module_map_entry(&key);
 
             if let Some(ModuleStatus::Loaded(module_tree)) = module {
                 on_complete(module_tree);
@@ -1208,7 +1230,7 @@ pub(crate) fn fetch_a_single_module_script(
     }
 
     // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
-    global.set_module_map(url.clone(), ModuleStatus::Fetching(pending));
+    global.set_module_map(module_request.clone(), ModuleStatus::Fetching(pending));
 
     let document: Option<DomRoot<Document>> = match &owner {
         ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
@@ -1244,7 +1266,7 @@ pub(crate) fn fetch_a_single_module_script(
         owner,
         data: vec![],
         metadata: None,
-        url: url.clone(),
+        module_request,
         options,
         status: Ok(()),
         introduction_type,
