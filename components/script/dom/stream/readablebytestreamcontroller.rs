@@ -14,27 +14,25 @@ use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue};
 use js::typedarray::{ArrayBufferU8, ArrayBufferViewU8};
 
-use super::bindings::buffer_source::HeapBufferSource;
-use super::bindings::cell::DomRefCell;
-use super::bindings::reflector::reflect_dom_object;
-use super::bindings::root::Dom;
 use super::readablestreambyobreader::ReadIntoRequest;
 use super::readablestreamdefaultreader::ReadRequest;
 use super::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
 use crate::dom::bindings::buffer_source::{
-    Constructor, byte_size, create_array_buffer_with_size, create_buffer_source_with_constructor,
+    Constructor, HeapBufferSource, byte_size, create_array_buffer_with_size,
+    create_buffer_source_with_constructor,
 };
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ReadableByteStreamControllerBinding::ReadableByteStreamControllerMethods;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::readablestream::ReadableStream;
-use crate::dom::readablestreambyobrequest::ReadableStreamBYOBRequest;
+use crate::dom::stream::readablestream::ReadableStream;
+use crate::dom::stream::readablestreambyobrequest::ReadableStreamBYOBRequest;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -267,6 +265,7 @@ impl ReadableByteStreamController {
         )
     }
 
+    #[allow(dead_code)]
     pub(crate) fn set_stream(&self, stream: &ReadableStream) {
         self.stream.set(Some(stream))
     }

@@ -11,19 +11,18 @@ use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::HandleValue as SafeHandleValue;
 use js::typedarray::ArrayBufferViewU8;
 
-use super::bindings::buffer_source::HeapBufferSource;
-use super::bindings::root::{DomRoot, MutNullableDom};
 use super::byteteereadintorequest::ByteTeeReadIntoRequest;
 use super::readablestream::ReaderType;
 use super::readablestreambyobreader::ReadIntoRequest;
-use super::types::ReadableStream;
+use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::Dom;
-use crate::dom::byteteereadrequest::ByteTeeReadRequest;
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::readablestreamdefaultreader::ReadRequest;
+use crate::dom::stream::byteteereadrequest::ByteTeeReadRequest;
+use crate::dom::stream::readablestreamdefaultreader::ReadRequest;
+use crate::dom::types::ReadableStream;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]

@@ -16,23 +16,25 @@ use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue}
 use js::typedarray::{ArrayBufferView, ArrayBufferViewU8};
 use script_bindings::root::Dom;
 
-use super::bindings::buffer_source::{BufferSource, HeapBufferSource};
-use super::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderReadOptions;
-use super::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamReadResult;
-use super::bindings::reflector::reflect_dom_object;
 use super::byteteereadintorequest::ByteTeeReadIntoRequest;
-use super::promisenativehandler::{Callback, PromiseNativeHandler};
 use super::readablebytestreamcontroller::ReadableByteStreamController;
 use super::readablestreamgenericreader::ReadableStreamGenericReader;
+use crate::dom::bindings::buffer_source::{BufferSource, HeapBufferSource};
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::ReadableStreamBYOBReaderMethods;
+use crate::dom::bindings::codegen::Bindings::ReadableStreamBYOBReaderBinding::{
+    ReadableStreamBYOBReaderMethods, ReadableStreamBYOBReaderReadOptions,
+};
+use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamReadResult;
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{
+    DomGlobal, Reflector, reflect_dom_object, reflect_dom_object_with_proto,
+};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::readablestream::ReadableStream;
+use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
+use crate::dom::stream::readablestream::ReadableStream;
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 

@@ -11,15 +11,15 @@ use js::jsapi::{CallArgs, JSContext};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleObject;
 
-use super::bindings::codegen::Bindings::FunctionBinding::Function;
-use super::bindings::codegen::Bindings::QueuingStrategyBinding::{
+use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{
     ByteLengthQueuingStrategyMethods, QueuingStrategyInit,
 };
-use super::bindings::error::Fallible;
-use super::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
-use super::bindings::root::DomRoot;
-use super::types::GlobalScope;
+use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::get_dictionary_property;
+use crate::dom::types::GlobalScope;
 use crate::native_fn;
 use crate::script_runtime::CanGc;
 

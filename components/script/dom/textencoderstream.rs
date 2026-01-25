@@ -26,7 +26,7 @@ use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::transformstreamdefaultcontroller::TransformerType;
+use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::types::{GlobalScope, TransformStream, TransformStreamDefaultController};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::{DomTypeHolder, DomTypes};

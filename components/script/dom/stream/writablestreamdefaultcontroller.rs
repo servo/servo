@@ -12,9 +12,8 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue, IntoHandle};
 
-use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
-use super::types::TransformStream;
 use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::bindings::codegen::Bindings::UnderlyingSinkBinding::{
     UnderlyingSinkAbortCallback, UnderlyingSinkCloseCallback, UnderlyingSinkStartCallback,
     UnderlyingSinkWriteCallback,
@@ -28,8 +27,8 @@ use crate::dom::messageport::MessagePort;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestreamdefaultcontroller::{EnqueuedValue, QueueWithSizes, ValueWithSize};
-use crate::dom::types::{AbortController, AbortSignal};
-use crate::dom::writablestream::WritableStream;
+use crate::dom::stream::writablestream::WritableStream;
+use crate::dom::types::{AbortController, AbortSignal, TransformStream};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 

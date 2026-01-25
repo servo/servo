@@ -31,7 +31,7 @@ use script_bindings::str::DOMString;
 
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use script_bindings::conversions::{is_array_like, StringificationBehavior};
-use super::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
+use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::abortsignal::{AbortAlgorithm, AbortSignal};
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultReaderBinding::ReadableStreamDefaultReaderMethods;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultController_Binding::ReadableStreamDefaultControllerMethods;
@@ -39,25 +39,25 @@ use crate::dom::bindings::codegen::Bindings::UnderlyingSourceBinding::Underlying
 use crate::dom::bindings::conversions::{ConversionBehavior, ConversionResult, SafeFromJSValConvertible};
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::codegen::GenericBindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriter_Binding::WritableStreamDefaultWriterMethods;
-use crate::dom::writablestream::WritableStream;
+use crate::dom::stream::writablestream::WritableStream;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultReaderOrReadableStreamBYOBReader as ReadableStreamReader;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom, Dom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::get_dictionary_property;
-use crate::dom::byteteeunderlyingsource::{ByteTeeCancelAlgorithm, ByteTeePullAlgorithm, ByteTeeUnderlyingSource};
-use crate::dom::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
-use crate::dom::readablestreamgenericreader::ReadableStreamGenericReader;
+use crate::dom::stream::byteteeunderlyingsource::{ByteTeeCancelAlgorithm, ByteTeePullAlgorithm, ByteTeeUnderlyingSource};
+use crate::dom::stream::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
+use crate::dom::stream::readablestreamgenericreader::ReadableStreamGenericReader;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::{wait_for_all_promise, Promise};
-use crate::dom::readablebytestreamcontroller::ReadableByteStreamController;
-use crate::dom::readablestreambyobreader::ReadableStreamBYOBReader;
-use crate::dom::readablestreamdefaultcontroller::ReadableStreamDefaultController;
-use crate::dom::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
-use crate::dom::defaultteeunderlyingsource::DefaultTeeCancelAlgorithm;
+use crate::dom::stream::readablebytestreamcontroller::ReadableByteStreamController;
+use crate::dom::stream::readablestreambyobreader::ReadableStreamBYOBReader;
+use crate::dom::stream::readablestreamdefaultcontroller::ReadableStreamDefaultController;
+use crate::dom::stream::readablestreamdefaultreader::{ReadRequest, ReadableStreamDefaultReader};
+use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeCancelAlgorithm;
 use crate::dom::types::DefaultTeeUnderlyingSource;
-use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
-use crate::dom::writablestreamdefaultwriter::WritableStreamDefaultWriter;
+use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
+use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use script_bindings::codegen::GenericBindings::MessagePortBinding::MessagePortMethods;
 use crate::dom::messageport::MessagePort;
 use crate::realms::{enter_realm, InRealm};
@@ -66,7 +66,7 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::bindings::structuredclone::StructuredData;
 
-use super::bindings::buffer_source::HeapBufferSource;
+use crate::dom::bindings::buffer_source::HeapBufferSource;
 use super::readablestreambyobreader::ReadIntoRequest;
 
 /// State Machine for `PipeTo`.

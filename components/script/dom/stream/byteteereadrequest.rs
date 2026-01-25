@@ -11,18 +11,16 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::typedarray::ArrayBufferViewU8;
 use script_bindings::error::Fallible;
 
-use super::bindings::reflector::reflect_dom_object;
-use super::bindings::root::DomRoot;
 use super::byteteeunderlyingsource::ByteTeePullAlgorithm;
 use crate::dom::bindings::buffer_source::{BufferSource, HeapBufferSource};
 use crate::dom::bindings::error::{Error, ErrorToJsval};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector};
-use crate::dom::bindings::root::Dom;
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::byteteeunderlyingsource::ByteTeeUnderlyingSource;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::dom::readablestream::ReadableStream;
+use crate::dom::stream::byteteeunderlyingsource::ByteTeeUnderlyingSource;
+use crate::dom::stream::readablestream::ReadableStream;
 use crate::microtask::Microtask;
 use crate::script_runtime::CanGc;
 

@@ -39,7 +39,7 @@ impl AppEvent {
 /// A headed or headless event loop. Headless event loops are necessary for environments without a
 /// display server. Ideally, we could use the headed winit event loop in both modes, but on Linux,
 /// the event loop requires a display server, which prevents running servoshell in a console.
-#[expect(clippy::large_enum_variant)]
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum ServoShellEventLoop {
     /// A real Winit windowing event loop.
     Winit(EventLoop<AppEvent>),

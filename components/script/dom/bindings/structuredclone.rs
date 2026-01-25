@@ -51,12 +51,12 @@ use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::imagedata::ImageData;
 use crate::dom::messageport::MessagePort;
 use crate::dom::offscreencanvas::OffscreenCanvas;
-use crate::dom::readablestream::ReadableStream;
+use crate::dom::stream::readablestream::ReadableStream;
+use crate::dom::stream::writablestream::WritableStream;
 use crate::dom::types::{
     DOMException, DOMMatrix, DOMMatrixReadOnly, DOMQuad, DOMRect, DOMRectReadOnly,
     QuotaExceededError, TransformStream,
 };
-use crate::dom::writablestream::WritableStream;
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
