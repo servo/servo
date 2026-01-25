@@ -26,6 +26,7 @@ use net_traits::request::{
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 
+use crate::conversions::Convert;
 use crate::devtools;
 use crate::dom::abstractworker::{MessageData, SimpleWorkerErrorHandler, WorkerScriptMsg};
 use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
@@ -33,7 +34,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
-use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
+use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerOptions, WorkerType};
 use crate::dom::bindings::error::{ErrorInfo, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -55,6 +56,7 @@ use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::{ScriptFetchContext, WorkerGlobalScope};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::script_module::{ModuleOwner, fetch_a_module_worker_script_graph};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -360,8 +362,7 @@ impl DedicatedWorkerGlobalScope {
         own_sender: Sender<DedicatedWorkerScriptMsg>,
         receiver: Receiver<DedicatedWorkerScriptMsg>,
         worker_load_origin: WorkerScriptLoadOrigin,
-        worker_name: String,
-        worker_type: WorkerType,
+        worker_options: &WorkerOptions,
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
@@ -382,6 +383,10 @@ impl DedicatedWorkerGlobalScope {
         let current_global_ancestor_trustworthy = current_global.has_trustworthy_ancestor_origin();
         let is_secure_context = current_global.is_secure_context();
         let is_nested_browsing_context = current_global.is_nested_browsing_context();
+
+        let worker_type = worker_options.type_;
+        let worker_name = worker_options.name.to_string();
+        let credentials = worker_options.credentials.convert();
 
         thread::Builder::new()
             .name(format!("WW:{}", worker_url.debug_compact()))
@@ -513,13 +518,32 @@ impl DedicatedWorkerGlobalScope {
                     name: TaskSourceName::Networking,
                     canceller: Default::default(),
                 };
-                let context = ScriptFetchContext::new(
-                    Trusted::new(scope),
-                    request.url.clone(),
-                    worker.clone(),
-                    policy_container,
-                );
-                global_scope.fetch(request, context, task_source);
+
+                // Step 12. Obtain script by switching on options["type"]:
+                match worker_type {
+                    WorkerType::Classic => {
+                        let context = ScriptFetchContext::new(
+                            Trusted::new(scope),
+                            request.url.clone(),
+                            worker.clone(),
+                            policy_container,
+                        );
+                        global_scope.fetch(request, context, task_source);
+                    },
+                    WorkerType::Module => {
+                        let _ar = AutoWorkerReset::new(&global, worker.clone());
+
+                        fetch_a_module_worker_script_graph(
+                            request.url,
+                            request.client,
+                            ModuleOwner::Worker(worker.clone(), Trusted::new(scope)),
+                            request.referrer,
+                            credentials,
+                            policy_container,
+                            CanGc::note(),
+                        );
+                    },
+                };
 
                 let reporter_name = format!("dedicated-worker-reporter-{}", worker_id);
                 scope
