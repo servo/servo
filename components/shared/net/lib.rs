@@ -1247,9 +1247,19 @@ impl NetworkError {
     pub fn is_permanent_failure(&self) -> bool {
         matches!(
             self,
-            NetworkError::InvalidPort |
+            NetworkError::ContentSecurityPolicy |
                 NetworkError::MixedContent |
-                NetworkError::ContentSecurityPolicy |
+                NetworkError::SubresourceIntegrity |
+                NetworkError::Nosniff |
+                NetworkError::InvalidPort |
+                NetworkError::CorsGeneral |
+                NetworkError::CrossOriginResponse |
+                NetworkError::CorsCredentials |
+                NetworkError::CorsAllowMethods |
+                NetworkError::CorsAllowHeaders |
+                NetworkError::CorsMethod |
+                NetworkError::CorsAuthorization |
+                NetworkError::CorsHeaders |
                 NetworkError::UnsupportedScheme
         )
     }

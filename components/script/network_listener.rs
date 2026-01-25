@@ -38,23 +38,10 @@ pub(crate) fn submit_timing<T: ResourceTimingListener>(
     // (e.g. mixed content, CORS restriction, CSP policy, etc), then this resource
     // will not be included as a PerformanceResourceTiming object in
     // the Performance Timeline.
-    if let Err(
-        NetworkError::ContentSecurityPolicy |
-        NetworkError::MixedContent |
-        NetworkError::SubresourceIntegrity |
-        NetworkError::Nosniff |
-        NetworkError::InvalidPort |
-        NetworkError::CorsGeneral |
-        NetworkError::CrossOriginResponse |
-        NetworkError::CorsCredentials |
-        NetworkError::CorsAllowMethods |
-        NetworkError::CorsAllowHeaders |
-        NetworkError::CorsMethod |
-        NetworkError::CorsAuthorization |
-        NetworkError::CorsHeaders,
-    ) = &result
-    {
-        return;
+    if let Err(error) = &result {
+        if error.is_permanent_failure() {
+            return;
+        }
     }
 
     // Resource timings should only be submitted for the initial preload request,
