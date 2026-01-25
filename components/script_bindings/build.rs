@@ -112,7 +112,7 @@ fn find_python() -> Command {
     println!(
         "cargo:warning=`uv` not found - Falling back to the default python! \
         If the build fails, please install uv and make sure it is in your PATH or make sure \
-        to provision the python environment with all necessary dependencies."
+        to provision a python environment >= python 3.11."
     );
 
     let python3 = Command::new("python3");
