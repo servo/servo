@@ -739,7 +739,11 @@ impl WindowProxy {
             debug!("Transplanted proxy is {:p}.", new_js_proxy.get());
 
             // Transfer ownership of this browsing context from the old window proxy to the new one.
-            SetProxyReservedSlot(new_js_proxy.get(), 0, &PrivateValue(&raw const self as *const libc::c_void));
+            SetProxyReservedSlot(
+                new_js_proxy.get(),
+                0,
+                &PrivateValue(&raw const self as *const libc::c_void),
+            );
 
             // Notify the JS engine about the new window proxy binding.
             SetWindowProxy(*cx, window_jsobject, new_js_proxy.handle());
