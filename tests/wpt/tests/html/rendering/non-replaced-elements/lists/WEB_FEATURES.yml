@@ -1,4 +1,11 @@
 features:
+- name: list-elements
+  files:
+  - "*"
+  - "!dir-*"
+  # keep synced with mappings below
+  - "!list-style-*"
+  - "!lists-styles*"
 - name: list-style
   files:
   - "list-style-*"

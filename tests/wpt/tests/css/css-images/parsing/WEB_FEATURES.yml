@@ -11,3 +11,9 @@ features:
 - name: image-rendering
   files:
   - image-rendering-*
+- name: object-fit
+  files:
+  - object-fit-*
+- name: object-position
+  files:
+  - object-position-*

@@ -88,7 +88,7 @@ async function testCreateMonitorWithAbortAt(
 
       if (hadEvent) {
         assert_unreached(
-            'This should never be reached since LanguageDetector.create() was aborted.');
+            'This should never be reached since the create() operation was aborted.');
         return;
       }
 

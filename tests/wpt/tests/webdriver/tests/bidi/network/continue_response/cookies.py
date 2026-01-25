@@ -74,7 +74,8 @@ async def test_cookie_response_started(
     # Check that the response events contain the expected Set-Cookie header.
     response_completed_event = await wait_for_future_safe(on_response_completed)
     assert_response_event(
-        response_completed_event, expected_response={"headers": [set_cookie_header]}
+        response_completed_event,
+        expected_event={"response": {"headers": [set_cookie_header]}},
     )
 
     # Wait for the navigation to complete.
@@ -87,7 +88,8 @@ async def test_cookie_response_started(
 
     # Check that the fetch contains the cookie set with provideResponse.
     assert_response_event(
-        response_completed_event, expected_request={"cookies": [request_cookie]}
+        response_completed_event,
+        expected_event={"request": {"cookies": [request_cookie]}},
     )
 
     await bidi_session.storage.delete_cookies()

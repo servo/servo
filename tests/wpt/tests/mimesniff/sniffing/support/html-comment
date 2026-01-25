@@ -1,0 +1,9 @@
+<!--This is a comment not followed by a space --><!DOCTYPE html>
+<html>
+<head>
+  <title>HTML Comment Test</title>
+</head>
+<body>
+  <p>This content starts with an HTML comment</p>
+</body>
+</html>

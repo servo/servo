@@ -1,4 +1,22 @@
 features:
+- name: clip
+  files:
+  - clip-rect-*
+- name: layout-direction-override
+  files:
+  - "bidi-*"
+- name: text-combine-upright
+  files:
+  - "text-combine-upright-*"
+- name: text-orientation
+  files:
+  - text-orientation-*
+- name: text-shadow
+  files:
+  - text-shadow-*
+- name: text-underline-position
+  files:
+  - text-underline-position-*
 - name: writing-mode
   files:
   - "*"
@@ -6,15 +24,3 @@ features:
 - name: writing-mode-svg-values
   files:
   - writing-mode-parsing-svg1-001.html
-- name: clip
-  files:
-  - clip-rect-*
-- name: text-combine-upright
-  files:
-  - "text-combine-upright-*"
-- name: text-shadow
-  files:
-  - text-shadow-*
-- name: layout-direction-override
-  files:
-  - "bidi-*"

@@ -93,7 +93,11 @@ async def test_two_intercepts(
     event = await wait_for_future_safe(on_network_event)
 
     assert_before_request_sent_event(
-        event, is_blocked=True, intercepts=[string_intercept, global_intercept]
+        event,
+        expected_event={
+            "isBlocked": True,
+            "intercepts": [string_intercept, global_intercept],
+        },
     )
 
     # Perform a request to PAGE_OTHER_TEXT, which should only match one intercept
@@ -104,7 +108,7 @@ async def test_two_intercepts(
     event = await wait_for_future_safe(on_network_event)
 
     assert_before_request_sent_event(
-        event, is_blocked=True, intercepts=[global_intercept]
+        event, expected_event={"isBlocked": True, "intercepts": [global_intercept]}
     )
 
     # Remove the global intercept, requests to PAGE_OTHER_TEXT should no longer
@@ -119,7 +123,7 @@ async def test_two_intercepts(
     event = await wait_for_future_safe(on_network_event)
 
     assert_before_request_sent_event(
-        event, is_blocked=True, intercepts=[string_intercept]
+        event, expected_event={"isBlocked": True, "intercepts": [string_intercept]}
     )
 
     # Remove the string intercept, requests to PAGE_EMPTY_TEXT should no longer

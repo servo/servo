@@ -1,4 +1,8 @@
 features:
+- name: canvas-2d
+  files:
+  - "*"
+  - "!2d.path.roundrect.*"
 - name: canvas-roundrect
   files:
   - 2d.path.roundrect.*

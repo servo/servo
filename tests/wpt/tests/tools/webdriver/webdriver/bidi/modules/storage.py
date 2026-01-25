@@ -94,6 +94,29 @@ class Storage(BidiModule):
             params["partition"] = partition
         return params
 
+    @get_cookies.result
+    def _get_cookies(self, result: Mapping[str, Any]) -> Any:
+        assert isinstance(result["cookies"], list)
+
+        for cookie in result["cookies"]:
+            assert isinstance(cookie, dict)
+
+            assert isinstance(cookie["name"], str)
+            assert isinstance(cookie["value"]["type"], str)
+            assert isinstance(cookie["value"]["value"], str)
+            assert isinstance(cookie["domain"], str)
+            assert isinstance(cookie["path"], str)
+            assert isinstance(cookie["size"], int)
+            assert isinstance(cookie["httpOnly"], bool)
+            assert isinstance(cookie["secure"], bool)
+            assert isinstance(cookie["sameSite"], str)
+            if "expiry" in cookie:
+                assert isinstance(cookie["expiry"], int)
+
+        self._assert_partition_key(result["partitionKey"])
+
+        return result
+
     @command
     def delete_cookies(
         self,
@@ -107,6 +130,11 @@ class Storage(BidiModule):
         if partition is not None:
             params["partition"] = partition
         return params
+
+    @delete_cookies.result
+    def _delete_cookies(self, result: Mapping[str, Any]) -> Any:
+        self._assert_partition_key(result["partitionKey"])
+        return result
 
     @command
     def set_cookie(
@@ -124,3 +152,15 @@ class Storage(BidiModule):
         if partition is not None:
             params["partition"] = partition
         return params
+
+    @set_cookie.result
+    def _set_cookie(self, result: Mapping[str, Any]) -> Any:
+        self._assert_partition_key(result["partitionKey"])
+        return result
+
+    def _assert_partition_key(self, partition_key: Mapping[str, Any]) -> Any:
+        assert isinstance(partition_key, dict)
+        if "userContext" in partition_key:
+            assert isinstance(partition_key["userContext"], str)
+        if "sourceOrigin" in partition_key:
+            assert isinstance(partition_key["sourceOrigin"], str)

@@ -6,6 +6,13 @@ features:
 - name: appearance
   files:
   - appearance-*
+- name: outlines
+  files:
+  - outline-width-*
+  - outline-style-*
+  - outline-color-*
+  - outline-offset-*
+  - outline-auto-width-*
 - name: box-sizing
   files:
   - box-sizing-*
@@ -16,6 +23,11 @@ features:
 - name: outline
   files:
   - outline-*
+  - "!outline-width-*"
+  - "!outline-style-*"
+  - "!outline-color-*"
+  - "!outline-offset-*"
+  - "!outline-auto-width-*"
 - name: resize
   files:
   - resize-*
@@ -38,3 +50,8 @@ features:
 - name: text-overflow
   files:
   - text-overflow-*
+- name: cursor
+  files:
+  - canvas-cursor-*
+  - cursor-*
+  - select-cursor-*

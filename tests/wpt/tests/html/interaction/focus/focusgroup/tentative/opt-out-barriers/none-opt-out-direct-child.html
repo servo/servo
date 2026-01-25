@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Direct child opt-out with none</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<button id=before>Before</button>
+<div id=toolbar focusgroup="toolbar">
+  <button id=first>First</button>
+  <button id=optedout focusgroup="none">opted out</button>
+  <button id=last>Last</button>
+</div>
+<button id=after>After</button>
+
+<script>
+
+  promise_test(async t => {
+    var before = document.getElementById("before");
+    var first = document.getElementById("first");
+    var optedout = document.getElementById("optedout");
+    var last = document.getElementById("last");
+    var after = document.getElementById("after");
+
+    // Tab navigation should include the opted-out element in the normal tab order.
+    await assert_focus_navigation_forward([before, first, optedout, last, after]);
+  }, "Tab navigation includes opted-out element in normal tab order");
+
+  promise_test(async t => {
+    var first = document.getElementById("first");
+    var last = document.getElementById("last");
+
+    // Arrow navigation should skip the opted-out element.
+    await assert_arrow_navigation_bidirectional([first, last]);
+  }, "Arrow navigation skips opted-out element");
+
+  promise_test(async t => {
+    var optedout = document.getElementById("optedout");
+
+    optedout.focus();
+    assert_equals(document.activeElement, optedout, "Should be able to manually focus opted-out element");
+
+    // Arrow keys should not work from an opted-out element.
+    await assert_arrow_keys_do_not_move_focus(optedout);
+  }, "Arrow keys do not work from opted-out element");
+
+</script>

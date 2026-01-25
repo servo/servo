@@ -84,6 +84,9 @@ features:
 - name: input-color
   files:
   - color*
+- name: input-color-alpha
+  files:
+  - color*
 - name: input-range
   files:
   - range*

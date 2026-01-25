@@ -48,11 +48,11 @@ async def test_status_code_before_request_sent(
     response_started_event = await wait_for_future_safe(on_response_started)
     assert_response_event(
         response_started_event,
-        expected_response={"status": status_code, "statusText": status_text},
+        expected_event={"response": {"status": status_code, "statusText": status_text}},
     )
 
     response_completed_event = await wait_for_future_safe(on_response_completed)
     assert_response_event(
         response_completed_event,
-        expected_response={"status": status_code, "statusText": status_text},
+        expected_event={"response": {"status": status_code, "statusText": status_text}},
     )

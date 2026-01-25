@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Navigation starts from tabindex=-1 element but skips it as target</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="resources/focusgroup-utils.js"></script>
+
+<div id="fg" focusgroup="toolbar">
+  <button id="b1">Button 1</button>
+  <div id="b2" tabindex="-1">Button 2</div>
+  <button id="b3">Button 3</button>
+</div>
+
+<div id="fg2" focusgroup="toolbar">
+  <div id="start" tabindex="-1">Start</div>
+  <button id="mid">Mid</button>
+  <div id="end" tabindex="-1">End</div>
+</div>
+
+<div id="fg3" focusgroup="toolbar wrap">
+  <div id="w1" tabindex="-1">W1</div>
+  <button id="w2">W2</button>
+  <button id="w3">W3</button>
+  <div id="w4" tabindex="-1">W4</div>
+</div>
+
+<script>
+  promise_test(async t => {
+    const b1 = document.getElementById("b1");
+    const b2 = document.getElementById("b2");
+    const b3 = document.getElementById("b3");
+
+    // 1. Navigation FROM tabindex=-1 (b2 -> b3)
+    await focusAndKeyPress(b2, kArrowRight);
+    assert_equals(document.activeElement, b3, "Right arrow from tabindex=-1 item should move to next item");
+
+    // 2. Navigation FROM tabindex=-1 backwards (b2 -> b1)
+    await focusAndKeyPress(b2, kArrowLeft);
+    assert_equals(document.activeElement, b1, "Left arrow from tabindex=-1 item should move to previous item");
+
+    // 3. Navigation TO tabindex=-1 (skip it) (b1 -> b3)
+    await focusAndKeyPress(b1, kArrowRight);
+    assert_equals(document.activeElement, b3, "Right arrow from b1 should skip b2 (tabindex=-1) and go to b3");
+
+    // 4. Navigation TO tabindex=-1 backwards (skip it) (b3 -> b1)
+    await focusAndKeyPress(b3, kArrowLeft);
+    assert_equals(document.activeElement, b1, "Left arrow from b3 should skip b2 (tabindex=-1) and go to b1");
+
+  }, "Elements with tabindex=-1 participate in focusgroup navigation when focused, but are skipped relative to other items.");
+
+  promise_test(async t => {
+    const start = document.getElementById("start");
+    const mid = document.getElementById("mid");
+    const end = document.getElementById("end");
+
+    // 5. Navigation stops at bounds if adjacent items are tabindex=-1
+    await focusAndKeyPress(mid, kArrowRight);
+    assert_equals(document.activeElement, mid, "Right arrow from mid should stay at mid (end is tabindex=-1, no wrap)");
+
+    await focusAndKeyPress(mid, kArrowLeft);
+    assert_equals(document.activeElement, mid, "Left arrow from mid should stay at mid (start is tabindex=-1, no wrap)");
+
+    // 6. Navigation allows escaping tabindex=-1 at bounds
+    await focusAndKeyPress(start, kArrowRight);
+    assert_equals(document.activeElement, mid, "Right arrow from start (tabindex=-1) should go to mid");
+
+    await focusAndKeyPress(end, kArrowLeft);
+    assert_equals(document.activeElement, mid, "Left arrow from end (tabindex=-1) should go to mid");
+
+  }, "Navigation respects bounds when edges are tabindex=-1.");
+
+  promise_test(async t => {
+    const w1 = document.getElementById("w1");
+    const w2 = document.getElementById("w2");
+    const w3 = document.getElementById("w3");
+    const w4 = document.getElementById("w4");
+
+    // 7. Wrap skips tabindex=-1 items at ends
+    await focusAndKeyPress(w3, kArrowRight);
+    // Should wrap to w2, skipping w4 (end) and w1 (start)
+    assert_equals(document.activeElement, w2, "Wrapping forward should skip w4 and w1 (tabindex=-1) and land on w2");
+
+    await focusAndKeyPress(w2, kArrowLeft);
+    // Should wrap to w3, skipping w1 (start) and w4 (end)
+    assert_equals(document.activeElement, w3, "Wrapping backward should skip w1 and w4 (tabindex=-1) and land on w3");
+
+  }, "Wrapping logic skips items with tabindex=-1.");
+</script>

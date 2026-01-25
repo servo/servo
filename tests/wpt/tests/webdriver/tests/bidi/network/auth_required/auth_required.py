@@ -53,9 +53,11 @@ async def test_subscribe_status(
     }
     assert_response_event(
         events[0],
-        expected_request=expected_request,
-        expected_response=expected_response,
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+            "redirectCount": 0,
+        },
     )
 
     remove_listener()
@@ -127,10 +129,12 @@ async def test_request_timing_info(
     }
     assert_response_event(
         events[0],
-        expected_request=expected_request,
-        expected_response=expected_response,
-        expected_time_range=time_range,
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+            "timestamp": time_range,
+            "redirectCount": 0,
+        },
     )
 
 

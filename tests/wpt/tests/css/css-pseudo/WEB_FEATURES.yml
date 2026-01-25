@@ -44,6 +44,9 @@ features:
 - name: text-stroke-fill
   files:
   - highlight-styling-003.html
+- name: get-computed-style
+  files:
+  - get-computed-style-crash.html
 - name: selection
   files:
   - active-selection-*
@@ -60,3 +63,7 @@ features:
   - highlight-styling-005.html
   - highlight-z-index-001.html
   - highlight-z-index-002.html
+- name: text-decoration-selection
+  files:
+  - active-selection-014.html
+  - active-selection-021.html

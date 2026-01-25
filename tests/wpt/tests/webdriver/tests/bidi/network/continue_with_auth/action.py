@@ -37,9 +37,11 @@ async def test_cancel(
 
     assert_response_event(
         response_event,
-        expected_response={
-            "status": 401,
-            "statusText": "Unauthorized",
+        expected_event={
+            "response": {
+                "status": 401,
+                "statusText": "Unauthorized",
+            }
         },
     )
 
@@ -109,9 +111,11 @@ async def test_provideCredentials(
 
     assert_response_event(
         response_event,
-        expected_response={
-            "status": 200,
-            "statusText": "OK",
+        expected_event={
+            "response": {
+                "status": 200,
+                "statusText": "OK",
+            }
         },
     )
 
@@ -164,9 +168,11 @@ async def test_provideCredentials_wrong_credentials(
 
     assert_response_event(
         response_event,
-        expected_response={
-            "status": 200,
-            "statusText": "OK",
+        expected_event={
+            "response": {
+                "status": 200,
+                "statusText": "OK",
+            }
         },
     )
 

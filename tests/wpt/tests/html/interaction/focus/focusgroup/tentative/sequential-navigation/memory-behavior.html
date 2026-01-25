@@ -8,7 +8,6 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
-<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
 <!-- Test focusgroup with memory -->
@@ -16,7 +15,7 @@
 
 <div id=memory-focusgroup focusgroup="toolbar">
   <button id=memory-item1>Item 1</button>
-  <button id=memory-item2 focusgroup-entry-priority>Item 2 (priority)</button>
+  <button id=memory-item2 focusgroupstart>Item 2 (priority)</button>
   <button id=memory-item3>Item 3</button>
 </div>
 
@@ -25,7 +24,7 @@
 <!-- Test focusgroup with no-memory -->
 <div id=no-memory-focusgroup focusgroup="toolbar no-memory">
   <button id=no-memory-item1>Item 1</button>
-  <button id=no-memory-item2 focusgroup-entry-priority>Item 2 (priority)</button>
+  <button id=no-memory-item2 focusgroupstart>Item 2 (priority)</button>
   <button id=no-memory-item3>Item 3</button>
 </div>
 
@@ -36,7 +35,7 @@
 
 <div id=segments-focusgroup focusgroup="toolbar">
   <button id=seg-item1>Segment Item 1</button>
-  <button id=seg-item2 focusgroup-entry-priority>Segment Item 2 (priority)</button>
+  <button id=seg-item2 focusgroupstart>Segment Item 2 (priority)</button>
   <div focusgroup="none">
     <button id=seg-opted-out>Opted out item</button>
   </div>
@@ -55,7 +54,7 @@
 
     beforeMemory.focus();
     await navigateFocusForward();
-    assert_equals(document.activeElement, memoryItem2, "First tab entry should use focusgroup-entry-priority element");
+    assert_equals(document.activeElement, memoryItem2, "First tab entry should use focusgroupstart element");
 
     await focusAndKeyPress(memoryItem2, kArrowRight);
     assert_equals(document.activeElement, memoryItem3, "Arrow navigation should move to Item 3");
@@ -76,7 +75,7 @@
 
     between.focus();
     await navigateFocusForward();
-    assert_equals(document.activeElement, noMemoryItem2, "Entry should use focusgroup-entry-priority element");
+    assert_equals(document.activeElement, noMemoryItem2, "Entry should use focusgroupstart element");
 
     await focusAndKeyPress(noMemoryItem2, kArrowRight);
     assert_equals(document.activeElement, noMemoryItem3, "Arrow navigation should move to Item 3");
@@ -85,7 +84,7 @@
     assert_equals(document.activeElement, afterNoMemory, "Tab should exit focusgroup");
 
     await navigateFocusBackward();
-    assert_equals(document.activeElement, noMemoryItem2, "Re-entering should use focusgroup-entry-priority, not remember last focus");
+    assert_equals(document.activeElement, noMemoryItem2, "Re-entering should use focusgroupstart, not remember last focus");
   }, "Focusgroup with no-memory does not remember last focused item");
 
   promise_test(async t => {
@@ -98,7 +97,7 @@
 
     beforeSegments.focus();
     await navigateFocusForward();
-    assert_equals(document.activeElement, segItem2, "Should enter at focusgroup-entry-priority element");
+    assert_equals(document.activeElement, segItem2, "Should enter at focusgroupstart element");
 
     await navigateFocusForward();
     assert_equals(document.activeElement, segOptedOut, "Should move to opted-out element");
@@ -121,7 +120,7 @@
     segOptedOut.focus();
 
     await navigateFocusBackward();
-    assert_equals(document.activeElement, segItem2, "Shift+Tab from opted-out should enter first segment at focusgroup-entry-priority element");
+    assert_equals(document.activeElement, segItem2, "Shift+Tab from opted-out should enter first segment at focusgroupstart element");
 
     await navigateFocusBackward();
     assert_equals(document.activeElement, beforeSegments, "Should exit to before element");
