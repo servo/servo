@@ -71,9 +71,8 @@ use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::types::Console;
+use crate::dom::types::{Console, WorkerGlobalScope};
 use crate::dom::window::Window;
-use crate::dom::worker::TrustedWorkerAddress;
 use crate::fetch::RequestWithGlobalScope;
 use crate::module_loading::{
     LoadState, Payload, host_load_imported_module, load_requested_modules,
@@ -485,8 +484,8 @@ impl ModuleTree {
                 // Step 10.1 If scopePrefix is serializedBaseURL, or if scopePrefix ends with U+002F (/)
                 // and scopePrefix is a code unit prefix of serializedBaseURL, then:
                 let prefix = prefix.as_str();
-                if prefix == serialized_base_url ||
-                    (serialized_base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
+                if prefix == serialized_base_url
+                    || (serialized_base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
                 {
                     // Step 10.1.1 Let scopeImportsMatch be the result of resolving an imports match
                     // given normalizedSpecifier, asURL, and scopeImports.
@@ -547,9 +546,9 @@ impl ModuleTree {
         base_url: &ServoUrl,
     ) -> Option<ServoUrl> {
         // Step 1. If specifier starts with "/", "./", or "../", then:
-        if specifier.starts_with('/') ||
-            specifier.starts_with_str("./") ||
-            specifier.starts_with_str("../")
+        if specifier.starts_with('/')
+            || specifier.starts_with_str("./")
+            || specifier.starts_with_str("../")
         {
             // Step 1.1. Let url be the result of URL parsing specifier with baseURL.
             return ServoUrl::parse_with_base(Some(base_url), &specifier.str()).ok();
@@ -584,8 +583,7 @@ impl Callback for ModuleHandler {
 /// It can be `worker` or `script` element
 #[derive(Clone, JSTraceable)]
 pub(crate) enum ModuleOwner {
-    #[expect(dead_code)]
-    Worker(TrustedWorkerAddress),
+    Worker(Trusted<WorkerGlobalScope>),
     Window(Trusted<HTMLScriptElement>),
     DynamicModule(Trusted<GlobalScope>),
 }
@@ -593,7 +591,7 @@ pub(crate) enum ModuleOwner {
 impl ModuleOwner {
     pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
         match &self {
-            ModuleOwner::Worker(worker) => (*worker.root().clone()).global(),
+            ModuleOwner::Worker(scope) => scope.root().global(),
             ModuleOwner::Window(script) => (*script.root()).global(),
             ModuleOwner::DynamicModule(dynamic_module) => (*dynamic_module.root()).global(),
         }
@@ -992,6 +990,55 @@ unsafe extern "C" fn HostPopulateImportMeta(
     }
 }
 
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-module-worker-script-tree>
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-worklet/module-worker-script-graph>
+pub(crate) fn fetch_a_module_worker_script_graph(
+    url: ServoUrl,
+    owner: ModuleOwner,
+    referrer: Referrer,
+    credentials_mode: CredentialsMode,
+    can_gc: CanGc,
+) {
+    // Step 1. Let options be a script fetch options whose cryptographic nonce
+    // is the empty string, integrity metadata is the empty string, parser
+    // metadata is "not-parser-inserted", credentials mode is credentialsMode,
+    // referrer policy is the empty string, and fetch priority is "auto".
+    let options = ScriptFetchOptions {
+        referrer: referrer.clone(),
+        integrity_metadata: "".into(),
+        credentials_mode,
+        cryptographic_nonce: "".into(),
+        parser_metadata: ParserMetadata::NotParserInserted,
+        referrer_policy: ReferrerPolicy::EmptyString,
+    };
+    // Step 2. Fetch a single module script given url, fetchClient, destination, options,
+    // settingsObject, "client", true, and onSingleFetchComplete as defined below.
+    fetch_a_single_module_script(
+        url,
+        owner.clone(),
+        Destination::Script,
+        options,
+        referrer,
+        true,
+        Some(IntroductionType::SRC_SCRIPT),
+        move |module_tree| {
+            let Some(module) = module_tree else {
+                // Step 1.1. If result is null, run onComplete given null, and abort these steps.
+                return owner.notify_owner_to_finish(None, can_gc);
+            };
+
+            // Step 1.2. Fetch the descendants of and link result given fetchClient, destination,
+            // and onComplete.
+            fetch_the_descendants_and_link_module_script(
+                module,
+                Destination::Script,
+                owner,
+                can_gc,
+            );
+        },
+    );
+}
+
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-module-script-tree>
 pub(crate) fn fetch_an_external_module_script(
     url: ServoUrl,
@@ -1353,8 +1400,8 @@ fn merge_existing_and_new_import_maps(
             // If scopePrefix is record's serialized base URL, or if scopePrefix ends with
             // U+002F (/) and scopePrefix is a code unit prefix of record's serialized base URL, then:
             let prefix = scope_prefix.as_str();
-            if prefix == record.base_url ||
-                (record.base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
+            if prefix == record.base_url
+                || (record.base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
             {
                 // For each specifierKey → resolutionResult of scopeImports:
                 scope_imports.retain(|key, val| {
@@ -1362,11 +1409,11 @@ fn merge_existing_and_new_import_maps(
                     // specifierKey ends with U+002F (/);
                     // specifierKey is a code unit prefix of record's specifier;
                     // either record's specifier as a URL is null or is special,
-                    if *key == record.specifier ||
-                        (key.ends_with('\u{002f}') &&
-                            record.specifier.starts_with(key) &&
-                            (record.specifier_url.is_none() ||
-                                record
+                    if *key == record.specifier
+                        || (key.ends_with('\u{002f}')
+                            && record.specifier.starts_with(key)
+                            && (record.specifier_url.is_none()
+                                || record
                                     .specifier_url
                                     .as_ref()
                                     .map(|u| u.is_special_scheme())
@@ -1833,9 +1880,9 @@ pub(crate) fn resolve_imports_match(
         // - specifierKey ends with U+002F (/)
         // - specifierKey is a code unit prefix of normalizedSpecifier
         // - either asURL is null, or asURL is special, then:
-        if specifier_key.ends_with('\u{002f}') &&
-            normalized_specifier.starts_with(specifier_key) &&
-            (as_url.is_none() || as_url.map(|u| u.is_special_scheme()).unwrap_or_default())
+        if specifier_key.ends_with('\u{002f}')
+            && normalized_specifier.starts_with(specifier_key)
+            && (as_url.is_none() || as_url.map(|u| u.is_special_scheme()).unwrap_or_default())
         {
             // Step 1.2.1 If resolutionResult is null, then throw a TypeError.
             // Step 1.2.2 Assert: resolutionResult is a URL.
