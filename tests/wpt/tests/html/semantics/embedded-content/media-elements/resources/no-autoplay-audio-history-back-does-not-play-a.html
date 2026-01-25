@@ -1,0 +1,62 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>History back page A</title>
+<script src="/resources/testharness.js"></script>
+<body>
+  <audio id="a" preload="auto" src="/media/sound_5.oga"></audio>
+  <script>
+    "use strict";
+
+    const audio = document.getElementById("a");
+
+    let playCount = 0;
+    let playingCount = 0;
+    audio.addEventListener("play", () => playCount++);
+    audio.addEventListener("playing", () => playingCount++);
+
+    let ran = false;
+
+    function sleep(ms) {
+      return new Promise(resolve => step_timeout(resolve, ms));
+    }
+
+    function post(type, extra) {
+      if (!window.parent) return;
+      window.parent.postMessage({ type, ...(extra || {}) }, "*");
+    }
+
+    async function maybeRunCheck() {
+      if (!sessionStorage.getItem("visited_a")) {
+        sessionStorage.setItem("visited_a", "1");
+        post("ready_a");
+        return;
+      }
+
+      if (ran) return;
+      ran = true;
+
+      const t0 = audio.currentTime;
+      await sleep(1000);
+
+      const pass =
+        audio.paused &&
+        playCount === 0 &&
+        playingCount === 0 &&
+        (audio.currentTime - t0) <= 0.05;
+
+      post("result", {
+        pass,
+        details: {
+          paused: audio.paused,
+          playCount,
+          playingCount,
+          t0,
+          t1: audio.currentTime
+        }
+      });
+    }
+
+    window.addEventListener("pageshow", () => { void maybeRunCheck(); });
+    window.addEventListener("load", () => { void maybeRunCheck(); });
+  </script>
+</body>

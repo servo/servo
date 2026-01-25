@@ -8,113 +8,50 @@
   <script>
     "use strict";
 
-    const params = new URLSearchParams(location.search);
-    const in_iframe = params.has("in_iframe");
-    const page = params.get("page");
-
-    function sleep(ms) {
-      return new Promise(r => step_timeout(r, ms));
-    }
-
-    async function waitUntil(fn, timeoutMs, stepMs = 50) {
-      const start = performance.now();
-      while (performance.now() - start < timeoutMs) {
-        if (fn()) return;
-        await sleep(stepMs);
-      }
-      throw new Error("Timed out waiting for condition");
-    }
-
-    function pageA() {
-      document.body.innerHTML = `
-    <audio id="a" preload="auto" src="/media/sound_5.oga"></audio>
-  `;
-
-      const audio = document.getElementById("a");
-
-      let playCount = 0;
-      let playingCount = 0;
-      audio.addEventListener("play", () => playCount++);
-      audio.addEventListener("playing", () => playingCount++);
-
-      let ran = false;
-
-      async function maybeRunCheck() {
-        if (!sessionStorage.getItem("visited_a")) {
-          sessionStorage.setItem("visited_a", "1");
-          return;
-        }
-
-        if (ran) return;
-        ran = true;
-
-        const t0 = audio.currentTime;
-        await sleep(1000);
-
-        const pass =
-          audio.paused &&
-          playCount === 0 &&
-          playingCount === 0 &&
-          (audio.currentTime - t0) <= 0.05;
-
-        sessionStorage.setItem("wpt_result_pass", pass ? "1" : "0");
-        sessionStorage.setItem("wpt_result_details", JSON.stringify({
-          paused: audio.paused,
-          playCount,
-          playingCount,
-          t0,
-          t1: audio.currentTime
-        }));
-      }
-
-      window.addEventListener("pageshow", () => { void maybeRunCheck(); });
-
-      window.addEventListener("load", () => { void maybeRunCheck(); });
-    }
-
-    function pageB() {
-      document.body.textContent = "Page B";
-    }
-
     function runHarness() {
-      promise_test(async () => {
-        const base = location.pathname;
+      promise_test(async t => {
+        const base = location.pathname.replace(/[^/]*$/, "");
 
         const iframe = document.createElement("iframe");
         document.body.appendChild(iframe);
+        t.add_cleanup(() => iframe.remove());
 
-        iframe.src = `${base}?in_iframe=1&page=a`;
-        await waitUntil(() => iframe.contentWindow &&
-          iframe.contentWindow.location.search.includes("page=a"), 5000);
+        function waitForMessage(type, timeoutMs) {
+          return new Promise((resolve, reject) => {
+            const timeout = step_timeout(() => {
+              window.removeEventListener("message", onMessage);
+              reject(new Error(`Timed out waiting for ${type}`));
+            }, timeoutMs);
 
-        iframe.src = `${base}?in_iframe=1&page=b`;
-        await waitUntil(() => iframe.contentWindow &&
-          iframe.contentWindow.location.search.includes("page=b"), 5000);
+            function onMessage(event) {
+              if (event.source !== iframe.contentWindow) return;
+              if (!event.data || event.data.type !== type) return;
+              clearTimeout(timeout);
+              window.removeEventListener("message", onMessage);
+              resolve(event.data);
+            }
+
+            window.addEventListener("message", onMessage);
+          });
+        }
+
+        iframe.src = `${base}resources/no-autoplay-audio-history-back-does-not-play-a.html`;
+        await waitForMessage("ready_a", 5000);
+
+
+        iframe.src = `${base}resources/no-autoplay-audio-history-back-does-not-play-b.html`;
+        await waitForMessage("loaded_b", 5000);
+
 
         iframe.contentWindow.history.back();
 
-        await waitUntil(() => iframe.contentWindow &&
-          iframe.contentWindow.location.search.includes("page=a"), 5000);
 
-        await waitUntil(() => {
-          const v = iframe.contentWindow.sessionStorage.getItem("wpt_result_pass");
-          return v === "1" || v === "0";
-        }, 5000);
+        const result = await waitForMessage("result", 5000);
 
-        const pass = iframe.contentWindow.sessionStorage.getItem("wpt_result_pass");
-        const details = iframe.contentWindow.sessionStorage.getItem("wpt_result_details") || "";
-
-        assert_equals(pass, "1", details);
-
-        iframe.remove();
+        assert_true(result.pass, JSON.stringify(result.details));
       }, "No autoplay audio remains paused after iframe history back");
     }
 
-    if (in_iframe) {
-      if (page === "b") pageB();
-      else pageA();
-    } else {
-      runHarness();
-    }
+    runHarness();
   </script>
 </body>
