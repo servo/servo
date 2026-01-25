@@ -104,7 +104,7 @@ pub(crate) unsafe fn byte_length_queuing_strategy_size(
         unsafe {
             throw_type_error(
                 cx,
-                "ByteLengthQueuingStrategy size called with undefined or nulll",
+                c"ByteLengthQueuingStrategy size called with undefined or nulll",
             )
         };
         return false;

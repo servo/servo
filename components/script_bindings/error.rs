@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ffi::CString;
+
 use js::error::throw_type_error;
 use js::jsapi::JS_IsExceptionPending;
 
@@ -97,15 +99,46 @@ pub type ErrorResult = Fallible<()>;
 /// given DOM type.
 pub fn throw_invalid_this(cx: SafeJSContext, proto_id: u16) {
     debug_assert!(unsafe { !JS_IsExceptionPending(*cx) });
-    let error = format!(
-        "\"this\" object does not implement interface {}.",
-        proto_id_to_name(proto_id)
-    );
+    let mut vec = "\"this\" object does not implement interface "
+        .as_bytes()
+        .to_vec();
+    vec.extend_from_slice(proto_id_to_name(proto_id).as_bytes());
+    let error = CString::new(vec).unwrap();
     unsafe { throw_type_error(*cx, &error) };
 }
 
 pub fn throw_constructor_without_new(cx: SafeJSContext, name: &str) {
     debug_assert!(unsafe { !JS_IsExceptionPending(*cx) });
-    let error = format!("{} constructor: 'new' is required", name);
+    let mut error = name.as_bytes().to_vec();
+    error.extend_from_slice(b" constructor: 'new' is required");
+    let error = CString::new(error).unwrap();
     unsafe { throw_type_error(*cx, &error) };
+}
+
+#[macro_export]
+/// Creates a `CString` using interpolation of runtime expressions.
+/// Basically a `format!` that produces a `CString`.
+///
+/// Because data can come from untrusted sources, it will check the interior for
+/// null bytes and replace them with `\u0000`.
+macro_rules! cformat {
+    ($($arg:tt)*) => {
+        {
+            use std::io::Write;
+            let mut s = Vec::new();
+            write!(&mut s, $($arg)*).unwrap();
+            std::ffi::CString::new(s).or_else(|s| {
+                let s = s.into_vec();
+                let mut out = Vec::with_capacity(s.len());
+                for b in s {
+                    if b == 0 {
+                        out.extend_from_slice(b"\\u0000");
+                    } else {
+                        out.push(b);
+                    }
+                }
+                std::ffi::CString::new(out)
+            }).unwrap()
+        }
+    }
 }
