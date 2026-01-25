@@ -267,7 +267,9 @@ impl CustomElementRegistry {
         );
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(
+                String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
+            )),
             _ => Err(Error::JSFailed),
         }
     }
@@ -305,7 +307,9 @@ impl CustomElementRegistry {
         );
         match conversion {
             Ok(ConversionResult::Success(flag)) => Ok(flag),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(
+                String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
+            )),
             _ => Err(Error::JSFailed),
         }
     }
@@ -343,7 +347,9 @@ impl CustomElementRegistry {
         );
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(
+                String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
+            )),
             _ => Err(Error::JSFailed),
         }
     }

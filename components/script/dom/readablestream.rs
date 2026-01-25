@@ -2129,7 +2129,11 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             rooted!(in(*cx) let obj_val = ObjectValue(underlying_source_obj.get()));
             match JsUnderlyingSource::new(cx, obj_val.handle(), can_gc) {
                 Ok(ConversionResult::Success(val)) => val,
-                Ok(ConversionResult::Failure(error)) => return Err(Error::Type(error.to_string())),
+                Ok(ConversionResult::Failure(error)) => {
+                    return Err(Error::Type(
+                        String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
+                    ));
+                },
                 _ => {
                     return Err(Error::JSFailed);
                 },
@@ -2472,7 +2476,9 @@ pub(crate) fn get_read_promise_done(
         match get_dictionary_property(*cx, object.handle(), c"done", done.handle_mut(), can_gc) {
             Ok(true) => match bool::safe_from_jsval(cx, done.handle(), (), can_gc) {
                 Ok(ConversionResult::Success(val)) => Ok(val),
-                Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
+                Ok(ConversionResult::Failure(error)) => Err(Error::Type(
+                    String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
+                )),
                 _ => Err(Error::Type("Unknown format for done property.".to_string())),
             },
             Ok(false) => Err(Error::Type("Promise has no done property.".to_string())),
@@ -2505,7 +2511,9 @@ pub(crate) fn get_read_promise_bytes(
                     can_gc,
                 ) {
                     Ok(ConversionResult::Success(val)) => Ok(val),
-                    Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
+                    Ok(ConversionResult::Failure(error)) => Err(Error::Type(
+                        String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
+                    )),
                     _ => Err(Error::Type("Unknown format for bytes read.".to_string())),
                 }
             },
@@ -2525,7 +2533,9 @@ pub(crate) fn bytes_from_chunk_jsval(
 ) -> Result<Vec<u8>, Error> {
     match Vec::<u8>::safe_from_jsval(cx, chunk.handle(), ConversionBehavior::EnforceRange, can_gc) {
         Ok(ConversionResult::Success(vec)) => Ok(vec),
-        Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.to_string())),
+        Ok(ConversionResult::Failure(error)) => Err(Error::Type(
+            String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
+        )),
         _ => Err(Error::Type("Unknown format for bytes read.".to_string())),
     }
 }

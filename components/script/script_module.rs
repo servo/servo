@@ -39,6 +39,7 @@ use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId, RequestMode,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
+use script_bindings::cformat;
 use script_bindings::domstring::BytesView;
 use script_bindings::error::Fallible;
 use script_bindings::trace::CustomTraceable;
@@ -353,8 +354,9 @@ impl ModuleTree {
         let global = owner.global();
         let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
 
+        let c_url = cformat!("{url}");
         let mut compile_options =
-            unsafe { CompileOptionsWrapper::new_raw(*cx, url.as_str(), line_number) };
+            unsafe { CompileOptionsWrapper::new_raw(*cx, c_url, line_number) };
         if let Some(introduction_type) = introduction_type {
             compile_options.set_introduction_type(introduction_type);
         }
