@@ -598,6 +598,7 @@ fn fetch_a_single_imported_module_script(
         Some(module_type),
         false,
         Some(IntroductionType::IMPORTED_MODULE),
+        None,
         on_complete,
     );
 }

@@ -43,6 +43,7 @@ use js::rust::{
 use mime::Mime;
 use net_traits::http_status::HttpStatus;
 use net_traits::mime_classifier::MimeClassifier;
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId, RequestMode,
 };
@@ -1090,6 +1091,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
     owner: ModuleOwner,
     referrer: Referrer,
     credentials_mode: CredentialsMode,
+    policy_container: PolicyContainer,
     can_gc: CanGc,
 ) {
     // Step 1. Let options be a script fetch options whose cryptographic nonce
@@ -1112,8 +1114,10 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         Destination::Script,
         options,
         referrer,
+        None,
         true,
         Some(IntroductionType::SRC_SCRIPT),
+        Some(policy_container),
         move |module_tree| {
             let Some(module) = module_tree else {
                 // Step 1.1. If result is null, run onComplete given null, and abort these steps.
@@ -1152,6 +1156,7 @@ pub(crate) fn fetch_an_external_module_script(
         None,
         true,
         Some(IntroductionType::SRC_SCRIPT),
+        None,
         move |module_tree| {
             let Some(module) = module_tree else {
                 // Step 1.1. If result is null, run onComplete given null, and abort these steps.
@@ -1303,6 +1308,7 @@ pub(crate) fn fetch_a_single_module_script(
     module_type: Option<ModuleType>,
     is_top_level: bool,
     introduction_type: Option<&'static CStr>,
+    policy_container: Option<PolicyContainer>,
     on_complete: impl FnOnce(Option<Rc<ModuleTree>>) + 'static,
 ) {
     let global = owner.global();
@@ -1387,7 +1393,7 @@ pub(crate) fn fetch_a_single_module_script(
     // TODO Step 11. Set request's initiator type to "script".
 
     // Step 12. Set up the module script request given request and options.
-    let request = RequestBuilder::new(webview_id, url.clone(), referrer)
+    let mut request = RequestBuilder::new(webview_id, url.clone(), referrer)
         .destination(destination)
         .parser_metadata(options.parser_metadata)
         .integrity_metadata(options.integrity_metadata.clone())
@@ -1396,6 +1402,10 @@ pub(crate) fn fetch_a_single_module_script(
         .mode(mode)
         .with_global_scope(&global)
         .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
+
+    if let Some(container) = policy_container {
+        request = request.policy_container(container);
+    }
 
     let context = ModuleContext {
         owner,

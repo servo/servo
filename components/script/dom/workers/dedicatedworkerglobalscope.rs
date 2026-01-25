@@ -523,6 +523,7 @@ impl DedicatedWorkerGlobalScope {
                             ModuleOwner::Worker(Trusted::new(scope)),
                             request.referrer,
                             request.credentials_mode,
+                            policy_container,
                             CanGc::note(),
                         );
                     },
