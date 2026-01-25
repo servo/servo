@@ -55,6 +55,7 @@ use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::{ScriptFetchContext, WorkerGlobalScope};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::script_module::{ModuleOwner, fetch_a_module_worker_script_graph};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -502,13 +503,30 @@ impl DedicatedWorkerGlobalScope {
                     name: TaskSourceName::Networking,
                     canceller: Default::default(),
                 };
-                let context = ScriptFetchContext::new(
-                    Trusted::new(scope),
-                    request.url.clone(),
-                    worker.clone(),
-                    policy_container,
-                );
-                global_scope.fetch(request, context, task_source);
+
+                // Step 12. Obtain script by switching on options["type"]:
+                match worker_type {
+                    WorkerType::Classic => {
+                        let context = ScriptFetchContext::new(
+                            Trusted::new(scope),
+                            request.url.clone(),
+                            worker.clone(),
+                            policy_container,
+                        );
+                        global_scope.fetch(request, context, task_source);
+                    },
+                    WorkerType::Module => {
+                        let _ar = AutoWorkerReset::new(&global, worker.clone());
+
+                        fetch_a_module_worker_script_graph(
+                            request.url,
+                            ModuleOwner::Worker(Trusted::new(scope)),
+                            request.referrer,
+                            request.credentials_mode,
+                            CanGc::note(),
+                        );
+                    },
+                };
 
                 let reporter_name = format!("dedicated-worker-reporter-{}", worker_id);
                 scope

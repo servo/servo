@@ -76,9 +76,8 @@ use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::types::Console;
+use crate::dom::types::{Console, WorkerGlobalScope};
 use crate::dom::window::Window;
-use crate::dom::worker::TrustedWorkerAddress;
 use crate::fetch::RequestWithGlobalScope;
 use crate::module_loading::{
     LoadState, Payload, host_load_imported_module, load_requested_modules,
@@ -636,8 +635,7 @@ impl Callback for ModuleHandler {
 /// It can be `worker` or `script` element
 #[derive(Clone, JSTraceable)]
 pub(crate) enum ModuleOwner {
-    #[expect(dead_code)]
-    Worker(TrustedWorkerAddress),
+    Worker(Trusted<WorkerGlobalScope>),
     Window(Trusted<HTMLScriptElement>),
     DynamicModule(Trusted<GlobalScope>),
 }
@@ -645,7 +643,7 @@ pub(crate) enum ModuleOwner {
 impl ModuleOwner {
     pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
         match &self {
-            ModuleOwner::Worker(worker) => (*worker.root().clone()).global(),
+            ModuleOwner::Worker(scope) => scope.root().global(),
             ModuleOwner::Window(script) => (*script.root()).global(),
             ModuleOwner::DynamicModule(dynamic_module) => (*dynamic_module.root()).global(),
         }
@@ -1083,6 +1081,55 @@ unsafe extern "C" fn HostPopulateImportMeta(
             JSPROP_ENUMERATE.into(),
         )
     }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-module-worker-script-tree>
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-worklet/module-worker-script-graph>
+pub(crate) fn fetch_a_module_worker_script_graph(
+    url: ServoUrl,
+    owner: ModuleOwner,
+    referrer: Referrer,
+    credentials_mode: CredentialsMode,
+    can_gc: CanGc,
+) {
+    // Step 1. Let options be a script fetch options whose cryptographic nonce
+    // is the empty string, integrity metadata is the empty string, parser
+    // metadata is "not-parser-inserted", credentials mode is credentialsMode,
+    // referrer policy is the empty string, and fetch priority is "auto".
+    let options = ScriptFetchOptions {
+        referrer: referrer.clone(),
+        integrity_metadata: "".into(),
+        credentials_mode,
+        cryptographic_nonce: "".into(),
+        parser_metadata: ParserMetadata::NotParserInserted,
+        referrer_policy: ReferrerPolicy::EmptyString,
+    };
+    // Step 2. Fetch a single module script given url, fetchClient, destination, options,
+    // settingsObject, "client", true, and onSingleFetchComplete as defined below.
+    fetch_a_single_module_script(
+        url,
+        owner.clone(),
+        Destination::Script,
+        options,
+        referrer,
+        true,
+        Some(IntroductionType::SRC_SCRIPT),
+        move |module_tree| {
+            let Some(module) = module_tree else {
+                // Step 1.1. If result is null, run onComplete given null, and abort these steps.
+                return owner.notify_owner_to_finish(None, can_gc);
+            };
+
+            // Step 1.2. Fetch the descendants of and link result given fetchClient, destination,
+            // and onComplete.
+            fetch_the_descendants_and_link_module_script(
+                module,
+                Destination::Script,
+                owner,
+                can_gc,
+            );
+        },
+    );
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-module-script-tree>
