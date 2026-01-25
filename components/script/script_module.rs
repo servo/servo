@@ -653,7 +653,12 @@ impl ModuleOwner {
 
     fn notify_owner_to_finish(&self, module_tree: Option<Rc<ModuleTree>>, can_gc: CanGc) {
         match &self {
-            ModuleOwner::Worker(_) => unimplemented!(),
+            ModuleOwner::Worker(_) => {
+                if let Some(module_tree) = module_tree {
+                    self.global()
+                        .run_a_module_script(module_tree, false, can_gc);
+                }
+            },
             ModuleOwner::DynamicModule(_) => unimplemented!(),
             ModuleOwner::Window(script) => {
                 let document = script.root().owner_document();

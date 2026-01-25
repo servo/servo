@@ -59,9 +59,9 @@ use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadat
 use crate::dom::dedicatedworkerglobalscope::{
     AutoWorkerReset, DedicatedWorkerGlobalScope, interrupt_callback,
 };
-use crate::dom::global_scope_script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
+use crate::dom::global_scope_script_execution::{ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlscriptelement::SCRIPT_JS_MIMES;
+use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, Script};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
@@ -241,7 +241,7 @@ impl FetchResponseListener for ScriptFetchContext {
         );
 
         // Step 6 Run onComplete given script.
-        scope.on_complete(Some(script), self.worker.clone(), cx);
+        scope.on_complete(Some(Script::Classic(script)), self.worker.clone(), cx);
 
         submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
     }
@@ -586,7 +586,7 @@ impl WorkerGlobalScope {
     #[expect(unsafe_code)]
     fn on_complete(
         &self,
-        script: Option<ClassicScript>,
+        script: Option<Script>,
         worker: TrustedWorkerAddress,
         cx: &mut js::context::JSContext,
     ) {
@@ -596,7 +596,8 @@ impl WorkerGlobalScope {
 
         // Step 1. If script is null or if script's error to rethrow is non-null, then:
         let script = match script {
-            Some(script) if script.record.is_ok() => script,
+            Some(Script::Classic(script)) if script.record.is_ok() => Script::Classic(script),
+            Some(Script::Module(module_tree)) => Script::Module(module_tree),
             _ => {
                 // Step 1.1 Queue a global task on the DOM manipulation task source given
                 // worker's relevant global object to fire an event named error at worker.
@@ -623,11 +624,23 @@ impl WorkerGlobalScope {
             let mut realm = realm.current_realm();
             define_all_exposed_interfaces(&mut realm, dedicated_worker_scope.upcast());
             self.execution_ready.store(true, Ordering::Relaxed);
-            _ = self.globalscope.run_a_classic_script(
-                script,
-                RethrowErrors::No,
-                CanGc::from_cx(&mut realm),
-            );
+            match script {
+                Script::Classic(script) => {
+                    _ = self.globalscope.run_a_classic_script(
+                        script,
+                        RethrowErrors::No,
+                        CanGc::from_cx(&mut realm),
+                    );
+                },
+                Script::Module(module_tree) => {
+                    self.globalscope.run_a_module_script(
+                        module_tree,
+                        false,
+                        CanGc::from_cx(&mut realm),
+                    );
+                },
+                _ => unreachable!(),
+            }
             dedicated_worker_scope.fire_queued_messages(CanGc::from_cx(&mut realm));
         }
     }
