@@ -27,7 +27,9 @@ use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::script_module::{ModuleScript, ModuleSource, RethrowError, ScriptFetchOptions};
+use crate::script_module::{
+    ModuleScript, ModuleSource, ModuleTree, RethrowError, ScriptFetchOptions,
+};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::unminify::unminify_js;
 
@@ -225,6 +227,56 @@ impl GlobalScope {
             quota: None,
             requested: None,
         })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
+    pub(crate) fn run_a_module_script(
+        &self,
+        module_tree: Rc<ModuleTree>,
+        _rethrow_errors: bool,
+        can_gc: CanGc,
+    ) {
+        // Step 1. Let settings be the settings object of script.
+        // NOTE(pylbrecht): "settings" is `self` here.
+
+        // Step 2. Check if we can run script with settings. If this returns "do not run", then
+        // return a promise resolved with undefined.
+        if !self.can_run_script() {
+            return;
+        }
+
+        // Step 3. Record module script execution start time given script.
+        // TODO
+
+        // Step 4. Prepare to run script given settings.
+        let _aes = AutoEntryScript::new(self);
+
+        // Step 6. If script's error to rethrow is not null, then set evaluationPromise to a
+        // promise rejected with script's error to rethrow.
+        {
+            let module_error = module_tree.get_rethrow_error().borrow();
+            if module_error.is_some() {
+                module_tree.report_error(self, can_gc);
+                return;
+            }
+        }
+
+        // Step 7.1. Otherwise: Let record be script's record.
+        let record = module_tree.get_record().map(|record| record.handle());
+
+        if let Some(record) = record {
+            // Step 7.2. Set evaluationPromise to record.Evaluate().
+            rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
+            let evaluated = module_tree.execute_module(self, record, rval.handle_mut(), can_gc);
+
+            // Step 8. If preventErrorReporting is false, then upon rejection of evaluationPromise
+            // with reason, report an exception given by reason for script's settings object's
+            // global object.
+            if let Err(exception) = evaluated {
+                module_tree.set_rethrow_error(exception);
+                module_tree.report_error(self, can_gc);
+            }
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#check-if-we-can-run-script>
