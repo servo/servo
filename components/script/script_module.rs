@@ -20,9 +20,9 @@ use indexmap::map::Entry;
 use js::conversions::jsstr_to_string;
 use js::gc::MutableHandleValue;
 use js::jsapi::{
-    CompileModule1, ExceptionStackBehavior, GetModuleRequestSpecifier, GetModuleRequestType,
-    GetModuleResolveHook, Handle as RawHandle, HandleValue as RawHandleValue, Heap,
-    JS_ClearPendingException, JS_DefineProperty4, JS_NewStringCopyN, JSAutoRealm, JSContext,
+    CompileJsonModule1, CompileModule1, ExceptionStackBehavior, GetModuleRequestSpecifier,
+    GetModuleRequestType, GetModuleResolveHook, Handle as RawHandle, HandleValue as RawHandleValue,
+    Heap, JS_ClearPendingException, JS_DefineProperty4, JS_NewStringCopyN, JSAutoRealm, JSContext,
     JSObject, JSPROP_ENUMERATE, JSRuntime, ModuleErrorBehaviour, ModuleType,
     SetModuleDynamicImportHook, SetModuleMetadataHook, SetModulePrivate, SetModuleResolveHook,
     SetScriptPrivateReferenceHooks, ThrowOnModuleEvaluationFailure, Value,
@@ -38,6 +38,7 @@ use js::rust::{
 };
 use mime::Mime;
 use net_traits::http_status::HttpStatus;
+use net_traits::mime_classifier::MimeClassifier;
 use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId, RequestMode,
 };
@@ -283,6 +284,7 @@ impl ModuleTree {
     /// can occur as part of compiling a script.
     fn create_a_module_script(
         source: Rc<DOMString>,
+        module_type: ModuleType,
         owner: ModuleOwner,
         url: &ServoUrl,
         options: ScriptFetchOptions,
@@ -308,40 +310,54 @@ impl ModuleTree {
         if let Some(introduction_type) = introduction_type {
             compile_options.set_introduction_type(introduction_type);
         }
-        let mut module_source = ModuleSource {
-            source,
-            unminified_dir: global.unminified_js_dir(),
-            external,
-            url: url.clone(),
-        };
-        crate::unminify::unminify_js(&mut module_source);
+
+        rooted!(in(*cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
+
+        match module_type {
+            ModuleType::JavaScript => {
+                let mut module_source = ModuleSource {
+                    source,
+                    unminified_dir: global.unminified_js_dir(),
+                    external,
+                    url: url.clone(),
+                };
+                crate::unminify::unminify_js(&mut module_source);
+                unsafe {
+                    module_script.set(CompileModule1(
+                        *cx,
+                        compile_options.ptr,
+                        &mut transform_str_to_source_text(&module_source.source.str()),
+                    ));
+                }
+            },
+            ModuleType::JSON => unsafe {
+                module_script.set(CompileJsonModule1(
+                    *cx,
+                    compile_options.ptr,
+                    &mut transform_str_to_source_text(&source.str()),
+                ));
+            },
+            ModuleType::Unknown => {},
+        }
+
+        if module_script.is_null() {
+            warn!("fail to compile module script of {}", url);
+
+            let _ = module
+                .parse_error
+                .set(RethrowError::from_pending_exception(cx));
+            return module;
+        }
+
+        let module_script_data = Rc::new(ModuleScript::new(url.clone(), options, Some(owner)));
 
         unsafe {
-            rooted!(in(*cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
-            module_script.set(CompileModule1(
-                *cx,
-                compile_options.ptr,
-                &mut transform_str_to_source_text(&module_source.source.str()),
-            ));
-
-            if module_script.is_null() {
-                warn!("fail to compile module script of {}", url);
-
-                let _ = module
-                    .parse_error
-                    .set(RethrowError::from_pending_exception(cx));
-                return module;
-            }
-
-            let module_script_data = Rc::new(ModuleScript::new(url.clone(), options, Some(owner)));
-
             SetModulePrivate(
                 module_script.get(),
                 &PrivateValue(Rc::into_raw(module_script_data) as *const _),
             );
-
-            let _ = module.record.set(ModuleObject::new(module_script.handle()));
         }
+        let _ = module.record.set(ModuleObject::new(module_script.handle()));
 
         module
     }
@@ -752,31 +768,37 @@ impl FetchResponseListener for ModuleContext {
 
         // TODO handle CSS and JSON module scripts
 
-        // Step 7.1 Let sourceText be the result of UTF-8 decoding bodyBytes.
-        let (mut source_text, _, _) = UTF_8.decode(&self.data);
+        if let Some(mime) = mime_type {
+            // Step 7.1 Let sourceText be the result of UTF-8 decoding bodyBytes.
+            let (mut source_text, _, _) = UTF_8.decode(&self.data);
 
-        // Step 7.2 If mimeType is a JavaScript MIME type and moduleType is "javascript-or-wasm", then set moduleScript
-        // to the result of creating a JavaScript module script given sourceText, settingsObject, response's URL, and options.
-        if mime_type.is_some_and(|mime| SCRIPT_JS_MIMES.contains(&mime.essence_str())) &&
-            let ModuleType::JavaScript = module_type
-        {
-            if let Some(window) = global.downcast::<Window>() {
-                substitute_with_local_script(window, &mut source_text, final_url.clone());
+            // Step 7.2 If mimeType is a JavaScript MIME type and moduleType is "javascript-or-wasm", then set moduleScript
+            // to the result of creating a JavaScript module script given sourceText, settingsObject, response's URL, and options.
+            let is_a_javascript_module = SCRIPT_JS_MIMES.contains(&mime.essence_str()) && matches!(module_type, ModuleType::JavaScript);
+
+            // Step 7.4 If mimeType is a JSON MIME type and moduleType is "json",
+            // then set moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
+            let is_a_json_module = MimeClassifier::is_json(&mime) && matches!(module_type, ModuleType::JSON);
+
+            if is_a_javascript_module || is_a_json_module {
+                if let Some(window) = global.downcast::<Window>() {
+                    substitute_with_local_script(window, &mut source_text, final_url.clone());
+                }
+
+                let module_tree = Rc::new(ModuleTree::create_a_module_script(
+                    Rc::new(DOMString::from(source_text)),
+                    *module_type,
+                    self.owner.clone(),
+                    &final_url,
+                    self.options,
+                    true,
+                    1,
+                    self.introduction_type,
+                    CanGc::note(),
+                ));
+                module_script = Some(module_tree);
             }
-
-            let module_tree = Rc::new(ModuleTree::create_a_module_script(
-                Rc::new(DOMString::from(source_text)),
-                self.owner.clone(),
-                &final_url,
-                self.options,
-                true,
-                1,
-                self.introduction_type,
-                CanGc::note(),
-            ));
-            module_script = Some(module_tree);
         }
-
         // Step 8. Set moduleMap[(url, moduleType)] to moduleScript, and run onComplete given moduleScript.
         global.set_module_map(self.module_request, ModuleStatus::Loaded(module_script));
         promise.resolve_native(&(), CanGc::note());
@@ -1055,6 +1077,7 @@ pub(crate) fn fetch_inline_module_script(
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
     let module_tree = Rc::new(ModuleTree::create_a_module_script(
         module_script_text,
+        ModuleType::JavaScript,
         owner.clone(),
         &url,
         options,
