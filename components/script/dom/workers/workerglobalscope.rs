@@ -56,12 +56,10 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::crypto::Crypto;
 use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadata};
-use crate::dom::dedicatedworkerglobalscope::{
-    AutoWorkerReset, DedicatedWorkerGlobalScope, interrupt_callback,
-};
-use crate::dom::global_scope_script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
+use crate::dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, interrupt_callback};
+use crate::dom::global_scope_script_execution::{ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlscriptelement::SCRIPT_JS_MIMES;
+use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, Script};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
@@ -74,7 +72,6 @@ use crate::dom::types::ImageBitmap;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::{base64_atob, base64_btoa};
-use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerlocation::WorkerLocation;
 use crate::dom::workernavigator::WorkerNavigator;
 use crate::fetch::{CspViolationsProcessor, Fetch, RequestWithGlobalScope, load_whole_resource};
@@ -114,7 +111,6 @@ pub(crate) struct ScriptFetchContext {
     response: Option<Metadata>,
     body_bytes: Vec<u8>,
     url: ServoUrl,
-    worker: TrustedWorkerAddress,
     policy_container: PolicyContainer,
 }
 
@@ -122,7 +118,6 @@ impl ScriptFetchContext {
     pub(crate) fn new(
         scope: Trusted<WorkerGlobalScope>,
         url: ServoUrl,
-        worker: TrustedWorkerAddress,
         policy_container: PolicyContainer,
     ) -> ScriptFetchContext {
         ScriptFetchContext {
@@ -130,7 +125,6 @@ impl ScriptFetchContext {
             response: None,
             body_bytes: Vec::new(),
             url,
-            worker,
             policy_container,
         }
     }
@@ -171,30 +165,14 @@ impl FetchResponseListener for ScriptFetchContext {
             .is_err() ||
             self.response.is_none()
         {
-            scope.on_complete(None, self.worker.clone(), cx);
+            scope.on_complete(None, cx);
             return;
         }
         let metadata = self.response.take().unwrap();
 
         // The processResponseConsumeBody steps defined inside
         // [run a worker](https://html.spec.whatwg.org/multipage/#run-a-worker)
-
-        let global_scope = scope.upcast::<GlobalScope>();
-
-        // Step 1. Set worker global scope's url to response's url.
-        scope.set_url(metadata.final_url.clone());
-
-        // Step 2. Set inside settings's creation URL to response's url.
-        global_scope.set_creation_url(metadata.final_url.clone());
-
-        // Step 3. Initialize worker global scope's policy container given worker global scope, response, and inside settings.
-        scope
-            .initialize_policy_container_for_worker_global_scope(&metadata, &self.policy_container);
-        scope.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
-            &metadata.final_url.clone(),
-            &metadata.headers,
-        ));
-        global_scope.set_https_state(metadata.https_state);
+        scope.process_response_for_workerscope(&metadata, &self.policy_container);
 
         // The processResponseConsumeBody steps defined inside
         // [fetch a classic worker script](https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-script)
@@ -204,7 +182,7 @@ impl FetchResponseListener for ScriptFetchContext {
         // Step 2 If any of the following are true: bodyBytes is null or failure; or response's status is not an ok status,
         if !metadata.status.is_success() {
             // then run onComplete given null, and abort these steps.
-            scope.on_complete(None, self.worker.clone(), cx);
+            scope.on_complete(None, cx);
             return;
         }
 
@@ -219,12 +197,14 @@ impl FetchResponseListener for ScriptFetchContext {
 
         if is_http_scheme && not_a_javascript_mime_type {
             // then run onComplete given null, and abort these steps.
-            scope.on_complete(None, self.worker.clone(), cx);
+            scope.on_complete(None, cx);
             return;
         }
 
         // Step 4 Let sourceText be the result of UTF-8 decoding bodyBytes.
         let (source, _) = UTF_8.decode_with_bom_removal(&self.body_bytes);
+
+        let global_scope = scope.upcast::<GlobalScope>();
 
         // Step 5 Let script be the result of creating a classic script using
         // sourceText, settingsObject, response's URL, and the default script fetch options.
@@ -239,7 +219,7 @@ impl FetchResponseListener for ScriptFetchContext {
         );
 
         // Step 6 Run onComplete given script.
-        scope.on_complete(Some(script), self.worker.clone(), cx);
+        scope.on_complete(Some(Script::Classic(script)), cx);
 
         submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
     }
@@ -579,23 +559,23 @@ impl WorkerGlobalScope {
 
     /// onComplete algorithm defined inside <https://html.spec.whatwg.org/multipage/#run-a-worker>
     #[expect(unsafe_code)]
-    fn on_complete(
-        &self,
-        script: Option<ClassicScript>,
-        worker: TrustedWorkerAddress,
-        cx: &mut js::context::JSContext,
-    ) {
+    pub(crate) fn on_complete(&self, script: Option<Script>, cx: &mut js::context::JSContext) {
         let dedicated_worker_scope = self
             .downcast::<DedicatedWorkerGlobalScope>()
             .expect("Only DedicatedWorkerGlobalScope is supported for now");
 
         // Step 1. If script is null or if script's error to rethrow is non-null, then:
         let script = match script {
-            Some(script) if script.record.is_ok() => script,
+            Some(Script::Classic(script)) if script.record.is_ok() => Script::Classic(script),
+            Some(Script::Module(module_tree))
+                if module_tree.get_rethrow_error().borrow().is_none() =>
+            {
+                Script::Module(module_tree)
+            },
             _ => {
                 // Step 1.1 Queue a global task on the DOM manipulation task source given
                 // worker's relevant global object to fire an event named error at worker.
-                dedicated_worker_scope.forward_simple_error_at_worker(worker);
+                dedicated_worker_scope.forward_simple_error_at_worker();
 
                 // TODO Step 1.2. Run the environment discarding steps for inside settings.
                 // Step 1.3 Abort these steps.
@@ -613,18 +593,52 @@ impl WorkerGlobalScope {
         }
 
         {
-            let _ar = AutoWorkerReset::new(dedicated_worker_scope, worker);
             let mut realm = enter_auto_realm(cx, self);
             let mut realm = realm.current_realm();
             define_all_exposed_interfaces(&mut realm, dedicated_worker_scope.upcast());
             self.execution_ready.store(true, Ordering::Relaxed);
-            _ = self.globalscope.run_a_classic_script(
-                script,
-                RethrowErrors::No,
-                CanGc::from_cx(&mut realm),
-            );
+            match script {
+                Script::Classic(script) => {
+                    _ = self.globalscope.run_a_classic_script(
+                        script,
+                        RethrowErrors::No,
+                        CanGc::from_cx(&mut realm),
+                    );
+                },
+                Script::Module(module_tree) => {
+                    self.globalscope.run_a_module_script(
+                        module_tree,
+                        false,
+                        CanGc::from_cx(&mut realm),
+                    );
+                },
+                _ => unreachable!(),
+            }
             dedicated_worker_scope.fire_queued_messages(CanGc::from_cx(&mut realm));
         }
+    }
+
+    // The processResponseConsumeBody steps defined inside
+    // [run a worker](https://html.spec.whatwg.org/multipage/#run-a-worker)
+    pub(crate) fn process_response_for_workerscope(
+        &self,
+        metadata: &Metadata,
+        policy_container: &PolicyContainer,
+    ) {
+        // Step 1. Set worker global scope's url to response's url.
+        self.set_url(metadata.final_url.clone());
+
+        // Step 2. Set inside settings's creation URL to response's url.
+        self.globalscope
+            .set_creation_url(metadata.final_url.clone());
+
+        // Step 3. Initialize worker global scope's policy container given worker global scope, response, and inside settings.
+        self.initialize_policy_container_for_worker_global_scope(metadata, policy_container);
+        self.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
+            &metadata.final_url.clone(),
+            &metadata.headers,
+        ));
+        self.globalscope.set_https_state(metadata.https_state);
     }
 }
 
