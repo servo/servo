@@ -13,7 +13,6 @@ use base::id::WebViewId;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name, ns};
-use js::jsval::UndefinedValue;
 use js::rust::{HandleObject, Stencil};
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{
@@ -40,7 +39,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, InlineCheckType, Violation};
 use crate::dom::document::Document;
@@ -667,8 +665,8 @@ impl HTMLScriptElement {
         let global = &doc.global();
 
         // Step 19. CSP.
-        if !element.has_attribute(&local_name!("src")) &&
-            global
+        if !element.has_attribute(&local_name!("src"))
+            && global
                 .get_csp_list()
                 .should_elements_inline_type_behavior_be_blocked(
                     global,
@@ -810,9 +808,9 @@ impl HTMLScriptElement {
             // Step 31.11. Switch on el's type:
             match script_type {
                 ScriptType::Classic => {
-                    let kind = if element.has_attribute(&local_name!("defer")) &&
-                        was_parser_inserted &&
-                        !asynch
+                    let kind = if element.has_attribute(&local_name!("defer"))
+                        && was_parser_inserted
+                        && !asynch
                     {
                         // Step 33.4: classic, has src, has defer, was parser-inserted, is not async.
                         ExternalScriptKind::Deferred
@@ -885,10 +883,11 @@ impl HTMLScriptElement {
                     );
                     let result = Ok(Script::Classic(script));
 
-                    if was_parser_inserted &&
-                        doc.get_current_parser()
-                            .is_some_and(|parser| parser.script_nesting_level() <= 1) &&
-                        doc.get_script_blocking_stylesheets_count() > 0
+                    if was_parser_inserted
+                        && doc
+                            .get_current_parser()
+                            .is_some_and(|parser| parser.script_nesting_level() <= 1)
+                        && doc.get_script_blocking_stylesheets_count() > 0
                     {
                         // Step 34.2: classic, has no src, was parser-inserted, is blocked on stylesheet.
                         doc.set_pending_parsing_blocking_script(self, Some(result));
@@ -1006,7 +1005,11 @@ impl HTMLScriptElement {
                 document.set_current_script(None);
 
                 // Step 6."module".2. Run the module script given by el's result.
-                self.run_a_module_script(module_tree, false, can_gc);
+                self.owner_window().as_global_scope().run_a_module_script(
+                    module_tree,
+                    false,
+                    can_gc,
+                );
             },
             Script::ImportMap(script) => {
                 // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
@@ -1023,47 +1026,6 @@ impl HTMLScriptElement {
         // Step 8. If el's from an external file is true, then fire an event named load at el.
         if self.from_an_external_file.get() {
             self.dispatch_load_event(can_gc);
-        }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
-    pub(crate) fn run_a_module_script(
-        &self,
-        module_tree: Rc<ModuleTree>,
-        _rethrow_errors: bool,
-        can_gc: CanGc,
-    ) {
-        // TODO use a settings object rather than this element's document/window
-        // Step 2
-        let document = self.owner_document();
-        if !document.is_fully_active() || !document.scripting_enabled() {
-            return;
-        }
-
-        // Step 4
-        let window = self.owner_window();
-        let global = window.as_global_scope();
-        let _aes = AutoEntryScript::new(global);
-
-        // Step 6.
-        {
-            let module_error = module_tree.get_rethrow_error().borrow();
-            if module_error.is_some() {
-                module_tree.report_error(global, can_gc);
-                return;
-            }
-        }
-
-        let record = module_tree.get_record().map(|record| record.handle());
-
-        if let Some(record) = record {
-            rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
-            let evaluated = module_tree.execute_module(global, record, rval.handle_mut(), can_gc);
-
-            if let Err(exception) = evaluated {
-                module_tree.set_rethrow_error(exception);
-                module_tree.report_error(global, can_gc);
-            }
         }
     }
 
@@ -1291,8 +1253,9 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-async>
     fn Async(&self) -> bool {
-        self.non_blocking.get() ||
-            self.upcast::<Element>()
+        self.non_blocking.get()
+            || self
+                .upcast::<Element>()
                 .has_attribute(&local_name!("async"))
     }
 
