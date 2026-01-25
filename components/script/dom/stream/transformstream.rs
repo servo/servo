@@ -17,31 +17,31 @@ use rustc_hash::FxHashMap;
 use script_bindings::callback::ExceptionHandling;
 use script_bindings::realms::InRealm;
 
-use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
-use crate::dom::bindings::structuredclone::StructuredData;
-use crate::dom::bindings::transferable::Transferable;
-use crate::dom::messageport::MessagePort;
-use crate::dom::promisenativehandler::Callback;
 use super::readablestream::CrossRealmTransformReadable;
-use crate::dom::types::{TransformStreamDefaultController, WritableStream};
 use super::writablestream::CrossRealmTransformWritable;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategy;
+use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{
+    QueuingStrategy, QueuingStrategySize,
+};
 use crate::dom::bindings::codegen::Bindings::TransformStreamBinding::TransformStreamMethods;
 use crate::dom::bindings::codegen::Bindings::TransformerBinding::Transformer;
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::stream::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
+use crate::dom::bindings::structuredclone::StructuredData;
+use crate::dom::bindings::transferable::Transferable;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::messageport::MessagePort;
 use crate::dom::promise::Promise;
+use crate::dom::promisenativehandler::Callback;
 use crate::dom::readablestream::{ReadableStream, create_readable_stream};
+use crate::dom::stream::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
+use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestream::create_writable_stream;
 use crate::dom::stream::writablestreamdefaultcontroller::UnderlyingSinkType;
-use crate::dom::types::PromiseNativeHandler;
-use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
+use crate::dom::types::{PromiseNativeHandler, TransformStreamDefaultController, WritableStream};
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 

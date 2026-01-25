@@ -10,15 +10,13 @@ use js::jsapi::{Heap, JSAutoRealm};
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleValue as SafeHandleValue;
 
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector};
-use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::realms::enter_realm;

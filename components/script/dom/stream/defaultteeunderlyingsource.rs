@@ -10,15 +10,14 @@ use js::jsapi::{HandleValueArray, Heap, NewArrayObject, Value};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::HandleValue as SafeHandleValue;
 
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::types::{ReadableStream, ReadableStreamDefaultReader};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::Dom;
-use crate::dom::stream::defaultteereadrequest::DefaultTeeReadRequest;
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::stream::defaultteereadrequest::DefaultTeeReadRequest;
 use crate::dom::stream::readablestreamdefaultreader::ReadRequest;
+use crate::dom::types::{ReadableStream, ReadableStreamDefaultReader};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]

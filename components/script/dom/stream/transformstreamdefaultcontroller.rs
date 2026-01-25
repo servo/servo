@@ -13,14 +13,12 @@ use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
-use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::TransformerBinding::{
-    TransformerCancelCallback, TransformerFlushCallback, TransformerTransformCallback,
-};
-use crate::dom::types::TransformStream;
 use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TransformStreamDefaultControllerBinding::TransformStreamDefaultControllerMethods;
-use crate::dom::bindings::codegen::Bindings::TransformerBinding::Transformer;
+use crate::dom::bindings::codegen::Bindings::TransformerBinding::{
+    Transformer, TransformerCancelCallback, TransformerFlushCallback, TransformerTransformCallback,
+};
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -33,12 +31,10 @@ use crate::dom::decompressionstream::{
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::textdecoderstream::{decode_and_enqueue_a_chunk, flush_and_enqueue};
-use crate::dom::textencoderstream::{
-    Encoder, encode_and_enqueue_a_chunk, encode_and_flush,
-};
 use crate::dom::textdecodercommon::TextDecoderCommon;
-use crate::dom::types::DecompressionStream;
+use crate::dom::textdecoderstream::{decode_and_enqueue_a_chunk, flush_and_enqueue};
+use crate::dom::textencoderstream::{Encoder, encode_and_enqueue_a_chunk, encode_and_flush};
+use crate::dom::types::{DecompressionStream, TransformStream};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 

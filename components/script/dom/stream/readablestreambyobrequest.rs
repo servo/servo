@@ -9,12 +9,10 @@ use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamBYOBRequestBinding::ReadableStreamBYOBRequestMethods;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::Reflector;
-use crate::dom::bindings::root::MutNullableDom;
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::stream::readablebytestreamcontroller::ReadableByteStreamController;
 use crate::dom::types::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};

@@ -16,22 +16,23 @@ use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue, Mutabl
 use js::typedarray::Uint8;
 use script_bindings::conversions::SafeToJSValConvertible;
 
-use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
-use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible, throw_dom_exception};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::readablestreamdefaultreader::ReadRequest;
-use crate::dom::stream::underlyingsourcecontainer::{UnderlyingSourceContainer, UnderlyingSourceType};
+use crate::dom::stream::underlyingsourcecontainer::{
+    UnderlyingSourceContainer, UnderlyingSourceType,
+};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
