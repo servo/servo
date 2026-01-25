@@ -77,8 +77,9 @@ use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::types::{Console, WorkerGlobalScope};
+use crate::dom::types::{Console, DedicatedWorkerGlobalScope, WorkerGlobalScope};
 use crate::dom::window::Window;
+use crate::dom::worker::TrustedWorkerAddress;
 use crate::fetch::RequestWithGlobalScope;
 use crate::module_loading::{
     LoadState, Payload, host_load_imported_module, load_requested_modules,
@@ -656,6 +657,10 @@ impl ModuleOwner {
                 if let Some(module_tree) = module_tree {
                     self.global()
                         .run_a_module_script(module_tree, false, can_gc);
+                } else {
+                    // TODO(pylbrecht): ideally we call DedicatedWorkerGlobalScope::on_complete()
+                    // here, but it's a challenge to get our hands on a worker instance ("the
+                    // dance").
                 }
             },
             ModuleOwner::DynamicModule(_) => unimplemented!(),
@@ -850,8 +855,17 @@ impl FetchResponseListener for ModuleContext {
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
-        let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None, None);
+        match &self.owner {
+            ModuleOwner::Worker(scope) => {
+                if let Some(scope) = scope.root().downcast::<DedicatedWorkerGlobalScope>() {
+                    scope.report_csp_violations(violations);
+                }
+            },
+            _ => {
+                let global = &self.resource_timing_global();
+                global.report_csp_violations(violations, None, None);
+            },
+        };
     }
 }
 
@@ -1087,6 +1101,7 @@ unsafe extern "C" fn HostPopulateImportMeta(
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-module-worker-script-tree>
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-worklet/module-worker-script-graph>
 pub(crate) fn fetch_a_module_worker_script_graph(
+    worker: TrustedWorkerAddress,
     url: ServoUrl,
     owner: ModuleOwner,
     referrer: Referrer,
@@ -1121,6 +1136,17 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         move |module_tree| {
             let Some(module) = module_tree else {
                 // Step 1.1. If result is null, run onComplete given null, and abort these steps.
+                // TODO(pylbrecht): make `worker` part of ModuleOwner, so we can call on_complete()
+                // in ModuleOwner::notify_owner_to_finish()
+                let global = owner.global();
+                let global = global.downcast::<WorkerGlobalScope>().unwrap();
+
+                // NOTE(pylbrecht): no idea if this is the correct way to get a `cx`; just
+                // copy/pasted from `impl FetchResponseListener for ScriptFetchOptions`.
+                #[expect(unsafe_code)]
+                let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+                global.on_complete(None, worker, &mut cx);
+
                 return owner.notify_owner_to_finish(None, can_gc);
             };
 

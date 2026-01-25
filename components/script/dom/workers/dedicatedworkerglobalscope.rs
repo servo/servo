@@ -519,6 +519,7 @@ impl DedicatedWorkerGlobalScope {
                         let _ar = AutoWorkerReset::new(&global, worker.clone());
 
                         fetch_a_module_worker_script_graph(
+                            worker.clone(),
                             request.url,
                             ModuleOwner::Worker(Trusted::new(scope)),
                             request.referrer,

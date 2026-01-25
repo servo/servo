@@ -584,7 +584,7 @@ impl WorkerGlobalScope {
 
     /// onComplete algorithm defined inside <https://html.spec.whatwg.org/multipage/#run-a-worker>
     #[expect(unsafe_code)]
-    fn on_complete(
+    pub(crate) fn on_complete(
         &self,
         script: Option<Script>,
         worker: TrustedWorkerAddress,
