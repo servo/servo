@@ -1032,7 +1032,11 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
             rooted!(in(*cx) let obj_val = ObjectValue(underlying_sink_obj.get()));
             match UnderlyingSink::new(cx, obj_val.handle(), can_gc) {
                 Ok(ConversionResult::Success(val)) => val,
-                Ok(ConversionResult::Failure(error)) => return Err(Error::Type(error.to_string())),
+                Ok(ConversionResult::Failure(error)) => {
+                    return Err(Error::Type(
+                        String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
+                    ));
+                },
                 _ => {
                     return Err(Error::JSFailed);
                 },
