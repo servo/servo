@@ -4053,7 +4053,7 @@ let traps = ProxyTraps {{
     isConstructor: None,
 }};
 
-CreateProxyHandler(&traps, unsafe {{ Class.get() }}.as_void_ptr())\
+CreateProxyHandler(&traps, unsafe {{ Class.get() }} as *const _ as *const libc::c_void)\
 """)
 
 

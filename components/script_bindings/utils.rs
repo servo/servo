@@ -556,16 +556,6 @@ pub(crate) unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
     }
 }
 
-// Generic method for returning libc::c_void from caller
-pub trait AsVoidPtr {
-    fn as_void_ptr(&self) -> *const libc::c_void;
-}
-impl<T> AsVoidPtr for T {
-    fn as_void_ptr(&self) -> *const libc::c_void {
-        self as *const T as *const libc::c_void
-    }
-}
-
 /// Enumerate lazy properties of a global object.
 /// Modeled after <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/bindings/BindingUtils.cpp#L2814>
 pub(crate) unsafe extern "C" fn enumerate_global(

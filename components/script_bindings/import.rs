@@ -137,7 +137,7 @@ pub(crate) mod module {
     pub(crate) use crate::root::{MaybeUnreflectedDom, Root};
     pub(crate) use crate::script_runtime::CanGc;
     pub(crate) use crate::utils::{
-        AsVoidPtr, DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, DOMClass, DOMJSClass, JSCLASS_DOM_GLOBAL,
+        DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, DOMClass, DOMJSClass, JSCLASS_DOM_GLOBAL,
         ProtoOrIfaceArray, enumerate_global, enumerate_window, exception_to_promise,
         generic_getter, generic_lenient_getter, generic_lenient_setter, generic_method,
         generic_setter, generic_static_promise_method, get_array_index_from_id,
