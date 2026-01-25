@@ -141,7 +141,8 @@ use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::{
-    ImportMap, ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
+    ImportMap, ModuleRequest, ModuleStatus, ResolvedModule,
+    ScriptFetchOptions,
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
