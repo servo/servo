@@ -362,6 +362,43 @@ impl Callback for PipeTo {
 }
 
 impl PipeTo {
+    #[allow(clippy::too_many_arguments)]
+    fn delay_cancel_until_abort(
+        &self,
+        cx: SafeJSContext,
+        global: &GlobalScope,
+        source: &ReadableStream,
+        reason: SafeHandleValue,
+        abort_promise: Rc<Promise>,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) -> Rc<Promise> {
+        // Spec demands the actions list run in order, so have cancel wait
+        // for abort promise before starting (to meet abort.any.js expectations).
+        let delayed_cancel = Promise::new(global, can_gc);
+        let triggered = Rc::new(Cell::new(false));
+        rooted!(in(*cx) let mut fulfillment_handler = Some(StartCancelAfterAbortHandler {
+            source: Dom::from_ref(source),
+            reason: Heap::boxed(reason.get()),
+            result: delayed_cancel.clone(),
+            triggered: triggered.clone(),
+        }));
+        rooted!(in(*cx) let mut rejection_handler = Some(StartCancelAfterAbortHandler {
+            source: Dom::from_ref(source),
+            reason: Heap::boxed(reason.get()),
+            result: delayed_cancel.clone(),
+            triggered,
+        }));
+        let native_handler = PromiseNativeHandler::new(
+            global,
+            fulfillment_handler.take().map(|h| Box::new(h) as Box<_>),
+            rejection_handler.take().map(|h| Box::new(h) as Box<_>),
+            can_gc,
+        );
+        abort_promise.append_native_handler(&native_handler, realm, can_gc);
+        delayed_cancel
+    }
+
     /// Setting shutdown error in a way that ensures it isn't
     /// moved after it has been set.
     fn set_shutdown_error(&self, error: SafeHandleValue) {
@@ -722,7 +759,11 @@ impl PipeTo {
                 error.set(self.abort_reason.get());
 
                 // Let actions be an empty ordered set.
+                // Ordered set of actions from
+                // https://streams.spec.whatwg.org/#readable-stream-pipe-to
+                // (abort must settle before cancel so its rejection wins).
                 let mut actions = vec![];
+                let mut abort_action_promise = None;
 
                 // If preventAbort is false, append the following action to actions:
                 if !self.prevent_abort {
@@ -739,6 +780,7 @@ impl PipeTo {
                         // Otherwise, return a promise resolved with undefined.
                         Promise::new_resolved(global, cx, (), can_gc)
                     };
+                    abort_action_promise = Some(promise.clone());
                     actions.push(promise);
                 }
 
@@ -749,7 +791,19 @@ impl PipeTo {
                     // If source.[[state]] is "readable",
                     let promise = if source.is_readable() {
                         // return ! ReadableStreamCancel(source, error).
-                        source.cancel(cx, global, error.handle(), can_gc)
+                        if let Some(abort_promise) = abort_action_promise.clone() {
+                            self.delay_cancel_until_abort(
+                                cx,
+                                global,
+                                &source,
+                                error.handle(),
+                                abort_promise,
+                                realm,
+                                can_gc,
+                            )
+                        } else {
+                            source.cancel(cx, global, error.handle(), can_gc)
+                        }
                     } else {
                         // Otherwise, return a promise resolved with undefined.
                         Promise::new_resolved(global, cx, (), can_gc)
@@ -842,6 +896,84 @@ impl Callback for SourceCancelPromiseRejectionHandler {
     fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
         let can_gc = CanGc::from_cx(cx);
         self.result.reject_native(&v, can_gc);
+    }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+struct ForwardPromiseFulfillmentHandler {
+    #[conditional_malloc_size_of]
+    /// Promise that should receive the forwarded fulfillment.
+    forwarded_promise: Rc<Promise>,
+}
+
+impl Callback for ForwardPromiseFulfillmentHandler {
+    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+        self.forwarded_promise.resolve(cx, v, can_gc);
+    }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+struct ForwardPromiseRejectionHandler {
+    #[conditional_malloc_size_of]
+    /// Promise that should receive the forwarded rejection.
+    forwarded_promise: Rc<Promise>,
+}
+
+impl Callback for ForwardPromiseRejectionHandler {
+    fn callback(&self, cx: SafeJSContext, v: SafeHandleValue, _realm: InRealm, can_gc: CanGc) {
+        self.forwarded_promise.reject(cx, v, can_gc);
+    }
+}
+
+impl js::gc::Rootable for StartCancelAfterAbortHandler {}
+
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct StartCancelAfterAbortHandler {
+    /// ReadableStream side of the pipe that will be canceled after abort settles.
+    source: Dom<ReadableStream>,
+    /// Abort reason captured before scheduling cancellation.
+    #[ignore_malloc_size_of = "mozjs"]
+    reason: Box<Heap<JSVal>>,
+    /// Promise returned by `delay_cancel_until_abort` that mirrors cancel().
+    #[conditional_malloc_size_of]
+    result: Rc<Promise>,
+    /// Ensures we only run cancel once even if both fulfill/reject fire.
+    #[conditional_malloc_size_of]
+    triggered: Rc<Cell<bool>>,
+}
+
+impl Callback for StartCancelAfterAbortHandler {
+    fn callback(&self, cx: SafeJSContext, _v: SafeHandleValue, realm: InRealm, can_gc: CanGc) {
+        if self.triggered.replace(true) {
+            return;
+        }
+
+        let global = GlobalScope::from_safe_context(cx, realm);
+        let source = self.source.as_rooted();
+        // The abort action can settle with any value; per spec we ignore `_v`
+        // and pass along the original abort reason when running cancel().
+        let cancel_promise = if source.is_readable() {
+            rooted!(in(*cx) let mut reason = UndefinedValue());
+            reason.set(self.reason.get());
+            source.cancel(cx, &global, reason.handle(), can_gc)
+        } else {
+            // If the ReadableStream already left the readable state, the spec’s
+            // ReadableStreamCancel algorithm resolves with undefined, so forward as-is.
+            Promise::new_resolved(&global, cx, (), can_gc)
+        };
+
+        let handler = PromiseNativeHandler::new(
+            &global,
+            Some(Box::new(ForwardPromiseFulfillmentHandler {
+                forwarded_promise: self.result.clone(),
+            })),
+            Some(Box::new(ForwardPromiseRejectionHandler {
+                forwarded_promise: self.result.clone(),
+            })),
+            can_gc,
+        );
+        cancel_promise.append_native_handler(&handler, realm, can_gc);
     }
 }
 
