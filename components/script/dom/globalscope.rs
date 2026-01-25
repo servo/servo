@@ -147,7 +147,8 @@ use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::{
-    ImportMap, ModuleScript, ModuleStatus, ResolvedModule, RethrowError, ScriptFetchOptions,
+    ImportMap, ModuleScript, ModuleStatus, ModuleTree, ResolvedModule, RethrowError,
+    ScriptFetchOptions,
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
@@ -3671,6 +3672,45 @@ impl GlobalScope {
             quota: None,
             requested: None,
         })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
+    pub(crate) fn run_a_module_script(
+        &self,
+        module_tree: Rc<ModuleTree>,
+        _rethrow_errors: bool,
+        can_gc: CanGc,
+    ) {
+        // TODO Step 1. Let settings be the settings object of script.
+
+        // Step 2
+        if !self.can_run_script() {
+            return;
+        }
+
+        // Step 4
+        let _aes = AutoEntryScript::new(self);
+
+        // Step 6.
+        {
+            let module_error = module_tree.get_rethrow_error().borrow();
+            if module_error.is_some() {
+                module_tree.report_error(self, can_gc);
+                return;
+            }
+        }
+
+        let record = module_tree.get_record().map(|record| record.handle());
+
+        if let Some(record) = record {
+            rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
+            let evaluated = module_tree.execute_module(self, record, rval.handle_mut(), can_gc);
+
+            if let Err(exception) = evaluated {
+                module_tree.set_rethrow_error(exception);
+                module_tree.report_error(self, can_gc);
+            }
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#check-if-we-can-run-script>
