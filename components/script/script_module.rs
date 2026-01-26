@@ -77,6 +77,7 @@ use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
+use crate::dom::reportingendpoint::ReportingEndpoint;
 use crate::dom::types::{Console, DedicatedWorkerGlobalScope, WorkerGlobalScope};
 use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
@@ -705,6 +706,10 @@ struct ModuleContext {
     status: Result<(), NetworkError>,
     /// `introductionType` value to set in the `CompileOptionsWrapper`.
     introduction_type: Option<&'static CStr>,
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#fetching-scripts-is-top-level>
+    is_top_level: bool,
+
+    policy_container: Option<PolicyContainer>,
 }
 
 impl FetchResponseListener for ModuleContext {
@@ -786,6 +791,34 @@ impl FetchResponseListener for ModuleContext {
         }
 
         let metadata = self.metadata.take().unwrap();
+
+        // The processResponseConsumeBody steps defined inside
+        // [run a worker](https://html.spec.whatwg.org/multipage/#run-a-worker)
+        if self.is_top_level {
+            let global = self.owner.global();
+
+            if let Some(scope) = global.downcast::<WorkerGlobalScope>() {
+                // Step 1. Set worker global scope's url to response's url.
+                scope.set_url(metadata.final_url.clone());
+
+                // Step 2. Set inside settings's creation URL to response's url.
+                global.set_creation_url(metadata.final_url.clone());
+
+                // Step 3. Initialize worker global scope's policy container given worker global scope, response, and inside settings.
+                scope.initialize_policy_container_for_worker_global_scope(
+                    &metadata,
+                    &self
+                        .policy_container
+                        .expect("top level worker fetch must have a policy container"),
+                );
+                scope.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
+                    &metadata.final_url.clone(),
+                    &metadata.headers,
+                ));
+                global.set_https_state(metadata.https_state);
+            }
+        }
+
         let final_url = metadata.final_url;
 
         // Step 2. Let mimeType be the result of extracting a MIME type from response's header list.
@@ -1429,7 +1462,7 @@ pub(crate) fn fetch_a_single_module_script(
         .with_global_scope(&global)
         .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
 
-    if let Some(container) = policy_container {
+    if let Some(container) = policy_container.clone() {
         request = request.policy_container(container);
     }
 
@@ -1441,6 +1474,8 @@ pub(crate) fn fetch_a_single_module_script(
         options,
         status: Ok(()),
         introduction_type,
+        is_top_level,
+        policy_container,
     };
 
     let network_listener = NetworkListener::new(

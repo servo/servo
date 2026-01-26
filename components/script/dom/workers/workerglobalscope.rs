@@ -551,7 +551,7 @@ impl WorkerGlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#initialize-worker-policy-container> and
     /// <https://html.spec.whatwg.org/multipage/#creating-a-policy-container-from-a-fetch-response>
-    fn initialize_policy_container_for_worker_global_scope(
+    pub(crate) fn initialize_policy_container_for_worker_global_scope(
         &self,
         metadata: &Metadata,
         parent_policy_container: &PolicyContainer,
