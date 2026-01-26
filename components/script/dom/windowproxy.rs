@@ -52,7 +52,7 @@ use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::JSTraceable;
-use crate::dom::bindings::utils::{AsVoidPtr, get_array_index_from_id};
+use crate::dom::bindings::utils::get_array_index_from_id;
 use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
@@ -215,7 +215,7 @@ impl WindowProxy {
             SetProxyReservedSlot(
                 js_proxy.get(),
                 0,
-                &PrivateValue((*window_proxy).as_void_ptr()),
+                &PrivateValue(&raw const (*window_proxy) as *const libc::c_void),
             );
 
             // Notify the JS engine about the new window proxy binding.
@@ -276,7 +276,7 @@ impl WindowProxy {
             SetProxyReservedSlot(
                 js_proxy.get(),
                 0,
-                &PrivateValue((*window_proxy).as_void_ptr()),
+                &PrivateValue(&raw const (*window_proxy) as *const libc::c_void),
             );
 
             // Notify the JS engine about the new window proxy binding.
@@ -739,7 +739,11 @@ impl WindowProxy {
             debug!("Transplanted proxy is {:p}.", new_js_proxy.get());
 
             // Transfer ownership of this browsing context from the old window proxy to the new one.
-            SetProxyReservedSlot(new_js_proxy.get(), 0, &PrivateValue(self.as_void_ptr()));
+            SetProxyReservedSlot(
+                new_js_proxy.get(),
+                0,
+                &PrivateValue(self as *const _ as *const libc::c_void),
+            );
 
             // Notify the JS engine about the new window proxy binding.
             SetWindowProxy(*cx, window_jsobject, new_js_proxy.handle());

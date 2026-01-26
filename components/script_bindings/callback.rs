@@ -26,7 +26,6 @@ use crate::reflector::DomObject;
 use crate::root::{Dom, DomRoot};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::settings_stack::{GenericAutoEntryScript, GenericAutoIncumbentScript};
-use crate::utils::AsCCharPtrPtr;
 
 pub trait ThisReflector {
     fn jsobject(&self) -> *mut JSObject;
@@ -101,7 +100,7 @@ impl<D: DomTypes> CallbackObject<D> {
             assert!(AddRawValueRoot(
                 *cx,
                 self.permanent_js_root.get_unsafe(),
-                b"CallbackObject::root\n".as_c_char_ptr()
+                c"CallbackObject::root".as_ptr()
             ));
         }
     }

@@ -556,27 +556,6 @@ pub(crate) unsafe fn trace_global(tracer: *mut JSTracer, obj: *mut JSObject) {
     }
 }
 
-// Generic method for returning libc::c_void from caller
-pub trait AsVoidPtr {
-    fn as_void_ptr(&self) -> *const libc::c_void;
-}
-impl<T> AsVoidPtr for T {
-    fn as_void_ptr(&self) -> *const libc::c_void {
-        self as *const T as *const libc::c_void
-    }
-}
-
-// Generic method for returning c_char from caller
-pub(crate) trait AsCCharPtrPtr {
-    fn as_c_char_ptr(&self) -> *const c_char;
-}
-
-impl AsCCharPtrPtr for [u8] {
-    fn as_c_char_ptr(&self) -> *const c_char {
-        self as *const [u8] as *const c_char
-    }
-}
-
 /// Enumerate lazy properties of a global object.
 /// Modeled after <https://github.com/mozilla/gecko-dev/blob/3fd619f47/dom/bindings/BindingUtils.cpp#L2814>
 pub(crate) unsafe extern "C" fn enumerate_global(
@@ -613,7 +592,7 @@ pub(crate) unsafe extern "C" fn enumerate_window<D: DomTypes>(
         if !(interface.enabled)(&mut cx, obj) {
             continue;
         }
-        let s = JS_AtomizeStringN(cx.raw_cx(), name.as_c_char_ptr(), name.len());
+        let s = JS_AtomizeStringN(cx.raw_cx(), name.as_ptr() as *const c_char, name.len());
         rooted!(&in(cx) let id = StringId(s));
         if s.is_null() || !AppendToIdVector(props, id.handle().into()) {
             return false;
