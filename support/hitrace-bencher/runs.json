@@ -48,7 +48,16 @@
             {
                 "name": "resident-smaps",
                 "match_str": "resident-according-to-smaps",
-                "combined": true,
+                "point_filter_type": "Combined"
+            },
+            {
+                "name": "LargestContentfulPaint",
+                "match_str": "LargestContentfulPaint",
+                "point_filter_type": "Largest"
+            },
+            {
+                "name": "FirstContentfulPaint",
+                "match_str": "FirstContentfulPaint"
             }
         ]
     },
@@ -88,7 +97,16 @@
             {
                 "name": "resident-smaps",
                 "match_str": "resident-according-to-smaps",
-                "combined": true
+                "point_filter_type": "Combined"
+            },
+            {
+                "name": "LargestContentfulPaint",
+                "match_str": "LargestContentfulPaint",
+                "point_filter_type": "Largest"
+            },
+            {
+                "name": "FirstContentfulPaint",
+                "match_str": "FirstContentfulPaint"
             }
         ]
     },

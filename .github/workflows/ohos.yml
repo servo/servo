@@ -39,7 +39,7 @@ env:
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
   BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
-  HITRACE_BENCH_VERSION: 0.9.1
+  HITRACE_BENCH_VERSION: 0.10.0
 
 jobs:
   build:
