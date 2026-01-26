@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test</title>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+<div id="main"></div>
+
+<script>
+setup({"hide_test_state": true});
+promise_test(async t => {
+  assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+  await waitForAnimationFrames(3);
+  t.step(function() {
+        const bufferedEntries = performance.getEntriesByType('paint');
+        assert_equals(bufferedEntries.length, 0, "No paint entries yet");
+    });
+}, "Basic test to check no paint entries.");
+</script>
+</body>
+</html>
