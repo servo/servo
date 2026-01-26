@@ -223,7 +223,7 @@ impl ShadowRoot {
             })
             .cloned();
 
-        self.document_or_shadow_roots.add_stylesheet(
+        self.document_or_shadow_root.add_stylesheet(
             StylesheetSource::Element(Dom::from_ref(owner_node)),
             StylesheetSetRef::Author(stylesheets),
             sheet,
@@ -243,7 +243,7 @@ impl ShadowRoot {
 
         let insertion_point = stylesheets.iter().last().cloned();
 
-        self.document_or_shadow_roots.add_stylesheet(
+        self.document_or_shadow_root.add_stylesheet(
             StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),
             StylesheetSetRef::Author(stylesheets),
             sheet,
@@ -256,7 +256,7 @@ impl ShadowRoot {
     /// Remove a stylesheet owned by `owner` from the list of shadow root sheets.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
     pub(crate) fn remove_stylesheet(&self, owner: StylesheetSource, s: &Arc<Stylesheet>) {
-        DocumentOrShadowRoot::new(&self.window).remove_stylesheet(
+        self.document_or_shadow_root.remove_stylesheet(
             owner,
             s,
             StylesheetSetRef::Author(&mut self.author_styles.borrow_mut().stylesheets),
