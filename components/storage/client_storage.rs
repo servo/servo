@@ -206,20 +206,29 @@ impl RegistryEngine for SqliteEngine {
             (bucket_id, bottle.bottle_type.type_str()),
             |row| row.get(0),
         )?;
-        if exists {
-            return Err(CreateBottleError::BottleAlreadyExists);
+        if !exists {
+            tx.execute(
+                "INSERT INTO bottles (bucket_id, identifier, quota) VALUES (?1, ?2, ?3);",
+                (bucket_id, bottle.bottle_type.type_str(), bottle.quota),
+            )?;
         }
-
-        tx.execute(
-            "INSERT INTO bottles (bucket_id, identifier, quota) VALUES (?1, ?2, ?3);",
-            (bucket_id, bottle.bottle_type.type_str(), bottle.quota),
-        )?;
 
         let bottle_id: i64 = tx.query_row(
             "SELECT id FROM bottles WHERE bucket_id = ?1 AND identifier = ?2;",
             (bucket_id, bottle.bottle_type.type_str()),
             |row| row.get(0),
         )?;
+
+        // Ensure no duplicate database
+        let exists: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM databases WHERE bottle_id = ?1 AND name = ?2);",
+            (bottle_id, bottle.bottle_type.database_name()),
+            |row| row.get(0),
+        )?;
+
+        if exists {
+            return Err(CreateBottleError::DatabaseAlreadyExists);
+        }
 
         tx.execute(
             "INSERT INTO databases (bottle_id, name) VALUES (?1, ?2);",
@@ -241,6 +250,8 @@ impl RegistryEngine for SqliteEngine {
         )?;
 
         tx.commit()?;
+        // Create the directory on disk
+        std::fs::create_dir_all(&path).map_err(|_| CreateBottleError::DirectoryCreationFailed)?;
         Ok(path)
     }
 
@@ -409,6 +420,9 @@ where
                         },
                         CreateBottleError::DatabaseAlreadyExists => {
                             CreateBottleError::DatabaseAlreadyExists
+                        },
+                        CreateBottleError::DirectoryCreationFailed => {
+                            CreateBottleError::DirectoryCreationFailed
                         },
                         CreateBottleError::Internal(err) => {
                             CreateBottleError::Internal(format!("{:?}", err))
