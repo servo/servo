@@ -199,8 +199,7 @@ def test_parent_of_document_node_errors(session, inline):
     assert_error(response, "invalid selector")
 
 
-@pytest.mark.parametrize("value", [None, 1])
-def test_implicit_wait(session, inline, value):
+def test_implicit_wait(session, inline):
     session.url = inline(
         """
         <div id="parent"></div>
@@ -211,7 +210,7 @@ def test_implicit_wait(session, inline, value):
         </script>
     """
     )
-    session.timeouts.implicit = value
+    session.timeouts.implicit = 1
 
     from_element = session.find.css("#parent", all=False)
     response = find_elements(session, from_element.id, "css selector", "#delayed")
@@ -221,6 +220,27 @@ def test_implicit_wait(session, inline, value):
 
     element = WebElement.from_json(value[0], session)
     assert_same_element(session, element, expected)
+
+
+def test_implicit_wait_none(session, inline):
+    session.url = inline(
+        """
+        <div id="parent"></div>
+        <script>
+            setTimeout(() => {
+                document.getElementById('parent').innerHTML = '<div id="delayed"></div>';
+            }, 300);
+        </script>
+    """
+    )
+    session.timeouts.implicit = None
+
+    from_element = session.find.css("#parent", all=False)
+    response = find_elements(session, from_element.id, "css selector", "#delayed")
+
+    elements = assert_success(response)
+
+    assert len(elements) == 0
 
 
 def test_implicit_wait_timeout(session, inline):

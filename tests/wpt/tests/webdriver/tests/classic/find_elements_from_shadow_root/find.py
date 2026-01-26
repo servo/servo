@@ -260,10 +260,9 @@ def test_find_elements_in_nested_shadow_root(
     assert element.text == expected_text
 
 
-@pytest.mark.parametrize("value", [None, 1])
-def test_implicit_wait_shadow_root(session, get_test_page, value):
+def test_implicit_wait_shadow_root(session, get_test_page):
     session.url = get_test_page()
-    session.timeouts.implicit = value
+    session.timeouts.implicit = 1
 
     session.execute_script(
         """
@@ -291,6 +290,28 @@ def test_implicit_wait_shadow_root(session, get_test_page, value):
 
     element = WebElement.from_json(value[0], session)
     assert_same_element(session, element, expected)
+
+
+def test_implicit_wait_none_shadow_root(session, get_test_page):
+    session.url = get_test_page()
+    session.timeouts.implicit = None
+
+    session.execute_script(
+        """
+        setTimeout(() => {
+            const host = document.querySelector('custom-element');
+            const input = document.createElement('input');
+            input.id = 'delayed';
+            host.shadowRoot.appendChild(input);
+        }, 300);
+    """
+    )
+
+    shadow_root = session.find.css("custom-element", all=False).shadow_root
+    response = find_elements(session, shadow_root.id, "css selector", "#delayed")
+
+    elements = assert_success(response)
+    assert len(elements) == 0
 
 
 def test_implicit_wait_timeout(session, get_test_page):

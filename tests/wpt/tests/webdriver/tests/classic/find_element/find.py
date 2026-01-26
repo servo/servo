@@ -121,8 +121,7 @@ def test_htmldocument(session, inline, using, value):
     assert_success(response)
 
 
-@pytest.mark.parametrize("value", [None, 1])
-def test_implicit_wait(session, inline, value):
+def test_implicit_wait(session, inline):
     session.url = inline("""
         <script>
             setTimeout(() => {
@@ -130,13 +129,27 @@ def test_implicit_wait(session, inline, value):
             }, 300);
         </script>
     """)
-    session.timeouts.implicit = value
+    session.timeouts.implicit = 1
 
     response = find_element(session, "css selector", "#delayed")
     value = assert_success(response)
 
     expected = session.execute_script("return document.getElementById('delayed')")
     assert_same_element(session, value, expected)
+
+
+def test_implicit_wait_none(session, inline):
+    session.url = inline("""
+        <script>
+            setTimeout(() => {
+                document.body.innerHTML = '<div id="delayed"></div>';
+            }, 300);
+        </script>
+    """)
+    session.timeouts.implicit = None
+
+    response = find_element(session, "css selector", "#delayed")
+    assert_error(response, "no such element")
 
 
 def test_implicit_wait_timeout(session, inline):

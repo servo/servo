@@ -141,8 +141,7 @@ def test_htmldocument(session, inline, using, value):
     assert len(value) == 1
 
 
-@pytest.mark.parametrize("value", [None, 1])
-def test_implicit_wait(session, inline, value):
+def test_implicit_wait(session, inline):
     session.url = inline(
         """
         <script>
@@ -152,7 +151,7 @@ def test_implicit_wait(session, inline, value):
         </script>
     """
     )
-    session.timeouts.implicit = value
+    session.timeouts.implicit = 1
 
     response = find_elements(session, "css selector", "#delayed")
     value = assert_success(response)
@@ -161,6 +160,24 @@ def test_implicit_wait(session, inline, value):
 
     element = WebElement.from_json(value[0], session)
     assert_same_element(session, element, expected)
+
+
+def test_implicit_wait_none(session, inline):
+    session.url = inline(
+        """
+        <script>
+            setTimeout(() => {
+                document.body.innerHTML = '<div id="delayed"></div>';
+            }, 300);
+        </script>
+    """
+    )
+    session.timeouts.implicit = None
+
+    response = find_elements(session, "css selector", "#delayed")
+    elements = assert_success(response)
+
+    assert len(elements) == 0
 
 
 def test_implicit_wait_timeout(session, inline):
