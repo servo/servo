@@ -4655,12 +4655,6 @@ impl Document {
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
     pub(crate) fn remove_stylesheet(&self, owner: StylesheetSource, stylesheet: &Arc<Stylesheet>) {
-        if self.has_browsing_context() {
-            self.window
-                .layout_mut()
-                .remove_stylesheet(stylesheet.clone());
-        }
-
         self.document_or_shadow_root.remove_stylesheet(
             owner,
             stylesheet,
