@@ -33,6 +33,7 @@ fn pref_to_jsval(pref: &PrefValue, cx: JSContext, rval: MutableHandleValue, can_
     match pref {
         PrefValue::Bool(b) => b.safe_to_jsval(cx, rval, can_gc),
         PrefValue::Int(i) => i.safe_to_jsval(cx, rval, can_gc),
+        PrefValue::UInt(u) => u.safe_to_jsval(cx, rval, can_gc),
         PrefValue::Str(s) => s.safe_to_jsval(cx, rval, can_gc),
         PrefValue::Float(f) => f.safe_to_jsval(cx, rval, can_gc),
         PrefValue::Array(arr) => {
