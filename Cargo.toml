@@ -172,6 +172,7 @@ sha2 = "0.10"
 sha3 = "0.10"
 skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
+speech_traits = { path = "components/shared/speech" }
 storage_traits = { path = "components/shared/storage" }
 string_cache = "0.9"
 strum = { version = "0.27", features = ["derive"] }

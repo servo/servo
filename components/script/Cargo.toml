@@ -138,6 +138,7 @@ sha1 = { workspace = true }
 sha2 = { workspace = true }
 sha3 = { workspace = true }
 smallvec = { workspace = true }
+speech_traits = { workspace = true }
 storage_traits = { workspace = true }
 strum = { workspace = true }
 stylo = { workspace = true }
