@@ -5418,9 +5418,9 @@ dependencies = [
 
 [[package]]
 name = "ml-kem"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97befee0c869cb56f3118f49d0f9bb68c9e3f380dec23c1100aedc4ec3ba239a"
+checksum = "dcaee19a45f916d98f24a551cc9a2cdae705a040e66f3cbc4f3a282ea6a2e982"
 dependencies = [
  "hybrid-array 0.2.3",
  "kem",
