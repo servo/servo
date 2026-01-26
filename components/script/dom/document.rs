@@ -4337,9 +4337,10 @@ impl Document {
         // > If pendingDoc is not fully active, then reject promise with a TypeError exception and return promise.
         if !self.is_fully_active() {
             promise.reject_error(
-                Error::Type("Request fullscreen with not fully active `Document`".to_owned()),
+                Error::Type("Document is not fully active".to_owned()),
                 can_gc,
             );
+            return promise;
         }
 
         // Step 4
@@ -4445,7 +4446,12 @@ impl Document {
         // Step 2
         // > If doc is not fully active or doc’s fullscreen element is null, then reject promise with a TypeError exception and return promise.
         if !self.is_fully_active() || self.fullscreen_element.get().is_none() {
-            promise.reject_error(Error::Type(String::from("fullscreen is null")), can_gc);
+            promise.reject_error(
+                Error::Type(
+                    "No fullscreen element to exit or document is not fully active".to_owned(),
+                ),
+                can_gc,
+            );
             return promise;
         }
 
