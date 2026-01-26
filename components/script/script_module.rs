@@ -1033,11 +1033,11 @@ pub(crate) fn fetch_a_module_worker_script_graph(
     fetch_a_single_module_script(
         url,
         owner.clone(),
-        Destination::Script,
+        Destination::Worker,
         options,
         referrer,
         true,
-        Some(IntroductionType::SRC_SCRIPT),
+        Some(IntroductionType::WORKER),
         Some(policy_container),
         move |module_tree| {
             let Some(module) = module_tree else {
@@ -1060,7 +1060,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
             // and onComplete.
             fetch_the_descendants_and_link_module_script(
                 module,
-                Destination::Script,
+                Destination::Worker,
                 owner,
                 can_gc,
             );
