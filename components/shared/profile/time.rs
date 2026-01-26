@@ -17,7 +17,7 @@ pub struct TimerMetadata {
     pub incremental: TimerMetadataReflowType,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct ProfilerChan(pub Option<GenericSender<ProfilerMsg>>);
 
 impl ProfilerChan {

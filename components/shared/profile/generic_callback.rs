@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::generic_channel::SendResult;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
 use crate::time::{ProfilerCategory, ProfilerChan};
 use crate::time_profile;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, MallocSizeOf)]
 pub struct GenericCallback<T>
 where
     T: Serialize + Send + 'static,
