@@ -29,7 +29,7 @@ use url::Url;
 use webrender_api::units::{DeviceIntSize, DevicePoint};
 
 use crate::common::{
-    ServoTest, WebViewDelegateImpl, evaluate_javascript,
+    ServoTest, WebViewDelegateImpl, click_at_point, evaluate_javascript,
     show_webview_and_wait_for_rendering_to_be_ready,
 };
 
@@ -44,21 +44,6 @@ fn wait_for_webview_scene_to_be_up_to_date(servo_test: &ServoTest, webview: &Web
         callback_waiting.set(false);
     });
     servo_test.spin(move || waiting.get());
-}
-
-fn click_at_point(webview: &WebView, point: DevicePoint) {
-    let point = point.into();
-    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
-    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
-        MouseButtonAction::Down,
-        MouseButton::Left,
-        point,
-    )));
-    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
-        MouseButtonAction::Up,
-        MouseButton::Left,
-        point,
-    )));
 }
 
 fn open_context_menu_at_point(webview: &WebView, point: DevicePoint) {
