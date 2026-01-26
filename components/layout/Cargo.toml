@@ -60,6 +60,7 @@ stylo_traits = { workspace = true }
 taffy = { workspace = true }
 tracing = { workspace = true, optional = true }
 unicode-bidi = { workspace = true }
+unicode-ident = "1.0.22"
 unicode-script = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
