@@ -4623,14 +4623,6 @@ impl Document {
             .map(|(sheet, _origin)| sheet)
             .cloned();
 
-        if self.has_browsing_context() {
-            self.window.layout_mut().add_stylesheet(
-                sheet.clone(),
-                insertion_point.as_ref().map(|s| s.sheet.clone()),
-                &self.window.web_font_context(),
-            );
-        }
-
         self.document_or_shadow_root.add_stylesheet(
             StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),
             StylesheetSetRef::Document(stylesheets),
