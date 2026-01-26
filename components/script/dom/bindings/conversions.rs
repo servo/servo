@@ -76,25 +76,21 @@ where
 pub(crate) fn get_property_jsval(
     cx: JSContext,
     object: HandleObject,
-    name: &str,
+    name: &ffi::CStr,
     mut rval: MutableHandleValue,
 ) -> Fallible<()> {
     rval.set(UndefinedValue());
 
-    let Ok(cname) = ffi::CString::new(name) else {
-        return Ok(());
-    };
-
     let mut found = false;
     unsafe {
-        if !JS_HasProperty(*cx, object, cname.as_ptr(), &mut found) || !found {
+        if !JS_HasProperty(*cx, object, name.as_ptr(), &mut found) || !found {
             if JS_IsExceptionPending(*cx) {
                 return Err(Error::JSFailed);
             }
             return Ok(());
         }
 
-        JS_GetProperty(*cx, object, cname.as_ptr(), rval);
+        JS_GetProperty(*cx, object, name.as_ptr(), rval);
         if JS_IsExceptionPending(*cx) {
             return Err(Error::JSFailed);
         }
@@ -106,20 +102,21 @@ pub(crate) fn get_property_jsval(
 pub(crate) fn get_property<T>(
     cx: JSContext,
     object: HandleObject,
-    name: &str,
+    name: &ffi::CStr,
     option: T::Config,
 ) -> Fallible<Option<T>>
 where
     T: FromJSValConvertible,
 {
-    debug!("Getting property {}.", name);
+    debug!("Getting property {:?}.", name);
     rooted!(in(*cx) let mut result = UndefinedValue());
+
     get_property_jsval(cx, object, name, result.handle_mut())?;
     if result.is_undefined() {
-        debug!("No property {}.", name);
+        debug!("No property {:?}.", name);
         return Ok(None);
     }
-    debug!("Converting property {}.", name);
+    debug!("Converting property {:?}.", name);
     let value = unsafe { T::from_jsval(*cx, result.handle(), option) };
     match value {
         Ok(ConversionResult::Success(value)) => Ok(Some(value)),

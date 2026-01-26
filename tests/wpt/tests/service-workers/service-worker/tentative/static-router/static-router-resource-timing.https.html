@@ -47,8 +47,12 @@ function test_resource_timing(options) {
   assert_equals(entryList.length, 1, description);
   const entry = entryList[0];
 
-  assert_equals(entry.workerMatchedSourceType, options.matched_source_type, description);
-  assert_equals(entry.workerFinalSourceType, options.final_source_type, description);
+  // FIXME: Remove workerMatchedSourceType and workerFinalSourceType when moved out of tentative.
+  const workerMatchedRouterSource = "workerMatchedRouterSource" in entry ? entry.workerMatchedRouterSource : entry.workerMatchedSourceType;
+  const workerFinalRouterSource = "workerFinalRouterSource" in entry ? entry.workerFinalRouterSource : entry.workerFinalSourceType;
+
+  assert_equals(workerMatchedRouterSource, options.matched_source_type, description);
+  assert_equals(workerFinalRouterSource, options.final_source_type, description);
 
   assert_greater_than(entry.workerRouterEvaluationStart, 0, description);
   switch (entry.matchedSouceType) {

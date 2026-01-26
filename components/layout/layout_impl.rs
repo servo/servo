@@ -301,6 +301,12 @@ impl Layout for LayoutThread {
             .remove_all_web_fonts_from_stylesheet(&stylesheet);
     }
 
+    #[servo_tracing::instrument(skip_all)]
+    fn remove_cached_image(&mut self, url: &ServoUrl) {
+        let mut resolved_images_cache = self.resolved_images_cache.write();
+        resolved_images_cache.remove(url);
+    }
+
     /// Return the resolved values of this node's padding rect.
     #[servo_tracing::instrument(skip_all)]
     fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides> {

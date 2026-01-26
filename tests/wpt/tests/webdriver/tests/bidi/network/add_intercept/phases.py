@@ -67,23 +67,26 @@ async def test_request_response_phases(
         assert len(response_started_events) == 0
         assert_before_request_sent_event(
             before_request_sent_events[0],
-            expected_request=expected_request,
-            is_blocked=True,
-            intercepts=[intercept],
+            expected_event={
+                "request": expected_request,
+                "isBlocked": True,
+                "intercepts": [intercept],
+            },
         )
     elif intercepted_phase == "responseStarted":
         assert len(before_request_sent_events) == 1
         assert len(response_started_events) == 1
         assert_before_request_sent_event(
             before_request_sent_events[0],
-            expected_request=expected_request,
-            is_blocked=False,
+            expected_event={"request": expected_request, "isBlocked": False},
         )
         assert_response_event(
             response_started_events[0],
-            expected_request=expected_request,
-            is_blocked=True,
-            intercepts=[intercept],
+            expected_event={
+                "request": expected_request,
+                "isBlocked": True,
+                "intercepts": [intercept],
+            },
         )
 
     # Check that we did not receive response completed events.

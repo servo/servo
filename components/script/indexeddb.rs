@@ -336,8 +336,14 @@ pub(crate) fn evaluate_key_path_on_value(
                 // Step 1.3.4. Let p be ! ToString(i).
                 // Step 1.3.5. Let status be CreateDataProperty(result, p, key).
                 // Step 1.3.6. Assert: status is true.
-                set_dictionary_property(cx.into(), result.handle(), &i.to_string(), key.handle())
-                    .map_err(|_| Error::JSFailed)?;
+                let i_cstr = std::ffi::CString::new(i.to_string()).unwrap();
+                set_dictionary_property(
+                    cx.into(),
+                    result.handle(),
+                    i_cstr.as_c_str(),
+                    key.handle(),
+                )
+                .map_err(|_| Error::JSFailed)?;
 
                 // Step 1.3.7. Increase i by 1.
                 // Done by for loop with enumerate()
@@ -384,7 +390,7 @@ pub(crate) fn evaluate_key_path_on_value(
                             get_property_jsval(
                                 cx.into(),
                                 object.handle(),
-                                "length",
+                                c"length",
                                 current_value.handle_mut(),
                             )?;
 

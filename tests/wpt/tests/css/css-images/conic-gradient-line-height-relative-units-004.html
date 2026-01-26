@@ -1,0 +1,36 @@
+<!doctype html>
+<title>conic-gradient() with line-height relative unit &lt;position> (vertical)</title>
+<link rel="help" href="https://drafts.csswg.org/css-images/#conic-gradient-syntax">
+<link rel="help" href="https://drafts.csswg.org/css-values/#font-relative-lengths">
+<link rel="match" href="radial-gradient-line-height-relative-units-ref.html">
+<style>
+.base {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background: green;
+  z-index: -2;
+}
+.ref {
+  position: absolute;
+  z-index: 0;
+  width: 200px;
+  height: 200px;
+  mask-image: conic-gradient(from 45deg at 50px 100px, green 25%, transparent 0);
+  background: green;
+}
+.box {
+  position: absolute;
+  z-index: -1;
+  width: 200px;
+  font-size: 50px;
+  line-height: 2;
+  aspect-ratio: 1;
+  mask-image: conic-gradient(from 45deg at 50px 1lh, green 25%, transparent 0);
+  background: red;
+}
+</style>
+<div class="base">
+    <div class="ref"></div>
+    <div class="box"></div>
+</div>

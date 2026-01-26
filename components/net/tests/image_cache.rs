@@ -559,7 +559,7 @@ fn test_svg_rasterization() {
     };
 
     let size = webrender_api::units::DeviceIntSize::new(100, 100);
-    cache.rasterize_vector_image(vec_img.id, size);
+    cache.rasterize_vector_image(vec_img.id, size, None);
 }
 
 #[test]
@@ -620,7 +620,7 @@ fn test_rasterization_listener() {
         }
     });
 
-    cache.rasterize_vector_image(vec_img.id, size);
+    cache.rasterize_vector_image(vec_img.id, size, None);
 
     cache.add_rasterization_complete_listener(TEST_PIPELINE_ID, vec_img.id, size, callback);
 

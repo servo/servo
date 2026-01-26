@@ -1,4 +1,12 @@
 features:
+- name: selectors
+  files:
+  - attribute.html
+  - class-id-attr.html
+  - sibling.html
+  - insert-sibling-*
+  - selectorText-dynamic-001.html
+  - sheet-going-away-*
 - name: has
   files:
   - has-*
@@ -60,3 +68,6 @@ features:
 - name: where
   files:
   - where.html
+- name: input-selectors
+  files:
+  - enabled-disabled.html

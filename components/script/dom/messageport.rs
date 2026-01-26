@@ -221,11 +221,11 @@ impl MessagePort {
         type_.safe_to_jsval(cx, type_string.handle_mut(), can_gc);
 
         // Perform ! CreateDataProperty(message, "type", type).
-        set_dictionary_property(cx, message.handle(), "type", type_string.handle())
+        set_dictionary_property(cx, message.handle(), c"type", type_string.handle())
             .expect("Setting the message type should not fail.");
 
         // Perform ! CreateDataProperty(message, "value", value).
-        set_dictionary_property(cx, message.handle(), "value", value)
+        set_dictionary_property(cx, message.handle(), c"value", value)
             .expect("Setting the message value should not fail.");
 
         // Let targetPort be the port with which port is entangled, if any; otherwise let it be null.

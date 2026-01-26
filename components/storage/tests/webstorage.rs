@@ -399,3 +399,32 @@ fn clear_data_for_sites_local_in_memory() {
     let test = WebStorageTest::new_in_memory();
     test_clear_data_for_sites(test, WebStorageType::Local);
 }
+
+#[test]
+fn no_storage_type_conflict() {
+    // Ensures that editing session storage does not affect local storage and vice versa.
+    let mut test = WebStorageTest::new();
+    let url = ServoUrl::parse("https://example.com").unwrap();
+    test.set_item(
+        WebStorageType::Local,
+        &url,
+        "key".into(),
+        "local_value".into(),
+    )
+    .unwrap();
+    // Set session storage item.
+    test.set_item(
+        WebStorageType::Session,
+        &url,
+        "key".into(),
+        "session_value".into(),
+    )
+    .unwrap();
+    // Shutdown threads to ensure data is cleared from session storage and local storage is loaded from disk
+    test = test.restart();
+    let result = test.get_item(WebStorageType::Local, &url, "key".into());
+    assert_eq!(result, Some("local_value".into()));
+    // Get session storage item.
+    let result = test.get_item(WebStorageType::Session, &url, "key".into());
+    assert_eq!(result, None);
+}

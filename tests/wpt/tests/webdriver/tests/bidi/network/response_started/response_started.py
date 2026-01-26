@@ -56,9 +56,11 @@ async def test_subscribe_status(bidi_session, subscribe_events, top_context, wai
     }
     assert_response_event(
         events[0],
-        expected_request=expected_request,
-        expected_response=expected_response,
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+            "redirectCount": 0,
+        },
     )
 
     await bidi_session.session.unsubscribe(events=[RESPONSE_STARTED_EVENT])
@@ -95,13 +97,17 @@ async def test_iframe_load(
     assert len(events) == 2
     assert_response_event(
         events[0],
-        expected_request={"url": test_page_same_origin_frame},
-        context=top_context["context"],
+        expected_event={
+            "request": {"url": test_page_same_origin_frame},
+            "context": top_context["context"],
+        },
     )
     assert_response_event(
         events[1],
-        expected_request={"url": test_page},
-        context=frame_context["context"],
+        expected_event={
+            "request": {"url": test_page},
+            "context": frame_context["context"],
+        },
     )
 
 
@@ -134,10 +140,12 @@ async def test_load_page_twice(
     }
     assert_response_event(
         events[0],
-        expected_request=expected_request,
-        expected_response=expected_response,
-        navigation=result["navigation"],
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+            "navigation": result["navigation"],
+            "redirectCount": 0,
+        },
     )
 
 
@@ -160,9 +168,7 @@ async def test_request_bodysize(
         "url": html_url,
     }
     assert_response_event(
-        events[0],
-        expected_request=expected_request,
-        redirect_count=0,
+        events[0], expected_event={"request": expected_request, "redirectCount": 0}
     )
     assert events[0]["request"]["bodySize"] > 0
 
@@ -199,10 +205,12 @@ async def test_request_timing_info(
     expected_response = {"url": url(PAGE_EMPTY_HTML)}
     assert_response_event(
         events[0],
-        expected_request=expected_request,
-        expected_response=expected_response,
-        expected_time_range=time_range,
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+            "timestamp": time_range,
+            "redirectCount": 0,
+        },
     )
 
 
@@ -237,9 +245,11 @@ async def test_response_status(
     }
     assert_response_event(
         events[0],
-        expected_request=expected_request,
-        expected_response=expected_response,
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+            "redirectCount": 0,
+        },
     )
 
 
@@ -273,9 +283,11 @@ async def test_response_headers(wait_for_event, wait_for_future_safe, url, fetch
     }
     assert_response_event(
         events[0],
-        expected_request=expected_request,
-        expected_response=expected_response,
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+            "redirectCount": 0,
+        },
     )
 
 
@@ -306,9 +318,11 @@ async def test_response_mime_type_file(
     expected_response = {"url": url(page_url), "mimeType": mime_type}
     assert_response_event(
         events[0],
-        expected_request=expected_request,
-        expected_response=expected_response,
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+            "redirectCount": 0,
+        },
     )
 
 
@@ -345,9 +359,11 @@ async def test_www_authenticate(
     }
     assert_response_event(
         events[0],
-        expected_request=expected_request,
-        expected_response=expected_response,
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+            "redirectCount": 0,
+        },
     )
 
 
@@ -368,13 +384,11 @@ async def test_redirect(bidi_session, url, fetch, setup_network_test):
     await wait_for_bidi_events(bidi_session, events, 2)
     expected_request = {"method": "GET", "url": redirect_url}
     assert_response_event(
-        events[0],
-        expected_request=expected_request,
-        redirect_count=0,
+        events[0], expected_event={"request": expected_request, "redirectCount": 0}
     )
     expected_request = {"method": "GET", "url": text_url}
     assert_response_event(
-        events[1], expected_request=expected_request, redirect_count=1
+        events[1], expected_event={"request": expected_request, "redirectCount": 1}
     )
 
     # Check that both requests share the same requestId
@@ -422,19 +436,20 @@ async def test_serviceworker_request(
     time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
-
     assert_response_event(
         events[0],
-        expected_request={
-            "method": "GET",
-            "url": serviceworker_url,
+        expected_event={
+            "request": {
+                "method": "GET",
+                "url": serviceworker_url,
+            },
+            "response": {
+                "url": serviceworker_url,
+                "statusText": "OK from serviceworker",
+            },
+            "timestamp": time_range,
+            "redirectCount": 0,
         },
-        expected_response={
-            "url": serviceworker_url,
-            "statusText": "OK from serviceworker",
-        },
-        expected_time_range=time_range,
-        redirect_count=0,
     )
 
 
@@ -470,13 +485,15 @@ async def test_url_with_fragment(
     # and responseData
     assert_response_event(
         events[0],
-        expected_request={
-            "method": "GET",
-            "url": fragment_url,
+        expected_event={
+            "request": {
+                "method": "GET",
+                "url": fragment_url,
+            },
+            "response": {"url": fragment_url},
+            "timestamp": time_range,
+            "redirectCount": 0,
         },
-        expected_response={"url": fragment_url},
-        expected_time_range=time_range,
-        redirect_count=0,
     )
 
 
@@ -513,26 +530,30 @@ async def test_navigate_data_url(
     time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
-
     assert_response_event(
         events[0],
-        expected_request={
-            "method": "GET",
-            "url": page_url,
+        expected_event={
+            "request": {
+                "method": "GET",
+                "url": page_url,
+            },
+            "response": {
+                "headers": [
+                    {
+                        "name": "Content-Type",
+                        "value": {"type": "string", "value": mimeType},
+                    }
+                ],
+                "mimeType": mimeType,
+                "protocol": "data",
+                "status": 200,
+                "statusText": "OK",
+                "url": page_url,
+            },
+            "timestamp": time_range,
+            "redirectCount": 0,
+            "navigation": result["navigation"],
         },
-        expected_response={
-            "headers": [
-                {"name": "Content-Type", "value": {"type": "string", "value": mimeType}}
-            ],
-            "mimeType": mimeType,
-            "protocol": "data",
-            "status": 200,
-            "statusText": "OK",
-            "url": page_url,
-        },
-        expected_time_range=time_range,
-        redirect_count=0,
-        navigation=result["navigation"],
     )
     assert events[0]["navigation"] is not None
 
@@ -567,25 +588,29 @@ async def test_fetch_data_url(
     time_range = get_network_event_timerange(time_start, time_end, bidi_session)
 
     assert len(events) == 1
-
     assert_response_event(
         events[0],
-        expected_request={
-            "method": "GET",
-            "url": fetch_url,
+        expected_event={
+            "request": {
+                "method": "GET",
+                "url": fetch_url,
+            },
+            "response": {
+                "headers": [
+                    {
+                        "name": "Content-Type",
+                        "value": {"type": "string", "value": mimeType},
+                    }
+                ],
+                "mimeType": mimeType,
+                "protocol": "data",
+                "status": 200,
+                "statusText": "OK",
+                "url": fetch_url,
+            },
+            "timestamp": time_range,
+            "redirectCount": 0,
         },
-        expected_response={
-            "headers": [
-                {"name": "Content-Type", "value": {"type": "string", "value": mimeType}}
-            ],
-            "mimeType": mimeType,
-            "protocol": "data",
-            "status": 200,
-            "statusText": "OK",
-            "url": fetch_url,
-        },
-        expected_time_range=time_range,
-        redirect_count=0,
     )
     assert events[0]["navigation"] is None
 
@@ -615,9 +640,11 @@ async def test_destination_initiator(
         event = next(e for e in events if url in e["request"]["url"])
         assert_response_event(
             event,
-            expected_request={
-                "destination": destination,
-                "initiatorType": initiator_type,
+            expected_event={
+                "request": {
+                    "destination": destination,
+                    "initiatorType": initiator_type,
+                }
             },
         )
 
@@ -632,11 +659,12 @@ async def test_destination_initiator(
     on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
     await fetch(page_url, method="GET")
     event = await wait_for_future_safe(on_response_started)
-
     assert_response_event(
         event,
-        expected_request={
-            "destination": "",
-            "initiatorType": "fetch",
+        expected_event={
+            "request": {
+                "destination": "",
+                "initiatorType": "fetch",
+            }
         },
     )

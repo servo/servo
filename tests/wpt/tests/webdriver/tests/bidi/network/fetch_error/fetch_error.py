@@ -49,9 +49,7 @@ async def test_subscribe_status(
     assert len(events) == 1
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
     assert_fetch_error_event(
-        events[0],
-        expected_request=expected_request,
-        redirect_count=0,
+        events[0], expected_event={"request": expected_request, "redirectCount": 0}
     )
 
     await bidi_session.session.unsubscribe(events=[FETCH_ERROR_EVENT])
@@ -90,8 +88,10 @@ async def test_aborted_request(
     fetch_error_event = await wait_for_future_safe(on_fetch_error)
     assert_fetch_error_event(
         fetch_error_event,
-        expected_request={"url": slow_url},
-        context=new_tab["context"],
+        expected_event={
+            "request": {"url": slow_url},
+            "context": new_tab["context"],
+        },
     )
 
 
@@ -120,8 +120,10 @@ async def test_iframe_load(
     assert len(events) == 1
     assert_fetch_error_event(
         events[0],
-        expected_request={"url": PAGE_INVALID_URL},
-        context=frame_context["context"],
+        expected_event={
+            "request": {"url": PAGE_INVALID_URL},
+            "context": frame_context["context"],
+        },
     )
 
 
@@ -143,8 +145,7 @@ async def test_navigation_id(
 
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
     assert_fetch_error_event(
-        fetch_error_event,
-        expected_request=expected_request,
+        fetch_error_event, expected_event={"request": expected_request}
     )
     # Check that requests not related to a navigation have no navigation id.
     assert fetch_error_event["navigation"] is None
@@ -157,8 +158,7 @@ async def test_navigation_id(
 
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
     assert_fetch_error_event(
-        fetch_error_event,
-        expected_request=expected_request,
+        fetch_error_event, expected_event={"request": expected_request}
     )
 
 
@@ -209,8 +209,7 @@ async def test_request_method(
 
     for event in events:
         assert_fetch_error_event(
-            event,
-            expected_request={"url": PAGE_INVALID_URL},
+            event, expected_event={"request": {"url": PAGE_INVALID_URL}}
         )
 
 
@@ -244,9 +243,11 @@ async def test_request_timing_info(
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
     assert_fetch_error_event(
         events[0],
-        expected_request=expected_request,
-        expected_time_range=time_range,
-        redirect_count=0,
+        expected_event={
+            "request": expected_request,
+            "timestamp": time_range,
+            "redirectCount": 0,
+        },
     )
 
 
@@ -278,12 +279,12 @@ async def test_redirect_fetch(
     expected_request = {"method": "GET", "url": redirect_url}
     assert_response_event(
         response_completed_event,
-        expected_request=expected_request,
-        redirect_count=0,
+        expected_event={"request": expected_request, "redirectCount": 0},
     )
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
     assert_fetch_error_event(
-        fetch_error_event, expected_request=expected_request, redirect_count=1
+        fetch_error_event,
+        expected_event={"request": expected_request, "redirectCount": 1},
     )
 
     # Check that both requests share the same requestId
@@ -323,14 +324,12 @@ async def test_redirect_navigation(
     expected_request = {"method": "GET", "url": redirect_url}
     assert_response_event(
         response_completed_event,
-        expected_request=expected_request,
-        redirect_count=0,
+        expected_event={"request": expected_request, "redirectCount": 0},
     )
     expected_request = {"method": "GET", "url": PAGE_INVALID_URL}
     assert_fetch_error_event(
         fetch_error_event,
-        expected_request=expected_request,
-        redirect_count=1,
+        expected_event={"request": expected_request, "redirectCount": 1},
     )
 
     # Check that all events share the same requestId

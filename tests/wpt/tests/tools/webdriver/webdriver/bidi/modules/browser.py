@@ -15,7 +15,6 @@ class Browser(BidiModule):
 
     @get_client_windows.result
     def _get_client_windows(self, result: Mapping[str, Any]) -> Any:
-        assert result['clientWindows'] is not None
         assert isinstance(result["clientWindows"], list)
         for client_window_info in result["clientWindows"]:
             assert isinstance(client_window_info["active"], bool)
@@ -41,7 +40,6 @@ class Browser(BidiModule):
 
     @create_user_context.result
     def _create_user_context(self, result: Mapping[str, Any]) -> Any:
-        assert result["userContext"] is not None
         assert isinstance(result["userContext"], str)
 
         return result["userContext"]
@@ -52,7 +50,6 @@ class Browser(BidiModule):
 
     @get_user_contexts.result
     def _get_user_contexts(self, result: Mapping[str, Any]) -> Any:
-        assert result["userContexts"] is not None
         assert isinstance(result["userContexts"], list)
         for user_context_info in result["userContexts"]:
             assert isinstance(user_context_info["userContext"], str)

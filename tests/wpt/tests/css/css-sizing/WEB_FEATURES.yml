@@ -1,4 +1,35 @@
 features:
+- name: min-max-content
+  files:
+  - 'block-size-with-min-or-max-content-*'
+  - 'border-box-and-max-content-*'
+  - 'div-max-content-*'
+  - 'div-min-content-*'
+  - 'hori-block-size-small-or-larger-than-container-with-min-or-max-content-*'
+  - 'image-min-max-content-intrinsic-size-change-*'
+  - intrinsic-fixed-width-with-max-content-height.html
+  - intrinsic-fixed-width-with-min-content-height.html
+  - 'keyword-sizes-on-*'
+  - 'max-content-input-*'
+  - min-content-le-max-content.tentative.html
+  - min-content-min-width-000.html
+  - min-max-content-orthogonal-flow-crash-001.html
+  - replaced-max-height-min-content.html
+  - replaced-max-width-min-content.html
+  - replaced-min-height-min-content.html
+  - replaced-min-width-min-content.html
+  - shrink-to-fit-sizing-max-width-min-content.html
+  - svg-no-ar-max-height-min-content.html
+  - svg-no-ar-min-height-min-content.html
+  - 'vert-block-size-small-or-larger-than-container-with-min-or-max-content-*'
+- name: min-max-width-height
+  files:
+  - button-min-width.html
+  - image-max-width-and-height-behaves-as-auto.html
+  - min-width-max-width-precedence.html
+  - table-percentage-max-width-beside-float.html
+  - table-percentage-min-width-below-float.html
+  - table-percentage-min-width-beside-float.html
 - name: box-sizing
   files:
   - border-box-and-max-content-*

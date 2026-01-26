@@ -13,14 +13,14 @@ use std::collections::HashSet;
 use std::rc::Rc;
 
 use js::conversions::jsstr_to_string;
-use js::jsapi::{
-    GetModuleNamespace, GetRequestedModuleSpecifier, GetRequestedModulesCount,
-    HandleValue as RawHandleValue, IsCyclicModule, JSObject, ModuleEvaluate,
-};
+use js::jsapi::{HandleValue as RawHandleValue, IsCyclicModule, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
-use js::rust::wrappers::JS_GetModulePrivate;
-use js::rust::{HandleObject, HandleValue, IntoHandle};
+use js::rust::wrappers::{
+    GetModuleNamespace, GetRequestedModuleSpecifier, GetRequestedModulesCount, JS_GetModulePrivate,
+    ModuleEvaluate,
+};
+use js::rust::{HandleValue, IntoHandle};
 use net_traits::request::{Destination, Referrer};
 use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
@@ -293,7 +293,7 @@ fn continue_dynamic_import(
 
     // Step 2. Let module be moduleCompletion.[[Value]].
     let module = module_completion.unwrap();
-    let module_handle = module.get_record().map(|module| module.handle()).unwrap();
+    let record = ModuleObject::new(module.get_record().map(|module| module.handle()).unwrap());
 
     // Step 3. Let loadPromise be module.LoadRequestedModules().
     let load_promise = load_requested_modules(global, module, None);
@@ -310,7 +310,6 @@ fn continue_dynamic_import(
     let global_scope = DomRoot::from_ref(global);
     let inner_promise = promise.clone();
     let fulfilled_promise = promise.clone();
-    let record = ModuleObject::new(unsafe { HandleObject::from_raw(module_handle) });
 
     // Step 6. Let linkAndEvaluateClosure be a new Abstract Closure with no parameters that captures
     // module, promiseCapability, and onRejected and performs the following steps when called:
@@ -335,7 +334,7 @@ fn continue_dynamic_import(
             rooted!(in(*cx) let mut evaluate_promise = std::ptr::null_mut::<JSObject>());
 
             // c. Let evaluatePromise be module.Evaluate().
-            assert!(unsafe { ModuleEvaluate(*cx, record.handle(), rval.handle_mut().into()) });
+            assert!(unsafe { ModuleEvaluate(*cx, record.handle(), rval.handle_mut()) });
 
             if !rval.is_object() {
                 let error = RethrowError::from_pending_exception(cx);
@@ -451,12 +450,12 @@ pub(crate) fn host_load_imported_module(
 
         // Step 9.1. If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
         // set loadState.[[ErrorToRethrow]] to resolutionError.
-        if let Some(load_state) = load_state {
+        load_state.as_ref().inspect(|load_state| {
             load_state
                 .error_to_rethrow
                 .borrow_mut()
                 .get_or_insert(resolution_error.clone());
-        }
+        });
 
         // Step 9.2. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, ThrowCompletion(resolutionError)).
         finish_loading_imported_module(
@@ -489,43 +488,45 @@ pub(crate) fn host_load_imported_module(
         ),
     };
 
-    let on_single_fetch_complete = move |global: &GlobalScope, module_tree: Rc<ModuleTree>| {
+    let on_single_fetch_complete = move |module_tree: Option<Rc<ModuleTree>>| {
         // Step 1. Let completion be null.
-        // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
-        let completion = if module_tree.get_network_error().is_some() {
-            Err(gen_type_error(
-                global,
+        let completion = match module_tree {
+            // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
+            None => Err(gen_type_error(
+                &global_scope,
                 Error::Type("Module fetching failed".to_string()),
                 CanGc::note(),
-            ))
-        } else {
-            // Step 3. Otherwise, if moduleScript's parse error is not null, then:
-            // Step 3.1 Let parseError be moduleScript's parse error.
-            if let Some(parse_error) = module_tree.get_parse_error() {
-                // Step 3.3 If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
-                // set loadState.[[ErrorToRethrow]] to parseError.
-                if let Some(load_state) = load_state {
-                    load_state
-                        .error_to_rethrow
-                        .borrow_mut()
-                        .get_or_insert(parse_error.clone());
-                }
+            )),
+            Some(module_tree) => {
+                // Step 3. Otherwise, if moduleScript's parse error is not null, then:
+                // Step 3.1 Let parseError be moduleScript's parse error.
+                if let Some(parse_error) = module_tree.get_parse_error() {
+                    // Step 3.3 If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
+                    // set loadState.[[ErrorToRethrow]] to parseError.
+                    load_state.as_ref().inspect(|load_state| {
+                        load_state
+                            .error_to_rethrow
+                            .borrow_mut()
+                            .get_or_insert(parse_error.clone());
+                    });
 
-                // Step 3.2 Set completion to ThrowCompletion(parseError).
-                Err(parse_error.clone())
-            } else {
-                assert!(
-                    module_tree
-                        .get_record()
-                        .is_some_and(|record| !record.handle().is_null())
-                );
-                // Step 4. Otherwise, set completion to NormalCompletion(moduleScript's record).
-                Ok(module_tree)
-            }
+                    // Step 3.2 Set completion to ThrowCompletion(parseError).
+                    Err(parse_error.clone())
+                } else {
+                    // Step 4. Otherwise, set completion to NormalCompletion(moduleScript's record).
+                    Ok(module_tree)
+                }
+            },
         };
 
         // Step 5. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, completion).
-        finish_loading_imported_module(global, referrer_module, specifier, payload, completion);
+        finish_loading_imported_module(
+            &global_scope,
+            referrer_module,
+            specifier,
+            payload,
+            completion,
+        );
     };
 
     // Step 14 Fetch a single imported module script given url, fetchClient, destination, fetchOptions, settingsObject,
@@ -548,7 +549,7 @@ fn fetch_a_single_imported_module_script(
     destination: Destination,
     options: ScriptFetchOptions,
     referrer: Referrer,
-    on_complete: impl FnOnce(&GlobalScope, Rc<ModuleTree>) + 'static,
+    on_complete: impl FnOnce(Option<Rc<ModuleTree>>) + 'static,
 ) {
     // TODO Step 1. Assert: moduleRequest.[[Attributes]] does not contain any Record entry such that entry.[[Key]] is not "type",
     // because we only asked for "type" attributes in HostGetSupportedImportAttributes.

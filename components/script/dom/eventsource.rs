@@ -160,7 +160,18 @@ impl EventSourceContext {
 
         let trusted_event_source = self.event_source.clone();
         let global = event_source.global();
-        let event_source_context = self.clone();
+        let event_source_context = EventSourceContext {
+            incomplete_utf8: None,
+            event_source: self.event_source.clone(),
+            gen_id: self.gen_id,
+            parser_state: ParserState::Eol,
+            field: String::new(),
+            value: String::new(),
+            origin: self.origin.clone(),
+            event_type: String::new(),
+            data: String::new(),
+            last_event_id: String::from(event_source.last_event_id.borrow().clone()),
+        };
         global.task_manager().remote_event_task_source().queue(
             task!(reestablish_the_event_source_onnection: move || {
                 let event_source = trusted_event_source.root();

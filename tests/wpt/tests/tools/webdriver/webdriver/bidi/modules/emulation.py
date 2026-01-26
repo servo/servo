@@ -119,6 +119,19 @@ class Emulation(BidiModule):
         }
 
     @command
+    def set_client_hints_override(
+            self,
+            client_hints: Nullable[Dict[str, Any]],
+            contexts: Maybe[List[str]] = UNDEFINED,
+            user_contexts: Maybe[List[str]] = UNDEFINED,
+    ) -> Mapping[str, Any]:
+        return {
+            "clientHints": client_hints,
+            "contexts": contexts,
+            "userContexts": user_contexts,
+        }
+
+    @command
     def set_network_conditions(
             self,
             network_conditions: Nullable[Dict[str, Any]],

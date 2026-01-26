@@ -130,9 +130,10 @@ use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
 use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
+use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
+use crate::dom::stream::writablestream::CrossRealmTransformWritable;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::{AbortSignal, CookieStore, DebuggerGlobalScope, MessageEvent};
-use crate::dom::underlyingsourcecontainer::UnderlyingSourceType;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
 #[cfg(feature = "webgpu")]
@@ -140,14 +141,13 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
-use crate::dom::writablestream::CrossRealmTransformWritable;
 use crate::fetch::{DeferredFetchRecordId, FetchGroup, QueuedDeferredFetchRecord};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::{
-    ImportMap, ModuleScript, ModuleTree, ResolvedModule, RethrowError, ScriptFetchOptions,
+    ImportMap, ModuleScript, ModuleStatus, ResolvedModule, RethrowError, ScriptFetchOptions,
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
@@ -253,7 +253,7 @@ pub(crate) struct GlobalScope {
     /// module map is used when importing JavaScript modules
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map>
     #[ignore_malloc_size_of = "mozjs"]
-    module_map: DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>>,
+    module_map: DomRefCell<HashMapTracedValues<ServoUrl, ModuleStatus>>,
 
     /// For providing instructions to an optional devtools server.
     #[no_trace]
@@ -2401,17 +2401,11 @@ impl GlobalScope {
         &self.consumed_rejections
     }
 
-    pub(crate) fn set_module_map(&self, url: ServoUrl, module: ModuleTree) {
-        self.module_map.borrow_mut().insert(url, Rc::new(module));
+    pub(crate) fn set_module_map(&self, url: ServoUrl, module: ModuleStatus) {
+        self.module_map.borrow_mut().insert(url, module);
     }
 
-    pub(crate) fn get_module_map(
-        &self,
-    ) -> &DomRefCell<HashMapTracedValues<ServoUrl, Rc<ModuleTree>>> {
-        &self.module_map
-    }
-
-    pub(crate) fn get_module_tree(&self, url: &ServoUrl) -> Option<Rc<ModuleTree>> {
+    pub(crate) fn get_module_map_entry(&self, url: &ServoUrl) -> Option<ModuleStatus> {
         self.module_map.borrow().get(url).cloned()
     }
 

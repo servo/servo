@@ -15,13 +15,13 @@
 <div id=before tabindex=0>Before toolbar</div>
 
 <div id=toolbar focusgroup="toolbar wrap" aria-label="Text formatting">
-  <button id=bold type="button" focusgroup-entry-priority>Bold (priority)</button>
+  <button id=bold type="button" focusgroupstart>Bold (priority)</button>
   <button id=italic type="button">Italic</button>
   <span id=help-group focusgroup="none" aria-label="Help group">
     <button id=help type="button">Help</button>
     <button id=shortcuts type="button">Shortcuts</button>
   </span>
-  <button id=underline type="button" focusgroup-entry-priority>Underline (priority)</button>
+  <button id=underline type="button" focusgroupstart>Underline (priority)</button>
 </div>
 
 <div id=after tabindex=0>After toolbar</div>
@@ -30,7 +30,7 @@
 <div id=before2 tabindex=0>Before complex</div>
 
 <div id=complex-focusgroup focusgroup="toolbar no-memory">
-  <button id=item1 focusgroup-entry-priority>Item 1 (priority)</button>
+  <button id=item1 focusgroupstart>Item 1 (priority)</button>
   <div id=nested-opt-out focusgroup="none">
     <button id=opted-out-1>Opted out 1</button>
     <div id=deeply-nested focusgroup="none">
@@ -38,7 +38,7 @@
     </div>
     <button id=opted-out-2>Opted out 2</button>
   </div>
-  <button id=item2 focusgroup-entry-priority>Item 2 (priority)</button>
+  <button id=item2 focusgroupstart>Item 2 (priority)</button>
   <button id=item3>Item 3</button>
 </div>
 

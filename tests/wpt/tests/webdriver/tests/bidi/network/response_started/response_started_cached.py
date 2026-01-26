@@ -51,8 +51,10 @@ async def test_cached(
     }
     assert_response_event(
         events[0],
-        expected_request=expected_request,
-        expected_response=expected_response,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+        },
     )
 
     on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
@@ -69,8 +71,10 @@ async def test_cached(
     }
     assert_response_event(
         events[1],
-        expected_request=expected_request,
-        expected_response=expected_response,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+        },
     )
 
 
@@ -109,8 +113,10 @@ async def test_cached_redirect(
     }
     assert_response_event(
         events[0],
-        expected_request=expected_request,
-        expected_response=expected_response,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+        },
     )
 
     # The second request is the redirect
@@ -118,8 +124,10 @@ async def test_cached_redirect(
     redirected_response = {"url": text_url, "status": 200}
     assert_response_event(
         events[1],
-        expected_request=redirected_request,
-        expected_response=redirected_response,
+        expected_event={
+            "request": redirected_request,
+            "response": redirected_response,
+        },
     )
 
     await fetch(cached_url)
@@ -133,15 +141,19 @@ async def test_cached_redirect(
     }
     assert_response_event(
         events[2],
-        expected_request=expected_request,
-        expected_response=expected_response,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+        },
     )
 
     # The fourth request is the redirect
     assert_response_event(
         events[3],
-        expected_request=redirected_request,
-        expected_response=redirected_response,
+        expected_event={
+            "request": redirected_request,
+            "response": redirected_response,
+        },
     )
 
 
@@ -181,8 +193,10 @@ async def test_cached_revalidate(
     }
     assert_response_event(
         events[0],
-        expected_request=expected_request,
-        expected_response=expected_response,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+        },
     )
 
     on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
@@ -203,8 +217,10 @@ async def test_cached_revalidate(
     }
     assert_response_event(
         events[1],
-        expected_request=expected_request,
-        expected_response=expected_response,
+        expected_event={
+            "request": expected_request,
+            "response": expected_response,
+        },
     )
 
 
@@ -239,16 +255,19 @@ async def test_page_with_cached_link_stylesheet(
 
     # Expect two events, one for the document, one for the stylesheet.
     await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
-
     assert_response_event(
         events[0],
-        expected_request={"method": "GET", "url": page_with_cached_css},
-        expected_response={"url": page_with_cached_css, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": page_with_cached_css},
+            "response": {"url": page_with_cached_css, "fromCache": False},
+        },
     )
     assert_response_event(
         events[1],
-        expected_request={"method": "GET", "url": cached_link_css_url},
-        expected_response={"url": cached_link_css_url, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": cached_link_css_url},
+            "response": {"url": cached_link_css_url, "fromCache": False},
+        },
     )
 
     # Reload the page.
@@ -258,16 +277,19 @@ async def test_page_with_cached_link_stylesheet(
 
     # Expect two events after reload, for the document and the stylesheet.
     await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
-
     assert_response_event(
         events[2],
-        expected_request={"method": "GET", "url": page_with_cached_css},
-        expected_response={"url": page_with_cached_css, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": page_with_cached_css},
+            "response": {"url": page_with_cached_css, "fromCache": False},
+        },
     )
     assert_response_event(
         events[3],
-        expected_request={"method": "GET", "url": cached_link_css_url},
-        expected_response={"url": cached_link_css_url, "fromCache": True},
+        expected_event={
+            "request": {"method": "GET", "url": cached_link_css_url},
+            "response": {"url": cached_link_css_url, "fromCache": True},
+        },
     )
 
 
@@ -309,16 +331,19 @@ async def test_page_with_cached_import_stylesheet(
     # Expect three events, one for the document, one for the linked stylesheet,
     # one for the imported stylesheet.
     await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
-
     assert_response_event(
         events[0],
-        expected_request={"method": "GET", "url": page_with_cached_css},
-        expected_response={"url": page_with_cached_css, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": page_with_cached_css},
+            "response": {"url": page_with_cached_css, "fromCache": False},
+        },
     )
     assert_response_event(
         events[1],
-        expected_request={"method": "GET", "url": cached_import_css_url},
-        expected_response={"url": cached_import_css_url, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": cached_import_css_url},
+            "response": {"url": cached_import_css_url, "fromCache": False},
+        },
     )
 
     # Reload the page.
@@ -328,16 +353,19 @@ async def test_page_with_cached_import_stylesheet(
 
     # Expect three events after reload, for the document and the 2 stylesheets.
     await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
-
     assert_response_event(
         events[2],
-        expected_request={"method": "GET", "url": page_with_cached_css},
-        expected_response={"url": page_with_cached_css, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": page_with_cached_css},
+            "response": {"url": page_with_cached_css, "fromCache": False},
+        },
     )
     assert_response_event(
         events[3],
-        expected_request={"method": "GET", "url": cached_import_css_url},
-        expected_response={"url": cached_import_css_url, "fromCache": True},
+        expected_event={
+            "request": {"method": "GET", "url": cached_import_css_url},
+            "response": {"url": cached_import_css_url, "fromCache": True},
+        },
     )
 
 
@@ -391,11 +419,12 @@ async def test_page_with_cached_duplicated_stylesheets(
     # Expect three events, one for the document, one for the linked stylesheet,
     # one for the imported stylesheet.
     await wait_for_bidi_events(bidi_session, events, 3, timeout=2)
-
     assert_response_event(
         events[0],
-        expected_request={"method": "GET", "url": page_with_cached_css},
-        expected_response={"url": page_with_cached_css, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": page_with_cached_css},
+            "response": {"url": page_with_cached_css, "fromCache": False},
+        },
     )
 
     link_css_event = next(
@@ -403,8 +432,10 @@ async def test_page_with_cached_duplicated_stylesheets(
     )
     assert_response_event(
         link_css_event,
-        expected_request={"method": "GET", "url": cached_link_css_url},
-        expected_response={"url": cached_link_css_url, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": cached_link_css_url},
+            "response": {"url": cached_link_css_url, "fromCache": False},
+        },
     )
 
     import_css_event = next(
@@ -412,8 +443,10 @@ async def test_page_with_cached_duplicated_stylesheets(
     )
     assert_response_event(
         import_css_event,
-        expected_request={"method": "GET", "url": cached_import_css_url},
-        expected_response={"url": cached_import_css_url, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": cached_import_css_url},
+            "response": {"url": cached_import_css_url, "fromCache": False},
+        },
     )
 
     # Reload the page.
@@ -426,27 +459,32 @@ async def test_page_with_cached_duplicated_stylesheets(
 
     # Assert only cached events after reload.
     cached_events = events[3:]
-
     assert_response_event(
         cached_events[0],
-        expected_request={"method": "GET", "url": page_with_cached_css},
-        expected_response={"url": page_with_cached_css, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": page_with_cached_css},
+            "response": {"url": page_with_cached_css, "fromCache": False},
+        },
     )
     cached_link_css_event = next(
         e for e in cached_events if cached_link_css_url == e["request"]["url"]
     )
     assert_response_event(
         cached_link_css_event,
-        expected_request={"method": "GET", "url": cached_link_css_url},
-        expected_response={"url": cached_link_css_url, "fromCache": True},
+        expected_event={
+            "request": {"method": "GET", "url": cached_link_css_url},
+            "response": {"url": cached_link_css_url, "fromCache": True},
+        },
     )
     cached_import_css_event = next(
         e for e in cached_events if cached_import_css_url == e["request"]["url"]
     )
     assert_response_event(
         cached_import_css_event,
-        expected_request={"method": "GET", "url": cached_import_css_url},
-        expected_response={"url": cached_import_css_url, "fromCache": True},
+        expected_event={
+            "request": {"method": "GET", "url": cached_import_css_url},
+            "response": {"url": cached_import_css_url, "fromCache": True},
+        },
     )
 
 
@@ -481,16 +519,19 @@ async def test_page_with_cached_script_javascript(
 
     # Expect two events, one for the document and one for the javascript file.
     await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
-
     assert_response_event(
         events[0],
-        expected_request={"method": "GET", "url": page_with_cached_js},
-        expected_response={"url": page_with_cached_js, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": page_with_cached_js},
+            "response": {"url": page_with_cached_js, "fromCache": False},
+        },
     )
     assert_response_event(
         events[1],
-        expected_request={"method": "GET", "url": cached_script_js_url},
-        expected_response={"url": cached_script_js_url, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": cached_script_js_url},
+            "response": {"url": cached_script_js_url, "fromCache": False},
+        },
     )
 
     # Reload the page.
@@ -500,16 +541,19 @@ async def test_page_with_cached_script_javascript(
 
     # Expect two events, one for the document and one for the javascript file.
     await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
-
     assert_response_event(
         events[2],
-        expected_request={"method": "GET", "url": page_with_cached_js},
-        expected_response={"url": page_with_cached_js, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": page_with_cached_js},
+            "response": {"url": page_with_cached_js, "fromCache": False},
+        },
     )
     assert_response_event(
         events[3],
-        expected_request={"method": "GET", "url": cached_script_js_url},
-        expected_response={"url": cached_script_js_url, "fromCache": True},
+        expected_event={
+            "request": {"method": "GET", "url": cached_script_js_url},
+            "response": {"url": cached_script_js_url, "fromCache": True},
+        },
     )
 
     page_with_2_cached_js = inline(
@@ -535,22 +579,27 @@ async def test_page_with_cached_script_javascript(
 
     # Assert only cached events after reload.
     cached_events = events[4:]
-
     assert_response_event(
         cached_events[0],
-        expected_request={"method": "GET", "url": page_with_2_cached_js},
-        expected_response={"url": page_with_2_cached_js, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": page_with_2_cached_js},
+            "response": {"url": page_with_2_cached_js, "fromCache": False},
+        },
     )
     assert_response_event(
         cached_events[1],
-        expected_request={"method": "GET", "url": cached_script_js_url},
-        expected_response={"url": cached_script_js_url, "fromCache": True},
+        expected_event={
+            "request": {"method": "GET", "url": cached_script_js_url},
+            "response": {"url": cached_script_js_url, "fromCache": True},
+        },
     )
     if len(events) > 6:
         assert_response_event(
             cached_events[2],
-            expected_request={"method": "GET", "url": cached_script_js_url},
-            expected_response={"url": cached_script_js_url, "fromCache": True},
+            expected_event={
+                "request": {"method": "GET", "url": cached_script_js_url},
+                "response": {"url": cached_script_js_url, "fromCache": True},
+            },
         )
 
 
@@ -600,16 +649,19 @@ async def test_page_with_cached_javascript_module(
 
     # Expect two events, one for the document and one for the javascript module.
     await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
-
     assert_response_event(
         events[0],
-        expected_request={"method": "GET", "url": page_with_cached_js_module},
-        expected_response={"url": page_with_cached_js_module, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": page_with_cached_js_module},
+            "response": {"url": page_with_cached_js_module, "fromCache": False},
+        },
     )
     assert_response_event(
         events[1],
-        expected_request={"method": "GET", "url": cached_js_module_url},
-        expected_response={"url": cached_js_module_url, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": cached_js_module_url},
+            "response": {"url": cached_js_module_url, "fromCache": False},
+        },
     )
 
     # Reload the page.
@@ -619,16 +671,19 @@ async def test_page_with_cached_javascript_module(
 
     # Expect two events, one for the document and one for the javascript module.
     await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
-
     assert_response_event(
         events[2],
-        expected_request={"method": "GET", "url": page_with_cached_js_module},
-        expected_response={"url": page_with_cached_js_module, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": page_with_cached_js_module},
+            "response": {"url": page_with_cached_js_module, "fromCache": False},
+        },
     )
     assert_response_event(
         events[3],
-        expected_request={"method": "GET", "url": cached_js_module_url},
-        expected_response={"url": cached_js_module_url, "fromCache": True},
+        expected_event={
+            "request": {"method": "GET", "url": cached_js_module_url},
+            "response": {"url": cached_js_module_url, "fromCache": True},
+        },
     )
 
     page_with_2_cached_js_modules = inline(
@@ -652,16 +707,19 @@ async def test_page_with_cached_javascript_module(
 
     # Assert only cached events after reload.
     cached_events = events[4:]
-
     assert_response_event(
         cached_events[0],
-        expected_request={"method": "GET", "url": page_with_2_cached_js_modules},
-        expected_response={"url": page_with_2_cached_js_modules, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": page_with_2_cached_js_modules},
+            "response": {"url": page_with_2_cached_js_modules, "fromCache": False},
+        },
     )
     assert_response_event(
         cached_events[1],
-        expected_request={"method": "GET", "url": cached_js_module_url},
-        expected_response={"url": cached_js_module_url, "fromCache": True},
+        expected_event={
+            "request": {"method": "GET", "url": cached_js_module_url},
+            "response": {"url": cached_js_module_url, "fromCache": True},
+        },
     )
 
 
@@ -698,16 +756,19 @@ async def test_page_with_cached_image(
 
     # Expect two events, one for the document and one for the image.
     await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
-
     assert_response_event(
         events[0],
-        expected_request={"method": "GET", "url": page_with_cached_image},
-        expected_response={"url": page_with_cached_image, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": page_with_cached_image},
+            "response": {"url": page_with_cached_image, "fromCache": False},
+        },
     )
     assert_response_event(
         events[1],
-        expected_request={"method": "GET", "url": cached_image_url},
-        expected_response={"url": cached_image_url, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": cached_image_url},
+            "response": {"url": cached_image_url, "fromCache": False},
+        },
     )
 
     # Reload the page.
@@ -717,14 +778,17 @@ async def test_page_with_cached_image(
 
     # Expect two events, one for the document and one for the image.
     await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
-
     assert_response_event(
         events[2],
-        expected_request={"method": "GET", "url": page_with_cached_image},
-        expected_response={"url": page_with_cached_image, "fromCache": False},
+        expected_event={
+            "request": {"method": "GET", "url": page_with_cached_image},
+            "response": {"url": page_with_cached_image, "fromCache": False},
+        },
     )
     assert_response_event(
         events[3],
-        expected_request={"method": "GET", "url": cached_image_url},
-        expected_response={"url": cached_image_url, "fromCache": True},
+        expected_event={
+            "request": {"method": "GET", "url": cached_image_url},
+            "response": {"url": cached_image_url, "fromCache": True},
+        },
     )

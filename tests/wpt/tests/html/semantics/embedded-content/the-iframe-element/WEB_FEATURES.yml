@@ -6,3 +6,6 @@ features:
   files:
   - iframe-loading-lazy-base-url*
   - iframe-with-base.html
+- name: hashchange
+  files:
+  - srcdoc_change_hash.html

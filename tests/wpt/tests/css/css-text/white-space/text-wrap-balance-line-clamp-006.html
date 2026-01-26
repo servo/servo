@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<title>CSS test: balancing and line-clamp</title>
+<meta charset="utf-8">
+<link rel='author' title='Andreu Botella' href='mailto:abotella@igalia.com'>
+<link rel='help' href='https://drafts.csswg.org/css-overflow-4/#line-clamp'>
+<link rel='help' href='https://drafts.csswg.org/css-text-4/#text-wrap-style'>
+<meta name="assert" content="If the element is affected by line-clamp, the clamping effect is applied first, then the remaining lines are balanced. If the clamp point is at the end of the line-clamp container, no ellipsis is shown, and so the width it would otherwise have does not affect the balancing.">
+<link rel='match' href="reference/text-wrap-balance-line-clamp-006-ref.html">
+<style>
+div {
+    border: solid;
+    font-family: monospace;
+    font-size: 4rem;
+    line-height: 1rem;
+    margin: 1ch;
+    width: calc(15.1ch / 4); /* fits 15.1 characters at the span's font-size */
+}
+div span {
+  font-size: 1rem;
+}
+.test {
+    border-color: blue;
+
+    text-wrap-style: balance;
+    line-clamp: 2;
+    /* This code is unnecessary in any browser that supports the unprefixed version of line-clamp,
+        but neither does it have any detrimental effect,
+        and it broadens the test to browsers that only support the prefixed version */
+
+    -webkit-line-clamp: 2;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.ref {
+    border-color: orange;
+}
+</style>
+
+<p>Test passes if the box with a blue frame is identical to the orange one.
+
+<div class="test">
+  <span>1 2 3 4 5 6 7 8 9 0 1 2</span>
+</div>
+
+<div class="ref">
+  <span>1 2 3 4 5 6 <br> 7 8 9 0 1 2</span>
+</div>
+
+<!--
+Since the clamp point is at the end of the line-clamp container, the ellipsis
+must not be shown, and it must not affect the balancing. Therefore the optimal
+balancing must be:
+    |---------------|
+    |1 2 3 4 5 6    |
+    |7 8 9 0 1 2    |
+    |---------------|
+
+Whereas if the ellipsis was taken into account, since its width is 4 times the
+width of characters inside the <span>, it would result in this balancing:
+    |---------------|
+    |1 2 3 4 5 6 7  |
+    |8 9 0 1 2....  |
+    |---------------|
+-->

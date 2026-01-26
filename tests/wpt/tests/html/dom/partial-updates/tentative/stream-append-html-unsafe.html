@@ -131,7 +131,7 @@ promise_test(async t => {
     const element = document.createElement("div");
     document.body.append(element);
     window.did_eval_script = false;
-    const writer = element.streamAppendHTMLUnsafe().getWriter();
+    const writer = element.streamAppendHTMLUnsafe({runScripts: true}).getWriter();
     assert_false(window.did_eval_script);
     await writer.write("<script>window.did_eval_script = true;");
     assert_false(window.did_eval_script);
@@ -144,7 +144,7 @@ promise_test(async t => {
 promise_test(async t => {
     const element = document.createElement("div");
     window.did_eval_script = false;
-    const writer = element.streamAppendHTMLUnsafe().getWriter();
+    const writer = element.streamAppendHTMLUnsafe({runScripts: true}).getWriter();
     assert_false(window.did_eval_script);
     await writer.write("<script>window.did_eval_script = true;");
     assert_false(window.did_eval_script);

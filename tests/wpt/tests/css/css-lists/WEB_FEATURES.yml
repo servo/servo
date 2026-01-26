@@ -1,4 +1,13 @@
 features:
+- name: list-elements
+  files:
+  - li-insert-child.html
+  - li-value-reversed-001.html
+  - li-value-reversed-002.html
+  - li-value-reversed-011.html
+  - li-value-reversed-022.html
+  - li-with-height-001.html
+  - li-with-overflow-hidden-change-list-style-position-001.html
 - name: counter-set
   files:
   - counter-set-*
@@ -23,9 +32,9 @@ features:
   - li-value-reversed-*
   - "!li-value-reversed-001.html"
   - "!li-value-reversed-002.html"
-  - "!li-value-reversed-006b.html"
   - "!li-value-reversed-011.html"
   - "!li-value-reversed-022.html"
+  - li-without-ul-counter-crash.html
   - ol-change-display-type.html
   - pseudo-element-remove-update.html
 - name: list-style

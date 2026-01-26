@@ -270,8 +270,8 @@ promise_test(function(t) {
     link.rel = 'modulepreload';
     link.href = 'resources/module1.mjs?integrity-invalid';
     link.integrity = 'sha256-dOxReWMnMSPfUvxEbBqIrjNh8ZN8n05j7h3JmhF8gQc=%'
-    return attachAndWaitForError(link);
-}, 'link rel=modulepreload with integrity mismatch3');
+    return attachAndWaitForLoad(link);
+}, 'link rel=modulepreload with invalid integrity');
 
 promise_test(function(t) {
     var link1 = document.createElement('link');

@@ -24,10 +24,10 @@ promise_test(async (t) => {
 promise_test(async (t) => {
   await ensureLanguageModel();
   const session = await createLanguageModel();
-  assert_regexp_match(await session.prompt('shorthand'), /shorthand/);
+  assert_regexp_match(await session.prompt('shorthand'), /shorthand/i);
   assert_regexp_match(
       await session.prompt([{role: 'system', content: 'shorthand'}]),
-      /shorthand/);
+      /shorthand/i);
 }, 'Check Shorthand');
 
 promise_test(async () => {
@@ -42,7 +42,7 @@ promise_test(async () => {
   assert_equals(session.inputUsage, tokenLength);
   assert_regexp_match(
       await session.prompt([{role: 'system', content: ''}]),
-      /regurgitation/);
+      /regurgitation/i);
 }, 'Test that initialPrompt counts towards session inputUsage');
 
 promise_test(async () => {
@@ -70,4 +70,4 @@ promise_test(async t => {
   const promptString = kTestPrompt.repeat(session.inputQuota);
   const requested = await session.measureInputUsage(promptString);
   await promise_rejects_quotaexceedederror(t, session.prompt(promptString), requested, session.inputQuota);
-}, 'Test that prompt input exeeding the total quota rejects');
+}, 'Test that prompt input exceeding the total quota rejects');

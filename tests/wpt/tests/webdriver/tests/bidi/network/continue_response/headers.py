@@ -57,7 +57,8 @@ async def test_headers(
 
     response_completed_event = await wait_for_future_safe(on_response_completed)
     assert_response_event(
-        response_completed_event, expected_response={"headers": response_headers}
+        response_completed_event,
+        expected_event={"response": {"headers": response_headers}},
     )
 
 
@@ -101,7 +102,8 @@ async def test_headers_overrides_original_headers(
 
     response_completed_event = await wait_for_future_safe(on_response_completed)
     assert_response_event(
-        response_completed_event, expected_response={"headers": response_headers}
+        response_completed_event,
+        expected_event={"response": {"headers": response_headers}},
     )
 
     # Check that the original foo=bar response header is no longer in the

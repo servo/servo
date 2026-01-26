@@ -14,6 +14,7 @@ use style::parser::ParserContext;
 use style::stylesheets::Origin;
 use style::values::specified::Length;
 use style_traits::ParsingMode;
+use uuid::Uuid;
 use xml5ever::serialize::TraversalScope;
 
 use crate::dom::attr::Attr;
@@ -27,6 +28,7 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::node::{
     ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, ShadowIncluding,
+    UnbindContext,
 };
 use crate::dom::svg::svggraphicselement::SVGGraphicsElement;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -35,6 +37,7 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct SVGSVGElement {
     svggraphicselement: SVGGraphicsElement,
+    uuid: String,
     // The XML source of subtree rooted at this SVG element, serialized into
     // a base64 encoded `data:` url. This is cached to avoid recomputation
     // on each layout and must be invalidated when the subtree changes.
@@ -50,10 +53,12 @@ impl SVGSVGElement {
     ) -> SVGSVGElement {
         SVGSVGElement {
             svggraphicselement: SVGGraphicsElement::new_inherited(local_name, prefix, document),
+            uuid: Uuid::new_v4().to_string(),
             cached_serialized_data_url: Default::default(),
         }
     }
 
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn new(
         local_name: LocalName,
         prefix: Option<Prefix>,
@@ -165,6 +170,7 @@ pub(crate) trait LayoutSVGSVGElementHelpers<'dom> {
 impl<'dom> LayoutSVGSVGElementHelpers<'dom> for LayoutDom<'dom, SVGSVGElement> {
     #[expect(unsafe_code)]
     fn data(self) -> SVGElementData<'dom> {
+        let svg_id = self.unsafe_get().uuid.clone();
         let element = self.upcast::<Element>();
         let width = element.get_attr_for_layout(&ns!(), &local_name!("width"));
         let height = element.get_attr_for_layout(&ns!(), &local_name!("height"));
@@ -179,6 +185,7 @@ impl<'dom> LayoutSVGSVGElementHelpers<'dom> for LayoutDom<'dom, SVGSVGElement> {
             width,
             height,
             view_box,
+            svg_id,
         }
     }
 }
@@ -243,6 +250,26 @@ impl VirtualMethods for SVGSVGElement {
             super_type.children_changed(mutation, can_gc);
         }
 
+        self.invalidate_cached_serialized_subtree();
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext<'_>, can_gc: CanGc) {
+        if let Some(s) = self.super_type() {
+            s.unbind_from_tree(context, can_gc);
+        }
+        let owner_window = self.owner_window();
+        self.owner_window()
+            .image_cache()
+            .evict_rasterized_image(&self.uuid);
+        let data_url = self.cached_serialized_data_url.borrow().clone();
+        if let Some(Ok(url)) = data_url {
+            owner_window.layout_mut().remove_cached_image(&url);
+            owner_window.image_cache().evict_completed_image(
+                &url,
+                owner_window.origin().immutable(),
+                &None,
+            );
+        }
         self.invalidate_cached_serialized_subtree();
     }
 }

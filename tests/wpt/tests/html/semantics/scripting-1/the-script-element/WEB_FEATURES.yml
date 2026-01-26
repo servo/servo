@@ -1,7 +1,18 @@
 features:
+- name: script
+  files:
+  - '*'
+  # Keep exclusions synced with mappings below
+  - '!script-charset-03.html'
+  - '!nomodule-*'
 - name: charset
   files:
+  # Keep in sync with `script` mappings above
   - script-charset-03.html
 - name: data-urls
   files:
   - data-url.html
+- name: js-modules
+  files:
+  # Keep in sync with `script` mappings above
+  - nomodule-*
