@@ -44,6 +44,8 @@ pub struct IDBFactory {
     reflector_: Reflector,
     /// <https://www.w3.org/TR/IndexedDB-2/#connection>
     /// The connections opened through this factory.
+    /// We store the open request, which contains the connection.
+    /// TODO: remove when we are sure they are not needed anymore.
     connections:
         DomRefCell<HashMapTracedValues<DBName, HashMapTracedValues<Uuid, Dom<IDBOpenDBRequest>>>>,
 
