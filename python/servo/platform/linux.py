@@ -57,7 +57,7 @@ def xbps_packages() -> list[str]:
         if file.endswith(".txt") and file.startswith("xbps_"):
             pkgs.extend(parse_pkg_file(file))
     if len(pkgs) == 0:
-        raise RuntimeError("No dnf packages found.")
+        raise RuntimeError("No xbps packages found.")
     return pkgs
 
 
