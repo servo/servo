@@ -223,22 +223,13 @@ impl ShadowRoot {
             })
             .cloned();
 
-        if self.document.has_browsing_context() {
-            let document_context = self.window.web_font_context();
-
-            self.window.layout_mut().add_stylesheet(
-                sheet.clone(),
-                insertion_point.as_ref().map(|s| s.sheet.clone()),
-                &document_context,
-            );
-        }
-
-        DocumentOrShadowRoot::add_stylesheet(
+        DocumentOrShadowRoot::new(&self.window).add_stylesheet(
             StylesheetSource::Element(Dom::from_ref(owner_node)),
             StylesheetSetRef::Author(stylesheets),
             sheet,
             insertion_point,
             self.document.style_shared_lock(),
+            self.document.has_browsing_context(),
         );
     }
 
@@ -252,32 +243,24 @@ impl ShadowRoot {
 
         let insertion_point = stylesheets.iter().last().cloned();
 
-        if self.document.has_browsing_context() {
-            let document_context = self.window.web_font_context();
-
-            self.window.layout_mut().add_stylesheet(
-                sheet.clone(),
-                insertion_point.as_ref().map(|s| s.sheet.clone()),
-                &document_context,
-            );
-        }
-
-        DocumentOrShadowRoot::add_stylesheet(
+        DocumentOrShadowRoot::new(&self.window).add_stylesheet(
             StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),
             StylesheetSetRef::Author(stylesheets),
             sheet,
             insertion_point,
             self.document.style_shared_lock(),
+            self.document.has_browsing_context(),
         );
     }
 
     /// Remove a stylesheet owned by `owner` from the list of shadow root sheets.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
     pub(crate) fn remove_stylesheet(&self, owner: StylesheetSource, s: &Arc<Stylesheet>) {
-        DocumentOrShadowRoot::remove_stylesheet(
+        DocumentOrShadowRoot::new(&self.window).remove_stylesheet(
             owner,
             s,
             StylesheetSetRef::Author(&mut self.author_styles.borrow_mut().stylesheets),
+            self.document.has_browsing_context(),
         )
     }
 

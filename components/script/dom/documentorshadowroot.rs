@@ -251,10 +251,16 @@ impl DocumentOrShadowRoot {
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
     pub(crate) fn remove_stylesheet(
+        &self,
         owner: StylesheetSource,
         s: &Arc<Stylesheet>,
         mut stylesheets: StylesheetSetRef<ServoStylesheetInDocument>,
+        has_browsing_context: bool,
     ) {
+        if has_browsing_context {
+            self.window.layout_mut().remove_stylesheet(s.clone())
+        }
+
         let guard = s.shared_lock.read();
 
         // FIXME(emilio): Would be nice to remove the clone, etc.
@@ -272,16 +278,27 @@ impl DocumentOrShadowRoot {
     /// correct tree position.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
     pub(crate) fn add_stylesheet(
+        &self,
         owner: StylesheetSource,
         mut stylesheets: StylesheetSetRef<ServoStylesheetInDocument>,
         sheet: Arc<Stylesheet>,
         insertion_point: Option<ServoStylesheetInDocument>,
         style_shared_lock: &StyleSharedRwLock,
+        has_browsing_context: bool,
     ) {
         debug_assert!(owner.is_a_valid_owner(), "Wat");
 
         if owner.is_constructed() && !pref!(dom_adoptedstylesheet_enabled) {
             return;
+        }
+
+        if has_browsing_context {
+            let document_context = self.window.web_font_context();
+            self.window.layout_mut().add_stylesheet(
+                sheet.clone(),
+                insertion_point.as_ref().map(|s| s.sheet.clone()),
+                &document_context,
+            );
         }
 
         let sheet = ServoStylesheetInDocument { sheet, owner };

@@ -4596,22 +4596,13 @@ impl Document {
             })
             .cloned();
 
-        if self.has_browsing_context() {
-            let document_context = self.window.web_font_context();
-
-            self.window.layout_mut().add_stylesheet(
-                sheet.clone(),
-                insertion_point.as_ref().map(|s| s.sheet.clone()),
-                &document_context,
-            );
-        }
-
-        DocumentOrShadowRoot::add_stylesheet(
+        DocumentOrShadowRoot::new(&self.window).add_stylesheet(
             StylesheetSource::Element(Dom::from_ref(owner_node)),
             StylesheetSetRef::Document(stylesheets),
             sheet,
             insertion_point,
             self.style_shared_lock(),
+            self.has_browsing_context(),
         );
     }
 
@@ -4640,12 +4631,13 @@ impl Document {
             );
         }
 
-        DocumentOrShadowRoot::add_stylesheet(
+        DocumentOrShadowRoot::new(&self.window).add_stylesheet(
             StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),
             StylesheetSetRef::Document(stylesheets),
             sheet,
             insertion_point,
             self.style_shared_lock(),
+            self.has_browsing_context(),
         );
     }
 
@@ -4669,10 +4661,11 @@ impl Document {
                 .remove_stylesheet(stylesheet.clone());
         }
 
-        DocumentOrShadowRoot::remove_stylesheet(
+        DocumentOrShadowRoot::new(&self.window).remove_stylesheet(
             owner,
             stylesheet,
             StylesheetSetRef::Document(&mut *self.stylesheets.borrow_mut()),
+            self.has_browsing_context(),
         )
     }
 
