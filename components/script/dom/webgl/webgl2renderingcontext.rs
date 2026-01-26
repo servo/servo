@@ -8,7 +8,7 @@ use std::ptr::{self, NonNull};
 #[cfg(feature = "webxr")]
 use std::rc::Rc;
 
-use base::generic_channel::GenericSharedMemory;
+use base::generic_channel::{self, GenericSharedMemory};
 use bitflags::bitflags;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
@@ -17,7 +17,6 @@ use canvas_traits::webgl::{
 };
 use dom_struct::dom_struct;
 use euclid::default::{Point2D, Rect, Size2D};
-use ipc_channel::ipc::{self};
 use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, NullValue, ObjectValue, UInt32Value};
 use js::rust::{CustomAutoRooterGuard, HandleObject, MutableHandleValue};
@@ -557,7 +556,7 @@ impl WebGL2RenderingContext {
             return
         );
 
-        let (sender, receiver) = ipc::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.base.send_command(WebGLCommand::ReadPixels(
             src_rect, format, pixel_type, sender,
         ));
@@ -1547,7 +1546,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return self.base.webgl_error(InvalidValue);
         }
 
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.base.send_command(WebGLCommand::BufferSubData(
             target,
             dst_byte_offset as isize,
@@ -1555,7 +1554,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         ));
         let src_end = src_byte_offset + copy_bytes;
         let data: &[u8] = unsafe { &src_data.as_slice()[src_byte_offset..src_end] };
-        sender.send(data).unwrap();
+        let buffer = GenericSharedMemory::from_bytes(data);
+        sender.send(buffer).unwrap();
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.3>
@@ -1657,7 +1657,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return self.base.webgl_error(InvalidValue);
         }
 
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.base.send_command(WebGLCommand::GetBufferSubData(
             target,
             src_byte_offset,

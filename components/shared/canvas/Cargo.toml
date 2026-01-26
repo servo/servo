@@ -20,7 +20,6 @@ crossbeam-channel = { workspace = true }
 euclid = { workspace = true }
 fonts_traits = { workspace = true }
 glow = { workspace = true }
-ipc-channel = { workspace = true }
 kurbo = { workspace = true, features = ["serde"] }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }

@@ -5,9 +5,9 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use std::cell::Cell;
 
+use base::generic_channel;
 use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult, webgl_channel};
 use dom_struct::dom_struct;
-use ipc_channel::ipc;
 use script_bindings::weakref::WeakRef;
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
@@ -179,10 +179,11 @@ impl WebGLBuffer {
 
         self.capacity.set(data.len());
         self.usage.set(usage);
-        let (sender, receiver) = ipc::bytes_channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         self.upcast()
             .send_command(WebGLCommand::BufferData(target, receiver, usage));
-        sender.send(data).unwrap();
+        let buffer = generic_channel::GenericSharedMemory::from_bytes(data);
+        sender.send(buffer).unwrap();
         Ok(())
     }
 

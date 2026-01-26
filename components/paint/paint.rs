@@ -9,7 +9,7 @@ use std::fs::create_dir_all;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use base::generic_channel::{GenericSender, RoutedReceiver};
+use base::generic_channel::{self, GenericSender, RoutedReceiver};
 use base::id::{PainterId, PipelineId, WebViewId};
 use bitflags::bitflags;
 use canvas_traits::webgl::{WebGLContextId, WebGLThreads};
@@ -333,7 +333,7 @@ impl Paint {
         while self.paint_receiver.try_recv().is_ok() {}
 
         let (webgl_exit_sender, webgl_exit_receiver) =
-            ipc::channel().expect("Failed to create IPC channel!");
+            generic_channel::channel().expect("Failed to create IPC channel!");
         if !self
             .webgl_threads
             .exit(webgl_exit_sender)

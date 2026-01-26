@@ -6,11 +6,11 @@ use std::default::Default;
 use std::str::FromStr;
 
 use base::Epoch;
+use base::generic_channel::GenericSender;
 use euclid::Angle;
 use euclid::approxeq::ApproxEq;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use fonts_traits::{FontDataAndIndex, FontIdentifier};
-use ipc_channel::ipc::IpcSender;
 use kurbo::{BezPath, ParamCurveNearest as _, PathEl, Point, Shape, Triangle};
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
@@ -509,7 +509,7 @@ pub enum Canvas2dMsg {
         CompositionOptions,
         Transform2D<f64>,
     ),
-    GetImageData(Option<Rect<u32>>, IpcSender<SharedSnapshot>),
+    GetImageData(Option<Rect<u32>>, GenericSender<SharedSnapshot>),
     PutImageData(Rect<u32>, SharedSnapshot),
     StrokeRect(
         Rect<f32>,

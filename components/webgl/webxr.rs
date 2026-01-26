@@ -6,7 +6,7 @@ use std::num::NonZeroU32;
 use std::rc::Rc;
 
 use canvas_traits::webgl::{
-    WebGLMsg, WebGLSender, WebXRCommand, WebXRLayerManagerId, webgl_channel,
+    GenericSender, WebGLMsg, WebXRCommand, WebXRLayerManagerId, webgl_channel,
 };
 use rustc_hash::FxHashMap;
 use surfman::{Context, Device};
@@ -135,13 +135,13 @@ impl WebXRBridge {
 }
 
 pub(crate) struct WebXRBridgeInit {
-    sender: WebGLSender<WebGLMsg>,
+    sender: GenericSender<WebGLMsg>,
     factory_receiver: crossbeam_channel::Receiver<WebXRLayerManagerFactory<WebXRSurfman>>,
     factory_sender: crossbeam_channel::Sender<WebXRLayerManagerFactory<WebXRSurfman>>,
 }
 
 impl WebXRBridgeInit {
-    pub(crate) fn new(sender: WebGLSender<WebGLMsg>) -> WebXRBridgeInit {
+    pub(crate) fn new(sender: GenericSender<WebGLMsg>) -> WebXRBridgeInit {
         let (factory_sender, factory_receiver) = crossbeam_channel::unbounded();
         WebXRBridgeInit {
             sender,
@@ -159,7 +159,7 @@ impl WebXRBridgeInit {
 }
 
 struct WebXRBridgeGrandManager {
-    sender: WebGLSender<WebGLMsg>,
+    sender: GenericSender<WebGLMsg>,
     // WebXR layer manager factories use generic trait objects under the
     // hood, which aren't deserializable (even using typetag)
     // so we can't send them over the regular webgl channel.
@@ -202,7 +202,7 @@ impl WebXRLayerGrandManagerAPI<WebXRSurfman> for WebXRBridgeGrandManager {
 }
 
 struct WebXRBridgeManager {
-    sender: WebGLSender<WebGLMsg>,
+    sender: GenericSender<WebGLMsg>,
     manager_id: WebXRLayerManagerId,
     layers: Vec<(WebXRContextId, WebXRLayerId)>,
 }
