@@ -12,36 +12,37 @@ use webrender_api::PipelineId;
 #[derive(Default)]
 pub(crate) struct LargestContentfulPaintCalculator {
     lcp_containers: FxHashMap<PipelineId, LargestContentfulPaintsContainer>,
-    disabled_lcp_for_webviews: FxHashSet<WebViewId>,
+    disabled_webviews: FxHashSet<WebViewId>,
 }
 
 impl LargestContentfulPaintCalculator {
     pub(crate) fn new() -> Self {
         Self {
             lcp_containers: Default::default(),
-            disabled_lcp_for_webviews: Default::default(),
+            disabled_webviews: Default::default(),
         }
     }
 
     pub(crate) fn append_lcp_candidate(
         &mut self,
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
         candidate: LCPCandidate,
-    ) -> bool {
-        if self.disabled_lcp_for_webviews.contains(&webview_id) {
-            return false;
-        }
+        pipeline_id: PipelineId,
+        webview_id: &WebViewId,
+    ) {
+        assert!(self.enabled_for_webview(webview_id));
         self.lcp_containers
             .entry(pipeline_id)
             .or_default()
             .lcp_candidates
             .push(candidate);
-        true
     }
 
-    pub(crate) fn remove_lcp_candidates_for_pipeline(&mut self, pipeline_id: PipelineId) {
-        self.lcp_containers.remove(&pipeline_id);
+    pub(crate) fn enabled_for_webview(&self, webview_id: &WebViewId) -> bool {
+        !self.disabled_webviews.contains(webview_id)
+    }
+
+    pub(crate) fn remove_lcp_candidates_for_pipeline(&mut self, pipeline_id: &PipelineId) {
+        self.lcp_containers.remove(pipeline_id);
     }
 
     pub(crate) fn calculate_largest_contentful_paint(
@@ -56,11 +57,11 @@ impl LargestContentfulPaintCalculator {
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#limitations>
     pub(crate) fn disable_for_webview(&mut self, webview_id: WebViewId) {
-        self.disabled_lcp_for_webviews.insert(webview_id);
+        self.disabled_webviews.insert(webview_id);
     }
 
-    pub(crate) fn note_webview_removed(&mut self, webview_id: WebViewId) {
-        self.disabled_lcp_for_webviews.remove(&webview_id);
+    pub(crate) fn enable_for_webview(&mut self, webview_id: &WebViewId) {
+        self.disabled_webviews.remove(webview_id);
     }
 }
 
