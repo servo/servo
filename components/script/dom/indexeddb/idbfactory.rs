@@ -43,8 +43,8 @@ pub(crate) struct DBName(pub(crate) String);
 pub struct IDBFactory {
     reflector_: Reflector,
     /// <https://www.w3.org/TR/IndexedDB-2/#connection>
-    /// The connections pending #open-a-database-connection.
-    pending_connections:
+    /// The connections opened through this factory.
+    connections:
         DomRefCell<HashMapTracedValues<DBName, HashMapTracedValues<Uuid, Dom<IDBOpenDBRequest>>>>,
 
     #[no_trace]
@@ -56,7 +56,7 @@ impl IDBFactory {
     pub fn new_inherited() -> IDBFactory {
         IDBFactory {
             reflector_: Reflector::new(),
-            pending_connections: Default::default(),
+            connections: Default::default(),
             callback: Default::default(),
         }
     }
@@ -98,7 +98,7 @@ impl IDBFactory {
 
     fn get_request(&self, name: &String, request_id: &Uuid) -> Option<DomRoot<IDBOpenDBRequest>> {
         let name = DBName(name.clone());
-        let mut pending = self.pending_connections.borrow_mut();
+        let mut pending = self.connections.borrow_mut();
         let Some(entry) = pending.get_mut(&name) else {
             debug_assert!(false, "There should be a pending connection for {:?}", name);
             return None;
@@ -131,8 +131,6 @@ impl IDBFactory {
                     );
                 };
 
-                self.note_end_of_open(&DBName(name.clone()), &id);
-
                 // Step 2.2: Otherwise,
                 // set request’s result to result,
                 // set request’s done flag,
@@ -161,20 +159,14 @@ impl IDBFactory {
                 request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
             },
             ConnectionMsg::VersionError { name, id } => {
-                self.note_end_of_open(&DBName(name.clone()), &id);
-
                 // Step 2.1 If result is an error, see dispatch_error().
                 self.dispatch_error(name, id, Error::Version(None), can_gc);
             },
             ConnectionMsg::AbortError { name, id } => {
-                self.note_end_of_open(&DBName(name.clone()), &id);
-
                 // Step 2.1 If result is an error, see dispatch_error().
                 self.dispatch_error(name, id, Error::Abort(None), can_gc);
             },
             ConnectionMsg::DatabaseError { name, id, error } => {
-                self.note_end_of_open(&DBName(name.clone()), &id);
-
                 // Step 2.1 If result is an error, see dispatch_error().
                 self.dispatch_error(name, id, map_backend_error_to_dom_error(error), can_gc);
             },
@@ -226,7 +218,7 @@ impl IDBFactory {
 
         // Step 5.3.1: If result is an error, then:
         let request = {
-            let mut pending = self.pending_connections.borrow_mut();
+            let mut pending = self.connections.borrow_mut();
             let Some(entry) = pending.get_mut(&name) else {
                 return debug_assert!(false, "There should be a pending connection for {:?}", name);
             };
@@ -274,7 +266,7 @@ impl IDBFactory {
         let request_id = request.get_id();
 
         {
-            let mut pending = self.pending_connections.borrow_mut();
+            let mut pending = self.connections.borrow_mut();
             let outer = pending.entry(DBName(name.to_string())).or_default();
             outer.insert(request_id, Dom::from_ref(request));
         }
@@ -300,25 +292,11 @@ impl IDBFactory {
         Ok(())
     }
 
-    pub(crate) fn note_end_of_open(&self, name: &DBName, id: &Uuid) {
-        let mut pending = self.pending_connections.borrow_mut();
-        let empty = {
-            let Some(entry) = pending.get_mut(name) else {
-                return debug_assert!(false, "There should be a pending connection for {:?}", name);
-            };
-            entry.remove(id);
-            entry.is_empty()
-        };
-        if empty {
-            pending.remove(name);
-        }
-    }
-
     pub(crate) fn abort_pending_upgrades(&self) {
         let global = self.global();
 
         // Note: pending connections removed in `handle_connection_message`.
-        let pending = self.pending_connections.borrow();
+        let pending = self.connections.borrow();
         let pending_upgrades = pending
             .iter()
             .map(|(key, val)| {
