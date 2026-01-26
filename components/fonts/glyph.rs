@@ -454,6 +454,8 @@ impl GlyphStore {
             character_count,
             is_word_separator,
         });
+        self.glyphs
+            .push(GlyphEntry::complex(self.detailed_glyphs.len() - 1));
     }
 
     fn extend_previous_glyph_by_character(&mut self) {
