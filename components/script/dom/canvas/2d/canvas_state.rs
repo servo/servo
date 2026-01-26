@@ -21,8 +21,8 @@ use cssparser::{Parser, ParserInput};
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use euclid::{Vector2D, vec2};
 use fonts::{
-    ByteIndex, FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef,
-    LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions, TextByteRange,
+    FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef,
+    LAST_RESORT_GLYPH_ADVANCE, ShapingFlags, ShapingOptions,
 };
 use ipc_channel::ipc;
 use net_traits::image_cache::{ImageCache, ImageResponse};
@@ -2465,7 +2465,7 @@ impl UnshapedTextRun<'_> {
         let mut advance = 0.0;
         let mut bounds = None;
         let glyphs_and_positions = glyphs
-            .iter_glyphs_for_byte_range(TextByteRange::new(ByteIndex(0), glyphs.len()))
+            .glyphs()
             .map(|glyph| {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let glyph_and_position = GlyphAndPosition {

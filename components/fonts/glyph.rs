@@ -2,20 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cmp::{Ordering, PartialOrd};
-use std::iter::once;
-use std::sync::Arc;
+use std::fmt;
 use std::vec::Vec;
-use std::{fmt, mem};
 
 use app_units::Au;
 use euclid::default::Point2D;
 use euclid::num::Zero;
-use fonts_traits::{ByteIndex, TextByteRange};
 use itertools::Either;
-use log::debug;
+use log::{debug, error};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+
+use crate::{Font, GlyphShapingResult, ShapedGlyph, ShapingFlags, ShapingOptions};
 
 /// GlyphEntry is a port of Gecko's CompressedGlyph scheme for storing glyph data compactly.
 ///
@@ -26,17 +24,13 @@ use serde::{Deserialize, Serialize};
 /// glyph offsets), we pack the glyph count into GlyphEntry, and store the other glyph information
 /// in DetailedGlyphStore.
 #[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub(crate) struct GlyphEntry {
+pub struct GlyphEntry {
     value: u32,
 }
 
 impl GlyphEntry {
     fn new(value: u32) -> GlyphEntry {
         GlyphEntry { value }
-    }
-
-    fn initial() -> GlyphEntry {
-        GlyphEntry::new(0)
     }
 
     // Creates a GlyphEntry for the common case
@@ -51,22 +45,9 @@ impl GlyphEntry {
         GlyphEntry::new(id_mask | advance_mask | FLAG_IS_SIMPLE_GLYPH)
     }
 
-    // Create a GlyphEntry for uncommon case; should be accompanied by
-    // initialization of the actual DetailedGlyph data in DetailedGlyphStore
-    fn complex(starts_cluster: bool, starts_ligature: bool, glyph_count: usize) -> GlyphEntry {
-        assert!(glyph_count <= u16::MAX as usize);
-
-        debug!(
-            "creating complex glyph entry: starts_cluster={}, starts_ligature={}, \
-             glyph_count={}",
-            starts_cluster, starts_ligature, glyph_count
-        );
-
-        GlyphEntry::new(glyph_count as u32)
-    }
-
-    fn is_initial(&self) -> bool {
-        *self == GlyphEntry::initial()
+    fn complex(detailed_glyph_index: usize) -> GlyphEntry {
+        assert!(detailed_glyph_index as u32 <= u32::MAX >> 1);
+        GlyphEntry::new(detailed_glyph_index as u32)
     }
 }
 
@@ -88,9 +69,6 @@ const GLYPH_ID_MASK: u32 = 0x0000FFFF;
 // or more detailed glyphs associated with them. They are stored in a
 // side array so that there is a 1:1 mapping of GlyphEntry to
 // unicode char.
-
-// The number of detailed glyphs for this char.
-const GLYPH_COUNT_MASK: u32 = 0x0000FFFF;
 
 fn is_simple_glyph_id(id: GlyphId) -> bool {
     (id & GLYPH_ID_MASK) == id
@@ -131,11 +109,8 @@ impl GlyphEntry {
         self.value |= FLAG_CHAR_IS_WORD_SEPARATOR;
     }
 
-    fn glyph_count(&self) -> usize {
-        if self.is_simple() {
-            return 1;
-        }
-        (self.value & GLYPH_COUNT_MASK) as usize
+    fn detailed_glyph_index(&self) -> usize {
+        self.value as usize
     }
 
     #[inline(always)]
@@ -149,199 +124,20 @@ impl GlyphEntry {
     }
 }
 
-// Stores data for a detailed glyph, in the case that several glyphs
-// correspond to one character, or the glyph's data couldn't be packed.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
-struct DetailedGlyph {
-    id: GlyphId,
-    // glyph's advance, in the text's direction (LTR or RTL)
-    advance: Au,
-    // glyph's offset from the font's em-box (from top-left)
-    offset: Point2D<Au>,
-}
-
-impl DetailedGlyph {
-    fn new(id: GlyphId, advance: Au, offset: Point2D<Au>) -> DetailedGlyph {
-        DetailedGlyph {
-            id,
-            advance,
-            offset,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
-struct DetailedGlyphRecord {
-    // source string offset/GlyphEntry offset in the TextRun
-    entry_offset: ByteIndex,
-    // offset into the detailed glyphs buffer
-    detail_offset: usize,
-}
-
-impl Ord for DetailedGlyphRecord {
-    fn cmp(&self, other: &DetailedGlyphRecord) -> Ordering {
-        self.entry_offset.cmp(&other.entry_offset)
-    }
-}
-
-impl PartialOrd for DetailedGlyphRecord {
-    fn partial_cmp(&self, other: &DetailedGlyphRecord) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-// Manages the lookup table for detailed glyphs. Sorting is deferred
-// until a lookup is actually performed; this matches the expected
-// usage pattern of setting/appending all the detailed glyphs, and
-// then querying without setting.
 #[derive(Clone, Deserialize, MallocSizeOf, Serialize)]
-struct DetailedGlyphStore {
-    // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
-    // optimization.
-    detail_buffer: Vec<DetailedGlyph>,
-    // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
-    // optimization.
-    detail_lookup: Vec<DetailedGlyphRecord>,
-    lookup_is_sorted: bool,
-}
-
-impl<'a> DetailedGlyphStore {
-    fn new() -> DetailedGlyphStore {
-        DetailedGlyphStore {
-            detail_buffer: vec![], // TODO: default size?
-            detail_lookup: vec![],
-            lookup_is_sorted: false,
-        }
-    }
-
-    fn add_detailed_glyphs_for_entry(&mut self, entry_offset: ByteIndex, glyphs: &[DetailedGlyph]) {
-        let entry = DetailedGlyphRecord {
-            entry_offset,
-            detail_offset: self.detail_buffer.len(),
-        };
-
-        debug!(
-            "Adding entry[off={:?}] for detailed glyphs: {:?}",
-            entry_offset, glyphs
-        );
-
-        debug_assert!(!self.detail_lookup.contains(&entry));
-        self.detail_lookup.push(entry);
-        self.detail_buffer.extend_from_slice(glyphs);
-        self.lookup_is_sorted = false;
-    }
-
-    fn detailed_glyphs_for_entry(
-        &'a self,
-        entry_offset: ByteIndex,
-        count: usize,
-    ) -> &'a [DetailedGlyph] {
-        debug!(
-            "Requesting detailed glyphs[n={}] for entry[off={:?}]",
-            count, entry_offset
-        );
-
-        // FIXME: Is this right? --pcwalton
-        // TODO: should fix this somewhere else
-        if count == 0 {
-            return &self.detail_buffer[0..0];
-        }
-
-        assert!(count <= self.detail_buffer.len());
-        assert!(self.lookup_is_sorted);
-
-        let key = DetailedGlyphRecord {
-            entry_offset,
-            detail_offset: 0, // unused
-        };
-
-        let i = self
-            .detail_lookup
-            .binary_search(&key)
-            .expect("Invalid index not found in detailed glyph lookup table!");
-        let main_detail_offset = self.detail_lookup[i].detail_offset;
-        assert!(main_detail_offset + count <= self.detail_buffer.len());
-        // return a slice into the buffer
-        &self.detail_buffer[main_detail_offset..main_detail_offset + count]
-    }
-
-    fn detailed_glyph_with_index(
-        &'a self,
-        entry_offset: ByteIndex,
-        detail_offset: u16,
-    ) -> &'a DetailedGlyph {
-        assert!((detail_offset as usize) <= self.detail_buffer.len());
-        assert!(self.lookup_is_sorted);
-
-        let key = DetailedGlyphRecord {
-            entry_offset,
-            detail_offset: 0, // unused
-        };
-
-        let i = self
-            .detail_lookup
-            .binary_search(&key)
-            .expect("Invalid index not found in detailed glyph lookup table!");
-        let main_detail_offset = self.detail_lookup[i].detail_offset;
-        assert!(main_detail_offset + (detail_offset as usize) < self.detail_buffer.len());
-        &self.detail_buffer[main_detail_offset + (detail_offset as usize)]
-    }
-
-    fn ensure_sorted(&mut self) {
-        if self.lookup_is_sorted {
-            return;
-        }
-
-        // Sorting a unique vector is surprisingly hard. The following
-        // code is a good argument for using DVecs, but they require
-        // immutable locations thus don't play well with freezing.
-
-        // Thar be dragons here. You have been warned. (Tips accepted.)
-        let mut unsorted_records: Vec<DetailedGlyphRecord> = vec![];
-        mem::swap(&mut self.detail_lookup, &mut unsorted_records);
-        let mut mut_records: Vec<DetailedGlyphRecord> = unsorted_records;
-        mut_records.sort_by(|a, b| {
-            if a < b {
-                Ordering::Less
-            } else {
-                Ordering::Greater
-            }
-        });
-        let mut sorted_records = mut_records;
-        mem::swap(&mut self.detail_lookup, &mut sorted_records);
-
-        self.lookup_is_sorted = true;
-    }
-}
-
-// This struct is used by GlyphStore clients to provide new glyph data.
-// It should be allocated on the stack and passed by reference to GlyphStore.
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct GlyphData {
-    id: GlyphId,
+pub struct DetailedGlyphEntry {
+    /// The id of the this glyph within the font.
+    id: u32,
+    /// The advance that this glyphs needs ie the distance between where this
+    /// glyph is painted and the next is painted.
     advance: Au,
-    offset: Point2D<Au>,
-    cluster_start: bool,
-    ligature_start: bool,
-}
-
-impl GlyphData {
-    /// Creates a new entry for one glyph.
-    pub(crate) fn new(
-        id: GlyphId,
-        advance: Au,
-        offset: Option<Point2D<Au>>,
-        cluster_start: bool,
-        ligature_start: bool,
-    ) -> GlyphData {
-        GlyphData {
-            id,
-            advance,
-            offset: offset.unwrap_or(Point2D::zero()),
-            cluster_start,
-            ligature_start,
-        }
-    }
+    /// The physical offset that this glyph should be painted with.
+    offset: Option<Point2D<Au>>,
+    /// The number of character this glyph corresponds to in the original string.
+    /// This might be zero and this might be more than one.
+    character_count: usize,
+    /// Whether or not the originating character for this glyph was a word separator
+    is_word_separator: bool,
 }
 
 // This enum is a proxy that's provided to GlyphStore clients when iterating
@@ -350,56 +146,51 @@ impl GlyphData {
 // values as they are needed from the GlyphStore, using provided offsets.
 #[derive(Clone, Copy)]
 pub enum GlyphInfo<'a> {
-    Simple(&'a GlyphStore, ByteIndex),
-    Detail(&'a GlyphStore, ByteIndex, u16),
+    Simple(&'a GlyphEntry),
+    Detail(&'a DetailedGlyphEntry),
 }
 
 impl GlyphInfo<'_> {
     pub fn id(self) -> GlyphId {
         match self {
-            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.get()].id(),
-            GlyphInfo::Detail(store, entry_i, detail_j) => {
-                store
-                    .detail_store
-                    .detailed_glyph_with_index(entry_i, detail_j)
-                    .id
-            },
+            GlyphInfo::Simple(entry) => entry.id(),
+            GlyphInfo::Detail(entry) => entry.id,
         }
     }
 
     #[inline(always)]
     pub fn advance(self) -> Au {
         match self {
-            GlyphInfo::Simple(store, entry_i) => store.entry_buffer[entry_i.get()].advance(),
-            GlyphInfo::Detail(store, entry_i, detail_j) => {
-                store
-                    .detail_store
-                    .detailed_glyph_with_index(entry_i, detail_j)
-                    .advance
-            },
+            GlyphInfo::Simple(entry) => entry.advance(),
+            GlyphInfo::Detail(entry) => entry.advance,
         }
     }
 
     #[inline]
     pub fn offset(self) -> Option<Point2D<Au>> {
         match self {
-            GlyphInfo::Simple(_, _) => None,
-            GlyphInfo::Detail(store, entry_i, detail_j) => Some(
-                store
-                    .detail_store
-                    .detailed_glyph_with_index(entry_i, detail_j)
-                    .offset,
-            ),
+            GlyphInfo::Simple(..) => None,
+            GlyphInfo::Detail(entry) => entry.offset,
         }
     }
 
+    #[inline]
     pub fn char_is_word_separator(self) -> bool {
-        let (store, entry_i) = match self {
-            GlyphInfo::Simple(store, entry_i) => (store, entry_i),
-            GlyphInfo::Detail(store, entry_i, _) => (store, entry_i),
-        };
+        match self {
+            GlyphInfo::Simple(entry) => entry.char_is_word_separator(),
+            GlyphInfo::Detail(entry) => entry.is_word_separator,
+        }
+    }
 
-        store.char_is_word_separator(entry_i)
+    /// The number of characters that this glyph corresponds to. This may be more
+    /// than one when a single glyph is produced for multiple characters. This may
+    /// be zero when multiple glyphs are produced for a single character.
+    #[inline]
+    pub fn character_count(self) -> usize {
+        match self {
+            GlyphInfo::Simple(..) => 1,
+            GlyphInfo::Detail(entry) => entry.character_count,
+        }
     }
 }
 
@@ -425,24 +216,24 @@ impl GlyphInfo<'_> {
 pub struct GlyphStore {
     // TODO(pcwalton): Allocation of this buffer is expensive. Consider a small-vector
     // optimization.
-    /// A buffer of glyphs within the text run, in the order in which they
-    /// appear in the input text.
-    /// Any changes will also need to be reflected in
-    /// transmute_entry_buffer_to_u32_buffer().
-    entry_buffer: Vec<GlyphEntry>,
-    /// A store of the detailed glyph data. Detailed glyphs contained in the
-    /// `entry_buffer` point to locations in this data structure.
-    detail_store: DetailedGlyphStore,
+    /// A collection of [`GlyphEntry`]s within the [`GlyphStore`]. Each [`GlyphEntry`]
+    /// maybe simple or detailed. When detailed, there will be a corresponding entry
+    /// in [`Self::detailed_glyphs`].
+    glyphs: Vec<GlyphEntry>,
+
+    /// A vector of glyphs that cannot fit within a single [`GlyphEntry`] or that
+    /// correspond to 0 or more than 1 character in the original string.
+    detailed_glyphs: Vec<DetailedGlyphEntry>,
 
     /// A cache of the advance of the entire glyph store.
     total_advance: Au,
 
+    /// The number of characters that correspond to the glyphs in this [`GlyphStore`]
+    total_characters: usize,
+
     /// A cache of the number of word separators in the entire glyph store.
     /// See <https://drafts.csswg.org/css-text/#word-separator>.
     total_word_separators: usize,
-
-    /// Used to check if fast path should be used in glyph iteration.
-    has_detailed_glyphs: bool,
 
     /// Whether or not this glyph store contains only glyphs for whitespace.
     is_whitespace: bool,
@@ -456,33 +247,116 @@ pub struct GlyphStore {
     /// preserved newline.
     is_single_preserved_newline: bool,
 
+    /// Whether or not this [`GlyphStore`] has right-to-left text, which has implications
+    /// about the order of the glyphs in the store.
     is_rtl: bool,
 }
 
 impl GlyphStore {
-    /// Initializes the glyph store, but doesn't actually shape anything.
+    /// Initializes the glyph store with the given capacity, but doesn't actually add any glyphs.
     ///
     /// Use the `add_*` methods to store glyph data.
-    pub(crate) fn new(
-        length: usize,
-        is_whitespace: bool,
-        ends_with_whitespace: bool,
-        is_single_preserved_newline: bool,
-        is_rtl: bool,
-    ) -> GlyphStore {
-        assert!(length > 0);
-
-        GlyphStore {
-            entry_buffer: vec![GlyphEntry::initial(); length],
-            detail_store: DetailedGlyphStore::new(),
+    pub(crate) fn new(text: &str, length: usize, options: &ShapingOptions) -> Self {
+        Self {
+            glyphs: Vec::with_capacity(length),
+            detailed_glyphs: Default::default(),
             total_advance: Au::zero(),
+            total_characters: 0,
             total_word_separators: 0,
-            has_detailed_glyphs: false,
-            is_whitespace,
-            ends_with_whitespace,
-            is_single_preserved_newline,
-            is_rtl,
+            is_whitespace: options
+                .flags
+                .contains(ShapingFlags::IS_WHITESPACE_SHAPING_FLAG),
+            ends_with_whitespace: options
+                .flags
+                .contains(ShapingFlags::ENDS_WITH_WHITESPACE_SHAPING_FLAG),
+            is_single_preserved_newline: text.len() == 1 && text.starts_with('\n'),
+            is_rtl: options.flags.contains(ShapingFlags::RTL_FLAG),
         }
+    }
+
+    /// This constructor turns shaping output from HarfBuzz into a glyph run to be
+    /// used by layout. The idea here is that we add each glyph to the [`GlyphStore`]
+    /// and track to which characters from the original string each glyph
+    /// corresponds. HarfBuzz will either give us glyphs that correspond to
+    /// characters left-to-right or right-to-left. Each character can produce
+    /// multiple glyphs and multiple characters can produce one glyph. HarfBuzz just
+    /// guarantees that the resulting character offsets are in monotone order.
+    pub(crate) fn with_shaped_glyph_data(
+        font: &Font,
+        text: &str,
+        options: &ShapingOptions,
+        shaped_glyph_data: &impl GlyphShapingResult,
+    ) -> Self {
+        debug!(
+            "Shaped: '{text:?}: {:?}",
+            shaped_glyph_data.iter().collect::<Vec<_>>()
+        );
+
+        // Note: Even if we set the `RTL_FLAG` in the options, Harfbuzz may still
+        // give us shaped glyphs in left-to-right order. We need to look at the
+        // actual cluster indices in the shaped run.
+        let shaped_run_is_rtl = shaped_glyph_data.is_rtl();
+        let mut characters = if !shaped_run_is_rtl {
+            Either::Left(text.char_indices())
+        } else {
+            Either::Right(text.char_indices().rev())
+        };
+
+        let mut previous_character_offset = None;
+        let mut glyph_store = GlyphStore::new(text, shaped_glyph_data.len(), options);
+        for mut shaped_glyph in shaped_glyph_data.iter() {
+            // The glyph "cluster" (HarfBuzz terminology) is the byte offset in the string that
+            // this glyph corresponds to. More than one glyph can share a cluster.
+            let glyph_cluster = shaped_glyph.string_byte_offset;
+
+            if let Some(previous_character_offset) = previous_character_offset {
+                if previous_character_offset == glyph_cluster {
+                    glyph_store.add_glyph_for_current_character(&shaped_glyph, options);
+                    continue;
+                }
+            }
+
+            previous_character_offset = Some(glyph_cluster);
+            let mut characters_skipped = 0;
+            let Some(character) = characters.find_map(|(character_offset, character)| {
+                if glyph_cluster == character_offset {
+                    Some(character)
+                } else {
+                    characters_skipped += 1;
+                    None
+                }
+            }) else {
+                error!("HarfBuzz shaping results extended past character count");
+                return glyph_store;
+            };
+
+            shaped_glyph.adjust_for_character(character, options, font);
+
+            // If the we are working from the end of the string to the start and
+            // characters were skipped to produce this glyph, they belong to this
+            // glyph.
+            if shaped_run_is_rtl {
+                glyph_store.add_glyph(character, &shaped_glyph);
+            }
+
+            for _ in 0..characters_skipped {
+                glyph_store.extend_previous_glyph_by_character()
+            }
+
+            // If the we are working from the estart of the string to the end and
+            // characters were skipped to produce this glyph, they belong to the
+            // previous glyph.
+            if !shaped_run_is_rtl {
+                glyph_store.add_glyph(character, &shaped_glyph);
+            }
+        }
+
+        // Consume any remaining characters that belong to the more-recently added glyph.
+        for (_, _) in characters {
+            glyph_store.extend_previous_glyph_by_character();
+        }
+
+        glyph_store
     }
 
     #[inline]
@@ -490,210 +364,229 @@ impl GlyphStore {
         self.total_advance
     }
 
+    /// Return the number of glyphs stored in this [`GlyphStore`].
     #[inline]
-    pub fn len(&self) -> ByteIndex {
-        ByteIndex(self.entry_buffer.len())
+    pub fn len(&self) -> usize {
+        self.glyphs.len()
     }
 
+    /// Whether or not this [`GlyphStore`] has any glyphs.
     #[inline]
-    pub fn glyph_count(&self) -> usize {
-        self.entry_buffer.iter().map(GlyphEntry::glyph_count).sum()
+    pub fn is_empty(&self) -> bool {
+        self.glyphs.is_empty()
     }
 
+    /// The number of characters (`char`) from the original string that produced this
+    /// [`GlyphStore`].
+    #[inline]
+    pub fn character_count(&self) -> usize {
+        self.total_characters
+    }
+
+    /// Whether or not this [`GlyphStore`] is entirely whitepsace.
     #[inline]
     pub fn is_whitespace(&self) -> bool {
         self.is_whitespace
     }
 
+    /// Whether or not this [`GlyphStore`] is a single preserved newline.
+    #[inline]
+    pub fn is_single_preserved_newline(&self) -> bool {
+        self.is_single_preserved_newline
+    }
+
+    /// Whether or not this [`GlyphStore`] ends with whitespace.
     #[inline]
     pub fn ends_with_whitespace(&self) -> bool {
         self.ends_with_whitespace
     }
 
+    /// The number of word separators in this [`GlyphStore`].
     #[inline]
     pub fn total_word_separators(&self) -> usize {
         self.total_word_separators
     }
 
-    pub(crate) fn finalize_changes(&mut self) {
-        self.detail_store.ensure_sorted();
-        self.cache_total_advance_and_word_separators()
+    /// The number of characters that were consumed to produce this [`GlyphStore`]. Some
+    /// characters correpond to more than one glyph and some glyphs correspond to more than
+    /// one character.
+    #[inline]
+    pub fn total_characters(&self) -> usize {
+        self.total_characters
     }
 
-    #[inline(never)]
-    fn cache_total_advance_and_word_separators(&mut self) {
-        let mut total_advance = Au::zero();
-        let mut total_word_separators = 0;
-        for glyph in
-            self.iter_glyphs_for_byte_range(TextByteRange::new(ByteIndex::zero(), self.len()))
-        {
-            total_advance += glyph.advance();
-            if glyph.char_is_word_separator() {
-                total_word_separators += 1;
+    /// Adds glyph that corresponds to a single character (as far we know) in the originating string.
+    #[inline]
+    pub(crate) fn add_glyph(&mut self, character: char, glyph: &ShapedGlyph) {
+        if !glyph.can_be_simple_glyph() {
+            self.add_detailed_glyph(glyph, Some(character), 1);
+            return;
+        }
+
+        let mut simple_glyph_entry = GlyphEntry::simple(glyph.glyph_id, glyph.advance);
+        if character_is_word_separator(character) {
+            self.total_word_separators += 1;
+            simple_glyph_entry.set_char_is_word_separator();
+        }
+
+        self.total_characters += 1;
+        self.total_advance += glyph.advance;
+        self.glyphs.push(simple_glyph_entry)
+    }
+
+    fn add_detailed_glyph(
+        &mut self,
+        shaped_glyph: &ShapedGlyph,
+        character: Option<char>,
+        character_count: usize,
+    ) {
+        let is_word_separator = character.is_some_and(character_is_word_separator);
+        if is_word_separator {
+            self.total_word_separators += 1;
+        }
+
+        self.total_characters += character_count;
+        self.total_advance += shaped_glyph.advance;
+        self.detailed_glyphs.push(DetailedGlyphEntry {
+            id: shaped_glyph.glyph_id,
+            advance: shaped_glyph.advance,
+            offset: shaped_glyph.offset,
+            character_count,
+            is_word_separator,
+        });
+    }
+
+    fn extend_previous_glyph_by_character(&mut self) {
+        let detailed_glyph_index = self.ensure_last_glyph_is_detailed();
+        let detailed_glyph = self
+            .detailed_glyphs
+            .get_mut(detailed_glyph_index)
+            .expect("GlyphEntry should have valid index to detailed glyph");
+        detailed_glyph.character_count += 1;
+        self.total_characters += 1;
+    }
+
+    fn add_glyph_for_current_character(
+        &mut self,
+        shaped_glyph: &ShapedGlyph,
+        options: &ShapingOptions,
+    ) {
+        // If this glyph cluster is extending to include another glyph and we applied
+        // letter spacing to the previous glyph, ensure that the letter spacing is only
+        // applied to the last glyph in the cluster. Note that this is unconditionally
+        // converting the previous glyph to a detailed one because it's quite likely that
+        // the advance will not fit into the simple bitmask due to being negative.
+        if let Some(letter_spacing) = options.letter_spacing {
+            if letter_spacing != Au::zero() {
+                let last_glyph_index = self.ensure_last_glyph_is_detailed();
+                self.detailed_glyphs[last_glyph_index].advance -= letter_spacing;
             }
         }
-        self.total_advance = total_advance;
-        self.total_word_separators = total_word_separators;
+
+        // Add a detailed glyph entry for this new glyph, but it corresponds to a character
+        // we have already started processing. It should not contribute any character count.
+        self.add_detailed_glyph(shaped_glyph, None, 0);
     }
 
-    /// Adds a single glyph.
-    pub(crate) fn add_glyph_for_byte_index(
-        &mut self,
-        i: ByteIndex,
-        character: char,
-        data: &GlyphData,
-    ) {
-        let glyph_is_compressible = is_simple_glyph_id(data.id) &&
-            is_simple_advance(data.advance) &&
-            data.offset == Point2D::zero() &&
-            data.cluster_start; // others are stored in detail buffer
-
-        debug_assert!(data.ligature_start); // can't compress ligature continuation glyphs.
-        debug_assert!(i < self.len());
-
-        let mut entry = if glyph_is_compressible {
-            GlyphEntry::simple(data.id, data.advance)
-        } else {
-            let glyph = &[DetailedGlyph::new(data.id, data.advance, data.offset)];
-            self.has_detailed_glyphs = true;
-            self.detail_store.add_detailed_glyphs_for_entry(i, glyph);
-            GlyphEntry::complex(data.cluster_start, data.ligature_start, 1)
-        };
-
-        // This list is taken from the non-exhaustive list of word separator characters in
-        // the CSS Text Module Level 3 Spec:
-        // See https://drafts.csswg.org/css-text/#word-separator
-        if matches!(
-            character,
-            ' ' |
-            '\u{00A0}' | // non-breaking space
-            '\u{1361}' | // Ethiopic word space
-            '\u{10100}' | // Aegean word separator
-            '\u{10101}' | // Aegean word separator
-            '\u{1039F}' | // Ugartic word divider
-            '\u{1091F}' // Phoenician word separator
-        ) {
-            entry.set_char_is_word_separator();
+    /// If the last glyph added to this [`GlyphStore`] was a simple glyph, convert it to a
+    /// detailed one. In either case, return the index into [`Self::detailed_glyphs`] for
+    /// the most recently added glyph.
+    fn ensure_last_glyph_is_detailed(&mut self) -> usize {
+        let last_glyph = self
+            .glyphs
+            .last_mut()
+            .expect("Should never call this before any glyphs have been added.");
+        if !last_glyph.is_simple() {
+            return last_glyph.detailed_glyph_index();
         }
 
-        self.entry_buffer[i.get()] = entry;
+        self.detailed_glyphs.push(DetailedGlyphEntry {
+            id: last_glyph.id(),
+            advance: last_glyph.advance(),
+            offset: Default::default(),
+            character_count: 1,
+            is_word_separator: last_glyph.char_is_word_separator(),
+        });
+
+        let detailed_glyph_index = self.detailed_glyphs.len() - 1;
+        *last_glyph = GlyphEntry::complex(detailed_glyph_index);
+        detailed_glyph_index
     }
 
-    pub(crate) fn add_glyphs_for_byte_index(
-        &mut self,
-        i: ByteIndex,
-        data_for_glyphs: &[GlyphData],
-    ) {
-        assert!(i < self.len());
-        assert!(!data_for_glyphs.is_empty());
-
-        let glyph_count = data_for_glyphs.len();
-
-        let first_glyph_data = data_for_glyphs[0];
-        let glyphs_vec: Vec<DetailedGlyph> = (0..glyph_count)
-            .map(|i| {
-                DetailedGlyph::new(
-                    data_for_glyphs[i].id,
-                    data_for_glyphs[i].advance,
-                    data_for_glyphs[i].offset,
-                )
-            })
-            .collect();
-
-        self.has_detailed_glyphs = true;
-        self.detail_store
-            .add_detailed_glyphs_for_entry(i, &glyphs_vec);
-
-        let entry = GlyphEntry::complex(
-            first_glyph_data.cluster_start,
-            first_glyph_data.ligature_start,
-            glyph_count,
-        );
-
-        debug!(
-            "Adding multiple glyphs[idx={:?}, count={}]: {:?}",
-            i, glyph_count, entry
-        );
-
-        self.entry_buffer[i.get()] = entry;
-    }
-
-    #[inline]
-    pub fn iter_glyphs_for_byte_range(
-        &self,
-        range: TextByteRange,
-    ) -> impl Iterator<Item = GlyphInfo<'_>> + use<'_> {
-        if range.start >= self.len() {
-            panic!("iter_glyphs_for_range: range.begin beyond length!");
-        }
-        if range.end > self.len() {
-            panic!("iter_glyphs_for_range: range.end beyond length!");
-        }
-
-        let range_it = if self.is_rtl {
-            Either::Left(range.rev())
-        } else {
-            Either::Right(range)
-        };
-
-        range_it.into_iter().flat_map(move |range_idx| {
-            let entry = self.entry_buffer[range_idx.get()];
-            let result = if entry.is_simple() {
-                Either::Left(once(GlyphInfo::Simple(self, range_idx)))
+    pub fn glyphs(&self) -> impl Iterator<Item = GlyphInfo<'_>> + use<'_> {
+        self.glyphs.iter().map(|entry| {
+            if entry.is_simple() {
+                GlyphInfo::Simple(entry)
             } else {
-                // Slow path for complex glyphs
-                let glyphs = self
-                    .detail_store
-                    .detailed_glyphs_for_entry(range_idx, entry.glyph_count());
-
-                let complex_glyph_range =
-                    TextByteRange::new(ByteIndex::zero(), ByteIndex(glyphs.len()));
-                Either::Right(complex_glyph_range.map(move |i| {
-                    GlyphInfo::Detail(self, range_idx, i.get() as u16 /* ??? */)
-                }))
-            };
-
-            result.into_iter()
+                GlyphInfo::Detail(&self.detailed_glyphs[entry.detailed_glyph_index()])
+            }
         })
     }
+}
 
-    #[inline]
-    pub fn advance_for_byte_range(&self, range: TextByteRange, extra_word_spacing: Au) -> Au {
-        if range.start == ByteIndex(0) && range.end == self.len() {
-            self.total_advance + extra_word_spacing * (self.total_word_separators as i32)
-        } else {
-            self.advance_for_byte_range_simple_glyphs(range, extra_word_spacing)
+impl ShapedGlyph {
+    fn can_be_simple_glyph(&self) -> bool {
+        is_simple_glyph_id(self.glyph_id) &&
+            is_simple_advance(self.advance) &&
+            self.offset
+                .is_none_or(|offset| offset == Default::default())
+    }
+
+    /// After shaping is complete, some glyphs need their spacing adjusted to take into
+    /// account `letter-spacing`, `word-spacing` and tabs.
+    ///
+    /// TODO: This should all likely move to layout. In particular, proper tab stops
+    /// are context sensitive and be based on the size of the space character in the
+    /// inline formatting context.
+    fn adjust_for_character(
+        &mut self,
+        character: char,
+        shaping_options: &ShapingOptions,
+        font: &Font,
+    ) {
+        // Treat tabs in pre-formatted text as a fixed number of spaces. The glyph id does
+        // not matter here as Servo doesn't render any glyphs for whitespace.
+        if character == '\t' {
+            self.glyph_id = font.glyph_index(' ').unwrap_or_default();
+            self.advance = font.metrics.space_advance * 8;
+        }
+
+        if let Some(letter_spacing) = shaping_options.letter_spacing {
+            self.advance += letter_spacing;
+        };
+
+        // CSS 2.1 § 16.4 states that "word spacing affects each space (U+0020) and non-breaking
+        // space (U+00A0) left in the text after the white space processing rules have been
+        // applied. The effect of the property on other word-separator characters is undefined."
+        // We elect to only space the two required code points.
+        if character == ' ' || character == '\u{a0}' {
+            // https://drafts.csswg.org/css-text-3/#word-spacing-property
+            self.advance += shaping_options.word_spacing;
         }
     }
+}
 
-    #[inline]
-    pub(crate) fn advance_for_byte_range_simple_glyphs(
-        &self,
-        range: TextByteRange,
-        extra_word_spacing: Au,
-    ) -> Au {
-        self.iter_glyphs_for_byte_range(range)
-            .map(|glyph| {
-                if glyph.char_is_word_separator() {
-                    glyph.advance() + extra_word_spacing
-                } else {
-                    glyph.advance()
-                }
-            })
-            .sum()
-    }
-
-    pub(crate) fn char_is_word_separator(&self, i: ByteIndex) -> bool {
-        assert!(i < self.len());
-        self.entry_buffer[i.get()].char_is_word_separator()
-    }
+fn character_is_word_separator(character: char) -> bool {
+    // This list is taken from the non-exhaustive list of word separator characters in
+    // the CSS Text Module Level 3 Spec:
+    // See https://drafts.csswg.org/css-text/#word-separator
+    let is_word_separator = matches!(
+        character,
+        ' ' |
+                '\u{00A0}' | // non-breaking space
+                '\u{1361}' | // Ethiopic word space
+                '\u{10100}' | // Aegean word separator
+                '\u{10101}' | // Aegean word separator
+                '\u{1039F}' | // Ugartic word divider
+                '\u{1091F}' // Phoenician word separator
+    );
+    is_word_separator
 }
 
 impl fmt::Debug for GlyphStore {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         writeln!(formatter, "GlyphStore:")?;
-        let mut detailed_buffer = self.detail_store.detail_buffer.iter();
-        for entry in self.entry_buffer.iter() {
+        for entry in self.glyphs.iter() {
             if entry.is_simple() {
                 writeln!(
                     formatter,
@@ -702,38 +595,15 @@ impl fmt::Debug for GlyphStore {
                     entry.advance()
                 )?;
                 continue;
+            } else {
+                let detailed_glyph = &self.detailed_glyphs[entry.detailed_glyph_index()];
+                writeln!(
+                    formatter,
+                    "  detailed id={:?} advance={:?} characters={:?}",
+                    detailed_glyph.id, detailed_glyph.advance, detailed_glyph.character_count,
+                )?;
             }
-            if entry.is_initial() {
-                continue;
-            }
-            write!(formatter, "  complex...")?;
-            if detailed_buffer.next().is_none() {
-                continue;
-            }
-            writeln!(
-                formatter,
-                "  detailed id={:?} advance={:?}",
-                entry.id(),
-                entry.advance()
-            )?;
         }
         Ok(())
-    }
-}
-
-/// A single series of glyphs within a text run.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub struct GlyphRun {
-    /// The glyphs.
-    #[conditional_malloc_size_of]
-    pub glyph_store: Arc<GlyphStore>,
-    /// The byte range of characters in the containing run.
-    pub range: TextByteRange,
-}
-
-impl GlyphRun {
-    #[inline]
-    pub fn is_single_preserved_newline(&self) -> bool {
-        self.glyph_store.is_single_preserved_newline
     }
 }

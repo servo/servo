@@ -378,6 +378,7 @@ pub trait Layout {
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>>;
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32, CSSPixel>;
+    /// Find the character offset of the point in the given node, if it has text content.
     fn query_text_index(
         &self,
         node: TrustedNodeAddress,

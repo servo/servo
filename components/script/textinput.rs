@@ -383,6 +383,14 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.selection_start_offset()..self.selection_end_offset()
     }
 
+    /// Return the selection range as character offsets from the start of the content.
+    ///
+    /// If there is no selection, returns an empty range at the edit point.
+    pub(crate) fn sorted_selection_character_offsets_range(&self) -> Range<usize> {
+        self.rope.index_to_character_offset(self.selection_start())..
+            self.rope.index_to_character_offset(self.selection_end())
+    }
+
     /// The state of the current selection. Can be used to compare whether selection state has changed.
     pub(crate) fn selection_state(&self) -> SelectionState {
         SelectionState {
@@ -832,7 +840,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             .map(|grapheme_index| {
                 self.rope.move_by(
                     Default::default(),
-                    RopeMovement::Grapheme,
+                    RopeMovement::Character,
                     grapheme_index as isize,
                 )
             })

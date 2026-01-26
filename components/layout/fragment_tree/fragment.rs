@@ -9,7 +9,7 @@ use atomic_refcell::{AtomicRef, AtomicRefMut};
 use base::id::PipelineId;
 use base::print_tree::PrintTree;
 use euclid::{Point2D, Rect, Size2D};
-use fonts::{ByteIndex, FontMetrics, GlyphStore, TextByteRange};
+use fonts::{FontMetrics, GlyphStore};
 use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
@@ -358,7 +358,7 @@ impl TextFragment {
             "Text num_glyphs={} box={:?}",
             self.glyphs
                 .iter()
-                .map(|glyph_store| glyph_store.glyph_count())
+                .map(|glyph_store| glyph_store.len())
                 .sum::<usize>(),
             self.base.rect
         ));
@@ -384,30 +384,30 @@ impl TextFragment {
         Some(point_in_fragment.x - rect.width().max(Au::zero()))
     }
 
-    /// Given a point relative to this [`TextFragment`], find the most appropriate glyph
-    /// offset. Note that the point may be outside the [`TextFragment`]'s content rect.
-    pub(crate) fn glyph_offset(&self, point_in_fragment: Point2D<Au, CSSPixel>) -> usize {
+    /// Given a point relative to this [`TextFragment`], find the most appropriate character
+    /// offset. Note that the given point may be outside the [`TextFragment`]'s content rect.
+    pub(crate) fn character_offset(&self, point_in_fragment: Point2D<Au, CSSPixel>) -> usize {
         let Some(offsets) = self.offsets.as_ref() else {
             return 0;
         };
 
-        let mut current_glyph = offsets.starting_glyph_offset;
+        let mut current_character = offsets.character_range.start;
         let mut current_offset = Au::zero();
         for glyph_store in &self.glyphs {
-            for glyph in glyph_store.iter_glyphs_for_byte_range(TextByteRange::new(
-                ByteIndex::zero(),
-                glyph_store.len(),
-            )) {
-                let advance = glyph.advance();
+            for glyph in glyph_store.glyphs() {
+                let mut advance = glyph.advance();
+                if glyph.char_is_word_separator() {
+                    advance += self.justification_adjustment;
+                }
                 if current_offset + advance.scale_by(0.5) >= point_in_fragment.x {
-                    return current_glyph;
+                    return current_character;
                 }
                 current_offset += advance;
-                current_glyph += 1;
+                current_character += glyph.character_count();
             }
         }
 
-        current_glyph
+        current_character
     }
 }
 

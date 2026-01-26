@@ -6,6 +6,7 @@
 
 use std::borrow::Cow;
 use std::fmt::Debug;
+use std::ops::Range;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use base::id::{BrowsingContextId, PipelineId};
@@ -440,6 +441,8 @@ impl PseudoElementChain {
 pub struct ScriptSelection {
     /// The range of this selection in the DOM node that manages it.
     pub range: TextByteRange,
+    /// The character range of this selection in the DOM node that manages it.
+    pub character_range: Range<usize>,
     /// Whether or not this selection is enabled. Selections may be disabled
     /// when their node loses focus.
     pub enabled: bool,

@@ -13,13 +13,14 @@ use euclid::default::Point2D;
 // Eventually we would like the shaper to be pluggable, as many operating systems have their own
 // shapers. For now, however, HarfBuzz is a hard dependency.
 use harfbuzz_sys::{
-    HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY, HB_OT_LAYOUT_BASELINE_TAG_HANGING,
+    HB_BUFFER_CLUSTER_LEVEL_MONOTONE_CHARACTERS, HB_DIRECTION_LTR, HB_DIRECTION_RTL,
+    HB_MEMORY_MODE_READONLY, HB_OT_LAYOUT_BASELINE_TAG_HANGING,
     HB_OT_LAYOUT_BASELINE_TAG_IDEO_EMBOX_BOTTOM_OR_LEFT, HB_OT_LAYOUT_BASELINE_TAG_ROMAN,
     hb_blob_create, hb_blob_t, hb_bool_t, hb_buffer_add_utf8, hb_buffer_create, hb_buffer_destroy,
     hb_buffer_get_glyph_infos, hb_buffer_get_glyph_positions, hb_buffer_get_length,
-    hb_buffer_set_direction, hb_buffer_set_script, hb_buffer_t, hb_codepoint_t,
-    hb_face_create_for_tables, hb_face_destroy, hb_face_t, hb_feature_t, hb_font_create,
-    hb_font_destroy, hb_font_funcs_create, hb_font_funcs_set_glyph_h_advance_func,
+    hb_buffer_set_cluster_level, hb_buffer_set_direction, hb_buffer_set_script, hb_buffer_t,
+    hb_codepoint_t, hb_face_create_for_tables, hb_face_destroy, hb_face_t, hb_feature_t,
+    hb_font_create, hb_font_destroy, hb_font_funcs_create, hb_font_funcs_set_glyph_h_advance_func,
     hb_font_funcs_set_nominal_glyph_func, hb_font_funcs_t, hb_font_set_funcs, hb_font_set_ppem,
     hb_font_set_scale, hb_font_set_variations, hb_font_t, hb_glyph_info_t, hb_glyph_position_t,
     hb_ot_layout_get_baseline, hb_position_t, hb_script_from_iso15924_tag, hb_shape, hb_tag_t,
@@ -28,7 +29,7 @@ use harfbuzz_sys::{
 use num_traits::Zero;
 use read_fonts::types::Tag;
 
-use super::{HarfBuzzShapedGlyphData, ShapedGlyphEntry, unicode_script_to_iso15924_tag};
+use super::{GlyphShapingResult, ShapedGlyph, unicode_script_to_iso15924_tag};
 use crate::platform::font::FontTable;
 use crate::{
     BASE, Font, FontBaseline, FontTableMethods, GlyphId, GlyphStore, KERN, LIGA, ShapingFlags,
@@ -38,14 +39,14 @@ use crate::{
 const HB_OT_TAG_DEFAULT_SCRIPT: hb_tag_t = u32::from_be_bytes(Tag::new(b"DFLT").to_be_bytes());
 const HB_OT_TAG_DEFAULT_LANGUAGE: hb_tag_t = u32::from_be_bytes(Tag::new(b"dflt").to_be_bytes());
 
-pub(crate) struct ShapedGlyphData {
+pub(crate) struct HarfbuzzGlyphShapingResult {
     count: usize,
     buffer: *mut hb_buffer_t,
     glyph_infos: *mut hb_glyph_info_t,
     pos_infos: *mut hb_glyph_position_t,
 }
 
-impl ShapedGlyphData {
+impl HarfbuzzGlyphShapingResult {
     /// Create a new [`ShapedGlyphData`] from the given HarfBuzz buffer.
     ///
     /// # Safety
@@ -53,7 +54,7 @@ impl ShapedGlyphData {
     /// - Passing an invalid buffer pointer to this function results in undefined behavior.
     /// - This function takes ownership of the buffer and the ShapedGlyphData destroys the buffer when dropped
     ///   so the pointer must an owned pointer and must not be used after being passed to this function
-    unsafe fn new(buffer: *mut hb_buffer_t) -> ShapedGlyphData {
+    unsafe fn new(buffer: *mut hb_buffer_t) -> HarfbuzzGlyphShapingResult {
         let mut glyph_count = 0;
         let glyph_infos = unsafe { hb_buffer_get_glyph_infos(buffer, &mut glyph_count) };
         assert!(!glyph_infos.is_null());
@@ -62,7 +63,7 @@ impl ShapedGlyphData {
         assert!(!pos_infos.is_null());
         assert_eq!(glyph_count, pos_count);
 
-        ShapedGlyphData {
+        HarfbuzzGlyphShapingResult {
             count: glyph_count as usize,
             buffer,
             glyph_infos,
@@ -71,35 +72,35 @@ impl ShapedGlyphData {
     }
 }
 
-impl Drop for ShapedGlyphData {
+impl Drop for HarfbuzzGlyphShapingResult {
     fn drop(&mut self) {
         unsafe { hb_buffer_destroy(self.buffer) }
     }
 }
 
-impl HarfBuzzShapedGlyphData for ShapedGlyphData {
-    #[inline]
-    fn len(&self) -> usize {
-        self.count
-    }
+struct ShapedGlyphIterator<'a> {
+    shaped_glyph_data: &'a HarfbuzzGlyphShapingResult,
+    current_glyph_offset: usize,
+    y_position: Au,
+}
 
-    #[inline(always)]
-    fn byte_offset_of_glyph(&self, i: usize) -> u32 {
-        assert!(i < self.count);
+impl<'a> Iterator for ShapedGlyphIterator<'a> {
+    type Item = ShapedGlyph;
 
-        unsafe {
-            let glyph_info_i = self.glyph_infos.add(i);
-            (*glyph_info_i).cluster
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current_glyph_offset >= self.shaped_glyph_data.count {
+            return None;
         }
-    }
-
-    /// Returns shaped glyph data for one glyph, and updates the y-position of the pen.
-    fn entry_for_glyph(&self, i: usize, y_pos: &mut Au) -> ShapedGlyphEntry {
-        assert!(i < self.count);
 
         unsafe {
-            let glyph_info_i = self.glyph_infos.add(i);
-            let pos_info_i = self.pos_infos.add(i);
+            let glyph_info_i = self
+                .shaped_glyph_data
+                .glyph_infos
+                .add(self.current_glyph_offset);
+            let pos_info_i = self
+                .shaped_glyph_data
+                .pos_infos
+                .add(self.current_glyph_offset);
             let x_offset = Shaper::fixed_to_float((*pos_info_i).x_offset);
             let y_offset = Shaper::fixed_to_float((*pos_info_i).y_offset);
             let x_advance = Shaper::fixed_to_float((*pos_info_i).x_advance);
@@ -115,17 +116,42 @@ impl HarfBuzzShapedGlyphData for ShapedGlyphData {
             } else {
                 // adjust the pen..
                 if y_advance > Au::zero() {
-                    *y_pos -= y_advance;
+                    self.y_position -= y_advance;
                 }
 
-                Some(Point2D::new(x_offset, *y_pos - y_offset))
+                Some(Point2D::new(x_offset, self.y_position - y_offset))
             };
 
-            ShapedGlyphEntry {
-                codepoint: (*glyph_info_i).codepoint as GlyphId,
+            self.current_glyph_offset += 1;
+            Some(ShapedGlyph {
+                glyph_id: (*glyph_info_i).codepoint as GlyphId,
+                string_byte_offset: (*glyph_info_i).cluster as usize,
                 advance: x_advance,
                 offset,
-            }
+            })
+        }
+    }
+}
+
+impl GlyphShapingResult for HarfbuzzGlyphShapingResult {
+    #[inline]
+    fn len(&self) -> usize {
+        self.count
+    }
+
+    fn iter(&self) -> impl Iterator<Item = ShapedGlyph> {
+        ShapedGlyphIterator {
+            shaped_glyph_data: self,
+            current_glyph_offset: 0,
+            y_position: Au::zero(),
+        }
+    }
+
+    fn is_rtl(&self) -> bool {
+        unsafe {
+            let first_glyph_info = self.glyph_infos.add(0);
+            let last_glyph_info = self.glyph_infos.add(self.count - 1);
+            (*last_glyph_info).cluster < (*first_glyph_info).cluster
         }
     }
 }
@@ -209,9 +235,14 @@ impl Shaper {
     }
 
     /// Calculate the layout metrics associated with the given text with the [`Shaper`]s font.
-    fn shaped_glyph_data(&self, text: &str, options: &ShapingOptions) -> ShapedGlyphData {
+    fn shaped_glyph_data(
+        &self,
+        text: &str,
+        options: &ShapingOptions,
+    ) -> HarfbuzzGlyphShapingResult {
         unsafe {
             let hb_buffer: *mut hb_buffer_t = hb_buffer_create();
+            hb_buffer_set_cluster_level(hb_buffer, HB_BUFFER_CLUSTER_LEVEL_MONOTONE_CHARACTERS);
             hb_buffer_set_direction(
                 hb_buffer,
                 if options.flags.contains(ShapingFlags::RTL_FLAG) {
@@ -264,18 +295,22 @@ impl Shaper {
                 features.len() as u32,
             );
 
-            ShapedGlyphData::new(hb_buffer)
+            HarfbuzzGlyphShapingResult::new(hb_buffer)
         }
     }
 
-    fn font(&self) -> &Font {
-        unsafe { &(*self.font) }
-    }
-
-    pub(crate) fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
-        let glyph_data = self.shaped_glyph_data(text, options);
-        let font = self.font();
-        super::shape_text_harfbuzz(&glyph_data, font, text, options, glyphs);
+    pub(crate) fn shape_text(
+        &self,
+        font: &Font,
+        text: &str,
+        options: &ShapingOptions,
+    ) -> GlyphStore {
+        GlyphStore::with_shaped_glyph_data(
+            font,
+            text,
+            options,
+            &self.shaped_glyph_data(text, options),
+        )
     }
 
     pub(crate) fn baseline(&self) -> Option<FontBaseline> {

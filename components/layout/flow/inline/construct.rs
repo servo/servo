@@ -44,6 +44,11 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// used to properly set the text range of new [`InlineItem::TextRun`]s.
     current_text_offset: usize,
 
+    /// The current character offset in the final text string of this [`InlineFormattingContext`],
+    /// used to properly set the text range of new [`InlineItem::TextRun`]s. Note that this is
+    /// different from the UTF-8 code point offset.
+    current_character_offset: usize,
+
     /// If the [`InlineFormattingContext`] that we are building has a selection shared with its
     /// originating node in the DOM, this will not be `None`.
     pub shared_selection: Option<SharedSelection>,
@@ -107,6 +112,7 @@ impl InlineFormattingContextBuilder {
     fn push_control_character_string(&mut self, string_to_push: &str) {
         self.text_segments.push(string_to_push.to_owned());
         self.current_text_offset += string_to_push.len();
+        self.current_character_offset += string_to_push.chars().count();
     }
 
     fn shared_inline_styles(&self) -> SharedInlineStyles {
@@ -303,8 +309,11 @@ impl InlineFormattingContextBuilder {
         };
 
         let white_space_collapse = info.style.clone_white_space_collapse();
+        let mut character_count = 0;
         let new_text: String = char_iterator
             .inspect(|&character| {
+                character_count += 1;
+
                 self.is_empty = self.is_empty &&
                     match white_space_collapse {
                         WhiteSpaceCollapse::Collapse => character.is_ascii_whitespace(),
@@ -328,6 +337,11 @@ impl InlineFormattingContextBuilder {
 
         let new_range = self.current_text_offset..self.current_text_offset + new_text.len();
         self.current_text_offset = new_range.end;
+
+        let new_character_range =
+            self.current_character_offset..self.current_character_offset + character_count;
+        self.current_character_offset = new_character_range.end;
+
         self.text_segments.push(new_text);
 
         let current_inline_styles = self.shared_inline_styles();
@@ -339,6 +353,7 @@ impl InlineFormattingContextBuilder {
                 .ptr_eq(&current_inline_styles)
             {
                 text_run.borrow_mut().text_range.end = new_range.end;
+                text_run.borrow_mut().character_range.end = new_character_range.end;
                 return;
             }
         }
@@ -348,6 +363,7 @@ impl InlineFormattingContextBuilder {
                 info.into(),
                 current_inline_styles,
                 new_range,
+                new_character_range,
             ))));
     }
 
