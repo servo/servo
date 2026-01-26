@@ -405,9 +405,6 @@ impl TextRun {
         };
 
         let mut flags = ShapingFlags::empty();
-        if letter_spacing.is_some() {
-            flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
-        }
         if inherited_text_style.text_rendering == TextRendering::Optimizespeed {
             flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
             flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
@@ -438,6 +435,19 @@ impl TextRun {
                 if segment.bidi_level.is_rtl() {
                     flags.insert(ShapingFlags::RTL_FLAG);
                 }
+
+                // From https://www.w3.org/TR/css-text-3/#cursive-script:
+                // Cursive scripts do not admit gaps between their letters for either
+                // justification or letter-spacing.
+                let letter_spacing = if is_cursive_script(segment.script) {
+                    None
+                } else {
+                    letter_spacing
+                };
+                if letter_spacing.is_some() {
+                    flags.insert(ShapingFlags::IGNORE_LIGATURES_SHAPING_FLAG);
+                };
+
                 let shaping_options = ShapingOptions {
                     letter_spacing,
                     word_spacing,
@@ -591,6 +601,23 @@ impl TextRun {
             soft_wrap_policy = SegmentStartSoftWrapPolicy::FollowLinebreaker;
         }
     }
+}
+
+/// From <https://www.w3.org/TR/css-text-3/#cursive-script>:
+/// Cursive scripts do not admit gaps between their letters for either justification
+/// or letter-spacing. The following Unicode scripts are included: Arabic, Hanifi
+/// Rohingya, Mandaic, Mongolian, N’Ko, Phags Pa, Syriac
+fn is_cursive_script(script: Script) -> bool {
+    matches!(
+        script,
+        Script::Arabic |
+            Script::Hanifi_Rohingya |
+            Script::Mandaic |
+            Script::Mongolian |
+            Script::Nko |
+            Script::Phags_Pa |
+            Script::Syriac
+    )
 }
 
 /// Whether or not this character should be able to change the font during segmentation.  Certain
