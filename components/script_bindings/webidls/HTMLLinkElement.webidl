@@ -28,7 +28,7 @@ interface HTMLLinkElement : HTMLElement {
   // [CEReactions] attribute DOMString imageSizes;
   [CEReactions]
            attribute DOMString referrerPolicy;
-  // [SameObject, PutForwards=value] readonly attribute DOMTokenList blocking;
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList blocking;
   [CEReactions] attribute boolean disabled;
   // [CEReactions] attribute DOMString fetchPriority;
 

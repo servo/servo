@@ -106,6 +106,8 @@ pub(crate) struct HTMLLinkElement {
     previous_media_environment_matched: Cell<bool>,
     /// Line number this element was created on
     line_number: u64,
+    /// <https://html.spec.whatwg.org/multipage/#dom-link-blocking>
+    blocking: MutNullableDom<DOMTokenList>,
 }
 
 impl HTMLLinkElement {
@@ -129,6 +131,7 @@ impl HTMLLinkElement {
             previous_type_matched: Cell::new(true),
             previous_media_environment_matched: Cell::new(true),
             line_number: creator.return_line_number(),
+            blocking: Default::default(),
         }
     }
 
@@ -878,10 +881,18 @@ impl StylesheetOwner for HTMLLinkElement {
         self.parser_inserted.get()
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#link-type-stylesheet:implicitly-potentially-render-blocking>
+    /// <https://html.spec.whatwg.org/multipage/#potentially-render-blocking>
     fn potentially_render_blocking(&self) -> bool {
+        // An element is potentially render-blocking if its blocking tokens set contains "render",
+        // or if it is implicitly potentially render-blocking, which will be defined at the individual elements.
+        // By default, an element is not implicitly potentially render-blocking.
+        //
+        // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:implicitly-potentially-render-blocking
         // > A link element of this type is implicitly potentially render-blocking if the element was created by its node document's parser.
-        self.parser_inserted()
+        self.parser_inserted() ||
+            self.blocking
+                .get()
+                .is_some_and(|list| list.Contains("render".into()))
     }
 
     fn referrer_policy(&self) -> ReferrerPolicy {
@@ -1005,6 +1016,18 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-target
     make_setter!(SetTarget, "target");
+
+    /// <https://html.spec.whatwg.org/multipage/#attr-link-blocking>
+    fn Blocking(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
+        self.blocking.or_init(|| {
+            DOMTokenList::new(
+                self.upcast(),
+                &local_name!("blocking"),
+                Some(vec![Atom::from("render")]),
+                can_gc,
+            )
+        })
+    }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-link-crossorigin>
     fn GetCrossOrigin(&self) -> Option<DOMString> {
