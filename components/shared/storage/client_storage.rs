@@ -81,6 +81,7 @@ pub enum CreateBottleError<T> {
     BottleAlreadyExists,
     BucketDoesNotExist,
     DatabaseAlreadyExists,
+    DirectoryCreationFailed,
     Internal(T),
 }
 
