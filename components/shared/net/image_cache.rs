@@ -37,6 +37,7 @@ pub enum Image {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct VectorImage {
     pub id: VectorImageId,
+    pub svg_id: Option<String>,
     pub metadata: ImageMetadata,
     pub cors_status: CorsStatus,
 }
@@ -201,6 +202,7 @@ pub trait ImageCache: Sync + Send {
         &self,
         image_id: VectorImageId,
         size: DeviceIntSize,
+        svg_id: Option<String>,
     ) -> Option<RasterImage>;
 
     /// Adds a new listener to be notified once the given `image_id` has been rasterized at
@@ -213,6 +215,17 @@ pub trait ImageCache: Sync + Send {
         image_id: VectorImageId,
         size: DeviceIntSize,
         callback: ImageCacheResponseCallback,
+    );
+
+    /// Removes the rasterized image from the image_cache, identified by the id of the SVG
+    fn evict_rasterized_image(&self, svg_id: &str);
+
+    /// Removes the completed image from the image_cache, identified by url, origin, and cors
+    fn evict_completed_image(
+        &self,
+        url: &ServoUrl,
+        origin: &ImmutableOrigin,
+        cors_setting: &Option<CorsSettings>,
     );
 
     /// Synchronously get the broken image icon for this [`ImageCache`]. This will

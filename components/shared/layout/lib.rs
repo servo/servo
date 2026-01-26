@@ -138,6 +138,7 @@ pub struct SVGElementData<'dom> {
     pub source: Option<Result<ServoUrl, ()>>,
     pub width: Option<&'dom AttrValue>,
     pub height: Option<&'dom AttrValue>,
+    pub svg_id: String,
     pub view_box: Option<&'dom AttrValue>,
 }
 
@@ -303,6 +304,9 @@ pub trait Layout {
 
     /// Removes a stylesheet from the Layout.
     fn remove_stylesheet(&mut self, stylesheet: ServoArc<Stylesheet>);
+
+    /// Removes an image from the Layout image resolver cache.
+    fn remove_cached_image(&mut self, image_url: &ServoUrl);
 
     /// Requests a reflow.
     fn reflow(&mut self, reflow_request: ReflowRequest) -> Option<ReflowResult>;
