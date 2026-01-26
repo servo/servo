@@ -353,7 +353,9 @@ input[type="reset" i],
 input[type="button" i],
 input[type="submit" i],
 button {
-  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 slot {
