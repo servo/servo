@@ -575,8 +575,10 @@ fn fetch_a_single_imported_module_script(
 
     // Step 3. If the result of running the module type allowed steps given moduleType and settingsObject is false,
     // then run onComplete given null, and return.
-    // Note: We don't support CSS modules, and if module type was an unknown one,
-    // we would've bailed out earlier inside `inner_module_loading`.
+    match module_type {
+        ModuleType::Unknown => return on_complete(None),
+        ModuleType::JavaScript | ModuleType::JSON => (),
+    }
 
     // Step 4. Fetch a single module script given url, fetchClient, destination, options, settingsObject, referrer,
     // moduleRequest, false, and onComplete. If performFetch was given, pass it along as well.

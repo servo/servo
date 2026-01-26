@@ -888,6 +888,14 @@ impl ResourceTimingListener for ModuleContext {
     }
 }
 
+// TODO MimeClassifier::is_json is wrong?
+/// <https://mimesniff.spec.whatwg.org/#json-mime-type>
+fn is_json_mime_type(mime: &Mime) -> bool {
+    (mime.essence_str() == "application/json") ||
+        (mime.essence_str() == "text/json") ||
+        mime.suffix() == Some(mime::JSON)
+}
+
 #[expect(unsafe_code)]
 #[expect(non_snake_case)]
 /// A function to register module hooks (e.g. listening on resolving modules,
