@@ -15,7 +15,7 @@ use servo_url::ServoUrl;
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry, DowncastableActorArc};
-use crate::actors::breakpoint::SetBreakpointRequestLocation;
+use crate::actors::breakpoint::BreakpointRequestLocation;
 use crate::protocol::ClientRequest;
 
 /// A `sourceForm` as used in responses to thread `sources` requests.
@@ -131,8 +131,8 @@ struct GetBreakpointPositionsCompressedReply {
 
 #[derive(Deserialize)]
 struct GetBreakpointPositionsQuery {
-    start: SetBreakpointRequestLocation,
-    end: SetBreakpointRequestLocation,
+    start: BreakpointRequestLocation,
+    end: BreakpointRequestLocation,
 }
 
 #[derive(Deserialize)]

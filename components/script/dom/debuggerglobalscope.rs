@@ -31,6 +31,7 @@ use crate::dom::bindings::error::report_pending_exception;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
+use crate::dom::debuggerclearbreakpointevent::DebuggerClearBreakpointEvent;
 use crate::dom::debuggerpauseevent::DebuggerPauseEvent;
 use crate::dom::debuggersetbreakpointevent::DebuggerSetBreakpointEvent;
 use crate::dom::globalscope::GlobalScope;
@@ -223,6 +224,26 @@ impl DebuggerGlobalScope {
         assert!(
             event.fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerPauseEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_clear_breakpoint(
+        &self,
+        can_gc: CanGc,
+        spidermonkey_id: u32,
+        script_id: u32,
+        offset: u32,
+    ) {
+        let event = DomRoot::upcast::<Event>(DebuggerClearBreakpointEvent::new(
+            self.upcast(),
+            spidermonkey_id,
+            script_id,
+            offset,
+            can_gc,
+        ));
+        assert!(
+            event.fire(self.upcast(), can_gc),
+            "Guaranteed by DebuggerClearBreakpointEvent::new"
         );
     }
 }

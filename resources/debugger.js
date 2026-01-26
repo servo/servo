@@ -98,3 +98,22 @@ addEventListener("pause", event => {
         getFrameResult(event, result);
     };
 });
+
+// <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#clearbreakpoint-handler-offset>
+addEventListener("clearBreakpoint", event => {
+    const {spidermonkeyId, scriptId, offset} = event;
+    const script = sourceIdsToScripts.get(spidermonkeyId);
+
+    function setClearBreakpointRecursive(script) {
+        if (script.sourceStart == scriptId) {
+            // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#clearallbreakpoints-offset>
+            // If the instance refers to a JSScript, remove all breakpoints set in this script
+            script.clearAllBreakpoints(offset);
+            return;
+        }
+        for (const child of script.getChildScripts()) {
+            setClearBreakpointRecursive(child);
+        }
+    }
+    setClearBreakpointRecursive(script);
+});

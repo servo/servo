@@ -2181,6 +2181,14 @@ impl ScriptThread {
                     offset,
                 );
             },
+            DevtoolScriptControlMsg::ClearBreakpoint(spidermonkey_id, script_id, offset) => {
+                self.debugger_global.fire_clear_breakpoint(
+                    CanGc::from_cx(cx),
+                    spidermonkey_id,
+                    script_id,
+                    offset,
+                );
+            },
             DevtoolScriptControlMsg::Pause(result_sender) => {
                 self.debugger_global
                     .fire_pause(CanGc::from_cx(cx), result_sender);
