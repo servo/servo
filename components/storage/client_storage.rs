@@ -182,7 +182,6 @@ impl RegistryEngine for SqliteEngine {
         bottle: Bottle,
     ) -> Result<PathBuf, CreateBottleError<Self::Error>> {
         let shelf_id = self.create_shelf(&shelf)?;
-        let path = self.base_dir.join(Uuid::new_v4().to_string());
         // Get bucket id
         let bucket_id: i64 = match self
             .connection
@@ -229,6 +228,16 @@ impl RegistryEngine for SqliteEngine {
         if exists {
             return Err(CreateBottleError::DatabaseAlreadyExists);
         }
+
+        // Cluster directory path by last character of UUID
+        let dir = Uuid::new_v4().to_string();
+        // UUID will always have at least one character
+        let cluster = dir.chars().last().unwrap();
+        let path = self
+            .base_dir
+            .join("bottles")
+            .join(cluster.to_string())
+            .join(dir);
 
         tx.execute(
             "INSERT INTO databases (bottle_id, name) VALUES (?1, ?2);",
