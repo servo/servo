@@ -223,7 +223,7 @@ impl ShadowRoot {
             })
             .cloned();
 
-        DocumentOrShadowRoot::new(&self.window).add_stylesheet(
+        self.document_or_shadow_roots.add_stylesheet(
             StylesheetSource::Element(Dom::from_ref(owner_node)),
             StylesheetSetRef::Author(stylesheets),
             sheet,
@@ -243,7 +243,7 @@ impl ShadowRoot {
 
         let insertion_point = stylesheets.iter().last().cloned();
 
-        DocumentOrShadowRoot::new(&self.window).add_stylesheet(
+        self.document_or_shadow_roots.add_stylesheet(
             StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),
             StylesheetSetRef::Author(stylesheets),
             sheet,

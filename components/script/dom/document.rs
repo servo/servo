@@ -4631,7 +4631,7 @@ impl Document {
             );
         }
 
-        DocumentOrShadowRoot::new(&self.window).add_stylesheet(
+        self.document_or_shadow_roots.add_stylesheet(
             StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),
             StylesheetSetRef::Document(stylesheets),
             sheet,
@@ -4661,7 +4661,7 @@ impl Document {
                 .remove_stylesheet(stylesheet.clone());
         }
 
-        DocumentOrShadowRoot::new(&self.window).remove_stylesheet(
+        self.document_or_shadow_roots.remove_stylesheet(
             owner,
             stylesheet,
             StylesheetSetRef::Document(&mut *self.stylesheets.borrow_mut()),
