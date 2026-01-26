@@ -38,7 +38,6 @@ use js::rust::{
 };
 use mime::Mime;
 use net_traits::http_status::HttpStatus;
-use net_traits::mime_classifier::MimeClassifier;
 use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId, RequestMode,
 };
@@ -782,7 +781,7 @@ impl FetchResponseListener for ModuleContext {
             // Step 7.4 If mimeType is a JSON MIME type and moduleType is "json",
             // then set moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
             let is_a_json_module =
-                MimeClassifier::is_json(&mime) && matches!(module_type, ModuleType::JSON);
+                is_json_mime_type(&mime) && matches!(module_type, ModuleType::JSON);
 
             if is_a_javascript_module || is_a_json_module {
                 if let Some(window) = global.downcast::<Window>() {
@@ -824,6 +823,14 @@ impl ResourceTimingListener for ModuleContext {
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
         self.owner.global()
     }
+}
+
+// TODO MimeClassifier::is_json is wrong?
+/// <https://mimesniff.spec.whatwg.org/#json-mime-type>
+fn is_json_mime_type(mime: &Mime) -> bool {
+    (mime.essence_str() == "application/json") ||
+        (mime.essence_str() == "text/json") ||
+        mime.suffix() == Some(mime::JSON)
 }
 
 #[expect(unsafe_code)]
