@@ -302,6 +302,21 @@ impl IDBOpenDBRequest {
         );
         event.fire(self.upcast(), CanGc::note());
     }
+
+    /// <https://w3c.github.io/IndexedDB/#eventdef-idbopendbrequest-blocked>
+    pub fn dispatch_blocked(&self, old_version: u64, new_version: Option<u64>, can_gc: CanGc) {
+        let global = self.global();
+        let event = IDBVersionChangeEvent::new(
+            &global,
+            Atom::from("blocked"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+            old_version,
+            new_version,
+            can_gc,
+        );
+        event.upcast::<Event>().fire(self.upcast(), can_gc);
+    }
 }
 
 impl IDBOpenDBRequestMethods<crate::DomTypeHolder> for IDBOpenDBRequest {

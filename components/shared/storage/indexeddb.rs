@@ -526,7 +526,7 @@ pub enum SyncOperation {
     NotifyEndOfVersionChange {
         id: Uuid,
         name: String,
-        version: u64,
+        old_version: u64,
         origin: ImmutableOrigin,
     },
 

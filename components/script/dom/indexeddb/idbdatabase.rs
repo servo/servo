@@ -127,6 +127,7 @@ impl IDBDatabase {
         self.upgrade_transaction.set(Some(transaction));
     }
 
+    /// <https://w3c.github.io/IndexedDB/#eventdef-idbdatabase-versionchange>
     pub fn dispatch_versionchange(
         &self,
         old_version: u64,

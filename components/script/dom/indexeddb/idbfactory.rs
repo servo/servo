@@ -118,6 +118,8 @@ impl IDBFactory {
 
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     /// The steps that continue on the script-thread.
+    /// This covers interacting with the current open request,
+    /// as well as with other open connectins preventing the request from making progress.
     fn handle_connection_message(&self, response: ConnectionMsg, can_gc: CanGc) {
         match response {
             ConnectionMsg::Connection {
@@ -188,14 +190,18 @@ impl IDBFactory {
                     request.get_or_init_connection(&global, name.clone(), version, false, can_gc);
 
                 // Step 10.2: fire a version change event named versionchange at entry with db’s version and version.
-                connection.dispatch_versionchange(old_version, Some(version.clone()), can_gc);
+                connection.dispatch_versionchange(
+                    old_version.clone(),
+                    Some(version.clone()),
+                    can_gc,
+                );
 
                 // Step 10.3: Wait for all of the events to be fired.
                 // Note: backend is at this step; sending a message to continue algo there.
                 let operation = SyncOperation::NotifyEndOfVersionChange {
                     id,
                     name,
-                    version,
+                    old_version,
                     origin: global.origin().immutable().clone(),
                 };
                 if global
@@ -206,8 +212,21 @@ impl IDBFactory {
                     error!("Failed to send SyncOperation::NotifyEndOfVersionChange.");
                 }
             },
-            ConnectionMsg::Blocked { .. } => {
-                // TODO: implement.
+            ConnectionMsg::Blocked {
+                name,
+                id,
+                version,
+                old_version,
+            } => {
+                let Some(request) = self.get_request(&name, &id) else {
+                    return debug_assert!(
+                        false,
+                        "There should be a request to handle ConnectionMsg::VersionChange."
+                    );
+                };
+
+                // Step 10.4: fire a version change event named blocked at request with db’s version and version.
+                request.dispatch_blocked(old_version.clone(), Some(version.clone()), can_gc);
             },
         }
     }
@@ -295,8 +314,6 @@ impl IDBFactory {
 
     pub(crate) fn abort_pending_upgrades(&self) {
         let global = self.global();
-
-        // Note: pending connections removed in `handle_connection_message`.
         let pending = self.connections.borrow();
         let pending_upgrades = pending
             .iter()
