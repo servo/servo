@@ -446,10 +446,9 @@ class PackageCommands(CommandBase):
                 print("To bypass this check, use --allow-dirty.")
                 return 1
         print("\r ➤  Bumping version number...")
-        # Todo: Also update assemblyIdentity.version in ports/servoshell/platform/windows/servo.exe.manifest
-        #   Note: assemblyIdentity requires 4 version components, while we usually use 3.
         replacements = {
             "ports/servoshell/Cargo.toml": r'^version ?= ?"(?P<version>.*?)"',
+            "ports/servoshell/platform/windows/servo.exe.manifest": r'assemblyIdentity[^\/>]+version="(?P<version>.*?).0\"[^\/>]*\/>',
             "support/windows/Servo.wxs.mako": r'<Product(.|\n)*Version="(?P<version>.*?)".*>',
             "Info.plist": r"<key>CFBundleShortVersionString</key>\n\s*<string>(?P<version>.*?)</string>",
             "support/android/apk/servoapp/build.gradle.kts": r'versionName\s*=\s*"(?P<version>.*?)"',
