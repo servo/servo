@@ -28,8 +28,8 @@ use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::rendering_context::RenderingContext;
 use paint_api::viewport_description::ViewportDescription;
 use paint_api::{
-    ImageUpdate, PipelineExitSource, SendableFrameTree, SerializableImageData, DisplayListPayloadSerializeable,
-    WebRenderExternalImageHandlers, WebRenderImageHandlerType, WebViewTrait,
+    ImageUpdate, PipelineExitSource, SendableFrameTree, SerializableDisplayListPayload,
+    SerializableImageData, WebRenderExternalImageHandlers, WebRenderImageHandlerType, WebViewTrait,
 };
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
 use profile_traits::time_profile;
@@ -922,7 +922,7 @@ impl Painter {
         webview_id: WebViewId,
         display_list_descriptor: BuiltDisplayListDescriptor,
         display_list_info_receiver: GenericReceiver<PaintDisplayListInfo>,
-        display_list_data_receiver: GenericReceiver<DisplayListPayloadSerializeable>,
+        display_list_data_receiver: GenericReceiver<SerializableDisplayListPayload>,
     ) {
         let Ok(display_list_info) = display_list_info_receiver.recv() else {
             return log::error!("Could not receive display list info");

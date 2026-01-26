@@ -29,7 +29,9 @@ pub mod viewport_description;
 
 use std::sync::{Arc, Mutex};
 
-use base::generic_channel::{self, GenericCallback, GenericSender, GenericSharedMemory};
+use base::generic_channel::{
+    self, GenericCallback, GenericReceiver, GenericSender, GenericSharedMemory,
+};
 use bitflags::bitflags;
 use display_list::PaintDisplayListInfo;
 use embedder_traits::ScreenGeometry;
@@ -82,9 +84,6 @@ impl PaintProxy {
     }
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct Data(pub Vec<u8>);
-
 /// Messages from (or via) the constellation thread to `Paint`.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum PaintMessage {
@@ -133,11 +132,10 @@ pub enum PaintMessage {
         webview_id: WebViewId,
         /// A descriptor of this display list used to construct this display list from raw data.
         display_list_descriptor: BuiltDisplayListDescriptor,
-        /// A [GenericReceiver] used to send the DisplayListInfo
-        display_list_info_receiver: generic_channel::GenericReceiver<PaintDisplayListInfo>,
-        /// A [GenericReceiver] used to send the DisplayListData
-        display_list_data_receiver:
-            generic_channel::GenericReceiver<DisplayListPayloadSerializeable>,
+        /// A [`GenericReceiver`] used to send the [`PaintDisplayListInfo`].
+        display_list_info_receiver: GenericReceiver<PaintDisplayListInfo>,
+        /// A [`GenericReceiver`] used to send the serialized  version of `DisplayListPayload.
+        display_list_data_receiver: GenericReceiver<SerializableDisplayListPayload>,
     },
     /// Ask the renderer to generate a frame for the current set of display lists
     /// from the given `PainterId`s that have been sent to the renderer.
@@ -211,25 +209,18 @@ pub struct CompositionPipeline {
     pub webview_id: WebViewId,
 }
 
-/// A DisplayList for Painter that is efficiently serializeable and deserializable
+/// A serializable version of `DisplayListPayload`.
 #[derive(Serialize, Deserialize)]
-pub struct DisplayListForPainter {
-    pub display_list_info: PaintDisplayListInfo,
-    pub display_list_data: DisplayListPayloadSerializeable,
-}
-
-/// A serializable version of `DisplayListPayload`
-#[derive(Serialize, Deserialize)]
-pub struct DisplayListPayloadSerializeable {
-    /// Serde encoded bytes. Mostly DisplayItems
+pub struct SerializableDisplayListPayload {
+    /// Serde encoded bytes of the display list' `DisplayItems` and their supporting data.
     #[serde(with = "serde_bytes")]
     pub items_data: Vec<u8>,
 
-    /// Serde encoded DisplayItemCache structs
+    /// Serde encoded `DisplayItemCache` structs
     #[serde(with = "serde_bytes")]
     pub cache_data: Vec<u8>,
 
-    /// Serde encoded SpatialTreeItem structs
+    /// Serde encoded `SpatialTreeItem` structs.
     #[serde(with = "serde_bytes")]
     pub spatial_tree: Vec<u8>,
 }
@@ -368,7 +359,7 @@ impl CrossProcessPaintApi {
             warn!("Error sending display list info: {error}. Not sending the rest");
             return;
         }
-        let display_list_data = DisplayListPayloadSerializeable {
+        let display_list_data = SerializableDisplayListPayload {
             items_data: display_list_data.items_data,
             cache_data: display_list_data.cache_data,
             spatial_tree: display_list_data.spatial_tree,

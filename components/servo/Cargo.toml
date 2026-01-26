@@ -45,8 +45,7 @@ refcell_backtrace = ["script/refcell_backtrace"]
 testbinding = ["script/testbinding"]
 tracing = [
     "dep:tracing",
-    "compositing/tracing",
-    "compositing_traits/tracing",
+    "paint/tracing",
     "constellation/tracing",
     "fonts/tracing",
     "layout/tracing",
