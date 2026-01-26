@@ -349,13 +349,15 @@ impl ModuleTree {
             return module;
         }
 
-        let module_script_data = Rc::new(ModuleScript::new(url.clone(), options, Some(owner)));
+        if let ModuleType::JavaScript = module_type {
+            let module_script_data = Rc::new(ModuleScript::new(url.clone(), options, Some(owner)));
 
-        unsafe {
-            SetModulePrivate(
-                module_script.get(),
-                &PrivateValue(Rc::into_raw(module_script_data) as *const _),
-            );
+            unsafe {
+                SetModulePrivate(
+                    module_script.get(),
+                    &PrivateValue(Rc::into_raw(module_script_data) as *const _),
+                );
+            }
         }
         let _ = module.record.set(ModuleObject::new(module_script.handle()));
 
@@ -774,11 +776,13 @@ impl FetchResponseListener for ModuleContext {
 
             // Step 7.2 If mimeType is a JavaScript MIME type and moduleType is "javascript-or-wasm", then set moduleScript
             // to the result of creating a JavaScript module script given sourceText, settingsObject, response's URL, and options.
-            let is_a_javascript_module = SCRIPT_JS_MIMES.contains(&mime.essence_str()) && matches!(module_type, ModuleType::JavaScript);
+            let is_a_javascript_module = SCRIPT_JS_MIMES.contains(&mime.essence_str()) &&
+                matches!(module_type, ModuleType::JavaScript);
 
             // Step 7.4 If mimeType is a JSON MIME type and moduleType is "json",
             // then set moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
-            let is_a_json_module = MimeClassifier::is_json(&mime) && matches!(module_type, ModuleType::JSON);
+            let is_a_json_module =
+                MimeClassifier::is_json(&mime) && matches!(module_type, ModuleType::JSON);
 
             if is_a_javascript_module || is_a_json_module {
                 if let Some(window) = global.downcast::<Window>() {
