@@ -311,7 +311,7 @@ impl GlyphStore {
 
             if let Some(previous_character_offset) = previous_character_offset {
                 if previous_character_offset == glyph_cluster {
-                    glyph_store.add_glyph_for_current_character(&shaped_glyph);
+                    glyph_store.add_glyph_for_current_character(&shaped_glyph, options);
                     continue;
                 }
             }
@@ -466,7 +466,23 @@ impl GlyphStore {
         self.total_characters += 1;
     }
 
-    fn add_glyph_for_current_character(&mut self, shaped_glyph: &ShapedGlyph) {
+    fn add_glyph_for_current_character(
+        &mut self,
+        shaped_glyph: &ShapedGlyph,
+        options: &ShapingOptions,
+    ) {
+        // If this glyph cluster is extending to include another glyph and we applied
+        // letter spacing to the previous glyph, ensure that the letter spacing is only
+        // applied to the last glyph in the cluster. Note that this is unconditionally
+        // converting the previous glyph to a detailed one because it's quite likely that
+        // the advance will not fit into the simple bitmask due to being negative.
+        if let Some(letter_spacing) = options.letter_spacing {
+            if letter_spacing != Au::zero() {
+                let last_glyph_index = self.ensure_last_glyph_is_detailed();
+                self.detailed_glyphs[last_glyph_index].advance -= letter_spacing;
+            }
+        }
+
         // Add a detailed glyph entry for this new glyph, but it corresponds to a character
         // we have already started processing. It should not contribute any character count.
         self.add_detailed_glyph(shaped_glyph, None, 0);
