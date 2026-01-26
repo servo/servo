@@ -218,6 +218,10 @@ impl Response {
         }
     }
 
+    pub fn set_network_error(&mut self, network_error: NetworkError) {
+        self.response_type = ResponseType::Error(network_error);
+    }
+
     pub fn actual_response(&self) -> &Response {
         if self.return_internal && self.internal_response.is_some() {
             self.internal_response.as_ref().unwrap()

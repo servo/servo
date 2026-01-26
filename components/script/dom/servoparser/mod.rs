@@ -1344,7 +1344,8 @@ impl FetchResponseListener for ParserContext {
                 NetworkError::InvalidPort |
                 NetworkError::LocalDirectoryError |
                 NetworkError::PartialResponseToNonRangeRequestError |
-                NetworkError::ProtocolHandlerSubstitutionError => {
+                NetworkError::ProtocolHandlerSubstitutionError |
+                NetworkError::DecompressionError => {
                     let page = resources::read_string(Resource::NetErrorHTML);
                     page.replace("${reason}", &format!("{:?}", error))
                 },

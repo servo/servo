@@ -55,7 +55,7 @@ use net_traits::request::{
     is_cors_safelisted_request_header,
 };
 use net_traits::response::{
-    CacheState, HttpsState, RedirectTaint, Response, ResponseBody, ResponseType,
+    CacheState, HttpsState, RedirectTaint, Response, ResponseBody, ResponseType, TerminationReason,
 };
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, DebugVec, FetchMetadata, NetworkError,
@@ -2244,14 +2244,14 @@ async fn http_network_fetch(
 
     spawn_task(
         res.into_body()
-            .map_err(|e| {
-                warn!("Error streaming response body: {:?}", e);
-            })
             .try_fold(res_body, move |res_body, chunk| {
                 if cancellation_listener.cancelled() {
                     *res_body.lock() = ResponseBody::Done(vec![]);
                     let _ = done_sender.send(Data::Cancelled);
-                    return future::ready(Err(()));
+                    return future::ready(Err(std::io::Error::new(
+                        std::io::ErrorKind::Interrupted,
+                        "Fetch aborted",
+                    )));
                 }
                 if let ResponseBody::Receiving(ref mut body) = *res_body.lock() {
                     let bytes = chunk;
@@ -2283,7 +2283,15 @@ async fn http_network_fetch(
                 let _ = done_sender2.send(Data::Done);
                 future::ready(Ok(()))
             })
-            .map_err(move |_| {
+            .map_err(move |error| {
+                if let std::io::ErrorKind::InvalidData = error.kind() {
+                    debug!("Content decompression error for {:?}", url2);
+                    let _ = done_sender3.send(Data::Error(NetworkError::DecompressionError));
+                    let mut body = res_body2.lock();
+                    response.termination_reason = Some(TerminationReason::Fatal);
+
+                    *body = ResponseBody::Done(vec![]);
+                }
                 debug!("finished response for {:?}", url2);
                 let mut body = res_body2.lock();
                 let completed_body = match *body {
