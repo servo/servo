@@ -4953,7 +4953,6 @@ dependencies = [
  "taffy",
  "tracing",
  "unicode-bidi",
- "unicode-ident",
  "unicode-script",
  "url",
  "webrender_api",

@@ -83,6 +83,7 @@ use app_units::{Au, MAX_AU};
 use bitflags::bitflags;
 use construct::InlineFormattingContextBuilder;
 use fonts::{FontMetrics, FontRef, GlyphStore};
+use icu_segmenter::{LineBreakOptions, LineBreakStrictness, LineBreakWordOption};
 use inline_box::{InlineBox, InlineBoxContainerState, InlineBoxIdentifier, InlineBoxes};
 use layout_api::wrapper_traits::SharedSelection;
 use line::{
@@ -94,9 +95,11 @@ use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
+use style::computed_values::line_break::T as LineBreak;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::vertical_align::T as VerticalAlign;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
+use style::computed_values::word_break::T as WordBreak;
 use style::context::{QuirksMode, SharedStyleContext};
 use style::properties::ComputedValues;
 use style::properties::style_structs::InheritedText;
@@ -1817,20 +1820,34 @@ impl InlineFormattingContext {
             .last()
             .expect("Should have at least one SharedInlineStyle for the root of an IFC")
             .clone();
+        let (word_break, line_break) = {
+            let styles = shared_inline_styles.style.borrow();
+            let text_style = styles.get_inherited_text();
+            (text_style.word_break, text_style.line_break)
+        };
 
-        let mut new_linebreaker = LineBreaker::new(
-            text_content.as_str(),
-            shared_inline_styles
-                .style
-                .borrow()
-                .get_inherited_text()
-                .word_break,
-            shared_inline_styles
-                .style
-                .borrow()
-                .get_inherited_text()
-                .line_break,
-        );
+        let mut options = LineBreakOptions::default();
+
+        let strictness = match line_break {
+            LineBreak::Loose => LineBreakStrictness::Loose,
+            LineBreak::Normal => LineBreakStrictness::Normal,
+            LineBreak::Strict => LineBreakStrictness::Strict,
+            LineBreak::Anywhere => LineBreakStrictness::Anywhere,
+            // For `auto`, the UA determines the set of line-breaking restrictions to use.
+            // So it's fine if we always treat it as `normal`.
+            LineBreak::Auto => LineBreakStrictness::Normal,
+        };
+        let word_option = match word_break {
+            WordBreak::Normal => LineBreakWordOption::Normal,
+            WordBreak::BreakAll => LineBreakWordOption::BreakAll,
+            WordBreak::KeepAll => LineBreakWordOption::KeepAll,
+        };
+
+        options.strictness = strictness;
+        options.word_option = word_option;
+        options.ja_zh = false; // TODO: This should be true if the writing system is Chinese or Japanese.
+
+        let mut new_linebreaker = LineBreaker::new(text_content.as_str(), options);
         for item in &mut builder.inline_items {
             match item {
                 InlineItem::TextRun(text_run) => {
