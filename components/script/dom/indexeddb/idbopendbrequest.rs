@@ -112,6 +112,7 @@ pub struct IDBOpenDBRequest {
     idbrequest: IDBRequest,
     pending_connection: MutNullableDom<IDBDatabase>,
 
+    /// The id used both for the request and the related connection.
     #[no_trace]
     id: Uuid,
 }
@@ -146,6 +147,7 @@ impl IDBOpenDBRequest {
             IDBDatabase::new(
                 global,
                 DOMString::from_string(name.clone()),
+                self.get_id(),
                 version,
                 can_gc,
             )

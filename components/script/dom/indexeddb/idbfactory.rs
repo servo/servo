@@ -153,7 +153,6 @@ impl IDBFactory {
                     );
                 };
 
-                // TODO: link with backend connection concept.
                 let connection =
                     request.get_or_init_connection(&global, name, version, false, can_gc);
                 request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
@@ -173,7 +172,6 @@ impl IDBFactory {
             ConnectionMsg::VersionChange {
                 name,
                 id,
-                related_to_name,
                 version,
                 old_version,
             } => {
@@ -194,7 +192,7 @@ impl IDBFactory {
                 // Note: backend is at this step; sending a message to continue algo there.
                 let operation = SyncOperation::NotifyEndOfVersionChange {
                     id,
-                    related_to_name,
+                    name,
                     version,
                     origin: global.origin().immutable().clone(),
                 };

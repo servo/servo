@@ -784,14 +784,14 @@ impl IndexedDBManager {
     /// Step 10.3: Wait for all of the events to be fired.
     fn handle_version_change_done(
         &mut self,
-        related_to_name: String,
+        name: String,
         from_id: Uuid,
         version: u64,
         origin: ImmutableOrigin,
     ) {
         let key = IndexedDBDescription {
-            name: related_to_name,
-            origin,
+            name,
+            origin: origin.clone(),
         };
         let Some(queue) = self.connection_queues.get_mut(&key) else {
             return debug_assert!(false, "A connection queue should exist.");
@@ -818,21 +818,31 @@ impl IndexedDBManager {
             pending_close.contains(&from_id),
             "The open request should be pending on closing the connection sending the message."
         );
-        pending_close.remove(&from_id);
-        if pending_close.is_empty() {
+
+        let Some(entry) = self.connections.get(&key) else {
+            return debug_assert!(false, "There should at least be one open connection.");
+        };
+        let was_closed = !entry.contains_key(&from_id);
+
+        if was_closed {
+            pending_close.remove(&from_id);
+
+            // Step 10.5: Wait until all connections in openConnections are closed.
+            if pending_close.is_empty() {
+                // Step 10.6: Run upgrade a database using connection, version and request.
+                self.upgrade_database(key.clone(), version);
+
+                let was_pruned = self.maybe_remove_front_from_queue(&key);
+                if was_pruned {
+                    self.advance_connection_queue(key);
+                }
+            }
+        } else {
             // Step 10.4: If any of the connections in openConnections are still not closed,
             // queue a database task to fire a version change event named blocked
             // at request with db’s version and version.
-            // Step 10.5: Wait until all connections in openConnections are closed.
-            // TODO: implement `blocked`.
 
-            // Step 10.6: Run upgrade a database using connection, version and request.
-            self.upgrade_database(key.clone(), version);
-
-            let was_pruned = self.maybe_remove_front_from_queue(&key);
-            if was_pruned {
-                self.advance_connection_queue(key);
-            }
+            // TODO: implement blocked.
         }
     }
 
@@ -970,14 +980,13 @@ impl IndexedDBManager {
                 .filter(|(other_id, conn)| !conn.close_pending && *other_id != id);
             for (id_to_close, conn) in open_connections {
                 // Step 10.2: For each entry of openConnections
-                // TODO: queue a database task to fire a version change event
+                // queue a database task to fire a version change event
                 // named versionchange at entry with db’s version and version.
                 if conn
                     .sender
                     .send(ConnectionMsg::VersionChange {
                         name: db_name.clone(),
                         id: *id_to_close,
-                        related_to_name: db_name.clone(),
                         version: version,
                         old_version: db_version,
                     })
@@ -1174,18 +1183,18 @@ impl IndexedDBManager {
                     debug!("Couldn't send SyncOperation::GetDatabases reply.");
                 }
             },
-            SyncOperation::CloseDatabase(sender, origin, db_name) => {
+            SyncOperation::CloseDatabase(origin, id, db_name) => {
                 // TODO: Wait for all transactions created using connection to complete.
                 // Note: current behavior is as if the `forced` flag is always set.
                 // TODO: do not delete the database, only the connection.
-                let idb_description = IndexedDBDescription {
+                let key = IndexedDBDescription {
                     origin,
                     name: db_name,
                 };
-                if let Some(_db) = self.databases.remove(&idb_description) {
-                    // TODO: maybe a close database function should be added to the trait and called here?
-                }
-                let _ = sender.send(Ok(()));
+                let Some(entry) = self.connections.get_mut(&key) else {
+                    return debug_assert!(false, "There should at least be one open connection.");
+                };
+                entry.remove(&id);
             },
             SyncOperation::OpenDatabase(sender, origin, db_name, version, id) => {
                 self.open_a_database_connection(sender, origin, db_name, version, id);
@@ -1305,12 +1314,12 @@ impl IndexedDBManager {
                 let _ = sender.send(transaction_id);
             },
             SyncOperation::NotifyEndOfVersionChange {
-                related_to_name,
+                name,
                 id,
                 version,
                 origin,
             } => {
-                self.handle_version_change_done(related_to_name, id, version, origin);
+                self.handle_version_change_done(name, id, version, origin);
             },
             SyncOperation::Exit(_) => {
                 unreachable!("We must've already broken out of event loop.");

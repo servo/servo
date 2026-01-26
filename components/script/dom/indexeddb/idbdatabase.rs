@@ -10,6 +10,7 @@ use js::context::JSContext;
 use profile_traits::generic_channel::channel;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
+use uuid::Uuid;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::{
@@ -44,16 +45,21 @@ pub struct IDBDatabase {
     /// <https://w3c.github.io/IndexedDB/#database-upgrade-transaction>
     upgrade_transaction: MutNullableDom<IDBTransaction>,
 
+    #[no_trace]
+    #[ignore_malloc_size_of = "Uuid"]
+    id: Uuid,
+
     // Flags
     /// <https://w3c.github.io/IndexedDB/#connection-close-pending-flag>
     closing: Cell<bool>,
 }
 
 impl IDBDatabase {
-    pub fn new_inherited(name: DOMString, version: u64) -> IDBDatabase {
+    pub fn new_inherited(name: DOMString, id: Uuid, version: u64) -> IDBDatabase {
         IDBDatabase {
             eventtarget: EventTarget::new_inherited(),
             name,
+            id,
             version: Cell::new(version),
             object_store_names: Default::default(),
 
@@ -65,11 +71,12 @@ impl IDBDatabase {
     pub fn new(
         global: &GlobalScope,
         name: DOMString,
+        id: Uuid,
         version: u64,
         can_gc: CanGc,
     ) -> DomRoot<IDBDatabase> {
         reflect_dom_object(
-            Box::new(IDBDatabase::new_inherited(name, version)),
+            Box::new(IDBDatabase::new_inherited(name, id, version)),
             global,
             can_gc,
         )
@@ -357,19 +364,14 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // Step 3: Wait for all transactions by this db to finish
         // FIXME:(arihant2math)
         // Step 4: If force flag is set, fire a close event
-        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
         let operation = SyncOperation::CloseDatabase(
-            sender,
             self.global().origin().immutable().clone(),
+            self.id,
             self.name.to_string(),
         );
         let _ = self
             .get_idb_thread()
             .send(IndexedDBThreadMsg::Sync(operation));
-
-        if receiver.recv().is_err() {
-            warn!("Database close failed in idb thread");
-        };
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-onabort

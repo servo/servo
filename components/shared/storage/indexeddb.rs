@@ -356,8 +356,6 @@ pub enum ConnectionMsg {
         id: Uuid,
         /// The name of the connection.
         name: String,
-        /// The name of the database waiting on the connection to close.
-        related_to_name: String,
         version: u64,
         old_version: u64,
     },
@@ -461,8 +459,8 @@ pub enum SyncOperation {
     ),
 
     CloseDatabase(
-        GenericSender<BackendResult<()>>,
         ImmutableOrigin,
+        Uuid,
         String, // Database
     ),
 
@@ -527,7 +525,7 @@ pub enum SyncOperation {
 
     NotifyEndOfVersionChange {
         id: Uuid,
-        related_to_name: String,
+        name: String,
         version: u64,
         origin: ImmutableOrigin,
     },
