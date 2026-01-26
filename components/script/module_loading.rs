@@ -13,12 +13,12 @@ use std::collections::HashSet;
 use std::rc::Rc;
 
 use js::conversions::jsstr_to_string;
-use js::jsapi::{HandleValue as RawHandleValue, IsCyclicModule, JSObject};
+use js::jsapi::{HandleValue as RawHandleValue, IsCyclicModule, JSObject, ModuleType};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::wrappers::{
-    GetModuleNamespace, GetRequestedModuleSpecifier, GetRequestedModulesCount, JS_GetModulePrivate,
-    ModuleEvaluate,
+    GetModuleNamespace, GetRequestedModuleSpecifier, GetRequestedModuleType,
+    GetRequestedModulesCount, JS_GetModulePrivate, ModuleEvaluate,
 };
 use js::rust::{HandleValue, IntoHandle};
 use net_traits::request::{Destination, Referrer};
@@ -145,6 +145,7 @@ fn inner_module_loading(
             // i. If AllImportAttributesSupported(request.[[Attributes]]) is false, then
             // Note: Gecko will call hasFirstUnsupportedAttributeKey on each module request,
             // GetRequestedModuleSpecifier will do it for us.
+            // In addition it will also check if specifier has an unknown module type.
             let jsstr = unsafe { GetRequestedModuleSpecifier(*cx, module_handle, index) };
 
             if jsstr.is_null() {
@@ -156,10 +157,12 @@ fn inner_module_loading(
             } else {
                 let specifier =
                     unsafe { jsstr_to_string(*cx, std::ptr::NonNull::new(jsstr).unwrap()) };
+                let module_type = unsafe { GetRequestedModuleType(*cx, module_handle, index) };
 
                 // ii. Else if module.[[LoadedModules]] contains a LoadedModuleRequest Record record
                 // such that ModuleRequestsEqual(record, request) is true, then
-                let loaded_module = module.find_descendant_inside_module_map(global, &specifier);
+                let loaded_module =
+                    module.find_descendant_inside_module_map(global, &specifier, module_type);
 
                 match loaded_module {
                     // 1. Perform InnerModuleLoading(state, record.[[Module]]).
@@ -175,6 +178,7 @@ fn inner_module_loading(
                             Some(module.clone()),
                             referrer.handle().into_handle(),
                             specifier,
+                            module_type,
                             state.load_state.clone(),
                             Payload::GraphRecord(state.clone()),
                         );
@@ -399,6 +403,7 @@ pub(crate) fn host_load_imported_module(
     referrer_module: Option<Rc<ModuleTree>>,
     referrer: RawHandleValue,
     specifier: String,
+    module_type: ModuleType,
     load_state: Option<Rc<LoadState>>,
     payload: Payload,
 ) {
@@ -450,12 +455,12 @@ pub(crate) fn host_load_imported_module(
 
         // Step 9.1. If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
         // set loadState.[[ErrorToRethrow]] to resolutionError.
-        if let Some(load_state) = load_state {
+        load_state.as_ref().inspect(|load_state| {
             load_state
                 .error_to_rethrow
                 .borrow_mut()
                 .get_or_insert(resolution_error.clone());
-        }
+        });
 
         // Step 9.2. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, ThrowCompletion(resolutionError)).
         finish_loading_imported_module(
@@ -488,54 +493,58 @@ pub(crate) fn host_load_imported_module(
         ),
     };
 
-    let on_single_fetch_complete = move |global: &GlobalScope, module_tree: Rc<ModuleTree>| {
+    let on_single_fetch_complete = move |module_tree: Option<Rc<ModuleTree>>| {
         // Step 1. Let completion be null.
-        // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
-        let completion = if module_tree.get_network_error().is_some() {
-            Err(gen_type_error(
-                global,
+        let completion = match module_tree {
+            // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
+            None => Err(gen_type_error(
+                &global_scope,
                 Error::Type("Module fetching failed".to_string()),
                 CanGc::note(),
-            ))
-        } else {
-            // Step 3. Otherwise, if moduleScript's parse error is not null, then:
-            // Step 3.1 Let parseError be moduleScript's parse error.
-            if let Some(parse_error) = module_tree.get_parse_error() {
-                // Step 3.3 If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
-                // set loadState.[[ErrorToRethrow]] to parseError.
-                if let Some(load_state) = load_state {
-                    load_state
-                        .error_to_rethrow
-                        .borrow_mut()
-                        .get_or_insert(parse_error.clone());
-                }
+            )),
+            Some(module_tree) => {
+                // Step 3. Otherwise, if moduleScript's parse error is not null, then:
+                // Step 3.1 Let parseError be moduleScript's parse error.
+                if let Some(parse_error) = module_tree.get_parse_error() {
+                    // Step 3.3 If loadState is not undefined and loadState.[[ErrorToRethrow]] is null,
+                    // set loadState.[[ErrorToRethrow]] to parseError.
+                    load_state.as_ref().inspect(|load_state| {
+                        load_state
+                            .error_to_rethrow
+                            .borrow_mut()
+                            .get_or_insert(parse_error.clone());
+                    });
 
-                // Step 3.2 Set completion to ThrowCompletion(parseError).
-                Err(parse_error.clone())
-            } else {
-                assert!(
-                    module_tree
-                        .get_record()
-                        .is_some_and(|record| !record.handle().is_null())
-                );
-                // Step 4. Otherwise, set completion to NormalCompletion(moduleScript's record).
-                Ok(module_tree)
-            }
+                    // Step 3.2 Set completion to ThrowCompletion(parseError).
+                    Err(parse_error.clone())
+                } else {
+                    // Step 4. Otherwise, set completion to NormalCompletion(moduleScript's record).
+                    Ok(module_tree)
+                }
+            },
         };
 
         // Step 5. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, completion).
-        finish_loading_imported_module(global, referrer_module, specifier, payload, completion);
+        finish_loading_imported_module(
+            &global_scope,
+            referrer_module,
+            specifier,
+            payload,
+            completion,
+        );
     };
 
     // Step 14 Fetch a single imported module script given url, fetchClient, destination, fetchOptions, settingsObject,
     // fetchReferrer, moduleRequest, and onSingleFetchComplete as defined below.
     // If loadState is not undefined and loadState.[[PerformFetch]] is not null, pass loadState.[[PerformFetch]] along as well.
+    // Note: we don't have access to the requested `ModuleObject`, so we pass only it's type.
     fetch_a_single_imported_module_script(
         url.unwrap(),
         fetch_client,
         destination,
         fetch_options,
         fetch_referrer,
+        module_type,
         on_single_fetch_complete,
     );
 }
@@ -547,15 +556,18 @@ fn fetch_a_single_imported_module_script(
     destination: Destination,
     options: ScriptFetchOptions,
     referrer: Referrer,
-    on_complete: impl FnOnce(&GlobalScope, Rc<ModuleTree>) + 'static,
+    module_type: ModuleType,
+    on_complete: impl FnOnce(Option<Rc<ModuleTree>>) + 'static,
 ) {
     // TODO Step 1. Assert: moduleRequest.[[Attributes]] does not contain any Record entry such that entry.[[Key]] is not "type",
     // because we only asked for "type" attributes in HostGetSupportedImportAttributes.
 
     // TODO Step 2. Let moduleType be the result of running the module type from module request steps given moduleRequest.
 
-    // TODO Step 3. If the result of running the module type allowed steps given moduleType and settingsObject is false,
+    // Step 3. If the result of running the module type allowed steps given moduleType and settingsObject is false,
     // then run onComplete given null, and return.
+    // Note: We don't support CSS modules, and if module type was an unknown one,
+    // we would've bailed out earlier inside `inner_module_loading`.
 
     // Step 4. Fetch a single module script given url, fetchClient, destination, options, settingsObject, referrer,
     // moduleRequest, false, and onComplete. If performFetch was given, pass it along as well.
@@ -565,6 +577,7 @@ fn fetch_a_single_imported_module_script(
         destination,
         options,
         referrer,
+        Some(module_type),
         false,
         Some(IntroductionType::IMPORTED_MODULE),
         on_complete,
