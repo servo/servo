@@ -626,8 +626,8 @@ impl FetchResponseListener for FetchContext {
     ) {
         let response_object = self.response_object.root();
         let _ac = enter_realm(&*response_object);
-        if let Err(error) = response.clone() {
-            if error == NetworkError::DecompressionError {
+        if let Err(ref error) = response {
+            if *error == NetworkError::DecompressionError {
                 response_object.error_stream(
                     Error::Type("Network error occurred".to_string()),
                     CanGc::note(),
