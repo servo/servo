@@ -71,7 +71,7 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
         self.connected.get()
     }
 
-    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
+    /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect>
     fn Connect(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
         // Step 1.
         let p = Promise::new_in_current_realm(comp, can_gc);

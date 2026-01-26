@@ -247,7 +247,7 @@ impl FileReader {
         fr.dispatch_progress_event(atom!("progress"), 0, None, can_gc);
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-readAsText
+    /// <https://w3c.github.io/FileAPI/#dfn-readAsText>
     pub(crate) fn process_read(filereader: TrustedFileReader, gen_id: GenerationId, can_gc: CanGc) {
         let fr = filereader.root();
 
@@ -263,7 +263,7 @@ impl FileReader {
         fr.dispatch_progress_event(atom!("loadstart"), 0, None, can_gc);
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-readAsText
+    /// <https://w3c.github.io/FileAPI/#dfn-readAsText>
     pub(crate) fn process_read_eof(
         filereader: TrustedFileReader,
         gen_id: GenerationId,
@@ -373,35 +373,35 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
         Ok(FileReader::new(global, proto, can_gc))
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-onloadstart
+    // <https://w3c.github.io/FileAPI/#dfn-onloadstart>
     event_handler!(loadstart, GetOnloadstart, SetOnloadstart);
 
-    // https://w3c.github.io/FileAPI/#dfn-onprogress
+    // <https://w3c.github.io/FileAPI/#dfn-onprogress>
     event_handler!(progress, GetOnprogress, SetOnprogress);
 
-    // https://w3c.github.io/FileAPI/#dfn-onload
+    // <https://w3c.github.io/FileAPI/#dfn-onload>
     event_handler!(load, GetOnload, SetOnload);
 
-    // https://w3c.github.io/FileAPI/#dfn-onabort
+    // <https://w3c.github.io/FileAPI/#dfn-onabort>
     event_handler!(abort, GetOnabort, SetOnabort);
 
-    // https://w3c.github.io/FileAPI/#dfn-onerror
+    // <https://w3c.github.io/FileAPI/#dfn-onerror>
     event_handler!(error, GetOnerror, SetOnerror);
 
-    // https://w3c.github.io/FileAPI/#dfn-onloadend
+    // <https://w3c.github.io/FileAPI/#dfn-onloadend>
     event_handler!(loadend, GetOnloadend, SetOnloadend);
 
-    // https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer
+    /// <https://w3c.github.io/FileAPI/#dfn-readAsArrayBuffer>
     fn ReadAsArrayBuffer(&self, blob: &Blob, can_gc: CanGc) -> ErrorResult {
         self.read(FileReaderFunction::ArrayBuffer, blob, None, can_gc)
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-readAsDataURL
+    /// <https://w3c.github.io/FileAPI/#dfn-readAsDataURL>
     fn ReadAsDataURL(&self, blob: &Blob, can_gc: CanGc) -> ErrorResult {
         self.read(FileReaderFunction::DataUrl, blob, None, can_gc)
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-readAsText
+    /// <https://w3c.github.io/FileAPI/#dfn-readAsText>
     fn ReadAsText(&self, blob: &Blob, label: Option<DOMString>, can_gc: CanGc) -> ErrorResult {
         self.read(FileReaderFunction::Text, blob, label, can_gc)
     }

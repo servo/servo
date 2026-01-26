@@ -2925,9 +2925,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         DOMString::from(&*name)
     }
 
-    // https://dom.spec.whatwg.org/#dom-element-id
-    // This always returns a string; if you'd rather see None
-    // on a null id, call get_id
+    /// <https://dom.spec.whatwg.org/#dom-element-id>
+    /// This always returns a string; if you'd rather see None
+    /// on a null id, call get_id
     fn Id(&self) -> DOMString {
         self.get_string_attribute(&local_name!("id"))
     }
@@ -3329,8 +3329,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         point.y.abs() as f64
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
     // TODO(stevennovaryo): Need to update the scroll API to follow the spec since it is quite outdated.
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-scrolltop>
     fn SetScrollTop(&self, y_: f64) {
         let behavior = ScrollBehavior::Auto;
 
@@ -3559,7 +3559,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.client_rect().size.height
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-currentcsszoom
+    /// <https://drafts.csswg.org/cssom-view/#dom-element-currentcsszoom>
     fn CurrentCSSZoom(&self) -> Finite<f64> {
         let window = self.owner_window();
         Finite::wrap(window.current_css_zoom_query(self.upcast::<Node>()) as f64)
