@@ -742,7 +742,7 @@ impl WindowProxy {
             SetProxyReservedSlot(
                 new_js_proxy.get(),
                 0,
-                &PrivateValue(&raw const self as *const libc::c_void),
+                &PrivateValue(self as *const _ as *const libc::c_void),
             );
 
             // Notify the JS engine about the new window proxy binding.
