@@ -196,8 +196,11 @@ impl<T: Serialize> GenericSender<T> {
 }
 
 impl<T: Serialize> MallocSizeOf for GenericSender<T> {
-    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
-        0
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match &self.0 {
+            GenericSenderVariants::Ipc(ipc_sender) => ipc_sender.size_of(ops),
+            GenericSenderVariants::Crossbeam(sender) => sender.size_of(ops),
+        }
     }
 }
 
