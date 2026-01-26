@@ -7,7 +7,6 @@
 mod convert;
 mod wrapper;
 
-pub(crate) use convert::direction as direction_to_taffy;
 pub(crate) use wrapper::TaffyStyloStyle;
 
 /// Private module of type aliases so we can refer to stylo types with nicer names
