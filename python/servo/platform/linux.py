@@ -33,7 +33,8 @@ def apt_packages() -> list[str]:
         # Note: For now we also include ubuntu-only packages, since not available packages
         # will be filtered out automatically, since we check which packages are available.
         if file.endswith(".txt") and file.startswith("apt_"):
-            apt_pkgs.extend(parse_pkg_file(file))
+            filepath = os.path.join(basepath, "linux_packages", "apt", file)
+            apt_pkgs.extend(parse_pkg_file(filepath))
     if len(apt_pkgs) == 0:
         raise RuntimeError("No apt packages found.")
     return apt_pkgs
@@ -44,7 +45,8 @@ def dnf_packages() -> list[str]:
     dnf_pkgs: list[str] = []
     for file in os.listdir(os.path.join(basepath, "linux_packages", "dnf")):
         if file.endswith(".txt") and file.startswith("dnf_"):
-            dnf_pkgs.extend(parse_pkg_file(file))
+            filepath = os.path.join(basepath, "linux_packages", "dnf", file)
+            dnf_pkgs.extend(parse_pkg_file(filepath))
     if len(dnf_pkgs) == 0:
         raise RuntimeError("No dnf packages found.")
     return dnf_pkgs
@@ -55,7 +57,8 @@ def xbps_packages() -> list[str]:
     pkgs: list[str] = []
     for file in os.listdir(os.path.join(basepath, "linux_packages", "xbps")):
         if file.endswith(".txt") and file.startswith("xbps_"):
-            pkgs.extend(parse_pkg_file(file))
+            filepath = os.path.join(basepath, "linux_packages", "xbps", file)
+            pkgs.extend(parse_pkg_file(filepath))
     if len(pkgs) == 0:
         raise RuntimeError("No xbps packages found.")
     return pkgs
