@@ -752,11 +752,15 @@ impl DedicatedWorkerGlobalScope {
 pub(crate) unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
     let in_realm_proof = AlreadyInRealm::assert_for_cx(unsafe { SafeJSContext::from_ptr(cx) });
     let global = unsafe { GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)) };
-    let worker =
-        DomRoot::downcast::<WorkerGlobalScope>(global).expect("global is not a worker scope");
-    assert!(worker.is::<DedicatedWorkerGlobalScope>());
+
+    // If we are running the debugger script, just exit immediately.
+    let Some(worker) = global.downcast::<WorkerGlobalScope>() else {
+        assert!(global.is::<DebuggerGlobalScope>());
+        return false;
+    };
 
     // A false response causes the script to terminate
+    assert!(worker.is::<DedicatedWorkerGlobalScope>());
     !worker.is_closing()
 }
 
