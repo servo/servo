@@ -352,8 +352,12 @@ pub enum ConnectionMsg {
     /// A `versionchange` event should be fired
     /// for a connection.
     VersionChange {
-        name: String,
+        /// The id of the connection.
         id: Uuid,
+        /// The name of the connection.
+        name: String,
+        /// The name of the database waiting on the connection to close.
+        related_to_name: String,
         version: u64,
         old_version: u64,
     },
@@ -522,8 +526,8 @@ pub enum SyncOperation {
     },
 
     NotifyEndOfVersionChange {
-        name: String,
         id: Uuid,
+        related_to_name: String,
         version: u64,
         origin: ImmutableOrigin,
     },

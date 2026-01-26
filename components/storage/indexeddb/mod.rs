@@ -294,6 +294,9 @@ impl OpenRequest {
             } => false,
         }
     }
+
+    /// An open request can be pending either an upgrade,
+    /// or the closing of other connections.
     fn is_pending(&self) -> bool {
         match self {
             OpenRequest::Open {
@@ -302,9 +305,9 @@ impl OpenRequest {
                 db_name: _,
                 version: _,
                 pending_upgrade,
-                pending_close: _,
+                pending_close,
                 id: _,
-            } => pending_upgrade.is_some(),
+            } => pending_upgrade.is_some() || !pending_close.is_empty(),
             OpenRequest::Delete {
                 sender: _,
                 _origin: _,
@@ -781,12 +784,15 @@ impl IndexedDBManager {
     /// Step 10.3: Wait for all of the events to be fired.
     fn handle_version_change_done(
         &mut self,
-        name: String,
+        related_to_name: String,
         from_id: Uuid,
         version: u64,
         origin: ImmutableOrigin,
     ) {
-        let key = IndexedDBDescription { name, origin };
+        let key = IndexedDBDescription {
+            name: related_to_name,
+            origin,
+        };
         let Some(queue) = self.connection_queues.get_mut(&key) else {
             return debug_assert!(false, "A connection queue should exist.");
         };
@@ -971,6 +977,7 @@ impl IndexedDBManager {
                     .send(ConnectionMsg::VersionChange {
                         name: db_name.clone(),
                         id: *id_to_close,
+                        related_to_name: db_name.clone(),
                         version: version,
                         old_version: db_version,
                     })
@@ -1298,12 +1305,12 @@ impl IndexedDBManager {
                 let _ = sender.send(transaction_id);
             },
             SyncOperation::NotifyEndOfVersionChange {
-                name,
+                related_to_name,
                 id,
                 version,
                 origin,
             } => {
-                self.handle_version_change_done(name, id, version, origin);
+                self.handle_version_change_done(related_to_name, id, version, origin);
             },
             SyncOperation::Exit(_) => {
                 unreachable!("We must've already broken out of event loop.");

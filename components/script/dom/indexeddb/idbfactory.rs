@@ -173,6 +173,7 @@ impl IDBFactory {
             ConnectionMsg::VersionChange {
                 name,
                 id,
+                related_to_name,
                 version,
                 old_version,
             } => {
@@ -192,8 +193,8 @@ impl IDBFactory {
                 // Step 10.3: Wait for all of the events to be fired.
                 // Note: backend is at this step; sending a message to continue algo there.
                 let operation = SyncOperation::NotifyEndOfVersionChange {
-                    name,
                     id,
+                    related_to_name,
                     version,
                     origin: global.origin().immutable().clone(),
                 };
