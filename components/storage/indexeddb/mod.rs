@@ -564,6 +564,20 @@ impl IndexedDBManager {
         was_pruned
     }
 
+    fn remove_connection(&mut self, key: &IndexedDBDescription, id: &Uuid) {
+        let is_empty = {
+            let Some(connections) = self.connections.get_mut(&key) else {
+                return debug_assert!(false, "There should be at least one connection.");
+            };
+            connections.remove(&id);
+            connections.is_empty()
+        };
+
+        if is_empty {
+            self.connections.remove(&key);
+        }
+    }
+
     /// Aborting the current upgrade for an origin.
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
     /// Note: this only reverts the version at this point.
@@ -600,6 +614,8 @@ impl IndexedDBManager {
             debug_assert!(res.is_ok(), "Setting a db version should not fail.");
         }
 
+        self.remove_connection(&key, &id);
+
         self.advance_connection_queue(key);
     }
 
@@ -617,6 +633,9 @@ impl IndexedDBManager {
                 name,
                 origin: origin.clone(),
             };
+            for id in ids.iter() {
+                self.remove_connection(&key, id);
+            }
             {
                 let is_empty = {
                     let Some(queue) = self.connection_queues.get_mut(&key) else {
@@ -1192,10 +1211,7 @@ impl IndexedDBManager {
         // in the case that an open request is waiting for connections to close.
         let key = IndexedDBDescription { origin, name };
         let (can_upgrade, version) = {
-            let Some(entry) = self.connections.get_mut(&key) else {
-                return debug_assert!(false, "There should at least be one open connection.");
-            };
-            entry.remove(&id);
+            self.remove_connection(&key, &id);
 
             let Some(queue) = self.connection_queues.get_mut(&key) else {
                 return;
