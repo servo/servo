@@ -16,6 +16,7 @@ app_units = { workspace = true }
 atomic_refcell = { workspace = true }
 content-security-policy = { workspace = true }
 crossbeam-channel = { workspace = true }
+encoding_rs = '0.8'
 euclid = { workspace = true }
 http = { workspace = true }
 indexmap = { workspace = true }
@@ -39,7 +40,6 @@ unicode-bidi = { workspace = true }
 unicode-script = { workspace = true }
 url = { workspace = true }
 urlpattern = { workspace = true }
-utf-8 = { workspace = true }
 uuid = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
