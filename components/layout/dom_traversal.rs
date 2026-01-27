@@ -126,6 +126,7 @@ fn traverse_children_of<'dom>(
     let is_element = parent_element_info.pseudo_element_chain().is_empty();
     if is_element {
         traverse_eager_pseudo_element(PseudoElement::Before, parent_element_info, context, handler);
+        traverse_checkmark_pseudo_element(parent_element_info, context, handler);
     }
 
     for child in parent_element_info.node.children() {
@@ -200,6 +201,55 @@ fn traverse_eager_pseudo_element<'dom>(
     else {
         return;
     };
+    if pseudo_element_info.style.ineffective_content_property() {
+        return;
+    }
+
+    match Display::from(pseudo_element_info.style.get_box().display) {
+        Display::None => {},
+        Display::Contents => {
+            let items = generate_pseudo_element_content(&pseudo_element_info, context);
+            let box_slot = pseudo_element_info.node.box_slot();
+            let shared_inline_styles: SharedInlineStyles = (&pseudo_element_info).into();
+            box_slot.set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
+
+            handler.enter_display_contents(shared_inline_styles);
+            traverse_pseudo_element_contents(&pseudo_element_info, context, handler, items);
+            handler.leave_display_contents();
+        },
+        Display::GeneratingBox(display) => {
+            let items = generate_pseudo_element_content(&pseudo_element_info, context);
+            let box_slot = pseudo_element_info.node.box_slot();
+            let contents = Contents::for_pseudo_element(items);
+            handler.handle_element(&pseudo_element_info, display, contents, box_slot);
+        },
+    }
+}
+
+fn traverse_checkmark_pseudo_element<'dom>(
+    info: &NodeAndStyleInfo<'dom>,
+    context: &LayoutContext,
+    handler: &mut impl TraversalHandler<'dom>,
+) {
+    let Some(element) = info.node.as_element() else {
+        return;
+    };
+
+    if !matches!(
+        element.type_id(),
+        Some(LayoutNodeType::Element(LayoutElementType::HTMLInputElement))
+    ) {
+        return;
+    }
+
+    // TODO should filter to just checkbox and radio input too.
+
+    let Some(pseudo_element_info) =
+        info.with_pseudo_element(context, PseudoElement::ServoCheckmark)
+    else {
+        return;
+    };
+
     if pseudo_element_info.style.ineffective_content_property() {
         return;
     }

@@ -202,7 +202,7 @@ input[type="checkbox"] {
   overflow: hidden;
 }
 
-input[type="checkbox"]::before {
+input[type="checkbox"]::-servo-checkmark {
   content: "";
   font-size: 12px;
   position: absolute;
@@ -211,15 +211,15 @@ input[type="checkbox"]::before {
   transform: translate(-50%, -50%);
 }
 
-input[type="checkbox"]:disabled::before {
+input[type="checkbox"]:disabled::-servo-checkmark {
   color: grey;
 }
 
-input[type="checkbox"]:checked::before {
+input[type="checkbox"]:checked::-servo-checkmark {
   content: "✔";
 }
 
-input[type="checkbox"]:indeterminate::before {
+input[type="checkbox"]:indeterminate::-servo-checkmark {
   content: "—";
 }
 
@@ -239,7 +239,7 @@ input[type="radio"] {
   outline-offset: 0.4px;
 }
 
-input[type="radio"]::before {
+input[type="radio"]::-servo-checkmark {
   content: "";
   background: transparent;
 
@@ -255,11 +255,11 @@ input[type="radio"]::before {
   border-radius: 50%;
 }
 
-input[type="radio"]:checked::before {
+input[type="radio"]:checked::-servo-checkmark {
   background: black;
 }
 
-input[type="radio"]:checked:disabled::before {
+input[type="radio"]:checked:disabled::-servo-checkmark {
   background: grey;
 }
 
