@@ -3,13 +3,43 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use serde::Serialize;
+use serde_json::{Map, Value};
 
-use crate::actor::{Actor, ActorEncode, ActorRegistry};
+use crate::StreamId;
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::protocol::ClientRequest;
 
 #[derive(Serialize)]
 pub(crate) struct ObjectPreview {
     kind: String,
     url: String,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+enum EnumIteratorType {
+    PropertyIterator,
+    SymbolIterator,
+}
+
+#[derive(Serialize)]
+struct EnumIterator {
+    actor: String,
+    #[serde(rename = "type")]
+    type_: EnumIteratorType,
+    count: u32,
+}
+
+#[derive(Serialize)]
+struct EnumReply {
+    from: String,
+    iterator: EnumIterator,
+}
+
+#[derive(Serialize)]
+struct PrototypeReply {
+    from: String,
+    prototype: ObjectActorMsg,
 }
 
 #[derive(Serialize)]
@@ -37,8 +67,60 @@ impl Actor for ObjectActor {
         self.name.clone()
     }
 
-    // TODO: Handle messages
     // https://searchfox.org/firefox-main/source/devtools/shared/specs/object.js
+    fn handle_message(
+        &self,
+        request: ClientRequest,
+        registry: &ActorRegistry,
+        msg_type: &str,
+        _msg: &Map<String, Value>,
+        _id: StreamId,
+    ) -> Result<(), ActorError> {
+        match msg_type {
+            "enumProperties" => {
+                let property_iterator = PropertyIteratorActor {
+                    name: registry.new_name::<PropertyIteratorActor>(),
+                };
+                let msg = EnumReply {
+                    from: self.name(),
+                    iterator: EnumIterator {
+                        actor: property_iterator.name(),
+                        type_: EnumIteratorType::PropertyIterator,
+                        count: 0,
+                    },
+                };
+                registry.register(property_iterator);
+                request.reply_final(&msg)?
+            },
+
+            "enumSymbols" => {
+                let symbol_iterator = SymbolIteratorActor {
+                    name: registry.new_name::<SymbolIteratorActor>(),
+                };
+                let msg = EnumReply {
+                    from: self.name(),
+                    iterator: EnumIterator {
+                        actor: symbol_iterator.name(),
+                        type_: EnumIteratorType::SymbolIterator,
+                        count: 0,
+                    },
+                };
+                registry.register(symbol_iterator);
+                request.reply_final(&msg)?
+            },
+
+            "prototype" => {
+                let msg = PrototypeReply {
+                    from: self.name(),
+                    prototype: self.encode(registry),
+                };
+                request.reply_final(&msg)?
+            },
+
+            _ => return Err(ActorError::UnrecognizedPacketType),
+        };
+        Ok(())
+    }
 }
 
 impl ObjectActor {
@@ -86,5 +168,26 @@ impl ActorEncode<ObjectActorMsg> for ObjectActor {
                 url: "".into(), // TODO: Use the correct url
             },
         }
+    }
+}
+
+// TODO: Implement functionality of property and symbol iterators
+struct PropertyIteratorActor {
+    name: String,
+}
+
+impl Actor for PropertyIteratorActor {
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+}
+
+struct SymbolIteratorActor {
+    name: String,
+}
+
+impl Actor for SymbolIteratorActor {
+    fn name(&self) -> String {
+        self.name.clone()
     }
 }
