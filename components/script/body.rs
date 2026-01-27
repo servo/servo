@@ -222,17 +222,15 @@ impl TransmitBodyConnectHandler {
     /// Otherwise, the following cycle will happen: The control sender is owned by us which keeps the control receiver
     /// alive in the router which keeps us alive.
     fn stop_reading(&mut self, reason: StopReading) {
-        let bytes_sender = self
-            .bytes_sender
-            .take()
-            .expect("Stop reading called multiple times on TransmitBodyConnectHandler.");
-        match reason {
-            StopReading::Error => {
-                let _ = bytes_sender.send(BodyChunkResponse::Error);
-            },
-            StopReading::Done => {
-                let _ = bytes_sender.send(BodyChunkResponse::Done);
-            },
+        if let Some(bytes_sender) = self.bytes_sender.take() {
+            match reason {
+                StopReading::Error => {
+                    let _ = bytes_sender.send(BodyChunkResponse::Error);
+                },
+                StopReading::Done => {
+                    let _ = bytes_sender.send(BodyChunkResponse::Done);
+                },
+            }
         }
         let _ = self.control_sender.take();
     }
