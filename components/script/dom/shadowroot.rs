@@ -16,7 +16,7 @@ use style::author_styles::AuthorStyles;
 use style::dom::TElement;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::shared_lock::SharedRwLockReadGuard;
-use style::stylesheets::{DocumentStyleSheet, Stylesheet};
+use style::stylesheets::Stylesheet;
 use style::stylist::{CascadeData, Stylist};
 use stylo_atoms::Atom;
 
