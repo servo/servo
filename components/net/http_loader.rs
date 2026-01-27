@@ -707,8 +707,10 @@ async fn obtain_response(
             }
 
             let devtools_bytes = devtools_bytes.clone();
-            let chunk_requester2 = chunk_requester.clone();
 
+            // There is a dependency cycle here. chunk_requester is from a `ResponseBody` which was constructed in
+            // `TransmitBodyConnectHandler`. That struct will never be dropped unless it gets the `BodyChunkResponse::Done` message.\
+            //
             ROUTER.add_typed_route(
                 body_port,
                 Box::new(move |message| {
@@ -720,6 +722,8 @@ async fn obtain_response(
                             let _ = fetch_terminated.send(false);
                             sink.close();
 
+                            let _ = chunk_requester.lock().send(BodyChunkRequest::Done);
+
                             return;
                         },
                         BodyChunkResponse::Error => {
@@ -728,6 +732,7 @@ async fn obtain_response(
                             // where step 5 requires setting an `aborted` flag on the fetch.
                             let _ = fetch_terminated.send(true);
                             sink.close();
+                            let _ = chunk_requester.lock().send(BodyChunkRequest::Error);
 
                             return;
                         },
@@ -741,7 +746,7 @@ async fn obtain_response(
 
                     // Step 5.1.2.3
                     // Request the next chunk.
-                    let _ = chunk_requester2.lock().send(BodyChunkRequest::Chunk);
+                    let _ = chunk_requester.lock().send(BodyChunkRequest::Chunk);
                 }),
             );
 
