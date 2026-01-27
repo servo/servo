@@ -28,6 +28,7 @@ use super::line_breaker::LineBreaker;
 use super::{InlineFormattingContextLayout, SharedInlineStyles};
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
+use crate::flow::inline::DeferredLineBreak;
 use crate::flow::inline::line::TextRunOffsets;
 use crate::fragment_tree::BaseFragmentInfo;
 
@@ -146,40 +147,57 @@ impl TextRunSegment {
 
         let mut character_range_start = self.character_range.start;
         for (run_index, run) in self.runs.iter().enumerate() {
-            ifc.possibly_flush_deferred_forced_line_break();
+            ifc.possibly_flush_deferred_forced_line_break(false);
 
             // If this whitespace forces a line break, queue up a hard line break the next time we
             // see any content. We don't line break immediately, because we'd like to finish processing
             // any ongoing inline boxes before ending the line.
             if run.is_single_preserved_newline() {
-                character_range_start += run.character_count();
-                ifc.defer_forced_line_break();
-                continue;
-            }
-            // Break before each unbreakable run in this TextRun, except the first unless the
-            // linebreaker was set to break before the first run.
-            if run_index != 0 || soft_wrap_policy == SegmentStartSoftWrapPolicy::Force {
-                ifc.process_soft_wrap_opportunity();
-            }
+                let offsets =
+                    ifc.ifc
+                        .shared_selection
+                        .clone()
+                        .map(|shared_selection| TextRunOffsets {
+                            shared_selection,
+                            character_range: character_range_start..character_range_start,
+                        });
 
-            let new_character_range_end = character_range_start + run.character_count();
-            let offsets = ifc
-                .ifc
-                .shared_selection
-                .clone()
-                .map(|shared_selection| TextRunOffsets {
-                    shared_selection,
-                    character_range: character_range_start..new_character_range_end,
+                ifc.defer_forced_line_break(DeferredLineBreak {
+                    base_fragment_info: text_run.base_fragment_info,
+                    inline_styles: text_run.inline_styles.clone(),
+                    font: self.font.clone(),
+                    bidi_level: self.bidi_level,
+                    offsets,
                 });
+                character_range_start += run.character_count();
+            } else {
+                // Break before each unbreakable run in this TextRun, except the first unless the
+                // linebreaker was set to break before the first run.
+                if run_index != 0 || soft_wrap_policy == SegmentStartSoftWrapPolicy::Force {
+                    ifc.process_soft_wrap_opportunity();
+                }
 
-            ifc.push_glyph_store_to_unbreakable_segment(
-                run.clone(),
-                text_run,
-                &self.font,
-                self.bidi_level,
-                offsets,
-            );
-            character_range_start = new_character_range_end;
+                let new_character_range_end = character_range_start + run.character_count();
+
+                let offsets =
+                    ifc.ifc
+                        .shared_selection
+                        .clone()
+                        .map(|shared_selection| TextRunOffsets {
+                            shared_selection,
+                            character_range: character_range_start..new_character_range_end,
+                        });
+
+                ifc.push_glyph_store_to_unbreakable_segment(
+                    Some(run.clone()),
+                    text_run.base_fragment_info,
+                    text_run.inline_styles.clone(),
+                    &self.font,
+                    self.bidi_level,
+                    offsets,
+                );
+                character_range_start = new_character_range_end;
+            }
         }
     }
 
