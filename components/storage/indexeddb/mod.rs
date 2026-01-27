@@ -571,7 +571,7 @@ impl IndexedDBManager {
     fn remove_connection(&mut self, key: &IndexedDBDescription, id: &Uuid) {
         let is_empty = {
             let Some(connections) = self.connections.get_mut(&key) else {
-                return debug_assert!(false, "There should be at least one connection.");
+                return debug!("Connection already removed.");
             };
             connections.remove(&id);
             connections.is_empty()
