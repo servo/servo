@@ -19,7 +19,7 @@ use net_traits::{FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTim
 use script_bindings::conversions::SafeToJSValConvertible;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
-
+use encoding_rs::{UTF_8, Decoder};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
     EventSourceInit, EventSourceMethods,
@@ -107,9 +107,10 @@ enum ParserState {
     Eol,
 }
 
-#[derive(Clone, MallocSizeOf)]
+#[derive(MallocSizeOf)]
 struct EventSourceContext {
-    incomplete_utf8: Option<utf8::Incomplete>,
+    #[ignore_malloc_size_of = "No encoding_rs support"]
+    decoder: Decoder,
     event_source: Trusted<EventSource>,
     gen_id: GenerationId,
     parser_state: ParserState,
@@ -119,6 +120,23 @@ struct EventSourceContext {
     event_type: String,
     data: String,
     last_event_id: String,
+}
+
+impl Clone for EventSourceContext {
+    fn clone(&self) -> Self {
+        EventSourceContext {
+            decoder: UTF_8.new_decoder_with_bom_removal(),
+            event_source: self.event_source.clone(),
+            gen_id: self.gen_id,
+            parser_state: self.parser_state.clone(),
+            field: self.field.clone(),
+            value: self.value.clone(),
+            origin: self.origin.clone(),
+            event_type: self.event_type.clone(),
+            data: self.data.clone(),
+            last_event_id: self.last_event_id.clone(),
+        }
+    }
 }
 
 impl EventSourceContext {
@@ -161,7 +179,7 @@ impl EventSourceContext {
         let trusted_event_source = self.event_source.clone();
         let global = event_source.global();
         let event_source_context = EventSourceContext {
-            incomplete_utf8: None,
+            decoder: UTF_8.new_decoder_with_bom_removal(),
             event_source: self.event_source.clone(),
             gen_id: self.gen_id,
             parser_state: ParserState::Eol,
@@ -412,41 +430,20 @@ impl FetchResponseListener for EventSourceContext {
     }
 
     fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
-        let mut input = &*chunk;
-        if let Some(mut incomplete) = self.incomplete_utf8.take() {
-            match incomplete.try_complete(input) {
-                None => return,
-                Some((result, remaining_input)) => {
-                    self.parse(result.unwrap_or("\u{FFFD}").chars(), CanGc::note());
-                    input = remaining_input;
-                },
-            }
-        }
+        let mut output = String::with_capacity(chunk.len()*3);
+        let (result, _bytes_read) = self.decoder.decode_to_string_without_replacement(&chunk, &mut output, false);
 
-        while !input.is_empty() {
-            match utf8::decode(input) {
-                Ok(s) => {
-                    self.parse(s.chars(), CanGc::note());
-                    return;
-                },
-                Err(utf8::DecodeError::Invalid {
-                    valid_prefix,
-                    remaining_input,
-                    ..
-                }) => {
-                    self.parse(valid_prefix.chars(), CanGc::note());
-                    self.parse("\u{FFFD}".chars(), CanGc::note());
-                    input = remaining_input;
-                },
-                Err(utf8::DecodeError::Incomplete {
-                    valid_prefix,
-                    incomplete_suffix,
-                }) => {
-                    self.parse(valid_prefix.chars(), CanGc::note());
-                    self.incomplete_utf8 = Some(incomplete_suffix);
-                    return;
-                },
-            }
+        match result {
+            encoding_rs::DecoderResult::InputEmpty => {
+                self.parse(output.chars(), CanGc::note());
+            },
+            encoding_rs::DecoderResult::Malformed(_, _) => {
+                self.parse(output.chars(), CanGc::note());
+                self.parse("\u{FFFD}".chars(), CanGc::note());
+            },
+            encoding_rs::DecoderResult::OutputFull => {
+                self.parse(output.chars(), CanGc::note());
+            },
         }
     }
 
@@ -456,10 +453,15 @@ impl FetchResponseListener for EventSourceContext {
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        if self.incomplete_utf8.take().is_some() {
+        let mut output = String::new();
+        let (result, _) = self.decoder.decode_to_string_without_replacement(&[], &mut output, true);
+        if !output.is_empty(){
+            self.parse(output.chars(), CanGc::note());
+        }
+        if matches!(result, encoding_rs::DecoderResult::Malformed(_, _)){
             self.parse("\u{FFFD}".chars(), CanGc::note());
         }
-        if response.is_ok() {
+        if response.is_ok(){
             self.reestablish_the_connection();
         }
 
@@ -613,7 +615,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         ));
 
         let context = EventSourceContext {
-            incomplete_utf8: None,
+            decoder: UTF_8.new_decoder_with_bom_removal(),
             event_source: Trusted::new(&event_source),
             gen_id: event_source.generation_id.get(),
             parser_state: ParserState::Eol,
