@@ -540,6 +540,8 @@ impl DisplayListBuilder<'_> {
             if area == 0 {
                 return;
             }
+
+            // Collect LCP candidate only if LCP feature is enabled
             if pref!(largest_contentful_paint_enabled) {
                 paint_collector.add_or_update_lcp_candidate(LCPCandidate::new(
                     lcp_candidate_id,
@@ -548,6 +550,8 @@ impl DisplayListBuilder<'_> {
                 ));
             }
         }
+        // Mark the page as contentful when we have a valid paint candidate
+        self.mark_is_contentful();
     }
 }
 
@@ -633,8 +637,6 @@ impl Fragment {
                 let style = image.base.style();
                 match style.get_inherited_box().visibility {
                     Visibility::Visible => {
-                        builder.mark_is_contentful();
-
                         let image_rendering =
                             style.get_inherited_box().image_rendering.to_webrender();
                         let rect = image
@@ -657,6 +659,17 @@ impl Fragment {
                                 image_key,
                                 wr::ColorF::WHITE,
                             );
+                            let lcp_candidate_id = image
+                                .base
+                                .tag
+                                .map(|tag| LCPCandidateID(tag.node.id()))
+                                .unwrap_or(LCPCandidateID(0));
+                            builder.collect_paint_candidate(
+                                ContentfulPaintType::Image,
+                                lcp_candidate_id,
+                                common.clip_rect,
+                                rect,
+                            );
                         }
 
                         if image.showing_broken_image_icon {
@@ -666,18 +679,6 @@ impl Fragment {
                                 &common,
                             );
                         }
-
-                        let lcp_candidate_id = image
-                            .base
-                            .tag
-                            .map(|tag| LCPCandidateID(tag.node.id()))
-                            .unwrap_or(LCPCandidateID(0));
-                        builder.collect_paint_candidate(
-                            ContentfulPaintType::Image,
-                            lcp_candidate_id,
-                            common.clip_rect,
-                            rect,
-                        );
                     },
                     Visibility::Hidden => (),
                     Visibility::Collapse => (),
@@ -688,7 +689,7 @@ impl Fragment {
                 let style = iframe.base.style();
                 match style.get_inherited_box().visibility {
                     Visibility::Visible => {
-                        builder.mark_is_contentful();
+                        // TODO: Need to consider context for while considering iframe as paint candidate
                         let rect = iframe
                             .base
                             .rect
@@ -735,9 +736,6 @@ impl Fragment {
     ) {
         // NB: The order of painting text components (CSS Text Decoration Module Level 3) is:
         // shadows, underline, overline, text, text-emphasis, and then line-through.
-
-        builder.mark_is_contentful();
-
         let rect = fragment
             .base
             .rect
@@ -829,6 +827,12 @@ impl Fragment {
             fragment.font_key,
             rgba(color),
             None,
+        );
+        builder.collect_paint_candidate(
+            ContentfulPaintType::Text,
+            LCPCandidateID(0),
+            common.clip_rect,
+            rect.to_webrender(),
         );
 
         for text_decoration in text_decorations.iter() {

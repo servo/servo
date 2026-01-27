@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 pub enum ContentfulPaintType {
     BackgroundImage,
     Image,
+    Text,
 }
 
 /// Largest Contentful Paint Candidate, include image and block-level element containing text
