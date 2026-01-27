@@ -4598,6 +4598,7 @@ impl Document {
 
         if self.has_browsing_context() {
             let document_context = self.window.web_font_context();
+
             self.window.layout_mut().add_stylesheet(
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
@@ -4632,11 +4633,10 @@ impl Document {
             .cloned();
 
         if self.has_browsing_context() {
-            let document_context = self.window.web_font_context();
             self.window.layout_mut().add_stylesheet(
                 sheet.clone(),
                 insertion_point.as_ref().map(|s| s.sheet.clone()),
-                &document_context,
+                &self.window.web_font_context(),
             );
         }
 
@@ -4666,7 +4666,7 @@ impl Document {
         if self.has_browsing_context() {
             self.window
                 .layout_mut()
-                .remove_stylesheet(stylesheet.clone())
+                .remove_stylesheet(stylesheet.clone());
         }
 
         DocumentOrShadowRoot::remove_stylesheet(
