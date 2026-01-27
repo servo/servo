@@ -6,7 +6,7 @@
 #input {
     display: inline-block;
     background: white;
-    border: solid lightgrey 1px;
+    border: solid grey 1px;
     font-family: sans-serif;
     font-size: 1em; /* We are using 1em here to reduce the effect of inconsistencies in layout */
     overflow: hidden;
