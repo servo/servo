@@ -222,7 +222,10 @@ impl WindowProxy {
                 window_proxy,
                 js_proxy.get()
             );
-            window_proxy.reflector.set_jsobject(js_proxy.get());
+            window_proxy.reflector.set_jsobject(
+                js_proxy.get(),
+                size_of::<WindowProxy>() + size_of::<Box<WindowProxy>>(),
+            );
             DomRoot::from_ref(&*Box::into_raw(window_proxy))
         }
     }
@@ -283,7 +286,10 @@ impl WindowProxy {
                 window_proxy,
                 js_proxy.get()
             );
-            window_proxy.reflector.set_jsobject(js_proxy.get());
+            window_proxy.reflector.set_jsobject(
+                js_proxy.get(),
+                size_of::<WindowProxy>() + size_of::<Box<WindowProxy>>(),
+            );
             DomRoot::from_ref(&*Box::into_raw(window_proxy))
         }
     }

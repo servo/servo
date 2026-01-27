@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use js::jsapi::{Heap, JSObject};
+use std::cell::Cell;
+use std::num::NonZeroUsize;
+
+use js::jsapi::{AddAssociatedMemory, Heap, JSObject, MemoryUse, RemoveAssociatedMemory};
 use js::rust::HandleObject;
 use malloc_size_of_derive::MallocSizeOf;
 
@@ -20,6 +23,8 @@ use crate::{DomTypes, JSTraceable};
 pub struct Reflector {
     #[ignore_malloc_size_of = "defined and measured in rust-mozjs"]
     object: Heap<*mut JSObject>,
+    /// Associated memory size (of rust side). Used for memory reporting to SM.
+    size: Cell<Option<NonZeroUsize>>,
 }
 
 unsafe impl js::gc::Traceable for Reflector {
@@ -45,10 +50,29 @@ impl Reflector {
     /// # Safety
     ///
     /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
-    pub unsafe fn set_jsobject(&self, object: *mut JSObject) {
+    pub unsafe fn set_jsobject(&self, object: *mut JSObject, size: usize) {
         assert!(self.object.get().is_null());
         assert!(!object.is_null());
         self.object.set(object);
+        self.set_new_size(size);
+    }
+
+    pub fn set_new_size(&self, size: usize) {
+        let obj = self.object.get();
+        let size = NonZeroUsize::new(size);
+        if self.size.get() != size {
+            if let Some(old_size) = self.size.get() {
+                unsafe {
+                    RemoveAssociatedMemory(obj, old_size.get(), MemoryUse::DOMBinding);
+                }
+            }
+            self.size.set(size);
+            if let Some(size) = size {
+                unsafe {
+                    AddAssociatedMemory(obj, size.get(), MemoryUse::DOMBinding);
+                }
+            }
+        }
     }
 
     /// Return a pointer to the memory location at which the JS reflector
@@ -64,6 +88,17 @@ impl Reflector {
     pub fn new() -> Reflector {
         Reflector {
             object: Heap::default(),
+            size: Cell::new(None),
+        }
+    }
+}
+
+impl Drop for Reflector {
+    fn drop(&mut self) {
+        if let Some(size) = self.size.get() {
+            unsafe {
+                RemoveAssociatedMemory(self.object.get(), size.get(), MemoryUse::DOMBinding);
+            }
         }
     }
 }
@@ -87,12 +122,12 @@ pub trait MutDomObject: DomObject {
     /// # Safety
     ///
     /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
-    unsafe fn init_reflector(&self, obj: *mut JSObject);
+    unsafe fn init_reflector(&self, obj: *mut JSObject, size: usize);
 }
 
 impl MutDomObject for Reflector {
-    unsafe fn init_reflector(&self, obj: *mut JSObject) {
-        self.set_jsobject(obj)
+    unsafe fn init_reflector(&self, obj: *mut JSObject, size: usize) {
+        self.set_jsobject(obj, size)
     }
 }
 

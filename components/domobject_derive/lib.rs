@@ -54,8 +54,8 @@ fn expand_dom_object(input: syn::DeriveInput) -> proc_macro2::TokenStream {
         }
 
         impl #impl_generics crate::MutDomObject for #name #ty_generics #where_clause {
-            unsafe fn init_reflector(&self, obj: *mut js::jsapi::JSObject) {
-                self.#first_field_name.init_reflector(obj);
+            unsafe fn init_reflector(&self, obj: *mut js::jsapi::JSObject, size: usize) {
+                self.#first_field_name.init_reflector(obj, size);
             }
         }
 
