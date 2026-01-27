@@ -59,6 +59,7 @@ impl Reflector {
 
     pub fn set_new_size(&self, size: usize) {
         let obj = self.object.get();
+        assert!(!obj.is_null());
         let size = NonZeroUsize::new(size);
         if self.size.get() != size {
             if let Some(old_size) = self.size.get() {
