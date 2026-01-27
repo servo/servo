@@ -14,7 +14,7 @@ use crate::{ActorMsg, EmptyReplyMsg};
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SetBreakpointRequestLocation {
+pub struct BreakpointRequestLocation {
     pub line: u32,
     pub column: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -22,8 +22,8 @@ pub struct SetBreakpointRequestLocation {
 }
 
 #[derive(Deserialize)]
-struct SetBreakpointRequest {
-    location: SetBreakpointRequestLocation,
+struct BreakpointRequest {
+    location: BreakpointRequestLocation,
 }
 
 pub(crate) struct BreakpointListActor {
@@ -49,9 +49,9 @@ impl Actor for BreakpointListActor {
             // Seems to be infallible, unlike the thread actor’s `setBreakpoint`.
             // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#breakpoints>
             "setBreakpoint" => {
-                let msg: SetBreakpointRequest =
+                let msg: BreakpointRequest =
                     serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;
-                let SetBreakpointRequestLocation {
+                let BreakpointRequestLocation {
                     line,
                     column,
                     source_url,
@@ -84,6 +84,33 @@ impl Actor for BreakpointListActor {
                 request.reply_final(&msg)?
             },
             "removeBreakpoint" => {
+                let msg: BreakpointRequest =
+                    serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;
+                let BreakpointRequestLocation {
+                    line,
+                    column,
+                    source_url,
+                } = msg.location;
+                let source_url = source_url.ok_or(ActorError::Internal)?;
+
+                let browsing_context =
+                    registry.find::<BrowsingContextActor>(&self.browsing_context);
+                let thread = registry.find::<ThreadActor>(&browsing_context.thread);
+                let source = thread
+                    .source_manager
+                    .find_source(registry, &source_url)
+                    .ok_or(ActorError::Internal)?;
+                let (script_id, offset) = source.find_offset(line, column);
+
+                source
+                    .script_sender
+                    .send(DevtoolScriptControlMsg::ClearBreakpoint(
+                        source.spidermonkey_id,
+                        script_id,
+                        offset,
+                    ))
+                    .map_err(|_| ActorError::Internal)?;
+
                 let msg = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&msg)?
             },

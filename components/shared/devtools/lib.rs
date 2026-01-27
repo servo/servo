@@ -309,6 +309,7 @@ pub enum DevtoolScriptControlMsg {
 
     GetPossibleBreakpoints(u32, GenericSender<Vec<RecommendedBreakpointLocation>>),
     SetBreakpoint(u32, u32, u32),
+    ClearBreakpoint(u32, u32, u32),
     Pause(GenericSender<PauseFrameResult>),
 }
 
