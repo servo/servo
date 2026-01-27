@@ -14,8 +14,6 @@
     audio.addEventListener("play", () => playCount++);
     audio.addEventListener("playing", () => playingCount++);
 
-    let ran = false;
-
     function sleep(ms) {
       return new Promise(resolve => step_timeout(resolve, ms));
     }
@@ -26,14 +24,12 @@
     }
 
     async function maybeRunCheck() {
-      if (!sessionStorage.getItem("visited_a")) {
-        sessionStorage.setItem("visited_a", "1");
+      if (!parent.visitedA) {
+        parent.visitedA = true;
         post("ready_a");
         return;
       }
 
-      if (ran) return;
-      ran = true;
 
       const t0 = audio.currentTime;
       await sleep(1000);
