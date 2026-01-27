@@ -7,7 +7,9 @@ use std::char::{ToLowercase, ToUppercase};
 
 use icu_segmenter::WordSegmenter;
 use layout_api::wrapper_traits::{SharedSelection, ThreadSafeLayoutNode};
+use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
+use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextTransformCase;
 use unicode_bidi::Level;
 
@@ -22,7 +24,7 @@ use crate::dom::LayoutBox;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flow::float::FloatBox;
 use crate::flow::inline::AnonymousBlockBox;
-use crate::flow::{BlockContainer, BlockLevelBox, PseudoElement};
+use crate::flow::{BlockContainer, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::AbsolutelyPositionedBox;
@@ -306,6 +308,16 @@ impl InlineFormattingContextBuilder {
                 // a `TextTransformation` iterator.
                 Box::new(TextTransformation::new(collapsed, text_transform))
             },
+        };
+
+        let char_iterator = if info.style.clone__webkit_text_security() != WebKitTextSecurity::None
+        {
+            Box::new(TextSecurityTransform::new(
+                char_iterator,
+                info.style.clone__webkit_text_security(),
+            ))
+        } else {
+            char_iterator
         };
 
         let white_space_collapse = info.style.clone_white_space_collapse();
@@ -652,6 +664,49 @@ where
             }
         }
         None
+    }
+}
+
+pub struct TextSecurityTransform<InputIterator> {
+    /// The input character iterator.
+    char_iterator: InputIterator,
+    /// The `-webkit-text-security` value to use.
+    text_security: WebKitTextSecurity,
+}
+
+impl<InputIterator> TextSecurityTransform<InputIterator> {
+    pub fn new(char_iterator: InputIterator, text_security: WebKitTextSecurity) -> Self {
+        Self {
+            char_iterator,
+            text_security,
+        }
+    }
+}
+
+impl<InputIterator> Iterator for TextSecurityTransform<InputIterator>
+where
+    InputIterator: Iterator<Item = char>,
+{
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // The behavior of `-webkit-text-security` isn't specified, so we have some
+        // flexibility in the implementation. We just need to maintain a rough
+        // compatability with other browsers.
+        Some(match self.char_iterator.next()? {
+            // This is not ideal, but zero width space is used for some special reasons in
+            // `<input>` fields, so these remain untransformed, otherwise they would show up
+            // in empty text fields.
+            '\u{200B}' => '\u{200B}',
+            // Newlines are preserved, so that `<br>` keeps working as expected.
+            '\n' => '\n',
+            character => match self.text_security {
+                WebKitTextSecurity::None => character,
+                WebKitTextSecurity::Circle => '○',
+                WebKitTextSecurity::Disc => '●',
+                WebKitTextSecurity::Square => '■',
+            },
+        })
     }
 }
 
