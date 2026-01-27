@@ -123,6 +123,7 @@ impl HTMLDialogElement {
 
         // Step 11. Add an open attribute to subject, whose value is the empty string.
         subject.set_bool_attribute(&local_name!("open"), true, can_gc);
+        subject.set_open_state(true);
 
         // TODO: Step 12. Assert: subject's close watcher is not null.
 
@@ -190,6 +191,7 @@ impl HTMLDialogElement {
 
         // Step 5. Remove subject's open attribute.
         subject.remove_attribute(&ns!(), &local_name!("open"), can_gc);
+        subject.set_open_state(false);
 
         // TODO: Step 6. If is modal of subject is true, then request an element to be removed from the top layer given subject.
 
@@ -331,6 +333,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
 
         // Step 6. Add an open attribute to this, whose value is the empty string.
         element.set_bool_attribute(&local_name!("open"), true, can_gc);
+        element.set_open_state(true);
 
         // TODO: Step 7. Set this's previously focused element to the focused element.
 

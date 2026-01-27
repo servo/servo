@@ -4872,6 +4872,7 @@ impl SelectorsElement for SelectorWrapper<'_> {
             NonTSPseudoClass::MozMeterOptimum |
             NonTSPseudoClass::MozMeterSubOptimum |
             NonTSPseudoClass::MozMeterSubSubOptimum |
+            NonTSPseudoClass::Open |
             NonTSPseudoClass::Optional |
             NonTSPseudoClass::OutOfRange |
             NonTSPseudoClass::PlaceholderShown |
@@ -5277,6 +5278,14 @@ impl Element {
 
     pub(crate) fn set_read_write_state(&self, value: bool) {
         self.set_state(ElementState::READWRITE, value)
+    }
+
+    pub(crate) fn open_state(&self) -> bool {
+        self.state.get().contains(ElementState::OPEN)
+    }
+
+    pub(crate) fn set_open_state(&self, value: bool) {
+        self.set_state(ElementState::OPEN, value);
     }
 
     pub(crate) fn placeholder_shown_state(&self) -> bool {
