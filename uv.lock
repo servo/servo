@@ -864,16 +864,12 @@ wheels = [
 
 [[package]]
 name = "mozdebug"
-version = "0.4.0"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mozinfo" },
-    { name = "mozshellutil" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/da/1c/41bd0f151db8dd371627b336c66d30b9215e53394c5a0aafa25832c04b70/mozdebug-0.4.0.tar.gz", hash = "sha256:93b32e96f3569ad367a583d62835a03aa606141d768306f5a420dad5e2dbbbe1", size = 6907, upload-time = "2026-01-19T08:43:18.412Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/17/54/a811b8f19be1d5b924044e8213abc66c12bee6295075355827d576b3553e/mozdebug-0.4.0-py2.py3-none-any.whl", hash = "sha256:3aca1931a7c95b8d086a04eda5c94a7c0379caef5142239f09a9a02c63f5130a", size = 6520, upload-time = "2026-01-19T08:43:17.181Z" },
-]
+sdist = { url = "https://files.pythonhosted.org/packages/18/ac/50d9345aae3b7cae3b33fe81d4d219fe85c59e3a8cc24c1386adde5d9e17/mozdebug-0.3.1.tar.gz", hash = "sha256:a765d4ce572dba25bae1b9849c170ac829e5d2f92ad968e6e527543ebdc83c67", size = 6286, upload-time = "2024-04-30T10:25:58.746Z" }
 
 [[package]]
 name = "mozfile"
@@ -922,15 +918,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/3a/72/ecf7be35e24065c5780412627f4269a8bdae71eb42823d1416ea6968db11/mozprocess-1.4.0.tar.gz", hash = "sha256:6dbb6ebb5e01d6bdf1b24202719ad298331885aee088375e7e4372cdf9d5bb98", size = 21642, upload-time = "2024-08-19T15:40:38.39Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7c/a3/354e9f0c8b629319e6f6334beaf42e38eeb5ddc821c77e9082752b037d3f/mozprocess-1.4.0-py2.py3-none-any.whl", hash = "sha256:9a3b218dab0f1277275be7d89d673cd55b062519043a88a1a1a77eacefdfdf5e", size = 23105, upload-time = "2024-08-19T15:40:36.691Z" },
-]
-
-[[package]]
-name = "mozshellutil"
-version = "1.0.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/62/e9/a803b667df67ccc15f06b3690d1f794be1ea1afc93a1b3627f786077ff15/mozshellutil-1.0.0.tar.gz", hash = "sha256:8fa474d9f8c337835c0b022ddfaf86fb60c43d5488736d2f679508cea5ba70e2", size = 4182, upload-time = "2026-01-19T08:37:32.694Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/56/2b/6af95db5b6b346ae64ff8a351c4a9cf31ce9de0777e05f992f2edddfa69b/mozshellutil-1.0.0-py2.py3-none-any.whl", hash = "sha256:f1b149fd011a9da344d2e89603ce52fe0e2f4652e4625bde614abebfc4412124", size = 4135, upload-time = "2026-01-19T08:37:31.417Z" },
 ]
 
 [[package]]
@@ -1585,7 +1572,6 @@ dependencies = [
     { name = "mozinfo" },
     { name = "mozlog" },
     { name = "mozprocess" },
-    { name = "mozshellutil" },
     { name = "mozterm" },
     { name = "packaging" },
     { name = "pillow" },
@@ -1617,11 +1603,10 @@ requires-dist = [
     { name = "jsonschema", marker = "python_full_version < '3.9'", specifier = "==4.23.0" },
     { name = "jsonschema", marker = "python_full_version >= '3.9'", specifier = "==4.25.1" },
     { name = "mako", specifier = "==1.2.2" },
-    { name = "mozdebug", specifier = "==0.4.0" },
+    { name = "mozdebug", specifier = "==0.3.1" },
     { name = "mozinfo", specifier = "==1.2.3" },
     { name = "mozlog", specifier = "==8.0.0" },
     { name = "mozprocess", specifier = "==1.4.0" },
-    { name = "mozshellutil", specifier = "==1.0.0" },
     { name = "mozterm", specifier = "==1.0.0" },
     { name = "packaging", specifier = "==25.0" },
     { name = "pillow", marker = "python_full_version < '3.9'", specifier = "==10.4.0" },
