@@ -747,7 +747,7 @@ impl Fragment {
             include_whitespace,
         );
 
-        if glyphs.is_empty() {
+        if glyphs.is_empty() && !include_whitespace {
             return;
         }
 
