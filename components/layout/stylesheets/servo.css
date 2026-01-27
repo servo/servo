@@ -139,6 +139,13 @@ input[type="file"]:disabled::before {
   color: grey;
 }
 
+select::-servo-picker-icon {
+  content: "▾";
+  vertical-align: middle;
+  line-height: 1;
+  margin-inline-start: 5px;
+}
+
 input[type="file"]::before {
   content: "Choose File";
   display: inline-block;
