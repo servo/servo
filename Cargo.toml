@@ -245,6 +245,10 @@ opt-level = 1
 opt-level = 3
 debug-assertions = true
 
+[profile.real-release]
+inherits = "release"
+debug-assertions = false
+
 # Disk-space is limited in CI, so we disabled features that are not needed for code coverage.
 # Locally using the default `dev` profile is perfectly fine.
 [profile.coverage]
