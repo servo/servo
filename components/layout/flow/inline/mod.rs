@@ -1828,7 +1828,7 @@ impl InlineFormattingContext {
 
         let mut options = LineBreakOptions::default();
 
-        let strictness = match line_break {
+        options.strictness = match line_break {
             LineBreak::Loose => LineBreakStrictness::Loose,
             LineBreak::Normal => LineBreakStrictness::Normal,
             LineBreak::Strict => LineBreakStrictness::Strict,
@@ -1837,14 +1837,11 @@ impl InlineFormattingContext {
             // So it's fine if we always treat it as `normal`.
             LineBreak::Auto => LineBreakStrictness::Normal,
         };
-        let word_option = match word_break {
+        options.word_option = match word_break {
             WordBreak::Normal => LineBreakWordOption::Normal,
             WordBreak::BreakAll => LineBreakWordOption::BreakAll,
             WordBreak::KeepAll => LineBreakWordOption::KeepAll,
         };
-
-        options.strictness = strictness;
-        options.word_option = word_option;
         options.ja_zh = false; // TODO: This should be true if the writing system is Chinese or Japanese.
 
         let mut new_linebreaker = LineBreaker::new(text_content.as_str(), options);
