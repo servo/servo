@@ -4596,13 +4596,21 @@ impl Document {
             })
             .cloned();
 
-        self.document_or_shadow_root.add_stylesheet(
+        if self.has_browsing_context() {
+            let document_context = self.window.web_font_context();
+            self.window.layout_mut().add_stylesheet(
+                sheet.clone(),
+                insertion_point.as_ref().map(|s| s.sheet.clone()),
+                &document_context,
+            );
+        }
+
+        DocumentOrShadowRoot::add_stylesheet(
             StylesheetSource::Element(Dom::from_ref(owner_node)),
             StylesheetSetRef::Document(stylesheets),
             sheet,
             insertion_point,
             self.style_shared_lock(),
-            self.has_browsing_context(),
         );
     }
 
@@ -4623,13 +4631,21 @@ impl Document {
             .map(|(sheet, _origin)| sheet)
             .cloned();
 
-        self.document_or_shadow_root.add_stylesheet(
+        if self.has_browsing_context() {
+            let document_context = self.window.web_font_context();
+            self.window.layout_mut().add_stylesheet(
+                sheet.clone(),
+                insertion_point.as_ref().map(|s| s.sheet.clone()),
+                &document_context,
+            );
+        }
+
+        DocumentOrShadowRoot::add_stylesheet(
             StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),
             StylesheetSetRef::Document(stylesheets),
             sheet,
             insertion_point,
             self.style_shared_lock(),
-            self.has_browsing_context(),
         );
     }
 
@@ -4647,11 +4663,16 @@ impl Document {
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Owner needs to be rooted already necessarily.
     pub(crate) fn remove_stylesheet(&self, owner: StylesheetSource, stylesheet: &Arc<Stylesheet>) {
-        self.document_or_shadow_root.remove_stylesheet(
+        if self.has_browsing_context() {
+            self.window
+                .layout_mut()
+                .remove_stylesheet(stylesheet.clone())
+        }
+
+        DocumentOrShadowRoot::remove_stylesheet(
             owner,
             stylesheet,
             StylesheetSetRef::Document(&mut *self.stylesheets.borrow_mut()),
-            self.has_browsing_context(),
         )
     }
 
