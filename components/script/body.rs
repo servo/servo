@@ -99,7 +99,7 @@ struct TransmitBodyConnectHandler {
     stream: Trusted<ReadableStream>,
     task_source: SendableTaskSource,
     bytes_sender: Option<IpcSender<BodyChunkResponse>>,
-    control_sender: IpcSender<BodyChunkRequest>,
+    control_sender: Option<IpcSender<BodyChunkRequest>>,
     in_memory: Option<GenericSharedMemory>,
     in_memory_done: bool,
     source: BodySource,
@@ -117,7 +117,7 @@ impl TransmitBodyConnectHandler {
             stream,
             task_source,
             bytes_sender: None,
-            control_sender,
+            control_sender: Some(control_sender),
             in_memory,
             in_memory_done: false,
             source,
@@ -180,7 +180,7 @@ impl TransmitBodyConnectHandler {
             panic!("ReadableStream(Null) sources should not re-direct.");
         }
 
-        if let Some(bytes) = self.in_memory.clone() {
+        if let Some(bytes) = self.in_memory.take() {
             // The memoized bytes are sent so we mark it as done again
             self.in_memory_done = true;
             let _ = self
@@ -218,11 +218,16 @@ impl TransmitBodyConnectHandler {
     }
 
     /// Drop the IPC sender sent by `net`
+    /// It is important to drop the control_sender as this will allow us to clean ourselves up.
+    /// Otherwise, the following cycle will happen: The control sender is owned by us which keeps the control receiver
+    /// alive in the router which keeps us alive.
     fn stop_reading(&mut self, reason: StopReading) {
         let bytes_sender = self
             .bytes_sender
             .take()
             .expect("Stop reading called multiple times on TransmitBodyConnectHandler.");
+        let _ = self.in_memory.take();
+        let _ = self.control_sender.take();
         match reason {
             StopReading::Error => {
                 let _ = bytes_sender.send(BodyChunkResponse::Error);
@@ -249,7 +254,7 @@ impl TransmitBodyConnectHandler {
             .expect("No bytes sender to transmit chunk.");
 
         // In case of the data being in-memory, send everything in one chunk, by-passing SpiderMonkey.
-        if let Some(bytes) = self.in_memory.clone() {
+        if let Some(bytes) = self.in_memory.take() {
             let _ = bytes_sender.send(BodyChunkResponse::Chunk(bytes));
             // Mark this body as `done` so that we can stop reading in the next tick,
             // matching the behavior of the promise-based flow
@@ -272,13 +277,13 @@ impl TransmitBodyConnectHandler {
                 rooted!(in(*cx) let mut promise_handler = Some(TransmitBodyPromiseHandler {
                     bytes_sender: bytes_sender.clone(),
                     stream: Dom::from_ref(&rooted_stream.clone()),
-                    control_sender: control_sender.clone(),
+                    control_sender: control_sender.clone().unwrap(),
                 }));
 
                 rooted!(in(*cx) let mut rejection_handler = Some(TransmitBodyPromiseRejectionHandler {
                     bytes_sender,
                     stream: Dom::from_ref(&rooted_stream.clone()),
-                    control_sender,
+                    control_sender: control_sender.unwrap(),
                 }));
 
                 let handler =
