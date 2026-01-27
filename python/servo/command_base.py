@@ -481,53 +481,74 @@ class CommandBase(object):
     def msvc_package_dir(self, package: str) -> str:
         return servo.platform.windows.get_dependency_dir(package)
 
-    def get_current_clang_version(self, cc_string: str) -> Optional[str]:
+    def get_clang_major_version(self, cc: str) -> Optional[str]:
         try:
             result = subprocess.run(
-                [cc_string, "--version"],
+                [cc, "--version"],
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
             )
-            clang_version_full_string_split = result.stdout.lower().split()
-            for prev, curr in zip(clang_version_full_string_split, clang_version_full_string_split[1:]):
-                if prev == "version":
-                    return curr
-            return None
-        except (subprocess.CalledProcessError, FileNotFoundError) as _:
+        except (subprocess.CalledProcessError, FileNotFoundError):
             return None
 
-    def get_valid_clang_path_using_version_string(self, clang_version: str) -> Optional[str]:
-        cc_name = "clang-" + clang_version.split(".")[0]
-        return shutil.which(cc_name)
+        out = result.stdout.lower()
+        if "clang" not in out:
+            return None
 
-    def get_valid_clang_lib_path_using_path(self, clang_path_str: str) -> Optional[str]:
-        """
-        The Ubuntu the clanglib can be found in the `/usr/lib/llvm-[XX]/lib/` (ex: `/usr/lib/llvm-20/lib/`).
-        The Fedora installs clanglib in the `/usr/lib64/llvm[XX]/lib64/`.
+        for token in out.split():
+            if token[0].isdigit():
+                return token.split(".")[0]
 
-        In cases of macos and Ubuntu, the plan is to traverse up the clang path and go for the `../lib/`.
-        """
-        clang_path = Path(clang_path_str)
-        lib_path = clang_path.parent / "lib"
-
-        if lib_path.exists() and lib_path.is_dir():
-            return str(lib_path)
         return None
 
-    def get_correct_clang_lib_path_using_llvm(_) -> Optional[str]:
+    def get_llvm_config_for_clang(self, cc: str, clang_major: Optional[str]) -> Optional[str]:
+        cc_name = Path(cc).name
+
+        # clang (no suffix)
+        if cc_name == "clang":
+            path = shutil.which("llvm-config")
+            if path is not None:
+                return path
+            if clang_major is not None:
+                return shutil.which(f"llvm-config-{clang_major}")
+            return None
+
+        # clang-XX
+        if cc_name.startswith("clang-"):
+            suffix = cc_name.removeprefix("clang-")
+            return shutil.which(f"llvm-config-{suffix}")
+
+        return None
+
+    def get_libdir_from_llvm_config(self, llvm_config: str) -> Optional[str]:
         try:
             result = subprocess.run(
-                ["llvm-config", "--libdir"],
+                [llvm_config, "--libdir"],
                 check=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
             )
             return result.stdout.strip()
-        except (subprocess.CalledProcessError, FileNotFoundError) as _:
+        except (subprocess.CalledProcessError, FileNotFoundError):
             return None
+
+    def get_clang_libdir_from_cc_path(self, cc: str) -> Optional[str]:
+        cc_path = Path(cc).resolve()
+
+        candidates = [
+            cc_path.parent / "lib",
+            cc_path.parent.parent / "lib",
+            cc_path.parent.parent / "lib64",
+        ]
+
+        for p in candidates:
+            if p.exists() and p.is_dir():
+                return str(p)
+
+        return None
 
     def build_env(self) -> dict[str, str]:
         """Return an extended environment dictionary."""
@@ -556,23 +577,26 @@ class CommandBase(object):
 
         # The default clang of Ubuntu24.04 from apt seem to be clang-18
         # But mach seem to use the llvm's lib .so instead, so to sync, we can force LIBCLANG_PATH
-        clang_version = None
-        cc_str_from_env = os.getenv("CC")
-        if cc_str_from_env is not None:
-            clang_version = self.get_current_clang_version(cc_str_from_env)
-        cc_path = None
-        if clang_version is not None:
-            cc_path = self.get_valid_clang_path_using_version_string(clang_version)
+        cc = env.get("CC")
+        clang_major: Optional[str] = None
+        llvm_config: Optional[str] = None
+        libdir: Optional[str] = None
 
-        libdir = self.get_correct_clang_lib_path_using_llvm()
-        if libdir is not None:
-            env.setdefault("LIBCLANG_PATH", libdir)
+        if cc is not None:
+            clang_major = self.get_clang_major_version(cc)
 
-        if cc_path is not None:
-            env.setdefault("CLANG_PATH", cc_path)
-            libdir = self.get_valid_clang_lib_path_using_path(cc_path)
+        # Proceed only if CC is clang and LIBCLANG_PATH is not already set
+        if cc is not None and clang_major is not None and "LIBCLANG_PATH" not in env:
+            llvm_config = self.get_llvm_config_for_clang(cc, clang_major)
+
+            if llvm_config is not None:
+                libdir = self.get_libdir_from_llvm_config(llvm_config)
+
+            if libdir is None:
+                libdir = self.get_clang_libdir_from_cc_path(cc)
+
             if libdir is not None:
-                env.setdefault("LIBCLANG_PATH", libdir)
+                env["LIBCLANG_PATH"] = libdir
 
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"
