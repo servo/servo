@@ -99,7 +99,7 @@ struct TransmitBodyConnectHandler {
     stream: Trusted<ReadableStream>,
     task_source: SendableTaskSource,
     bytes_sender: Option<IpcSender<BodyChunkResponse>>,
-    control_sender: IpcSender<BodyChunkRequest>,
+    control_sender: Option<IpcSender<BodyChunkRequest>>,
     in_memory: Option<GenericSharedMemory>,
     in_memory_done: bool,
     source: BodySource,
@@ -117,7 +117,7 @@ impl TransmitBodyConnectHandler {
             stream,
             task_source,
             bytes_sender: None,
-            control_sender,
+            control_sender: Some(control_sender),
             in_memory,
             in_memory_done: false,
             source,
@@ -218,6 +218,9 @@ impl TransmitBodyConnectHandler {
     }
 
     /// Drop the IPC sender sent by `net`
+    /// It is important to drop the control_sender as this will allow us to clean ourselves up.
+    /// Otherwise, the following cycle will happen: The control sender is owned by us which keeps the control receiver
+    /// alive in the router which keeps us alive.
     fn stop_reading(&mut self, reason: StopReading) {
         let bytes_sender = self
             .bytes_sender
@@ -231,6 +234,7 @@ impl TransmitBodyConnectHandler {
                 let _ = bytes_sender.send(BodyChunkResponse::Done);
             },
         }
+        let _ = self.control_sender.take();
     }
 
     /// Step 4 and following of <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
@@ -272,13 +276,13 @@ impl TransmitBodyConnectHandler {
                 rooted!(in(*cx) let mut promise_handler = Some(TransmitBodyPromiseHandler {
                     bytes_sender: bytes_sender.clone(),
                     stream: Dom::from_ref(&rooted_stream.clone()),
-                    control_sender: control_sender.clone(),
+                    control_sender: control_sender.clone().unwrap(),
                 }));
 
                 rooted!(in(*cx) let mut rejection_handler = Some(TransmitBodyPromiseRejectionHandler {
                     bytes_sender,
                     stream: Dom::from_ref(&rooted_stream.clone()),
-                    control_sender,
+                    control_sender: control_sender.unwrap(),
                 }));
 
                 let handler =
