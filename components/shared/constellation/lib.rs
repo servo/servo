@@ -27,7 +27,7 @@ use embedder_traits::{
 pub use from_script_message::*;
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::PinchZoomInfos;
-use paint_api::largest_contentful_paint_candidate::LargestContentfulPaintType;
+use paint_api::largest_contentful_paint_candidate::ContentfulPaintType;
 use profile_traits::mem::MemoryReportResult;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -130,7 +130,7 @@ pub enum PaintMetricEvent {
     LargestContentfulPaint(
         CrossProcessInstant,
         usize, /* area */
-        LargestContentfulPaintType,
+        ContentfulPaintType,
     ),
 }
 

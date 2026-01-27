@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use base::cross_process_instant::CrossProcessInstant;
 use malloc_size_of_derive::MallocSizeOf;
-use paint_api::largest_contentful_paint_candidate::LargestContentfulPaintType;
+use paint_api::largest_contentful_paint_candidate::ContentfulPaintType;
 use profile_traits::time::{
     ProfilerCategory, ProfilerChan, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
     send_profile_data,
@@ -251,7 +251,7 @@ impl ProgressiveWebMetrics {
         &self,
         paint_time: CrossProcessInstant,
         area: usize,
-        lcp_type: LargestContentfulPaintType,
+        lcp_type: ContentfulPaintType,
     ) {
         set_metric(
             self,
