@@ -88,6 +88,8 @@ pub struct LoadData {
     pub load_origin: LoadOrigin,
     /// The URL.
     pub url: ServoUrl,
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-about-base-url>
+    pub about_base_url: Option<ServoUrl>,
     /// The creator pipeline id if this is an about:blank load.
     pub creator_pipeline_id: Option<PipelineId>,
     /// The method.
@@ -149,6 +151,7 @@ impl LoadData {
     pub fn new(
         load_origin: LoadOrigin,
         url: ServoUrl,
+        about_base_url: Option<ServoUrl>,
         creator_pipeline_id: Option<PipelineId>,
         referrer: Referrer,
         referrer_policy: ReferrerPolicy,
@@ -160,6 +163,7 @@ impl LoadData {
         Self {
             load_origin,
             url,
+            about_base_url,
             creator_pipeline_id,
             method: Method::GET,
             headers: HeaderMap::new(),
@@ -185,6 +189,7 @@ impl LoadData {
         Self::new(
             LoadOrigin::Constellation,
             url,
+            None,
             None,
             Referrer::NoReferrer,
             ReferrerPolicy::EmptyString,

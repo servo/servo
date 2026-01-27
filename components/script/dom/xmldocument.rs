@@ -55,6 +55,7 @@ impl XMLDocument {
                 window,
                 has_browsing_context,
                 url,
+                None,
                 origin,
                 is_html_document,
                 content_type,

@@ -248,6 +248,7 @@ impl ServoParser {
             window,
             HasBrowsingContext::No,
             Some(url.clone()),
+            context_document.about_base_url(),
             context_document.origin().clone(),
             IsHTMLDocument::HTMLDocument,
             None,
@@ -897,6 +898,8 @@ struct NavigationParams {
     final_sandboxing_flag_set: SandboxingFlagSet,
     /// <https://mimesniff.spec.whatwg.org/#resource-header>
     resource_header: Vec<u8>,
+    /// <https://html.spec.whatwg.org/multipage/#navigation-params-about-base-url>
+    about_base_url: Option<ServoUrl>,
 }
 
 /// The context required for asynchronously fetching a document
@@ -941,6 +944,7 @@ impl ParserContext {
                 link_headers: vec![],
                 final_sandboxing_flag_set: creation_sandboxing_flag_set,
                 resource_header: vec![],
+                about_base_url: Default::default(),
             },
         }
     }
@@ -950,6 +954,10 @@ impl ParserContext {
             return;
         };
         self.navigation_params.policy_container = policy_container.clone();
+    }
+
+    pub(crate) fn set_about_base_url(&mut self, about_base_url: Option<ServoUrl>) {
+        self.navigation_params.about_base_url = about_base_url;
     }
 
     /// <https://html.spec.whatwg.org/multipage/#creating-a-policy-container-from-a-fetch-response>
@@ -971,6 +979,7 @@ impl ParserContext {
         // Step 9. Let document be a new Document, with
         document.set_policy_container(self.navigation_params.policy_container.clone());
         document.set_active_sandboxing_flag_set(self.navigation_params.final_sandboxing_flag_set);
+        document.set_about_base_url(self.navigation_params.about_base_url.clone());
         // Step 17. Process link headers given document, navigationParams's response, and "pre-media".
         process_link_headers(
             &self.navigation_params.link_headers,
@@ -1290,6 +1299,7 @@ impl FetchResponseListener for ParserContext {
             content_type,
             final_sandboxing_flag_set,
             link_headers,
+            about_base_url: parser.document.about_base_url(),
             resource_header: vec![],
         };
         self.submit_resource_timing();

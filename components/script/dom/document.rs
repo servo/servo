@@ -318,8 +318,12 @@ pub(crate) struct Document {
     is_html_document: bool,
     #[no_trace]
     activity: Cell<DocumentActivity>,
+    /// <https://html.spec.whatwg.org/multipage/#the-document%27s-address>
     #[no_trace]
     url: DomRefCell<ServoUrl>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-document-about-base-url>
+    #[no_trace]
+    about_base_url: DomRefCell<Option<ServoUrl>>,
     #[ignore_malloc_size_of = "defined in selectors"]
     #[no_trace]
     quirks_mode: Cell<QuirksMode>,
@@ -911,31 +915,32 @@ impl Document {
         *self.url.borrow_mut() = url;
     }
 
+    pub(crate) fn about_base_url(&self) -> Option<ServoUrl> {
+        self.about_base_url.borrow().clone()
+    }
+
+    pub(crate) fn set_about_base_url(&self, about_base_url: Option<ServoUrl>) {
+        *self.about_base_url.borrow_mut() = about_base_url;
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#fallback-base-url>
     pub(crate) fn fallback_base_url(&self) -> ServoUrl {
-        // Step 1: If document is an iframe srcdoc document:
         let document_url = self.url();
+        // Step 1: If document is an iframe srcdoc document:
         if document_url.as_str() == "about:srcdoc" {
-            let base_url = self
-                .browsing_context()
-                .and_then(|browsing_context| browsing_context.creator_base_url());
-
             // Step 1.1: Assert: document's about base URL is non-null.
-            if base_url.is_none() {
-                error!("about:srcdoc page should always have a creator base URL");
-            }
-
             // Step 1.2: Return document's about base URL.
-            return base_url.unwrap_or(document_url);
+            return self
+                .about_base_url()
+                .expect("about:srcdoc page should always have an about base URL");
         }
 
         // Step 2: If document's URL matches about:blank and document's about base URL is
         // non-null, then return document's about base URL.
         if document_url.matches_about_blank() {
-            return self
-                .browsing_context()
-                .and_then(|browsing_context| browsing_context.creator_base_url())
-                .unwrap_or(document_url);
+            if let Some(about_base_url) = self.about_base_url() {
+                return about_base_url;
+            }
         }
 
         // Step 3: Return document's URL.
@@ -3688,6 +3693,7 @@ impl Document {
         window: &Window,
         has_browsing_context: HasBrowsingContext,
         url: Option<ServoUrl>,
+        about_base_url: Option<ServoUrl>,
         origin: MutableOrigin,
         is_html_document: IsHTMLDocument,
         content_type: Option<Mime>,
@@ -3752,6 +3758,7 @@ impl Document {
             content_type,
             last_modified,
             url: DomRefCell::new(url),
+            about_base_url: DomRefCell::new(about_base_url),
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(QuirksMode::NoQuirks),
             event_handler: DocumentEventHandler::new(window),
@@ -3980,6 +3987,7 @@ impl Document {
         window: &Window,
         has_browsing_context: HasBrowsingContext,
         url: Option<ServoUrl>,
+        about_base_url: Option<ServoUrl>,
         origin: MutableOrigin,
         doctype: IsHTMLDocument,
         content_type: Option<Mime>,
@@ -4003,6 +4011,7 @@ impl Document {
             None,
             has_browsing_context,
             url,
+            about_base_url,
             origin,
             doctype,
             content_type,
@@ -4029,6 +4038,7 @@ impl Document {
         proto: Option<HandleObject>,
         has_browsing_context: HasBrowsingContext,
         url: Option<ServoUrl>,
+        about_base_url: Option<ServoUrl>,
         origin: MutableOrigin,
         doctype: IsHTMLDocument,
         content_type: Option<Mime>,
@@ -4052,6 +4062,7 @@ impl Document {
                 window,
                 has_browsing_context,
                 url,
+                about_base_url,
                 origin,
                 doctype,
                 content_type,
@@ -4186,6 +4197,7 @@ impl Document {
                 let new_doc = Document::new(
                     self.window(),
                     HasBrowsingContext::No,
+                    None,
                     None,
                     // https://github.com/whatwg/html/issues/2109
                     MutableOrigin::new(ImmutableOrigin::new_opaque()),
@@ -4986,12 +4998,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Document>> {
+        // The new Document() constructor steps are to set this’s origin to the origin of current global object’s associated Document. [HTML]
         let doc = window.Document();
         let docloader = DocumentLoader::new(&doc.loader());
         Ok(Document::new_with_proto(
             window,
             proto,
             HasBrowsingContext::No,
+            None,
             None,
             doc.origin().clone(),
             IsHTMLDocument::NonHTMLDocument,
@@ -5042,6 +5056,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             window,
             HasBrowsingContext::No,
             Some(ServoUrl::parse("about:blank").unwrap()),
+            None,
             doc.origin().clone(),
             IsHTMLDocument::HTMLDocument,
             Some(content_type),

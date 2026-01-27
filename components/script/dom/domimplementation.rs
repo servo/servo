@@ -100,7 +100,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         .parse()
         .unwrap();
 
-        // Step 1.
+        // Step 1. Let document be a new XMLDocument.
         let doc = XMLDocument::new(
             win,
             HasBrowsingContext::No,
@@ -163,11 +163,14 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         let win = self.document.window();
         let loader = DocumentLoader::new(&self.document.loader());
 
-        // Step 1-2.
+        // Step 1. Let doc be a new document that is an HTML document.
+        // Step 2. Set doc’s content type to "text/html".
         let doc = Document::new(
             win,
             HasBrowsingContext::No,
             None,
+            None,
+            // Step 8. doc’s origin is this’s associated document’s origin.
             self.document.origin().clone(),
             IsHTMLDocument::HTMLDocument,
             None,
@@ -188,14 +191,15 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         );
 
         {
-            // Step 3.
+            // Step 3. Append a new doctype, with "html" as its name and with its node document set to doc, to doc.
             let doc_node = doc.upcast::<Node>();
             let doc_type = DocumentType::new(DOMString::from("html"), None, None, &doc, can_gc);
             doc_node.AppendChild(doc_type.upcast(), can_gc).unwrap();
         }
 
         {
-            // Step 4.
+            // Step 4. Append the result of creating an element given doc, "html",
+            // and the HTML namespace, to doc.
             let doc_node = doc.upcast::<Node>();
             let doc_html = DomRoot::upcast::<Node>(Element::create(
                 QualName::new(None, ns!(html), local_name!("html")),
@@ -211,7 +215,8 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                 .expect("Appending failed");
 
             {
-                // Step 5.
+                // Step 5. Append the result of creating an element given doc, "head",
+                // and the HTML namespace, to the html element created earlier.
                 let doc_head = DomRoot::upcast::<Node>(Element::create(
                     QualName::new(None, ns!(html), local_name!("head")),
                     None,
@@ -223,9 +228,10 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                 ));
                 doc_html.AppendChild(&doc_head, can_gc).unwrap();
 
-                // Step 6.
+                // Step 6. If title is given:
                 if let Some(title_str) = title {
-                    // Step 6.1.
+                    // Step 6.1. Append the result of creating an element given doc, "title",
+                    // and the HTML namespace, to the head element created earlier.
                     let doc_title = DomRoot::upcast::<Node>(Element::create(
                         QualName::new(None, ns!(html), local_name!("title")),
                         None,
@@ -237,13 +243,15 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                     ));
                     doc_head.AppendChild(&doc_title, can_gc).unwrap();
 
-                    // Step 6.2.
+                    // Step 6.2. Append a new Text node, with its data set to title (which could be the empty string)
+                    // and its node document set to doc, to the title element created earlier.
                     let title_text = Text::new(title_str, &doc, can_gc);
                     doc_title.AppendChild(title_text.upcast(), can_gc).unwrap();
                 }
             }
 
-            // Step 7.
+            // Step 7. Append the result of creating an element given doc, "body",
+            // and the HTML namespace, to the html element created earlier.
             let doc_body = Element::create(
                 QualName::new(None, ns!(html), local_name!("body")),
                 None,
@@ -256,10 +264,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             doc_html.AppendChild(doc_body.upcast(), can_gc).unwrap();
         }
 
-        // Step 8.
-        // The origin is already set
-
-        // Step 9.
+        // Step 9. Return doc.
         doc
     }
 

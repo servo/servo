@@ -874,6 +874,7 @@ impl HTMLFormElement {
         let mut load_data = LoadData::new(
             LoadOrigin::Script(doc.origin().snapshot()),
             action_components,
+            target_document.about_base_url(),
             None,
             target_window.as_global_scope().get_referrer(),
             target_document.get_referrer_policy(),

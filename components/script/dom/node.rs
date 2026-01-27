@@ -2944,6 +2944,8 @@ impl Node {
                 cdata.clone_with_data(cdata.Data(), &document, can_gc)
             },
             NodeTypeId::Document(_) => {
+                // Step 1. Set copy’s encoding, content type, URL, origin, type, mode,
+                // and allow declarative shadow roots, to those of node.
                 let document = node.downcast::<Document>().unwrap();
                 let is_html_doc = if document.is_html_document() {
                     IsHTMLDocument::HTMLDocument
@@ -2956,6 +2958,7 @@ impl Node {
                     window,
                     HasBrowsingContext::No,
                     Some(document.url()),
+                    None,
                     // https://github.com/whatwg/dom/issues/378
                     document.origin().clone(),
                     is_html_doc,
@@ -2975,6 +2978,9 @@ impl Node {
                     document.creation_sandboxing_flag_set(),
                     can_gc,
                 );
+                // Step 2. If node’s custom element registry’s is scoped is true,
+                // then set copy’s custom element registry to node’s custom element registry.
+                // TODO
                 DomRoot::upcast::<Node>(document)
             },
             // Step 2. If node is an element:

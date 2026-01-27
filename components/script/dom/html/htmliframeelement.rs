@@ -162,6 +162,7 @@ impl HTMLIFrameElement {
                 ) {
                     return;
                 }
+                load_data.about_base_url = document.about_base_url();
             }
         }
 
@@ -262,11 +263,11 @@ impl HTMLIFrameElement {
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
     fn process_the_iframe_attributes(&self, mode: ProcessingMode, can_gc: CanGc) {
-        // > 1. If `element`'s `srcdoc` attribute is specified, then:
-        if self
-            .upcast::<Element>()
-            .has_attribute(&local_name!("srcdoc"))
-        {
+        let element = self.upcast::<Element>();
+        // Step 1. If `element`'s `srcdoc` attribute is specified, then:
+        //
+        // Note that this also includes the empty string
+        if element.has_attribute(&local_name!("srcdoc")) {
             let url = ServoUrl::parse("about:srcdoc").unwrap();
             let document = self.owner_document();
             let window = self.owner_window();
@@ -274,6 +275,7 @@ impl HTMLIFrameElement {
             let mut load_data = LoadData::new(
                 LoadOrigin::Script(document.origin().snapshot()),
                 url,
+                Some(document.base_url()),
                 pipeline_id,
                 window.as_global_scope().get_referrer(),
                 document.get_referrer_policy(),
@@ -284,7 +286,6 @@ impl HTMLIFrameElement {
             );
             load_data.destination = Destination::IFrame;
             load_data.policy_container = Some(window.as_global_scope().policy_container());
-            let element = self.upcast::<Element>();
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
             self.navigate_or_reload_child_browsing_context(
                 load_data,
@@ -303,16 +304,14 @@ impl HTMLIFrameElement {
         if mode == ProcessingMode::FirstTime {
             if let Some(window) = self.GetContentWindow() {
                 window.set_name(
-                    self.upcast::<Element>()
+                    element
                         .get_name()
                         .map_or(DOMString::from(""), |n| DOMString::from(&*n)),
                 );
             }
         }
 
-        if mode == ProcessingMode::FirstTime &&
-            !self.upcast::<Element>().has_attribute(&local_name!("src"))
-        {
+        if mode == ProcessingMode::FirstTime && !element.has_attribute(&local_name!("src")) {
             return;
         }
 
@@ -360,16 +359,17 @@ impl HTMLIFrameElement {
             ancestor = a.parent().map(DomRoot::from_ref);
         }
 
-        let creator_pipeline_id = if url.as_str() == "about:blank" {
-            Some(window.pipeline_id())
+        let (creator_pipeline_id, about_base_url) = if url.matches_about_blank() {
+            (Some(window.pipeline_id()), Some(document.base_url()))
         } else {
-            None
+            (None, document.about_base_url())
         };
 
         let propagate_encoding_to_child_document = url.origin().same_origin(window.origin());
         let mut load_data = LoadData::new(
             LoadOrigin::Script(document.origin().snapshot()),
             url,
+            about_base_url,
             creator_pipeline_id,
             window.as_global_scope().get_referrer(),
             referrer_policy,
@@ -414,6 +414,7 @@ impl HTMLIFrameElement {
         let mut load_data = LoadData::new(
             LoadOrigin::Script(document.origin().snapshot()),
             url,
+            Some(document.base_url()),
             pipeline_id,
             window.as_global_scope().get_referrer(),
             document.get_referrer_policy(),

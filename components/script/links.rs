@@ -438,6 +438,7 @@ pub(crate) fn follow_hyperlink(
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().snapshot()),
             url,
+            document.about_base_url(),
             Some(pipeline_id),
             referrer,
             referrer_policy,

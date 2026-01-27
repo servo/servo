@@ -121,10 +121,6 @@ pub(crate) struct WindowProxy {
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     delaying_load_events_mode: Cell<bool>,
 
-    /// The creator browsing context's base url.
-    #[no_trace]
-    creator_base_url: Option<ServoUrl>,
-
     /// The creator browsing context's url.
     #[no_trace]
     creator_url: Option<ServoUrl>,
@@ -164,7 +160,6 @@ impl WindowProxy {
             parent: parent.map(Dom::from_ref),
             delaying_load_events_mode: Cell::new(false),
             opener,
-            creator_base_url: creator.base_url,
             creator_url: creator.url,
             creator_origin: creator.origin,
             script_window_proxies: ScriptThread::window_proxies(),
@@ -316,6 +311,7 @@ impl WindowProxy {
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().snapshot()),
             blank_url,
+            Some(document.base_url()),
             // This has the effect of ensuring that the new `about:blank` URL has the
             // same origin as the `Document` that is creating the new browsing context.
             Some(window.pipeline_id()),
@@ -416,11 +412,6 @@ impl WindowProxy {
     /// <https://html.spec.whatwg.org/multipage/#is-closing>
     pub(crate) fn is_closing(&self) -> bool {
         self.is_closing.get()
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#creator-base-url>
-    pub(crate) fn creator_base_url(&self) -> Option<ServoUrl> {
-        self.creator_base_url.clone()
     }
 
     #[expect(unsafe_code)]
@@ -550,7 +541,7 @@ impl WindowProxy {
             } else {
                 target_window.as_global_scope().get_referrer()
             };
-            // Propagate CSP list from opener to new document
+            // Propagate CSP list and about-base-url from opener to new document
             let csp_list = existing_document.get_csp_list();
             target_document.set_csp_list(csp_list);
 
@@ -560,6 +551,7 @@ impl WindowProxy {
             let mut load_data = LoadData::new(
                 LoadOrigin::Script(existing_document.origin().snapshot()),
                 url,
+                target_document.about_base_url(),
                 Some(target_window.pipeline_id()),
                 referrer,
                 target_document.get_referrer_policy(),
@@ -817,9 +809,6 @@ pub(crate) struct CreatorBrowsingContextInfo {
     /// Creator document URL.
     url: Option<ServoUrl>,
 
-    /// Creator document base URL.
-    base_url: Option<ServoUrl>,
-
     /// Creator document origin.
     origin: Option<ImmutableOrigin>,
 }
@@ -835,17 +824,12 @@ impl CreatorBrowsingContextInfo {
             (None, None) => None,
         };
 
-        let base_url = creator.as_deref().map(|document| document.base_url());
         let url = creator.as_deref().map(|document| document.url());
         let origin = creator
             .as_deref()
             .map(|document| document.origin().immutable().clone());
 
-        CreatorBrowsingContextInfo {
-            base_url,
-            url,
-            origin,
-        }
+        CreatorBrowsingContextInfo { url, origin }
     }
 }
 

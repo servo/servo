@@ -599,6 +599,7 @@ impl ScriptThread {
                     .senders
                     .pipeline_to_constellation_sender
                     .clone();
+                load_data.about_base_url = window.Document().about_base_url();
                 let task = task!(navigate_javascript: move || {
                     // Important re security. See https://github.com/servo/servo/issues/23373
                     if trusted_global.root().is::<Window>() {
@@ -3380,6 +3381,7 @@ impl ScriptThread {
             &window,
             HasBrowsingContext::Yes,
             Some(final_url.clone()),
+            incomplete.load_data.about_base_url,
             origin,
             is_html_document,
             content_type,
@@ -3811,11 +3813,13 @@ impl ScriptThread {
         };
 
         let policy_container = incomplete.load_data.policy_container.clone();
+        let about_base_url = incomplete.load_data.about_base_url.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let dummy_request_id = RequestId::default();
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());
+        context.set_about_base_url(about_base_url);
         context.process_response_chunk(dummy_request_id, chunk);
         context.process_response_eof(
             dummy_request_id,
@@ -3839,6 +3843,7 @@ impl ScriptThread {
 
         let webview_id = incomplete.webview_id;
         let pipeline_id = incomplete.pipeline_id;
+        let about_base_url = incomplete.load_data.about_base_url.clone();
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let mut context =
@@ -3847,6 +3852,7 @@ impl ScriptThread {
 
         context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());
+        context.set_about_base_url(about_base_url);
         context.process_response_chunk(dummy_request_id, chunk);
         context.process_response_eof(
             dummy_request_id,
