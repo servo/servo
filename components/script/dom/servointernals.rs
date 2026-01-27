@@ -96,7 +96,7 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
         if !Preferences::exists(&name) {
             return Err(Error::NotFound(None));
         }
-        let type_name = Preferences::type_of(&name);
+        let type_name = Preferences::type_of(&name).split("::").last().unwrap();
         Ok(USVString::from(type_name.to_string()))
     }
 

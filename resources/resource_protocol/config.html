@@ -58,7 +58,7 @@
         class PrefValueRow extends HTMLTableRowElement {
             connectedCallback() {
                 const pref = this.dataset.pref;
-                const ty = this.dataset.type; // "i64" or "alloc::string::String"
+                const ty = this.dataset.type; // "i64" or "String"
 
                 const nameCell = td("pref-name", pref);
 
@@ -79,7 +79,7 @@
                 if (ty === "i64") {
                     defaultValue = parseInt(this.dataset.default);
                     value = parseInt(this.dataset.value);
-                    valueSpan.textContent = String(value);
+                    valueSpan.textContent = value;
                     input.type = "number";
                     input.step = "1";
                     saveFn = () => {
@@ -91,7 +91,7 @@
                         }
                         navigator.servo.setIntPreference(pref, parsed);
                         value = parsed;
-                        valueSpan.textContent = String(value);
+                        valueSpan.textContent = value;
                         valueCell.classList.toggle("default", value !== defaultValue)
                         return true;
                     };
@@ -231,10 +231,10 @@
                     row.setAttribute("data-value", String(value));
                     row.setAttribute("data-default", String(defaultValue));
                     table.appendChild(row);
-                } else if (ty === "alloc::string::String") {
+                } else if (ty === "String") {
                     const row = document.createElement("tr", { is: "pref-value-row" });
                     row.setAttribute("data-pref", pref);
-                    row.setAttribute("data-type", "alloc::string::String");
+                    row.setAttribute("data-type", "String");
                     row.setAttribute("data-value", String(value));
                     row.setAttribute("data-default", String(defaultValue));
                     table.appendChild(row);
