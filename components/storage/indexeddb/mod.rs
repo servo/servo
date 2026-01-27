@@ -227,9 +227,13 @@ enum OpenRequest {
         /// Used as <https://w3c.github.io/IndexedDB/#request-processed-flag>
         pending_upgrade: Option<VersionUpgrade>,
 
-        /// Whether opening this connection is pending on other connections to close.
+        /// This request is pending on these connections to close.
         pending_close: HashSet<Uuid>,
 
+        /// This request is pending on these connections to fire a versionchange event.
+        /// Note: This starts as equal to `pending_close`, but when all events have fired,
+        /// not all connections need to have closed, in which case the `blocked` event
+        /// is fired on this request.
         pending_versionchange: HashSet<Uuid>,
 
         id: Uuid,

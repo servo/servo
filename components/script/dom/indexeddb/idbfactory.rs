@@ -50,7 +50,6 @@ pub struct IDBFactory {
         DomRefCell<HashMapTracedValues<DBName, HashMapTracedValues<Uuid, Dom<IDBOpenDBRequest>>>>,
 
     #[no_trace]
-    #[ignore_malloc_size_of = "GenericCallback"]
     callback: DomRefCell<Option<GenericCallback<ConnectionMsg>>>,
 }
 
@@ -119,7 +118,7 @@ impl IDBFactory {
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     /// The steps that continue on the script-thread.
     /// This covers interacting with the current open request,
-    /// as well as with other open connectins preventing the request from making progress.
+    /// as well as with other open connections preventing the request from making progress.
     fn handle_connection_message(&self, response: ConnectionMsg, can_gc: CanGc) {
         match response {
             ConnectionMsg::Connection {
