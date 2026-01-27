@@ -2,22 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel::GenericSend;
+use base::generic_channel;
+use base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
-use ipc_channel::ipc::IpcSender;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::gc::MutableHandleValue;
 use js::jsval::NullValue;
 use js::rust::HandleValue;
-use profile_traits::ipc;
+use profile_traits::generic_channel::channel;
 use script_bindings::codegen::GenericBindings::IDBObjectStoreBinding::IDBIndexParameters;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
-use script_bindings::conversions::SafeToJSValConvertible;
-use profile_traits::generic_channel::channel;
 use script_bindings::error::ErrorResult;
 use storage_traits::indexeddb::{
-    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyType,
+    self, AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyType,
     IndexedDBThreadMsg, SyncOperation,
 };
 
@@ -63,20 +61,18 @@ impl From<StringOrStringSequence> for KeyPath {
     }
 }
 
-impl From<indexeddb_thread::KeyPath> for KeyPath {
-    fn from(value: indexeddb_thread::KeyPath) -> Self {
+impl From<indexeddb::KeyPath> for KeyPath {
+    fn from(value: indexeddb::KeyPath) -> Self {
         match value {
-            indexeddb_thread::KeyPath::String(s) => {
-                KeyPath::String(DOMString::from_string(s))
-            },
-            indexeddb_thread::KeyPath::Sequence(ss) => {
+            indexeddb::KeyPath::String(s) => KeyPath::String(DOMString::from_string(s)),
+            indexeddb::KeyPath::Sequence(ss) => {
                 KeyPath::StringSequence(ss.into_iter().map(DOMString::from_string).collect())
             },
         }
     }
 }
 
-impl From<KeyPath> for indexeddb_thread::KeyPath {
+impl From<KeyPath> for indexeddb::KeyPath {
     fn from(item: KeyPath) -> Self {
         match item {
             KeyPath::String(s) => Self::String(s.to_string()),
@@ -157,7 +153,7 @@ impl IDBObjectStore {
         self.transaction.as_rooted()
     }
 
-    fn get_idb_thread(&self) -> IpcSender<IndexedDBThreadMsg> {
+    fn get_idb_thread(&self) -> GenericSender<IndexedDBThreadMsg> {
         self.global().storage_threads().sender()
     }
 
@@ -728,19 +724,19 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.check_transaction_active()?;
         // Step 6. If an index named name already exists in store, throw a "ConstraintError" DOMException.
         if self.index_names.borrow().contains(&name) {
-            return Err(Error::Constraint);
+            return Err(Error::Constraint(None));
         }
         // TODO: Step 7. If keyPath is not a valid key path, throw a "SyntaxError" DOMException.
         // TODO: Step 8. Let unique be set if options’s unique member is true, and unset otherwise.
         // TODO: Step 9. Let multiEntry be set if options’s multiEntry member is true, and unset otherwise.
         // Step 10. If keyPath is a sequence and multiEntry is set, throw an "InvalidAccessError" DOMException.
         if matches!(key_path, KeyPath::StringSequence(_)) && options.multiEntry {
-            return Err(Error::InvalidAccess);
+            return Err(Error::InvalidAccess(None));
         }
         // Step 11. Let index be a new index in store.
         // Set index’s name to name and key path to keyPath. If unique is set, set index’s unique flag.
         // If multiEntry is set, set index’s multiEntry flag.
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let create_index_operation = SyncOperation::CreateIndex(
             sender,
             self.global().origin().immutable().clone(),
@@ -756,11 +752,11 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             .send(IndexedDBThreadMsg::Sync(create_index_operation))
             .is_err()
         {
-            return Err(Error::Operation);
+            return Err(Error::Operation(None));
         }
         let result = receiver.recv().unwrap();
         if result.is_err() {
-            return Err(Error::Operation);
+            return Err(Error::Operation(None));
         }
         // Step 12. Add index to this object store handle's index set.
         self.index_names.borrow_mut().push(name.clone());
@@ -792,7 +788,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 7. Remove index from this object store handle's index set.
         self.index_names.borrow_mut().retain(|n| n != &name);
         // Step 8. Destroy index.
-        let (sender, receiver) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let delete_index_operation = SyncOperation::DeleteIndex(
             sender,
             self.global().origin().immutable().clone(),
@@ -805,7 +801,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             .unwrap();
         let result = receiver.recv().unwrap();
         if result.is_err() {
-            return Err(Error::Operation);
+            return Err(Error::Operation(None));
         }
         Ok(())
     }
