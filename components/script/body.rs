@@ -180,7 +180,7 @@ impl TransmitBodyConnectHandler {
             panic!("ReadableStream(Null) sources should not re-direct.");
         }
 
-        if let Some(bytes) = self.in_memory.take() {
+        if let Some(bytes) = self.in_memory.clone() {
             // The memoized bytes are sent so we mark it as done again
             self.in_memory_done = true;
             let _ = self
@@ -226,8 +226,6 @@ impl TransmitBodyConnectHandler {
             .bytes_sender
             .take()
             .expect("Stop reading called multiple times on TransmitBodyConnectHandler.");
-        let _ = self.in_memory.take();
-        let _ = self.control_sender.take();
         match reason {
             StopReading::Error => {
                 let _ = bytes_sender.send(BodyChunkResponse::Error);
@@ -236,6 +234,7 @@ impl TransmitBodyConnectHandler {
                 let _ = bytes_sender.send(BodyChunkResponse::Done);
             },
         }
+        let _ = self.control_sender.take();
     }
 
     /// Step 4 and following of <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
@@ -254,7 +253,7 @@ impl TransmitBodyConnectHandler {
             .expect("No bytes sender to transmit chunk.");
 
         // In case of the data being in-memory, send everything in one chunk, by-passing SpiderMonkey.
-        if let Some(bytes) = self.in_memory.take() {
+        if let Some(bytes) = self.in_memory.clone() {
             let _ = bytes_sender.send(BodyChunkResponse::Chunk(bytes));
             // Mark this body as `done` so that we can stop reading in the next tick,
             // matching the behavior of the promise-based flow
