@@ -110,8 +110,9 @@ impl CanvasContext for CanvasRenderingContext2D {
     }
 
     fn resize(&self) {
-        self.reflector_
-            .set_new_size(self.size().cast::<usize>().area() + size_of::<Box<Self>>() + size_of::<Self>());
+        self.reflector_.set_new_size(
+            self.size().cast::<usize>().area() + size_of::<Box<Self>>() + size_of::<Self>(),
+        );
         self.canvas_state.set_bitmap_dimensions(self.size().cast());
     }
 
