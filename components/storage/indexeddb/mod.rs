@@ -803,7 +803,7 @@ impl IndexedDBManager {
         });
     }
 
-    /// https://w3c.github.io/IndexedDB/#open-a-database-connection
+    /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     fn handle_version_change_done(
         &mut self,
         name: String,
