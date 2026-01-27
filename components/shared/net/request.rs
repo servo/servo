@@ -295,6 +295,8 @@ pub enum BodyChunkResponse {
 /// Messages used to implement <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
 /// which are sent from net to script
 /// (with the exception of Done, which is sent from script to script).
+/// Using these in combination with ROUTER is dangerous and can lead to ownership loops
+/// that are not apparent.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum BodyChunkRequest {
     /// Connect a fetch in `net`, with a stream of bytes from `script`.

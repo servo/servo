@@ -708,9 +708,11 @@ async fn obtain_response(
 
             let devtools_bytes = devtools_bytes.clone();
 
-            // There is a dependency cycle here. chunk_requester is from a `ResponseBody` which was constructed in
-            // `TransmitBodyConnectHandler`. That struct will never be dropped unless it gets the `BodyChunkResponse::Done` message.\
-            //
+            // There is a dependency cycle here. `TransmitBodyConnectHandler` is creating the `chunk_requester` which it also owns a copy of
+            // (see documentation there). Here we take the chunk_requester, put it into a ROUTER which keeps it alive until `body_port`
+            // dies which is kept alive until `TransmitBodyConnectHandler` ...
+            // The whole ownership chains is: `TransmitBodyConnectHandler` <- body_chan <- body_port <- chunk_requester <- `TransmitBodyConnectHandler```
+            // We interrupt this chain by sending `BodyChunkRequest::Done`/`BodyChunkRequest::Error` which will drop the channel from `TransmitBodyConnectHandler`.
             ROUTER.add_typed_route(
                 body_port,
                 Box::new(move |message| {
