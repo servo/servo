@@ -466,6 +466,14 @@ impl HTMLSelectElement {
             .filter_map(DomRoot::downcast::<Element>)
             .find(|element| element.local_name() == &local_name!("selectedcontent"))
     }
+
+    fn update_list_box_state(&self) {
+        let multiple = self.Multiple();
+        let size = self.Size();
+
+        let is_listbox = size > 1 || (size == 0 && multiple);
+        self.upcast::<Element>().set_list_box_state(is_listbox);
+    }
 }
 
 impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
@@ -710,6 +718,12 @@ impl VirtualMethods for HTMLSelectElement {
             },
             local_name!("form") => {
                 self.form_attribute_mutated(mutation, can_gc);
+            },
+            local_name!("multiple") => {
+                self.update_list_box_state();
+            },
+            local_name!("size") => {
+                self.update_list_box_state();
             },
             _ => {},
         }

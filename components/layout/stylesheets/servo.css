@@ -74,7 +74,7 @@ textarea::selection {
 
 /* Button type inputs */
 button,
-select,
+select:not(:-servo-list-box),
 input[type="button"],
 input[type="submit"],
 input[type="reset"],
@@ -97,7 +97,7 @@ input[type="file"]::before {
 }
 
 button:hover,
-select:hover,
+select:not(:-servo-list-box):hover,
 input[type="button"]:hover,
 input[type="submit"]:hover,
 input[type="reset"]:hover,
@@ -107,7 +107,7 @@ input[type="file"]:hover::before {
 }
 
 button:active,
-select:active,
+select:not(:-servo-list-box):active,
 input[type="button"]:active,
 input[type="submit"]:active,
 input[type="reset"]:active,
@@ -118,7 +118,7 @@ input[type="file"]:active::before {
 }
 
 button:focus,
-select:focus,
+select:not(:-servo-list-box):focus,
 input[type="button"]:focus,
 input[type="submit"]:focus,
 input[type="reset"]:focus,
@@ -128,7 +128,7 @@ input[type="file"]:focus::before {
 }
 
 button:disabled,
-select:disabled,
+select:not(:-servo-list-box):disabled,
 input[type="button"]:disabled,
 input[type="submit"]:disabled,
 input[type="reset"]:disabled,

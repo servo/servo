@@ -4879,6 +4879,7 @@ impl SelectorsElement for SelectorWrapper<'_> {
             NonTSPseudoClass::PopoverOpen |
             NonTSPseudoClass::ReadWrite |
             NonTSPseudoClass::Required |
+            NonTSPseudoClass::ServoListBox |
             NonTSPseudoClass::Target |
             NonTSPseudoClass::UserInvalid |
             NonTSPseudoClass::UserValid |
@@ -5270,6 +5271,14 @@ impl Element {
 
     pub(crate) fn set_disabled_state(&self, value: bool) {
         self.set_state(ElementState::DISABLED, value)
+    }
+
+    pub(crate) fn list_box_state(&self) -> bool {
+        self.state.get().contains(ElementState::LIST_BOX)
+    }
+
+    pub(crate) fn set_list_box_state(&self, value: bool) {
+        self.set_state(ElementState::LIST_BOX, value)
     }
 
     pub(crate) fn read_write_state(&self) -> bool {

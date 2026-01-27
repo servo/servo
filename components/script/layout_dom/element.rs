@@ -906,6 +906,7 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
             NonTSPseudoClass::PopoverOpen |
             NonTSPseudoClass::ReadWrite |
             NonTSPseudoClass::Required |
+            NonTSPseudoClass::ServoListBox |
             NonTSPseudoClass::Target |
             NonTSPseudoClass::UserInvalid |
             NonTSPseudoClass::UserValid |
