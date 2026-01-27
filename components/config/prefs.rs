@@ -148,6 +148,7 @@ pub struct Preferences {
     // feature: ResizeObserver | #39790 | Web/API/ResizeObserver
     pub dom_resize_observer_enabled: bool,
     pub dom_script_asynch: bool,
+    pub dom_select_list_box_enabled: bool,
     // feature: ServiceWorker | #36538 | Web/API/Service_Worker_API
     pub dom_serviceworker_enabled: bool,
     pub dom_serviceworker_timeout_seconds: i64,
@@ -366,6 +367,7 @@ impl Preferences {
             dom_permissions_testing_allowed_in_nonsecure_contexts: false,
             dom_resize_observer_enabled: true,
             dom_script_asynch: true,
+            dom_select_list_box_enabled: false,
             dom_serviceworker_enabled: false,
             dom_serviceworker_timeout_seconds: 60,
             dom_servo_helpers_enabled: false,

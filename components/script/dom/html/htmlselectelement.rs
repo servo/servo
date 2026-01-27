@@ -12,6 +12,7 @@ use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
+use servo_config::pref;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed};
@@ -708,6 +709,19 @@ impl VirtualMethods for HTMLSelectElement {
             },
             local_name!("form") => {
                 self.form_attribute_mutated(mutation, can_gc);
+            },
+            local_name!("multiple") => {
+                if pref!(dom_select_list_box_enabled) {
+                    let el = self.upcast::<Element>();
+                    match mutation {
+                        AttributeMutation::Set(..) => {
+                            el.set_list_box_state(true);
+                        },
+                        AttributeMutation::Removed => {
+                            el.set_list_box_state(false);
+                        },
+                    }
+                }
             },
             _ => {},
         }
