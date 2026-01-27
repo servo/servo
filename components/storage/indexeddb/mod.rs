@@ -212,10 +212,6 @@ enum OpenRequest {
         /// The callback used to send a result to script.
         sender: GenericCallback<ConnectionMsg>,
 
-        /// The origin of the request.
-        /// TODO: storage key.
-        origin: ImmutableOrigin,
-
         /// The name of the database.
         db_name: String,
 
@@ -263,7 +259,6 @@ impl OpenRequest {
         let id = match self {
             OpenRequest::Open {
                 sender: _,
-                origin: _,
                 db_name: _,
                 version: _,
                 pending_upgrade: _,
@@ -286,7 +281,6 @@ impl OpenRequest {
         match self {
             OpenRequest::Open {
                 sender: _,
-                origin: _,
                 db_name: _,
                 version: _,
                 pending_upgrade: _,
@@ -310,7 +304,6 @@ impl OpenRequest {
         match self {
             OpenRequest::Open {
                 sender: _,
-                origin: _,
                 db_name: _,
                 version: _,
                 pending_upgrade,
@@ -338,7 +331,6 @@ impl OpenRequest {
         match self {
             OpenRequest::Open {
                 sender,
-                origin: _,
                 db_name,
                 version: _,
                 pending_close: _,
@@ -380,9 +372,6 @@ struct VersionUpgrade {
 
 /// <https://w3c.github.io/IndexedDB/#connection>
 struct Connection {
-    /// <https://w3c.github.io/IndexedDB/#connection-version>
-    version: u64,
-
     /// <https://w3c.github.io/IndexedDB/#connection-close-pending-flag>
     close_pending: bool,
 
@@ -485,7 +474,6 @@ impl IndexedDBManager {
         };
         let OpenRequest::Open {
             sender,
-            origin: _,
             db_name,
             version: _,
             pending_upgrade,
@@ -570,15 +558,15 @@ impl IndexedDBManager {
 
     fn remove_connection(&mut self, key: &IndexedDBDescription, id: &Uuid) {
         let is_empty = {
-            let Some(connections) = self.connections.get_mut(&key) else {
+            let Some(connections) = self.connections.get_mut(key) else {
                 return debug!("Connection already removed.");
             };
-            connections.remove(&id);
+            connections.remove(id);
             connections.is_empty()
         };
 
         if is_empty {
-            self.connections.remove(&key);
+            self.connections.remove(key);
         }
     }
 
@@ -691,7 +679,6 @@ impl IndexedDBManager {
         };
         let open_request = OpenRequest::Open {
             sender,
-            origin,
             db_name,
             version,
             pending_close: Default::default(),
@@ -754,7 +741,6 @@ impl IndexedDBManager {
         };
         let OpenRequest::Open {
             sender,
-            origin: _,
             db_name,
             version: _,
             id,
@@ -838,7 +824,6 @@ impl IndexedDBManager {
             };
             let OpenRequest::Open {
                 sender,
-                origin: _,
                 db_name: _,
                 version,
                 id,
@@ -864,7 +849,7 @@ impl IndexedDBManager {
                 return;
             }
 
-            let Some(version) = version.clone() else {
+            let Some(version) = *version else {
                 return debug_assert!(
                     false,
                     "An upgrade version should have been determined by now."
@@ -874,18 +859,17 @@ impl IndexedDBManager {
             // Step 10.4: If any of the connections in openConnections are still not closed,
             // queue a database task to fire a version change event named blocked
             // at request with db’s version and version.
-            if !pending_close.is_empty() {
-                if sender
+            if !pending_close.is_empty() &&
+                sender
                     .send(ConnectionMsg::Blocked {
                         name,
                         id: *id,
-                        version: version.clone(),
+                        version,
                         old_version,
                     })
                     .is_err()
-                {
-                    return debug!("Script exit during indexeddb database open");
-                }
+            {
+                return debug!("Script exit during indexeddb database open");
             }
 
             (pending_close.is_empty(), version)
@@ -915,7 +899,6 @@ impl IndexedDBManager {
         };
         let OpenRequest::Open {
             sender,
-            origin: _,
             db_name,
             version,
             id,
@@ -931,7 +914,7 @@ impl IndexedDBManager {
         };
 
         let idb_base_dir = self.idb_base_dir.as_path();
-        let requested_version = version.clone();
+        let requested_version = *version;
 
         // Step 4: Let db be the database named name in origin, or null otherwise.
         let db_version = match self.databases.entry(key.clone()) {
@@ -1005,7 +988,7 @@ impl IndexedDBManager {
             },
         };
 
-        let Some(version) = version.clone() else {
+        let Some(version) = *version else {
             return debug_assert!(
                 false,
                 "An upgrade version should have been determined by now."
@@ -1031,7 +1014,6 @@ impl IndexedDBManager {
         // Step 8: Let connection be a new connection to db.
         // Step 9: Set connection’s version to version.
         let connection = Connection {
-            version,
             close_pending: false,
             sender: sender.clone(),
         };
@@ -1054,7 +1036,7 @@ impl IndexedDBManager {
                     .send(ConnectionMsg::VersionChange {
                         name: db_name.clone(),
                         id: *id_to_close,
-                        version: version,
+                        version,
                         old_version: db_version,
                     })
                     .is_err()
@@ -1225,7 +1207,6 @@ impl IndexedDBManager {
             };
             if let OpenRequest::Open {
                 sender: _,
-                origin: _,
                 db_name: _,
                 version,
                 id: _,
@@ -1240,7 +1221,7 @@ impl IndexedDBManager {
                     pending_close.is_empty() &&
                         pending_versionchange.is_empty() &&
                         !pending_upgrade.is_some(),
-                    version.clone(),
+                    *version,
                 )
             } else {
                 (false, None)

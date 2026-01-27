@@ -97,14 +97,14 @@ impl IDBFactory {
         callback
     }
 
-    fn get_request(&self, name: &String, request_id: &Uuid) -> Option<DomRoot<IDBOpenDBRequest>> {
-        let name = DBName(name.clone());
+    fn get_request(&self, name: String, request_id: &Uuid) -> Option<DomRoot<IDBOpenDBRequest>> {
+        let name = DBName(name);
         let mut pending = self.connections.borrow_mut();
         let Some(entry) = pending.get_mut(&name) else {
             debug_assert!(false, "There should be a pending connection for {:?}", name);
             return None;
         };
-        let Some(request) = entry.get_mut(&request_id) else {
+        let Some(request) = entry.get_mut(request_id) else {
             debug_assert!(
                 false,
                 "There should be a pending connection for {:?}",
@@ -127,7 +127,7 @@ impl IDBFactory {
                 version,
                 upgraded,
             } => {
-                let Some(request) = self.get_request(&name, &id) else {
+                let Some(request) = self.get_request(name.clone(), &id) else {
                     return debug_assert!(
                         false,
                         "There should be a request to handle ConnectionMsg::Connection."
@@ -149,7 +149,7 @@ impl IDBFactory {
             } => {
                 let global = self.global();
 
-                let Some(request) = self.get_request(&name, &id) else {
+                let Some(request) = self.get_request(name.clone(), &id) else {
                     return debug_assert!(
                         false,
                         "There should be a request to handle ConnectionMsg::Upgrade."
@@ -179,7 +179,7 @@ impl IDBFactory {
                 old_version,
             } => {
                 let global = self.global();
-                let Some(request) = self.get_request(&name, &id) else {
+                let Some(request) = self.get_request(name.clone(), &id) else {
                     return debug_assert!(
                         false,
                         "There should be a request to handle ConnectionMsg::VersionChange."
@@ -189,11 +189,7 @@ impl IDBFactory {
                     request.get_or_init_connection(&global, name.clone(), version, false, can_gc);
 
                 // Step 10.2: fire a version change event named versionchange at entry with db’s version and version.
-                connection.dispatch_versionchange(
-                    old_version.clone(),
-                    Some(version.clone()),
-                    can_gc,
-                );
+                connection.dispatch_versionchange(old_version, Some(version), can_gc);
 
                 // Step 10.3: Wait for all of the events to be fired.
                 // Note: backend is at this step; sending a message to continue algo there.
@@ -217,7 +213,7 @@ impl IDBFactory {
                 version,
                 old_version,
             } => {
-                let Some(request) = self.get_request(&name, &id) else {
+                let Some(request) = self.get_request(name, &id) else {
                     return debug_assert!(
                         false,
                         "There should be a request to handle ConnectionMsg::VersionChange."
@@ -225,7 +221,7 @@ impl IDBFactory {
                 };
 
                 // Step 10.4: fire a version change event named blocked at request with db’s version and version.
-                request.dispatch_blocked(old_version.clone(), Some(version.clone()), can_gc);
+                request.dispatch_blocked(old_version, Some(version), can_gc);
             },
         }
     }
