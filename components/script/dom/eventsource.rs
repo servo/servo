@@ -8,6 +8,7 @@ use std::str::{Chars, FromStr};
 use std::time::Duration;
 
 use dom_struct::dom_struct;
+use encoding_rs::{Decoder, UTF_8};
 use headers::ContentType;
 use http::StatusCode;
 use http::header::{self, HeaderName, HeaderValue};
@@ -19,7 +20,7 @@ use net_traits::{FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTim
 use script_bindings::conversions::SafeToJSValConvertible;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
-use encoding_rs::{UTF_8, Decoder};
+
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
     EventSourceInit, EventSourceMethods,
@@ -430,8 +431,10 @@ impl FetchResponseListener for EventSourceContext {
     }
 
     fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
-        let mut output = String::with_capacity(chunk.len()*3);
-        let (result, _bytes_read) = self.decoder.decode_to_string_without_replacement(&chunk, &mut output, false);
+        let mut output = String::with_capacity(chunk.len() * 3);
+        let (result, _bytes_read) =
+            self.decoder
+                .decode_to_string_without_replacement(&chunk, &mut output, false);
 
         match result {
             encoding_rs::DecoderResult::InputEmpty => {
@@ -454,14 +457,16 @@ impl FetchResponseListener for EventSourceContext {
         timing: ResourceFetchTiming,
     ) {
         let mut output = String::new();
-        let (result, _) = self.decoder.decode_to_string_without_replacement(&[], &mut output, true);
-        if !output.is_empty(){
+        let (result, _) = self
+            .decoder
+            .decode_to_string_without_replacement(&[], &mut output, true);
+        if !output.is_empty() {
             self.parse(output.chars(), CanGc::note());
         }
-        if matches!(result, encoding_rs::DecoderResult::Malformed(_, _)){
+        if matches!(result, encoding_rs::DecoderResult::Malformed(_, _)) {
             self.parse("\u{FFFD}".chars(), CanGc::note());
         }
-        if response.is_ok(){
+        if response.is_ok() {
             self.reestablish_the_connection();
         }
 
