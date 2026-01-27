@@ -182,7 +182,7 @@ impl HTMLLinkElement {
                     &self.owner_window(),
                     Some(self.upcast::<Element>()),
                     "text/css".into(),
-                    None, // todo handle location
+                    Some(self.Href().into()),
                     None, // todo handle title
                     sheet,
                     None, // constructor_document
@@ -193,7 +193,11 @@ impl HTMLLinkElement {
     }
 
     pub(crate) fn is_alternate(&self) -> bool {
-        self.relations.get().contains(LinkRelations::ALTERNATE)
+        self.relations.get().contains(LinkRelations::ALTERNATE) &&
+            !self
+                .upcast::<Element>()
+                .get_string_attribute(&local_name!("title"))
+                .is_empty()
     }
 
     pub(crate) fn is_effectively_disabled(&self) -> bool {
