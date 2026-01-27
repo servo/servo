@@ -732,7 +732,7 @@ impl CoreResourceManager {
                 state: http_state,
                 user_agent: servo_config::pref!(user_agent),
                 devtools_chan,
-                filemanager: Arc::new(Mutex::new(filemanager)),
+                filemanager,
                 file_token,
                 request_interceptor: Arc::new(TokioMutex::new(request_interceptor)),
                 cancellation_listener,
@@ -770,7 +770,6 @@ impl CoreResourceManager {
             if let Some(id) = blob_url_file_id.as_ref() {
                 context
                     .filemanager
-                    .lock()
                     .invalidate_token(&context.file_token, id);
             }
         });
@@ -817,7 +816,7 @@ impl CoreResourceManager {
                         state: http_state,
                         user_agent: servo_config::pref!(user_agent),
                         devtools_chan,
-                        filemanager: Arc::new(Mutex::new(filemanager)),
+                        filemanager,
                         file_token: FileTokenCheck::NotRequired,
                         request_interceptor: Arc::new(TokioMutex::new(request_interceptor)),
                         cancellation_listener,

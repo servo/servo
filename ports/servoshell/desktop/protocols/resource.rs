@@ -71,7 +71,7 @@ impl ResourceProtocolHandler {
 
             *response.body.lock() = ResponseBody::Receiving(vec![]);
 
-            context.filemanager.lock().fetch_file_in_chunks(
+            context.filemanager.fetch_file_in_chunks(
                 &mut done_sender,
                 reader,
                 response.body.clone(),

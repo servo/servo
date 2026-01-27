@@ -60,7 +60,7 @@ impl ProtocolHandler for BlobProtocolHander {
         *done_chan = Some((done_sender.clone(), done_receiver));
         *response.body.lock() = ResponseBody::Receiving(vec![]);
 
-        if let Err(err) = context.filemanager.lock().fetch_file(
+        if let Err(err) = context.filemanager.fetch_file(
             &mut done_sender,
             context.cancellation_listener.clone(),
             id,
