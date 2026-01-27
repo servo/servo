@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test that webfont in shadowroot stylesheet is downloaded</title>
+<link rel="match" href="font-face-in-shadowroot-stylesheet-ref.html">
+
+<div id="host"></div>
+
+<script>
+  // Attach an open shadow root
+  const host = document.getElementById('host');
+  const sr = host.attachShadow({ mode: 'open' });
+
+  const shadowStyle = document.createElement('style');
+  shadowStyle.textContent = `
+    @font-face {
+      font-family: 'Ahem';
+      src: url(/fonts/Ahem.ttf);
+    }
+
+    div {
+      font-family: "Ahem";
+      font-size: 18px;
+    }
+  `;
+  sr.appendChild(shadowStyle);
+
+  const shadowLine = document.createElement('div');
+  shadowLine.textContent = 'Filler text';
+  sr.appendChild(shadowLine);
+</script>

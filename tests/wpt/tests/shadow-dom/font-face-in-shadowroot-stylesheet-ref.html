@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test that webfont in shadowroot stylesheet is downloaded</title>
+
+<style>
+    @font-face {
+      font-family: 'Ahem';
+      src: url(/fonts/Ahem.ttf);
+    }
+
+    div {
+      font-family: "Ahem";
+      font-size: 18px;
+    }
+</style>
+
+<div>Filler text</div>
