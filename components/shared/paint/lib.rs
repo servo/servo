@@ -395,11 +395,17 @@ impl CrossProcessPaintApi {
         key: ImageKey,
         descriptor: ImageDescriptor,
         data: SerializableImageData,
-        animated: bool,
+        is_animated_image: bool,
     ) {
         self.update_images(
             key.into(),
-            [ImageUpdate::AddImage(key, descriptor, data, animated)].into(),
+            [ImageUpdate::AddImage(
+                key,
+                descriptor,
+                data,
+                is_animated_image,
+            )]
+            .into(),
         );
     }
 
@@ -698,8 +704,13 @@ impl ExternalImageHandler for WebRenderExternalImageHandlers {
 #[derive(Deserialize, Serialize)]
 /// Serializable image updates that must be performed by WebRender.
 pub enum ImageUpdate {
-    /// Register a new image with the last deciding if it is an animation.
-    AddImage(ImageKey, ImageDescriptor, SerializableImageData, bool),
+    /// Register a new image.
+    AddImage(
+        ImageKey,
+        ImageDescriptor,
+        SerializableImageData,
+        bool, /* is_animated_image */
+    ),
     /// Delete a previously registered image registration.
     DeleteImage(ImageKey),
     /// Update an existing image registration.
@@ -709,19 +720,19 @@ pub enum ImageUpdate {
         SerializableImageData,
         Option<Epoch>,
     ),
-    /// Update an [`ImageDescriptor`] for an already existing image. This is used primarily
+    /// Update an [`ImageDescriptor`] for an existing image. This is used primarily
     /// to modify the data offset for image animations.
-    UpdateAnimation(ImageKey, ImageDescriptor),
+    UpdateImageForAnimation(ImageKey, ImageDescriptor),
 }
 
 impl Debug for ImageUpdate {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::AddImage(image_key, image_desc, _, animated) => f
+            Self::AddImage(image_key, image_desc, _, is_animated_image) => f
                 .debug_tuple("AddImage")
                 .field(image_key)
                 .field(image_desc)
-                .field(animated)
+                .field(is_animated_image)
                 .finish(),
             Self::DeleteImage(image_key) => f.debug_tuple("DeleteImage").field(image_key).finish(),
             Self::UpdateImage(image_key, image_desc, _, epoch) => f
@@ -730,7 +741,7 @@ impl Debug for ImageUpdate {
                 .field(image_desc)
                 .field(epoch)
                 .finish(),
-            Self::UpdateAnimation(image_key, image_desc) => f
+            Self::UpdateImageForAnimation(image_key, image_desc) => f
                 .debug_tuple("UpdateAnimation")
                 .field(image_key)
                 .field(image_desc)

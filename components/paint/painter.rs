@@ -1027,16 +1027,16 @@ impl Painter {
             .prepare_screenshot_requests_for_render(self)
     }
 
-    fn maybe_add_to_cache(
+    fn serializable_image_data_to_image_data_maybe_caching(
         &mut self,
         key: ImageKey,
         data: SerializableImageData,
-        animated: bool,
+        is_animated_image: bool,
     ) -> ImageData {
         match data {
             SerializableImageData::Raw(shared_memory) => {
                 let data = Arc::new(shared_memory.to_vec());
-                if animated {
+                if is_animated_image {
                     self.animation_image_cache.insert(key, Arc::clone(&data));
                 }
                 ImageData::Raw(data)
@@ -1049,9 +1049,17 @@ impl Painter {
         let mut txn = Transaction::new();
         for update in updates {
             match update {
-                ImageUpdate::AddImage(key, desc, data, animated) => {
-                    let data = self.maybe_add_to_cache(key, data, animated);
-                    txn.add_image(key, desc, data, None);
+                ImageUpdate::AddImage(key, description, data, is_animated_image) => {
+                    txn.add_image(
+                        key,
+                        description,
+                        self.serializable_image_data_to_image_data_maybe_caching(
+                            key,
+                            data,
+                            is_animated_image,
+                        ),
+                        None,
+                    );
                 },
                 ImageUpdate::DeleteImage(key) => {
                     txn.delete_image(key);
@@ -1064,7 +1072,7 @@ impl Painter {
                     }
                     txn.update_image(key, desc, data.into(), &DirtyRect::All)
                 },
-                ImageUpdate::UpdateAnimation(image_key, desc) => {
+                ImageUpdate::UpdateImageForAnimation(image_key, desc) => {
                     let Some(image) = self.animation_image_cache.get(&image_key) else {
                         error!("Could not find image key in image cache.");
                         continue;

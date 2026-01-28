@@ -75,7 +75,10 @@ impl ImageAnimationManager {
                     image.webrender_image_descriptor_and_offset_for_frame()
                 {
                     descriptor.offset = frame.byte_range.start as i32;
-                    Some(ImageUpdate::UpdateAnimation(image.id.unwrap(), descriptor))
+                    Some(ImageUpdate::UpdateImageForAnimation(
+                        image.id.unwrap(),
+                        descriptor,
+                    ))
                 } else {
                     error!("Doing normal image update which will be slow!");
                     None

@@ -30,6 +30,7 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 parking_lot = { workspace = true }
+pixels = { path = "../../pixels" }
 profile_traits = { path = '../profile' }
 raw-window-handle = { workspace = true }
 rustc-hash = { workspace = true }
@@ -40,5 +41,4 @@ strum = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
 surfman = { workspace = true, features = ["sm-x11"] }
-pixels = { path = "../../pixels" }
 webrender_api = { workspace = true }
