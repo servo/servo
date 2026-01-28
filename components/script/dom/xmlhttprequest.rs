@@ -770,7 +770,8 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-abort()-method>
-    fn Abort(&self, can_gc: CanGc) {
+    fn Abort(&self, cx: &mut js::context::JSContext) {
+        let can_gc = CanGc::from_cx(cx);
         // Step 1
         self.terminate_ongoing_fetch();
         // Step 2
@@ -970,7 +971,11 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-responsexml-attribute>
-    fn GetResponseXML(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Document>>> {
+    fn GetResponseXML(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<Option<DomRoot<Document>>> {
+        let can_gc = CanGc::from_cx(cx);
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Document => {
                 // Step 3
