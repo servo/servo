@@ -25,8 +25,6 @@ jobs:
         run: |
           sudo apt update
           ./mach bootstrap --skip-lints --skip-nextest
-      - name: Set LIBCLANG_PATH # This is needed for bindgen in mozangle.
-        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Compile docs
         run: ./mach doc
         env:

@@ -481,48 +481,49 @@ class CommandBase(object):
     def msvc_package_dir(self, package: str) -> str:
         return servo.platform.windows.get_dependency_dir(package)
 
-    def get_clang_major_version(self, cc: str) -> Optional[str]:
-        try:
-            result = subprocess.run(
-                [cc, "--version"],
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-        except (subprocess.CalledProcessError, FileNotFoundError):
+    @staticmethod
+    def get_clang_major_version(cc: str, test_version_output: Optional[str] = None) -> Optional[str]:
+        stdout: Optional[str] = None
+        if test_version_output is None:
+            try:
+                result = subprocess.run(
+                    [cc, "--version"],
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                return None
+            stdout = result.stdout.lower()
+        else:
+            stdout = test_version_output
+
+        if "clang" not in stdout:
             return None
 
-        out = result.stdout.lower()
-        if "clang" not in out:
-            return None
-
-        for token in out.split():
+        for token in stdout.split():
             if token[0].isdigit():
                 return token.split(".")[0]
 
         return None
 
-    def get_llvm_config_for_clang(self, cc: str, clang_major: Optional[str]) -> Optional[str]:
-        cc_name = Path(cc).name
-
-        # clang (no suffix)
-        if cc_name == "clang":
+    @staticmethod
+    def get_llvm_config_for_clang(cc: str, clang_major: Optional[str]) -> Optional[str]:
+        if cc == "clang":
             path = shutil.which("llvm-config")
             if path is not None:
                 return path
             if clang_major is not None:
                 return shutil.which(f"llvm-config-{clang_major}")
             return None
-
-        # clang-XX
-        if cc_name.startswith("clang-"):
-            suffix = cc_name.removeprefix("clang-")
+        if cc.startswith("clang-"):
+            suffix = cc.removeprefix("clang-")
             return shutil.which(f"llvm-config-{suffix}")
-
         return None
 
-    def get_libdir_from_llvm_config(self, llvm_config: str) -> Optional[str]:
+    @staticmethod
+    def get_libdir_from_llvm_config(llvm_config: str) -> Optional[str]:
         try:
             result = subprocess.run(
                 [llvm_config, "--libdir"],
@@ -535,7 +536,8 @@ class CommandBase(object):
         except (subprocess.CalledProcessError, FileNotFoundError):
             return None
 
-    def find_libclang_path(_, cc: str, clang_major: str) -> str | None:
+    @staticmethod
+    def find_libclang_path(cc: str, clang_major: str) -> str | None:
         def has_libclang(path: Path) -> bool:
             if not path.is_dir():
                 return False
@@ -583,14 +585,11 @@ class CommandBase(object):
             env.setdefault("CC", "clang-cl.exe")
             env.setdefault("CXX", "clang-cl.exe")
 
-        # The default clang of Ubuntu24.04 from apt seem to be clang-18
-        # But mach seem to use the llvm's lib .so instead, so to sync, we can force LIBCLANG_PATH
         cc = env.get("CC")
         clang_major: Optional[str] = None
         llvm_config: Optional[str] = None
         libdir: Optional[str] = None
 
-        # redundant check to make test-tidy happy :Ds
         if cc is not None:
             # if CC is set to clang (default), get its major version number (ex: 18)
             clang_major = self.get_clang_major_version(cc)
