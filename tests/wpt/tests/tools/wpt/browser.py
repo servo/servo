@@ -2265,6 +2265,7 @@ class Servo(Browser):
     """Servo-specific interface."""
 
     product = "servo"
+    requirements = None
 
     def platform_components(self):
         platform, triple = {
@@ -2341,7 +2342,6 @@ class Servo(Browser):
 # Uses same configuration as Servo
 class ServoLegacy(Servo):
     product = "servo_legacy"
-    requirements = None
 
 
 class Sauce(Browser):
