@@ -301,7 +301,7 @@ impl HTMLButtonElement {
         } else if let Some(document_fragment) = root_node.downcast::<DocumentFragment>() {
             return document_fragment.GetElementById(command_for_value);
         }
-        None
+        unreachable!("Button element must be in a document or document fragment");
     }
 
     fn command_state(&self) -> CommandState {
