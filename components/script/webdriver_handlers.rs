@@ -1869,8 +1869,8 @@ pub(crate) fn handle_element_clear(
                 // Step 5. Scroll Into View
                 scroll_into_view(&element, documents, &pipeline, can_gc);
 
-                // TODO: Step 6 - 9: Implicit wait. In another PR.
-                // Wait until element become interactable and check.
+                // Step 6 - 9: Implicit wait. Wait until element become interactable and check.
+                // Handled in `webdriver_server` to allow the event loop to spin.
 
                 // Step 10. If element is not keyboard-interactable or not pointer-interactable,
                 // return error with error code element not interactable.
