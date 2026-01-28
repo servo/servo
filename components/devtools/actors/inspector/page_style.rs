@@ -12,7 +12,7 @@ use std::iter::once;
 use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, GetSelectors};
-use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg};
+use devtools_traits::{AutoMargins, ComputedNodeLayout, DevtoolScriptControlMsg};
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
@@ -46,10 +46,36 @@ struct AppliedEntry {
 }
 
 #[derive(Serialize)]
+struct DevtoolsAutoMargins {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    top: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    right: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    bottom: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    left: Option<String>,
+}
+
+impl From<AutoMargins> for DevtoolsAutoMargins {
+    fn from(auto_margins: AutoMargins) -> Self {
+        const AUTO: &str = "auto";
+        Self {
+            top: auto_margins.top.then_some(AUTO.into()),
+            right: auto_margins.right.then_some(AUTO.into()),
+            bottom: auto_margins.bottom.then_some(AUTO.into()),
+            left: auto_margins.left.then_some(AUTO.into()),
+        }
+    }
+}
+
+#[derive(Serialize)]
 struct GetLayoutReply {
     from: String,
     #[serde(flatten)]
     layout: ComputedNodeLayout,
+    #[serde(rename = "autoMargins")]
+    auto_margins: DevtoolsAutoMargins,
 }
 
 #[derive(Serialize)]
@@ -251,13 +277,14 @@ impl PageStyleActor {
                 tx,
             ))
             .map_err(|_| ActorError::Internal)?;
-        let layout = rx
+        let (layout, auto_margins) = rx
             .recv()
             .map_err(|_| ActorError::Internal)?
             .ok_or(ActorError::Internal)?;
         request.reply_final(&GetLayoutReply {
             from: self.name(),
             layout,
+            auto_margins: auto_margins.into(),
         })
     }
 

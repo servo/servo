@@ -12,9 +12,9 @@
 
 use std::collections::HashMap;
 use std::net::TcpStream;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use base::id::BrowsingContextId;
+use devtools_traits::get_time_stamp;
 use log::warn;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -196,7 +196,7 @@ pub(crate) struct WillNavigateMessage {
     browsing_context_id: u32,
     inner_window_id: u32,
     name: String,
-    time: u128,
+    time: u64,
     is_frame_switching: bool,
     #[serde(rename = "newURI")]
     new_uri: ServoUrl,
@@ -293,11 +293,7 @@ impl Actor for WatcherActor {
                                     has_native_console_api: None,
                                     name: name.into(),
                                     new_uri: None,
-                                    time: SystemTime::now()
-                                        .duration_since(UNIX_EPOCH)
-                                        .unwrap_or_default()
-                                        .as_millis()
-                                        as u64,
+                                    time: get_time_stamp(),
                                     title: Some(target.title.borrow().clone()),
                                     url: Some(target.url.borrow().clone()),
                                 };
@@ -454,10 +450,7 @@ impl WatcherActor {
             browsing_context_id: id_map.browsing_context_id(browsing_context_id).value(),
             inner_window_id: 0, // TODO: set this to the correct value
             name: "will-navigate".to_string(),
-            time: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis(),
+            time: get_time_stamp(),
             is_frame_switching: false, // TODO: Implement frame switching
             new_uri: url,
         };

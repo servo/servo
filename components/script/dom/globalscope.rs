@@ -14,7 +14,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::JoinHandle;
-use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant};
 
 use base::generic_channel;
 use base::generic_channel::{GenericCallback, GenericSend};
@@ -29,7 +29,7 @@ use constellation_traits::{
 use content_security_policy::CspList;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::Sender;
-use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
+use devtools_traits::{PageError, ScriptToDevtoolsControlMsg, get_time_stamp};
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, JavaScriptEvaluationError, ScriptToEmbedderChan};
 use fonts::FontContext;
@@ -2807,16 +2807,7 @@ impl GlobalScope {
                             source_name: error_info.filename.clone(),
                             line_number: error_info.lineno,
                             column_number: error_info.column,
-                            category: "script".to_string(),
-                            time_stamp: SystemTime::now()
-                                .duration_since(UNIX_EPOCH)
-                                .unwrap_or_default()
-                                .as_millis() as u64,
-                            error: true,
-                            warning: false,
-                            info: false,
-                            private: false,
-                            stacktrace: None,
+                            time_stamp: get_time_stamp(),
                         },
                     ));
                 }

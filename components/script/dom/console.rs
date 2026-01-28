@@ -7,8 +7,8 @@ use std::ptr::{self, NonNull};
 use std::slice;
 
 use devtools_traits::{
-    ConsoleLogLevel, ConsoleMessage, ConsoleMessageArgument, ConsoleMessageBuilder,
-    ScriptToDevtoolsControlMsg, StackFrame,
+    ConsoleArgument, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,
+    ScriptToDevtoolsControlMsg, StackFrame, get_time_stamp,
 };
 use embedder_traits::EmbedderMsg;
 use js::conversions::jsstr_to_string;
@@ -41,11 +41,25 @@ pub(crate) struct Console;
 
 impl Console {
     #[expect(unsafe_code)]
-    fn build_message(level: ConsoleLogLevel) -> ConsoleMessageBuilder {
+    fn build_message(
+        level: ConsoleLogLevel,
+        arguments: Vec<ConsoleArgument>,
+        stacktrace: Option<Vec<StackFrame>>,
+    ) -> ConsoleMessage {
         let cx = GlobalScope::get_cx();
         let caller = unsafe { describe_scripted_caller(*cx) }.unwrap_or_default();
 
-        ConsoleMessageBuilder::new(level, caller.filename, caller.line, caller.col)
+        ConsoleMessage {
+            fields: ConsoleMessageFields {
+                level,
+                filename: caller.filename,
+                line_number: caller.line,
+                column_number: caller.col,
+                time_stamp: get_time_stamp(),
+            },
+            arguments,
+            stacktrace,
+        }
     }
 
     /// Helper to send a message that only consists of a single string
@@ -55,11 +69,9 @@ impl Console {
 
         Self::send_to_embedder(global, level.clone(), formatted_message);
 
-        let mut builder = Self::build_message(level);
-        builder.add_argument(message.into());
-        let log_message = builder.finish();
+        let console_message = Self::build_message(level, vec![message.into()], None);
 
-        Self::send_to_devtools(global, log_message);
+        Self::send_to_devtools(global, console_message);
     }
 
     fn method(
@@ -70,16 +82,15 @@ impl Console {
     ) {
         let cx = GlobalScope::get_cx();
 
-        let mut log: ConsoleMessageBuilder = Console::build_message(level.clone());
-        for message in &messages {
-            log.add_argument(console_argument_from_handle_value(cx, *message));
-        }
+        let arguments = messages
+            .iter()
+            .map(|msg| console_argument_from_handle_value(cx, *msg))
+            .collect();
+        let stacktrace = (include_stacktrace == IncludeStackTrace::Yes)
+            .then_some(get_js_stack(*GlobalScope::get_cx()));
+        let console_message = Self::build_message(level.clone(), arguments, stacktrace);
 
-        if include_stacktrace == IncludeStackTrace::Yes {
-            log.attach_stack_trace(get_js_stack(*GlobalScope::get_cx()));
-        }
-
-        Console::send_to_devtools(global, log.finish());
+        Console::send_to_devtools(global, console_message);
 
         let prefix = global.current_group_label().unwrap_or_default();
         let msgs = stringify_handle_values(&messages);
@@ -126,29 +137,26 @@ unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) 
 }
 
 #[expect(unsafe_code)]
-fn console_argument_from_handle_value(
-    cx: JSContext,
-    handle_value: HandleValue,
-) -> ConsoleMessageArgument {
+fn console_argument_from_handle_value(cx: JSContext, handle_value: HandleValue) -> ConsoleArgument {
     if handle_value.is_string() {
         let js_string = ptr::NonNull::new(handle_value.to_string()).unwrap();
         let dom_string = unsafe { jsstr_to_string(*cx, js_string) };
-        return ConsoleMessageArgument::String(dom_string);
+        return ConsoleArgument::String(dom_string);
     }
 
     if handle_value.is_int32() {
         let integer = handle_value.to_int32();
-        return ConsoleMessageArgument::Integer(integer);
+        return ConsoleArgument::Integer(integer);
     }
 
     if handle_value.is_number() {
         let number = handle_value.to_number();
-        return ConsoleMessageArgument::Number(number);
+        return ConsoleArgument::Number(number);
     }
 
     // FIXME: Handle more complex argument types here
     let stringified_value = stringify_handle_value(handle_value);
-    ConsoleMessageArgument::String(stringified_value.into())
+    ConsoleArgument::String(stringified_value.into())
 }
 
 #[expect(unsafe_code)]

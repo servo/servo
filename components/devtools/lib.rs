@@ -22,9 +22,9 @@ use base::generic_channel::{self, GenericSender};
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
-    ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessageBuilder, ConsoleResource,
+    ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,
     DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState, NetworkEvent,
-    ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
+    ScriptToDevtoolsControlMsg, SourceInfo, WorkerId, get_time_stamp,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use log::{trace, warn};
@@ -35,7 +35,7 @@ use serde::Serialize;
 
 use crate::actor::{Actor, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
-use crate::actors::console::{ConsoleActor, Root};
+use crate::actors::console::{ConsoleActor, ConsoleResource, Root};
 use crate::actors::framerate::FramerateActor;
 use crate::actors::network_event::NetworkEventActor;
 use crate::actors::root::RootActor;
@@ -240,7 +240,7 @@ impl DevtoolsInstance {
                 )) => self.handle_console_resource(
                     pipeline_id,
                     worker_id,
-                    ConsoleResource::ConsoleMessage(console_message),
+                    ConsoleResource::ConsoleMessage(console_message.into()),
                 ),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ClearConsole(
                     pipeline_id,
@@ -266,18 +266,22 @@ impl DevtoolsInstance {
                     pipeline_id,
                     css_error,
                 )) => {
-                    let mut console_message = ConsoleMessageBuilder::new(
-                        ConsoleLogLevel::Warn,
-                        css_error.filename,
-                        css_error.line,
-                        css_error.column,
-                    );
-                    console_message.add_argument(css_error.msg.into());
+                    let console_message = ConsoleMessage {
+                        fields: ConsoleMessageFields {
+                            level: ConsoleLogLevel::Warn,
+                            filename: css_error.filename,
+                            line_number: css_error.line,
+                            column_number: css_error.column,
+                            time_stamp: get_time_stamp(),
+                        },
+                        arguments: vec![css_error.msg.into()],
+                        stacktrace: None,
+                    };
 
                     self.handle_console_resource(
                         pipeline_id,
                         None,
-                        ConsoleResource::ConsoleMessage(console_message.finish()),
+                        ConsoleResource::ConsoleMessage(console_message.into()),
                     )
                 },
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
@@ -405,12 +409,7 @@ impl DevtoolsInstance {
             Root::BrowsingContext(name.clone())
         };
 
-        let console = ConsoleActor {
-            name: console_name,
-            root: parent_actor,
-            cached_events: Default::default(),
-            client_ready_to_receive_messages: false.into(),
-        };
+        let console = ConsoleActor::new(console_name, parent_actor);
 
         actors.register(console);
     }
