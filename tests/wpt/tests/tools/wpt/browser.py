@@ -2261,14 +2261,9 @@ class Safari(Browser):
         return m.group(1)
 
 
-class ServoLegacy(Browser):
+class Servo(Browser):
     """Servo-specific interface."""
 
-    product = "servo_legacy"
-    requirements = None
-
-
-class Servo(Servo):
     product = "servo"
 
     def platform_components(self):
@@ -2342,6 +2337,11 @@ class Servo(Servo):
         m = re.search(r"Servo ([0-9\.]+-[a-f0-9]+)?(-dirty)?$", output.strip())
         if m:
             return m.group(0)
+
+# Uses same configuration as Servo
+class ServoLegacy(Servo):
+    product = "servo_legacy"
+    requirements = None
 
 
 class Sauce(Browser):
