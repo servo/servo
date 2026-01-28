@@ -7210,6 +7210,45 @@
       {}
      ]
     ],
+    "webkit-text-security-001.html": [
+     "ae62566d359c33d0ed5098d0df0b12f61e0cfe84",
+     [
+      null,
+      [
+       [
+        "/_mozilla/css/webkit-text-security-001-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "webkit-text-security-002.html": [
+     "b0285460912ef1bc0db6105a732c463dcf195814",
+     [
+      null,
+      [
+       [
+        "/_mozilla/css/webkit-text-security-002-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "webkit-text-security-003.html": [
+     "74da342d13cb063fdad2ac18abe2e8fb3d5391f1",
+     [
+      null,
+      [
+       [
+        "/_mozilla/css/webkit-text-security-003-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "white-space-mixed-002.htm": [
      "70fd5baf403e2f78572abb49cd4f37ab51fa2dc5",
      [
@@ -10474,6 +10513,18 @@
     ],
     "visibility_hidden_ref.html": [
      "8f0a447ccb8175a8278438537e7597ad5116393b",
+     []
+    ],
+    "webkit-text-security-001-ref.html": [
+     "97d8482882c44afc8a8db20ccf2a591f32111040",
+     []
+    ],
+    "webkit-text-security-002-ref.html": [
+     "eefbc9ebedfb33b1d7bf5d8538ee050bfc92f5ad",
+     []
+    ],
+    "webkit-text-security-003-ref.html": [
+     "67d97c15ad3419936adba8da2df635040d1ded33",
      []
     ],
     "white-space-mixed-002-ref.htm": [
