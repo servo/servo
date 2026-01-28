@@ -4,6 +4,7 @@
 # Please keep these in sync with the packages in the book, using the instructions in the README.md
 # in this folder.
 build-essential
+ca-certificates
 ccache
 clang
 cmake
