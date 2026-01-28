@@ -9,7 +9,7 @@ FROM ghcr.io/astral-sh/uv:latest AS uv
 FROM ubuntu:24.04 AS base
 
 # Install apt dependencies.
-RUN --mount=type=bind,source=python/servo/platform/linux_packages,target=/tmp/linux_packages,readonly \
+RUN --mount=type=bind,source=python/servo/platform/linux_packages,target=/tmp/linux_packages,readonly,z \
     apt-get update \
     &&  /tmp/linux_packages/generate_pkg_list.sh /tmp/linux_packages/apt/* | xargs apt-get install -y --no-install-recommends \
     && curl --version
