@@ -45,10 +45,6 @@ jobs:
       - uses: servo/ci-runners/actions/checkout@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
         with:
           fetch-depth: 2
-
-      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
-        if: ${{ runner.environment != 'self-hosted' }}
-        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Setup Python
         if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/setup-python
