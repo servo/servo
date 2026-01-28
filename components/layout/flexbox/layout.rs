@@ -115,9 +115,12 @@ struct FlexItemLayoutResult {
     fragments: Vec<Fragment>,
     positioning_context: PositioningContext,
 
+    /// Baselines from the item’s content, relative to the item’s margin box.
+    /// Used only for baseline propagation to parent layout contexts.
     content_baselines_relative_to_margin_box: Baselines,
 
-    // Either the first or the last baseline, depending on ‘align-self’.
+    /// This is the single baseline this item uses for flex alignment.
+    /// Either the first or the last baseline or None, depending on ‘align-self’.
     flex_alignment_baseline_relative_to_margin_box: Option<Au>,
 
     // The content size of this layout in the block axis. This is known before layout
