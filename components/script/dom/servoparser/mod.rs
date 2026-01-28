@@ -71,7 +71,7 @@ use crate::dom::html::htmlformelement::{FormControlElementHelpers, HTMLFormEleme
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::html::htmltemplateelement::HTMLTemplateElement;
-use crate::dom::node::{Node, ShadowIncluding};
+use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::performance::performanceentry::PerformanceEntry;
 use crate::dom::performance::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::processinginstruction::ProcessingInstruction;
@@ -96,6 +96,10 @@ mod xml;
 
 use encoding::{NetworkDecoderState, NetworkSink};
 pub(crate) use html::serialize_html_fragment;
+
+const ENCODING_META_TAG_TOO_LATE_MESSAGE: &str = "An attempt to declare the encoding using a meta tag was found \
+too late, and the encoding was inferred instead. The meta tag needs to be moved into the <head> tag, into the first \
+1024 bytes";
 
 #[dom_struct]
 /// The parser maintains two input streams: one for input from script through
@@ -709,39 +713,48 @@ impl ServoParser {
             assert!(!self.aborted.get());
 
             self.document.window().reflow_if_reflow_timer_expired();
-            let script = match feed(&self.tokenizer) {
+            match feed(&self.tokenizer) {
                 TokenizerResult::Done => return,
-                TokenizerResult::EncodingIndicator(_) => continue,
-                TokenizerResult::Script(script) => script,
-            };
+                TokenizerResult::EncodingIndicator(_) => {
+                    self.document
+                        .owner_global()
+                        .complain_about_web_compatibility_issue(
+                            ENCODING_META_TAG_TOO_LATE_MESSAGE.to_owned(),
+                            self.document.url().as_str().to_owned(),
+                            self.get_current_line(),
+                            0,
+                        );
+                },
+                TokenizerResult::Script(script) => {
+                    // https://html.spec.whatwg.org/multipage/#parsing-main-incdata
+                    // branch "An end tag whose tag name is "script"
+                    // The spec says to perform the microtask checkpoint before
+                    // setting the insertion mode back from Text, but this is not
+                    // possible with the way servo and html5ever currently
+                    // relate to each other, and hopefully it is not observable.
+                    if is_execution_stack_empty() {
+                        self.document
+                            .window()
+                            .perform_a_microtask_checkpoint(can_gc);
+                    }
 
-            // https://html.spec.whatwg.org/multipage/#parsing-main-incdata
-            // branch "An end tag whose tag name is "script"
-            // The spec says to perform the microtask checkpoint before
-            // setting the insertion mode back from Text, but this is not
-            // possible with the way servo and html5ever currently
-            // relate to each other, and hopefully it is not observable.
-            if is_execution_stack_empty() {
-                self.document
-                    .window()
-                    .perform_a_microtask_checkpoint(can_gc);
-            }
+                    let script_nesting_level = self.script_nesting_level.get();
 
-            let script_nesting_level = self.script_nesting_level.get();
+                    self.script_nesting_level.set(script_nesting_level + 1);
+                    script.set_initial_script_text();
+                    let introduction_type_override =
+                        (script_nesting_level > 0).then_some(IntroductionType::INJECTED_SCRIPT);
+                    script.prepare(introduction_type_override, can_gc);
+                    self.script_nesting_level.set(script_nesting_level);
 
-            self.script_nesting_level.set(script_nesting_level + 1);
-            script.set_initial_script_text();
-            let introduction_type_override =
-                (script_nesting_level > 0).then_some(IntroductionType::INJECTED_SCRIPT);
-            script.prepare(introduction_type_override, can_gc);
-            self.script_nesting_level.set(script_nesting_level);
-
-            if self.document.has_pending_parsing_blocking_script() {
-                self.suspended.set(true);
-                return;
-            }
-            if self.aborted.get() {
-                return;
+                    if self.document.has_pending_parsing_blocking_script() {
+                        self.suspended.set(true);
+                        return;
+                    }
+                    if self.aborted.get() {
+                        return;
+                    }
+                },
             }
         }
     }
