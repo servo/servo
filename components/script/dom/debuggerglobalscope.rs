@@ -22,6 +22,7 @@ use script_bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::{
 };
 use script_bindings::realms::InRealm;
 use script_bindings::reflector::DomObject;
+use script_bindings::str::DOMString;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
@@ -34,8 +35,8 @@ use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::debuggerclearbreakpointevent::DebuggerClearBreakpointEvent;
 use crate::dom::debuggerpauseevent::DebuggerPauseEvent;
 use crate::dom::debuggersetbreakpointevent::DebuggerSetBreakpointEvent;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::types::{DebuggerAddDebuggeeEvent, DebuggerGetPossibleBreakpointsEvent, Event};
+use crate::dom::globalscope::{self, GlobalScope};
+use crate::dom::types::{DebuggerAddDebuggeeEvent, DebuggerEvalEvent, DebuggerGetPossibleBreakpointsEvent, Event};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::realms::{enter_auto_realm, enter_realm};
@@ -164,6 +165,29 @@ impl DebuggerGlobalScope {
         assert!(
             event.fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerAddDebuggeeEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_eval(
+        &self,
+        can_gc: CanGc,
+        code: DOMString,
+        debuggee_pipeline_id: PipelineId,
+        debuggee_worker_id: Option<WorkerId>,
+    ) {
+        let _realm = enter_realm(self);
+        let debuggee_pipeline_id =
+            crate::dom::pipelineid::PipelineId::new(self.upcast(), debuggee_pipeline_id, can_gc);
+        let event = DomRoot::upcast::<Event>(DebuggerEvalEvent::new(
+            self.upcast(),
+            code,
+            &debuggee_pipeline_id,
+            debuggee_worker_id.map(|id| id.to_string().into()),
+            can_gc,
+        ));
+        assert!(
+            event.fire(self.upcast(), can_gc),
+            "Guaranteed by DebuggerEvalEvent::new"
         );
     }
 

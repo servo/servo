@@ -35,6 +35,26 @@ addEventListener("addDebuggee", event => {
     debuggeesToWorkerIds.set(debuggerObject, workerId);
 });
 
+addEventListener("eval", event => {
+    const {code, pipelineId: {namespaceId, index}, workerId} = event;
+    let object = debuggeesToPipelineIds.keys().next().value;
+    let result = object.executeInGlobal(code);
+
+    if (result) {
+      if ("return" in result) {
+        result.return = dbg.adoptDebuggeeValue(result.return);
+      }
+      if ("throw" in result) {
+        result.throw = dbg.adoptDebuggeeValue(result.throw);
+      }
+    }
+// TODO
+// replace evaluate function
+// get this result working
+// reply with proper value in Eval
+    console.log("result-----", result[0])
+});
+
 addEventListener("getPossibleBreakpoints", event => {
     const {spidermonkeyId} = event;
     const script = sourceIdsToScripts.get(spidermonkeyId);

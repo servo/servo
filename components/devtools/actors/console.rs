@@ -243,7 +243,7 @@ impl ConsoleActor {
         msg: &Map<String, Value>,
     ) -> Result<EvaluateJSReply, ()> {
         let input = msg.get("text").unwrap().as_str().unwrap().to_owned();
-        let (chan, port) = generic_channel::channel().unwrap();
+        // let (chan, port) = generic_channel::channel().unwrap();
         // FIXME: Redesign messages so we don't have to fake pipeline ids when
         //        communicating with workers.
         let pipeline = match self.current_unique_id(registry) {
@@ -251,62 +251,76 @@ impl ConsoleActor {
             UniqueId::Worker(_) => TEST_PIPELINE_ID,
         };
         self.script_chan(registry)
-            .send(DevtoolScriptControlMsg::EvaluateJS(
-                pipeline,
+            .send(DevtoolScriptControlMsg::Eval(
                 input.clone(),
-                chan,
+                pipeline,
             ))
             .unwrap();
 
-        // TODO: Extract conversion into protocol module or some other useful place
-        let result = match port.recv().map_err(|_| ())? {
-            VoidValue => {
-                let mut m = Map::new();
-                m.insert("type".to_owned(), Value::String("undefined".to_owned()));
-                Value::Object(m)
-            },
-            NullValue => {
-                let mut m = Map::new();
-                m.insert("type".to_owned(), Value::String("null".to_owned()));
-                Value::Object(m)
-            },
-            BooleanValue(val) => Value::Bool(val),
-            NumberValue(val) => {
-                if val.is_nan() {
-                    let mut m = Map::new();
-                    m.insert("type".to_owned(), Value::String("NaN".to_owned()));
-                    Value::Object(m)
-                } else if val.is_infinite() {
-                    let mut m = Map::new();
-                    if val < 0. {
-                        m.insert("type".to_owned(), Value::String("-Infinity".to_owned()));
-                    } else {
-                        m.insert("type".to_owned(), Value::String("Infinity".to_owned()));
-                    }
-                    Value::Object(m)
-                } else if val == 0. && val.is_sign_negative() {
-                    let mut m = Map::new();
-                    m.insert("type".to_owned(), Value::String("-0".to_owned()));
-                    Value::Object(m)
-                } else {
-                    Value::Number(Number::from_f64(val).unwrap())
-                }
-            },
-            StringValue(s) => Value::String(s),
-            ActorValue { class, uuid } => {
-                // TODO: Make initial ActorValue message include these properties?
-                let mut m = Map::new();
-                let actor = ObjectActor::register(registry, Some(uuid));
+        let mut m = Map::new();
+        m.insert("type".to_owned(), Value::String("undefined".to_owned()));
 
-                m.insert("type".to_owned(), Value::String("object".to_owned()));
-                m.insert("class".to_owned(), Value::String(class));
-                m.insert("actor".to_owned(), Value::String(actor));
-                m.insert("extensible".to_owned(), Value::Bool(true));
-                m.insert("frozen".to_owned(), Value::Bool(false));
-                m.insert("sealed".to_owned(), Value::Bool(false));
-                Value::Object(m)
-            },
-        };
+
+        let result = Value::Object(m);
+        // return Ok(Value::Object(m));
+
+        // self.script_chan(registry)
+        //     .send(DevtoolScriptControlMsg::EvaluateJS(
+        //         pipeline,
+        //         input.clone(),
+        //         chan,
+        //     ))
+        //     .unwrap();
+
+        // TODO: Extract conversion into protocol module or some other useful place
+        // let result = match port.recv().map_err(|_| ())? {
+        //     VoidValue => {
+        //         let mut m = Map::new();
+        //         m.insert("type".to_owned(), Value::String("undefined".to_owned()));
+        //         Value::Object(m)
+        //     },
+        //     NullValue => {
+        //         let mut m = Map::new();
+        //         m.insert("type".to_owned(), Value::String("null".to_owned()));
+        //         Value::Object(m)
+        //     },
+        //     BooleanValue(val) => Value::Bool(val),
+        //     NumberValue(val) => {
+        //         if val.is_nan() {
+        //             let mut m = Map::new();
+        //             m.insert("type".to_owned(), Value::String("NaN".to_owned()));
+        //             Value::Object(m)
+        //         } else if val.is_infinite() {
+        //             let mut m = Map::new();
+        //             if val < 0. {
+        //                 m.insert("type".to_owned(), Value::String("-Infinity".to_owned()));
+        //             } else {
+        //                 m.insert("type".to_owned(), Value::String("Infinity".to_owned()));
+        //             }
+        //             Value::Object(m)
+        //         } else if val == 0. && val.is_sign_negative() {
+        //             let mut m = Map::new();
+        //             m.insert("type".to_owned(), Value::String("-0".to_owned()));
+        //             Value::Object(m)
+        //         } else {
+        //             Value::Number(Number::from_f64(val).unwrap())
+        //         }
+        //     },
+        //     StringValue(s) => Value::String(s),
+        //     ActorValue { class, uuid } => {
+        //         // TODO: Make initial ActorValue message include these properties?
+        //         let mut m = Map::new();
+        //         let actor = ObjectActor::register(registry, Some(uuid));
+
+        //         m.insert("type".to_owned(), Value::String("object".to_owned()));
+        //         m.insert("class".to_owned(), Value::String(class));
+        //         m.insert("actor".to_owned(), Value::String(actor));
+        //         m.insert("extensible".to_owned(), Value::Bool(true));
+        //         m.insert("frozen".to_owned(), Value::Bool(false));
+        //         m.insert("sealed".to_owned(), Value::Bool(false));
+        //         Value::Object(m)
+        //     },
+        // };
 
         // TODO: Catch and return exception values from JS evaluation
         // TODO: This should have a has_exception field
