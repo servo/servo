@@ -139,6 +139,7 @@ use crate::dom::bindings::utils::GlobalStaticData;
 use crate::dom::bindings::weakref::DOMTracker;
 #[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::BluetoothExtraPermissionData;
+use crate::dom::closewatchermanager::CloseWatcherManager;
 use crate::dom::cookiestore::CookieStore;
 use crate::dom::crypto::Crypto;
 use crate::dom::csp::GlobalCspReporting;
@@ -482,6 +483,12 @@ pub(crate) struct Window {
     /// <https://html.spec.whatwg.org/multipage/#last-activation-timestamp>
     #[no_trace]
     last_activation_timestamp: Cell<UserActivationTimestamp>,
+
+    /// <https://html.spec.whatwg.org/multipage/#last-history-action-activation-timestamp>
+    #[no_trace]
+    last_history_action_activation_timestamp: Cell<UserActivationTimestamp>,
+
+    close_watcher_manager: DomRefCell<CloseWatcherManager>,
 }
 
 impl Window {
@@ -915,6 +922,26 @@ impl Window {
 
         // Step 5: Return false.
         false
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#notify-the-close-watcher-manager-about-user-activation>
+    pub fn notify_the_close_watcher_manager_about_user_activation(&self) {
+        // Step 1. Let manager be window's close watcher manager.
+        let manager = self.close_watcher_manager();
+        // Step 2. If manager's next user interaction allows a new group is true, then increment manager's allowed number of groups.
+        if manager.next_user_interaction_allows_a_new_group() {
+            manager.increment_allowed_number_of_groups();
+        }
+        // Step 3. Set manager's next user interaction allows a new group to false.
+        manager.set_next_user_interaction_allows_a_new_group(false);
+    }
+
+    pub(crate) fn close_watcher_manager(&self) -> Ref<'_, CloseWatcherManager> {
+        self.close_watcher_manager.borrow()
+    }
+
+    pub(crate) fn close_watcher_manager_mut(&self) -> RefMut<'_, CloseWatcherManager> {
+        self.close_watcher_manager.borrow_mut()
     }
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {
@@ -3561,6 +3588,13 @@ impl Window {
         self.last_activation_timestamp.set(time);
     }
 
+    pub(crate) fn set_last_history_action_activation_timestamp(
+        &self,
+        time: UserActivationTimestamp,
+    ) {
+        self.last_history_action_activation_timestamp.set(time);
+    }
+
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
         self.as_global_scope()
             .script_to_embedder_chan()
@@ -3665,6 +3699,12 @@ impl Window {
             self.last_activation_timestamp.get()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#history-action-activation>
+    pub(crate) fn has_history_action_activation(&self) -> bool {
+        // > When the last history-action activation timestamp of W is not equal to the last activation timestamp of W, then W is said to have history-action activation.
+        self.last_history_action_activation_timestamp.get() != self.last_activation_timestamp.get()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#transient-activation>
     pub(crate) fn has_transient_activation(&self) -> bool {
         // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, and less than the last activation
@@ -3709,6 +3749,37 @@ impl Window {
             .consume_last_activation_timestamp();
         for document in SameOriginDescendantNavigablesIterator::new(top_level_document) {
             document.window().consume_last_activation_timestamp();
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#consume-history-action-user-activation>
+    pub(crate) fn consume_history_action_user_activation(&self) {
+        // Step 1. If W's navigable is null, then return.
+        if self.undiscarded_window_proxy().is_none() {
+            return;
+        }
+
+        // Step 2. Let top be W's navigable's top-level traversable.
+        // TODO: This wouldn't work if top level document is in another ScriptThread.
+        let Some(top_level_document) = self.top_level_document_if_local() else {
+            return;
+        };
+
+        // Step 3. Let navigables be the inclusive descendant navigables of top's active document.
+        // Step 4. Let windows be the list of Window objects constructed by taking the active window of each item in navigables.
+        // Step 5. For each window in windows, set window's last history-action activation timestamp to window's last activation timestamp.
+        // TODO: this would not work for disimilar origin descendant, since we doesn't store the document in this script thread.
+        top_level_document
+            .window()
+            .set_last_history_action_activation_timestamp(
+                top_level_document.window().last_activation_timestamp.get(),
+            );
+        for document in SameOriginDescendantNavigablesIterator::new(top_level_document) {
+            document
+                .window()
+                .set_last_history_action_activation_timestamp(
+                    document.window().last_activation_timestamp.get(),
+                );
         }
     }
 
@@ -3842,6 +3913,10 @@ impl Window {
             weak_script_thread,
             has_changed_visual_viewport_dimension: Default::default(),
             last_activation_timestamp: Cell::new(UserActivationTimestamp::PositiveInfinity),
+            last_history_action_activation_timestamp: Cell::new(
+                UserActivationTimestamp::PositiveInfinity,
+            ),
+            close_watcher_manager: DomRefCell::new(CloseWatcherManager::new()),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(cx, win)

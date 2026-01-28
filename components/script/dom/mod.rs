@@ -236,6 +236,8 @@ pub(crate) mod clipboard;
 pub(crate) mod clipboardevent;
 pub(crate) mod clipboarditem;
 pub(crate) mod closeevent;
+pub(crate) mod closewatcher;
+pub(crate) mod closewatchermanager;
 pub(crate) mod commandevent;
 pub(crate) mod comment;
 pub(crate) mod compositionevent;
