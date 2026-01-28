@@ -699,12 +699,13 @@ async fn obtain_response(
 
             {
                 let mut lock = chunk_requester.lock();
-                let requester = lock.as_mut().unwrap();
-                let _ = requester.send(BodyChunkRequest::Connect(body_chan));
+                if let Some(requester) = lock.as_mut() {
+                    let _ = requester.send(BodyChunkRequest::Connect(body_chan));
 
-                // https://fetch.spec.whatwg.org/#concept-request-transmit-body
-                // Request the first chunk, corresponding to Step 3 and 4.
-                let _ = requester.send(BodyChunkRequest::Chunk);
+                    // https://fetch.spec.whatwg.org/#concept-request-transmit-body
+                    // Request the first chunk, corresponding to Step 3 and 4.
+                    let _ = requester.send(BodyChunkRequest::Chunk);
+                }
             }
 
             let devtools_bytes = devtools_bytes.clone();
