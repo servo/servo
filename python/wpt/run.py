@@ -38,7 +38,7 @@ def set_if_none(args: dict, key: str, value: bool | int | str) -> None:
         args[key] = value
 
 
-def run_tests(default_binary_path: str, **kwargs: Any) -> int:
+def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> int:
     print(f"Running WPT tests with {default_binary_path}")
 
     os.environ["RUST_BACKTRACE"] = "1"
@@ -72,7 +72,8 @@ def run_tests(default_binary_path: str, **kwargs: Any) -> int:
         # TODO: Delete rr traces from green test runs?
 
     prefs = kwargs.pop("prefs")
-    kwargs.setdefault("binary_args", [])
+    if multiprocess:
+        kwargs.setdefault("binary_args", ["-M"])
 
     given_http_proxy_uri = False
     if prefs:

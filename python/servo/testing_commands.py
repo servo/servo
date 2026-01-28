@@ -427,14 +427,15 @@ class MachCommands(CommandBase):
     @Command(
         "test-wpt", description="Run the regular web platform test suite", category="testing", parser=wpt.create_parser
     )
+    @CommandArgument("--multiprocess", "-M", default=False, action="store_true", help="Run in multiprocess mode")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def test_wpt(self, servo_binary: str, **kwargs: Any) -> int:
-        return self._test_wpt(servo_binary, **kwargs)
+    def test_wpt(self, servo_binary: str, multiprocess: bool, **kwargs: Any) -> int:
+        return self._test_wpt(servo_binary, multiprocess, **kwargs)
 
     @CommandBase.allow_target_configuration
-    def _test_wpt(self, servo_binary: str, **kwargs: Any) -> int:
+    def _test_wpt(self, servo_binary: str, multiprocess: bool, **kwargs: Any) -> int:
         # TODO(mrobinson): Why do we pass the wrong binary path in when running WPT on Android?
-        return_value = wpt.run.run_tests(servo_binary, **kwargs)
+        return_value = wpt.run.run_tests(servo_binary, multiprocess, **kwargs)
         return return_value if not kwargs["always_succeed"] else 0
 
     @Command(
@@ -808,12 +809,16 @@ class MachCommands(CommandBase):
         "smoketest", description="Load a simple page in Servo and ensure that it closes properly", category="testing"
     )
     @CommandArgument("params", nargs="...", help="Command-line arguments to be passed through to Servo")
+    @CommandArgument("--multiprocess", "-M", default=False, action="store_true", help="Run in multiprocess mode")
     @CommandBase.common_command_arguments(binary_selection=True)
-    def smoketest(self, servo_binary: str, params: list[str], **kwargs: Any) -> int | None:
+    def smoketest(self, servo_binary: str, multiprocess: bool, params: list[str], **kwargs: Any) -> int | None:
         # We pass `-f` here so that any thread panic will cause Servo to exit,
         # preventing a panic from hanging execution. This means that these kind
         # of panics won't cause timeouts on CI.
-        return PostBuildCommands(self.context)._run(servo_binary, params + ["-f", "tests/html/close-on-load.html"])
+        args = ["-f", "tests/html/close-on-load.html"]
+        if multiprocess:
+            args.append("-M")
+        return PostBuildCommands(self.context)._run(servo_binary, params + args)
 
     @Command("try", description="Runs try jobs by force pushing to try branch", category="testing")
     @CommandArgument("--remote", "-r", default="origin", help="A git remote to run the try job on")
