@@ -21,6 +21,9 @@ html, body { display: block; }
 
 body { margin: 8px; }
 
+/*
+https://html.spec.whatwg.org/multipage/#flow-content-3
+*/
 
 address, blockquote, center, div, figure, figcaption, footer, form, header, hr,
 legend, listing, main, p, plaintext, pre, summary, xmp {
@@ -41,33 +44,26 @@ listing, plaintext, pre, xmp {
 dialog:not([open]) { display: none; }
 dialog {
   position: absolute;
-  left: 0; right: 0;
-  /* FIXME: support fit-content */
+  inset-inline-start: 0; inset-inline-end: 0;
   width: fit-content;
   height: fit-content;
   margin: auto;
   border: solid;
   padding: 1em;
-  background: white;
-  color: black;
+  background-color: white; /* FIXME: should be Canvas */
+  color: black; /* FIXME: should be CanvasText */
+}
+dialog:modal {
+  position: fixed;
+  overflow: auto;
+  inset-block: 0;
+  max-width: calc(100% - 6px - 2em);
+  max-height: calc(100% - 6px - 2em);
 }
 /* FIXME: support ::backdrop */
 dialog::backdrop {
-  position: fixed;
-  top: 0; right: 0; bottom: 0; left: 0;
   background: rgba(0,0,0,0.1);
 }
-
-/* for small devices, modal dialogs go full-screen */
-@media screen and (max-width: 540px) {
-  /* FIXME: support :modal */
-  dialog:modal {
-    top: 0;
-    width: auto;
-    margin: 1em;
-  }
-}
-
 
 cite, dfn, em, i, var { font-style: italic; }
 b, strong { font-weight: bolder; }

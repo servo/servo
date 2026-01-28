@@ -129,6 +129,7 @@ impl HTMLDialogElement {
 
         // Step 13. Set is modal of subject to true.
         self.is_modal.set(true);
+        self.upcast::<Element>().set_modal_state(true);
 
         // TODO: Step 14. Set subject's node document to be blocked by the modal dialog subject.
 
@@ -199,6 +200,7 @@ impl HTMLDialogElement {
 
         // Step 8. Set is modal of subject to false.
         self.is_modal.set(false);
+        self.upcast::<Element>().set_modal_state(false);
 
         // Step 9. If result is not null, then set subject's returnValue attribute to result.
         if let Some(new_value) = result {

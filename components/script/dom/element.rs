@@ -5296,6 +5296,10 @@ impl Element {
         self.set_state(ElementState::PLACEHOLDER_SHOWN, value);
     }
 
+    pub(crate) fn set_modal_state(&self, value: bool) {
+        self.set_state(ElementState::MODAL, value);
+    }
+
     pub(crate) fn set_target_state(&self, value: bool) {
         self.set_state(ElementState::URLTARGET, value)
     }
