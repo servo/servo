@@ -147,8 +147,7 @@ impl Request {
         }
 
         // Step 7. Let origin be this’s relevant settings object’s origin.
-        // TODO: `entry settings object` is not implemented yet.
-        let origin = base_url.origin();
+        let origin = global.origin().immutable();
 
         // Step 8. Let traversableForUserPrompts be "client".
         let mut traversable_for_user_prompts = TraversableForUserPrompts::Client;
@@ -241,7 +240,7 @@ impl Request {
                     if (parsed_referrer.cannot_be_a_base() &&
                         parsed_referrer.scheme() == "about" &&
                         parsed_referrer.path() == "client") ||
-                        parsed_referrer.origin() != origin
+                        parsed_referrer.origin() != *origin
                     {
                         // then set request’s referrer to "client".
                         request.referrer = global.get_referrer();
