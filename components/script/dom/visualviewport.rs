@@ -4,8 +4,10 @@
 
 use std::cell::Cell;
 
+use bitflags::bitflags;
 use dom_struct::dom_struct;
 use euclid::{Rect, Scale, Size2D};
+use paint_api::PinchZoomDetails;
 use script_bindings::codegen::GenericBindings::VisualViewportBinding::VisualViewportMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::num::Finite;
@@ -34,6 +36,17 @@ pub(crate) struct VisualViewport {
     /// <https://drafts.csswg.org/cssom-view/#scale-factor>
     #[no_trace]
     scale: Cell<Scale<f32, DevicePixel, DevicePixel>>,
+}
+
+bitflags! {
+    /// The changes of the [`VisualViewport`] after an update to determine events that might need to be fired.
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub struct VisualViewportChanges: u8 {
+        /// Size or the scale factor of the [`VisualViewport`] has changed.
+        const DimensionChanged = 1 << 0;
+        /// The offset or the origin of the [`VisualViewport`] has changed.
+        const OffsetChanged = 1 << 1;
+    }
 }
 
 impl VisualViewport {
@@ -66,6 +79,32 @@ impl VisualViewport {
             window,
             can_gc,
         )
+    }
+
+    fn check_for_update(
+        &self,
+        old_rect: Rect<f32, CSSPixel>,
+        old_scale: Scale<f32, DevicePixel, DevicePixel>,
+    ) -> VisualViewportChanges {
+        let mut state = VisualViewportChanges::empty();
+        if old_rect.origin != self.viewport_rect.get().origin {
+            state |= VisualViewportChanges::OffsetChanged;
+        }
+        if old_rect.size != self.viewport_rect.get().size || old_scale != self.scale.get() {
+            state |= VisualViewportChanges::DimensionChanged;
+        }
+        state
+    }
+
+    /// Update the [`VisualViewport`] state based on a new [`PinchZoomDetails`].
+    pub(crate) fn update_from_pinch_zoom_details(
+        &self,
+        pinch_zoom_details: PinchZoomDetails,
+    ) -> VisualViewportChanges {
+        let old_rect = self.viewport_rect.replace(pinch_zoom_details.rect);
+        let old_scale = self.scale.replace(pinch_zoom_details.zoom_factor);
+
+        self.check_for_update(old_rect, old_scale)
     }
 }
 

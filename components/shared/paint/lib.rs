@@ -11,12 +11,14 @@ use base::Epoch;
 use base::id::{PainterId, PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use embedder_traits::{AnimationState, EventLoopWaker};
+use euclid::{Rect, Scale, Size2D};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 use strum::IntoStaticStr;
+use style_traits::CSSPixel;
 use surfman::{Adapter, Connection};
 use webrender_api::{DocumentId, FontVariation};
 
@@ -36,7 +38,7 @@ use ipc_channel::ipc::{self};
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
 pub use webrender_api::ExternalImageSource;
-use webrender_api::units::{LayoutVector2D, TexelRect};
+use webrender_api::units::{DevicePixel, LayoutVector2D, TexelRect};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
     ExternalImageHandler, ExternalImageId, ExternalScrollId, FontInstanceFlags, FontInstanceKey,
@@ -768,5 +770,28 @@ bitflags! {
     impl PipelineExitSource: u8 {
         const Script = 1 << 0;
         const Constellation = 1 << 1;
+    }
+}
+
+/// A [`PinchZoomDetails`] for a root [`Pipeline`] of an [`WebView`]. For any [`Pipeline`]
+/// that is not a root, it should follow the viewport description of its pipeline since
+/// pinch-zoom and resizing due to overlay UIs are not applicable there.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct PinchZoomDetails {
+    /// The zoom factor (or pinch-zoom).
+    pub zoom_factor: Scale<f32, DevicePixel, DevicePixel>,
+
+    /// The size relative to layout viewport.
+    pub rect: Rect<f32, CSSPixel>,
+}
+
+impl PinchZoomDetails {
+    /// New initial [`PinchZoomDetails`] without any pinch-zoom or resizing from a viewport size
+    /// for a nested pipeline or newly initialized root pipeline.
+    pub fn new_from_viewport_size(size: Size2D<f32, CSSPixel>) -> Self {
+        Self {
+            zoom_factor: Scale::identity(),
+            rect: Rect::from_size(size),
+        }
     }
 }

@@ -776,7 +776,13 @@ impl WebViewRenderer {
             self.touch_handler.stop_fling_if_needed();
         }
 
-        (self.set_pinch_zoom(new_pinch_zoom), scroll_result)
+        // Additionally notify pinch zoom update to the script.
+        let pinch_zoom_result = self.set_pinch_zoom(new_pinch_zoom);
+        if pinch_zoom_result == PinchZoomResult::DidPinchZoom {
+            self.send_pinch_zoom_details_to_script();
+        }
+
+        (pinch_zoom_result, scroll_result)
     }
 
     /// Perform a hit test at the given [`DevicePoint`] and apply the [`Scroll`]
@@ -891,12 +897,32 @@ impl WebViewRenderer {
         self.send_scroll_positions_to_layout_for_pipeline(root_pipeline_id);
         self.dispatch_scroll_event(external_scroll_id, hit_test_result.clone());
 
+        if pinch_zoom_result == PinchZoomResult::DidNotPinchZoom {
+            self.send_pinch_zoom_details_to_script();
+        }
+
         let scroll_result = ScrollResult {
             hit_test_result,
             external_scroll_id,
             offset,
         };
         (pinch_zoom_result, vec![scroll_result])
+    }
+
+    /// Send [`PinchZoom`] update to the script's root pipeline.
+    fn send_pinch_zoom_details_to_script(&self) {
+        // Pinch-zoom is applicable only to the root pipeline.
+        let Some(pipeline_id) = self.root_pipeline_id else {
+            return;
+        };
+
+        let pinch_zoom_details = self.pinch_zoom.get_pinch_zoom_details_for_script(
+            self.device_pixels_per_page_pixel_not_including_pinch_zoom(),
+        );
+
+        let _ = self.embedder_to_constellation_sender.send(
+            EmbedderToConstellationMessage::UpdatePinchZoomDetails(pipeline_id, pinch_zoom_details),
+        );
     }
 
     fn dispatch_scroll_event(
@@ -1010,6 +1036,7 @@ impl WebViewRenderer {
         if old_rect.size() != self.rect.size() {
             self.send_window_size_message();
             self.pinch_zoom.resize_unscaled_viewport(new_rect);
+            self.send_pinch_zoom_details_to_script();
         }
         old_rect != self.rect
     }

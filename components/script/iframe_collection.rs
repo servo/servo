@@ -8,6 +8,7 @@ use base::id::BrowsingContextId;
 use constellation_traits::{IFrameSizeMsg, ScriptToConstellationMessage, WindowSizeType};
 use embedder_traits::ViewportDetails;
 use layout_api::IFrameSizes;
+use paint_api::PinchZoomDetails;
 use rustc_hash::FxHashMap;
 
 use crate::dom::bindings::inheritance::Castable;
@@ -136,6 +137,13 @@ impl IFrameCollection {
                         viewport_details,
                         WindowSizeType::Resize,
                     );
+                    // Additionally, update the `VisualViewport` of the `Iframe`. This allows us
+                    // to process the resize for `VisualViewport` in the corrent timing. Note that
+                    // `VisualViewport` for iframes would practically follow layout viewport.
+                    script_thread.handle_update_pinch_zoom_details(
+                        iframe_size.pipeline_id,
+                        PinchZoomDetails::new_from_viewport_size(viewport_details.size),
+                    )
                 });
 
                 let old_viewport_details =

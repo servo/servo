@@ -4,6 +4,7 @@
 
 use embedder_traits::Scroll;
 use euclid::{Point2D, Rect, Scale, Transform2D, Vector2D};
+use paint_api::PinchZoomDetails;
 use style_traits::CSSPixel;
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect, DeviceSize, DeviceVector2D};
 
@@ -36,6 +37,20 @@ impl PinchZoom {
 
     pub(crate) fn resize_unscaled_viewport(&mut self, webview_rect: DeviceRect) {
         self.unscaled_viewport_size = webview_rect.size();
+    }
+
+    /// The boundary of the pinch zoom viewport relative to the unscaled viewport. For the
+    /// script's `VisualViewport` interface and calculations (such as scroll).
+    pub fn pinch_zoom_rect_relative_to_unscaled_viewport(&self) -> Rect<f32, DevicePixel> {
+        let rect = Rect::new(
+            Point2D::origin(),
+            self.unscaled_viewport_size.to_vector().to_size(),
+        )
+        .cast_unit();
+        self.transform
+            .inverse()
+            .expect("Should always be able to invert provided transform")
+            .outer_transformed_rect(&rect)
     }
 
     fn set_transform(&mut self, transform: Transform2D<f32, DevicePixel, DevicePixel>) {
@@ -134,5 +149,16 @@ impl PinchZoom {
         );
 
         remaining
+    }
+
+    /// Get the [`PinchZoomDetails`] from this [`PinchZoom`] state. Perserving only the rectangle and the scale factor.
+    pub(crate) fn get_pinch_zoom_details_for_script(
+        &self,
+        viewport_scale: Scale<f32, CSSPixel, DevicePixel>,
+    ) -> PinchZoomDetails {
+        PinchZoomDetails {
+            zoom_factor: Scale::new(self.zoom_factor),
+            rect: self.pinch_zoom_rect_relative_to_unscaled_viewport() / viewport_scale,
+        }
     }
 }

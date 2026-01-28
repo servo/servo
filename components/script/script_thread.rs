@@ -79,7 +79,7 @@ use net_traits::{
     FetchMetadata, FetchResponseMsg, Metadata, NetworkError, ResourceFetchTiming, ResourceThreads,
     ResourceTimingType,
 };
-use paint_api::{CrossProcessPaintApi, PipelineExitSource};
+use paint_api::{CrossProcessPaintApi, PinchZoomDetails, PipelineExitSource};
 use percent_encoding::percent_decode;
 use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
@@ -1935,6 +1935,9 @@ impl ScriptThread {
                     EmbedderMsg::AccessibilityTreeUpdate(webview_id, tree_update),
                 );
             },
+            ScriptThreadMessage::UpdatePinchZoomDetails(id, pinch_zoom_details) => {
+                self.handle_update_pinch_zoom_details(id, pinch_zoom_details);
+            },
         }
     }
 
@@ -3495,6 +3498,9 @@ impl ScriptThread {
             window.set_throttled(true);
         }
 
+        // Initializing [`VisualViewport`] here allow us to monitor it's changes as soon as possible.
+        window.init_visual_viewport(can_gc);
+
         document.get_current_parser().unwrap()
     }
 
@@ -4049,6 +4055,19 @@ impl ScriptThread {
         document
             .embedder_controls()
             .handle_embedder_control_response(id, response, can_gc);
+    }
+
+    pub(crate) fn handle_update_pinch_zoom_details(
+        &self,
+        pipeline_id: PipelineId,
+        pinch_zoom_details: PinchZoomDetails,
+    ) {
+        let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
+            warn!("Visual viewport update for closed pipeline {pipeline_id}.");
+            return;
+        };
+
+        window.set_visual_viewport(pinch_zoom_details);
     }
 }
 
