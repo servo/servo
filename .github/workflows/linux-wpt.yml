@@ -122,13 +122,13 @@ jobs:
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
       - name: Archive results (filtered)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: ${{ always() }}
         with:
           name: wpt-filtered-logs-linux-${{ matrix.chunk_id }}
           path: wpt-filtered-logs/*/
       - name: Archive results (full)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: ${{ always() }}
         with:
           name: wpt-full-logs-linux-${{ matrix.chunk_id }}
@@ -173,7 +173,7 @@ jobs:
           cat results/linux/*.log > stable-unexpected-results.log || true
       - name: Upload aggregated results
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: stable-unexpected-results-linux
           path: stable-unexpected-results.log
