@@ -37,6 +37,7 @@ use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::request::Referrer;
+use script_bindings::reflector::MutDomObject;
 use script_traits::NewPipelineInfo;
 use serde::{Deserialize, Serialize};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -134,6 +135,12 @@ pub(crate) struct WindowProxy {
     script_window_proxies: Rc<ScriptWindowProxies>,
 }
 
+impl Drop for WindowProxy {
+    fn drop(&mut self) {
+        self.reflector.drop_memory(self);
+    }
+}
+
 impl WindowProxy {
     fn new_inherited(
         browsing_context_id: BrowsingContextId,
@@ -222,10 +229,9 @@ impl WindowProxy {
                 window_proxy,
                 js_proxy.get()
             );
-            window_proxy.reflector.set_jsobject(
-                js_proxy.get(),
-                size_of::<WindowProxy>() + size_of::<Box<WindowProxy>>(),
-            );
+            window_proxy
+                .reflector
+                .init_reflector::<WindowProxy>(js_proxy.get());
             DomRoot::from_ref(&*Box::into_raw(window_proxy))
         }
     }
@@ -286,10 +292,9 @@ impl WindowProxy {
                 window_proxy,
                 js_proxy.get()
             );
-            window_proxy.reflector.set_jsobject(
-                js_proxy.get(),
-                size_of::<WindowProxy>() + size_of::<Box<WindowProxy>>(),
-            );
+            window_proxy
+                .reflector
+                .init_reflector::<WindowProxy>(js_proxy.get());
             DomRoot::from_ref(&*Box::into_raw(window_proxy))
         }
     }
