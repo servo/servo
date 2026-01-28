@@ -30,6 +30,9 @@ servo.pftrace
 webrender-captures/
 /screenshots
 
+# Python setuptools
+/servo.egg-info
+
 # Allow CSV files to be used as resources in tests
 !/tests/**/*.csv
 
