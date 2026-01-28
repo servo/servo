@@ -103,7 +103,7 @@ icu_segmenter = "1.5.0"
 image = { version = "0.25", default-features = false, features = ["avif", "rayon", "bmp", "gif", "ico", "jpeg", "png", "webp"] }
 imsz = "0.4"
 indexmap = { version = "2.11.4", features = ["std"] }
-ipc-channel = "0.20.2"
+ipc-channel = { git = "https://github.com/servo/ipc-channel", rev = "1cfbb8dcf0075e91104df7e5a1eb498cd5b850c4" }
 itertools = "0.14"
 js = { package = "mozjs", version = "=0.14.8", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
@@ -162,9 +162,9 @@ serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
-servo-media = { git = "https://github.com/servo/media", rev = "f384dbc4ff8b5c6f8db2c763306cbe2281d66391" }
-servo-media-dummy = { git = "https://github.com/servo/media", rev = "f384dbc4ff8b5c6f8db2c763306cbe2281d66391" }
-servo-media-gstreamer = { git = "https://github.com/servo/media", rev = "f384dbc4ff8b5c6f8db2c763306cbe2281d66391" }
+servo-media = { git = "https://github.com/servo/media", rev = "cd187acc69e6fb23aeb3c38a2ba3d592a735d530" }
+servo-media-dummy = { git = "https://github.com/servo/media", rev = "cd187acc69e6fb23aeb3c38a2ba3d592a735d530" }
+servo-media-gstreamer = { git = "https://github.com/servo/media", rev = "cd187acc69e6fb23aeb3c38a2ba3d592a735d530" }
 servo-tracing = { path = "components/servo_tracing" }
 servo_arc = { git = "https://github.com/servo/stylo", rev = "29123c1295b527ff5230afc2bcff53138cd884b5" }
 sha1 = "0.10"
