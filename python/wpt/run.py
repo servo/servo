@@ -52,7 +52,7 @@ def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> in
     # Allow to run with the legacy Servo WPT configuration. This is required
     # until necessary improvements are made to the debugging experience with
     # servodriver. See https://github.com/servo/servo/issues/40751
-    product = "servo_legacy" if kwargs.get("servo_legacy") else "servo"
+    product = "servo_legacy" if kwargs.get("legacy") else "servo"
 
     set_if_none(kwargs, "product", product)
     set_if_none(kwargs, "config", os.path.join(WPT_PATH, "config.ini"))
