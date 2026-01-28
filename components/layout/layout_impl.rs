@@ -63,7 +63,9 @@ use style::properties_and_values::registry::{
 };
 use style::properties_and_values::rule::{Inherits, PropertyRegistrationError, PropertyRuleName};
 use style::properties_and_values::syntax::Descriptor;
-use style::queries::values::PrefersColorScheme;
+use style::queries::values::{
+    PrefersColorScheme, PrefersContrast, PrefersReducedMotion, PrefersReducedTransparency,
+};
 use style::selector_parser::{PseudoElement, RestyleDamage, SnapshotMap};
 use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
@@ -738,6 +740,10 @@ impl LayoutThread {
             Box::new(LayoutFontMetricsProvider(config.font_context.clone())),
             ComputedValues::initial_values_with_font_override(font),
             config.theme.into(),
+            // TODO: Obtain these from the embedder via a delegate or preferences.
+            PrefersContrast::NoPreference,
+            PrefersReducedMotion::NoPreference,
+            PrefersReducedTransparency::NoPreference,
         );
 
         LayoutThread {
