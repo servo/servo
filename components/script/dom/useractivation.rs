@@ -5,12 +5,10 @@
 use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use script_bindings::codegen::GenericBindings::UserActivationBinding::UserActivationMethods;
-use servo_config::pref;
-use time::Duration;
 
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::document::Document;
+use crate::dom::document::{AncestorNavigablesIterator, DescendantNavigablesIterator, Document};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -44,18 +42,16 @@ impl UserActivation {
         rooted_vec!(let mut windows <- vec![Dom::from_ref(owner_window)].into_iter());
 
         // > 3. Extend windows with the active window of each of document's ancestor navigables.
-        let mut current_window_proxy = owner_window.window_proxy();
-        while let Some(parent_window_proxy) = current_window_proxy.parent() {
-            current_window_proxy = DomRoot::from_ref(parent_window_proxy);
-            // TODO: this would not work for disimilar origin parent, since we doesn't store the document in another script thread.
-            if let Some(document) = current_window_proxy.document() {
-                windows.push(Dom::from_ref(document.window()));
-            }
+        // TODO: this would not work for disimilar origin ancestor, since we doesn't store the document in this script thread.
+        for document in AncestorNavigablesIterator::new(DomRoot::from_ref(document)) {
+            windows.push(Dom::from_ref(document.window()));
         }
 
         // > 4. Extend windows with the active window of each of document's descendant navigables, filtered to include only
         // >    those navigables whose active document's origin is same origin with document's origin.
-        // TODO: this would need a iteration within a recursion
+        for document in DescendantNavigablesIterator::new(DomRoot::from_ref(document)) {
+            windows.push(Dom::from_ref(document.window()));
+        }
 
         // > 5. For each window in windows:
         let current_timestamp = CrossProcessInstant::now();

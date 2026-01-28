@@ -291,6 +291,16 @@ impl Event {
         can_gc: CanGc,
         // TODO legacy_did_output_listeners_throw_flag for indexeddb
     ) -> bool {
+        // > When a user interaction causes firing of an activation triggering input event in a Document document, the user agent
+        // > must perform the following activation notification steps before dispatching the event:
+        // <https://html.spec.whatwg.org/multipage/#user-activation-processing-model>
+        if self.is_trusted.get() && self.is_an_activation_triggering_input_event() {
+            // TODO: it is not quite clear what does the spec mean by in a `Document`.
+            if let Some(document) = target.downcast::<Node>().map(|node| node.owner_doc()) {
+                UserActivation::handle_user_activation_notification(&document);
+            }
+        }
+
         let mut target = DomRoot::from_ref(target);
 
         // Step 1. Set event’s dispatch flag.
@@ -712,18 +722,7 @@ impl Event {
     /// <https://dom.spec.whatwg.org/#firing-events>
     pub(crate) fn fire(&self, target: &EventTarget, can_gc: CanGc) -> bool {
         self.set_trusted(true);
-
-        // > When a user interaction causes firing of an activation triggering input event in a Document document, the user agent
-        // > must perform the following activation notification steps before dispatching the event:
-        // <https://html.spec.whatwg.org/multipage/#user-activation-processing-model>
-        if self.is_an_activation_triggering_input_event() {
-            // TODO: it is not quite clear what does the spec mean by in a `Document`.
-            if let Some(document) = target.downcast::<Node>().map(|node| node.owner_doc()) {
-                UserActivation::handle_user_activation_notification(
-                    &document,
-                );
-            }
-        }
+        // log::error!("[ztp] fire {:?}", self.Type());
 
         target.dispatch_event(self, can_gc)
     }
