@@ -31,6 +31,10 @@ ignore = [
     # The crate `bincode` is unmaintained. This crate is now pinned in Servo.
     # See the comment above `bincode` entry in Cargo.toml.
     "RUSTSEC-2025-0141",
+    # The crate `ml-dsa 0.0.4` is the latest stable release.
+    # The attack complexity of this vulnerability is high,
+    # and no exploit is known yet.
+    "RUSTSEC-2025-0144"
 ]
 
 # This section is considered when running `cargo deny check licenses`
