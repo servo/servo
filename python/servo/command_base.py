@@ -537,6 +537,11 @@ class CommandBase(object):
                 print("Hint: Ninja-build is available on github at: https://github.com/ninja-build/ninja/releases")
                 exit(1)
 
+        if self.config["build"]["mode"] in ["", "dev"]:
+            # Increase stylo thread stack size to 2 MiB for debug builds since the stack usage is higher
+            # and crashes have been reported. The default is 512 KiB.
+            env["SERVO_STYLE_THREAD_STACK_SIZE_KB"] = env.get("SERVO_STYLE_THREAD_STACK_SIZE_KB", str(2 * 1024))
+
         return env
 
     @staticmethod

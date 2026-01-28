@@ -142,7 +142,6 @@ class MachCommands(CommandBase):
 
         if sanitizer.is_some():
             self.build_sanitizer_env(env, opts, kwargs, target_triple, sanitizer)
-
         build_start = time()
 
         if host != target_triple and "windows" in target_triple:
@@ -302,6 +301,10 @@ class MachCommands(CommandBase):
             env["RUSTFLAGS"] += " -Zsanitizer=address"
             env["TARGET_CFLAGS"] += " -fsanitize=address"
             env["TARGET_CXXFLAGS"] += " -fsanitize=address"
+
+            # Set servo style thread stack size to 8 MB for ASAN builds since the stack usage is higher.
+            # We don't care about efficiency, we just want to avoid crashes.
+            env["SERVO_STYLE_THREAD_STACK_SIZE_KB"] = str(1024 * 8)
 
             # asan replaces system allocator with asan allocator
             # we need to make sure that we do not replace it with jemalloc
