@@ -725,7 +725,7 @@ class Servo(BrowserSetup):
 
 class ServoLegacy(Servo):
     name = "servo_legacy"
-    browser_cls = browser.ServoLegacyBrowser
+    browser_cls = browser.ServoLegacy
 
     def install(self, channel=None):
         if self.prompt_install(self.name):
