@@ -2267,6 +2267,10 @@ class ServoLegacy(Browser):
     product = "servo_legacy"
     requirements = None
 
+
+class Servo(Servo):
+    product = "servo"
+
     def platform_components(self):
         platform, triple = {
             ("Darwin", "arm64"): ("mac-arm64", "aarch64-apple-darwin"),
@@ -2338,10 +2342,6 @@ class ServoLegacy(Browser):
         m = re.search(r"Servo ([0-9\.]+-[a-f0-9]+)?(-dirty)?$", output.strip())
         if m:
             return m.group(0)
-
-
-class ServoWebDriver(Servo):
-    product = "servodriver"
 
 
 class Sauce(Browser):

@@ -706,9 +706,9 @@ class Sauce(BrowserSetup):
         kwargs["test_types"] = ["testharness", "reftest"]
 
 
-class ServoDriver(BrowserSetup):
-    name = "servodriver"
-    browser_cls = browser.ServoDriver
+class Servo(BrowserSetup):
+    name = "servo"
+    browser_cls = browser.Servo
 
     def install(self, channel=None):
         if self.prompt_install(self.name):
@@ -851,8 +851,8 @@ product_setup = {
     "edge": Edge,
     "headless_shell": HeadlessShell,
     "safari": Safari,
+    "servo": Servo,
     "servo_legacy": ServoLegacy,
-    "servodriver": ServoWebDriver,
     "sauce": Sauce,
     "opera": Opera,
     "webkit": WebKit,

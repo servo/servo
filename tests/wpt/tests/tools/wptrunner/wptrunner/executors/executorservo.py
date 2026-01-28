@@ -71,7 +71,7 @@ class ServoDriverTestharnessProtocolPart(WebDriverTestharnessProtocolPart):
         self.parent.webdriver.extension.reset_all_cookies()
 
 
-class ServoWebDriverProtocol(WebDriverProtocol):
+class ServoProtocol(WebDriverProtocol):
     implements = [
         ServoDriverTestharnessProtocolPart,
     ]
@@ -81,7 +81,7 @@ class ServoWebDriverProtocol(WebDriverProtocol):
 
     def __init__(self, executor, browser, capabilities, **kwargs):
         do_delayed_imports()
-        self.implements = list(ServoWebDriverProtocol.implements)
+        self.implements = list(ServoProtocol.implements)
         super().__init__(executor, browser, capabilities, **kwargs)
 
     def connect(self):
@@ -98,9 +98,9 @@ class ServoWebDriverProtocol(WebDriverProtocol):
         self.webdriver.start()
 
 
-class ServoWebDriverTestharnessExecutor(WebDriverTestharnessExecutor):
+class ServoTestharnessExecutor(WebDriverTestharnessExecutor):
     supports_testdriver = True
-    protocol_cls = ServoWebDriverProtocol
+    protocol_cls = ServoProtocol
 
     def __init__(self, logger, browser, server_config, timeout_multiplier=1,
                  close_after_done=True, capabilities=None, debug_info=None,
@@ -117,8 +117,8 @@ class ServoWebDriverTestharnessExecutor(WebDriverTestharnessExecutor):
         )
 
 
-class ServoWebDriverRefTestExecutor(WebDriverRefTestExecutor):
-    protocol_cls = ServoWebDriverProtocol
+class ServoRefTestExecutor(WebDriverRefTestExecutor):
+    protocol_cls = ServoProtocol
 
     def __init__(self, logger, browser, server_config, timeout_multiplier=1,
                  screenshot_cache=None, capabilities=None, debug_info=None,
@@ -135,8 +135,8 @@ class ServoWebDriverRefTestExecutor(WebDriverRefTestExecutor):
         )
 
 
-class ServoWebDriverCrashtestExecutor(WebDriverCrashtestExecutor):
-    protocol_cls = ServoWebDriverProtocol
+class ServoCrashtestExecutor(WebDriverCrashtestExecutor):
+    protocol_cls = ServoProtocol
 
     def __init__(self, logger, browser, server_config, timeout_multiplier=1,
                  screenshot_cache=None, capabilities=None, debug_info=None,

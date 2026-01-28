@@ -12,20 +12,20 @@ from .base import (WebDriverBrowser,
 from .base import get_timeout_multiplier   # noqa: F401
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.base import WdspecExecutor  # noqa: F401
-from ..executors.executorservodriver import (ServoWebDriverTestharnessExecutor,  # noqa: F401
-                                             ServoWebDriverRefTestExecutor,  # noqa: F401
-                                             ServoWebDriverCrashtestExecutor)  # noqa: F401
+from ..executors.executorservo import (ServoTestharnessExecutor,  # noqa: F401
+                                             ServoRefTestExecutor,  # noqa: F401
+                                             ServoCrashtestExecutor)  # noqa: F401
 
 here = os.path.dirname(__file__)
 
 __wptrunner__ = {
-    "product": "servodriver",
+    "product": "servo",
     "check_args": "check_args",
-    "browser": "ServoWebDriverBrowser",
+    "browser": "ServoBrowser",
     "executor": {
-        "testharness": "ServoWebDriverTestharnessExecutor",
-        "reftest": "ServoWebDriverRefTestExecutor",
-        "crashtest": "ServoWebDriverCrashtestExecutor",
+        "testharness": "ServoTestharnessExecutor",
+        "reftest": "ServoRefTestExecutor",
+        "crashtest": "ServoCrashtestExecutor",
         "wdspec": "WdspecExecutor",
     },
     "browser_kwargs": "browser_kwargs",
@@ -79,7 +79,7 @@ def write_hosts_file(config):
     return hosts_path
 
 
-class ServoWebDriverBrowser(WebDriverBrowser):
+class ServoBrowser(WebDriverBrowser):
     init_timeout = 300  # Large timeout for cases where we're booting an Android emulator
     shutdown_retry_attempts = 3
 
