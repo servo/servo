@@ -988,6 +988,12 @@ impl Node {
         TrustedNodeAddress(self as *const Node as *const libc::c_void)
     }
 
+    /// Return the node that establishes a containing block for this node.
+    pub(crate) fn containing_block_node(&self) -> Option<DomRoot<Node>> {
+        self.owner_window()
+            .containing_block_node_query_without_reflow(self)
+    }
+
     pub(crate) fn padding(&self) -> Option<PhysicalSides> {
         self.owner_window().padding_query_without_reflow(self)
     }
@@ -1002,9 +1008,19 @@ impl Node {
             .box_area_query(self, BoxAreaType::Border, false)
     }
 
+    pub(crate) fn border_box_without_reflow(&self) -> Option<Rect<Au, CSSPixel>> {
+        self.owner_window()
+            .box_area_query_without_reflow(self, BoxAreaType::Border, false)
+    }
+
     pub(crate) fn padding_box(&self) -> Option<Rect<Au, CSSPixel>> {
         self.owner_window()
             .box_area_query(self, BoxAreaType::Padding, false)
+    }
+
+    pub(crate) fn padding_box_without_reflow(&self) -> Option<Rect<Au, CSSPixel>> {
+        self.owner_window()
+            .box_area_query_without_reflow(self, BoxAreaType::Padding, false)
     }
 
     pub(crate) fn border_boxes(&self) -> Vec<Rect<Au, CSSPixel>> {

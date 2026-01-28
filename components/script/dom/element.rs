@@ -567,7 +567,7 @@ impl Element {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#scrolling-box>
-    fn has_scrolling_box(&self) -> bool {
+    pub(crate) fn has_scrolling_box(&self) -> bool {
         // TODO: scrolling mechanism, such as scrollbar (We don't have scrollbar yet)
         //       self.has_scrolling_mechanism()
         self.style().is_some_and(|style| {

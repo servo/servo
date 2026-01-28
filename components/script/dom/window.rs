@@ -2800,6 +2800,19 @@ impl Window {
         )
     }
 
+    /// Query the ancestor node that establishes the containing block for the given node.
+    /// <https://drafts.csswg.org/css-position-3/#def-cb>
+    #[expect(unsafe_code)]
+    pub(crate) fn containing_block_node_query_without_reflow(
+        &self,
+        node: &Node,
+    ) -> Option<DomRoot<Node>> {
+        self.layout
+            .borrow()
+            .query_containing_block(node.to_trusted_node_address())
+            .map(|address| unsafe { from_untrusted_node_address(address) })
+    }
+
     /// Query the used padding values for the given node, but do not force a reflow.
     /// This is used for things like `ResizeObserver` which should observe the value
     /// from the most recent reflow, but do not need it to reflect the current state of

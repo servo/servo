@@ -759,7 +759,9 @@ pub fn process_offset_parent_query(
     })
 }
 
-fn style_and_flags_for_node(node: &ServoLayoutNode) -> Option<(servo_arc::Arc<ComputedValues>, FragmentFlags)> {
+fn style_and_flags_for_node(
+    node: &ServoLayoutNode,
+) -> Option<(ServoArc<ComputedValues>, FragmentFlags)> {
     let layout_data = node.to_threadsafe().inner_layout_data()?;
     let layout_box = layout_data.self_box.borrow();
     let layout_box = layout_box.as_ref()?;
@@ -776,8 +778,8 @@ fn is_containing_block_for_position(position: Position, ancestor: &ServoLayoutNo
         return false;
     };
 
-    let Some((ancestor_style, ancestor_flags)) = ancestor_layout_box
-        .with_base(|base| (base.style.clone(), base.base_fragment_info.flags))
+    let Some((ancestor_style, ancestor_flags)) =
+        ancestor_layout_box.with_base(|base| (base.style.clone(), base.base_fragment_info.flags))
     else {
         return false;
     };
@@ -879,7 +881,8 @@ pub(crate) fn process_scroll_container_query(
     while let Some(ancestor) = current_ancestor.traversal_parent() {
         current_ancestor = ancestor;
 
-        let Some((ancestor_style, ancestor_flags)) = style_and_flags_for_node(&ancestor.as_node()) else {
+        let Some((ancestor_style, ancestor_flags)) = style_and_flags_for_node(&ancestor.as_node())
+        else {
             continue;
         };
 
@@ -1395,9 +1398,7 @@ pub fn find_glyph_offset_in_fragment_descendants(
     })
 }
 
-pub fn process_containing_block_query(
-    node: ServoLayoutNode,
-) -> Option<UntrustedNodeAddress> {
+pub fn process_containing_block_query(node: ServoLayoutNode) -> Option<UntrustedNodeAddress> {
     let containing_block = containing_block_for_node(node);
     containing_block.map(|node| node.opaque().into())
 }

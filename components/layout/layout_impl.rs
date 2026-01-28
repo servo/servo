@@ -91,10 +91,10 @@ use crate::display_list::{
 };
 use crate::query::{
     find_glyph_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
-    process_box_areas_request, process_client_rect_request, process_current_css_zoom_query,
-    process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
-    process_resolved_font_style_query, process_resolved_style_request,
-    process_scroll_container_query, process_containing_block_query,
+    process_box_areas_request, process_client_rect_request, process_containing_block_query,
+    process_current_css_zoom_query, process_node_scroll_area_request, process_offset_parent_query,
+    process_padding_request, process_resolved_font_style_query, process_resolved_style_request,
+    process_scroll_container_query,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_repair_style};
 use crate::{BoxTree, FragmentTree};

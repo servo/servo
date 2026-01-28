@@ -3373,7 +3373,7 @@ impl Document {
     ) {
         // Step 1
         // > Let rootBounds be observer’s root intersection rectangle.
-        let root_bounds = intersection_observer.root_intersection_rectangle(self);
+        let root_bounds = intersection_observer.root_intersection_rectangle();
 
         // Step 2
         // > For each target in observer’s internal [[ObservationTargets]] slot,
