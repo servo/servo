@@ -110,7 +110,6 @@ enum ParserState {
 
 #[derive(MallocSizeOf)]
 struct EventSourceContext {
-    #[ignore_malloc_size_of = "No encoding_rs support"]
     decoder: Decoder,
     event_source: Trusted<EventSource>,
     gen_id: GenerationId,
@@ -431,22 +430,33 @@ impl FetchResponseListener for EventSourceContext {
     }
 
     fn process_response_chunk(&mut self, _: RequestId, chunk: Vec<u8>) {
-        let mut output = String::with_capacity(chunk.len() * 3);
-        let (result, _bytes_read) =
-            self.decoder
-                .decode_to_string_without_replacement(&chunk, &mut output, false);
+        let mut output = String::with_capacity(chunk.len());
+        let mut input = &chunk[..];
 
-        match result {
-            encoding_rs::DecoderResult::InputEmpty => {
-                self.parse(output.chars(), CanGc::note());
-            },
-            encoding_rs::DecoderResult::Malformed(_, _) => {
-                self.parse(output.chars(), CanGc::note());
-                self.parse("\u{FFFD}".chars(), CanGc::note());
-            },
-            encoding_rs::DecoderResult::OutputFull => {
-                self.parse(output.chars(), CanGc::note());
-            },
+        loop {
+            if input.is_empty() {
+                return;
+            }
+            let (result, bytes_read) =
+                self.decoder
+                    .decode_to_string_without_replacement(input, &mut output, false);
+            match result {
+                encoding_rs::DecoderResult::InputEmpty => {
+                    self.parse(output.chars(), CanGc::note());
+                    return;
+                },
+                encoding_rs::DecoderResult::Malformed(_, _) => {
+                    self.parse(output.chars(), CanGc::note());
+                    self.parse("\u{FFFD}".chars(), CanGc::note());
+                    output.clear();
+                    input = &input[bytes_read..];
+                },
+                encoding_rs::DecoderResult::OutputFull => {
+                    self.parse(output.chars(), CanGc::note());
+                    output.clear();
+                    input = &input[bytes_read..];
+                },
+            }
         }
     }
 
