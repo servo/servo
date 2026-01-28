@@ -738,7 +738,9 @@ pub fn process_offset_parent_query(
     })
 }
 
-fn style_and_flags_for_node(node: &ServoLayoutNode) -> Option<(servo_arc::Arc<ComputedValues>, FragmentFlags)> {
+fn style_and_flags_for_node(
+    node: &ServoLayoutNode,
+) -> Option<(ServoArc<ComputedValues>, FragmentFlags)> {
     let layout_data = node.inner_layout_data()?;
     let layout_box = layout_data.self_box.borrow();
     let layout_box = layout_box.as_ref()?;
@@ -755,8 +757,8 @@ fn is_containing_block_for_position(position: Position, ancestor: &ServoLayoutNo
         return false;
     };
 
-    let Some((ancestor_style, ancestor_flags)) = ancestor_layout_box
-        .with_base(|base| (base.style.clone(), base.base_fragment_info.flags))
+    let Some((ancestor_style, ancestor_flags)) =
+        ancestor_layout_box.with_base(|base| (base.style.clone(), base.base_fragment_info.flags))
     else {
         return false;
     };
@@ -1428,9 +1430,7 @@ pub fn find_character_offset_in_fragment_descendants(
     })
 }
 
-pub fn process_containing_block_query(
-    node: ServoLayoutNode,
-) -> Option<UntrustedNodeAddress> {
+pub fn process_containing_block_query(node: ServoLayoutNode) -> Option<UntrustedNodeAddress> {
     let containing_block = containing_block_for_node(node);
     containing_block.map(|node| node.opaque().into())
 }
