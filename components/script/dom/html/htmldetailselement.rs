@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
 use script_bindings::domstring::DOMString;
+use style::selector_parser::PseudoElement;
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
@@ -48,7 +49,7 @@ const DEFAULT_SUMMARY: &str = "Details";
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ShadowTree {
     summary: Dom<HTMLSlotElement>,
-    descendants: Dom<HTMLSlotElement>,
+    details_content: Dom<HTMLSlotElement>,
     /// The summary that is displayed if no other summary exists
     implicit_summary: Dom<HTMLElement>,
 }
@@ -175,9 +176,7 @@ impl HTMLDetailsElement {
         let document = self.owner_document();
         // TODO(stevennovaryo): Reimplement details styling so that it would not
         //                      mess the cascading and require some reparsing.
-        let root = self
-            .upcast::<Element>()
-            .attach_ua_shadow_root(false, can_gc);
+        let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
 
         let summary = Element::create(
             QualName::new(None, ns!(html), local_name!("slot")),
@@ -211,7 +210,7 @@ impl HTMLDetailsElement {
             .AppendChild(fallback_summary.upcast::<Node>(), can_gc)
             .unwrap();
 
-        let descendants = Element::create(
+        let details_content = Element::create(
             QualName::new(None, ns!(html), local_name!("slot")),
             None,
             &document,
@@ -220,14 +219,18 @@ impl HTMLDetailsElement {
             None,
             can_gc,
         );
-        let descendants = DomRoot::downcast::<HTMLSlotElement>(descendants).unwrap();
+        let details_content = DomRoot::downcast::<HTMLSlotElement>(details_content).unwrap();
+
         root.upcast::<Node>()
-            .AppendChild(descendants.upcast::<Node>(), can_gc)
+            .AppendChild(details_content.upcast::<Node>(), can_gc)
             .unwrap();
+        details_content
+            .upcast::<Node>()
+            .set_implemented_pseudo_element(PseudoElement::DetailsContent);
 
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
             summary: summary.as_traced(),
-            descendants: descendants.as_traced(),
+            details_content: details_content.as_traced(),
             implicit_summary: fallback_summary.as_traced(),
         });
         self.upcast::<Node>()
@@ -266,23 +269,11 @@ impl HTMLDetailsElement {
                 slottable_children.push(ElementOrText::Text(DomRoot::from_ref(text)));
             }
         }
-        shadow_tree.descendants.Assign(slottable_children);
+        shadow_tree.details_content.Assign(slottable_children);
     }
 
     fn update_shadow_tree_styles(&self, can_gc: CanGc) {
         let shadow_tree = self.shadow_tree(can_gc);
-
-        let value = if self.Open() {
-            "display: block;"
-        } else {
-            // TODO: This should be "display: block; content-visibility: hidden;",
-            // but servo does not support content-visibility yet
-            "display: none;"
-        };
-        shadow_tree
-            .descendants
-            .upcast::<Element>()
-            .set_string_attribute(&local_name!("style"), value.into(), can_gc);
 
         // Manually update the list item style of the implicit summary element.
         // Unlike the other summaries, this summary is in the shadow tree and

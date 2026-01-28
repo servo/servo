@@ -306,9 +306,13 @@ details[open]::-servo-details-summary {
   list-style: disclosure-open;
 }
 
-*|*::-servo-details-content {
-  margin-left: 40px;
-  overflow: hidden;
+details::details-content {
+  /* TODO: This should be "display: block; content-visibility: hidden;",
+  but servo does not support content-visibility yet */
+  display: none;
+}
+
+details[open]::details-content {
   display: block;
 }
 
