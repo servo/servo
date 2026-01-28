@@ -1936,7 +1936,7 @@ impl ScriptThread {
                 );
             },
             ScriptThreadMessage::UpdatePinchZoomDetails(id, pinch_zoom_details) => {
-                self.handle_update_pinch_zoom_details(id, pinch_zoom_details);
+                self.handle_update_pinch_zoom_details(id, pinch_zoom_details, CanGc::from_cx(cx));
             },
         }
     }
@@ -3498,9 +3498,6 @@ impl ScriptThread {
             window.set_throttled(true);
         }
 
-        // Initializing [`VisualViewport`] here allow us to monitor it's changes as soon as possible.
-        window.init_visual_viewport(can_gc);
-
         document.get_current_parser().unwrap()
     }
 
@@ -4061,13 +4058,14 @@ impl ScriptThread {
         &self,
         pipeline_id: PipelineId,
         pinch_zoom_details: PinchZoomDetails,
+        can_gc: CanGc,
     ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             warn!("Visual viewport update for closed pipeline {pipeline_id}.");
             return;
         };
 
-        window.set_visual_viewport(pinch_zoom_details);
+        window.maybe_update_visual_viewport(pinch_zoom_details, can_gc);
     }
 }
 

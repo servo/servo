@@ -307,7 +307,7 @@ pub enum ScriptThreadMessage {
     /// Send the embedder an accessibility tree update.
     AccessibilityTreeUpdate(WebViewId, accesskit::TreeUpdate),
     /// Update the pinch zoom details of a pipeline. Each `Window` stores a `VisualViewport` DOM
-    /// instances that gets updated according to the changes from the `Compositor``.
+    /// instance that gets updated according to the changes from the `Compositor``.
     UpdatePinchZoomDetails(PipelineId, PinchZoomDetails),
 }
 

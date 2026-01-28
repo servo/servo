@@ -41,7 +41,7 @@ impl PinchZoom {
 
     /// The boundary of the pinch zoom viewport relative to the unscaled viewport. For the
     /// script's `VisualViewport` interface and calculations (such as scroll).
-    pub fn pinch_zoom_rect_relative_to_unscaled_viewport(&self) -> Rect<f32, DevicePixel> {
+    fn pinch_zoom_rect_relative_to_unscaled_viewport(&self) -> Rect<f32, DevicePixel> {
         let rect = Rect::new(
             Point2D::origin(),
             self.unscaled_viewport_size.to_vector().to_size(),
@@ -151,7 +151,7 @@ impl PinchZoom {
         remaining
     }
 
-    /// Get the [`PinchZoomDetails`] from this [`PinchZoom`] state. Perserving only the rectangle and the scale factor.
+    /// Get the [`PinchZoomDetails`] from this [`PinchZoom`] state.
     pub(crate) fn get_pinch_zoom_details_for_script(
         &self,
         viewport_scale: Scale<f32, CSSPixel, DevicePixel>,

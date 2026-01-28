@@ -10,6 +10,7 @@ use embedder_traits::ViewportDetails;
 use layout_api::IFrameSizes;
 use paint_api::PinchZoomDetails;
 use rustc_hash::FxHashMap;
+use script_bindings::script_runtime::CanGc;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -143,6 +144,9 @@ impl IFrameCollection {
                     script_thread.handle_update_pinch_zoom_details(
                         iframe_size.pipeline_id,
                         PinchZoomDetails::new_from_viewport_size(viewport_details.size),
+                        // Theoritically it wouldn't do GC since it is impossible to initialize
+                        // the `VisualViewport` interface here.
+                        CanGc::note(),
                     )
                 });
 
