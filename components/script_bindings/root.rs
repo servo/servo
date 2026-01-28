@@ -281,9 +281,7 @@ where
         let ptr = self.as_ptr();
         drop(self);
         let root = DomRoot::from_ref(unsafe { &*ptr });
-        // Ideally we would measure the shallow size of T here,
-        // but we don't have a way to do that currently.
-        unsafe { root.init_reflector(obj, size_of::<T>() + size_of::<Box<T>>()) };
+        unsafe { root.init_reflector::<T>(obj) };
         root
     }
 }

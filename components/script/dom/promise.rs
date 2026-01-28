@@ -140,7 +140,7 @@ impl Promise {
                 permanent_js_root: Heap::default(),
             };
             let promise = Rc::new(promise);
-            promise.init_reflector(obj.get(), size_of::<Promise>());
+            promise.init_reflector::<Promise>(obj.get());
             promise.initialize(cx);
             promise
         }

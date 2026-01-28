@@ -7,6 +7,7 @@ use canvas_traits::canvas::{Canvas2dMsg, CanvasId};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use pixels::Snapshot;
+use script_bindings::reflector::AssociatedMemory;
 use servo_url::ServoUrl;
 use webrender_api::ImageKey;
 
@@ -39,7 +40,7 @@ use crate::script_runtime::CanGc;
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
 #[dom_struct]
 pub(crate) struct CanvasRenderingContext2D {
-    reflector_: Reflector,
+    reflector_: Reflector<AssociatedMemory>,
     canvas: HTMLCanvasElementOrOffscreenCanvas,
     canvas_state: CanvasState,
 }
@@ -110,9 +111,8 @@ impl CanvasContext for CanvasRenderingContext2D {
     }
 
     fn resize(&self) {
-        self.reflector_.set_new_size(
-            self.size().cast::<usize>().area() + size_of::<Box<Self>>() + size_of::<Self>(),
-        );
+        self.reflector_
+            .update_memory_size(self, self.size().cast::<usize>().area());
         self.canvas_state.set_bitmap_dimensions(self.size().cast());
     }
 
