@@ -379,13 +379,6 @@ impl FetchResponseListener for StylesheetContext {
             if !self.contributes_to_the_styling_processing_model(&element) {
                 // Step 2.1. Remove el from el's node document's script-blocking style sheet set.
                 self.decrement_load_and_render_blockers(&document);
-                let owner = element
-                    .upcast::<Element>()
-                    .as_stylesheet_owner()
-                    .expect("Stylesheet not loaded by <style> or <link> element!");
-                // Always consider ignored loads as successful, as they shouldn't cause any subsequent
-                // successful loads to fire an "error" event.
-                owner.load_finished(true);
                 document.finish_load(LoadType::Stylesheet(self.url), CanGc::note());
                 // Step 2.2. Return.
                 return;

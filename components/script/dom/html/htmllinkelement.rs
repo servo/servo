@@ -629,6 +629,7 @@ impl HTMLLinkElement {
 
         self.request_generation_id
             .set(self.request_generation_id.get().increment());
+        self.pending_loads.set(0);
 
         let loader = ElementStylesheetLoader::new(self.upcast());
         loader.load(
