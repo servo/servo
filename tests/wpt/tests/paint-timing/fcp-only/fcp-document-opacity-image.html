@@ -31,6 +31,7 @@ const change_opacity = () => {
 
 promise_test(async t => {
   assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+  assert_implements(window.LargestContentfulPaint, "Largest Contentful Paint isn't supported.");
   await load_image();
   await assertNoFirstContentfulPaint(t);
   change_opacity();
