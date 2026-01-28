@@ -194,7 +194,7 @@ jobs:
         if: ${{ false && inputs.unit-tests }}  # FIXME #39273
         run: ./mach test-devtools --profile ${{ inputs.profile }}
       - name: Archive build timing
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: cargo-timings-linux-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
@@ -202,7 +202,7 @@ jobs:
       - name: Build mach package
         run: ./mach package --profile ${{ inputs.profile }}
       - name: Upload artifact for mach package
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         id: upload-tarball
         with:
           name: ${{ inputs.profile }}-binary-linux

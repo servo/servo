@@ -105,28 +105,28 @@ jobs:
           ./mach build --locked --target ${{ matrix.target }} --profile ${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-ohos-${{ matrix.target }}
       - name: Archive build timing
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: cargo-timings-ohos-${{ matrix.target }}-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Upload shared library
         if: ${{ inputs.upload_library }}
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         id: upload-library
         with:
           name: ${{ inputs.profile }}-library-ohos-${{ matrix.target }}
           path: target/aarch64-unknown-linux-ohos/production/libservoshell.so
       - name: Upload signed HAP artifact
         if: ${{ env.SERVO_OHOS_SIGNING_CONFIG != '' }} # Build output has different name if not signed.
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         id: upload-hap-signed
         with:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
           path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-signed.hap
       - name: Upload unsigned HAP artifact
         if: ${{ env.SERVO_OHOS_SIGNING_CONFIG == '' }} # Build output has different name if not signed.
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         id: upload-hap-unsigned
         with:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
@@ -180,7 +180,7 @@ jobs:
       - name: Build for aarch64 HarmonyOS
         run: |
           ./mach build --locked --target aarch64-unknown-linux-ohos --profile=${{ inputs.profile }} --flavor=harmonyos --no-default-features --features tracing,tracing-hitrace
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           # Upload the **unsigned** artifact - We don't have the signing materials in pull request workflows
           name: servoshell-hos-${{ inputs.profile }}.hap
@@ -244,7 +244,7 @@ jobs:
           hdc shell hilog --exit -D 0xE0C3 > test_output/servo.log
       # todo: Also benchmark some other websites....
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           path: test_output
           name: hos-${{ inputs.profile }}-test-output
@@ -364,7 +364,7 @@ jobs:
           hdc file recv /data/local/tmp/servo.jpeg speedometer_error_logs/servo_hos_screenshot.jpeg
           # Todo: Upload logs. This is currently not possible since the test-speedometer-ohos command
           # sets a log filter, which filters everything except JS console output.
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() && steps.speedometer.outcome == 'failure' }}
         with:
           name: ohos-speedometer-failure-${{ matrix.target }}-${{ inputs.profile }}
@@ -444,7 +444,7 @@ jobs:
         run: uv run ./etc/ci/scenario/servo_test_slide.py
       - name: Upload failure screenshots
         if: ${{ steps.install_hap.outcome == 'success' && failure() }}
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: hos-${{ inputs.profile }}-scenario-failures-screenshots
           path: "servo_scenario_*_error.jpg"
