@@ -6,22 +6,22 @@ from .base import ExecutorBrowser, NullBrowser, WebDriverBrowser, require_arg
 from .base import get_timeout_multiplier   # noqa: F401
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.base import WdspecExecutor  # noqa: F401
-from ..executors.executorservo import (ServoCrashtestExecutor,  # noqa: F401
-                                       ServoTestharnessExecutor,  # noqa: F401
-                                       ServoRefTestExecutor)  # noqa: F401
+from ..executors.executorservolegacy import (ServoLegacyCrashtestExecutor,  # noqa: F401
+                                       ServoLegacyTestharnessExecutor,  # noqa: F401
+                                       ServoLegacyRefTestExecutor)  # noqa: F401
 
 
 here = os.path.dirname(__file__)
 
 __wptrunner__ = {
-    "product": "servo",
+    "product": "servo_legacy",
     "check_args": "check_args",
-    "browser": {None: "ServoBrowser",
-                "wdspec": "ServoWdspecBrowser"},
+    "browser": {None: "ServoLegacyBrowser",
+                "wdspec": "ServoLegacyWdspecBrowser"},
     "executor": {
-        "crashtest": "ServoCrashtestExecutor",
-        "testharness": "ServoTestharnessExecutor",
-        "reftest": "ServoRefTestExecutor",
+        "crashtest": "ServoLegacyCrashtestExecutor",
+        "testharness": "ServoLegacyTestharnessExecutor",
+        "reftest": "ServoLegacyRefTestExecutor",
         "wdspec": "WdspecExecutor",
     },
     "browser_kwargs": "browser_kwargs",
@@ -73,7 +73,7 @@ def update_properties():
     return ["debug", "os", "processor", "subsuite"], {"os": ["version"], "processor": ["bits"]}
 
 
-class ServoBrowser(NullBrowser):
+class ServoLegacyBrowser(NullBrowser):
     def __init__(self, logger, binary, debug_info=None, binary_args=None,
                  user_stylesheets=None, ca_certificate_path=None, **kwargs):
         NullBrowser.__init__(self, logger, **kwargs)
@@ -93,7 +93,7 @@ class ServoBrowser(NullBrowser):
         }
 
 
-class ServoWdspecBrowser(WebDriverBrowser):
+class ServoLegacyWdspecBrowser(WebDriverBrowser):
     # TODO: could share an implemenation with servodriver.py, perhaps
     def __init__(self, logger, binary="servo", webdriver_binary="servo",
                  binary_args=None, webdriver_args=None, env=None, port=None,

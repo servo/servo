@@ -119,7 +119,7 @@ class ServoExecutorMixin:
         return debug_args + command
 
 
-class ServoTestharnessExecutor(ServoExecutorMixin, TestExecutor):
+class ServoLegacyTestharnessExecutor(ServoExecutorMixin, TestExecutor):
     convert_result = testharness_result_converter
 
     def __init__(self, logger, browser, server_config, headless,
@@ -217,7 +217,7 @@ class TempFilename:
             pass
 
 
-class ServoRefTestExecutor(ServoExecutorMixin, RefTestExecutor):
+class ServoLegacyRefTestExecutor(ServoExecutorMixin, RefTestExecutor):
     convert_result = reftest_result_converter
 
     def __init__(self, logger, browser, server_config, binary=None, timeout_multiplier=1,
@@ -318,7 +318,7 @@ class ServoTimedRunner(TimedRunner):
         pass
 
 
-class ServoCrashtestExecutor(ServoExecutorMixin, TestExecutor):
+class ServoLegacyCrashtestExecutor(ServoExecutorMixin, TestExecutor):
     convert_result = crashtest_result_converter
 
     def __init__(self, logger, browser, server_config, headless,

@@ -20,7 +20,7 @@ if "CURRENT_TOX_ENV" in os.environ:
 
     tox_env_extra_browsers = {
         "chrome": {"chrome_android"},
-        "servo": {"servodriver"},
+        "servo": {"servo_legacy"},
     }
 
     _active_products = set(_products) & set(current_tox_env_split)

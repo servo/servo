@@ -49,7 +49,12 @@ def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> in
     # makes CI logs unreadable.
     github_context = os.environ.pop("GITHUB_CONTEXT", None)
 
-    set_if_none(kwargs, "product", "servodriver")
+    # Allow to run with the legacy Servo WPT configuration. This is required
+    # until necessary improvements are made to the debugging experience with
+    # servodriver. See https://github.com/servo/servo/issues/40751
+    product = "servo_legacy" if kwargs.get("servo_legacy") else "servodriver"
+
+    set_if_none(kwargs, "product", product)
     set_if_none(kwargs, "config", os.path.join(WPT_PATH, "config.ini"))
     set_if_none(kwargs, "include_manifest", os.path.join(WPT_PATH, "include.ini"))
     set_if_none(kwargs, "manifest_update", False)
@@ -87,10 +92,9 @@ def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> in
 
     if not kwargs.get("no_default_test_types"):
         test_types = {
-            "servo": ["testharness", "reftest", "wdspec", "crashtest"],
             "servodriver": ["testharness", "reftest", "wdspec", "crashtest"],
+            "servo_legacy": ["testharness", "reftest", "wdspec", "crashtest"],
         }
-        product = kwargs.get("product") or "servo"
         kwargs["test_types"] = test_types[product]
 
     filter_intermittents_output = kwargs.pop("filter_intermittents", None)

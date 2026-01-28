@@ -2261,10 +2261,10 @@ class Safari(Browser):
         return m.group(1)
 
 
-class Servo(Browser):
+class ServoLegacy(Browser):
     """Servo-specific interface."""
 
-    product = "servo"
+    product = "servo_legacy"
     requirements = None
 
     def platform_components(self):
