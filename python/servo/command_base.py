@@ -535,20 +535,28 @@ class CommandBase(object):
         except (subprocess.CalledProcessError, FileNotFoundError):
             return None
 
-    def get_clang_libdir_from_cc_path(self, cc: str) -> Optional[str]:
-        cc_path = Path(cc).resolve()
+    def find_libclang_path(_, cc: str, clang_major: str) -> str | None:
+        def has_libclang(path: Path) -> bool:
+            if not path.is_dir():
+                return False
+            return any(path.glob("libclang.so*")) or any(path.glob("libclang.dylib"))
 
-        candidates = [
-            cc_path.parent / "lib",
-            cc_path.parent.parent / "lib",
-            cc_path.parent.parent / "lib64",
-        ]
+        # Fedora: /usr/lib64/llvm18/lib64/
+        fedora_path = Path(f"/usr/lib64/llvm{clang_major}/lib64")
+        if has_libclang(fedora_path):
+            return str(fedora_path)
 
-        for p in candidates:
-            if p.exists() and p.is_dir():
-                return str(p)
+        # Ubuntu: /usr/lib/llvm-18/lib/
+        ubuntu_path = Path(f"/usr/lib/llvm-{clang_major}/lib")
+        if has_libclang(ubuntu_path):
+            return str(ubuntu_path)
 
-        return None
+        # Fallback: resolve clang binary -> ../lib (macOS, Homebrew, custom installs)
+        clang_bin = shutil.which(cc)
+        if clang_bin:
+            lib_path = Path(clang_bin).resolve().parent.parent / "lib"
+            if has_libclang(lib_path):
+                return str(lib_path)
 
     def build_env(self) -> dict[str, str]:
         """Return an extended environment dictionary."""
@@ -582,18 +590,22 @@ class CommandBase(object):
         llvm_config: Optional[str] = None
         libdir: Optional[str] = None
 
+        # redundant check to make test-tidy happy :Ds
         if cc is not None:
+            # if CC is set to clang (default), get its major version number (ex: 18)
             clang_major = self.get_clang_major_version(cc)
 
-        # Proceed only if CC is clang and LIBCLANG_PATH is not already set
         if cc is not None and clang_major is not None and "LIBCLANG_PATH" not in env:
+            # check if `llvm_config` is installed
             llvm_config = self.get_llvm_config_for_clang(cc, clang_major)
 
             if llvm_config is not None:
+                # use `llvm_config` if present
                 libdir = self.get_libdir_from_llvm_config(llvm_config)
 
             if libdir is None:
-                libdir = self.get_clang_libdir_from_cc_path(cc)
+                # use the semi-hardcoded path check if no `llvm_config`
+                libdir = self.find_libclang_path(cc, clang_major)
 
             if libdir is not None:
                 env["LIBCLANG_PATH"] = libdir
