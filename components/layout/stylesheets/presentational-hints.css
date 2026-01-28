@@ -135,34 +135,43 @@ hr[color], hr[noshade] { border-style: solid; }
 
 iframe[frameborder="0"], iframe[frameborder=no i] { border: none; }
 
-embed[align=left i], iframe[align=left i], img[type=image i][align=left i], object[align=left i] {
+/* https://html.spec.whatwg.org/multipage/rendering.html#attributes-for-embedded-content-and-images */
+embed[align=left i], iframe[align=left i], img[align=left i],
+input[type=image i][align=left i], object[align=left i] {
   float: left;
 }
-embed[align=right i], iframe[align=right i], img[type=image i][align=right i], object[align=right i] {
+
+embed[align=right i], iframe[align=right i], img[align=right i],
+input[type=image i][align=right i], object[align=right i] {
   float: right;
 }
-embed[align=top i], iframe[align=top i], img[type=image i][align=top i], object[align=top i] {
+
+embed[align=top i], iframe[align=top i], img[align=top i],
+input[type=image i][align=top i], object[align=top i] {
   vertical-align: top;
 }
-embed[align=baseline i], iframe[align=baseline i], img[type=image i][align=baseline i], object[align=baseline i] {
+
+embed[align=baseline i], iframe[align=baseline i], img[align=baseline i],
+input[type=image i][align=baseline i], object[align=baseline i] {
   vertical-align: baseline;
 }
-embed[align=texttop i], iframe[align=texttop i], img[type=image i][align=texttop i], object[align=texttop i] {
+
+embed[align=texttop i], iframe[align=texttop i], img[align=texttop i],
+input[type=image i][align=texttop i], object[align=texttop i] {
   vertical-align: text-top;
 }
-embed[align=absmiddle i], iframe[align=absmiddle i], img[type=image i][align=absmiddle i], object[align=absmiddle i],
-embed[align=abscenter i], iframe[align=abscenter i], img[type=image i][align=abscenter i], object[align=abscenter i] {
+
+embed[align=absmiddle i], iframe[align=absmiddle i], img[align=absmiddle i],
+input[type=image i][align=absmiddle i], object[align=absmiddle i],
+embed[align=abscenter i], iframe[align=abscenter i], img[align=abscenter i],
+input[type=image i][align=abscenter i], object[align=abscenter i] {
   vertical-align: middle;
 }
-embed[align=bottom i], iframe[align=bottom i], img[type=image i][align=bottom i], object[align=bottom i] {
+
+embed[align=bottom i], iframe[align=bottom i], img[align=bottom i],
+input[type=image i][align=bottom i], object[align=bottom i] {
   vertical-align: bottom;
 }
-/*
-FIXME:
-:matches(embed, iframe, img, input[type=image i], object):matches([align=center i], [align=middle i]) {
-  vertical-align: "aligns the vertical middle of the element with the parent element's baseline."
-}
-*/
 
 /*
 
@@ -264,4 +273,3 @@ Extra
   https://html.spec.whatwg.org/multipage/#rendered-legend
 
 */
-
