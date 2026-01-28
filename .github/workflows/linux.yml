@@ -261,8 +261,6 @@ jobs:
           tool-cache: false
           large-packages: false
           swap-storage: false
-      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
-        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Determine MSRV
