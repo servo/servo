@@ -84,7 +84,6 @@ jobs:
           mkdir -p wpt-filtered-logs/linux
           mkdir -p wpt-full-logs/linux
           ./mach test-wpt \
-            -M \
             --bin ${{ inputs.binary-path }} \
             $WPT_ALWAYS_SUCCEED_ARG \
             --profile ${{ inputs.profile }} --processes $(nproc) --timeout-multiplier 2 \
