@@ -6555,6 +6555,7 @@ dependencies = [
  "log",
  "malloc_size_of_derive",
  "parking_lot",
+ "pixels",
  "profile_traits",
  "raw-window-handle",
  "rustc-hash 2.1.1",

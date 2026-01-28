@@ -20,7 +20,7 @@ use image::{
     AnimationDecoder, DynamicImage, ImageBuffer, ImageDecoder, ImageError, ImageFormat,
     ImageResult, Limits, Rgba,
 };
-use log::debug;
+use log::{debug, error};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 pub use snapshot::*;
@@ -397,6 +397,10 @@ impl RasterImage {
         )
     }
 
+    pub fn frame_data(&self, index: usize) -> Option<&ImageFrame> {
+        self.frames.get(index)
+    }
+
     pub fn webrender_image_descriptor_and_data_for_frame(
         &self,
         frame_index: usize,
@@ -433,6 +437,38 @@ impl RasterImage {
             flags,
         };
         (descriptor, GenericSharedMemory::from_bytes(&data))
+    }
+
+    /// For animations the image already exists in a cache in 'Painter'. We just send the description.
+    /// Currently we do not support 'PixelFormat::RGB8'
+    pub fn webrender_image_descriptor_and_offset_for_frame(&self) -> Option<ImageDescriptor> {
+        if self.format == PixelFormat::RGB8 ||
+            self.format == PixelFormat::K8 ||
+            self.format == PixelFormat::KA8
+        {
+            return None;
+        }
+        let format = match self.format {
+            PixelFormat::BGRA8 => WebRenderImageFormat::BGRA8,
+            PixelFormat::RGBA8 => WebRenderImageFormat::RGBA8,
+            PixelFormat::RGB8 => WebRenderImageFormat::BGRA8,
+            PixelFormat::KA8 | PixelFormat::K8 => {
+                error!("Pixel format currently not supported");
+                return None;
+            },
+        };
+        let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
+        flags.set(ImageDescriptorFlags::IS_OPAQUE, self.is_opaque);
+
+        let size = DeviceIntSize::new(self.metadata.width as i32, self.metadata.height as i32);
+        let descriptor = ImageDescriptor {
+            size,
+            stride: None,
+            format,
+            offset: 0,
+            flags,
+        };
+        Some(descriptor)
     }
 
     pub fn to_shared(&self) -> Arc<SharedRasterImage> {

@@ -1003,8 +1003,12 @@ impl WebGLThread {
             return;
         }
 
-        self.paint_api
-            .add_image(image_key, info.image_descriptor(), external_image_data);
+        self.paint_api.add_image(
+            image_key,
+            info.image_descriptor(),
+            external_image_data,
+            false,
+        );
     }
 }
 

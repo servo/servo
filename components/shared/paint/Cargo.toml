@@ -30,6 +30,7 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 parking_lot = { workspace = true }
+pixels = { path = "../../pixels" }
 profile_traits = { path = '../profile' }
 raw-window-handle = { workspace = true }
 rustc-hash = { workspace = true }

@@ -41,7 +41,7 @@ impl<DrawTarget: GenericDrawTarget> CanvasData<DrawTarget> {
 
     pub(crate) fn set_image_key(&mut self, image_key: ImageKey) {
         let (descriptor, data) = self.draw_target.image_descriptor_and_serializable_data();
-        self.paint_api.add_image(image_key, descriptor, data);
+        self.paint_api.add_image(image_key, descriptor, data, false);
 
         if let Some(old_image_key) = self.image_key.replace(image_key) {
             self.paint_api.delete_image(old_image_key);

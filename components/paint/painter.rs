@@ -29,8 +29,8 @@ use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use paint_api::rendering_context::RenderingContext;
 use paint_api::viewport_description::ViewportDescription;
 use paint_api::{
-    ImageUpdate, PipelineExitSource, SendableFrameTree, WebRenderExternalImageHandlers,
-    WebRenderImageHandlerType, WebViewTrait,
+    ImageUpdate, PipelineExitSource, SendableFrameTree, SerializableImageData,
+    WebRenderExternalImageHandlers, WebRenderImageHandlerType, WebViewTrait,
 };
 use profile_traits::time::{ProfilerCategory, ProfilerChan};
 use profile_traits::time_profile;
@@ -49,7 +49,7 @@ use webrender_api::units::{
 use webrender_api::{
     self, BuiltDisplayList, BuiltDisplayListDescriptor, ColorF, DirtyRect, DisplayListPayload,
     DocumentId, Epoch as WebRenderEpoch, ExternalScrollId, FontInstanceFlags, FontInstanceKey,
-    FontInstanceOptions, FontKey, FontVariation, ImageKey, NativeFontHandle,
+    FontInstanceOptions, FontKey, FontVariation, ImageData, ImageKey, NativeFontHandle,
     PipelineId as WebRenderPipelineId, PropertyBinding, ReferenceFrameKind, RenderReasons,
     SampledScrollOffset, SpaceAndClipInfo, SpatialId, TransformStyle,
 };
@@ -124,6 +124,10 @@ pub(crate) struct Painter {
 
     /// Calculater for largest-contentful-paint.
     lcp_calculator: LargestContentfulPaintCalculator,
+
+    /// A cache that stores data for all animating images uploaded to WebRender. This is used
+    /// for animated images, which only need to update their offset in the data.
+    animation_image_cache: FxHashMap<ImageKey, Arc<Vec<u8>>>,
 }
 
 impl Drop for Painter {
@@ -268,6 +272,7 @@ impl Painter {
             last_mouse_move_position: None,
             frame_delayer: Default::default(),
             lcp_calculator: LargestContentfulPaintCalculator::new(),
+            animation_image_cache: FxHashMap::default(),
         };
         painter.assert_gl_framebuffer_complete();
         painter.clear_background();
@@ -1022,22 +1027,62 @@ impl Painter {
             .prepare_screenshot_requests_for_render(self)
     }
 
+    fn serializable_image_data_to_image_data_maybe_caching(
+        &mut self,
+        key: ImageKey,
+        data: SerializableImageData,
+        is_animated_image: bool,
+    ) -> ImageData {
+        match data {
+            SerializableImageData::Raw(shared_memory) => {
+                let data = Arc::new(shared_memory.to_vec());
+                if is_animated_image {
+                    self.animation_image_cache.insert(key, Arc::clone(&data));
+                }
+                ImageData::Raw(data)
+            },
+            SerializableImageData::External(image) => ImageData::External(image),
+        }
+    }
+
     pub(crate) fn update_images(&mut self, updates: SmallVec<[ImageUpdate; 1]>) {
         let mut txn = Transaction::new();
         for update in updates {
             match update {
-                ImageUpdate::AddImage(key, desc, data) => {
-                    txn.add_image(key, desc, data.into(), None)
+                ImageUpdate::AddImage(key, description, data, is_animated_image) => {
+                    txn.add_image(
+                        key,
+                        description,
+                        self.serializable_image_data_to_image_data_maybe_caching(
+                            key,
+                            data,
+                            is_animated_image,
+                        ),
+                        None,
+                    );
                 },
                 ImageUpdate::DeleteImage(key) => {
                     txn.delete_image(key);
                     self.frame_delayer.delete_image(key);
+                    self.animation_image_cache.remove(&key);
                 },
                 ImageUpdate::UpdateImage(key, desc, data, epoch) => {
                     if let Some(epoch) = epoch {
                         self.frame_delayer.update_image(key, epoch);
                     }
                     txn.update_image(key, desc, data.into(), &DirtyRect::All)
+                },
+                ImageUpdate::UpdateImageForAnimation(image_key, desc) => {
+                    let Some(image) = self.animation_image_cache.get(&image_key) else {
+                        error!("Could not find image key in image cache.");
+                        continue;
+                    };
+                    txn.update_image(
+                        image_key,
+                        desc,
+                        ImageData::new_shared(image.clone()),
+                        &DirtyRect::All,
+                    );
                 },
             }
         }

@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use layout_api::AnimatingImages;
 use malloc_size_of::MallocSizeOf;
-use paint_api::{ImageUpdate, SerializableImageData};
+use paint_api::ImageUpdate;
 use parking_lot::RwLock;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use timers::{TimerEventRequest, TimerId};
@@ -67,15 +67,22 @@ impl ImageAnimationManager {
                 }
 
                 let image = &state.image;
-                let (descriptor, ipc_shared_memory) =
-                    image.webrender_image_descriptor_and_data_for_frame(state.active_frame);
-
-                Some(ImageUpdate::UpdateImage(
-                    image.id.unwrap(),
-                    descriptor,
-                    SerializableImageData::Raw(ipc_shared_memory),
-                    None,
-                ))
+                let frame = image
+                    .frame_data(state.active_frame)
+                    .expect("No frame found")
+                    .clone();
+                if let Some(mut descriptor) =
+                    image.webrender_image_descriptor_and_offset_for_frame()
+                {
+                    descriptor.offset = frame.byte_range.start as i32;
+                    Some(ImageUpdate::UpdateImageForAnimation(
+                        image.id.unwrap(),
+                        descriptor,
+                    ))
+                } else {
+                    error!("Doing normal image update which will be slow!");
+                    None
+                }
             })
             .collect();
         window

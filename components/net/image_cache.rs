@@ -132,7 +132,7 @@ fn set_webrender_image_key(
     let (descriptor, ipc_shared_memory) = image.webrender_image_descriptor_and_data_for_frame(0);
     let data = SerializableImageData::Raw(ipc_shared_memory);
 
-    paint_api.add_image(image_key, descriptor, data);
+    paint_api.add_image(image_key, descriptor, data, image.should_animate());
     image.id = Some(image_key);
 }
 

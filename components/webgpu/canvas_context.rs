@@ -557,6 +557,7 @@ impl crate::WGPU {
                 flags: ImageDescriptorFlags::empty(),
             },
             SerializableImageData::External(image_data(context_id)),
+            false,
         );
     }
 
