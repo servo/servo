@@ -70,7 +70,7 @@ use net_traits::image_cache::{
 use net_traits::request::Referrer;
 use net_traits::{ResourceFetchTiming, ResourceThreads};
 use num_traits::ToPrimitive;
-use paint_api::{CrossProcessPaintApi, PinchZoomDetails};
+use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
 use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
@@ -3276,19 +3276,19 @@ impl Window {
     /// Update the [`VisualViewport`] of this [`Window`] if necessary and note the changes to be processed in the event loop.
     pub(crate) fn maybe_update_visual_viewport(
         &self,
-        pinch_zoom_details: PinchZoomDetails,
+        pinch_zoom_infos: PinchZoomInfos,
         can_gc: CanGc,
     ) {
         // We doesn't need to do anything if the following condition is fulfilled. Since there are no JS listener
         // to fire and we could reconstruct visual viewport from layout viewport in case JS access it.
-        if pinch_zoom_details.rect == Rect::from_size(self.viewport_details().size) &&
+        if pinch_zoom_infos.rect == Rect::from_size(self.viewport_details().size) &&
             self.visual_viewport.get().is_none()
         {
             return;
         }
 
         let visual_viewport = self.get_or_init_visual_viewport(can_gc);
-        let changes = visual_viewport.update_from_pinch_zoom_details(pinch_zoom_details);
+        let changes = visual_viewport.update_from_pinch_zoom_infos(pinch_zoom_infos);
 
         if changes.intersects(VisualViewportChanges::DimensionChanged) {
             self.has_changed_visual_viewport_dimension.set(true);

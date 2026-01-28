@@ -26,7 +26,7 @@ use embedder_traits::{
 };
 pub use from_script_message::*;
 use malloc_size_of_derive::MallocSizeOf;
-use paint_api::PinchZoomDetails;
+use paint_api::PinchZoomInfos;
 use paint_api::largest_contentful_paint_candidate::LargestContentfulPaintType;
 use profile_traits::mem::MemoryReportResult;
 use rustc_hash::FxHashMap;
@@ -114,7 +114,7 @@ pub enum EmbedderToConstellationMessage {
     /// An action to perform on the given `UserContentManagerId`.
     UserContentManagerAction(UserContentManagerId, UserContentManagerAction),
     /// Update pinch zoom details stored in the top level window
-    UpdatePinchZoomDetails(PipelineId, PinchZoomDetails),
+    UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
 }
 
 pub enum UserContentManagerAction {

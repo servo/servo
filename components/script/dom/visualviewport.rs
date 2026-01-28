@@ -7,7 +7,7 @@ use std::cell::Cell;
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use euclid::{Rect, Scale, Size2D};
-use paint_api::PinchZoomDetails;
+use paint_api::PinchZoomInfos;
 use script_bindings::codegen::GenericBindings::VisualViewportBinding::VisualViewportMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::num::Finite;
@@ -96,13 +96,13 @@ impl VisualViewport {
         state
     }
 
-    /// Update the [`VisualViewport`] state based on a new [`PinchZoomDetails`].
-    pub(crate) fn update_from_pinch_zoom_details(
+    /// Update the [`VisualViewport`] state based on a new [`PinchZoomInfos`].
+    pub(crate) fn update_from_pinch_zoom_infos(
         &self,
-        pinch_zoom_details: PinchZoomDetails,
+        pinch_zoom_infos: PinchZoomInfos,
     ) -> VisualViewportChanges {
-        let old_rect = self.viewport_rect.replace(pinch_zoom_details.rect);
-        let old_scale = self.scale.replace(pinch_zoom_details.zoom_factor);
+        let old_rect = self.viewport_rect.replace(pinch_zoom_infos.rect);
+        let old_scale = self.scale.replace(pinch_zoom_infos.zoom_factor);
 
         self.check_for_update(old_rect, old_scale)
     }

@@ -4,7 +4,7 @@
 
 use embedder_traits::Scroll;
 use euclid::{Point2D, Rect, Scale, Transform2D, Vector2D};
-use paint_api::PinchZoomDetails;
+use paint_api::PinchZoomInfos;
 use style_traits::CSSPixel;
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect, DeviceSize, DeviceVector2D};
 
@@ -151,12 +151,12 @@ impl PinchZoom {
         remaining
     }
 
-    /// Get the [`PinchZoomDetails`] from this [`PinchZoom`] state.
-    pub(crate) fn get_pinch_zoom_details_for_script(
+    /// Get the [`PinchZoomInfos`] from this [`PinchZoom`] state.
+    pub(crate) fn get_pinch_zoom_infos_for_script(
         &self,
         viewport_scale: Scale<f32, CSSPixel, DevicePixel>,
-    ) -> PinchZoomDetails {
-        PinchZoomDetails {
+    ) -> PinchZoomInfos {
+        PinchZoomInfos {
             zoom_factor: Scale::new(self.zoom_factor),
             rect: self.pinch_zoom_rect_relative_to_unscaled_viewport() / viewport_scale,
         }

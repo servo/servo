@@ -82,7 +82,7 @@ mod from_embedder {
                 Self::RequestScreenshotReadiness(..) => target!("RequestScreenshotReadiness"),
                 Self::EmbedderControlResponse(..) => target!("EmbedderControlResponse"),
                 Self::UserContentManagerAction(..) => target!("UserContentManagerAction"),
-                Self::UpdatePinchZoomDetails(..) => target!("UpdatePinchZoomDetails"),
+                Self::UpdatePinchZoomInfos(..) => target!("UpdatePinchZoomInfos"),
             }
         }
     }

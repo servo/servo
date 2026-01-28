@@ -773,11 +773,11 @@ bitflags! {
     }
 }
 
-/// A [`PinchZoomDetails`] for a root [`Pipeline`] of an [`WebView`]. For any [`Pipeline`]
+/// A [`PinchZoomInfos`] for a root [`Pipeline`] of an [`WebView`]. For any [`Pipeline`]
 /// that is not a root, it should follow the viewport description of its pipeline since
 /// pinch-zoom and resizing due to overlay UIs are not applicable there.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub struct PinchZoomDetails {
+pub struct PinchZoomInfos {
     /// The zoom factor (or pinch-zoom).
     pub zoom_factor: Scale<f32, DevicePixel, DevicePixel>,
 
@@ -785,8 +785,8 @@ pub struct PinchZoomDetails {
     pub rect: Rect<f32, CSSPixel>,
 }
 
-impl PinchZoomDetails {
-    /// New initial [`PinchZoomDetails`] without any pinch-zoom or resizing from a viewport size
+impl PinchZoomInfos {
+    /// New initial [`PinchZoomInfos`] without any pinch-zoom or resizing from a viewport size
     /// for a nested pipeline or newly initialized root pipeline.
     pub fn new_from_viewport_size(size: Size2D<f32, CSSPixel>) -> Self {
         Self {

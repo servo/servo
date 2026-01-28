@@ -149,7 +149,7 @@ use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::pub_domains::registered_domain_name;
 use net_traits::{self, AsyncRuntime, ResourceThreads, exit_fetch_thread, start_fetch_thread};
 use paint_api::{
-    PaintMessage, PaintProxy, PinchZoomDetails, PipelineExitSource, SendableFrameTree,
+    PaintMessage, PaintProxy, PinchZoomInfos, PipelineExitSource, SendableFrameTree,
     WebRenderExternalImageIdManager,
 };
 use profile_traits::mem::ProfilerMsg;
@@ -1549,8 +1549,8 @@ where
             ) => {
                 self.handle_user_content_manager_action(user_content_manager_id, action);
             },
-            EmbedderToConstellationMessage::UpdatePinchZoomDetails(pipeline_id, pinch_zoom) => {
-                self.handle_update_pinch_zoom_details(pipeline_id, pinch_zoom);
+            EmbedderToConstellationMessage::UpdatePinchZoomInfos(pipeline_id, pinch_zoom) => {
+                self.handle_update_pinch_zoom_infos(pipeline_id, pinch_zoom);
             },
         }
     }
@@ -5637,10 +5637,10 @@ where
         }
     }
 
-    fn handle_update_pinch_zoom_details(
+    fn handle_update_pinch_zoom_infos(
         &self,
         pipeline_id: PipelineId,
-        pinch_zoom_details: PinchZoomDetails,
+        pinch_zoom_infos: PinchZoomInfos,
     ) {
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
             warn!("Discarding pinch zoom update for unknown pipeline");
@@ -5648,9 +5648,9 @@ where
         };
         if let Err(error) = pipeline
             .event_loop
-            .send(ScriptThreadMessage::UpdatePinchZoomDetails(
+            .send(ScriptThreadMessage::UpdatePinchZoomInfos(
                 pipeline_id,
-                pinch_zoom_details,
+                pinch_zoom_infos,
             ))
         {
             warn!("Could not send pinch zoom update to pipeline: {pipeline_id:?}: {error:?}");
