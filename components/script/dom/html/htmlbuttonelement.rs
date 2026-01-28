@@ -9,7 +9,8 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
-use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
+use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use servo_config::pref;
 use stylo_dom::ElementState;
@@ -23,6 +24,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::commandevent::CommandEvent;
 use crate::dom::document::Document;
+use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -32,7 +34,7 @@ use crate::dom::html::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, ResetFrom,
     SubmittedFrom,
 };
-use crate::dom::node::{BindContext, Node, NodeTraits, ShadowIncluding, UnbindContext};
+use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::validation::{Validatable, is_barred_by_datalist_ancestor};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
@@ -290,14 +292,16 @@ impl HTMLButtonElement {
             .get_attribute(&ns!(), &local_name!("commandfor"))?
             .Value();
 
-        self.upcast::<Node>()
-            .GetRootNode(&GetRootNodeOptions::empty())
-            .traverse_preorder(ShadowIncluding::No)
-            .find_map(|node| {
-                node.downcast::<Element>()
-                    .filter(|e| e.Id() == command_for_value)
-                    .map(DomRoot::from_ref)
-            })
+        let root_node = self
+            .upcast::<Node>()
+            .GetRootNode(&GetRootNodeOptions::empty());
+
+        if let Some(document) = root_node.downcast::<Document>() {
+            return document.GetElementById(command_for_value);
+        } else if let Some(document_fragment) = root_node.downcast::<DocumentFragment>() {
+            return document_fragment.GetElementById(command_for_value);
+        }
+        None
     }
 
     fn command_state(&self) -> CommandState {
@@ -449,7 +453,8 @@ impl Activatable for HTMLButtonElement {
         let ty = self.button_type.get();
         // Step 3. If element has a form owner:
         if let Some(owner) = self.form_owner() {
-            // Step 3.1 If element is a submit button, then submit element's form owner from element ..., and return.
+            // Step 3.1 If element is a submit button, then submit element's form owner from element
+            // ..., and return.
             if ty == ButtonType::Submit {
                 owner.submit(
                     SubmittedFrom::NotFromForm,
@@ -458,7 +463,8 @@ impl Activatable for HTMLButtonElement {
                 );
                 return;
             }
-            // Step 3.2 If element's type attribute is in the Reset Button state, then reset element's form owner and return.
+            // Step 3.2 If element's type attribute is in the Reset Button state, then reset
+            // element's form owner and return.
             if ty == ButtonType::Reset {
                 owner.reset(ResetFrom::NotFromForm, can_gc);
                 return;
@@ -473,7 +479,8 @@ impl Activatable for HTMLButtonElement {
                 return;
             }
         }
-        // Step 4. Let target be the result of running element's get the commandfor-associated element.
+        // Step 4. Let target be the result of running element's get the commandfor-associated
+        // element.
         // Step 5. If target is not null:
         if let Some(target) = self.command_for_element() {
             // Steps 5.1 Let command be element's command attribute.
@@ -482,17 +489,22 @@ impl Activatable for HTMLButtonElement {
             if command == CommandState::Unknown {
                 return;
             }
-            // TODO Step 5.3 Let isPopover be true if target's popover attribute is not in the No Popover state; otherwise false
+            // TODO Step 5.3 Let isPopover be true if target's popover attribute is not in the No
+            // Popover state; otherwise false
             // Step 5.4 If isPopover is false and command is not in the Custom state:
             if command != CommandState::Custom {
                 // TODO Step 5.4.1 Assert: target's namespace is the HTML namespace
-                // Step 5.4.2 If this standard does not define is valid command steps given command is false, then return.
-                // Step 5.4.3 Otherwise, if the result of running target's corresponding is valid command steps given command is false, then return.
+                // Step 5.4.2 If this standard does not define is valid command steps given command
+                // is false, then return.
+                // Step 5.4.3 Otherwise, if the result of running target's corresponding is valid
+                // command steps given command is false, then return.
                 if !vtable_for(target.upcast::<Node>()).is_valid_command_steps(command) {
                     return;
                 }
             }
-            // Step 5.5 Let continue be the result of firing an event named command at target, using CommandEvent, with its command attribute initialized to command, its source attribute initialized to element, and its cancelable attribute initialized to true.
+            // Step 5.5 Let continue be the result of firing an event named command at target, using
+            // CommandEvent, with its command attribute initialized to command, its source attribute
+            // initialized to element, and its cancelable attribute initialized to true.
             let event = CommandEvent::new(
                 &self.owner_window(),
                 atom!("command"),
@@ -518,18 +530,20 @@ impl Activatable for HTMLButtonElement {
                 return;
             }
             // TODO Steps 5.9, 5.10, 511
-            // Step 5.12 Otherwise, if this standard defines command steps for target's local name, then run the corresponding command steps given target, element, and command.
+            // Step 5.12 Otherwise, if this standard defines command steps for target's local name,
+            // then run the corresponding command steps given target, element, and command.
             let _ = vtable_for(target_node).command_steps(
                 DomRoot::from_ref(self),
                 self.command_state(),
                 can_gc,
             );
         }
-        // TODO Step 6 Otherwise, run the popover target attribute activation behavior given element and event's target.
+        // TODO Step 6 Otherwise, run the popover target attribute activation behavior given element
+        // and event's target.
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub(crate) enum CommandState {
     Unknown,
     Custom,

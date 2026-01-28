@@ -371,29 +371,50 @@ impl VirtualMethods for HTMLDialogElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#the-dialog-element:is-valid-command-steps>
+    fn is_valid_command_steps(&self, command: CommandState) -> bool {
+        // Step 1. If command is in the Close state, the Request Close state (TODO), or the
+        // ShowModal state, then return true.
+        if command == CommandState::Close || command == CommandState::ShowModal {
+            return true;
+        }
+        // Step 2. Return false.
+        false
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#the-dialog-element:command-steps>
     fn command_steps(
         &self,
-        button: DomRoot<HTMLButtonElement>,
+        source: DomRoot<HTMLButtonElement>,
         command: CommandState,
         can_gc: CanGc,
     ) -> bool {
         if self
             .super_type()
             .unwrap()
-            .command_steps(button.clone(), command, can_gc)
+            .command_steps(source.clone(), command, can_gc)
         {
             return true;
         }
+
+        // TODO Step 1. If element is in the popover showing state, then return.
         let element = self.upcast::<Element>();
-        if element.has_attribute(&local_name!("open")) {
-            if command == CommandState::Close {
-                let button_element = DomRoot::from_ref(button.upcast::<Element>());
-                self.close_the_dialog(Some(button.Value()), Some(button_element), can_gc);
-                return true;
-            }
-        } else if command == CommandState::ShowModal {
-            let button_element = DomRoot::from_ref(button.upcast::<Element>());
+
+        // Step 2. If command is in the Close state and element has an open attribute, then
+        // close the dialog element with source's optional value and source.
+        if command == CommandState::Close && element.has_attribute(&local_name!("open")) {
+            let button_element = DomRoot::from_ref(source.upcast::<Element>());
+            self.close_the_dialog(Some(source.Value()), Some(button_element), can_gc);
+            return true;
+        }
+
+        // TODO Step 3. If command is in the Request Close state and element has an open attribute,
+        // then request to close the dialog element with source's optional value and source.
+
+        // Step 4. If command is the Show Modal state and element does not have an open attribute,
+        // then show a modal dialog given element and source.
+        if command == CommandState::ShowModal && !element.has_attribute(&local_name!("open")) {
+            let button_element = DomRoot::from_ref(source.upcast::<Element>());
             let _ = self.show_a_modal(Some(button_element), can_gc);
             return true;
         }
