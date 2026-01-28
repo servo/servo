@@ -115,8 +115,13 @@ struct FlexItemLayoutResult {
     fragments: Vec<Fragment>,
     positioning_context: PositioningContext,
 
-    // Either the first or the last baseline, depending on ‘align-self’.
-    baseline_relative_to_margin_box: Option<Au>,
+    /// Baselines from the item’s content, relative to the item’s margin box.
+    /// Used only for baseline propagation to parent layout contexts.
+    content_baselines_relative_to_margin_box: Baselines,
+
+    /// This is the single baseline this item uses for flex alignment.
+    /// Either the first or the last baseline or None, depending on ‘align-self’.
+    flex_alignment_baseline_relative_to_margin_box: Option<Au>,
 
     // The content size of this layout in the block axis. This is known before layout
     // for replaced elements, but for non-replaced it's only known after layout.
@@ -149,7 +154,7 @@ struct FlexLineItem<'a> {
 impl FlexLineItem<'_> {
     fn get_or_synthesize_baseline_with_cross_size(&self, cross_size: Au) -> Au {
         self.layout_result
-            .baseline_relative_to_margin_box
+            .flex_alignment_baseline_relative_to_margin_box
             .unwrap_or_else(|| {
                 self.item
                     .synthesized_baseline_relative_to_margin_box(cross_size)
@@ -187,7 +192,7 @@ impl FlexLineItem<'_> {
             &item_used_size.cross,
             final_line_cross_size,
             self.layout_result
-                .baseline_relative_to_margin_box
+                .flex_alignment_baseline_relative_to_margin_box
                 .unwrap_or_default(),
             shared_alignment_baseline.unwrap_or_default(),
             flex_context.config.flex_wrap_is_reversed,
@@ -211,13 +216,32 @@ impl FlexLineItem<'_> {
             },
         );
 
-        if let Some(item_baseline) = self.layout_result.baseline_relative_to_margin_box.as_ref() {
-            let item_baseline = *item_baseline + item_content_cross_start_position -
+        let adjust_baseline = |baseline: Au| {
+            baseline + item_content_cross_start_position -
                 self.item.border.cross_start -
                 self.item.padding.cross_start -
-                item_margin.cross_start;
-            all_baselines.first.get_or_insert(item_baseline);
-            all_baselines.last = Some(item_baseline);
+                item_margin.cross_start
+        };
+
+        let baselines = self.layout_result.content_baselines_relative_to_margin_box;
+        if flex_context.config.flex_direction_is_reversed {
+            if let Some(last_baseline) = baselines.last {
+                all_baselines
+                    .last
+                    .get_or_insert_with(|| adjust_baseline(last_baseline));
+            }
+            if let Some(first_baseline) = baselines.first {
+                all_baselines.first = Some(adjust_baseline(first_baseline));
+            }
+        } else {
+            if let Some(first_baseline) = baselines.first {
+                all_baselines
+                    .first
+                    .get_or_insert_with(|| adjust_baseline(first_baseline));
+            }
+            if let Some(last_baseline) = baselines.last {
+                all_baselines.last = Some(adjust_baseline(last_baseline));
+            }
         }
 
         let mut fragment_info = self.item.box_.base_fragment_info();
@@ -1590,7 +1614,8 @@ impl InitialFlexLineLayout<'_> {
                 shared_alignment_baseline =
                     Some(shared_alignment_baseline.unwrap_or(baseline).max(baseline));
             }
-            item.layout_result.baseline_relative_to_margin_box = Some(baseline);
+            item.layout_result
+                .flex_alignment_baseline_relative_to_margin_box = Some(baseline);
 
             item_margins.push(item.item.resolve_auto_margins(
                 flex_context,
@@ -1863,7 +1888,7 @@ impl FlexItem<'_> {
             FlexAxis::Column => item_writing_mode_is_orthogonal_to_container_writing_mode,
         };
 
-        let baselines_relative_to_margin_box = if has_compatible_baseline {
+        let content_baselines_relative_to_margin_box = if has_compatible_baseline {
             content_box_baselines.offset(
                 self.margin.cross_start.auto_is(Au::zero) +
                     self.padding.cross_start +
@@ -1873,10 +1898,10 @@ impl FlexItem<'_> {
             Baselines::default()
         };
 
-        let baseline_relative_to_margin_box = match self.align_self.0.value() {
+        let flex_alignment_baseline_relative_to_margin_box = match self.align_self.0.value() {
             // ‘baseline’ computes to ‘first baseline’.
-            AlignFlags::BASELINE => baselines_relative_to_margin_box.first,
-            AlignFlags::LAST_BASELINE => baselines_relative_to_margin_box.last,
+            AlignFlags::BASELINE => content_baselines_relative_to_margin_box.first,
+            AlignFlags::LAST_BASELINE => content_baselines_relative_to_margin_box.last,
             _ => None,
         };
 
@@ -1884,7 +1909,8 @@ impl FlexItem<'_> {
             hypothetical_cross_size,
             fragments,
             positioning_context,
-            baseline_relative_to_margin_box,
+            content_baselines_relative_to_margin_box,
+            flex_alignment_baseline_relative_to_margin_box,
             content_block_size,
             containing_block_size: item_as_containing_block.size,
             depends_on_block_constraints,
