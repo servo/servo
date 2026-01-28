@@ -38,8 +38,8 @@ use keyboard_types::Modifiers;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
-use paint_api::CrossProcessPaintApi;
 use paint_api::largest_contentful_paint_candidate::LargestContentfulPaintType;
+use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
 use pixels::PixelFormat;
 use profile_traits::mem;
 use rustc_hash::FxHashMap;
@@ -306,6 +306,9 @@ pub enum ScriptThreadMessage {
     DestroyUserContentManager(UserContentManagerId),
     /// Send the embedder an accessibility tree update.
     AccessibilityTreeUpdate(WebViewId, accesskit::TreeUpdate),
+    /// Update the pinch zoom details of a pipeline. Each `Window` stores a `VisualViewport` DOM
+    /// instance that gets updated according to the changes from the `Compositor``.
+    UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
 }
 
 impl fmt::Debug for ScriptThreadMessage {

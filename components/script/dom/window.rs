@@ -70,7 +70,7 @@ use net_traits::image_cache::{
 use net_traits::request::Referrer;
 use net_traits::{ResourceFetchTiming, ResourceThreads};
 use num_traits::ToPrimitive;
-use paint_api::CrossProcessPaintApi;
+use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
 use profile_traits::generic_channel as ProfiledGenericChannel;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
@@ -176,7 +176,7 @@ use crate::dom::storage::Storage;
 use crate::dom::testrunner::TestRunner;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::{ImageBitmap, MouseEvent, UIEvent};
-use crate::dom::visualviewport::VisualViewport;
+use crate::dom::visualviewport::{VisualViewport, VisualViewportChanges};
 use crate::dom::webgl::webglrenderingcontext::WebGLCommandSender;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -471,6 +471,9 @@ pub(crate) struct Window {
     /// Visual viewport interface that is associated to this [`Window`].
     /// <https://drafts.csswg.org/cssom-view/#dom-window-visualviewport>
     visual_viewport: MutNullableDom<VisualViewport>,
+
+    /// [`VisualViewport`] dimension changed and we need to process it on the next tick.
+    has_changed_visual_viewport_dimension: Cell<bool>,
 }
 
 impl Window {
@@ -1672,10 +1675,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             return None;
         }
 
-        // TODO(#41341): we are only initializing the visual viewport here, but it is never updated.
-        Some(self.visual_viewport.or_init(|| {
-            VisualViewport::new_from_layout_viewport(self, self.viewport_details().size, can_gc)
-        }))
+        Some(self.get_or_init_visual_viewport(can_gc))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-windowbase64-btoa>
@@ -3267,6 +3267,35 @@ impl Window {
         self.viewport_details.get()
     }
 
+    pub(crate) fn get_or_init_visual_viewport(&self, can_gc: CanGc) -> DomRoot<VisualViewport> {
+        self.visual_viewport.or_init(|| {
+            VisualViewport::new_from_layout_viewport(self, self.viewport_details().size, can_gc)
+        })
+    }
+
+    /// Update the [`VisualViewport`] of this [`Window`] if necessary and note the changes to be processed in the event loop.
+    pub(crate) fn maybe_update_visual_viewport(
+        &self,
+        pinch_zoom_infos: PinchZoomInfos,
+        can_gc: CanGc,
+    ) {
+        // We doesn't need to do anything if the following condition is fulfilled. Since there are no JS listener
+        // to fire and we could reconstruct visual viewport from layout viewport in case JS access it.
+        if pinch_zoom_infos.rect == Rect::from_size(self.viewport_details().size) &&
+            self.visual_viewport.get().is_none()
+        {
+            return;
+        }
+
+        let visual_viewport = self.get_or_init_visual_viewport(can_gc);
+        let changes = visual_viewport.update_from_pinch_zoom_infos(pinch_zoom_infos);
+
+        if changes.intersects(VisualViewportChanges::DimensionChanged) {
+            self.has_changed_visual_viewport_dimension.set(true);
+        }
+        // TODO(stevennovaryo): additionally handle the visual viewport scroll event here
+    }
+
     /// Get the theme of this [`Window`].
     pub(crate) fn theme(&self) -> Theme {
         self.theme.get()
@@ -3383,11 +3412,11 @@ impl Window {
         self.parent_info.is_none()
     }
 
-    /// An implementation of:
+    /// Layout viewport part of:
     /// <https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps>
     ///
-    /// Returns true if there were any pending resize events.
-    pub(crate) fn run_the_resize_steps(&self, can_gc: CanGc) -> bool {
+    /// Handle the pending viewport resize.
+    fn run_resize_steps_for_layout_viewport(&self, can_gc: CanGc) -> bool {
         let Some((new_size, size_type)) = self.take_unhandled_resize_event() else {
             return false;
         };
@@ -3432,6 +3461,36 @@ impl Window {
         }
 
         true
+    }
+
+    /// An implementation of:
+    /// <https://drafts.csswg.org/cssom-view/#document-run-the-resize-steps>
+    ///
+    /// Returns true if there were any pending viewport resize events.
+    pub(crate) fn run_the_resize_steps(&self, can_gc: CanGc) -> bool {
+        let layout_viewport_resized = self.run_resize_steps_for_layout_viewport(can_gc);
+
+        if self.has_changed_visual_viewport_dimension.get() {
+            let visual_viewport = self.get_or_init_visual_viewport(can_gc);
+
+            let uievent = UIEvent::new(
+                self,
+                DOMString::from("resize"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::NotCancelable,
+                Some(self),
+                0i32,
+                0u32,
+                can_gc,
+            );
+            uievent
+                .upcast::<Event>()
+                .fire(visual_viewport.upcast(), can_gc);
+
+            self.has_changed_visual_viewport_dimension.set(false);
+        }
+
+        layout_viewport_resized
     }
 
     /// Evaluate media query lists and report changes
@@ -3714,6 +3773,7 @@ impl Window {
             has_pending_screenshot_readiness_request: Default::default(),
             visual_viewport: Default::default(),
             weak_script_thread,
+            has_changed_visual_viewport_dimension: Default::default(),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)

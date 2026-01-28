@@ -1072,3 +1072,44 @@ fn test_user_content_manager_for_auxiliary_webviews() {
         ]))
     );
 }
+
+#[test]
+fn test_pinch_zoom_update_dom_visual_viewport() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.dom_visual_viewport_enabled = true;
+        builder.preferences(preferences)
+    });
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,<!DOCTYPE html><body>Hello world!</body>").unwrap())
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let eval_visual_viewport = |attr: &str| {
+        evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            format!("window.visualViewport.{}", attr),
+        )
+    };
+
+    // Default value of the DOM visual viewport is initialized correctly.
+    assert_eq!(eval_visual_viewport("scale"), Ok(JSValue::Number(1.)));
+    assert_eq!(eval_visual_viewport("width"), Ok(JSValue::Number(500.)));
+    assert_eq!(eval_visual_viewport("height"), Ok(JSValue::Number(500.)));
+    assert_eq!(eval_visual_viewport("offsetLeft"), Ok(JSValue::Number(0.)));
+    assert_eq!(eval_visual_viewport("offsetTop"), Ok(JSValue::Number(0.)));
+
+    webview.pinch_zoom(5., DevicePoint::new(100., 100.));
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    // The visual viewport dimension is correct after a pinch zoom.
+    assert_eq!(eval_visual_viewport("scale"), Ok(JSValue::Number(5.)));
+    assert_eq!(eval_visual_viewport("width"), Ok(JSValue::Number(100.)));
+    assert_eq!(eval_visual_viewport("height"), Ok(JSValue::Number(100.)));
+    assert_eq!(eval_visual_viewport("offsetLeft"), Ok(JSValue::Number(80.)));
+    assert_eq!(eval_visual_viewport("offsetTop"), Ok(JSValue::Number(80.)));
+}
