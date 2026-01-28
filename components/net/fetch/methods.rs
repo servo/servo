@@ -938,7 +938,8 @@ fn handle_allowcert_request(request: &mut Request, context: &FetchContext) -> io
     };
 
     let stream = body.take_stream();
-    let stream = stream.lock();
+    let lock = stream.lock();
+    let stream = lock.as_ref().unwrap();
     let (body_chan, body_port) = ipc::channel().unwrap();
     let _ = stream.send(BodyChunkRequest::Connect(body_chan));
     let _ = stream.send(BodyChunkRequest::Chunk);

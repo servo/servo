@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::rc::Rc;
+use std::sync::Arc;
 use std::{ptr, slice, str};
 
 use base::generic_channel::GenericSharedMemory;
@@ -20,6 +21,7 @@ use mime::{self, Mime};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource as NetBodySource, RequestBody,
 };
+use parking_lot::Mutex;
 use url::form_urlencoded;
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -99,7 +101,7 @@ struct TransmitBodyConnectHandler {
     stream: Trusted<ReadableStream>,
     task_source: SendableTaskSource,
     bytes_sender: Option<IpcSender<BodyChunkResponse>>,
-    control_sender: Option<IpcSender<BodyChunkRequest>>,
+    control_sender: Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
     in_memory: Option<GenericSharedMemory>,
     in_memory_done: bool,
     source: BodySource,
@@ -109,7 +111,7 @@ impl TransmitBodyConnectHandler {
     pub(crate) fn new(
         stream: Trusted<ReadableStream>,
         task_source: SendableTaskSource,
-        control_sender: IpcSender<BodyChunkRequest>,
+        control_sender: Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
         in_memory: Option<GenericSharedMemory>,
         source: BodySource,
     ) -> TransmitBodyConnectHandler {
@@ -117,7 +119,7 @@ impl TransmitBodyConnectHandler {
             stream,
             task_source,
             bytes_sender: None,
-            control_sender: Some(control_sender),
+            control_sender: control_sender,
             in_memory,
             in_memory_done: false,
             source,
@@ -232,7 +234,8 @@ impl TransmitBodyConnectHandler {
                 },
             }
         }
-        let _ = self.control_sender.take();
+        let mut lock = self.control_sender.lock();
+        let _ = lock.take();
     }
 
     /// Step 4 and following of <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
@@ -274,13 +277,13 @@ impl TransmitBodyConnectHandler {
                 rooted!(in(*cx) let mut promise_handler = Some(TransmitBodyPromiseHandler {
                     bytes_sender: bytes_sender.clone(),
                     stream: Dom::from_ref(&rooted_stream.clone()),
-                    control_sender: control_sender.clone().unwrap(),
+                    control_sender: control_sender.clone(),
                 }));
 
                 rooted!(in(*cx) let mut rejection_handler = Some(TransmitBodyPromiseRejectionHandler {
                     bytes_sender,
                     stream: Dom::from_ref(&rooted_stream.clone()),
-                    control_sender: control_sender.unwrap(),
+                    control_sender: control_sender.clone(),
                 }));
 
                 let handler =
@@ -305,7 +308,7 @@ struct TransmitBodyPromiseHandler {
     stream: Dom<ReadableStream>,
     #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
-    control_sender: IpcSender<BodyChunkRequest>,
+    control_sender: Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
 }
 
 impl js::gc::Rootable for TransmitBodyPromiseHandler {}
@@ -316,40 +319,43 @@ impl Callback for TransmitBodyPromiseHandler {
         let can_gc = CanGc::from_cx(cx);
         let _realm = InRealm::Already(&cx.into());
         let cx = cx.into();
-        let is_done = match get_read_promise_done(cx, &v, can_gc) {
-            Ok(is_done) => is_done,
-            Err(_) => {
-                // Step 5.5, the "otherwise" steps.
-                // TODO: terminate fetch.
-                let _ = self.control_sender.send(BodyChunkRequest::Done);
-                return self.stream.stop_reading(can_gc);
-            },
-        };
+        let lock = self.control_sender.lock();
+        if let Some(control_sender) = lock.as_ref() {
+            let is_done = match get_read_promise_done(cx, &v, can_gc) {
+                Ok(is_done) => is_done,
+                Err(_) => {
+                    // Step 5.5, the "otherwise" steps.
+                    // TODO: terminate fetch.
+                    let _ = control_sender.send(BodyChunkRequest::Done);
+                    return self.stream.stop_reading(can_gc);
+                },
+            };
 
-        if is_done {
-            // Step 5.3, the "done" steps.
-            // TODO: queue a fetch task on request to process request end-of-body.
-            let _ = self.control_sender.send(BodyChunkRequest::Done);
-            return self.stream.stop_reading(can_gc);
+            if is_done {
+                // Step 5.3, the "done" steps.
+                // TODO: queue a fetch task on request to process request end-of-body.
+                let _ = control_sender.send(BodyChunkRequest::Done);
+                return self.stream.stop_reading(can_gc);
+            }
+
+            let chunk = match get_read_promise_bytes(cx, &v, can_gc) {
+                Ok(chunk) => chunk,
+                Err(_) => {
+                    // Step 5.5, the "otherwise" steps.
+                    let _ = control_sender.send(BodyChunkRequest::Error);
+                    return self.stream.stop_reading(can_gc);
+                },
+            };
+
+            // Step 5.1 and 5.2, transmit chunk.
+            // Send the chunk to the body transmitter in net::http_loader::obtain_response.
+            // TODO: queue a fetch task on request to process request body for request.
+            let _ =
+                self.bytes_sender
+                    .send(BodyChunkResponse::Chunk(GenericSharedMemory::from_bytes(
+                        &chunk,
+                    )));
         }
-
-        let chunk = match get_read_promise_bytes(cx, &v, can_gc) {
-            Ok(chunk) => chunk,
-            Err(_) => {
-                // Step 5.5, the "otherwise" steps.
-                let _ = self.control_sender.send(BodyChunkRequest::Error);
-                return self.stream.stop_reading(can_gc);
-            },
-        };
-
-        // Step 5.1 and 5.2, transmit chunk.
-        // Send the chunk to the body transmitter in net::http_loader::obtain_response.
-        // TODO: queue a fetch task on request to process request body for request.
-        let _ = self
-            .bytes_sender
-            .send(BodyChunkResponse::Chunk(GenericSharedMemory::from_bytes(
-                &chunk,
-            )));
     }
 }
 
@@ -364,7 +370,7 @@ struct TransmitBodyPromiseRejectionHandler {
     stream: Dom<ReadableStream>,
     #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
-    control_sender: IpcSender<BodyChunkRequest>,
+    control_sender: Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
 }
 
 impl js::gc::Rootable for TransmitBodyPromiseRejectionHandler {}
@@ -373,8 +379,11 @@ impl Callback for TransmitBodyPromiseRejectionHandler {
     /// <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
     fn callback(&self, cx: &mut CurrentRealm, _v: HandleValue) {
         // Step 5.4, the "rejection" steps.
-        let _ = self.control_sender.send(BodyChunkRequest::Error);
-        self.stream.stop_reading(CanGc::from_cx(cx));
+        let lock = self.control_sender.lock();
+        if let Some(control_sender) = lock.as_ref() {
+            let _ = control_sender.send(BodyChunkRequest::Error);
+            self.stream.stop_reading(CanGc::from_cx(cx));
+        }
     }
 }
 
@@ -426,6 +435,8 @@ impl ExtractedBody {
             BodySource::Null => NetBodySource::Null,
             _ => NetBodySource::Object,
         };
+
+        let chunk_request_sender = Arc::new(Mutex::new(Some(chunk_request_sender)));
 
         let mut body_handler = TransmitBodyConnectHandler::new(
             trusted_stream,

@@ -652,7 +652,7 @@ async fn obtain_response(
     url: &ServoUrl,
     method: &Method,
     request_headers: &mut HeaderMap,
-    body: Option<StdArc<Mutex<IpcSender<BodyChunkRequest>>>>,
+    body: Option<StdArc<Mutex<Option<IpcSender<BodyChunkRequest>>>>>,
     source_is_null: bool,
     pipeline_id: &Option<PipelineId>,
     request_id: Option<&str>,
@@ -698,7 +698,8 @@ async fn obtain_response(
             let (body_chan, body_port) = ipc::channel().unwrap();
 
             {
-                let requester = chunk_requester.lock();
+                let mut lock = chunk_requester.lock();
+                let requester = lock.as_mut().unwrap();
                 let _ = requester.send(BodyChunkRequest::Connect(body_chan));
 
                 // https://fetch.spec.whatwg.org/#concept-request-transmit-body
@@ -724,7 +725,10 @@ async fn obtain_response(
                             let _ = fetch_terminated.send(false);
                             sink.close();
 
-                            let _ = chunk_requester.lock().send(BodyChunkRequest::Done);
+                            let lock = chunk_requester.lock();
+                            if let Some(channel) = lock.as_ref() {
+                                let _ = channel.send(BodyChunkRequest::Done);
+                            }
 
                             return;
                         },
@@ -734,8 +738,10 @@ async fn obtain_response(
                             // where step 5 requires setting an `aborted` flag on the fetch.
                             let _ = fetch_terminated.send(true);
                             sink.close();
-                            let _ = chunk_requester.lock().send(BodyChunkRequest::Error);
-
+                            let lock = chunk_requester.lock();
+                            if let Some(channel) = lock.as_ref() {
+                                let _ = channel.send(BodyChunkRequest::Error);
+                            }
                             return;
                         },
                     };
@@ -748,7 +754,11 @@ async fn obtain_response(
 
                     // Step 5.1.2.3
                     // Request the next chunk.
-                    let _ = chunk_requester.lock().send(BodyChunkRequest::Chunk);
+                    let _ = chunk_requester
+                        .lock()
+                        .as_mut()
+                        .unwrap()
+                        .send(BodyChunkRequest::Chunk);
                 }),
             );
 
