@@ -9,7 +9,6 @@
 use std::collections::HashMap;
 use std::net::TcpStream;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{self, GenericSender};
@@ -17,7 +16,10 @@ use base::id::TEST_PIPELINE_ID;
 use devtools_traits::EvaluateJSReply::{
     ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
 };
-use devtools_traits::{ConsoleResource, DevtoolScriptControlMsg};
+use devtools_traits::{
+    ConsoleArgument, ConsoleMessage, ConsoleMessageFields, DevtoolScriptControlMsg, PageError,
+    StackFrame, get_time_stamp,
+};
 use serde::Serialize;
 use serde_json::{self, Map, Number, Value};
 use uuid::Uuid;
@@ -29,6 +31,105 @@ use crate::actors::worker::WorkerActor;
 use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 use crate::{EmptyReplyMsg, StreamId, UniqueId};
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct DevtoolsConsoleMessage {
+    #[serde(flatten)]
+    fields: ConsoleMessageFields,
+    arguments: Vec<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stacktrace: Option<Vec<StackFrame>>,
+    // Not implemented in Servo
+    // inner_window_id
+    // source_id
+}
+
+impl From<ConsoleMessage> for DevtoolsConsoleMessage {
+    fn from(console_message: ConsoleMessage) -> Self {
+        Self {
+            fields: console_message.fields,
+            arguments: console_message
+                .arguments
+                .into_iter()
+                .map(console_argument_to_value)
+                .collect(),
+            stacktrace: console_message.stacktrace,
+        }
+    }
+}
+
+fn console_argument_to_value(argument: ConsoleArgument) -> Value {
+    match argument {
+        ConsoleArgument::String(value) => Value::String(value),
+        ConsoleArgument::Integer(value) => Value::Number(value.into()),
+        ConsoleArgument::Number(value) => {
+            Number::from_f64(value).map(Value::from).unwrap_or_default()
+        },
+    }
+}
+
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DevtoolsPageError {
+    #[serde(flatten)]
+    page_error: PageError,
+    category: String,
+    error: bool,
+    warning: bool,
+    info: bool,
+    private: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stacktrace: Option<Vec<StackFrame>>,
+    // Not implemented in Servo
+    // inner_window_id
+    // source_id
+    // has_exception
+    // exception
+}
+
+impl From<PageError> for DevtoolsPageError {
+    fn from(page_error: PageError) -> Self {
+        Self {
+            page_error,
+            category: "script".to_string(),
+            error: true,
+            warning: false,
+            info: false,
+            private: false,
+            stacktrace: None,
+        }
+    }
+}
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct PageErrorWrapper {
+    page_error: DevtoolsPageError,
+}
+
+impl From<PageError> for PageErrorWrapper {
+    fn from(page_error: PageError) -> Self {
+        Self {
+            page_error: page_error.into(),
+        }
+    }
+}
+
+#[derive(Clone, Serialize)]
+#[serde(untagged)]
+pub(crate) enum ConsoleResource {
+    ConsoleMessage(DevtoolsConsoleMessage),
+    PageError(PageErrorWrapper),
+}
+
+impl ConsoleResource {
+    pub fn resource_type(&self) -> String {
+        match self {
+            ConsoleResource::ConsoleMessage(_) => "console-message".into(),
+            ConsoleResource::PageError(_) => "error-message".into(),
+        }
+    }
+}
 
 #[derive(Serialize)]
 pub struct ConsoleClearMessage {
@@ -90,18 +191,27 @@ pub(crate) enum Root {
 }
 
 pub(crate) struct ConsoleActor {
-    pub name: String,
-    pub root: Root,
-    pub cached_events: AtomicRefCell<HashMap<UniqueId, Vec<ConsoleResource>>>,
+    name: String,
+    root: Root,
+    cached_events: AtomicRefCell<HashMap<UniqueId, Vec<ConsoleResource>>>,
     /// Used to control whether to send resource array messages from
     /// `handle_console_resource`. It starts being false, and it only gets
     /// activated after the client requests `console-message` or `error-message`
     /// resources for the first time. Otherwise we would be sending messages
     /// before the client is ready to receive them.
-    pub client_ready_to_receive_messages: AtomicBool,
+    client_ready_to_receive_messages: AtomicBool,
 }
 
 impl ConsoleActor {
+    pub fn new(name: String, root: Root) -> Self {
+        Self {
+            name,
+            root,
+            cached_events: Default::default(),
+            client_ready_to_receive_messages: false.into(),
+        }
+    }
+
     fn script_chan(&self, registry: &ActorRegistry) -> GenericSender<DevtoolScriptControlMsg> {
         match &self.root {
             Root::BrowsingContext(browsing_context) => registry
@@ -204,10 +314,7 @@ impl ConsoleActor {
             from: self.name(),
             input,
             result,
-            timestamp: SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64,
+            timestamp: get_time_stamp(),
             exception: Value::Null,
             exception_message: Value::Null,
             helper_result: Value::Null,

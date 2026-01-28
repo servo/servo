@@ -5,6 +5,12 @@
 //! This module contains shared types and messages for use by devtools/script.
 //! The traits are here instead of in script so that the devtools crate can be
 //! modified independently of the rest of Servo.
+//!
+//! Since these types can be sent through the IPC channel and use non
+//! self-describing serializers, the `flatten`, `skip*`, `tag` and `untagged`
+//! serde annotations are not supported. Types like `serde_json::Value` aren't
+//! supported either. For JSON serialization it is preferred to use a wrapper
+//! struct in the devtools crate instead.
 
 #![crate_name = "devtools_traits"]
 #![crate_type = "rlib"]
@@ -209,8 +215,6 @@ pub struct ComputedNodeLayout {
     pub z_index: String,
     pub box_sizing: String,
 
-    #[serde(rename = "autoMargins")]
-    pub auto_margins: AutoMargins,
     pub margin_top: String,
     pub margin_right: String,
     pub margin_bottom: String,
@@ -232,14 +236,10 @@ pub struct ComputedNodeLayout {
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct AutoMargins {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub top: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub right: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub bottom: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub left: Option<String>,
+    pub top: bool,
+    pub right: bool,
+    pub bottom: bool,
+    pub left: bool,
 }
 
 /// Messages to process in a particular script thread, as instructed by a devtools client.
@@ -277,7 +277,7 @@ pub enum DevtoolScriptControlMsg {
     GetLayout(
         PipelineId,
         String,
-        GenericSender<Option<ComputedNodeLayout>>,
+        GenericSender<Option<(ComputedNodeLayout, AutoMargins)>>,
     ),
     /// Get a unique XPath selector for the node.
     GetXPath(PipelineId, String, GenericSender<String>),
@@ -342,28 +342,41 @@ pub struct StackFrame {
     // source_id
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum ConsoleMessageArgument {
-    String(String),
-    Integer(i32),
-    Number(f64),
+pub fn get_time_stamp() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis() as u64
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ConsoleMessage {
+pub struct ConsoleMessageFields {
     pub level: ConsoleLogLevel,
     pub filename: String,
     pub line_number: u32,
     pub column_number: u32,
     pub time_stamp: u64,
-    pub arguments: Vec<ConsoleMessageArgument>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum ConsoleArgument {
+    String(String),
+    Integer(i32),
+    Number(f64),
+}
+
+impl From<String> for ConsoleArgument {
+    fn from(value: String) -> Self {
+        Self::String(value)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ConsoleMessage {
+    pub fields: ConsoleMessageFields,
+    pub arguments: Vec<ConsoleArgument>,
     pub stacktrace: Option<Vec<StackFrame>>,
-    // Not implemented in Servo
-    // inner_window_id
-    // source_id
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -373,47 +386,7 @@ pub struct PageError {
     pub source_name: String,
     pub line_number: u32,
     pub column_number: u32,
-    pub category: String,
     pub time_stamp: u64,
-    pub error: bool,
-    pub warning: bool,
-    pub info: bool,
-    pub private: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub stacktrace: Option<Vec<StackFrame>>,
-    // Not implemented in Servo
-    // inner_window_id
-    // source_id
-    // has_exception
-    // exception
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PageErrorWrapper {
-    pub page_error: PageError,
-}
-
-impl From<PageError> for PageErrorWrapper {
-    fn from(page_error: PageError) -> Self {
-        Self { page_error }
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum ConsoleResource {
-    ConsoleMessage(ConsoleMessage),
-    PageError(PageErrorWrapper),
-}
-
-impl ConsoleResource {
-    pub fn resource_type(&self) -> String {
-        match self {
-            ConsoleResource::ConsoleMessage(_) => "console-message".into(),
-            ConsoleResource::PageError(_) => "error-message".into(),
-        }
-    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -510,84 +483,6 @@ pub struct CssDatabaseProperty {
     pub values: Vec<String>,
     pub supports: Vec<String>,
     pub subproperties: Vec<String>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum ConsoleArgument {
-    String(String),
-    Integer(i32),
-    Number(f64),
-}
-
-impl From<ConsoleMessageArgument> for ConsoleArgument {
-    fn from(value: ConsoleMessageArgument) -> Self {
-        match value {
-            ConsoleMessageArgument::String(string) => Self::String(string),
-            ConsoleMessageArgument::Integer(integer) => Self::Integer(integer),
-            ConsoleMessageArgument::Number(number) => Self::Number(number),
-        }
-    }
-}
-
-impl From<String> for ConsoleMessageArgument {
-    fn from(value: String) -> Self {
-        Self::String(value)
-    }
-}
-
-pub struct ConsoleMessageBuilder {
-    level: ConsoleLogLevel,
-    filename: String,
-    line_number: u32,
-    column_number: u32,
-    arguments: Vec<ConsoleMessageArgument>,
-    stack_trace: Option<Vec<StackFrame>>,
-}
-
-impl ConsoleMessageBuilder {
-    pub fn new(
-        level: ConsoleLogLevel,
-        filename: String,
-        line_number: u32,
-        column_number: u32,
-    ) -> Self {
-        Self {
-            level,
-            filename,
-            line_number,
-            column_number,
-            arguments: vec![],
-            stack_trace: None,
-        }
-    }
-
-    pub fn attach_stack_trace(&mut self, stack_trace: Vec<StackFrame>) -> &mut Self {
-        self.stack_trace = Some(stack_trace);
-        self
-    }
-
-    pub fn add_argument(&mut self, argument: ConsoleMessageArgument) -> &mut Self {
-        self.arguments.push(argument);
-        self
-    }
-
-    pub fn finish(self) -> ConsoleMessage {
-        let time_stamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
-
-        ConsoleMessage {
-            level: self.level,
-            filename: self.filename,
-            line_number: self.line_number,
-            column_number: self.column_number,
-            time_stamp,
-            arguments: self.arguments,
-            stacktrace: self.stack_trace,
-        }
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
