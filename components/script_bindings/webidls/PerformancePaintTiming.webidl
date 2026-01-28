@@ -8,4 +8,5 @@
 
 [Exposed=(Window,Worker)]
 interface PerformancePaintTiming : PerformanceEntry {
+    [Default] object toJSON();
 };
