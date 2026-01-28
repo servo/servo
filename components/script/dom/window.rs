@@ -145,7 +145,7 @@ use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
 use crate::dom::customelementregistry::CustomElementRegistry;
-use crate::dom::document::{AnimationFrameCallback, Document};
+use crate::dom::document::{AnimationFrameCallback, DescendantNavigablesIterator, Document};
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -471,6 +471,10 @@ pub(crate) struct Window {
     /// Visual viewport interface that is associated to this [`Window`].
     /// <https://drafts.csswg.org/cssom-view/#dom-window-visualviewport>
     visual_viewport: MutNullableDom<VisualViewport>,
+
+    /// <https://html.spec.whatwg.org/multipage/#last-activation-timestamp>
+    #[no_trace]
+    last_activation_timestamp: Cell<CrossProcessInstant>,
 }
 
 impl Window {
@@ -3489,6 +3493,14 @@ impl Window {
         self.navigation_start.set(CrossProcessInstant::now());
     }
 
+    pub(crate) fn last_activation_timestamp(&self) -> CrossProcessInstant {
+        self.last_activation_timestamp.get()
+    }
+
+    pub(crate) fn set_last_activation_timestamp(&self, time: CrossProcessInstant) {
+        self.last_activation_timestamp.set(time);
+    }
+
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
         self.as_global_scope()
             .script_to_embedder_chan()
@@ -3583,6 +3595,60 @@ impl Window {
             let svg = node.downcast::<SVGSVGElement>().unwrap();
             svg.serialize_and_cache_subtree();
             node.dirty(NodeDamage::Other);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#sticky-activation>
+    pub(crate) fn has_sticky_activation(&self) -> bool {
+        // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, W is said to have sticky activation.
+        CrossProcessInstant::now() > self.last_activation_timestamp.get()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#transient-activation>
+    pub(crate) fn has_transient_activation(&self) -> bool {
+        // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, and less than the last activation
+        // > timestamp in W plus the transient activation duration, then W is said to have transient activation.
+        let current_time = CrossProcessInstant::now();
+        current_time >= self.last_activation_timestamp() &&
+            current_time - self.last_activation_timestamp() <=
+                Duration::from_millis(pref!(dom_transient_activation_duration_ms))
+    }
+
+    pub(crate) fn consume_last_activation_timestamp(&self) {
+        if self.last_activation_timestamp() != CrossProcessInstant::inf() {
+            self.set_last_activation_timestamp(CrossProcessInstant::epoch());
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/interaction.html#consume-user-activation>
+    pub(crate) fn consume_user_activation(&self) {
+        // Step 1.
+        // > If W's navigable is null, then return.
+        if self.undiscarded_window_proxy().is_none() {
+            return;
+        }
+
+        // Step 2.
+        // > Let top be W's navigable's top-level traversable.
+        let Some(top_level_document) = self
+            .webview_window_proxy()
+            .and_then(|window_proxy| window_proxy.document())
+        else {
+            return;
+        };
+
+        // Step 3.
+        // > Let navigables be the inclusive descendant navigables of top's active document.
+        // Step 4.
+        // > Let windows be the list of Window objects constructed by taking the active window of each item in navigables.
+        // Step 5.
+        // > For each window in windows, if window's last activation timestamp is not positive infinity, then set window's last activation timestamp to negative infinity.
+        // TODO: this would not work for disimilar origin descendant, since we doesn't store the document in this script thread.
+        top_level_document
+            .window()
+            .consume_last_activation_timestamp();
+        for document in DescendantNavigablesIterator::new(top_level_document) {
+            document.window().consume_last_activation_timestamp();
         }
     }
 
@@ -3714,6 +3780,7 @@ impl Window {
             has_pending_screenshot_readiness_request: Default::default(),
             visual_viewport: Default::default(),
             weak_script_thread,
+            last_activation_timestamp: Cell::new(CrossProcessInstant::inf()),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)
