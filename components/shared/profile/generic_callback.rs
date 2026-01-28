@@ -22,10 +22,10 @@ impl<T> GenericCallback<T>
 where
     T: for<'de> Deserialize<'de> + Serialize + Send + 'static,
 {
-    pub fn new<F: FnMut(Result<T, ipc_channel::Error>) + Send + 'static>(
+    pub fn new<F: FnMut(Result<T, ipc_channel::IpcError>) + Send + 'static>(
         time_profiler_chan: ProfilerChan,
         callback: F,
-    ) -> Result<Self, ipc_channel::Error> {
+    ) -> Result<Self, ipc_channel::IpcError> {
         Ok(GenericCallback {
             callback: base::generic_channel::GenericCallback::new(callback)?,
             time_profiler_chan,
