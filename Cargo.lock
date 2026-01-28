@@ -6624,7 +6624,8 @@ checksum = "b867cad97c0791bbd3aaa6472142568c6c9e8f71937e98379f584cfb0cf35bec"
 [[package]]
 name = "peek-poke"
 version = "0.3.0"
-source = "git+https://github.com/servo/webrender?rev=6cafc606096db4715a6119a6e16391aed9af47a5#6cafc606096db4715a6119a6e16391aed9af47a5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef60922033e31835f6cf98b9b81b58368037b71d2a81928985cd9d0b3b3171fb"
 dependencies = [
  "euclid",
  "peek-poke-derive",
@@ -6633,7 +6634,8 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.3.0"
-source = "git+https://github.com/servo/webrender?rev=6cafc606096db4715a6119a6e16391aed9af47a5#6cafc606096db4715a6119a6e16391aed9af47a5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "271f78bae1e699b58c180a384a2e8d78ccbb60b853e15db92339725f3a2764d5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -10403,7 +10405,8 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.68.0"
-source = "git+https://github.com/servo/webrender?rev=6cafc606096db4715a6119a6e16391aed9af47a5#6cafc606096db4715a6119a6e16391aed9af47a5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a591c25221a9f8ac2ad7754659b283d912cee6c8424f0fa3777aabed3be91c16"
 dependencies = [
  "allocator-api2",
  "bincode",
@@ -10439,7 +10442,8 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.68.0"
-source = "git+https://github.com/servo/webrender?rev=6cafc606096db4715a6119a6e16391aed9af47a5#6cafc606096db4715a6119a6e16391aed9af47a5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb206f613b4635881065a2ff4670e656edc904af0b8729c51ce1196679fd1b6d"
 dependencies = [
  "app_units",
  "bitflags 2.10.0",
@@ -10457,8 +10461,9 @@ dependencies = [
 
 [[package]]
 name = "webrender_build"
-version = "0.0.2"
-source = "git+https://github.com/servo/webrender?rev=6cafc606096db4715a6119a6e16391aed9af47a5#6cafc606096db4715a6119a6e16391aed9af47a5"
+version = "0.68.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e6165a81201892371061250bd6f08ede9ed7279842fedc4033f48582a789068"
 dependencies = [
  "bitflags 2.10.0",
  "lazy_static",
@@ -11174,8 +11179,9 @@ checksum = "d7249219f66ced02969388cf2bb044a09756a083d0fab1e566056b04d9fbcaa5"
 
 [[package]]
 name = "wr_glyph_rasterizer"
-version = "0.1.0"
-source = "git+https://github.com/servo/webrender?rev=6cafc606096db4715a6119a6e16391aed9af47a5#6cafc606096db4715a6119a6e16391aed9af47a5"
+version = "0.68.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef4fcffa889d25131fc7c6ec8a558aa7c78d6030eaa17e31695c172adcc4eb0b"
 dependencies = [
  "core-foundation 0.9.4",
  "core-graphics",
@@ -11200,7 +11206,8 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.2.2"
-source = "git+https://github.com/servo/webrender?rev=6cafc606096db4715a6119a6e16391aed9af47a5#6cafc606096db4715a6119a6e16391aed9af47a5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "482308b684f11723b200a32808094bb460b5ac4840903ccbcb78ad92a6354a1f"
 dependencies = [
  "app_units",
  "euclid",

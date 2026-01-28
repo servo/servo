@@ -211,8 +211,8 @@ vello_cpu = "0.0.4"
 webdriver = "0.53.0"
 webgpu_traits = { path = "components/shared/webgpu" }
 webpki-roots = "1.0"
-webrender = { git = "https://github.com/servo/webrender", rev = "6cafc606096db4715a6119a6e16391aed9af47a5", features = ["capture"] }
-webrender_api = { git = "https://github.com/servo/webrender", rev = "6cafc606096db4715a6119a6e16391aed9af47a5" }
+webrender = { version = "0.68", features = ["capture"] }
+webrender_api = "0.68"
 webxr-api = { path = "components/shared/webxr" }
 wgpu-core = "26"
 wgpu-types = "26"
@@ -220,7 +220,7 @@ winapi = "0.3"
 windows-sys = "0.61"
 winit = "0.30.12"
 wio = "0.2"
-wr_malloc_size_of = { git = "https://github.com/servo/webrender", rev = "6cafc606096db4715a6119a6e16391aed9af47a5" }
+wr_malloc_size_of = "0.2.2"
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 xi-unicode = "0.3.0"
 xml5ever = "0.38"
