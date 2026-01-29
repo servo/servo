@@ -150,7 +150,7 @@ regex = "1.12"
 resvg = "0.45.0"
 rsa = { version = "0.9.10", features = ["sha1", "sha2"] }
 rustc-hash = "2.1.1"
-rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
+rustls = { version = "0.23" }
 rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.6.2"
 script_traits = { path = "components/shared/script" }
