@@ -425,10 +425,13 @@ impl IntersectionObserver {
             // Handle if root is an element.
             Some(ElementOrDocument::Element(element)) => {
                 // TODO: recheck scrollbar approach and clip-path clipping from Chromium implementation.
-                if element.style().is_some_and(|style| {
-                    style.clone_overflow_x() != Overflow::Visible ||
-                        style.clone_overflow_y() != Overflow::Visible
-                }) {
+                if element
+                    .upcast::<Node>()
+                    .effective_overflow_without_reflow()
+                    .is_some_and(|overflow_axes| {
+                        overflow_axes.x != Overflow::Visible || overflow_axes.y != Overflow::Visible
+                    })
+                {
                     // > Otherwise, if the intersection root has a content clip, it’s the element’s padding area.
                     window.box_area_query_without_reflow(
                         &DomRoot::upcast::<Node>(element.clone()),
