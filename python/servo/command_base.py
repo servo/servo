@@ -571,26 +571,8 @@ class CommandBase(object):
         if has_libclang(ubuntu_path):
             return str(ubuntu_path)
         
-            # Windows
-        if sys.platform == "win32":
-            candidates = [
-                Path(os.environ.get("ProgramFiles", ""))
-                / "LLVM"
-                / "bin",
-                Path("C:/msys64/mingw64/bin"),
-                Path("C:/msys64/clang64/bin"),
-            ]
-
-            for path in candidates:
-                if has_libclang(path):
-                    return str(path)
-
-        # Fallback: resolve clang binary -> ../lib (macOS, Homebrew, custom installs)
-        clang_bin = shutil.which(cc)
-        if clang_bin:
-            lib_path = Path(clang_bin).resolve().parent.parent / "lib"
-            if has_libclang(lib_path):
-                return str(lib_path)
+        # MacOS: /opt/homebrew/Cellar/llvm/21.1.8/lib
+        # Not implemented, because it works with default macos clang
 
     def build_env(self) -> dict[str, str]:
         """Return an extended environment dictionary."""
