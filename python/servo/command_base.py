@@ -481,7 +481,6 @@ class CommandBase(object):
     def msvc_package_dir(self, package: str) -> str:
         return servo.platform.windows.get_dependency_dir(package)
 
-
     @staticmethod
     def parse_major_version_from_stdout(stdout_str: str) -> Optional[str]:
         """
@@ -511,8 +510,8 @@ class CommandBase(object):
             )
         except (subprocess.CalledProcessError, FileNotFoundError):
             return None
-        
-        return self.parse_major_version_from_stdout(result.stdout.lower())        
+
+        return self.parse_major_version_from_stdout(result.stdout.lower())
 
     @staticmethod
     def get_llvm_config_for_clang(cc: str, clang_major: Optional[str]) -> Optional[str]:
