@@ -28,9 +28,6 @@ ignore = [
     # cryptographic secret via side channel. Wait for a patch in stable
     # release version from upstream.
     "RUSTSEC-2023-0071",
-    # The crate `bincode` is unmaintained. This crate is now pinned in Servo.
-    # See the comment above `bincode` entry in Cargo.toml.
-    "RUSTSEC-2025-0141",
     # The crate `ml-dsa 0.0.4` is the latest stable release.
     # The attack complexity of this vulnerability is high,
     # and no exploit is known yet.

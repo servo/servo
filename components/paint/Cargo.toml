@@ -23,7 +23,6 @@ panic = "deny"
 
 [dependencies]
 base = { workspace = true }
-bincode = { workspace = true }
 bitflags = { workspace = true }
 canvas_traits = { workspace = true }
 constellation_traits = { workspace = true }

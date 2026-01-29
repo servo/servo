@@ -6522,7 +6522,6 @@ name = "paint"
 version = "0.0.1"
 dependencies = [
  "base",
- "bincode",
  "bitflags 2.10.0",
  "canvas_traits",
  "constellation_traits",
@@ -6563,7 +6562,6 @@ name = "paint_api"
 version = "0.0.1"
 dependencies = [
  "base",
- "bincode",
  "bitflags 2.10.0",
  "crossbeam-channel",
  "dpi",
@@ -7719,7 +7717,6 @@ dependencies = [
  "base",
  "base64 0.22.1",
  "base64ct",
- "bincode",
  "bitflags 2.10.0",
  "bluetooth_traits",
  "brotli",
@@ -8744,7 +8741,6 @@ name = "storage"
 version = "0.0.1"
 dependencies = [
  "base",
- "bincode",
  "libc",
  "log",
  "malloc_size_of_derive",
