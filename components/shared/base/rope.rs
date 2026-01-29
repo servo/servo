@@ -68,8 +68,8 @@ impl Rope {
         mut range: Range<RopeIndex>,
         string: impl Into<String>,
     ) -> RopeIndex {
-        range.start = self.clamp_index(range.start);
-        range.end = self.clamp_index(range.end);
+        range.start = self.normalize_index(range.start);
+        range.end = self.normalize_index(range.end);
         assert!(range.start <= range.end);
 
         let start_index = range.start;
@@ -110,8 +110,8 @@ impl Rope {
     }
 
     fn delete_range(&mut self, mut range: Range<RopeIndex>) {
-        range.start = self.clamp_index(range.start);
-        range.end = self.clamp_index(range.end);
+        range.start = self.normalize_index(range.start);
+        range.end = self.normalize_index(range.end);
         assert!(range.start <= range.end);
 
         if range.start.line == range.end.line {
@@ -285,9 +285,10 @@ impl Rope {
         boundary_value
     }
 
-    /// Given a [`RopeIndex`], clamp it, meaning that its indices are all bound by the
-    /// actual size of the line and the number of lines in this [`Rope`].
-    pub fn clamp_index(&self, rope_index: RopeIndex) -> RopeIndex {
+    /// Given a [`RopeIndex`], clamp it and ensure that it is on a character boundary,
+    /// meaning that its indices are all bound by the actual size of the line and the
+    /// number of lines in this [`Rope`].
+    pub fn normalize_index(&self, rope_index: RopeIndex) -> RopeIndex {
         let last_line = self.lines.len().saturating_sub(1);
         let line_index = rope_index.line.min(last_line);
 
@@ -298,18 +299,24 @@ impl Rope {
         //
         // Lines other than the last line have a trailing newline. We do not want to allow
         // an index past the trailing newline.
+        let line = self.line(line_index);
         let line_length_utf8 = if line_index == last_line {
-            self.lines[line_index].len()
+            line.len()
         } else {
-            self.lines[line_index].len() - 1
+            line.len() - 1
         };
 
-        RopeIndex::new(line_index, rope_index.code_point.min(line_length_utf8))
+        let mut code_point = rope_index.code_point.min(line_length_utf8);
+        while code_point < line.len() && !line.is_char_boundary(code_point) {
+            code_point += 1;
+        }
+
+        RopeIndex::new(line_index, code_point)
     }
 
     /// Convert a [`RopeIndex`] into a byte offset from the start of the content.
     pub fn index_to_utf8_offset(&self, rope_index: RopeIndex) -> Utf8CodeUnitLength {
-        let rope_index = self.clamp_index(rope_index);
+        let rope_index = self.normalize_index(rope_index);
         Utf8CodeUnitLength(
             self.lines
                 .iter()
@@ -321,7 +328,7 @@ impl Rope {
     }
 
     pub fn index_to_utf16_offset(&self, rope_index: RopeIndex) -> Utf16CodeUnitLength {
-        let rope_index = self.clamp_index(rope_index);
+        let rope_index = self.normalize_index(rope_index);
         let final_line = self.line(rope_index.line);
 
         // The offset might be past the end of the line due to being an exclusive offset.
@@ -342,7 +349,7 @@ impl Rope {
 
     /// Convert a [`RopeIndex`] into a character offset from the start of the content.
     pub fn index_to_character_offset(&self, rope_index: RopeIndex) -> usize {
-        let rope_index = self.clamp_index(rope_index);
+        let rope_index = self.normalize_index(rope_index);
 
         // The offset might be past the end of the line due to being an exclusive offset.
         let final_line = self.line(rope_index.line);
@@ -811,4 +818,28 @@ fn test_rope_relevant_word() {
     let boundaries = rope.relevant_word_boundaries(RopeIndex::new(0, 0));
     assert_eq!(boundaries.start, RopeIndex::new(0, 0));
     assert_eq!(boundaries.end, RopeIndex::new(0, 0));
+}
+
+#[test]
+fn test_rope_index_intersects_character() {
+    let rope = Rope::new("񉡚");
+    let rope_index = RopeIndex::new(0, 1);
+    assert_eq!(rope.normalize_index(rope_index), RopeIndex::new(0, 4));
+    assert_eq!(
+        rope.index_to_utf16_offset(rope_index),
+        Utf16CodeUnitLength(2)
+    );
+    assert_eq!(rope.index_to_utf8_offset(rope_index), Utf8CodeUnitLength(4));
+
+    let rope = Rope::new("abc\ndef");
+    assert_eq!(
+        rope.normalize_index(RopeIndex::new(0, 100)),
+        RopeIndex::new(0, 3),
+        "Normalizing index past end of line should just clamp to line length."
+    );
+    assert_eq!(
+        rope.normalize_index(RopeIndex::new(1, 100)),
+        RopeIndex::new(1, 3),
+        "Normalizing index past end of line should just clamp to line length."
+    );
 }
