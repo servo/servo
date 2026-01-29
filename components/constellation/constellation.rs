@@ -186,9 +186,7 @@ use crate::event_loop::EventLoop;
 use crate::pipeline::Pipeline;
 use crate::process_manager::ProcessManager;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
-use crate::session_history::{
-    JointSessionHistory, NeedsToReload, SessionHistoryChange, SessionHistoryDiff,
-};
+use crate::session_history::{NeedsToReload, SessionHistoryChange, SessionHistoryDiff};
 
 type PendingApprovalNavigations = FxHashMap<PipelineId, (LoadData, NavigationHistoryBehavior)>;
 
@@ -3771,6 +3769,10 @@ where
             },
         };
 
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
+            return warn!("Ignoring navigation in non-existent WebView ({webview_id:?}).");
+        };
+
         match history_handling {
             NavigationHistoryBehavior::Replace => {},
             _ => {
@@ -3780,8 +3782,7 @@ where
                     old_url,
                 };
 
-                self.get_joint_session_history(webview_id).push_diff(diff);
-
+                webview.session_history.push_diff(diff);
                 self.notify_history_changed(webview_id);
             },
         }
@@ -3798,16 +3799,22 @@ where
             FxHashMap::<PipelineId, (Option<HistoryStateId>, ServoUrl)>::default();
         let mut url_to_load = FxHashMap::<PipelineId, ServoUrl>::default();
         {
-            let session_history = self.get_joint_session_history(webview_id);
+            let Some(webview) = self.webviews.get_mut(&webview_id) else {
+                return warn!(
+                    "Ignoring history traversal in non-existent WebView ({webview_id:?})."
+                );
+            };
+
             match direction {
                 TraversalDirection::Forward(forward) => {
-                    let future_length = session_history.future.len();
+                    let future_length = webview.session_history.future.len();
 
                     if future_length < forward {
                         return warn!("Cannot traverse that far into the future.");
                     }
 
-                    for diff in session_history
+                    for diff in webview
+                        .session_history
                         .future
                         .drain(future_length - forward..)
                         .rev()
@@ -3853,17 +3860,22 @@ where
                                 },
                             },
                         }
-                        session_history.past.push(diff);
+                        webview.session_history.past.push(diff);
                     }
                 },
                 TraversalDirection::Back(back) => {
-                    let past_length = session_history.past.len();
+                    let past_length = webview.session_history.past.len();
 
                     if past_length < back {
                         return warn!("Cannot traverse that far into the past.");
                     }
 
-                    for diff in session_history.past.drain(past_length - back..).rev() {
+                    for diff in webview
+                        .session_history
+                        .past
+                        .drain(past_length - back..)
+                        .rev()
+                    {
                         match diff {
                             SessionHistoryDiff::BrowsingContext {
                                 browsing_context_id,
@@ -3905,7 +3917,7 @@ where
                                 },
                             },
                         }
-                        session_history.future.push(diff);
+                        webview.session_history.future.push(diff);
                     }
                 },
             }
@@ -4094,6 +4106,10 @@ where
             },
         };
 
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
+            return warn!("Ignoring history change in non-existent WebView ({webview_id:?}).");
+        };
+
         let diff = SessionHistoryDiff::Pipeline {
             pipeline_reloader: NeedsToReload::No(pipeline_id),
             new_history_state_id: history_state_id,
@@ -4101,7 +4117,7 @@ where
             old_history_state_id: old_state_id,
             old_url,
         };
-        self.get_joint_session_history(webview_id).push_diff(diff);
+        webview.session_history.push_diff(diff);
         self.notify_history_changed(webview_id);
     }
 
@@ -4126,8 +4142,13 @@ where
             },
         };
 
-        let session_history = self.get_joint_session_history(webview_id);
-        session_history.replace_history_state(pipeline_id, history_state_id, url);
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
+            return warn!("Ignoring history change in non-existent WebView ({webview_id:?}).");
+        };
+
+        webview
+            .session_history
+            .replace_history_state(pipeline_id, history_state_id, url);
         self.notify_history_changed(webview_id);
     }
 
@@ -4709,6 +4730,14 @@ where
                 },
             };
 
+        if let Some(old_pipeline_id) = old_pipeline_id {
+            self.unload_document(old_pipeline_id);
+        }
+
+        let Some(webview) = self.webviews.get_mut(&change.webview_id) else {
+            return warn!("Ignoring history change in non-existent WebView ({webview_id:?}).");
+        };
+
         match old_pipeline_id {
             None => {
                 let Some(new_context_info) = change.new_browsing_context_info else {
@@ -4730,17 +4759,14 @@ where
                 self.update_activity(change.new_pipeline_id);
             },
             Some(old_pipeline_id) => {
-                self.unload_document(old_pipeline_id);
-
                 // Deactivate the old pipeline, and activate the new one.
                 let (pipelines_to_close, states_to_close) = if let Some(replace_reloader) =
                     change.replace
                 {
-                    self.get_joint_session_history(change.webview_id)
-                        .replace_reloader(
-                            replace_reloader.clone(),
-                            NeedsToReload::No(change.new_pipeline_id),
-                        );
+                    webview.session_history.replace_reloader(
+                        replace_reloader.clone(),
+                        NeedsToReload::No(change.new_pipeline_id),
+                    );
 
                     match replace_reloader {
                         NeedsToReload::No(pipeline_id) => (Some(vec![pipeline_id]), None),
@@ -4756,10 +4782,7 @@ where
                     let mut pipelines_to_close = vec![];
                     let mut states_to_close = FxHashMap::default();
 
-                    let diffs_to_close = self
-                        .get_joint_session_history(change.webview_id)
-                        .push_diff(diff);
-
+                    let diffs_to_close = webview.session_history.push_diff(diff);
                     for diff in diffs_to_close {
                         match diff {
                             SessionHistoryDiff::BrowsingContext { new_reloader, .. } => {
@@ -4868,14 +4891,16 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn trim_history(&mut self, webview_id: WebViewId) {
         let pipelines_to_evict = {
-            let session_history = self.get_joint_session_history(webview_id);
-
+            let Some(webview) = self.webviews.get_mut(&webview_id) else {
+                return warn!("Not trimming history for non-existent WebView ({webview_id:}");
+            };
             let history_length = pref!(session_history_max_length) as usize;
 
             // The past is stored with older entries at the front.
             // We reverse the iter so that newer entries are at the front and then
             // skip _n_ entries and evict the remaining entries.
-            let mut pipelines_to_evict = session_history
+            let mut pipelines_to_evict = webview
+                .session_history
                 .past
                 .iter()
                 .rev()
@@ -4887,7 +4912,8 @@ where
             // The future is stored with oldest entries front, so we must
             // reverse the iterator like we do for the `past`.
             pipelines_to_evict.extend(
-                session_history
+                webview
+                    .session_history
                     .future
                     .iter()
                     .rev()
@@ -4913,11 +4939,13 @@ where
             );
         }
 
-        let session_history = self.get_joint_session_history(webview_id);
-
-        for (alive_id, dead) in dead_pipelines {
-            session_history.replace_reloader(NeedsToReload::No(alive_id), dead);
-        }
+        if let Some(webview) = self.webviews.get_mut(&webview_id) {
+            for (alive_id, dead) in dead_pipelines {
+                webview
+                    .session_history
+                    .replace_reloader(NeedsToReload::No(alive_id), dead);
+            }
+        };
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -5272,9 +5300,10 @@ where
             return None;
         };
 
-        {
-            let session_history = self.get_joint_session_history(browsing_context.webview_id);
-            session_history.remove_entries_for_browsing_context(browsing_context_id);
+        if let Some(webview) = self.webviews.get_mut(&browsing_context.webview_id) {
+            webview
+                .session_history
+                .remove_entries_for_browsing_context(browsing_context_id);
         }
 
         if let Some(parent_pipeline_id) = browsing_context.parent_pipeline_id {
@@ -5489,14 +5518,6 @@ where
                 }
             }
         }
-    }
-
-    #[servo_tracing::instrument(skip_all)]
-    fn get_joint_session_history(&mut self, webview_id: WebViewId) -> &mut JointSessionHistory {
-        self.webviews
-            .get_mut(&webview_id)
-            .map(|webview| &mut webview.session_history)
-            .expect("Unknown top-level browsing context")
     }
 
     // Convert a browsing context to a sendable form to pass to `Paint`
