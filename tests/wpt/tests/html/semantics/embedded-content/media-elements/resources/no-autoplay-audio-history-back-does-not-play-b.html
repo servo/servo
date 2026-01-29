@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>History back page B</title>
+<body>
+  <script>
+    "use strict";
+
+    document.body.textContent = "Page B";
+    window.addEventListener("load", () => {
+      if (window.parent) {
+        window.parent.postMessage({ type: "loaded_b" }, "*");
+      }
+    });
+  </script>
+</body>
