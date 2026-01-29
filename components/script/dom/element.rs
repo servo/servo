@@ -685,6 +685,12 @@ impl Element {
             can_gc,
         );
 
+        // This is not in the specification, but this is where we ensure that the
+        // non-shadow-tree children of `self` no longer have layout boxes as they are no
+        // longer in the flat tree.
+        let node = self.upcast::<Node>();
+        node.remove_layout_boxes_from_subtree();
+
         // Step 6. Set shadow's delegates focus to delegatesFocus
         shadow_root.set_delegates_focus(delegates_focus);
 
@@ -712,7 +718,6 @@ impl Element {
         let bind_context = BindContext::new(self.upcast(), IsShadowTree::Yes);
         shadow_root.bind_to_tree(&bind_context, can_gc);
 
-        let node = self.upcast::<Node>();
         node.dirty(NodeDamage::Other);
 
         Ok(shadow_root)
