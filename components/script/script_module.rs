@@ -1336,13 +1336,17 @@ pub(crate) fn fetch_a_single_module_script(
 
     // Step 8. Let request be a new request whose URL is url, mode is "cors", referrer is referrer, and client is fetchClient.
 
-    // Step 9. Set request's destination to the result of running the fetch destination from module type steps given destination and moduleType.
-
     // Step 10. If destination is "worker", "sharedworker", or "serviceworker", and isTopLevel is true,
     // then set request's mode to "same-origin".
     let mode = match destination {
         Destination::Worker | Destination::SharedWorker if is_top_level => RequestMode::SameOrigin,
         _ => RequestMode::CorsMode,
+    };
+
+    // Step 9. Set request's destination to the result of running the fetch destination from module type steps given destination and moduleType.
+    let destination = match module_type {
+        ModuleType::JSON => Destination::Json,
+        ModuleType::JavaScript | ModuleType::Unknown => destination,
     };
 
     // TODO Step 11. Set request's initiator type to "script".
