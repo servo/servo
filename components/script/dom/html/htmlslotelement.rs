@@ -135,7 +135,7 @@ impl HTMLSlotElementMethods<crate::DomTypeHolder> for HTMLSlotElement {
         // Step 5. Run assign slottables for a tree for this's root.
         self.upcast::<Node>()
             .GetRootNode(&GetRootNodeOptions::empty())
-            .assign_slottables_for_a_tree();
+            .assign_slottables_for_a_tree(false);
     }
 }
 
@@ -487,7 +487,7 @@ impl VirtualMethods for HTMLSlotElement {
             // Changing the name might cause slot assignments to change
             self.upcast::<Node>()
                 .GetRootNode(&GetRootNodeOptions::empty())
-                .assign_slottables_for_a_tree()
+                .assign_slottables_for_a_tree(false)
         }
     }
 

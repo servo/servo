@@ -1552,14 +1552,17 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#assign-slotables-for-a-tree>
-    pub(crate) fn assign_slottables_for_a_tree(&self) {
+    pub(crate) fn assign_slottables_for_a_tree(&self, force: bool) {
         // NOTE: This method traverses all descendants of the node and is potentially very
         // expensive. If the node is neither a shadowroot nor a slot then assigning slottables
         // for it won't have any effect, so we take a fast path out.
+        // In the case of node removal, we need to force re-assignment of slottables
+        // even if the node is not a shadow root or slot, this allows us to clear assigned
+        // slots from any slottables that were assigned to slots in the removed subtree.
         let is_shadow_root_with_slots = self
             .downcast::<ShadowRoot>()
             .is_some_and(|shadow_root| shadow_root.has_slot_descendants());
-        if !is_shadow_root_with_slots && !self.is::<HTMLSlotElement>() {
+        if !is_shadow_root_with_slots && !self.is::<HTMLSlotElement>() && !force {
             return;
         }
 
@@ -2622,7 +2625,7 @@ impl Node {
 
             // Step 7.6 Run assign slottables for a tree with node’s root.
             kid.GetRootNode(&GetRootNodeOptions::empty())
-                .assign_slottables_for_a_tree();
+                .assign_slottables_for_a_tree(false);
 
             // Step 7.7. For each shadow-including inclusive descendant inclusiveDescendant of node,
             // in shadow-including tree order:
@@ -2849,10 +2852,10 @@ impl Node {
             // Step 10.1 Run assign slottables for a tree with parent’s root.
             parent
                 .GetRootNode(&GetRootNodeOptions::empty())
-                .assign_slottables_for_a_tree();
+                .assign_slottables_for_a_tree(false);
 
             // Step 10.2 Run assign slottables for a tree with node.
-            node.assign_slottables_for_a_tree();
+            node.assign_slottables_for_a_tree(true);
         }
 
         // TODO: Step 15. transient registered observers
