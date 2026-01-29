@@ -723,9 +723,21 @@ class Servo(BrowserSetup):
             kwargs["binary"] = binary
 
 
-class ServoWebDriver(Servo):
-    name = "servodriver"
-    browser_cls = browser.ServoWebDriver
+class ServoLegacy(Servo):
+    name = "servo_legacy"
+    browser_cls = browser.ServoLegacy
+
+    def install(self, channel=None):
+        if self.prompt_install(self.name):
+            return self.browser.install(self.venv.path)
+
+    def setup_kwargs(self, kwargs):
+        if kwargs["binary"] is None:
+            binary = self.browser.find_binary(self.venv.path, None)
+
+            if binary is None:
+                raise WptrunError("Unable to find servo binary in PATH")
+            kwargs["binary"] = binary
 
 
 class WebKit(BrowserSetup):
@@ -840,7 +852,7 @@ product_setup = {
     "headless_shell": HeadlessShell,
     "safari": Safari,
     "servo": Servo,
-    "servodriver": ServoWebDriver,
+    "servo_legacy": ServoLegacy,
     "sauce": Sauce,
     "opera": Opera,
     "webkit": WebKit,

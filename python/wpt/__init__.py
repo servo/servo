@@ -58,6 +58,9 @@ def create_parser() -> ArgumentParser:
         help="Raw structured log messages for stable unexpected results."
         " '--log-raw' Must also be passed in order to use this.",
     )
+    parser.add_argument(
+        "--legacy", default=False, action="store_true", help="Run WPT with the legacy Servo configuration"
+    )
     return parser
 
 
