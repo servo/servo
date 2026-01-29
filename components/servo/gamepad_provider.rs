@@ -36,22 +36,23 @@ impl GamepadHapticEffectRequest {
         &self.request_type
     }
 
-    pub fn effect_type(&self) -> Option<&GamepadHapticEffectType> {
-        match &self.request_type {
-            GamepadHapticEffectRequestType::Play(effect_type) => Some(effect_type),
-            GamepadHapticEffectRequestType::Stop => None,
-        }
-    }
-
-    pub fn failed(self) {
-        if let Some(callback) = self.callback {
+    pub fn failed(mut self) {
+        if let Some(callback) = self.callback.take() {
             callback(false);
         }
     }
 
-    pub fn succeeded(self) {
-        if let Some(callback) = self.callback {
+    pub fn succeeded(mut self) {
+        if let Some(callback) = self.callback.take() {
             callback(true);
+        }
+    }
+}
+
+impl Drop for GamepadHapticEffectRequest {
+    fn drop(&mut self) {
+        if let Some(callback) = self.callback.take() {
+            callback(false);
         }
     }
 }

@@ -9,8 +9,6 @@ use std::rc::Rc;
 use std::time::Instant;
 use std::{env, fs};
 
-#[cfg(feature = "gamepad")]
-use servo::GamepadProvider;
 use servo::protocol_handler::ProtocolRegistry;
 use servo::{
     EventLoopWaker, Opts, Preferences, ServoBuilder, ServoUrl, UserContentManager, UserScript,
@@ -94,18 +92,11 @@ impl App {
             protocols::resource::ResourceProtocolHandler::default(),
         );
 
-        #[cfg(feature = "gamepad")]
-        let gamepad_provider = Rc::new(ServoshellGamepadProvider::new());
-
         let servo_builder = ServoBuilder::default()
             .opts(self.opts.clone())
             .preferences(self.preferences.clone())
             .protocol_registry(protocol_registry)
             .event_loop_waker(self.waker.clone());
-
-        #[cfg(feature = "gamepad")]
-        let servo_builder =
-            servo_builder.gamepad_provider(gamepad_provider.clone() as Rc<dyn GamepadProvider>);
 
         let url = self.initial_url.as_url().clone();
         let platform_window = self.create_platform_window(url, active_event_loop);
@@ -135,7 +126,7 @@ impl App {
             user_content_manager,
             self.preferences.clone(),
             #[cfg(feature = "gamepad")]
-            gamepad_provider.gamepad_support(),
+            ServoshellGamepadProvider::maybe_new().map(Rc::new),
         ));
         running_state.open_window(platform_window, self.initial_url.as_url().clone());
 

@@ -28,6 +28,8 @@ use url::Url;
 use webrender_api::units::{DeviceIntRect, DevicePixel, DevicePoint, DeviceSize};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
+#[cfg(feature = "gamepad")]
+use crate::gamepad_provider::{DefaultGamepadProvider, GamepadProvider};
 use crate::responders::IpcResponder;
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
@@ -84,6 +86,8 @@ pub(crate) struct WebViewInner {
     pub(crate) servo: Servo,
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
+    #[cfg(feature = "gamepad")]
+    pub(crate) gamepad_provider: Rc<dyn GamepadProvider>,
 
     rendering_context: Rc<dyn RenderingContext>,
     user_content_manager: Option<Rc<UserContentManager>>,
@@ -126,6 +130,8 @@ impl WebView {
             rendering_context: builder.rendering_context,
             delegate: builder.delegate,
             clipboard_delegate: Rc::new(DefaultClipboardDelegate),
+            #[cfg(feature = "gamepad")]
+            gamepad_provider: Rc::new(DefaultGamepadProvider),
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
@@ -243,6 +249,16 @@ impl WebView {
 
     pub fn set_clipboard_delegate(&self, delegate: Rc<dyn ClipboardDelegate>) {
         self.inner_mut().clipboard_delegate = delegate;
+    }
+
+    #[cfg(feature = "gamepad")]
+    pub fn gamepad_provider(&self) -> Rc<dyn GamepadProvider> {
+        self.inner().gamepad_provider.clone()
+    }
+
+    #[cfg(feature = "gamepad")]
+    pub fn set_gamepad_provider(&self, provider: Rc<dyn GamepadProvider>) {
+        self.inner_mut().gamepad_provider = provider;
     }
 
     pub fn id(&self) -> WebViewId {
