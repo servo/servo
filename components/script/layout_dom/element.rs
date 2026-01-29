@@ -899,6 +899,7 @@ impl<'dom> ::selectors::Element for ServoLayoutElement<'dom> {
             NonTSPseudoClass::MozMeterOptimum |
             NonTSPseudoClass::MozMeterSubOptimum |
             NonTSPseudoClass::MozMeterSubSubOptimum |
+            NonTSPseudoClass::Open |
             NonTSPseudoClass::Optional |
             NonTSPseudoClass::OutOfRange |
             NonTSPseudoClass::PlaceholderShown |
