@@ -1398,7 +1398,9 @@ impl Handler {
         let (implicit_wait, sleep_interval) = {
             let timeouts = self.session()?.session_timeouts();
             (
-                Duration::from_millis(timeouts.implicit_wait.unwrap_or(u64::MAX)),
+                timeouts
+                    .implicit_wait
+                    .map_or(Duration::MAX, Duration::from_millis),
                 Duration::from_millis(timeouts.sleep_interval),
             )
         };
@@ -2070,12 +2072,12 @@ impl Handler {
 
         self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
 
-        let timeout_duration = Duration::from_millis(
-            self.session()?
-                .session_timeouts()
-                .script
-                .unwrap_or(u64::MAX),
-        );
+        let timeout_duration = self
+            .session()?
+            .session_timeouts()
+            .script
+            .map_or(Duration::MAX, Duration::from_millis);
+
         let result = wait_for_script_ipc_response_with_timeout(receiver, timeout_duration)?;
 
         self.javascript_evaluation_result_to_webdriver_response(result)
@@ -2118,12 +2120,11 @@ impl Handler {
             VerifyBrowsingContextIsOpen::No,
         )?;
 
-        let timeout_duration = Duration::from_millis(
-            self.session()?
-                .session_timeouts()
-                .script
-                .unwrap_or(u64::MAX),
-        );
+        let timeout_duration = self
+            .session()?
+            .session_timeouts()
+            .script
+            .map_or(Duration::MAX, Duration::from_millis);
         let result = wait_for_script_ipc_response_with_timeout(receiver, timeout_duration)?;
 
         self.javascript_evaluation_result_to_webdriver_response(result)
