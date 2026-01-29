@@ -230,6 +230,17 @@ class AndroidTarget(CrossBuildTarget):
         env["TARGET_CPP"] = to_ndk_bin("clang") + " -E"
         env["TARGET_CXX"] = to_ndk_bin("clang++")
 
+        target_triple = self.triple()
+        rust_target_triple = str(target_triple).replace("-", "_")
+
+        # These are required by `aws-lc-sys` due to a bug:
+        # https://github.com/aws/aws-lc-rs/issues/1025
+        ndk_clang = to_ndk_bin("clang")
+        ndk_clangxx = to_ndk_bin("clang++")
+
+        env[f"CC_{rust_target_triple}"] = ndk_clang
+        env[f"CXX_{rust_target_triple}"] = ndk_clangxx
+
         env["TARGET_AR"] = to_ndk_bin("llvm-ar")
         env["TARGET_RANLIB"] = to_ndk_bin("llvm-ranlib")
         env["TARGET_OBJCOPY"] = to_ndk_bin("llvm-objcopy")
@@ -260,10 +271,6 @@ class AndroidTarget(CrossBuildTarget):
         # These two variables are needed for the mozjs compilation.
         env["ANDROID_API_LEVEL"] = android_api
         env["ANDROID_NDK_HOME"] = env["ANDROID_NDK_ROOT"]
-
-        # This variable is needed for the aws-lc-rs compilation.
-        # See https://github.com/servo/servo/pull/41912#issuecomment-3752460352
-        env["AWS_LC_SYS_CMAKE_BUILDER"] = "1"
 
         # The two variables set below are passed by our custom
         # support/android/toolchain.cmake to the NDK's CMake toolchain file
