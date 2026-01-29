@@ -26,9 +26,9 @@ use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::wrapper_traits::SharedSelection;
 use layout_api::{
-    BoxAreaType, CSSPixelRectIterator, GenericLayoutData, HTMLCanvasData, HTMLMediaData,
-    LayoutElementType, LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData, StyleData,
-    TrustedNodeAddress, with_layout_state,
+    AxesOverflow, BoxAreaType, CSSPixelRectIterator, GenericLayoutData, HTMLCanvasData,
+    HTMLMediaData, LayoutElementType, LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData,
+    StyleData, TrustedNodeAddress, with_layout_state,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -1038,6 +1038,15 @@ impl Node {
         // these steps."
         // "7. Return the width of the element’s scrolling area."
         window.scrolling_area_query(Some(self))
+    }
+
+    pub(crate) fn effective_overflow(&self) -> Option<AxesOverflow> {
+        self.owner_window().query_effective_overflow(self)
+    }
+
+    pub(crate) fn effective_overflow_without_reflow(&self) -> Option<AxesOverflow> {
+        self.owner_window()
+            .query_effective_overflow_without_reflow(self)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
@@ -3353,28 +3362,6 @@ impl Node {
         // TODO: xml5ever doesn't seem to want require_well_formed
         let _ = require_well_formed;
         self.xml_serialize(xml_serialize::TraversalScope::ChildrenOnly(None))
-    }
-
-    /// Return true if this node establishes a "scrolling box" for the purposes of `scrollIntoView`.
-    pub(crate) fn establishes_scrolling_box(&self) -> bool {
-        // For now, `Document` represents the viewport.
-        //
-        // TODO: Is this the right thing to do? Maybe `Document` should be ignored and viewport
-        // should be represented by the root of the DOM flat tree.
-        if self.is::<Document>() {
-            return true;
-        }
-        let Some(element) = self.downcast::<Element>() else {
-            // Shadow roots and other nodes are not scrolling boxes.
-            return false;
-        };
-        // TODO: This should ask layout whether or not the element establishes a scrolling
-        // box. This heuristic is wrong.
-        element.style().is_some_and(|style| {
-            let overflow_x = style.get_box().clone_overflow_x();
-            let overflow_y = style.get_box().clone_overflow_y();
-            overflow_x.is_scrollable() || overflow_y.is_scrollable()
-        })
     }
 }
 

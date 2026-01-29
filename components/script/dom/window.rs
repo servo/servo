@@ -55,11 +55,12 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    BoxAreaType, CSSPixelRectIterator, ElementsFromPointFlags, ElementsFromPointResult,
-    FragmentType, Layout, LayoutImageDestination, PendingImage, PendingImageState,
-    PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestRestyle, ReflowStatistics, RestyleReason, ScrollContainerQueryFlags,
-    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
+    AxesOverflow, BoxAreaType, CSSPixelRectIterator, ElementsFromPointFlags,
+    ElementsFromPointResult, FragmentType, Layout, LayoutImageDestination, PendingImage,
+    PendingImageState, PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal,
+    ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowStatistics, RestyleReason,
+    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
+    combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -3021,6 +3022,20 @@ impl Window {
     ) -> Vec<ElementsFromPointResult> {
         self.layout_reflow(QueryMsg::ElementsFromPoint);
         self.layout().query_elements_from_point(point, flags)
+    }
+
+    pub(crate) fn query_effective_overflow(&self, node: &Node) -> Option<AxesOverflow> {
+        self.layout_reflow(QueryMsg::EffectiveOverflow);
+        self.query_effective_overflow_without_reflow(node)
+    }
+
+    pub(crate) fn query_effective_overflow_without_reflow(
+        &self,
+        node: &Node,
+    ) -> Option<AxesOverflow> {
+        self.layout
+            .borrow()
+            .query_effective_overflow(node.to_trusted_node_address())
     }
 
     pub(crate) fn hit_test_from_input_event(
