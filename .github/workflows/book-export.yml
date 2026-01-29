@@ -1,0 +1,66 @@
+name: Book Export
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  upstream:
+    # Run job only on servo/servo
+    if: github.repository == 'servo/servo'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Servo
+        uses: actions/checkout@v5
+        with:
+          filter: 'python/servo/platform/linux_packages'
+          fetch-depth: '2'
+      - name: Check out Servo book
+        uses: actions/checkout@v5
+        with:
+          path: book
+          repository: 'servo/book'
+          # The token here must be the token that we will use to push to the
+          # book repository and not the token used for GitHub actions, because
+          # the checkout action sets up an `extraheader` authorization override
+          # using the token specified here.
+          # See https://github.com/actions/checkout/issues/162.
+          token: ${{ secrets.BOOK_SYNC_TOKEN }}
+      - name: Check for changes
+        working-directory: python/servo/platform/linux_packages
+        id: changes
+        run: |
+          if git diff --quiet HEAD HEAD^ -- . ; then
+            echo "No changes detected, exiting."
+            echo "CHANGES=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected, exporting book."
+            ./generate_pkg_list.sh apt/apt_common.txt > ${{github.workspace}}/book/src/building/linux_packages/apt_common.txt
+            ./generate_pkg_list.sh apt/apt_ubuntu_only.txt > ${{github.workspace}}/book/src/building/linux_packages/apt_ubuntu_only.txt
+            ./generate_pkg_list.sh dnf/dnf_base.txt > ${{github.workspace}}/book/src/building/linux_packages/dnf_base.txt
+            ./generate_pkg_list.sh xbps/xbps_base.txt > ${{github.workspace}}/book/src/building/linux_packages/xbps_base.txt
+            echo "CHANGES=true" >> $GITHUB_OUTPUT
+          fi
+      - name: Commit and push changes
+        working-directory: python/servo/platform/linux_packages
+        if: ${{ steps.changes.outputs.CHANGES == 'true'}}
+        run: |
+          git config --local user.email "ghbot+wpt-sync@servo.org"
+          git config --local user.name "WPT Sync Bot"
+          git commit -m "linux: Update dependency list based on servo@${GITHUB_SHA::7}"
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          branch: linux_pkgs_sync_${{ github.sha }}
+      - name: Open PR
+        env:
+          GH_TOKEN: ${{ secrets.BOOK_SYNC_TOKEN }}
+          UPDATE_BRANCH: linux_pkgs_sync_${{ github.sha }}
+        run: |
+          BODY=$(cat <<EOF
+          Update dependency list based on servo@${GITHUB_SHA::7}
+          EOF
+          )
+          gh pr create \
+            --title "Sync Linux packages with servo/servo (${GITHUB_SHA::7})" \
+            --body "$BODY" --head ${{ env.UPDATE_BRANCH }}
