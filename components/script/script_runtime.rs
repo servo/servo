@@ -8,15 +8,15 @@
 #![expect(dead_code)]
 
 use core::ffi::c_char;
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::ffi::{CStr, CString};
 use std::io::{Write, stdout};
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
-use std::{os, ptr, thread};
+use std::{mem, os, ptr, thread};
 
 use background_hang_monitor_api::ScriptHangAnnotation;
 use js::conversions::jsstr_to_string;
@@ -62,6 +62,7 @@ use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive};
 use servo_config::{opts, pref};
 use style::thread_state::{self, ThreadState};
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
@@ -679,6 +680,10 @@ pub(crate) struct Runtime {
     #[ignore_malloc_size_of = "Type from mozjs"]
     job_queue: *mut JobQueue,
     script_event_loop_sender: Option<Box<ScriptEventLoopSender>>,
+
+    /// All Promise objects that need to be cleared up when the JS runtime is
+    /// shutting down.
+    promise_finalizer_registry: RefCell<PromiseFinalizerRegistry>,
 }
 
 impl Runtime {
@@ -973,6 +978,7 @@ impl Runtime {
             rt: runtime,
             microtask_queue,
             job_queue,
+            promise_finalizer_registry: Default::default(),
             script_event_loop_sender: (!script_event_loop_sender_pointer.is_null())
                 .then(|| unsafe { Box::from_raw(script_event_loop_sender_pointer) }),
         }
@@ -981,6 +987,10 @@ impl Runtime {
     pub(crate) fn thread_safe_js_context(&self) -> ThreadSafeJSContext {
         self.rt.thread_safe_js_context()
     }
+
+    pub(crate) fn register_promise_finalizer(&self) -> Rc<ClearablePromise> {
+        self.promise_finalizer_registry.borrow_mut().register()
+    }
 }
 
 impl Drop for Runtime {
@@ -988,6 +998,10 @@ impl Drop for Runtime {
     fn drop(&mut self) {
         // Clear our main microtask_queue.
         self.microtask_queue.clear();
+
+        self.promise_finalizer_registry
+            .borrow_mut()
+            .clear_all_promises();
 
         // Delete the RustJobQueue in mozjs, which will destroy our interrupt queues.
         unsafe {
@@ -1385,6 +1399,43 @@ impl Runnable {
         unsafe {
             DispatchableRun(cx, self.0, maybe_shutting_down);
         }
+    }
+}
+
+/// A piece of shared storage that is either empty or contains a Promise object.
+/// Any DOM object using this type is forced to consider that a previously-stored
+/// Promise object may no longer be available.
+pub(crate) type ClearablePromise = DomRefCell<Option<Rc<Promise>>>;
+
+#[derive(MallocSizeOf)]
+struct WeakPromise(#[ignore_malloc_size_of = "Owned by strong references"] Weak<ClearablePromise>);
+
+#[derive(Default, JSTraceable, MallocSizeOf)]
+/// A registry for Promise objects that must be usable from DOM object finalizers.
+/// To avoid the risk of crashes executing those finalizers at an unsafe time,
+/// this registry ensures that the references to the registered promise objects
+/// are cleaned up as part of tearing down the JS runtime, before the finalizers are invoked.
+struct PromiseFinalizerRegistry {
+    #[no_trace]
+    promises: Vec<WeakPromise>,
+}
+
+impl PromiseFinalizerRegistry {
+    fn clear_all_promises(&mut self) {
+        for WeakPromise(promise_storage) in mem::take(&mut self.promises) {
+            if let Some(promise_storage) = promise_storage.upgrade() {
+                *promise_storage.borrow_mut() = None;
+            }
+        }
+    }
+
+    fn register(&mut self) -> Rc<ClearablePromise> {
+        let promise_storage = Rc::new(ClearablePromise::default());
+        self.promises
+            .retain(|promise_storage| promise_storage.0.upgrade().is_some());
+        self.promises
+            .push(WeakPromise(Rc::downgrade(&promise_storage)));
+        promise_storage
     }
 }
 
