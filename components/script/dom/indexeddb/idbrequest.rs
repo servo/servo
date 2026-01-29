@@ -146,7 +146,7 @@ impl RequestListener {
                     array.safe_to_jsval(cx, answer.handle_mut());
                 },
                 IdbResult::Value(serialized_data) => {
-                    let result = bincode::deserialize(&serialized_data)
+                    let result = postcard::from_bytes(&serialized_data)
                         .map_err(|_| Error::Data(None))
                         .and_then(|data| {
                             structuredclone::read(
@@ -165,7 +165,7 @@ impl RequestListener {
                 IdbResult::Values(serialized_values) => {
                     rooted!(&in(cx) let mut values = vec![JSVal::default(); serialized_values.len()]);
                     for (i, serialized_data) in serialized_values.into_iter().enumerate() {
-                        let result = bincode::deserialize(&serialized_data)
+                        let result = postcard::from_bytes(&serialized_data)
                             .map_err(|_| Error::Data(None))
                             .and_then(|data| {
                                 structuredclone::read(
@@ -403,7 +403,7 @@ impl IDBRequest {
             .database_access_task_source()
             .to_sendable();
 
-        let closure = move |message: Result<BackendResult<T>, ipc_channel::Error>| {
+        let closure = move |message: Result<BackendResult<T>, ipc_channel::IpcError>| {
             let response_listener = response_listener.clone();
             task_source.queue(task!(request_callback: move |cx| {
                 response_listener.handle_async_request_finished(
