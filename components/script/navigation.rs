@@ -172,7 +172,10 @@ pub(crate) struct InProgressLoad {
 
 impl InProgressLoad {
     /// Create a new InProgressLoad object.
-    pub(crate) fn new(new_pipeline_info: NewPipelineInfo, origin: Option<MutableOrigin>) -> InProgressLoad {
+    pub(crate) fn new(
+        new_pipeline_info: NewPipelineInfo,
+        origin: Option<MutableOrigin>,
+    ) -> InProgressLoad {
         let url = new_pipeline_info.load_data.url.clone();
         InProgressLoad {
             pipeline_id: new_pipeline_info.new_pipeline_id,

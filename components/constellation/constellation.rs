@@ -933,7 +933,9 @@ where
         // If this is an about:blank or about:srcdoc load, it must share the creator's
         // event loop. This must match the logic in the ScriptThread when determining
         // the proper origin.
-        if load_data.url.as_str() == "about:blank" || load_data.url.as_str() == "about:srcdoc" /*|| load_data.url.scheme() == "javascript"*/ {
+        if load_data.url.as_str() == "about:blank" || load_data.url.as_str() == "about:srcdoc"
+        /*|| load_data.url.scheme() == "javascript"*/
+        {
             if let Some(parent) =
                 parent_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id))
             {

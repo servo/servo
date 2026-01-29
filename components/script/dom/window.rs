@@ -3189,7 +3189,9 @@ impl Window {
                 // Note: `targetNavigable` is not actually defined in the spec, "active document" is
                 // assumed to be the correct reference based on WPT results
                 if let LoadOrigin::Script(initiator_origin) = initiator_origin_snapshot {
-                    if load_data.url == doc.url() && initiator_origin.same_origin(&doc.origin().snapshot()) {
+                    if load_data.url == doc.url() &&
+                        initiator_origin.same_origin(&doc.origin().snapshot())
+                    {
                         NavigationHistoryBehavior::Replace
                     } else {
                         // Step 12.2. Otherwise, set historyHandling to "push".
