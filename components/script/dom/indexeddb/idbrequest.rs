@@ -146,7 +146,7 @@ impl RequestListener {
                     array.safe_to_jsval(cx, answer.handle_mut());
                 },
                 IdbResult::Value(serialized_data) => {
-                    let result = bincode::deserialize(&serialized_data)
+                    let result = postcard::from_bytes(&serialized_data)
                         .map_err(|_| Error::Data(None))
                         .and_then(|data| {
                             structuredclone::read(
@@ -165,7 +165,7 @@ impl RequestListener {
                 IdbResult::Values(serialized_values) => {
                     rooted!(&in(cx) let mut values = vec![JSVal::default(); serialized_values.len()]);
                     for (i, serialized_data) in serialized_values.into_iter().enumerate() {
-                        let result = bincode::deserialize(&serialized_data)
+                        let result = postcard::from_bytes(&serialized_data)
                             .map_err(|_| Error::Data(None))
                             .and_then(|data| {
                                 structuredclone::read(

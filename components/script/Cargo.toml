@@ -117,6 +117,7 @@ percent-encoding = { workspace = true }
 phf = "0.13"
 pixels = { path = "../pixels" }
 pkcs8 = { workspace = true }
+postcard = { workspace = true }
 profile_traits = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }

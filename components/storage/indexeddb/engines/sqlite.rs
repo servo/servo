@@ -31,14 +31,14 @@ mod object_store_model;
 fn range_to_query(range: IndexedDBKeyRange) -> Condition {
     // Special case for optimization
     if let Some(singleton) = range.as_singleton() {
-        let encoded = bincode::serialize(singleton).unwrap();
+        let encoded = postcard::to_stdvec(singleton).unwrap();
         return Expr::column(object_data_model::Column::Key)
             .eq(encoded)
             .into_condition();
     }
     let mut parts = vec![];
     if let Some(upper) = range.upper.as_ref() {
-        let upper_bytes = bincode::serialize(upper).unwrap();
+        let upper_bytes = postcard::to_stdvec(upper).unwrap();
         let query = if range.upper_open {
             Expr::column(object_data_model::Column::Key).lt(upper_bytes)
         } else {
@@ -47,7 +47,7 @@ fn range_to_query(range: IndexedDBKeyRange) -> Condition {
         parts.push(query);
     }
     if let Some(lower) = range.lower.as_ref() {
-        let lower_bytes = bincode::serialize(lower).unwrap();
+        let lower_bytes = postcard::to_stdvec(lower).unwrap();
         let query = if range.lower_open {
             Expr::column(object_data_model::Column::Key).gt(lower_bytes)
         } else {
@@ -338,7 +338,7 @@ impl KvsEngine for SqliteEngine {
             "INSERT INTO object_store (name, key_path, auto_increment) VALUES (?, ?, ?)",
             params![
                 store_name.to_string(),
-                key_path.map(|v| bincode::serialize(&v).unwrap()),
+                key_path.map(|v| postcard::to_stdvec(&v).unwrap()),
                 auto_increment as i32
             ],
         )?;
@@ -436,7 +436,7 @@ impl KvsEngine for SqliteEngine {
                                 continue;
                             },
                         };
-                        let serialized_key: Vec<u8> = bincode::serialize(&key).unwrap();
+                        let serialized_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
                         let _ = callback.send(
                             Self::put_item(
                                 &connection,
@@ -472,7 +472,7 @@ impl KvsEngine for SqliteEngine {
                             Self::get_all_keys(&connection, object_store, key_range, count)
                                 .map(|keys| {
                                     keys.into_iter()
-                                        .map(|k| bincode::deserialize(&k).unwrap())
+                                        .map(|k| postcard::from_bytes(&k).unwrap())
                                         .collect()
                                 })
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -529,8 +529,8 @@ impl KvsEngine for SqliteEngine {
                                     records
                                         .into_iter()
                                         .map(|(key, data)| IndexedDBRecord {
-                                            key: bincode::deserialize(&key).unwrap(),
-                                            primary_key: bincode::deserialize(&key).unwrap(),
+                                            key: postcard::from_bytes(&key).unwrap(),
+                                            primary_key: postcard::from_bytes(&key).unwrap(),
                                             value: data,
                                         })
                                         .collect()
@@ -556,7 +556,7 @@ impl KvsEngine for SqliteEngine {
                         };
                         let _ = callback.send(
                             Self::get_key(&connection, object_store, key_range)
-                                .map(|key| key.map(|k| bincode::deserialize(&k).unwrap()))
+                                .map(|key| key.map(|k| postcard::from_bytes(&k).unwrap()))
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
@@ -592,7 +592,7 @@ impl KvsEngine for SqliteEngine {
                     let object_store = object_store_model::Model::try_from(r).unwrap();
                     Ok(object_store
                         .key_path
-                        .map(|key_path| bincode::deserialize(&key_path).unwrap()))
+                        .map(|key_path| postcard::from_bytes(&key_path).unwrap()))
                 })
             })
             .optional()
@@ -630,7 +630,7 @@ impl KvsEngine for SqliteEngine {
             params![
                 object_store.id,
                 index_name.to_string(),
-                bincode::serialize(&key_path).unwrap(),
+                postcard::to_stdvec(&key_path).unwrap(),
                 unique,
                 multi_entry,
             ],
