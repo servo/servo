@@ -8076,6 +8076,7 @@ dependencies = [
  "encoding_rs",
  "euclid",
  "keyboard-types",
+ "layout_api",
  "script",
  "servo_url",
 ]

@@ -33,7 +33,7 @@ use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
-use crate::dom::event::Event;
+use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
@@ -294,24 +294,57 @@ impl TextControlElement for HTMLTextAreaElement {
     }
 
     fn maybe_update_shared_selection(&self) {
-        let offsets = self.textinput.borrow().sorted_selection_offsets_range();
+        let (offsets, direction) = {
+            let textinput = self.textinput.borrow();
+            (
+                textinput.sorted_selection_offsets_range(),
+                textinput.selection_direction(),
+            )
+        };
+
         let (start, end) = (offsets.start.0, offsets.end.0);
         let range = TextByteRange::new(ByteIndex(start), ByteIndex(end));
         let enabled = self.upcast::<Element>().focus_state();
 
         let mut shared_selection = self.shared_selection.borrow_mut();
-        if range == shared_selection.range && enabled == shared_selection.enabled {
+        if shared_selection.is_equivalent_to(&range, enabled, direction) {
             return;
         }
-        *shared_selection = ScriptSelection {
-            range,
-            character_range: self
-                .textinput
-                .borrow()
-                .sorted_selection_character_offsets_range(),
-            enabled,
-        };
-        self.owner_window().layout().set_needs_new_display_list();
+
+        let old_selection = std::mem::replace(
+            &mut *shared_selection,
+            ScriptSelection {
+                direction,
+                range,
+                character_range: self
+                    .textinput
+                    .borrow()
+                    .sorted_selection_character_offsets_range(),
+                enabled,
+            },
+        );
+
+        // The direction does not currently matter for rendering purposes.
+        if old_selection.range != shared_selection.range ||
+            old_selection.enabled != shared_selection.enabled
+        {
+            self.owner_window().layout().set_needs_new_display_list();
+        }
+
+        // The enabled status does not matter for deciding whether to send `select` events.
+        if old_selection.range != shared_selection.range ||
+            old_selection.direction != shared_selection.direction
+        {
+            self.owner_global()
+                .task_manager()
+                .user_interaction_task_source()
+                .queue_event(
+                    self.upcast(),
+                    atom!("select"),
+                    EventBubbles::Bubbles,
+                    EventCancelable::NotCancelable,
+                );
+        }
     }
 }
 

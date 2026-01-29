@@ -10,8 +10,9 @@
 use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use base::{RopeIndex, RopeMovement};
 use keyboard_types::{Key, Modifiers, NamedKey};
+use layout_api::wrapper_traits::SelectionDirection;
 use script::test::DOMString;
-use script::test::textinput::{ClipboardProvider, Direction, SelectionDirection, TextInput};
+use script::test::textinput::{ClipboardProvider, Direction, TextInput};
 use script::textinput::Lines;
 
 pub struct DummyClipboardContext {

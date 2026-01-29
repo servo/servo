@@ -8,6 +8,7 @@
 //! <https://html.spec.whatwg.org/multipage/#textFieldSelection>
 
 use base::text::Utf16CodeUnitLength;
+use layout_api::wrapper_traits::SelectionDirection;
 
 use crate::clipboard_provider::EmbedderClipboardProvider;
 use crate::dom::bindings::cell::DomRefCell;
@@ -15,10 +16,9 @@ use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMo
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::node::{Node, NodeTraits};
-use crate::textinput::{SelectionDirection, SelectionState, TextInput};
+use crate::dom::node::Node;
+use crate::textinput::TextInput;
 
 pub(crate) trait TextControlElement: DerivedFrom<EventTarget> + DerivedFrom<Node> {
     fn selection_api_applies(&self) -> bool;
@@ -55,7 +55,6 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
             Some(Utf16CodeUnitLength::zero()),
             Some(Utf16CodeUnitLength(usize::MAX)),
             None,
-            None,
         );
     }
 
@@ -89,7 +88,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
 
         // Step 4: Set the selection range with the given value, end, and the value of
         // this element's selectionDirection attribute.
-        self.set_range(start, Some(end), Some(self.direction()), None);
+        self.set_range(start, Some(end), Some(self.direction()));
         Ok(())
     }
 
@@ -119,7 +118,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // Step 2: Set the selection range with the value of this element's selectionStart
         // attribute, the given value, and the value of this element's selectionDirection
         // attribute.
-        self.set_range(Some(self.start()), end, Some(self.direction()), None);
+        self.set_range(Some(self.start()), end, Some(self.direction()));
         Ok(())
     }
 
@@ -130,7 +129,11 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
             return None;
         }
 
-        Some(DOMString::from(self.direction()))
+        Some(DOMString::from(match self.direction() {
+            SelectionDirection::Forward => "forward",
+            SelectionDirection::Backward => "backward",
+            SelectionDirection::None => "none",
+        }))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
@@ -144,8 +147,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         self.set_range(
             Some(self.start()),
             Some(self.end()),
-            direction.map(SelectionDirection::from),
-            None,
+            direction.map(|direction| direction.str().as_ref().into()),
         );
         Ok(())
     }
@@ -166,8 +168,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         self.set_range(
             Some(start),
             Some(end),
-            direction.map(SelectionDirection::from),
-            None,
+            direction.map(|direction| direction.str().as_ref().into()),
         );
         Ok(())
     }
@@ -205,10 +206,6 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         if start > end {
             return Err(Error::IndexSize(None));
         }
-
-        // Save the original selection state to later pass to set_selection_range, because we will
-        // change the selection state in order to replace the text in the range.
-        let original_selection_state = self.textinput.borrow().selection_state();
 
         // Step 5: If start is greater than the length of the relevant value of the text
         // control, then set it to the length of the relevant value of the text control.
@@ -313,12 +310,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         }
 
         // Step 14: Set the selection range with selection start and selection end.
-        self.set_range(
-            Some(selection_start),
-            Some(selection_end),
-            None,
-            Some(original_selection_state),
-        );
+        self.set_range(Some(selection_start), Some(selection_end), None);
         Ok(())
     }
 
@@ -340,11 +332,7 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         start: Option<Utf16CodeUnitLength>,
         end: Option<Utf16CodeUnitLength>,
         direction: Option<SelectionDirection>,
-        original_selection_state: Option<SelectionState>,
     ) {
-        let original_selection_state =
-            original_selection_state.unwrap_or_else(|| self.textinput.borrow().selection_state());
-
         // To set the selection range with an integer or null start, an integer or null or
         // the special value infinity end, and optionally a string direction, run the
         // following steps:
@@ -380,20 +368,8 @@ impl<'a, E: TextControlElement> TextControlSelection<'a, E> {
         // modified (in either extent or direction), then queue an element task on the
         // user interaction task source given the element to fire an event named select at
         // the element, with the bubbles attribute initialized to true.
-        if self.textinput.borrow().selection_state() == original_selection_state {
-            return;
-        }
-
-        self.element
-            .owner_global()
-            .task_manager()
-            .user_interaction_task_source()
-            .queue_event(
-                self.element.upcast::<EventTarget>(),
-                atom!("select"),
-                EventBubbles::Bubbles,
-                EventCancelable::NotCancelable,
-            );
+        //
+        // Note: This is handled inside this method call.
         self.element.maybe_update_shared_selection();
     }
 }

@@ -11,6 +11,7 @@ use base::text::{Utf8CodeUnitLength, Utf16CodeUnitLength};
 use base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 use bitflags::bitflags;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey, ShortcutMatcher};
+use layout_api::wrapper_traits::SelectionDirection;
 use script_bindings::codegen::GenericBindings::MouseEventBinding::MouseEventMethods;
 use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
 use script_bindings::match_domstring_ascii;
@@ -39,33 +40,6 @@ pub enum Selection {
     NotSelected,
 }
 
-#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
-pub enum SelectionDirection {
-    Forward,
-    Backward,
-    None,
-}
-
-impl From<DOMString> for SelectionDirection {
-    fn from(direction: DOMString) -> SelectionDirection {
-        match_domstring_ascii!(direction,
-            "forward" => SelectionDirection::Forward,
-            "backward" => SelectionDirection::Backward,
-            _ => SelectionDirection::None,
-        )
-    }
-}
-
-impl From<SelectionDirection> for DOMString {
-    fn from(direction: SelectionDirection) -> DOMString {
-        match direction {
-            SelectionDirection::Forward => DOMString::from("forward"),
-            SelectionDirection::Backward => DOMString::from("backward"),
-            SelectionDirection::None => DOMString::from("none"),
-        }
-    }
-}
-
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 pub enum Lines {
     Single,
@@ -88,13 +62,6 @@ impl Lines {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
-pub(crate) struct SelectionState {
-    start: RopeIndex,
-    end: RopeIndex,
-    direction: SelectionDirection,
-}
-
 /// Encapsulated state for handling keyboard input in a single or multiline text input control.
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct TextInput<T: ClipboardProvider> {
@@ -115,6 +82,10 @@ pub struct TextInput<T: ClipboardProvider> {
     /// selection_origin may be after the edit_point, in the case of a backward selection.
     #[no_trace]
     selection_origin: Option<RopeIndex>,
+
+    /// The direction that the selection goes in this [`TextInput`]. DOM APIs track this as
+    /// a separate field.
+    #[no_trace]
     selection_direction: SelectionDirection,
 
     #[ignore_malloc_size_of = "Can't easily measure this generic type"]
@@ -389,15 +360,6 @@ impl<T: ClipboardProvider> TextInput<T> {
     pub(crate) fn sorted_selection_character_offsets_range(&self) -> Range<usize> {
         self.rope.index_to_character_offset(self.selection_start())..
             self.rope.index_to_character_offset(self.selection_end())
-    }
-
-    /// The state of the current selection. Can be used to compare whether selection state has changed.
-    pub(crate) fn selection_state(&self) -> SelectionState {
-        SelectionState {
-            start: self.selection_start(),
-            end: self.selection_end(),
-            direction: self.selection_direction,
-        }
     }
 
     // Check that the selection is valid.

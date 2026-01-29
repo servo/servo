@@ -13123,6 +13123,15 @@
       }
      ]
     ],
+    "mouse-text-selection-input-text-selection-event.html": [
+     "f23bddeaa2a5eedd7c2aa5a8f8cc017a68390e5b",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "mouse-text-selection-input-text.html": [
      "c140004ae89fb8a73fb2a4d3c78382dde6134a07",
      [
