@@ -281,7 +281,7 @@ where
         let ptr = self.as_ptr();
         drop(self);
         let root = DomRoot::from_ref(unsafe { &*ptr });
-        unsafe { root.init_reflector(obj) };
+        unsafe { root.init_reflector::<T>(obj) };
         root
     }
 }
