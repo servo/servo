@@ -360,6 +360,15 @@ impl Node {
         Node::replace_all(Some(fragment.upcast()), target, can_gc);
     }
 
+    /// Clear this [`Node`]'s style and layout data and also clear the style and layout
+    /// data of all children. Note that clears layout data from all non-flat tree
+    /// descendants and flat tree descendants.
+    pub(crate) fn clean_up_style_and_layout_from_subtree(&self) {
+        for node in self.traverse_preorder(ShadowIncluding::Yes) {
+            node.clean_up_style_and_layout_data();
+        }
+    }
+
     pub(crate) fn clean_up_style_and_layout_data(&self) {
         self.owner_doc().cancel_animations_for_node(self);
         self.style_data.borrow_mut().take();
