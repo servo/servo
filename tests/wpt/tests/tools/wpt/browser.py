@@ -2339,9 +2339,9 @@ class Servo(Browser):
         if m:
             return m.group(0)
 
-
-class ServoWebDriver(Servo):
-    product = "servodriver"
+# Uses same configuration as Servo
+class ServoLegacy(Servo):
+    product = "servo_legacy"
 
 
 class Sauce(Browser):
