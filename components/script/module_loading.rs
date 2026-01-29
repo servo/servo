@@ -151,6 +151,14 @@ fn inner_module_loading(
                 // 1. Let error be ThrowCompletion(a newly created SyntaxError object).
                 let error = RethrowError::from_pending_exception(cx);
 
+                // See Step 7. of `host_load_imported_module`.
+                state.load_state.as_ref().inspect(|load_state| {
+                    load_state
+                        .error_to_rethrow
+                        .borrow_mut()
+                        .get_or_insert(error.clone());
+                });
+
                 // 2. Perform ContinueModuleLoading(state, error).
                 continue_module_loading(global, state, Err(error));
             } else {
@@ -432,8 +440,9 @@ pub(crate) fn host_load_imported_module(
     // Note: We later set fetchClient to the `ModuleOwner` provided by loadState,
     // which provides the `GlobalScope` that we will use for fetching.
 
-    // TODO It seems that Gecko doesn't implement this step, and currently we don't handle module types.
     // Step 7 If referrer is a Cyclic Module Record and moduleRequest is equal to the first element of referrer.[[RequestedModules]], then:
+    // Note: These substeps are implemented by `GetRequestedModuleSpecifier`,
+    // setting loadState.[[ErrorToRethrow]] is done by `inner_module_loading`.
 
     // Step 8 Let url be the result of resolving a module specifier given referencingScript and moduleRequest.[[Specifier]],
     // catching any exceptions. If they throw an exception, let resolutionError be the thrown exception.
