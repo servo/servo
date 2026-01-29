@@ -38,7 +38,7 @@ use keyboard_types::Modifiers;
 use malloc_size_of_derive::MallocSizeOf;
 use media::WindowGLContext;
 use net_traits::ResourceThreads;
-use paint_api::largest_contentful_paint_candidate::LargestContentfulPaintType;
+use paint_api::largest_contentful_paint_candidate::ContentfulPaintType;
 use paint_api::{CrossProcessPaintApi, PinchZoomInfos};
 use pixels::PixelFormat;
 use profile_traits::mem;
@@ -118,7 +118,7 @@ pub enum ProgressiveWebMetricType {
         /// The pixel area of the largest contentful element.
         area: usize,
         /// The type of the largest contentful paint element.
-        lcp_type: LargestContentfulPaintType,
+        lcp_type: ContentfulPaintType,
     },
     /// Time to interactive
     TimeToInteractive,
