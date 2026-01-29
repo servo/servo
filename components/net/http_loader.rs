@@ -652,7 +652,7 @@ async fn obtain_response(
     url: &ServoUrl,
     method: &Method,
     request_headers: &mut HeaderMap,
-    body: Option<StdArc<Mutex<IpcSender<BodyChunkRequest>>>>,
+    body: Option<StdArc<Mutex<Option<IpcSender<BodyChunkRequest>>>>>,
     source_is_null: bool,
     pipeline_id: &Option<PipelineId>,
     request_id: Option<&str>,
@@ -698,17 +698,23 @@ async fn obtain_response(
             let (body_chan, body_port) = ipc::channel().unwrap();
 
             {
-                let requester = chunk_requester.lock();
-                let _ = requester.send(BodyChunkRequest::Connect(body_chan));
+                let mut lock = chunk_requester.lock();
+                if let Some(requester) = lock.as_mut() {
+                    let _ = requester.send(BodyChunkRequest::Connect(body_chan));
 
-                // https://fetch.spec.whatwg.org/#concept-request-transmit-body
-                // Request the first chunk, corresponding to Step 3 and 4.
-                let _ = requester.send(BodyChunkRequest::Chunk);
+                    // https://fetch.spec.whatwg.org/#concept-request-transmit-body
+                    // Request the first chunk, corresponding to Step 3 and 4.
+                    let _ = requester.send(BodyChunkRequest::Chunk);
+                }
             }
 
             let devtools_bytes = devtools_bytes.clone();
-            let chunk_requester2 = chunk_requester.clone();
 
+            // There is a dependency cycle here. `TransmitBodyConnectHandler` is creating the `chunk_requester` which it also owns a copy of
+            // (see documentation there). Here we take the chunk_requester, put it into a ROUTER which keeps it alive until `body_port`
+            // dies which is kept alive until `TransmitBodyConnectHandler` ...
+            // The whole ownership chains is: `TransmitBodyConnectHandler` <- body_chan <- body_port <- chunk_requester <- `TransmitBodyConnectHandler```
+            // We interrupt this chain by sending `BodyChunkRequest::Done`/`BodyChunkRequest::Error` which will drop the channel from `TransmitBodyConnectHandler`.
             ROUTER.add_typed_route(
                 body_port,
                 Box::new(move |message| {
@@ -720,6 +726,11 @@ async fn obtain_response(
                             let _ = fetch_terminated.send(false);
                             sink.close();
 
+                            let lock = chunk_requester.lock();
+                            if let Some(channel) = lock.as_ref() {
+                                let _ = channel.send(BodyChunkRequest::Done);
+                            }
+
                             return;
                         },
                         BodyChunkResponse::Error => {
@@ -728,7 +739,10 @@ async fn obtain_response(
                             // where step 5 requires setting an `aborted` flag on the fetch.
                             let _ = fetch_terminated.send(true);
                             sink.close();
-
+                            let lock = chunk_requester.lock();
+                            if let Some(channel) = lock.as_ref() {
+                                let _ = channel.send(BodyChunkRequest::Error);
+                            }
                             return;
                         },
                     };
@@ -741,7 +755,11 @@ async fn obtain_response(
 
                     // Step 5.1.2.3
                     // Request the next chunk.
-                    let _ = chunk_requester2.lock().send(BodyChunkRequest::Chunk);
+                    let _ = chunk_requester
+                        .lock()
+                        .as_mut()
+                        .unwrap()
+                        .send(BodyChunkRequest::Chunk);
                 }),
             );
 

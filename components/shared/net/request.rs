@@ -295,6 +295,8 @@ pub enum BodyChunkResponse {
 /// Messages used to implement <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
 /// which are sent from net to script
 /// (with the exception of Done, which is sent from script to script).
+/// Using these in combination with ROUTER is dangerous and can lead to ownership loops
+/// that are not apparent.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum BodyChunkRequest {
     /// Connect a fetch in `net`, with a stream of bytes from `script`.
@@ -314,7 +316,7 @@ pub enum BodyChunkRequest {
 pub struct RequestBody {
     /// Net's channel to communicate with script re this body.
     #[ignore_malloc_size_of = "Channels are hard"]
-    chan: Arc<Mutex<IpcSender<BodyChunkRequest>>>,
+    chan: Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
     /// <https://fetch.spec.whatwg.org/#concept-body-source>
     source: BodySource,
     /// <https://fetch.spec.whatwg.org/#concept-body-total-bytes>
@@ -323,12 +325,12 @@ pub struct RequestBody {
 
 impl RequestBody {
     pub fn new(
-        chan: IpcSender<BodyChunkRequest>,
+        chan: Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
         source: BodySource,
         total_bytes: Option<usize>,
     ) -> Self {
         RequestBody {
-            chan: Arc::new(Mutex::new(chan)),
+            chan: chan,
             source,
             total_bytes,
         }
@@ -336,6 +338,7 @@ impl RequestBody {
 
     /// Step 12 of <https://fetch.spec.whatwg.org/#concept-http-redirect-fetch>
     pub fn extract_source(&mut self) {
+        /*
         match self.source {
             BodySource::Null => panic!("Null sources should never be re-directed."),
             BodySource::Object => {
@@ -345,9 +348,10 @@ impl RequestBody {
                 *selfchan = chan;
             },
         }
+        */
     }
 
-    pub fn take_stream(&self) -> Arc<Mutex<IpcSender<BodyChunkRequest>>> {
+    pub fn take_stream(&self) -> Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>> {
         self.chan.clone()
     }
 
@@ -1250,5 +1254,9 @@ pub fn create_request_body_with_content(content: &str) -> RequestBody {
         }),
     );
 
-    RequestBody::new(chunk_request_sender, BodySource::Object, Some(content_len))
+    RequestBody::new(
+        Arc::new(Mutex::new(Some(chunk_request_sender))),
+        BodySource::Object,
+        Some(content_len),
+    )
 }
