@@ -407,9 +407,12 @@ impl<T: ClipboardProvider> TextInput<T> {
             self.edit_point, self.selection_origin, self.selection_direction
         );
 
-        debug_assert_eq!(self.edit_point, self.rope.clamp_index(self.edit_point));
+        debug_assert_eq!(self.edit_point, self.rope.normalize_index(self.edit_point));
         if let Some(selection_origin) = self.selection_origin {
-            debug_assert_eq!(selection_origin, self.rope.clamp_index(selection_origin));
+            debug_assert_eq!(
+                selection_origin,
+                self.rope.normalize_index(selection_origin)
+            );
             match self.selection_direction {
                 SelectionDirection::None | SelectionDirection::Forward => {
                     debug_assert!(selection_origin <= self.edit_point)
@@ -950,10 +953,10 @@ impl<T: ClipboardProvider> TextInput<T> {
         );
         self.was_last_change_by_set_content = true;
 
-        self.edit_point = self.rope.clamp_index(self.edit_point());
+        self.edit_point = self.rope.normalize_index(self.edit_point());
         self.selection_origin = self
             .selection_origin
-            .map(|selection_origin| self.rope.clamp_index(selection_origin));
+            .map(|selection_origin| self.rope.normalize_index(selection_origin));
     }
 
     pub fn set_selection_range_utf16(
