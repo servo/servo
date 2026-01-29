@@ -487,7 +487,7 @@ class CommandBase(object):
         The function gets CC and tries to return its version if CC is clang.
         Ex: get_clang_major_version("clang-18") -> "18"
         Ex: get_clang_major_version("clang") -> "21", if clang is clang-21
-        
+
         There is an optional test_version_output that is used in the unit test,
         that covers default `clang --version` outputs from Ubuntu, Fedora and MacOS.
         `./mach test-scripts`
@@ -556,6 +556,7 @@ class CommandBase(object):
         """
         Semi-hardcoded way to find LIBCLANG_PATH as a fallback.
         """
+
         def has_libclang(path: Path) -> bool:
             if not path.is_dir():
                 return False
@@ -570,7 +571,7 @@ class CommandBase(object):
         ubuntu_path = Path(f"/usr/lib/llvm-{clang_major}/lib")
         if has_libclang(ubuntu_path):
             return str(ubuntu_path)
-        
+
         # MacOS: /opt/homebrew/Cellar/llvm/21.1.8/lib
         # Not implemented, because it works with default macos clang
 
