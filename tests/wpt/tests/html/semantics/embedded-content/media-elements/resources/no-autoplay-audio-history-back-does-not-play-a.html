@@ -2,6 +2,7 @@
 <meta charset="utf-8">
 <title>History back page A</title>
 <script src="/resources/testharness.js"></script>
+
 <body>
   <audio id="a" preload="auto" src="/media/sound_5.oga"></audio>
   <script>
@@ -52,6 +53,12 @@
       });
     }
 
+    // We need both load and pageshow because they cover different navigation paths.
+    // load fires on the initial fresh navigation to A (needed to post ready_a),
+    // but on history.back() A may be restored from Bfcache, in which case load
+    // typically does not fire again while pageshow does. If either handler is
+    // removed, maybeRunCheck() can be skipped in one of those cases, so A never
+    // posts result and the parent times out waiting for it.
     window.addEventListener("pageshow", () => { void maybeRunCheck(); });
     window.addEventListener("load", () => { void maybeRunCheck(); });
   </script>
