@@ -111,9 +111,6 @@ pub(crate) struct WebViewRenderer {
     /// Whether or not this [`WebViewRenderer`] isn't throttled and has a pipeline with
     /// active animations or animation frame callbacks.
     animating: bool,
-    /// A [`ViewportDescription`] for this [`WebViewRenderer`], which contains the limitations
-    /// and initial values for zoom derived from the `viewport` meta tag in web content.
-    viewport_description: Option<ViewportDescription>,
 
     //
     // Data that is shared with the parent renderer.
@@ -152,7 +149,6 @@ impl WebViewRenderer {
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             hidden: false,
             animating: false,
-            viewport_description: None,
             embedder_to_constellation_sender,
             refresh_driver,
             webrender_document,
@@ -1045,7 +1041,8 @@ impl WebViewRenderer {
         self.set_page_zoom(Scale::new(
             viewport_description.clamp_page_zoom(viewport_description.initial_scale.get()),
         ));
-        self.viewport_description = Some(viewport_description);
+        self.pinch_zoom
+            .set_viewport_description(Some(viewport_description));
     }
 
     pub(crate) fn scroll_trees_memory_usage(
