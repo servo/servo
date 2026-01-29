@@ -360,7 +360,7 @@ impl ModuleTree {
     }
 
     #[expect(unsafe_code)]
-    /// <https://html.spec.whatwg.org/multipage/webappapis.html#creating-a-json-module-script>
+    /// <https://html.spec.whatwg.org/multipage/#creating-a-json-module-script>
     /// Although the CanGc argument appears unused, it represents the GC operations that
     /// can occur as part of compiling a script.
     fn crate_a_json_module_script(
@@ -888,14 +888,6 @@ impl ResourceTimingListener for ModuleContext {
     }
 }
 
-// TODO MimeClassifier::is_json is wrong?
-/// <https://mimesniff.spec.whatwg.org/#json-mime-type>
-fn is_json_mime_type(mime: &Mime) -> bool {
-    (mime.essence_str() == "application/json") ||
-        (mime.essence_str() == "text/json") ||
-        mime.suffix() == Some(mime::JSON)
-}
-
 #[expect(unsafe_code)]
 #[expect(non_snake_case)]
 /// A function to register module hooks (e.g. listening on resolving modules,
@@ -1282,7 +1274,7 @@ pub(crate) fn fetch_a_single_module_script(
     // when inspecting moduleRequest.[[Attributes]] in HostLoadImportedModule or fetch a single imported module script.
 
     // Step 4. Let moduleMap be settingsObject's module map.
-    let module_request = (url.clone(), module_type.clone());
+    let module_request = (url.clone(), module_type);
     let entry = global.get_module_map_entry(&module_request);
 
     let pending = match entry {
