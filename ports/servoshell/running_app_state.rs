@@ -22,12 +22,10 @@ use servo::{
     WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView,
     WebViewDelegate, WebViewId, pref,
 };
-#[cfg(feature = "gamepad")]
-use servo::{GamepadHapticEffectRequest, GamepadHapticEffectRequestType, GamepadProvider};
 use url::Url;
 
 #[cfg(feature = "gamepad")]
-use crate::GamepadSupport;
+pub(crate) use crate::desktop::gamepad::ServoshellGamepadProvider;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 use crate::webdriver::WebDriverEmbedderControls;
 use crate::window::{PlatformWindow, ServoShellWindow, ServoShellWindowId};
@@ -147,52 +145,11 @@ pub(crate) enum UserInterfaceCommand {
     NewWindow,
 }
 
-#[cfg(feature = "gamepad")]
-pub(crate) struct ServoshellGamepadProvider {
-    gamepad_support: Rc<RefCell<Option<GamepadSupport>>>,
-}
-
-#[cfg(feature = "gamepad")]
-impl ServoshellGamepadProvider {
-    pub(crate) fn new() -> Self {
-        let gamepad_support = if pref!(dom_gamepad_enabled) {
-            GamepadSupport::maybe_new()
-        } else {
-            None
-        };
-        Self {
-            gamepad_support: Rc::new(RefCell::new(gamepad_support)),
-        }
-    }
-
-    pub(crate) fn gamepad_support(&self) -> Rc<RefCell<Option<GamepadSupport>>> {
-        self.gamepad_support.clone()
-    }
-}
-
-#[cfg(feature = "gamepad")]
-impl GamepadProvider for ServoshellGamepadProvider {
-    fn handle_haptic_effect_request(&self, request: GamepadHapticEffectRequest) {
-        match self.gamepad_support.borrow_mut().as_mut() {
-            Some(gamepad_support) => match request.request_type() {
-                GamepadHapticEffectRequestType::Play(_) => {
-                    gamepad_support.play_haptic_effect(request);
-                },
-                GamepadHapticEffectRequestType::Stop => {
-                    gamepad_support.stop_haptic_effect(request);
-                },
-            },
-            None => {
-                request.failed();
-            },
-        }
-    }
-}
-
 pub(crate) struct RunningAppState {
-    /// Gamepad support, which may be `None` if it failed to initialize.
+    /// The gamepad provider, used for handling gamepad events and set on each WebView.
+    /// May be `None` if gamepad support is disabled or failed to initialize.
     #[cfg(feature = "gamepad")]
-    gamepad_support: Rc<RefCell<Option<GamepadSupport>>>,
+    gamepad_provider: Option<Rc<ServoshellGamepadProvider>>,
 
     /// The [`WebDriverSenders`] used to reply to pending WebDriver requests.
     pub(crate) webdriver_senders: RefCell<WebDriverSenders>,
@@ -248,7 +205,7 @@ impl RunningAppState {
         event_loop_waker: Box<dyn EventLoopWaker>,
         user_content_manager: Rc<UserContentManager>,
         default_preferences: Preferences,
-        #[cfg(feature = "gamepad")] gamepad_support: Rc<RefCell<Option<GamepadSupport>>>,
+        #[cfg(feature = "gamepad")] gamepad_provider: Option<Rc<ServoshellGamepadProvider>>,
     ) -> Self {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
 
@@ -270,7 +227,7 @@ impl RunningAppState {
             windows: Default::default(),
             focused_window: Default::default(),
             #[cfg(feature = "gamepad")]
-            gamepad_support,
+            gamepad_provider,
             webdriver_senders: RefCell::default(),
             webdriver_embedder_controls: Default::default(),
             pending_webdriver_events: Default::default(),
@@ -334,6 +291,11 @@ impl RunningAppState {
 
     pub(crate) fn servo(&self) -> &Servo {
         &self.servo
+    }
+
+    #[cfg(feature = "gamepad")]
+    pub(crate) fn gamepad_provider(&self) -> Option<Rc<ServoshellGamepadProvider>> {
+        self.gamepad_provider.clone()
     }
 
     pub(crate) fn schedule_exit(&self) {
@@ -603,15 +565,16 @@ impl RunningAppState {
 
     #[cfg(feature = "gamepad")]
     pub(crate) fn handle_gamepad_events(&self) {
+        let Some(gamepad_provider) = self.gamepad_provider.as_ref() else {
+            return;
+        };
         let Some(active_webview) = self
             .focused_window()
             .and_then(|window| window.active_webview())
         else {
             return;
         };
-        if let Some(gamepad_support) = self.gamepad_support.borrow_mut().as_mut() {
-            gamepad_support.handle_gamepad_events(active_webview);
-        }
+        gamepad_provider.handle_gamepad_events(active_webview);
     }
 
     pub(crate) fn handle_focused(&self, window: Rc<ServoShellWindow>) {

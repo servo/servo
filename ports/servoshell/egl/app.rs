@@ -269,11 +269,10 @@ pub struct App {
 #[expect(unused)]
 impl App {
     pub(super) fn new(init: AppInitOptions) -> Rc<Self> {
-        let servo_builder = ServoBuilder::default()
+        let mut servo_builder = ServoBuilder::default()
             .opts(init.opts)
             .preferences(init.preferences.clone())
             .event_loop_waker(init.event_loop_waker.clone());
-
         #[cfg(feature = "webxr")]
         let servo_builder = servo_builder
             .webxr_registry(Box::new(XrDiscoveryWebXrRegistry::new(init.xr_discovery)));

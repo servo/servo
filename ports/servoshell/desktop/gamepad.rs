@@ -2,14 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 use gilrs::ff::{BaseEffect, BaseEffectType, Effect, EffectBuilder, Repeat, Replay, Ticks};
 use gilrs::{EventType, Gilrs};
 use log::{debug, warn};
 use servo::{
-    GamepadEvent, GamepadHapticEffectRequest, GamepadHapticEffectType, GamepadIndex,
-    GamepadInputBounds, GamepadSupportedHapticEffects, GamepadUpdateType, InputEvent, WebView,
+    GamepadEvent, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
+    GamepadHapticEffectType, GamepadIndex, GamepadInputBounds, GamepadProvider,
+    GamepadSupportedHapticEffects, GamepadUpdateType, InputEvent, WebView,
 };
 
 pub struct HapticEffect {
@@ -17,12 +19,12 @@ pub struct HapticEffect {
     pub request: GamepadHapticEffectRequest,
 }
 
-pub(crate) struct GamepadSupport {
-    handle: Gilrs,
-    haptic_effects: HashMap<usize, HapticEffect>,
+pub(crate) struct ServoshellGamepadProvider {
+    handle: RefCell<Gilrs>,
+    haptic_effects: RefCell<HashMap<usize, HapticEffect>>,
 }
 
-impl GamepadSupport {
+impl ServoshellGamepadProvider {
     pub(crate) fn maybe_new() -> Option<Self> {
         let handle = match Gilrs::new() {
             Ok(handle) => handle,
@@ -32,15 +34,16 @@ impl GamepadSupport {
             },
         };
         Some(Self {
-            handle,
-            haptic_effects: Default::default(),
+            handle: RefCell::new(handle),
+            haptic_effects: RefCell::new(Default::default()),
         })
     }
 
     /// Handle updates to connected gamepads from GilRs
-    pub(crate) fn handle_gamepad_events(&mut self, active_webview: WebView) {
-        while let Some(event) = self.handle.next_event() {
-            let gamepad = self.handle.gamepad(event.id);
+    pub(crate) fn handle_gamepad_events(&self, active_webview: WebView) {
+        let mut handle = self.handle.borrow_mut();
+        while let Some(event) = handle.next_event() {
+            let gamepad = handle.gamepad(event.id);
             let name = gamepad.name();
             let index = GamepadIndex(event.id.into());
             let mut gamepad_event: Option<GamepadEvent> = None;
@@ -113,7 +116,9 @@ impl GamepadSupport {
                     gamepad_event = Some(GamepadEvent::Disconnected(index));
                 },
                 EventType::ForceFeedbackEffectCompleted => {
-                    if let Some(haptic_effect) = self.haptic_effects.remove(&event.id.into()) {
+                    if let Some(haptic_effect) =
+                        self.haptic_effects.borrow_mut().remove(&event.id.into())
+                    {
                         haptic_effect.request.succeeded();
                     } else {
                         warn!("Failed to find haptic effect for id {}", event.id);
@@ -153,16 +158,16 @@ impl GamepadSupport {
         }
     }
 
-    pub(crate) fn play_haptic_effect(&mut self, request: GamepadHapticEffectRequest) {
+    fn play_haptic_effect(
+        &self,
+        effect_type: &GamepadHapticEffectType,
+        request: GamepadHapticEffectRequest,
+    ) {
         let index = request.gamepad_index();
-        let Some(effect_type) = request.effect_type() else {
-            request.failed();
-            return;
-        };
         let GamepadHapticEffectType::DualRumble(params) = effect_type;
 
-        let Some(connected_gamepad) = self
-            .handle
+        let mut handle = self.handle.borrow_mut();
+        let Some(connected_gamepad) = handle
             .gamepads()
             .find(|gamepad| usize::from(gamepad.0) == index)
         else {
@@ -198,23 +203,24 @@ impl GamepadSupport {
             })
             .repeat(Repeat::For(start_delay + duration))
             .add_gamepad(&connected_gamepad.1)
-            .finish(&mut self.handle)
+            .finish(&mut handle)
             .expect(
                 "Failed to create haptic effect, ensure connected gamepad supports force feedback.",
             );
 
-        self.haptic_effects
-            .insert(index, HapticEffect { effect, request });
-        self.haptic_effects[&index]
+        let mut haptic_effects = self.haptic_effects.borrow_mut();
+        haptic_effects.insert(index, HapticEffect { effect, request });
+        haptic_effects[&index]
             .effect
             .play()
             .expect("Failed to play haptic effect.");
     }
 
-    pub(crate) fn stop_haptic_effect(&mut self, request: GamepadHapticEffectRequest) {
+    fn stop_haptic_effect(&self, request: GamepadHapticEffectRequest) {
         let index = request.gamepad_index();
 
-        let Some(haptic_effect) = self.haptic_effects.get(&index) else {
+        let mut haptic_effects = self.haptic_effects.borrow_mut();
+        let Some(haptic_effect) = haptic_effects.get(&index) else {
             request.failed();
             return;
         };
@@ -226,12 +232,25 @@ impl GamepadSupport {
                 false
             },
         };
-        self.haptic_effects.remove(&index);
+        haptic_effects.remove(&index);
 
         if stopped_successfully {
             request.succeeded();
         } else {
             request.failed();
+        }
+    }
+}
+
+impl GamepadProvider for ServoshellGamepadProvider {
+    fn handle_haptic_effect_request(&self, request: GamepadHapticEffectRequest) {
+        match request.request_type() {
+            GamepadHapticEffectRequestType::Play(effect_type) => {
+                self.play_haptic_effect(&effect_type.clone(), request);
+            },
+            GamepadHapticEffectRequestType::Stop => {
+                self.stop_haptic_effect(request);
+            },
         }
     }
 }

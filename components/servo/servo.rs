@@ -75,10 +75,7 @@ use style::global_style_data::StyleThreadPool;
 
 use crate::clipboard_delegate::StringRequest;
 #[cfg(feature = "gamepad")]
-use crate::gamepad_provider::{
-    DefaultGamepadProvider, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
-    GamepadProvider,
-};
+use crate::gamepad_provider::{GamepadHapticEffectRequest, GamepadHapticEffectRequestType};
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::network_manager::NetworkManager;
 use crate::proxies::ConstellationProxy;
@@ -146,8 +143,6 @@ enum Message {
 
 struct ServoInner {
     delegate: RefCell<Rc<dyn ServoDelegate>>,
-    #[cfg(feature = "gamepad")]
-    gamepad_provider: Rc<dyn GamepadProvider>,
     paint: Rc<RefCell<Paint>>,
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
@@ -587,34 +582,42 @@ impl ServoInner {
             },
             #[cfg(feature = "gamepad")]
             EmbedderMsg::PlayGamepadHapticEffect(
-                _webview_id,
+                webview_id,
                 gamepad_index,
                 gamepad_haptic_effect_type,
                 callback,
             ) => {
-                let request = GamepadHapticEffectRequest::new(
-                    gamepad_index,
-                    GamepadHapticEffectRequestType::Play(gamepad_haptic_effect_type),
-                    Box::new(move |success| {
-                        callback
-                            .send(success)
-                            .expect("Could not send message via callback")
-                    }),
-                );
-                self.gamepad_provider.handle_haptic_effect_request(request);
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let request = GamepadHapticEffectRequest::new(
+                        gamepad_index,
+                        GamepadHapticEffectRequestType::Play(gamepad_haptic_effect_type),
+                        Box::new(move |success| {
+                            callback
+                                .send(success)
+                                .expect("Could not send message via callback")
+                        }),
+                    );
+                    webview
+                        .gamepad_provider()
+                        .handle_haptic_effect_request(request);
+                }
             },
             #[cfg(feature = "gamepad")]
-            EmbedderMsg::StopGamepadHapticEffect(_webview_id, gamepad_index, callback) => {
-                let request = GamepadHapticEffectRequest::new(
-                    gamepad_index,
-                    GamepadHapticEffectRequestType::Stop,
-                    Box::new(move |success| {
-                        callback
-                            .send(success)
-                            .expect("Could not send message via callback")
-                    }),
-                );
-                self.gamepad_provider.handle_haptic_effect_request(request);
+            EmbedderMsg::StopGamepadHapticEffect(webview_id, gamepad_index, callback) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let request = GamepadHapticEffectRequest::new(
+                        gamepad_index,
+                        GamepadHapticEffectRequestType::Stop,
+                        Box::new(move |success| {
+                            callback
+                                .send(success)
+                                .expect("Could not send message via callback")
+                        }),
+                    );
+                    webview
+                        .gamepad_provider()
+                        .handle_haptic_effect_request(request);
+                }
             },
             EmbedderMsg::ShowNotification(webview_id, notification) => {
                 match webview_id.and_then(|webview_id| self.get_webview_handle(webview_id)) {
@@ -839,10 +842,6 @@ impl Servo {
 
         Servo(Rc::new(ServoInner {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
-            #[cfg(feature = "gamepad")]
-            gamepad_provider: builder
-                .gamepad_provider
-                .unwrap_or_else(|| Rc::new(DefaultGamepadProvider)),
             paint,
             network_manager: Rc::new(RefCell::new(NetworkManager::new(
                 public_resource_threads.clone(),
@@ -1233,8 +1232,6 @@ pub struct ServoBuilder {
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
     protocol_registry: ProtocolRegistry,
-    #[cfg(feature = "gamepad")]
-    gamepad_provider: Option<Rc<dyn GamepadProvider>>,
     #[cfg(feature = "webxr")]
     webxr_registry: Box<dyn webxr::WebXrRegistry>,
 }
@@ -1246,8 +1243,6 @@ impl Default for ServoBuilder {
             preferences: Default::default(),
             event_loop_waker: Box::new(DefaultEventLoopWaker),
             protocol_registry: Default::default(),
-            #[cfg(feature = "gamepad")]
-            gamepad_provider: None,
             #[cfg(feature = "webxr")]
             webxr_registry: Box::new(DefaultWebXrRegistry),
         }
@@ -1276,12 +1271,6 @@ impl ServoBuilder {
 
     pub fn protocol_registry(mut self, protocol_registry: ProtocolRegistry) -> Self {
         self.protocol_registry = protocol_registry;
-        self
-    }
-
-    #[cfg(feature = "gamepad")]
-    pub fn gamepad_provider(mut self, gamepad_provider: Rc<dyn GamepadProvider>) -> Self {
-        self.gamepad_provider = Some(gamepad_provider);
         self
     }
 
