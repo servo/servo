@@ -147,7 +147,8 @@ use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
 use crate::realms::{InRealm, enter_realm};
 use crate::script_module::{
-    ImportMap, ModuleScript, ModuleStatus, ResolvedModule, RethrowError, ScriptFetchOptions,
+    ImportMap, ModuleScript, ModuleStatus, ModuleTree, ResolvedModule, RethrowError,
+    ScriptFetchOptions,
 };
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, ThreadSafeJSContext};
 use crate::script_thread::{ScriptThread, with_script_thread};
@@ -718,8 +719,8 @@ impl FileListener {
                 },
             },
             Err(_) => match self.state.take() {
-                Some(FileListenerState::Receiving(_, target)) |
-                Some(FileListenerState::Empty(target)) => {
+                Some(FileListenerState::Receiving(_, target))
+                | Some(FileListenerState::Empty(target)) => {
                     let error = Err(Error::Network(None));
 
                     match target {
@@ -3137,8 +3138,8 @@ impl GlobalScope {
             None => {
                 // Workers and worklets don't have a top-level creation URL
                 assert!(
-                    self.downcast::<WorkerGlobalScope>().is_some() ||
-                        self.downcast::<WorkletGlobalScope>().is_some()
+                    self.downcast::<WorkerGlobalScope>().is_some()
+                        || self.downcast::<WorkletGlobalScope>().is_some()
                 );
                 true
             },
@@ -3147,8 +3148,8 @@ impl GlobalScope {
                 // Step 2. If the result of Is url potentially trustworthy?
                 // given environment's top-level creation URL is "Potentially Trustworthy", then return true.
                 // Step 3. Return false.
-                if top_level_creation_url.scheme() == "blob" &&
-                    Some(true) == self.inherited_secure_context
+                if top_level_creation_url.scheme() == "blob"
+                    && Some(true) == self.inherited_secure_context
                 {
                     return true;
                 }
@@ -3673,6 +3674,45 @@ impl GlobalScope {
         })
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
+    pub(crate) fn run_a_module_script(
+        &self,
+        module_tree: Rc<ModuleTree>,
+        _rethrow_errors: bool,
+        can_gc: CanGc,
+    ) {
+        // TODO Step 1. Let settings be the settings object of script.
+
+        // Step 2
+        if !self.can_run_script() {
+            return;
+        }
+
+        // Step 4
+        let _aes = AutoEntryScript::new(self);
+
+        // Step 6.
+        {
+            let module_error = module_tree.get_rethrow_error().borrow();
+            if module_error.is_some() {
+                module_tree.report_error(self, can_gc);
+                return;
+            }
+        }
+
+        let record = module_tree.get_record().map(|record| record.handle());
+
+        if let Some(record) = record {
+            rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
+            let evaluated = module_tree.execute_module(self, record, rval.handle_mut(), can_gc);
+
+            if let Err(exception) = evaluated {
+                module_tree.set_rethrow_error(exception);
+                module_tree.report_error(self, can_gc);
+            }
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#check-if-we-can-run-script>
     fn can_run_script(&self) -> bool {
         // Step 1 If the global object specified by settings is a Window object
@@ -3687,8 +3727,8 @@ impl GlobalScope {
         // does not have its sandboxed scripts browsing context flag set.
         if let Some(window) = self.downcast::<Window>() {
             let doc = window.Document();
-            doc.is_fully_active() ||
-                !doc.has_active_sandboxing_flag(
+            doc.is_fully_active()
+                || !doc.has_active_sandboxing_flag(
                     SandboxingFlagSet::SANDBOXED_SCRIPTS_BROWSING_CONTEXT_FLAG,
                 )
         } else {
