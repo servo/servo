@@ -481,41 +481,38 @@ class CommandBase(object):
     def msvc_package_dir(self, package: str) -> str:
         return servo.platform.windows.get_dependency_dir(package)
 
+
     @staticmethod
-    def get_clang_major_version(cc: str, test_version_output: Optional[str] = None) -> Optional[str]:
+    def parse_major_version_from_stdout(stdout_str: str) -> Optional[str]:
+        """
+        Gets output of `clang --version` or other CC and returns only major (ex: 18).
+        Covered by three tests (Ubuntu, Fedora, Macos).
+        """
+        if "clang" not in stdout_str:
+            return None
+        for token in stdout_str.split():
+            if token[0].isdigit():
+                return token.split(".")[0]
+        return None
+
+    def get_clang_major_version(self, cc: str) -> Optional[str]:
         """
         The function gets CC and tries to return its version if CC is clang.
         Ex: get_clang_major_version("clang-18") -> "18"
         Ex: get_clang_major_version("clang") -> "21", if clang is clang-21
-
-        There is an optional test_version_output that is used in the unit test,
-        that covers default `clang --version` outputs from Ubuntu, Fedora and MacOS.
-        `./mach test-scripts`
         """
-        stdout: Optional[str] = None
-        if test_version_output is None:
-            try:
-                result = subprocess.run(
-                    [cc, "--version"],
-                    check=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                )
-            except (subprocess.CalledProcessError, FileNotFoundError):
-                return None
-            stdout = result.stdout.lower()
-        else:
-            stdout = test_version_output
-
-        if "clang" not in stdout:
+        try:
+            result = subprocess.run(
+                [cc, "--version"],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+        except (subprocess.CalledProcessError, FileNotFoundError):
             return None
-
-        for token in stdout.split():
-            if token[0].isdigit():
-                return token.split(".")[0]
-
-        return None
+        
+        return self.parse_major_version_from_stdout(result.stdout.lower())        
 
     @staticmethod
     def get_llvm_config_for_clang(cc: str, clang_major: Optional[str]) -> Optional[str]:

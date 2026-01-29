@@ -24,14 +24,13 @@ class TestCommandBase(unittest.TestCase):
 
     def test_clang_version_ubuntu(self) -> None:
         output = (
-            "clang --version\n"
             "Ubuntu clang version 18.1.3 (1ubuntu1)\n"
             "Target: x86_64-pc-linux-gnu\n"
             "Thread model: posix\n"
             "InstalledDir: /usr/bin\n"
         )
         self.assertEqual(
-            self.cmd.get_clang_major_version("clang", output),
+            self.cmd.parse_major_version_from_stdout(output),
             "18",
         )
 
@@ -44,7 +43,7 @@ class TestCommandBase(unittest.TestCase):
         )
 
         self.assertEqual(
-            self.cmd.get_clang_major_version("clang", output),
+            self.cmd.parse_major_version_from_stdout(output),
             "17",
         )
 
@@ -58,7 +57,7 @@ class TestCommandBase(unittest.TestCase):
         )
 
         self.assertEqual(
-            self.cmd.get_clang_major_version("clang", output),
+            self.cmd.parse_major_version_from_stdout(output),
             "21",
         )
 
