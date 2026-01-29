@@ -399,9 +399,11 @@ impl HTMLSelectElement {
                 EmbedderControlRequest::SelectElement(options, selected_index),
                 None,
             );
+        self.upcast::<Element>().set_open_state(true);
     }
 
     pub(crate) fn handle_menu_response(&self, response: Option<usize>, can_gc: CanGc) {
+        self.upcast::<Element>().set_open_state(false);
         let Some(selected_value) = response else {
             return;
         };

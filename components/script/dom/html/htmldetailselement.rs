@@ -485,6 +485,8 @@ impl VirtualMethods for HTMLDetailsElement {
                     ExclusivityConflictResolution::CloseExistingOpenElement,
                 );
             }
+
+            self.upcast::<Element>().set_open_state(self.Open());
         }
     }
 
