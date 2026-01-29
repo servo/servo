@@ -261,6 +261,15 @@ class AndroidTarget(CrossBuildTarget):
         env["ANDROID_API_LEVEL"] = android_api
         env["ANDROID_NDK_HOME"] = env["ANDROID_NDK_ROOT"]
 
+        target_triple = self.triple()
+        rust_target_triple = str(target_triple).replace("-", "_")
+
+        ndk_clang = to_ndk_bin("clang")
+        ndk_clangxx = to_ndk_bin("clang++")
+
+        env[f"CC_{rust_target_triple}"] = ndk_clang
+        env[f"CXX_{rust_target_triple}"] = ndk_clangxx
+
         # The two variables set below are passed by our custom
         # support/android/toolchain.cmake to the NDK's CMake toolchain file
         env["ANDROID_ABI"] = android_lib
