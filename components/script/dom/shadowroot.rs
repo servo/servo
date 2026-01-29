@@ -223,6 +223,13 @@ impl ShadowRoot {
             })
             .cloned();
 
+        if self.document.has_browsing_context() {
+            let document_context = self.window.web_font_context();
+            self.window
+                .layout_mut()
+                .load_web_fonts_from_stylesheet(&sheet, &document_context);
+        }
+
         DocumentOrShadowRoot::add_stylesheet(
             StylesheetSource::Element(Dom::from_ref(owner_node)),
             StylesheetSetRef::Author(stylesheets),
@@ -241,6 +248,13 @@ impl ShadowRoot {
         let sheet = cssom_stylesheet.style_stylesheet().clone();
 
         let insertion_point = stylesheets.iter().last().cloned();
+
+        if self.document.has_browsing_context() {
+            let document_context = self.window.web_font_context();
+            self.window
+                .layout_mut()
+                .load_web_fonts_from_stylesheet(&sheet, &document_context);
+        }
 
         DocumentOrShadowRoot::add_stylesheet(
             StylesheetSource::Constructed(Dom::from_ref(cssom_stylesheet)),
