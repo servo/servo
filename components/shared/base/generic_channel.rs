@@ -418,7 +418,7 @@ where
                     ipc_receiver,
                     Box::new(move |message| {
                         let _ = crossbeam_sender_clone
-                            .send(message.map_err(|error| IpcError::SerializationError(error)));
+                            .send(message.map_err(IpcError::SerializationError));
                     }),
                 );
                 crossbeam_receiver
