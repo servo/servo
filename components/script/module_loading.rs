@@ -12,6 +12,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::rc::Rc;
 
+use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::jsapi::{HandleValue as RawHandleValue, IsCyclicModule, JSObject, ModuleType};
 use js::jsval::{ObjectValue, UndefinedValue};
@@ -33,12 +34,12 @@ use crate::dom::bindings::settings_stack::AutoIncumbentScript;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_module::{
     ModuleHandler, ModuleObject, ModuleOwner, ModuleTree, RethrowError, ScriptFetchOptions,
     fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
 };
-use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
+use crate::script_runtime::{CanGc, IntroductionType};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct OnRejectedHandler {
@@ -183,7 +184,7 @@ fn inner_module_loading(
 
                         // 1. Perform HostLoadImportedModule(module, request, state.[[HostDefined]], state).
                         host_load_imported_module(
-                            (&mut cx).into(),
+                            &mut cx,
                             Some(module.clone()),
                             referrer.handle().into_handle(),
                             specifier,
@@ -411,7 +412,7 @@ fn continue_dynamic_import(
 
 /// <https://html.spec.whatwg.org/multipage/#hostloadimportedmodule>
 pub(crate) fn host_load_imported_module(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     referrer_module: Option<Rc<ModuleTree>>,
     referrer: RawHandleValue,
     specifier: String,
@@ -420,8 +421,8 @@ pub(crate) fn host_load_imported_module(
     payload: Payload,
 ) {
     // Step 1. Let settingsObject be the current settings object.
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-    let global_scope = unsafe { GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)) };
+    let realm = CurrentRealm::assert(cx);
+    let global_scope = GlobalScope::from_current_realm(&realm);
 
     // TODO Step 2. If settingsObject's global object implements WorkletGlobalScope or ServiceWorkerGlobalScope and loadState is undefined, then:
 
