@@ -44,16 +44,33 @@ fn supported_context_format(format: GPUTextureFormat) -> bool {
     )
 }
 
-#[dom_struct]
-pub(crate) struct GPUCanvasContext {
-    reflector_: Reflector,
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPUCanvasContext {
+    #[no_trace]
+    context_id: WebGPUContextId,
     #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
+}
+
+impl Drop for DroppableGPUCanvasContext {
+    fn drop(&mut self) {
+        if let Err(error) = self.channel.0.send(WebGPURequest::DestroyContext {
+            context_id: self.context_id,
+        }) {
+            warn!(
+                "Failed to send DestroyContext({:?}): {error}",
+                self.context_id,
+            );
+        }
+    }
+}
+
+#[dom_struct]
+pub(crate) struct GPUCanvasContext {
+    reflector_: Reflector,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas>
     canvas: HTMLCanvasElementOrOffscreenCanvas,
-    #[no_trace]
-    context_id: WebGPUContextId,
     #[ignore_malloc_size_of = "manual writing is hard"]
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configuration-slot>
     configuration: RefCell<Option<GPUCanvasConfiguration>>,
@@ -64,6 +81,7 @@ pub(crate) struct GPUCanvasContext {
     /// Set if image is cleared
     /// (usually done by [`GPUCanvasContext::replace_drawing_buffer`])
     cleared: Cell<bool>,
+    droppable: DroppableGPUCanvasContext,
 }
 
 impl GPUCanvasContext {
@@ -90,13 +108,15 @@ impl GPUCanvasContext {
 
         Self {
             reflector_: Reflector::new(),
-            channel,
             canvas,
-            context_id,
             configuration: RefCell::new(None),
             texture_descriptor: RefCell::new(None),
             current_texture: MutNullableDom::default(),
             cleared: Cell::new(true),
+            droppable: DroppableGPUCanvasContext {
+                context_id,
+                channel,
+            },
         }
     }
 
@@ -121,13 +141,13 @@ impl GPUCanvasContext {
 // Abstract ops from spec
 impl GPUCanvasContext {
     pub(crate) fn set_image_key(&self, image_key: ImageKey) {
-        if let Err(error) = self.channel.0.send(WebGPURequest::SetImageKey {
-            context_id: self.context_id,
+        if let Err(error) = self.droppable.channel.0.send(WebGPURequest::SetImageKey {
+            context_id: self.context_id(),
             image_key,
         }) {
             warn!(
                 "Failed to send WebGPURequest::Present({:?}) ({error})",
-                self.context_id
+                self.context_id()
             );
         }
     }
@@ -136,15 +156,15 @@ impl GPUCanvasContext {
     pub(crate) fn update_rendering(&self, canvas_epoch: Epoch) -> bool {
         // Present by updating the image in WebRender. This will copy the texture into
         // the presentation buffer and use it for presenting or send a cleared image to WebRender.
-        if let Err(error) = self.channel.0.send(WebGPURequest::Present {
-            context_id: self.context_id,
+        if let Err(error) = self.droppable.channel.0.send(WebGPURequest::Present {
+            context_id: self.context_id(),
             pending_texture: self.pending_texture(),
             size: self.size(),
             canvas_epoch,
         }) {
             warn!(
                 "Failed to send WebGPURequest::Present({:?}) ({error})",
-                self.context_id
+                self.context_id()
             );
         }
 
@@ -248,7 +268,7 @@ impl CanvasContext for GPUCanvasContext {
     type ID = WebGPUContextId;
 
     fn context_id(&self) -> WebGPUContextId {
-        self.context_id
+        self.droppable.context_id
     }
 
     /// <https://gpuweb.github.io/gpuweb/#abstract-opdef-update-the-canvas-size>
@@ -278,10 +298,11 @@ impl CanvasContext for GPUCanvasContext {
             Snapshot::cleared(self.size())
         } else {
             let (sender, receiver) = generic_channel::channel().unwrap();
-            self.channel
+            self.droppable
+                .channel
                 .0
                 .send(WebGPURequest::GetImage {
-                    context_id: self.context_id,
+                    context_id: self.context_id(),
                     // We need to read from the pending texture, if one exists.
                     pending_texture: self.pending_texture(),
                     sender,
@@ -340,7 +361,8 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
 
         // 9. Validate texture descriptor
         let texture_id = self.global().wgpu_id_hub().create_texture_id();
-        self.channel
+        self.droppable
+            .channel
             .0
             .send(WebGPURequest::ValidateTextureDescriptor {
                 device_id: device.id().0,
@@ -392,18 +414,5 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
         };
         // 6. Return this.[[currentTexture]].
         Ok(current_texture)
-    }
-}
-
-impl Drop for GPUCanvasContext {
-    fn drop(&mut self) {
-        if let Err(error) = self.channel.0.send(WebGPURequest::DestroyContext {
-            context_id: self.context_id,
-        }) {
-            warn!(
-                "Failed to send DestroyContext({:?}): {error}",
-                self.context_id
-            );
-        }
     }
 }
