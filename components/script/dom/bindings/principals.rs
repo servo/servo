@@ -32,7 +32,7 @@ pub(crate) unsafe extern "C" fn write_jsprincipal(
     };
     let obj = unsafe { ServoJSPrincipalsRef::from_raw_nonnull(principal) };
     let origin = obj.origin();
-    let Ok(bytes_of_origin) = bincode::serialize(&origin) else {
+    let Ok(bytes_of_origin) = postcard::to_stdvec(&origin) else {
         return false;
     };
     let Ok(len) = bytes_of_origin.len().try_into() else {
@@ -76,7 +76,7 @@ pub(crate) unsafe extern "C" fn read_jsprincipal(
         }
     }
 
-    let Ok(origin) = bincode::deserialize(&bytes[..]) else {
+    let Ok(origin) = postcard::from_bytes(&bytes[..]) else {
         return false;
     };
     let principal = ServoJSPrincipals::new::<DomTypeHolder>(&origin);
