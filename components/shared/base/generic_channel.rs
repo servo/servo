@@ -20,6 +20,8 @@ use servo_config::opts;
 
 mod callback;
 pub use callback::GenericCallback;
+mod lazy_callback;
+pub use lazy_callback::{CallbackSetter, LazyCallback, lazy_callback};
 mod oneshot;
 /// We want to discourage anybody from using the ipc_channel crate in servo and use 'GenericChannels' instead.
 /// 'GenericSharedMemory' is, however, still useful so we reexport it under a different name for future optimization.
