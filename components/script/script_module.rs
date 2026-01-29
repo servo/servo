@@ -38,6 +38,7 @@ use js::rust::{
 };
 use mime::Mime;
 use net_traits::http_status::HttpStatus;
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId, RequestMode,
 };
@@ -71,7 +72,8 @@ use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::types::Console;
+use crate::dom::reportingendpoint::ReportingEndpoint;
+use crate::dom::types::{Console, DedicatedWorkerGlobalScope, WorkerGlobalScope};
 use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::fetch::RequestWithGlobalScope;
@@ -485,8 +487,8 @@ impl ModuleTree {
                 // Step 10.1 If scopePrefix is serializedBaseURL, or if scopePrefix ends with U+002F (/)
                 // and scopePrefix is a code unit prefix of serializedBaseURL, then:
                 let prefix = prefix.as_str();
-                if prefix == serialized_base_url ||
-                    (serialized_base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
+                if prefix == serialized_base_url
+                    || (serialized_base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
                 {
                     // Step 10.1.1 Let scopeImportsMatch be the result of resolving an imports match
                     // given normalizedSpecifier, asURL, and scopeImports.
@@ -547,9 +549,9 @@ impl ModuleTree {
         base_url: &ServoUrl,
     ) -> Option<ServoUrl> {
         // Step 1. If specifier starts with "/", "./", or "../", then:
-        if specifier.starts_with('/') ||
-            specifier.starts_with_str("./") ||
-            specifier.starts_with_str("../")
+        if specifier.starts_with('/')
+            || specifier.starts_with_str("./")
+            || specifier.starts_with_str("../")
         {
             // Step 1.1. Let url be the result of URL parsing specifier with baseURL.
             return ServoUrl::parse_with_base(Some(base_url), &specifier.str()).ok();
@@ -584,8 +586,7 @@ impl Callback for ModuleHandler {
 /// It can be `worker` or `script` element
 #[derive(Clone, JSTraceable)]
 pub(crate) enum ModuleOwner {
-    #[expect(dead_code)]
-    Worker(TrustedWorkerAddress),
+    Worker(Trusted<WorkerGlobalScope>),
     Window(Trusted<HTMLScriptElement>),
     DynamicModule(Trusted<GlobalScope>),
 }
@@ -593,7 +594,7 @@ pub(crate) enum ModuleOwner {
 impl ModuleOwner {
     pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
         match &self {
-            ModuleOwner::Worker(worker) => (*worker.root().clone()).global(),
+            ModuleOwner::Worker(scope) => scope.root().global(),
             ModuleOwner::Window(script) => (*script.root()).global(),
             ModuleOwner::DynamicModule(dynamic_module) => (*dynamic_module.root()).global(),
         }
@@ -601,7 +602,16 @@ impl ModuleOwner {
 
     fn notify_owner_to_finish(&self, module_tree: Option<Rc<ModuleTree>>, can_gc: CanGc) {
         match &self {
-            ModuleOwner::Worker(_) => unimplemented!(),
+            ModuleOwner::Worker(_) => {
+                if let Some(module_tree) = module_tree {
+                    self.global()
+                        .run_a_module_script(module_tree, false, can_gc);
+                } else {
+                    // TODO(pylbrecht): ideally we call DedicatedWorkerGlobalScope::on_complete()
+                    // here, but it's a challenge to get our hands on a worker instance ("the
+                    // dance").
+                }
+            },
             ModuleOwner::DynamicModule(_) => unimplemented!(),
             ModuleOwner::Window(script) => {
                 let document = script.root().owner_document();
@@ -644,6 +654,10 @@ struct ModuleContext {
     status: Result<(), NetworkError>,
     /// `introductionType` value to set in the `CompileOptionsWrapper`.
     introduction_type: Option<&'static CStr>,
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#fetching-scripts-is-top-level>
+    is_top_level: bool,
+
+    policy_container: Option<PolicyContainer>,
 }
 
 impl FetchResponseListener for ModuleContext {
@@ -722,6 +736,34 @@ impl FetchResponseListener for ModuleContext {
         }
 
         let metadata = self.metadata.take().unwrap();
+
+        // The processResponseConsumeBody steps defined inside
+        // [run a worker](https://html.spec.whatwg.org/multipage/#run-a-worker)
+        if self.is_top_level {
+            let global = self.owner.global();
+
+            if let Some(scope) = global.downcast::<WorkerGlobalScope>() {
+                // Step 1. Set worker global scope's url to response's url.
+                scope.set_url(metadata.final_url.clone());
+
+                // Step 2. Set inside settings's creation URL to response's url.
+                global.set_creation_url(metadata.final_url.clone());
+
+                // Step 3. Initialize worker global scope's policy container given worker global scope, response, and inside settings.
+                scope.initialize_policy_container_for_worker_global_scope(
+                    &metadata,
+                    &self
+                        .policy_container
+                        .expect("top level worker fetch must have a policy container"),
+                );
+                scope.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
+                    &metadata.final_url.clone(),
+                    &metadata.headers,
+                ));
+                global.set_https_state(metadata.https_state);
+            }
+        }
+
         let final_url = metadata.final_url;
 
         // Step 2. Let mimeType be the result of extracting a MIME type from response's header list.
@@ -775,8 +817,17 @@ impl FetchResponseListener for ModuleContext {
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
-        let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None, None);
+        match &self.owner {
+            ModuleOwner::Worker(scope) => {
+                if let Some(scope) = scope.root().downcast::<DedicatedWorkerGlobalScope>() {
+                    scope.report_csp_violations(violations);
+                }
+            },
+            _ => {
+                let global = &self.resource_timing_global();
+                global.report_csp_violations(violations, None, None);
+            },
+        };
     }
 }
 
@@ -987,6 +1038,69 @@ unsafe extern "C" fn HostPopulateImportMeta(
     }
 }
 
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-module-worker-script-tree>
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-worklet/module-worker-script-graph>
+pub(crate) fn fetch_a_module_worker_script_graph(
+    worker: TrustedWorkerAddress,
+    url: ServoUrl,
+    owner: ModuleOwner,
+    referrer: Referrer,
+    credentials_mode: CredentialsMode,
+    policy_container: PolicyContainer,
+    can_gc: CanGc,
+) {
+    // Step 1. Let options be a script fetch options whose cryptographic nonce
+    // is the empty string, integrity metadata is the empty string, parser
+    // metadata is "not-parser-inserted", credentials mode is credentialsMode,
+    // referrer policy is the empty string, and fetch priority is "auto".
+    let options = ScriptFetchOptions {
+        referrer: referrer.clone(),
+        integrity_metadata: "".into(),
+        credentials_mode,
+        cryptographic_nonce: "".into(),
+        parser_metadata: ParserMetadata::NotParserInserted,
+        referrer_policy: ReferrerPolicy::EmptyString,
+    };
+    // Step 2. Fetch a single module script given url, fetchClient, destination, options,
+    // settingsObject, "client", true, and onSingleFetchComplete as defined below.
+    fetch_a_single_module_script(
+        url,
+        owner.clone(),
+        Destination::Worker,
+        options,
+        referrer,
+        true,
+        Some(IntroductionType::WORKER),
+        Some(policy_container),
+        move |module_tree| {
+            let Some(module) = module_tree else {
+                // Step 1.1. If result is null, run onComplete given null, and abort these steps.
+                // TODO(pylbrecht): make `worker` part of ModuleOwner, so we can call on_complete()
+                // in ModuleOwner::notify_owner_to_finish()
+                let global = owner.global();
+                let global = global.downcast::<WorkerGlobalScope>().unwrap();
+
+                // NOTE(pylbrecht): no idea if this is the correct way to get a `cx`; just
+                // copy/pasted from `impl FetchResponseListener for ScriptFetchOptions`.
+                #[expect(unsafe_code)]
+                let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+                global.on_complete(None, worker, &mut cx);
+
+                return owner.notify_owner_to_finish(None, can_gc);
+            };
+
+            // Step 1.2. Fetch the descendants of and link result given fetchClient, destination,
+            // and onComplete.
+            fetch_the_descendants_and_link_module_script(
+                module,
+                Destination::Worker,
+                owner,
+                can_gc,
+            );
+        },
+    );
+}
+
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-module-script-tree>
 pub(crate) fn fetch_an_external_module_script(
     url: ServoUrl,
@@ -1006,6 +1120,7 @@ pub(crate) fn fetch_an_external_module_script(
         referrer,
         true,
         Some(IntroductionType::SRC_SCRIPT),
+        None,
         move |module_tree| {
             let Some(module) = module_tree else {
                 // Step 1.1. If result is null, run onComplete given null, and abort these steps.
@@ -1151,6 +1266,7 @@ pub(crate) fn fetch_a_single_module_script(
     referrer: Referrer,
     is_top_level: bool,
     introduction_type: Option<&'static CStr>,
+    policy_container: Option<PolicyContainer>,
     on_complete: impl FnOnce(Option<Rc<ModuleTree>>) + 'static,
 ) {
     let global = owner.global();
@@ -1230,7 +1346,7 @@ pub(crate) fn fetch_a_single_module_script(
     // TODO Step 11. Set request's initiator type to "script".
 
     // Step 12. Set up the module script request given request and options.
-    let request = RequestBuilder::new(webview_id, url.clone(), referrer)
+    let mut request = RequestBuilder::new(webview_id, url.clone(), referrer)
         .destination(destination)
         .parser_metadata(options.parser_metadata)
         .integrity_metadata(options.integrity_metadata.clone())
@@ -1240,6 +1356,10 @@ pub(crate) fn fetch_a_single_module_script(
         .with_global_scope(&global)
         .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
 
+    if let Some(container) = policy_container.clone() {
+        request = request.policy_container(container);
+    }
+
     let context = ModuleContext {
         owner,
         data: vec![],
@@ -1248,6 +1368,8 @@ pub(crate) fn fetch_a_single_module_script(
         options,
         status: Ok(()),
         introduction_type,
+        is_top_level,
+        policy_container,
     };
 
     let network_listener = NetworkListener::new(
@@ -1348,8 +1470,8 @@ fn merge_existing_and_new_import_maps(
             // If scopePrefix is record's serialized base URL, or if scopePrefix ends with
             // U+002F (/) and scopePrefix is a code unit prefix of record's serialized base URL, then:
             let prefix = scope_prefix.as_str();
-            if prefix == record.base_url ||
-                (record.base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
+            if prefix == record.base_url
+                || (record.base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
             {
                 // For each specifierKey → resolutionResult of scopeImports:
                 scope_imports.retain(|key, val| {
@@ -1357,11 +1479,11 @@ fn merge_existing_and_new_import_maps(
                     // specifierKey ends with U+002F (/);
                     // specifierKey is a code unit prefix of record's specifier;
                     // either record's specifier as a URL is null or is special,
-                    if *key == record.specifier ||
-                        (key.ends_with('\u{002f}') &&
-                            record.specifier.starts_with(key) &&
-                            (record.specifier_url.is_none() ||
-                                record
+                    if *key == record.specifier
+                        || (key.ends_with('\u{002f}')
+                            && record.specifier.starts_with(key)
+                            && (record.specifier_url.is_none()
+                                || record
                                     .specifier_url
                                     .as_ref()
                                     .map(|u| u.is_special_scheme())
@@ -1828,9 +1950,9 @@ pub(crate) fn resolve_imports_match(
         // - specifierKey ends with U+002F (/)
         // - specifierKey is a code unit prefix of normalizedSpecifier
         // - either asURL is null, or asURL is special, then:
-        if specifier_key.ends_with('\u{002f}') &&
-            normalized_specifier.starts_with(specifier_key) &&
-            (as_url.is_none() || as_url.map(|u| u.is_special_scheme()).unwrap_or_default())
+        if specifier_key.ends_with('\u{002f}')
+            && normalized_specifier.starts_with(specifier_key)
+            && (as_url.is_none() || as_url.map(|u| u.is_special_scheme()).unwrap_or_default())
         {
             // Step 1.2.1 If resolutionResult is null, then throw a TypeError.
             // Step 1.2.2 Assert: resolutionResult is a URL.

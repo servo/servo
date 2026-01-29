@@ -569,6 +569,7 @@ fn fetch_a_single_imported_module_script(
         referrer,
         false,
         Some(IntroductionType::IMPORTED_MODULE),
+        None,
         on_complete,
     );
 }
