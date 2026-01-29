@@ -29,12 +29,13 @@ pub mod viewport_description;
 
 use std::sync::{Arc, Mutex};
 
-use base::generic_channel::{self, GenericCallback, GenericSender, GenericSharedMemory};
+use base::generic_channel::{
+    self, GenericCallback, GenericReceiver, GenericSender, GenericSharedMemory,
+};
 use bitflags::bitflags;
 use display_list::PaintDisplayListInfo;
 use embedder_traits::ScreenGeometry;
 use euclid::default::Size2D as UntypedSize2D;
-use ipc_channel::ipc::{self};
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
 pub use webrender_api::ExternalImageSource;
@@ -131,8 +132,10 @@ pub enum PaintMessage {
         webview_id: WebViewId,
         /// A descriptor of this display list used to construct this display list from raw data.
         display_list_descriptor: BuiltDisplayListDescriptor,
-        /// An [ipc::IpcBytesReceiver] used to send the raw data of the display list.
-        display_list_receiver: ipc::IpcBytesReceiver,
+        /// A [`GenericReceiver`] used to send the [`PaintDisplayListInfo`].
+        display_list_info_receiver: GenericReceiver<PaintDisplayListInfo>,
+        /// A [`GenericReceiver`] used to send the serialized  version of `DisplayListPayload.
+        display_list_data_receiver: GenericReceiver<SerializableDisplayListPayload>,
     },
     /// Ask the renderer to generate a frame for the current set of display lists
     /// from the given `PainterId`s that have been sent to the renderer.
@@ -204,6 +207,22 @@ pub struct SendableFrameTree {
 pub struct CompositionPipeline {
     pub id: PipelineId,
     pub webview_id: WebViewId,
+}
+
+/// A serializable version of `DisplayListPayload`.
+#[derive(Serialize, Deserialize)]
+pub struct SerializableDisplayListPayload {
+    /// Serde encoded bytes of the display list' `DisplayItems` and their supporting data.
+    #[serde(with = "serde_bytes")]
+    pub items_data: Vec<u8>,
+
+    /// Serde encoded `DisplayItemCache` structs
+    #[serde(with = "serde_bytes")]
+    pub cache_data: Vec<u8>,
+
+    /// Serde encoded `SpatialTreeItem` structs.
+    #[serde(with = "serde_bytes")]
+    pub spatial_tree: Vec<u8>,
 }
 
 /// A mechanism to send messages from ScriptThread to the parent process' WebRender instance.
@@ -313,6 +332,9 @@ impl CrossProcessPaintApi {
     }
 
     /// Inform WebRender of a new display list for the given pipeline.
+    /// We send the `PaintDisplayListInfo` and `DisplayListPayload` separately to not overwhelm
+    /// the ipc_channel (see <https://github.com/servo/servo/pull/36484>)
+    #[servo_tracing::instrument(skip_all)]
     pub fn send_display_list(
         &self,
         webview_id: WebViewId,
@@ -320,29 +342,31 @@ impl CrossProcessPaintApi {
         list: BuiltDisplayList,
     ) {
         let (display_list_data, display_list_descriptor) = list.into_data();
-        let (display_list_sender, display_list_receiver) = ipc::bytes_channel().unwrap();
+        let (display_list_data_sender, display_list_data_receiver) =
+            generic_channel::channel().unwrap();
+        let (display_list_info_sender, display_list_info_receiver) =
+            generic_channel::channel().unwrap();
         if let Err(e) = self.0.send(PaintMessage::SendDisplayList {
             webview_id,
             display_list_descriptor,
-            display_list_receiver,
+            display_list_info_receiver,
+            display_list_data_receiver,
         }) {
             warn!("Error sending display list: {}", e);
         }
 
-        let display_list_info_serialized =
-            bincode::serialize(&display_list_info).unwrap_or_default();
-        if let Err(error) = display_list_sender.send(&display_list_info_serialized) {
-            warn!("Error sending display list info: {error}");
+        if let Err(error) = display_list_info_sender.send(display_list_info.clone()) {
+            warn!("Error sending display list info: {error}. Not sending the rest");
+            return;
         }
+        let display_list_data = SerializableDisplayListPayload {
+            items_data: display_list_data.items_data,
+            cache_data: display_list_data.cache_data,
+            spatial_tree: display_list_data.spatial_tree,
+        };
 
-        if let Err(error) = display_list_sender.send(&display_list_data.items_data) {
-            warn!("Error sending display list items: {error}");
-        }
-        if let Err(error) = display_list_sender.send(&display_list_data.cache_data) {
-            warn!("Error sending display list cache data: {error}");
-        }
-        if let Err(error) = display_list_sender.send(&display_list_data.spatial_tree) {
-            warn!("Error sending display spatial tree: {error}");
+        if let Err(error) = display_list_data_sender.send(display_list_data) {
+            warn!("Error sending display list: {error}");
         }
     }
 

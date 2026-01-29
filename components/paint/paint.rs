@@ -437,13 +437,15 @@ impl Paint {
             PaintMessage::SendDisplayList {
                 webview_id,
                 display_list_descriptor,
-                display_list_receiver,
+                display_list_info_receiver,
+                display_list_data_receiver,
             } => {
                 if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
                     painter.handle_new_display_list(
                         webview_id,
                         display_list_descriptor,
-                        display_list_receiver,
+                        display_list_info_receiver,
+                        display_list_data_receiver,
                     );
                 }
             },
