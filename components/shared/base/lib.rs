@@ -22,7 +22,8 @@ use std::fs::File;
 use std::io::{BufWriter, Read};
 use std::path::Path;
 
-use ipc_channel::ipc::{IpcError, IpcSender};
+use ipc_channel::IpcError;
+use ipc_channel::ipc::IpcSender;
 use log::{trace, warn};
 use malloc_size_of_derive::MallocSizeOf;
 pub use rope::{Rope, RopeChars, RopeIndex, RopeMovement, RopeSlice};
