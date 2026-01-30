@@ -76,3 +76,28 @@ jobs:
           ./mach clippy --locked --github-annotations -- -- --deny warnings
       - name: Tidy
         run: ./mach test-tidy --no-progress --all --github-annotations
+
+  vet_dependencies:
+    runs-on: ubuntu-latest
+    name: Vet dependencies
+    # Taken from https://mozilla.github.io/cargo-vet/configuring-ci.html
+    env:
+      CARGO_VET_VERSION: 0.10.0
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/cache@v4
+        with:
+          path: ${{ runner.tool_cache }}/cargo-vet
+          key: cargo-vet-bin-${{ env.CARGO_VET_VERSION }}
+      - name: Add the tool cache directory to the search path
+        run: echo "${{ runner.tool_cache }}/cargo-vet/bin" >> $GITHUB_PATH
+      - name: Ensure that the tool cache is populated with the cargo-vet binary
+        run: cargo install --root ${{ runner.tool_cache }}/cargo-vet --version ${{ env.CARGO_VET_VERSION }} cargo-vet
+      - name: Invoke cargo-vet
+        id: cargo_vet
+        run: cargo vet --locked
+      - name: Error explanation
+        if: ${{ steps.cargo_vet.outcome == 'failure' }}
+        run: |
+          echo "Cargo vet failed. This likely means that a dependency was updated and needs to be audited."
+          echo "See https://mozilla.github.io/cargo-vet/performing-audits.html on how to perform an audit."
