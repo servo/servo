@@ -355,12 +355,12 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         )
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-close>
+    /// <https://w3c.github.io/IndexedDB/#dom-idbdatabase-close>
     fn Close(&self) {
-        // Step 1: Run the steps to close a database connection with this connection.
+        // Step 1: Run close a database connection with this connection.
 
-        // <https://www.w3.org/TR/IndexedDB-2/#close-a-database-connection>
-        // Step 1: Set the close pending flag of connection.
+        // <https://w3c.github.io/IndexedDB/#close-a-database-connection>
+        // Step 1: Set connection’s close pending flag to true.
         self.closing.set(true);
 
         // Note: rest of algo runs in-parallel.
