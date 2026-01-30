@@ -738,5 +738,7 @@ impl Drop for GPUDevice {
         {
             warn!("Failed to send DropDevice ({:?}) ({})", self.device.0, e);
         }
+        let reflector = script_bindings::reflector::DomObject::reflector(self);
+        reflector.drop_memory(self);
     }
 }

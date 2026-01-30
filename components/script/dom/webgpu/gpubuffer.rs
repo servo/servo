@@ -185,7 +185,9 @@ impl GPUBuffer {
 
 impl Drop for GPUBuffer {
     fn drop(&mut self) {
-        self.Destroy()
+        self.Destroy();
+        let reflector = script_bindings::reflector::DomObject::reflector(self);
+        reflector.drop_memory(self);
     }
 }
 

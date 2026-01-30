@@ -93,5 +93,7 @@ impl Drop for GPURenderBundle {
                 self.render_bundle.0, e
             );
         }
+        let reflector = script_bindings::reflector::DomObject::reflector(self);
+        reflector.drop_memory(self);
     }
 }

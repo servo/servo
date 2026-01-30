@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use js::jsapi::{Heap, JSObject};
+use std::cell::Cell;
+
+use js::jsapi::{AddAssociatedMemory, Heap, JSObject, MemoryUse, RemoveAssociatedMemory};
 use js::rust::HandleObject;
 use malloc_size_of_derive::MallocSizeOf;
 
@@ -13,26 +15,47 @@ use crate::root::{Dom, DomRoot, Root};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::{DomTypes, JSTraceable};
 
+pub trait AssociatedMemorySize: Default {
+    fn size(&self) -> usize;
+}
+
+impl AssociatedMemorySize for () {
+    fn size(&self) -> usize {
+        0
+    }
+}
+
+#[derive(Default, MallocSizeOf)]
+pub struct AssociatedMemory(Cell<usize>);
+
+impl AssociatedMemorySize for AssociatedMemory {
+    fn size(&self) -> usize {
+        self.0.get()
+    }
+}
+
 /// A struct to store a reference to the reflector of a DOM object.
 #[derive(MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 // If you're renaming or moving this field, update the path in plugins::reflector as well
-pub struct Reflector {
+pub struct Reflector<T = ()> {
     #[ignore_malloc_size_of = "defined and measured in rust-mozjs"]
     object: Heap<*mut JSObject>,
+    /// Associated memory size (of rust side). Used for memory reporting to SM.
+    size: T,
 }
 
-unsafe impl js::gc::Traceable for Reflector {
+unsafe impl<T> js::gc::Traceable for Reflector<T> {
     unsafe fn trace(&self, _: *mut js::jsapi::JSTracer) {}
 }
 
-impl PartialEq for Reflector {
-    fn eq(&self, other: &Reflector) -> bool {
+impl<T> PartialEq for Reflector<T> {
+    fn eq(&self, other: &Reflector<T>) -> bool {
         self.object.get() == other.object.get()
     }
 }
 
-impl Reflector {
+impl<T> Reflector<T> {
     /// Get the reflector.
     #[inline]
     pub fn get_jsobject(&self) -> HandleObject<'_> {
@@ -45,7 +68,7 @@ impl Reflector {
     /// # Safety
     ///
     /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
-    pub unsafe fn set_jsobject(&self, object: *mut JSObject) {
+    unsafe fn set_jsobject(&self, object: *mut JSObject) {
         assert!(self.object.get().is_null());
         assert!(!object.is_null());
         self.object.set(object);
@@ -57,13 +80,41 @@ impl Reflector {
     pub fn rootable(&self) -> &Heap<*mut JSObject> {
         &self.object
     }
+}
 
+impl<T: AssociatedMemorySize> Reflector<T> {
     /// Create an uninitialized `Reflector`.
     // These are used by the bindings and do not need `default()` functions.
     #[expect(clippy::new_without_default)]
-    pub fn new() -> Reflector {
+    pub fn new() -> Reflector<T> {
         Reflector {
             object: Heap::default(),
+            size: T::default(),
+        }
+    }
+
+    pub fn rust_size<D>(&self, _: &D) -> usize {
+        size_of::<D>() + size_of::<Box<D>>() + self.size.size()
+    }
+
+    /// This function should be called from Drop of the DOM objects
+    pub fn drop_memory<D>(&self, d: &D) {
+        unsafe {
+            RemoveAssociatedMemory(self.object.get(), self.rust_size(d), MemoryUse::DOMBinding);
+        }
+    }
+}
+
+impl Reflector<AssociatedMemory> {
+    /// Update the associated memory size.
+    pub fn update_memory_size<D>(&self, d: &D, new_size: usize) {
+        if self.size.size() == new_size {
+            return;
+        }
+        unsafe {
+            RemoveAssociatedMemory(self.object.get(), self.rust_size(d), MemoryUse::DOMBinding);
+            self.size.0.set(new_size);
+            AddAssociatedMemory(self.object.get(), self.rust_size(d), MemoryUse::DOMBinding);
         }
     }
 }
@@ -74,9 +125,16 @@ pub trait DomObject: js::gc::Traceable + 'static {
     fn reflector(&self) -> &Reflector;
 }
 
-impl DomObject for Reflector {
-    fn reflector(&self) -> &Self {
+impl DomObject for Reflector<()> {
+    fn reflector(&self) -> &Reflector<()> {
         self
+    }
+}
+
+impl DomObject for Reflector<AssociatedMemory> {
+    fn reflector(&self) -> &Reflector<()> {
+        // SAFETY: This is safe because we are only shortening the size of struct.
+        unsafe { std::mem::transmute(self) }
     }
 }
 
@@ -87,12 +145,32 @@ pub trait MutDomObject: DomObject {
     /// # Safety
     ///
     /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
-    unsafe fn init_reflector(&self, obj: *mut JSObject);
+    unsafe fn init_reflector<D>(&self, obj: *mut JSObject);
 }
 
-impl MutDomObject for Reflector {
-    unsafe fn init_reflector(&self, obj: *mut JSObject) {
-        self.set_jsobject(obj)
+impl MutDomObject for Reflector<()> {
+    unsafe fn init_reflector<D>(&self, obj: *mut JSObject) {
+        unsafe {
+            js::jsapi::AddAssociatedMemory(
+                obj,
+                size_of::<D>() + size_of::<Box<D>>(),
+                MemoryUse::DOMBinding,
+            );
+            self.set_jsobject(obj);
+        }
+    }
+}
+
+impl MutDomObject for Reflector<AssociatedMemory> {
+    unsafe fn init_reflector<D>(&self, obj: *mut JSObject) {
+        unsafe {
+            js::jsapi::AddAssociatedMemory(
+                obj,
+                size_of::<D>() + size_of::<Box<D>>(),
+                MemoryUse::DOMBinding,
+            );
+            self.set_jsobject(obj);
+        }
     }
 }
 

@@ -148,5 +148,7 @@ impl Drop for GPUSampler {
         {
             warn!("Failed to send DropSampler ({:?}) ({})", self.sampler.0, e);
         }
+        let reflector = script_bindings::reflector::DomObject::reflector(self);
+        reflector.drop_memory(self);
     }
 }
