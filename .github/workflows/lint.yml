@@ -76,3 +76,52 @@ jobs:
           ./mach clippy --locked --github-annotations -- -- --deny warnings
       - name: Tidy
         run: ./mach test-tidy --no-progress --all --github-annotations
+
+  msrv_check:
+    name: Minimum supported Rust version check
+    runs-on: ubuntu-22.04
+    container:
+      image: 'ghcr.io/jschwe/servo_msrv_ci:latest'
+      env:
+        # This version should be kept in sync with the `rust-version` in our
+        # workspace Cargo.toml. Changes should be discussed on zulip.
+        MINIMUM_SUPPORTED_RUST_VERSION: "1.85.0"
+        CARGO_HOME: "/data/.cargo"
+        CARGO_INCREMENTAL: 1
+    env:
+      # This version should be kept in sync with the `rust-version` in our
+      # workspace Cargo.toml. Changes should be discussed on zulip.
+      MINIMUM_SUPPORTED_RUST_VERSION: "1.85.0"
+      CARGO_HOME: "/data/.cargo"
+      CARGO_INCREMENTAL: 1
+    steps:
+      # Set the remote-url when run in a fork.
+      - if: ${{ github.repository != 'servo/servo' && github.event_name != 'pull_request_target' }}
+        run: git remote set-url origin ${{ github.server_url}}/${{ github.repository }}
+        working-directory: /data/servo/servo
+
+      - if: ${{ github.event_name != 'pull_request_target' }}
+        run: git fetch --depth=1 origin $GITHUB_SHA
+        working-directory: /data/servo/servo
+      - if: ${{ github.event_name == 'pull_request_target' }}
+        run: git fetch --depth=1 origin ${{ github.event.pull_request.head.sha }}
+        working-directory: /data/servo/servo
+      - name: Show diff
+        run: git diff FETCH_HEAD
+        working-directory: /data/servo/servo
+      - run: |
+          git switch --detach FETCH_HEAD
+          git reset --hard FETCH_HEAD
+        working-directory: /data/servo/servo
+      # Prevent downloading of components specified in our rust-toolchain.toml
+      - run: rustup set profile minimal
+        working-directory: /data/servo/servo
+      - run: rustup toolchain list
+        working-directory: /data/servo/servo
+      - name: Compile libservo with MSRV
+        # /data/servo/target is part of the image, meaning we can do an incremental check here in CI
+        # if we re-use the image.
+        working-directory: /data/servo/servo
+        run: |
+          CARGO_LOG=cargo::core::compiler::fingerprint=info \
+            cargo +${{ env.MINIMUM_SUPPORTED_RUST_VERSION }} check -p libservo --locked --target-dir /data/servo/target
