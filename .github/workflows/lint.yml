@@ -67,6 +67,7 @@ jobs:
           locked: true
       - name: Bootstrap dependencies
         if: ${{ runner.environment != 'self-hosted' }}
+        timeout-minutes: 30
         run: |
           sudo apt update
           ./mach bootstrap --yes --skip-nextest

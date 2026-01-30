@@ -94,6 +94,7 @@ jobs:
         uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
         if: ${{ runner.environment != 'self-hosted' && (inputs.speedometer || inputs.dromaeo) }}
+        timeout-minutes: 30
         run: |
           sudo apt update
           sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
