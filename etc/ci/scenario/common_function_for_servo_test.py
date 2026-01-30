@@ -78,6 +78,8 @@ class MitmProxy:
             for proc in psutil.process_iter():
                 if "mitmdump" == proc.name():
                     proc.kill()
+                    # killing could take a while
+                    time.sleep(2)
                     break
 
 
