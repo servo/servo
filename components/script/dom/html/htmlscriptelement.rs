@@ -477,10 +477,7 @@ impl FetchResponseListener for ClassicContext {
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         let elem = self.elem.root();
-        let source_position = elem
-            .upcast::<Element>()
-            .compute_source_position(elem.line_number as u32);
-        global.report_csp_violations(violations, Some(elem.upcast()), Some(source_position));
+        global.report_csp_violations(violations, Some(elem.upcast()), None);
     }
 }
 
@@ -730,7 +727,12 @@ impl HTMLScriptElement {
         };
 
         // Step 24. Let cryptographic nonce be el's [[CryptographicNonce]] internal slot's value.
-        let cryptographic_nonce = self.upcast::<Element>().nonce_value();
+        // Use nonce_value_if_nonceable() to properly check for malformed attributes
+        // as per https://www.w3.org/TR/CSP/#is-element-nonceable
+        let cryptographic_nonce = self
+            .upcast::<Element>()
+            .nonce_value_if_nonceable()
+            .unwrap_or_default();
 
         // Step 25. If el has an integrity attribute, then let integrity metadata be that attribute's value.
         // Otherwise, let integrity metadata be the empty string.

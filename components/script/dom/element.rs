@@ -2600,7 +2600,11 @@ impl Element {
     /// <https://www.w3.org/TR/CSP/#is-element-nonceable>
     pub(crate) fn nonce_value_if_nonceable(&self) -> Option<String> {
         // Step 1: If element does not have an attribute named "nonce", return "Not Nonceable".
-        if !self.has_attribute(&local_name!("nonce")) {
+        if !self.has_attribute(&local_name!("nonce")) &&
+        // requiring the nonce attribute only if it's a inline script/style
+        // otherwise it's fine to set it dynamically via javascript
+        !self.has_attribute(&local_name!("src"))
+        {
             return None;
         }
         // Step 2: If element is a script element, then for each attribute of element’s attribute list:

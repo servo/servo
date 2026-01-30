@@ -279,30 +279,45 @@ impl GlobalCspReporting for GlobalScope {
             return;
         }
         warn!("Reporting CSP violations: {:?}", violations);
+        let source_position_was_provided = source_position.is_some();
         let source_position =
             source_position.unwrap_or_else(compute_scripted_caller_source_position);
         for violation in violations {
-            let (sample, resource) = match violation.resource {
-                ViolationResource::Inline { sample } => (sample, "inline".to_owned()),
-                ViolationResource::Url(url) => (Some(String::new()), url.into()),
+            let resource = &violation.resource;
+            let (sample, resource_str) = match resource {
+                ViolationResource::Inline { sample } => (sample.clone(), "inline".to_owned()),
+                ViolationResource::Url(url) => (Some(String::new()), url.clone().into()),
                 ViolationResource::TrustedTypePolicy { sample } => {
-                    (Some(sample), "trusted-types-policy".to_owned())
+                    (Some(sample.clone()), "trusted-types-policy".to_owned())
                 },
                 ViolationResource::TrustedTypeSink { sample } => {
-                    (Some(sample), "trusted-types-sink".to_owned())
+                    (Some(sample.clone()), "trusted-types-sink".to_owned())
                 },
-                ViolationResource::Eval { sample } => (sample, "eval".to_owned()),
+                ViolationResource::Eval { sample } => (sample.clone(), "eval".to_owned()),
                 ViolationResource::WasmEval => (None, "wasm-eval".to_owned()),
             };
+
+            let (source_file, line_number, column_number) = if source_position_was_provided ||
+                // if it is not a URL resource, use the computed fallback source position
+                !matches!(violation.resource, ViolationResource::Url(_))
+            {
+                (
+                    source_position.source_file.clone(),
+                    source_position.line_number,
+                    source_position.column_number,
+                )
+            } else {
+                (self.get_url().to_string(), 0, 0)
+            };
             let report = CSPViolationReportBuilder::default()
-                .resource(resource)
+                .resource(resource_str)
                 .sample(sample)
                 .effective_directive(violation.directive.name)
                 .original_policy(violation.policy.to_string())
                 .report_only(violation.policy.disposition == PolicyDisposition::Report)
-                .source_file(source_position.source_file.clone())
-                .line_number(source_position.line_number)
-                .column_number(source_position.column_number)
+                .source_file(source_file)
+                .line_number(line_number)
+                .column_number(column_number)
                 .build(self);
             // Step 1: Let global be violation’s global object.
             // We use `self` as `global`;
