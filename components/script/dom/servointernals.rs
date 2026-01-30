@@ -13,6 +13,8 @@ use script_bindings::interfaces::ServoInternalsHelpers;
 use script_bindings::script_runtime::JSContext;
 use script_bindings::str::USVString;
 use servo_config::prefs::{self, PrefValue};
+use servo_url::ServoUrl;
+use url::Position;
 
 use crate::dom::bindings::codegen::Bindings::ServoInternalsBinding::ServoInternalsMethods;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
@@ -122,6 +124,11 @@ impl ServoInternalsHelpers for ServoInternals {
             let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
             let global_scope = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
             let url = global_scope.get_url();
+            // Only consider the scheme and path when checking the URL, since query parameters
+            // can be dynamically changed for internal paths
+            let Ok(url) = ServoUrl::parse(&url[..Position::AfterPath]) else {
+                return false;
+            };
             (url.scheme() == "about" && url.as_str() != "about:blank") ||
                 ScriptThread::is_servo_privileged(url)
         }

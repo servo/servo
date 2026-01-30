@@ -20,10 +20,10 @@ use servo::protocol_handler::{
 use tokio::sync::mpsc::unbounded_channel;
 
 #[derive(Default)]
-pub struct ResourceProtocolHandler {}
+pub(crate) struct ResourceProtocolHandler {}
 
 impl ResourceProtocolHandler {
-    pub fn response_for_path(
+    pub(crate) fn response_for_path(
         request: &mut Request,
         done_chan: &mut DoneChannel,
         context: &FetchContext,

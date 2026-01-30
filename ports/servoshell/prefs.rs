@@ -456,6 +456,10 @@ struct CmdArgs {
     #[bpaf(long)]
     log_to_file: bool,
 
+    /// Handler used to handle `mailto:` links
+    #[bpaf(long)]
+    mailto_handler: Option<String>,
+
     /// Run in multiprocess mode.
     #[bpaf(short('M'), long)]
     multiprocess: bool,
@@ -565,7 +569,7 @@ struct CmdArgs {
     url: String,
 }
 
-fn update_preferences_from_command_line_arguemnts(
+fn update_preferences_from_command_line_arguments(
     preferences: &mut Preferences,
     cmd_args: &CmdArgs,
 ) {
@@ -599,6 +603,11 @@ fn update_preferences_from_command_line_arguemnts(
     if let Some(user_agent) = cmd_args.user_agent.clone() {
         preferences.user_agent = user_agent;
     }
+
+    preferences.mailto_handler = cmd_args
+        .mailto_handler
+        .clone()
+        .unwrap_or("servo:preferences?mail_handler=%s".to_owned());
 
     if cmd_args.webdriver_port.is_some() {
         preferences.dom_testing_html_input_element_select_files_enabled = true;
@@ -662,7 +671,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
 
     let mut preferences = get_preferences(&cmd_args.prefs_file, &config_dir);
 
-    update_preferences_from_command_line_arguemnts(&mut preferences, &cmd_args);
+    update_preferences_from_command_line_arguments(&mut preferences, &cmd_args);
 
     // FIXME: enable JIT compilation on 32-bit Android after the startup crash issue (#31134) is fixed.
     if cfg!(target_os = "android") && cfg!(target_pointer_width = "32") {
