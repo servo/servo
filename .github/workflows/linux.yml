@@ -336,6 +336,7 @@ jobs:
           tool: cargo-llvm-cov,cargo-nextest
       - name: Bootstrap dependencies
         if: ${{ runner.environment != 'self-hosted' }}
+        timeout-minutes: 10
         shell: bash
         run: |
           sudo apt update
