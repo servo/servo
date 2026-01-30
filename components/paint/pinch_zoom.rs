@@ -5,17 +5,21 @@
 use embedder_traits::Scroll;
 use euclid::{Point2D, Rect, Scale, Transform2D, Vector2D};
 use paint_api::PinchZoomInfos;
+use paint_api::viewport_description::ViewportDescription;
 use style_traits::CSSPixel;
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceRect, DeviceSize, DeviceVector2D};
 
 /// A [`PinchZoom`] describes the pinch zoom viewport of a `WebView`. This is used to
 /// track the current pinch zoom transformation and to clamp all pinching and panning
 /// to the unscaled `WebView` viewport.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct PinchZoom {
     zoom_factor: f32,
     transform: Transform2D<f32, DevicePixel, DevicePixel>,
     unscaled_viewport_size: DeviceSize,
+    /// A [`ViewportDescription`] for the [`WebViewRenderer`], which contains the limitations
+    /// and initial values for zoom derived from the `viewport` meta tag in web content.
+    viewport_description: ViewportDescription,
 }
 
 impl PinchZoom {
@@ -24,6 +28,7 @@ impl PinchZoom {
             zoom_factor: 1.0,
             unscaled_viewport_size: webview_rect.size(),
             transform: Transform2D::identity(),
+            viewport_description: Default::default(),
         }
     }
 
@@ -63,29 +68,30 @@ impl PinchZoom {
             .inverse()
             .expect("Should always be able to invert provided transform")
             .outer_transformed_rect(&rect);
-        rect.origin = rect.origin.clamp(
-            Point2D::origin(),
-            (self.unscaled_viewport_size - rect.size)
-                .to_vector()
-                .to_point(),
-        );
+
         let scale = self.unscaled_viewport_size.width / rect.width();
+
+        if scale > 1.0 {
+            rect.origin = rect.origin.clamp(
+                Point2D::origin(),
+                (self.unscaled_viewport_size - rect.size)
+                    .to_vector()
+                    .to_point(),
+            );
+        }
+
         self.transform = Transform2D::identity()
             .then_translate(Vector2D::new(-rect.origin.x, -rect.origin.y))
             .then_scale(scale, scale);
     }
 
     pub(crate) fn zoom(&mut self, magnification: f32, new_center: DevicePoint) {
-        const MINIMUM_PINCH_ZOOM: f32 = 1.0;
-        const MAXIMUM_PINCH_ZOOM: f32 = 10.0;
-        let new_factor =
-            (self.zoom_factor * magnification).clamp(MINIMUM_PINCH_ZOOM, MAXIMUM_PINCH_ZOOM);
-        let old_factor = std::mem::replace(&mut self.zoom_factor, new_factor);
+        // Clamp within Parsed Viewport Meta Scale Range
+        let new_factor = self
+            .viewport_description
+            .clamp_zoom(self.zoom_factor * magnification);
 
-        if self.zoom_factor <= 1.0 {
-            self.transform = Transform2D::identity();
-            return;
-        }
+        let old_factor = std::mem::replace(&mut self.zoom_factor, new_factor);
 
         let magnification = self.zoom_factor / old_factor;
         let transform = self
@@ -160,5 +166,9 @@ impl PinchZoom {
             zoom_factor: Scale::new(self.zoom_factor),
             rect: self.pinch_zoom_rect_relative_to_unscaled_viewport() / viewport_scale,
         }
+    }
+
+    pub(crate) fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
+        self.viewport_description = viewport_description;
     }
 }
