@@ -69,6 +69,7 @@ class MitmProxy:
                     "server_replay_reuse=true",
                 ]
             )
+            time.sleep(2)
         return self
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
