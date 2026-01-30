@@ -252,7 +252,7 @@ impl IDBObjectStore {
 
         // Step 10. Let clone be a clone of value in targetRealm during transaction. Rethrow any exceptions.
         let cloned_value = structuredclone::write(cx.into(), value, None)?;
-        let Ok(serialized_value) = bincode::serialize(&cloned_value) else {
+        let Ok(serialized_value) = postcard::to_stdvec(&cloned_value) else {
             return Err(Error::InvalidState(None));
         };
         // Step 12. Let operation be an algorithm to run store a record into an object store with store, clone, key, and no-overwrite flag.

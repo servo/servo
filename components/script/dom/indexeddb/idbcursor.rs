@@ -484,7 +484,7 @@ pub(crate) fn iterate_cursor(
         // Step 13.1. Let serialized be found record’s referenced value.
         // Step 13.2. Set cursor’s value to ! StructuredDeserialize(serialized, targetRealm)
         rooted!(&in(cx) let mut new_cursor_value = UndefinedValue());
-        bincode::deserialize(&found_record.value)
+        postcard::from_bytes(&found_record.value)
             .map_err(|_| Error::Data(None))
             .and_then(|data| {
                 structuredclone::read(

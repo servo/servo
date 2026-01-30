@@ -46,7 +46,6 @@ backtrace = { workspace = true }
 base = { workspace = true }
 base64 = { workspace = true }
 base64ct = { workspace = true }
-bincode = { workspace = true }
 bitflags = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
 brotli = { workspace = true }
@@ -118,6 +117,7 @@ percent-encoding = { workspace = true }
 phf = "0.13"
 pixels = { path = "../pixels" }
 pkcs8 = { workspace = true }
+postcard = { workspace = true }
 profile_traits = { workspace = true }
 rand = { workspace = true }
 regex = { workspace = true }
