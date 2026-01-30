@@ -308,7 +308,7 @@ pub struct ScriptThread {
 
     /// A list of pipelines containing documents that finished loading all their blocking
     /// resources during a turn of the event loop.
-    docs_with_no_blocking_loads: DomRefCell<HashSet<Dom<Document>>>,
+    docs_with_no_blocking_loads: DomRefCell<FxHashSet<Dom<Document>>>,
 
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
     custom_element_reaction_stack: Rc<CustomElementReactionStack>,
@@ -1127,7 +1127,7 @@ impl ScriptThread {
         // steps per doc in docs. Currently `<iframe>` resizing depends on a parent being able to
         // queue resize events on a child and have those run in the same call to this method, so
         // that needs to be sorted out to fix this.
-        let mut painters_generating_frames = HashSet::new();
+        let mut painters_generating_frames = FxHashSet::default();
         for pipeline_id in documents_in_order.iter() {
             let document = self
                 .documents
