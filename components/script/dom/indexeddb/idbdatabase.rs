@@ -357,14 +357,13 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-close>
     fn Close(&self) {
+        // Step 1: Run the steps to close a database connection with this connection.
+
+        // <https://www.w3.org/TR/IndexedDB-2/#close-a-database-connection>
         // Step 1: Set the close pending flag of connection.
         self.closing.set(true);
 
-        // Step 2: Handle force flag
-        // FIXME:(arihant2math)
-        // Step 3: Wait for all transactions by this db to finish
-        // FIXME:(arihant2math)
-        // Step 4: If force flag is set, fire a close event
+        // Note: rest of algo runs in-parallel.
         let operation = SyncOperation::CloseDatabase(
             self.global().origin().immutable().clone(),
             self.id,
