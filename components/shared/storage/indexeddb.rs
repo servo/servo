@@ -328,10 +328,9 @@ pub enum CreateObjectResult {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 /// Messaging used in the context of connection lifecycle management.
 pub enum ConnectionMsg {
-    /// Error if a DB is opened for a version
-    /// lower than the current db version.
+    /// Error if a DB is opened for a version lower than the current db version.
     VersionError { name: String, id: Uuid },
-    /// Opening a connection was aborted.f
+    /// Opening a connection was aborted.
     AbortError { name: String, id: Uuid },
     /// A newly created connection with a version,
     /// updgraded or not.
@@ -349,8 +348,7 @@ pub enum ConnectionMsg {
         old_version: u64,
         transaction: u64,
     },
-    /// A `versionchange` event should be fired
-    /// for a connection.
+    /// A `versionchange` event should be fired for a connection.
     VersionChange {
         /// The id of the connection.
         id: Uuid,
@@ -359,8 +357,7 @@ pub enum ConnectionMsg {
         version: u64,
         old_version: u64,
     },
-    /// A `blocked` event should be fired
-    /// for a connection.
+    /// A `blocked` event should be fired for a connection.
     Blocked {
         name: String,
         id: Uuid,
