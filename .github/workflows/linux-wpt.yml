@@ -93,7 +93,7 @@ jobs:
         if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/apt-mirrors
       - name: Bootstrap dependencies
-        timeout-minutes: 10
+        timeout-minutes: 30
         run: |
           sudo apt update
           ./mach bootstrap --yes --skip-lints --skip-nextest
