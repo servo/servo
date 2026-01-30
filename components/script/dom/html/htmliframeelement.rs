@@ -93,24 +93,42 @@ pub(crate) struct HTMLIFrameElement {
     /// while script at this point(when the flag is set)
     /// expects those to run only for the navigated documented.
     pending_navigation: Cell<bool>,
+    /// Whether a load event was synchronously fired, for example when
+    /// an empty iframe is attached. In that case, we shouldn't fire a
+    /// subsequent asynchronous load event.
+    already_fired_synchronous_load_event: Cell<bool>,
 }
 
 impl HTMLIFrameElement {
-    /// <https://html.spec.whatwg.org/multipage/#otherwise-steps-for-iframe-or-frame-elements>,
-    /// step 1.
-    pub(crate) fn get_url(&self) -> ServoUrl {
+    /// <https://html.spec.whatwg.org/multipage/#shared-attribute-processing-steps-for-iframe-and-frame-elements>,
+    fn shared_attribute_processing_steps_for_iframe_and_frame_elements(&self) -> Option<ServoUrl> {
         let element = self.upcast::<Element>();
-        element
+        // Step 2. If element has a src attribute specified, and its value is not the empty string, then:
+        let url = element
             .get_attribute(&ns!(), &local_name!("src"))
             .and_then(|src| {
                 let url = src.value();
                 if url.is_empty() {
                     None
                 } else {
+                    // Step 2.1. Let maybeURL be the result of encoding-parsing a URL given that attribute's value,
+                    // relative to element's node document.
+                    // Step 2.2. If maybeURL is not failure, then set url to maybeURL.
                     self.owner_document().base_url().join(&url).ok()
                 }
             })
-            .unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap())
+            // Step 1. Let url be the URL record about:blank.
+            .unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
+        // Step 3. If the inclusive ancestor navigables of element's node navigable contains
+        // a navigable whose active document's URL equals url with exclude fragments set to true, then return null.
+        // TODO
+
+        // Step 4. If url matches about:blank and initialInsertion is true, then perform the URL and history update steps
+        // given element's content navigable's active document and url.
+        // TODO
+
+        // Step 5. Return url.
+        Some(url)
     }
 
     pub(crate) fn navigate_or_reload_child_browsing_context(
@@ -119,6 +137,14 @@ impl HTMLIFrameElement {
         history_handling: NavigationHistoryBehavior,
         can_gc: CanGc,
     ) {
+        // In case we fired a synchronous load event, but navigate away
+        // in the event listener of that event, then we should still
+        // fire a second asynchronous load event when that navigation
+        // finishes. Therefore, on any navigation (but not the initial
+        // about blank), we should always set this to false, regardless
+        // of whether we synchronously fired a load in the same microtask.
+        self.already_fired_synchronous_load_event.set(false);
+
         self.start_new_pipeline(
             load_data,
             PipelineType::Navigation,
@@ -314,15 +340,30 @@ impl HTMLIFrameElement {
             }
         }
 
-        if mode == ProcessingMode::FirstTime && !element.has_attribute(&local_name!("src")) {
+        // Step 2.1. Let url be the result of running the shared attribute processing steps
+        // for iframe and frame elements given element and initialInsertion.
+        let Some(url) = self.shared_attribute_processing_steps_for_iframe_and_frame_elements()
+        else {
+            // Step 2.2. If url is null, then return.
+            return;
+        };
+
+        // Step 2.3. If url matches about:blank and initialInsertion is true, then:
+        if url.matches_about_blank() && mode == ProcessingMode::FirstTime {
+            // We should **not** send a load event in `iframe_load_event_steps`.
+            self.already_fired_synchronous_load_event.set(true);
+            // Step 2.3.1. Run the iframe load event steps given element.
+            //
+            // Note: we are not actually calling that method. That's because
+            // `iframe_load_event_steps` currently doesn't adhere to the spec
+            // at all. In this case, WPT tests only care about the load event,
+            // so we can fire that. Following https://github.com/servo/servo/issues/31973
+            // we should call `iframe_load_event_steps` once it is spec-compliant.
+            self.upcast::<EventTarget>()
+                .fire_event(atom!("load"), can_gc);
+            // Step 2.3.2. Return.
             return;
         }
-
-        // > 2. Otherwise, if `element` has a `src` attribute specified, or
-        // >    `initialInsertion` is false, then run the shared attribute
-        // >    processing steps for `iframe` and `frame` elements given
-        // >    `element`.
-        let url = self.get_url();
 
         // Step 2.4: Let referrerPolicy be the current state of element's referrerpolicy content
         // attribute.
@@ -502,6 +543,7 @@ impl HTMLIFrameElement {
             throttled: Cell::new(false),
             script_window_proxies: ScriptThread::window_proxies(),
             pending_navigation: Default::default(),
+            already_fired_synchronous_load_event: Default::default(),
         }
     }
 
@@ -604,6 +646,10 @@ impl HTMLIFrameElement {
             // do not fire if there is a pending navigation.
             !self.pending_navigation.get()
         };
+        // If we already fired a synchronous load event, we shouldn't fire another
+        // one in this method.
+        let should_fire_event =
+            !self.already_fired_synchronous_load_event.replace(false) && should_fire_event;
         if should_fire_event {
             // Step 6. Fire an event named load at element.
             self.upcast::<EventTarget>()
@@ -1010,7 +1056,9 @@ impl<'a> IframeContext<'a> {
     pub fn new(element: &'a HTMLIFrameElement) -> Self {
         Self {
             element,
-            url: element.get_url(),
+            url: element
+                .shared_attribute_processing_steps_for_iframe_and_frame_elements()
+                .expect("Must always have a URL when navigating"),
         }
     }
 }
