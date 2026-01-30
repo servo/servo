@@ -248,5 +248,7 @@ impl Drop for GPURenderPassEncoder {
         {
             warn!("Failed to send WebGPURequest::DropRenderPass with {e:?}");
         }
+        let reflector = script_bindings::reflector::DomObject::reflector(self);
+        reflector.drop_memory(self);
     }
 }

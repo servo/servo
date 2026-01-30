@@ -283,6 +283,8 @@ impl WebGLShader {
 
 impl Drop for WebGLShader {
     fn drop(&mut self) {
+        let reflector = script_bindings::reflector::DomObject::reflector(self);
+        reflector.drop_memory(self);
         self.mark_for_deletion(Operation::Fallible);
     }
 }

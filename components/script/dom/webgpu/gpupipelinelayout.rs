@@ -144,5 +144,7 @@ impl Drop for GPUPipelineLayout {
                 self.pipeline_layout.0, e
             );
         }
+        let reflector = script_bindings::reflector::DomObject::reflector(self);
+        reflector.drop_memory(self);
     }
 }
