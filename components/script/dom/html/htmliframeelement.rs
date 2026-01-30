@@ -93,21 +93,35 @@ pub(crate) struct HTMLIFrameElement {
 }
 
 impl HTMLIFrameElement {
-    /// <https://html.spec.whatwg.org/multipage/#otherwise-steps-for-iframe-or-frame-elements>,
-    /// step 1.
-    fn get_url(&self) -> ServoUrl {
+    /// <https://html.spec.whatwg.org/multipage/#shared-attribute-processing-steps-for-iframe-and-frame-elements>,
+    fn shared_attribute_processing_steps_for_iframe_and_frame_elements(&self) -> Option<ServoUrl> {
         let element = self.upcast::<Element>();
-        element
+        // Step 2. If element has a src attribute specified, and its value is not the empty string, then:
+        let url = element
             .get_attribute(&ns!(), &local_name!("src"))
             .and_then(|src| {
                 let url = src.value();
                 if url.is_empty() {
                     None
                 } else {
+                    // Step 2.1. Let maybeURL be the result of encoding-parsing a URL given that attribute's value,
+                    // relative to element's node document.
+                    // Step 2.2. If maybeURL is not failure, then set url to maybeURL.
                     self.owner_document().base_url().join(&url).ok()
                 }
             })
-            .unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap())
+            // Step 1. Let url be the URL record about:blank.
+            .unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
+        // Step 3. If the inclusive ancestor navigables of element's node navigable contains
+        // a navigable whose active document's URL equals url with exclude fragments set to true, then return null.
+        // TODO
+
+        // Step 4. If url matches about:blank and initialInsertion is true, then perform the URL and history update steps
+        // given element's content navigable's active document and url.
+        // TODO
+
+        // Step 5. Return url.
+        Some(url)
     }
 
     pub(crate) fn navigate_or_reload_child_browsing_context(
@@ -311,15 +325,32 @@ impl HTMLIFrameElement {
             }
         }
 
-        if mode == ProcessingMode::FirstTime && !element.has_attribute(&local_name!("src")) {
+        // Step 2.1. Let url be the result of running the shared attribute processing steps
+        // for iframe and frame elements given element and initialInsertion.
+        let Some(url) = self.shared_attribute_processing_steps_for_iframe_and_frame_elements()
+        else {
+            // Step 2.2. If url is null, then return.
+            return;
+        };
+
+        // Step 2.3. If url matches about:blank and initialInsertion is true, then:
+        if url.matches_about_blank() && mode == ProcessingMode::FirstTime {
+            // Step 2.3.1. Run the iframe load event steps given element.
+            //
+            // Note: we are not actually calling that method. That's because
+            // `iframe_load_event_steps` currently doesn't adhere to the spec
+            // at all. In this case, WPT tests only care about the load event,
+            // so we can fire that. Following https://github.com/servo/servo/issues/31973
+            // we should call `iframe_load_event_steps` once it is spec-compliant.
+            self.upcast::<EventTarget>()
+                .fire_event(atom!("load"), can_gc);
+            // We should **not** send a load event in `iframe_load_event_steps`.
+            // Therefore, we should mark this as a navigation, since we have already
+            // synchronously fired the load event.
+            self.note_pending_navigation();
+            // Step 2.3.2. Return.
             return;
         }
-
-        // > 2. Otherwise, if `element` has a `src` attribute specified, or
-        // >    `initialInsertion` is false, then run the shared attribute
-        // >    processing steps for `iframe` and `frame` elements given
-        // >    `element`.
-        let url = self.get_url();
 
         // Step 2.4: Let referrerPolicy be the current state of element's referrerpolicy content
         // attribute.
