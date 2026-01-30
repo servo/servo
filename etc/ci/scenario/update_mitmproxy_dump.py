@@ -11,6 +11,9 @@
 
 import subprocess
 import argparse
+import time
+
+import psutil
 
 import common_function_for_servo_test
 import servo_speedometer
@@ -89,4 +92,9 @@ if __name__ == "__main__":
     )
 
     print("FINISHED!")
-    mitmproxy.terminate()
+    for proc in psutil.process_iter():
+        if "mitmdump" == proc.name():
+            proc.kill()
+            # killing could take a while
+            time.sleep(2)
+            break
