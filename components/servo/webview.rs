@@ -33,7 +33,6 @@ use crate::credential_management_delegate::{
 };
 use crate::responders::IpcResponder;
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
-use crate::webview_delegate::{DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
     ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
     UserContentManager, WebRenderDebugOption,
