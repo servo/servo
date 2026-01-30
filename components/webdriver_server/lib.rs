@@ -75,7 +75,7 @@ use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
 use crate::actions::{ELEMENT_CLICK_BUTTON, InputSourceState, PointerInputState};
 use crate::session::{PageLoadStrategy, WebDriverSession};
-use crate::timeout::{DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
+use crate::timeout::{DEFAULT_IMPLICIT_WAIT, DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
 
 fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     vec![
@@ -639,7 +639,7 @@ impl Handler {
                 self.session_mut()?.set_webview_id(webview_id);
                 self.session_mut()?
                     .set_browsing_context_id(BrowsingContextId::from(webview_id));
-                let _ = self.wait_document_ready(Some(3000));
+                let _ = self.wait_document_ready(Some(DEFAULT_PAGE_LOAD_TIMEOUT));
             },
         };
 
@@ -1398,7 +1398,9 @@ impl Handler {
         let (implicit_wait, sleep_interval) = {
             let timeouts = self.session()?.session_timeouts();
             (
-                Duration::from_millis(timeouts.implicit_wait.unwrap_or(0)),
+                timeouts
+                    .implicit_wait
+                    .map_or(Duration::MAX, Duration::from_millis),
                 Duration::from_millis(timeouts.sleep_interval),
             )
         };
@@ -1925,10 +1927,11 @@ impl Handler {
         // FIXME: The specification says that all of these values can be `null`, but the `webdriver` crate
         // only supports setting `script` as null. When set to null, report these values as being the
         // default ones for now.
+        // Waiting for version bump together with geckodriver.
         let timeouts = TimeoutsResponse {
             script: timeouts.script,
             page_load: timeouts.page_load.unwrap_or(DEFAULT_PAGE_LOAD_TIMEOUT),
-            implicit: timeouts.implicit_wait.unwrap_or(0),
+            implicit: timeouts.implicit_wait.unwrap_or(DEFAULT_IMPLICIT_WAIT),
         };
 
         Ok(WebDriverResponse::Timeouts(timeouts))
@@ -2073,7 +2076,8 @@ impl Handler {
             .session()?
             .session_timeouts()
             .script
-            .map(Duration::from_millis);
+            .map_or(Duration::MAX, Duration::from_millis);
+
         let result = wait_for_script_ipc_response_with_timeout(receiver, timeout_duration)?;
 
         self.javascript_evaluation_result_to_webdriver_response(result)
@@ -2120,7 +2124,7 @@ impl Handler {
             .session()?
             .session_timeouts()
             .script
-            .map(Duration::from_millis);
+            .map_or(Duration::MAX, Duration::from_millis);
         let result = wait_for_script_ipc_response_with_timeout(receiver, timeout_duration)?;
 
         self.javascript_evaluation_result_to_webdriver_response(result)
@@ -2797,14 +2801,11 @@ where
 
 fn wait_for_script_ipc_response_with_timeout<T>(
     receiver: GenericReceiver<T>,
-    timeout: Option<Duration>,
+    timeout: Duration,
 ) -> Result<T, WebDriverError>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    let Some(timeout) = timeout else {
-        return wait_for_ipc_response(receiver);
-    };
     receiver
         .try_recv_timeout(timeout)
         .map_err(|error| match error {

@@ -24,6 +24,8 @@ pub(crate) const DEFAULT_IMPLICIT_WAIT: u64 = 0;
 /// timed out.
 pub(crate) const SCREENSHOT_TIMEOUT: Duration = Duration::from_secs(10);
 
+/// <https://w3c.github.io/webdriver/#dfn-timeouts-configuration>
+/// A `None` timeout means waiting indefinitely.
 pub(crate) struct TimeoutsConfiguration {
     pub(crate) script: Option<u64>,
     pub(crate) page_load: Option<u64>,
