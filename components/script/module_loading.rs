@@ -546,7 +546,7 @@ pub(crate) fn host_load_imported_module(
     // Step 14 Fetch a single imported module script given url, fetchClient, destination, fetchOptions, settingsObject,
     // fetchReferrer, moduleRequest, and onSingleFetchComplete as defined below.
     // If loadState is not undefined and loadState.[[PerformFetch]] is not null, pass loadState.[[PerformFetch]] along as well.
-    // Note: we don't have access to the requested `ModuleObject`, so we pass only it's type.
+    // Note: we don't have access to the requested `ModuleObject`, so we pass only its type.
     fetch_a_single_imported_module_script(
         url.unwrap(),
         fetch_client,
