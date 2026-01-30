@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::collections::HashSet;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -23,6 +22,7 @@ use net_traits::image_cache::{
 use net_traits::request::{Destination, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming};
 use pixels::RasterImage;
+use rustc_hash::FxHashSet;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
@@ -104,7 +104,7 @@ pub(crate) struct Notification {
     actions: Vec<Action>,
     /// Pending image, icon, badge, action icon resource request's id
     #[no_trace] // RequestId is not traceable
-    pending_request_ids: DomRefCell<HashSet<RequestId>>,
+    pending_request_ids: DomRefCell<FxHashSet<RequestId>>,
     /// <https://notifications.spec.whatwg.org/#image-resource>
     #[ignore_malloc_size_of = "RasterImage"]
     #[no_trace]
@@ -242,7 +242,7 @@ impl Notification {
             tag,
             require_interaction,
             actions,
-            pending_request_ids: DomRefCell::new(HashSet::new()),
+            pending_request_ids: DomRefCell::new(Default::default()),
             image_resource: DomRefCell::new(None),
             icon_resource: DomRefCell::new(None),
             badge_resource: DomRefCell::new(None),
