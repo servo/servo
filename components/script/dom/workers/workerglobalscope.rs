@@ -226,7 +226,7 @@ impl FetchResponseListener for ScriptFetchContext {
         }
 
         // Step 4 Let sourceText be the result of UTF-8 decoding bodyBytes.
-        let (source, _, _) = UTF_8.decode(&self.body_bytes);
+        let (source, _, _) = UTF_8.decode_with_bom_removal(&self.body_bytes);
 
         // Step 5 Let script be the result of creating a classic script using
         // sourceText, settingsObject, response's URL, and the default script fetch options.
@@ -733,7 +733,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             };
 
             // Step 8. Let sourceText be the result of UTF-8 decoding bodyBytes.
-            let (source, _, _) = UTF_8.decode(&bytes);
+            let (source, _, _) = UTF_8.decode_with_bom_removal(&bytes);
 
             // Step 9. Let mutedErrors be true if response was CORS-cross-origin, and false otherwise.
             // Note: done inside load_whole_resource
