@@ -4003,15 +4003,16 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                     let child_2 = other_and_ancestors.pop().unwrap();
 
                     if child_1 != child_2 {
-                        let is_before = parent.children().position(|c| c == child_1).unwrap() <
-                            parent.children().position(|c| c == child_2).unwrap();
-                        // If I am before, `other` is following, and the other way
-                        // around.
-                        return if is_before {
-                            NodeConstants::DOCUMENT_POSITION_FOLLOWING
-                        } else {
-                            NodeConstants::DOCUMENT_POSITION_PRECEDING
-                        };
+                        for child in parent.children() {
+                            if child == child_1 {
+                                // `other` is following `self`.
+                                return NodeConstants::DOCUMENT_POSITION_FOLLOWING;
+                            }
+                            if child == child_2 {
+                                // `other` is preceding `self`.
+                                return NodeConstants::DOCUMENT_POSITION_PRECEDING;
+                            }
+                        }
                     }
 
                     parent = child_1;
