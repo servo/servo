@@ -235,7 +235,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             p.clone(),
             Box::new(|promise, bytes| match bytes {
                 Ok(b) => {
-                    let (text, _, _) = UTF_8.decode(&b);
+                    let (text, _, _) = UTF_8.decode_with_bom_removal(&b);
                     let text = DOMString::from(text);
                     promise.resolve_native(&text, CanGc::note());
                 },
