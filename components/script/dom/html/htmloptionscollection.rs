@@ -192,25 +192,31 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
             },
         };
 
-        // Step 1
+        // Step 1: If element is an ancestor of the select element on which the
+        // HTMLOptionsCollection is rooted, then throw a "HierarchyRequestError"
+        // DOMException.
         if node.is_ancestor_of(&root) {
             return Err(Error::HierarchyRequest(None));
         }
 
         if let Some(HTMLElementOrLong::HTMLElement(ref before_element)) = before {
-            // Step 2
+            // Step 2: If before is an element, but that element isn't a descendant
+            // of the select element on which the HTMLOptionsCollection is rooted,
+            // then throw a "NotFoundError" DOMException.
             let before_node = before_element.upcast::<Node>();
             if !root.is_ancestor_of(before_node) {
                 return Err(Error::NotFound(None));
             }
 
-            // Step 3
+            // Step 3: If element and before are the same element, then return.
             if node == before_node {
                 return Ok(());
             }
         }
 
-        // Step 4
+        // Step 4: If before is a node, then let reference be that node. Otherwise,
+        // if before is an integer, and there is a beforeth node in the collection,
+        // let reference be that node. Otherwise, let reference be null.
         let reference_node = before.and_then(|before| match before {
             HTMLElementOrLong::HTMLElement(element) => Some(DomRoot::upcast::<Node>(element)),
             HTMLElementOrLong::Long(index) => self
@@ -219,14 +225,16 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
                 .map(DomRoot::upcast::<Node>),
         });
 
-        // Step 5
+        // Step 5: If reference is not null, let parent be the parent node of
+        // reference. Otherwise, let parent be the select element on which the
+        // HTMLOptionsCollection is rooted.
         let parent = if let Some(ref reference_node) = reference_node {
             reference_node.GetParentNode().unwrap()
         } else {
             root
         };
 
-        // Step 6
+        // Step 6: Pre-insert element into parent node before reference.
         Node::pre_insert(node, &parent, reference_node.as_deref(), CanGc::note()).map(|_| ())
     }
 

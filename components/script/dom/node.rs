@@ -928,8 +928,8 @@ impl Node {
         self == child || self.is_ancestor_of(child)
     }
 
-    pub(crate) fn is_ancestor_of(&self, child: &Node) -> bool {
-        let mut current = &MutNullableDom::new(Some(child));
+    pub(crate) fn is_ancestor_of(&self, possible_descendant: &Node) -> bool {
+        let mut current = &possible_descendant.parent_node;
         let mut done = false;
 
         while let Some(node) = current.if_is_some(|node| {
