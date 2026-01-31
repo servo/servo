@@ -13,11 +13,17 @@ pub(crate) fn expand_dom_object(input: syn::ItemStruct) -> proc_macro2::TokenStr
         .expect("#[dom_struct] should not be applied on empty structs");
 
     let first_field_name = first_field.ident.as_ref().unwrap();
-    let mut field_types = vec![];
+    let mut field_types_and_cfgs = vec![];
     for field in fields {
-        if !field_types.contains(&&field.ty) {
-            field_types.push(&field.ty);
+        if field_types_and_cfgs.contains(&(&field.ty, vec![])) {
+            continue;
         }
+        let cfgs = field
+            .attrs
+            .iter()
+            .filter(|a| a.path().is_ident("cfg"))
+            .collect::<Vec<_>>();
+        field_types_and_cfgs.push((&field.ty, cfgs));
     }
 
     let name = &input.ident;
@@ -78,21 +84,27 @@ pub(crate) fn expand_dom_object(input: syn::ItemStruct) -> proc_macro2::TokenStr
         impl<T> NoDomObjectInDomObject<Invalid> for T where T: ?Sized + crate::DomObject {}
     };
 
-    dummy_items.append_all(field_types.iter().enumerate().map(|(i, ty)| {
-        let s = syn::Ident::new(&format!("S{i}"), proc_macro2::Span::call_site());
-        quote! {
-            struct #s<#params>(#params);
+    dummy_items.append_all(
+        field_types_and_cfgs
+            .iter()
+            .enumerate()
+            .map(|(i, (ty, cfgs))| {
+                let s = syn::Ident::new(&format!("S{i}"), proc_macro2::Span::call_site());
+                quote! {
+                    struct #s<#params>(#params);
 
-            impl #impl_generics #s<#params> #where_clause {
-                fn f() {
-                    // If there is only one specialized trait impl, type inference with
-                    // `_` can be resolved and this can compile. Fails to compile if
-                    // ty implements `NoDomObjectInDomObject<Invalid>`.
-                    let _ = <#ty as NoDomObjectInDomObject<_>>::some_item;
+                    impl #impl_generics #s<#params> #where_clause {
+                        #(#cfgs)*
+                        fn f() {
+                            // If there is only one specialized trait impl, type inference with
+                            // `_` can be resolved and this can compile. Fails to compile if
+                            // ty implements `NoDomObjectInDomObject<Invalid>`.
+                            let _ = <#ty as NoDomObjectInDomObject<_>>::some_item;
+                        }
+                    }
                 }
-            }
-        }
-    }));
+            }),
+    );
 
     let dummy_const = syn::Ident::new(
         &format!("_IMPL_DOMOBJECT_FOR_{}", name),
