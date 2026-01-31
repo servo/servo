@@ -995,7 +995,10 @@ impl Document {
     /// Refresh the cached first base element in the DOM.
     /// <https://github.com/w3c/web-platform-tests/issues/2122>
     pub(crate) fn refresh_base_element(&self) {
-        let base = self
+        if let Some(base_element) = self.base_element.get() {
+            base_element.clear_frozen_base_url();
+        }
+        let new_base_element = self
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLBaseElement>)
@@ -1004,7 +1007,10 @@ impl Document {
                     .upcast::<Element>()
                     .has_attribute(&local_name!("href"))
             });
-        self.base_element.set(base.as_deref());
+        if let Some(ref new_base_element) = new_base_element {
+            new_base_element.set_frozen_base_url();
+        }
+        self.base_element.set(new_base_element.as_deref());
     }
 
     pub(crate) fn dom_count(&self) -> u32 {
