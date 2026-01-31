@@ -521,7 +521,7 @@ impl DedicatedWorkerGlobalScope {
                         fetch_a_module_worker_script_graph(
                             worker.clone(),
                             request.url,
-                            ModuleOwner::Worker(Trusted::new(scope)),
+                            ModuleOwner::Worker(worker.clone(), Trusted::new(scope)),
                             request.referrer,
                             request.credentials_mode,
                             policy_container,

@@ -638,7 +638,7 @@ impl Callback for ModuleHandler {
 /// It can be `worker` or `script` element
 #[derive(Clone, JSTraceable)]
 pub(crate) enum ModuleOwner {
-    Worker(Trusted<WorkerGlobalScope>),
+    Worker(TrustedWorkerAddress, Trusted<WorkerGlobalScope>),
     Window(Trusted<HTMLScriptElement>),
     DynamicModule(Trusted<GlobalScope>),
 }
@@ -646,7 +646,7 @@ pub(crate) enum ModuleOwner {
 impl ModuleOwner {
     pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
         match &self {
-            ModuleOwner::Worker(scope) => scope.root().global(),
+            ModuleOwner::Worker(_, scope) => scope.root().global(),
             ModuleOwner::Window(script) => (*script.root()).global(),
             ModuleOwner::DynamicModule(dynamic_module) => (*dynamic_module.root()).global(),
         }
@@ -654,7 +654,7 @@ impl ModuleOwner {
 
     fn notify_owner_to_finish(&self, module_tree: Option<Rc<ModuleTree>>, can_gc: CanGc) {
         match &self {
-            ModuleOwner::Worker(_) => {
+            ModuleOwner::Worker(_, _) => {
                 if let Some(module_tree) = module_tree {
                     self.global()
                         .run_a_module_script(module_tree, false, can_gc);
@@ -889,7 +889,7 @@ impl FetchResponseListener for ModuleContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         match &self.owner {
-            ModuleOwner::Worker(scope) => {
+            ModuleOwner::Worker(_, scope) => {
                 if let Some(scope) = scope.root().downcast::<DedicatedWorkerGlobalScope>() {
                     scope.report_csp_violations(violations);
                 }
@@ -1429,7 +1429,7 @@ pub(crate) fn fetch_a_single_module_script(
     global.set_module_map(module_request.clone(), ModuleStatus::Fetching(pending));
 
     let document: Option<DomRoot<Document>> = match &owner {
-        ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
+        ModuleOwner::Worker(_, _) | ModuleOwner::DynamicModule(_) => None,
         ModuleOwner::Window(script) => Some(script.root().owner_document()),
     };
     let webview_id = document.as_ref().map(|document| document.webview_id());
