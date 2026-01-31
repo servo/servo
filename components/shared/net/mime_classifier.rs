@@ -309,8 +309,8 @@ impl MimeClassifier {
     /// <https://mimesniff.spec.whatwg.org/#json-mime-type>
     pub fn is_json(mt: &Mime) -> bool {
         mt.suffix() == Some(mime::JSON) ||
-            (mt.subtype() == mime::JSON &&
-                (mt.type_() == mime::APPLICATION || mt.type_() == mime::TEXT))
+            mt.essence_str() == "application/json" ||
+            mt.essence_str() == "text/json"
     }
 
     /// <https://mimesniff.spec.whatwg.org/#font-mime-type>
