@@ -111,10 +111,6 @@ pub(crate) struct WebViewRenderer {
     /// Whether or not this [`WebViewRenderer`] isn't throttled and has a pipeline with
     /// active animations or animation frame callbacks.
     animating: bool,
-    /// A [`ViewportDescription`] for this [`WebViewRenderer`], which contains the limitations
-    /// and initial values for zoom derived from the `viewport` meta tag in web content.
-    viewport_description: Option<ViewportDescription>,
-
     //
     // Data that is shared with the parent renderer.
     //
@@ -152,7 +148,6 @@ impl WebViewRenderer {
             hidpi_scale_factor: Scale::new(hidpi_scale_factor.0),
             hidden: false,
             animating: false,
-            viewport_description: None,
             embedder_to_constellation_sender,
             refresh_driver,
             webrender_document,
@@ -699,7 +694,7 @@ impl WebViewRenderer {
         // Batch up all scroll events and changes to pinch zoom into a single change, or
         // else we'll do way too much painting.
         let mut combined_scroll_event: Option<ScrollEvent> = None;
-        let mut new_pinch_zoom = self.pinch_zoom;
+        let mut new_pinch_zoom = self.pinch_zoom.clone();
         let device_pixels_per_page_pixel = self.device_pixels_per_page_pixel();
 
         for scroll_event in self.pending_scroll_zoom_events.drain(..) {
@@ -942,7 +937,7 @@ impl WebViewRenderer {
     }
 
     pub(crate) fn pinch_zoom(&self) -> PinchZoom {
-        self.pinch_zoom
+        self.pinch_zoom.clone()
     }
 
     fn set_pinch_zoom(&mut self, requested_pinch_zoom: PinchZoom) -> PinchZoomResult {
@@ -958,6 +953,7 @@ impl WebViewRenderer {
         &mut self,
         new_page_zoom: Scale<f32, CSSPixel, DeviceIndependentPixel>,
     ) {
+        // Our Page Zoom range is 0.1 to 10.0. This is isolated with Parsed Viewport Meta Range.
         let new_page_zoom = new_page_zoom.clamp(MIN_PAGE_ZOOM, MAX_PAGE_ZOOM);
         let old_zoom = std::mem::replace(&mut self.page_zoom, new_page_zoom);
         if old_zoom != self.page_zoom {
@@ -1041,11 +1037,14 @@ impl WebViewRenderer {
         old_rect != self.rect
     }
 
-    pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
+    /// Used only for Mobile Form Factor Devices.
+    pub(crate) fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
+        // Apply initial scale to page zoom.
         self.set_page_zoom(Scale::new(
-            viewport_description.clamp_page_zoom(viewport_description.initial_scale.get()),
+            viewport_description.clamp_zoom(viewport_description.initial_scale.get()),
         ));
-        self.viewport_description = Some(viewport_description);
+        self.pinch_zoom
+            .set_viewport_description(viewport_description);
     }
 
     pub(crate) fn scroll_trees_memory_usage(
