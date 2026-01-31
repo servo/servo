@@ -172,21 +172,9 @@ impl CollapsedBorder {
 impl PartialOrd for CollapsedBorder {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         let is_hidden = |border: &Self| border.style_color.style == BorderStyle::Hidden;
-        let style_specificity = |border: &Self| match border.style_color.style {
-            BorderStyle::None => 0,
-            BorderStyle::Inset => 1,
-            BorderStyle::Groove => 2,
-            BorderStyle::Outset => 3,
-            BorderStyle::Ridge => 4,
-            BorderStyle::Dotted => 5,
-            BorderStyle::Dashed => 6,
-            BorderStyle::Solid => 7,
-            BorderStyle::Double => 8,
-            BorderStyle::Hidden => 9,
-        };
         let candidate = (is_hidden(self).cmp(&is_hidden(other)))
             .then_with(|| self.width.cmp(&other.width))
-            .then_with(|| style_specificity(self).cmp(&style_specificity(other)));
+            .then_with(|| self.style_color.style.cmp(&other.style_color.style));
         if !candidate.is_eq() || self.style_color.color == other.style_color.color {
             Some(candidate)
         } else {
