@@ -67,7 +67,6 @@ der = { workspace = true }
 devtools_traits = { workspace = true }
 digest = { workspace = true }
 dom_struct = { path = "../dom_struct" }
-domobject_derive = { path = "../domobject_derive" }
 ecdsa = { workspace = true }
 elliptic-curve = { workspace = true }
 embedder_traits = { workspace = true }
