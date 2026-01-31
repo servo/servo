@@ -2202,14 +2202,6 @@ dependencies = [
 name = "dom_struct"
 version = "0.0.1"
 dependencies = [
- "quote",
- "syn",
-]
-
-[[package]]
-name = "domobject_derive"
-version = "0.0.1"
-dependencies = [
  "proc-macro2",
  "quote",
  "syn",
@@ -7741,7 +7733,6 @@ dependencies = [
  "devtools_traits",
  "digest",
  "dom_struct",
- "domobject_derive",
  "ecdsa",
  "elliptic-curve",
  "embedder_traits",
@@ -7853,7 +7844,6 @@ dependencies = [
  "crossbeam-channel",
  "deny_public_fields",
  "dom_struct",
- "domobject_derive",
  "encoding_rs",
  "html5ever",
  "indexmap",
