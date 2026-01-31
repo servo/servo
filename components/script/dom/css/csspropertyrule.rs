@@ -67,7 +67,7 @@ impl SpecificCSSRule for CSSPropertyRule {
 impl CSSPropertyRuleMethods<crate::DomTypeHolder> for CSSPropertyRule {
     /// <https://drafts.css-houdini.org/css-properties-values-api/#dom-csspropertyrule-name>
     fn Name(&self) -> DOMString {
-        self.property_rule.borrow().name.to_css_string().into()
+        format!("--{}", self.property_rule.borrow().name.0).into()
     }
 
     /// <https://drafts.css-houdini.org/css-properties-values-api/#dom-csspropertyrule-syntax>
