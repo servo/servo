@@ -654,14 +654,18 @@ impl ModuleOwner {
 
     fn notify_owner_to_finish(&self, module_tree: Option<Rc<ModuleTree>>, can_gc: CanGc) {
         match &self {
-            ModuleOwner::Worker(_, _) => {
+            ModuleOwner::Worker(worker, scope) => {
+                let scope = scope.root();
+
+                // NOTE(pylbrecht): no idea if this is the correct way to get a `cx`; just
+                // copy/pasted from `impl FetchResponseListener for ScriptFetchOptions`.
+                #[expect(unsafe_code)]
+                let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+
                 if let Some(module_tree) = module_tree {
-                    self.global()
-                        .run_a_module_script(module_tree, false, can_gc);
+                    scope.on_complete(Some(Script::Module(module_tree)), worker.clone(), &mut cx);
                 } else {
-                    // TODO(pylbrecht): ideally we call DedicatedWorkerGlobalScope::on_complete()
-                    // here, but it's a challenge to get our hands on a worker instance ("the
-                    // dance").
+                    scope.on_complete(None, worker.clone(), &mut cx);
                 }
             },
             ModuleOwner::DynamicModule(_) => unimplemented!(),
