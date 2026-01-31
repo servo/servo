@@ -81,8 +81,8 @@ def run_speedometer():
     try:
         speedometer_to_bmf(speedometer_json, "speedometer.json", sys.argv[1])
     except IndexError:
-        print("You need to supply a profile")
-        sys.exit(1)
+        # this will be caught by the main exec so we are probably in a cache run.
+        print("You need to supply a profile. Not storing data.")
 
 
 if __name__ == "__main__":
