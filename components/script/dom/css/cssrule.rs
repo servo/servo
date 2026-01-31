@@ -17,6 +17,7 @@ use super::csslayerstatementrule::CSSLayerStatementRule;
 use super::cssmediarule::CSSMediaRule;
 use super::cssnamespacerule::CSSNamespaceRule;
 use super::cssnesteddeclarations::CSSNestedDeclarations;
+use super::csspropertyrule::CSSPropertyRule;
 use super::cssstylerule::CSSStyleRule;
 use super::cssstylesheet::CSSStyleSheet;
 use super::csssupportsrule::CSSSupportsRule;
@@ -71,6 +72,8 @@ impl CSSRule {
             rule as &dyn SpecificCSSRule
         } else if let Some(rule) = self.downcast::<CSSNestedDeclarations>() {
             rule as &dyn SpecificCSSRule
+        } else if let Some(rule) = self.downcast::<CSSPropertyRule>() {
+            rule as &dyn SpecificCSSRule
         } else {
             unreachable!()
         }
@@ -122,12 +125,14 @@ impl CSSRule {
                 can_gc,
             )),
             StyleCssRule::FontPaletteValues(_) => unimplemented!(), // TODO
-            StyleCssRule::Property(_) => unimplemented!(),          // TODO
-            StyleCssRule::Margin(_) => unimplemented!(),            // TODO
-            StyleCssRule::Scope(_) => unimplemented!(),             // TODO
-            StyleCssRule::StartingStyle(_) => unimplemented!(),     // TODO
-            StyleCssRule::PositionTry(_) => unimplemented!(),       // TODO
-            StyleCssRule::CustomMedia(_) => unimplemented!(),       // TODO
+            StyleCssRule::Property(s) => {
+                DomRoot::upcast(CSSPropertyRule::new(window, parent_stylesheet, s, can_gc))
+            },
+            StyleCssRule::Margin(_) => unimplemented!(), // TODO
+            StyleCssRule::Scope(_) => unimplemented!(),  // TODO
+            StyleCssRule::StartingStyle(_) => unimplemented!(), // TODO
+            StyleCssRule::PositionTry(_) => unimplemented!(), // TODO
+            StyleCssRule::CustomMedia(_) => unimplemented!(), // TODO
             StyleCssRule::NestedDeclarations(s) => DomRoot::upcast(CSSNestedDeclarations::new(
                 window,
                 parent_stylesheet,
@@ -213,12 +218,16 @@ impl CSSRule {
                 }
             },
             StyleCssRule::FontPaletteValues(_) => unimplemented!(), // TODO
-            StyleCssRule::Property(_) => unimplemented!(),          // TODO
-            StyleCssRule::Margin(_) => unimplemented!(),            // TODO
-            StyleCssRule::Scope(_) => unimplemented!(),             // TODO
-            StyleCssRule::StartingStyle(_) => unimplemented!(),     // TODO
-            StyleCssRule::PositionTry(_) => unimplemented!(),       // TODO
-            StyleCssRule::CustomMedia(_) => unimplemented!(),       // TODO
+            StyleCssRule::Property(s) => {
+                if let Some(rule) = self.downcast::<CSSPropertyRule>() {
+                    rule.update_rule(s.clone());
+                }
+            },
+            StyleCssRule::Margin(_) => unimplemented!(), // TODO
+            StyleCssRule::Scope(_) => unimplemented!(),  // TODO
+            StyleCssRule::StartingStyle(_) => unimplemented!(), // TODO
+            StyleCssRule::PositionTry(_) => unimplemented!(), // TODO
+            StyleCssRule::CustomMedia(_) => unimplemented!(), // TODO
             StyleCssRule::NestedDeclarations(s) => {
                 if let Some(rule) = self.downcast::<CSSNestedDeclarations>() {
                     rule.update_rule(s.clone(), guard);

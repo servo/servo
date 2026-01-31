@@ -15,6 +15,7 @@ pub(crate) mod csslayerstatementrule;
 pub(crate) mod cssmediarule;
 pub(crate) mod cssnamespacerule;
 pub(crate) mod cssnesteddeclarations;
+pub(crate) mod csspropertyrule;
 pub(crate) mod cssrule;
 pub(crate) mod cssrulelist;
 pub(crate) mod cssstyledeclaration;
