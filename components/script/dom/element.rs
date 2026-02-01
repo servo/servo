@@ -566,14 +566,13 @@ impl Element {
         true
     }
 
-    /// <https://drafts.csswg.org/cssom-view/#scrolling-box>
-    fn has_scrolling_box(&self) -> bool {
+    /// <https://www.w3.org/TR/css-overflow-3/#scroll-container>
+    fn establish_scroll_container(&self) -> bool {
         // TODO: scrolling mechanism, such as scrollbar (We don't have scrollbar yet)
         //       self.has_scrolling_mechanism()
-        self.style().is_some_and(|style| {
-            style.get_box().clone_overflow_x().is_scrollable() ||
-                style.get_box().clone_overflow_y().is_scrollable()
-        })
+        self.upcast::<Node>()
+            .effective_overflow()
+            .is_some_and(|overflow| overflow.x.is_scrollable())
     }
 
     fn has_overflow(&self) -> bool {
@@ -2708,7 +2707,8 @@ impl Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() || !self.has_scrolling_box() || !self.has_overflow() {
+        if !self.has_css_layout_box() || !self.establish_scroll_container() || !self.has_overflow()
+        {
             return;
         }
 
@@ -3377,7 +3377,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() || !self.has_scrolling_box() || !self.has_overflow() {
+        if !self.has_css_layout_box() || !self.establish_scroll_container() || !self.has_overflow()
+        {
             return;
         }
 
@@ -3474,7 +3475,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() || !self.has_scrolling_box() || !self.has_overflow() {
+        if !self.has_css_layout_box() || !self.establish_scroll_container() || !self.has_overflow()
+        {
             return;
         }
 
