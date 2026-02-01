@@ -8,9 +8,10 @@ use base::cross_process_instant::CrossProcessInstant;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub enum LargestContentfulPaintType {
+pub enum ContentfulPaintType {
     BackgroundImage,
     Image,
+    Text,
 }
 
 /// Largest Contentful Paint Candidate, include image and block-level element containing text
@@ -21,11 +22,11 @@ pub struct LCPCandidate {
     /// The size of the visual area
     pub area: usize,
     /// The type of LCP candidate
-    pub lcp_type: LargestContentfulPaintType,
+    pub lcp_type: ContentfulPaintType,
 }
 
 impl LCPCandidate {
-    pub fn new(id: LCPCandidateID, lcp_type: LargestContentfulPaintType, area: usize) -> Self {
+    pub fn new(id: LCPCandidateID, lcp_type: ContentfulPaintType, area: usize) -> Self {
         Self { id, lcp_type, area }
     }
 }
@@ -37,7 +38,7 @@ pub struct LCPCandidateID(pub usize);
 pub struct LargestContentfulPaint {
     pub id: LCPCandidateID,
     pub area: usize,
-    pub lcp_type: LargestContentfulPaintType,
+    pub lcp_type: ContentfulPaintType,
     pub paint_time: CrossProcessInstant,
 }
 
