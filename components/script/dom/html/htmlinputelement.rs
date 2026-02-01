@@ -34,7 +34,7 @@ use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDa
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::domstring::parse_floating_point_number;
 use style::attr::AttrValue;
-use style::color::{AbsoluteColor, ColorSpace};
+use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::context::QuirksMode;
 use style::parser::ParserContext;
 use style::selector_parser::PseudoElement;
@@ -1653,6 +1653,18 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         self.value_changed(can_gc);
     }
 
+    // https://html.spec.whatwg.org/multipage/input.html#attr-input-colorspace
+    make_enumerated_getter!(
+        ColorSpace,
+        "colorspace",
+        "limited-srgb" | "display-p3",
+        missing => "limited-srgb",
+        invalid => "limited-srgb"
+    );
+
+    // https://html.spec.whatwg.org/multipage/input.html#attr-input-colorspace
+    make_setter!(SetColorSpace, "colorspace");
+
     // https://html.spec.whatwg.org/multipage/#dom-input-readonly
     make_bool_getter!(ReadOnly, "readonly");
 
@@ -2598,6 +2610,18 @@ impl HTMLInputElement {
         self.serialize_a_color_well_control_color(color, element_value);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#attr-input-colorspace>
+    fn colorspace(&self) -> ColorSpace {
+        let colorspace = self
+            .upcast::<Element>()
+            .get_string_attribute(&local_name!("colorspace"));
+        if colorspace.str() == "display-p3" {
+            ColorSpace::DisplayP3
+        } else {
+            ColorSpace::Srgb
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#serialize-a-color-well-control-color>
     fn serialize_a_color_well_control_color(
         &self,
@@ -2619,31 +2643,40 @@ impl HTMLInputElement {
         }
 
         // Step 4. If element's colorspace attribute is in the Limited sRGB state:
-        // TODO: Servo doesn't support the colorspace attribute yet, so this is always true
-        // Step 4.1 Set color to color converted to the 'srgb' color space.
+        let colorspace_attribute = self.colorspace();
+        if colorspace_attribute == ColorSpace::Srgb {
+            // Step 4.1 Set color to color converted to the 'srgb' color space.
+            color = color.to_color_space(ColorSpace::Srgb);
 
-        // NOTE: Even though we don't support other values for the colorspace attribute, the color might
-        // not be in the "srgb" color space because CSS colors can specify their own colorspaces.
-        // For example: "color(display-p3 1 0 0)"
-        color = color.to_color_space(ColorSpace::Srgb);
+            // Step 4.2 Round each of color's components so they are in the range 0 to 255, inclusive.
+            // Components are to be rounded towards +∞.
+            color.components.0 = color.components.0.clamp(0.0, 1.0);
+            color.components.1 = color.components.1.clamp(0.0, 1.0);
+            color.components.2 = color.components.2.clamp(0.0, 1.0);
 
-        // Step 4.2 Round each of color's components so they are in the range 0 to 255,
-        // inclusive. Components are to be rounded towards +∞.
-        color.components.0 = color.components.0.clamp(0.0, 1.0);
-        color.components.1 = color.components.1.clamp(0.0, 1.0);
-        color.components.2 = color.components.2.clamp(0.0, 1.0);
-
-        // Step 4.3 If element's alpha attribute is not specified, then set htmlCompatible to true.
-        if !has_alpha {
-            html_compatible = true;
+            // Step 4.3 If element's alpha attribute is not specified, then set htmlCompatible to true.
+            if !has_alpha {
+                html_compatible = true;
+            }
+            // Step 4.4 Otherwise, set color to color converted using the 'color()' function.
+            // NOTE: Unsetting the legacy bit forces `color()`
+            else {
+                color.flags &= !ColorFlags::IS_LEGACY_SRGB;
+            }
         }
-
         // Step 5. Otherwise:
-        // TODO: This is unreachable, see the note on Step 4.
+        else {
+            // Step 5.1 Assert: element's colorspace attribute is in the Display P3 state.
+            debug_assert_eq!(colorspace_attribute, ColorSpace::DisplayP3);
+
+            // Step 5.2 Set color to color converted to the 'display-p3' color space.
+            color = color.to_color_space(ColorSpace::DisplayP3);
+        }
 
         // Step 6. Return the result of serializing color. If htmlCompatible is true,
         // then do so with HTML-compatible serialization requested.
         *destination = if html_compatible {
+            color = color.to_color_space(ColorSpace::Srgb);
             format!(
                 "#{:0>2x}{:0>2x}{:0>2x}",
                 (color.components.0 * 255.0).round() as usize,
@@ -3220,6 +3253,15 @@ impl VirtualMethods for HTMLInputElement {
             },
             local_name!("form") => {
                 self.form_attribute_mutated(mutation, can_gc);
+            },
+            local_name!("alpha") | local_name!("colorspace") => {
+                // https://html.spec.whatwg.org/multipage/input.html#attr-input-colorspace
+                // > Whenever the element's alpha or colorspace attributes are changed,
+                // the user agent must run update a color well control color given the element.
+                let mut textinput = self.textinput.borrow_mut();
+                let mut value = textinput.get_content();
+                self.update_a_color_well_control_color(&mut value);
+                textinput.set_content(value);
             },
             _ => {},
         }

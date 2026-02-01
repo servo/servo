@@ -18,6 +18,7 @@ interface HTMLInputElement : HTMLElement {
   [CEReactions]
            attribute boolean defaultChecked;
            attribute boolean checked;
+  [CEReactions] attribute DOMString colorSpace;
   [CEReactions]
            attribute DOMString dirName;
   [CEReactions]
