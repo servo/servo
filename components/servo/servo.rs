@@ -74,6 +74,8 @@ use storage_traits::StorageThreads;
 use style::global_style_data::StyleThreadPool;
 
 use crate::clipboard_delegate::StringRequest;
+#[cfg(feature = "gamepad")]
+use crate::gamepad_provider::{GamepadHapticEffectRequest, GamepadHapticEffectRequestType};
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::network_manager::NetworkManager;
 use crate::proxies::ConstellationProxy;
@@ -586,30 +588,35 @@ impl ServoInner {
                 callback,
             ) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().play_gamepad_haptic_effect(
-                        webview,
+                    let request = GamepadHapticEffectRequest::new(
                         gamepad_index,
-                        gamepad_haptic_effect_type,
+                        GamepadHapticEffectRequestType::Play(gamepad_haptic_effect_type),
                         Box::new(move |success| {
                             callback
                                 .send(success)
                                 .expect("Could not send message via callback")
                         }),
                     );
+                    webview
+                        .gamepad_provider()
+                        .handle_haptic_effect_request(request);
                 }
             },
             #[cfg(feature = "gamepad")]
             EmbedderMsg::StopGamepadHapticEffect(webview_id, gamepad_index, callback) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().stop_gamepad_haptic_effect(
-                        webview,
+                    let request = GamepadHapticEffectRequest::new(
                         gamepad_index,
+                        GamepadHapticEffectRequestType::Stop,
                         Box::new(move |success| {
                             callback
                                 .send(success)
                                 .expect("Could not send message via callback")
                         }),
                     );
+                    webview
+                        .gamepad_provider()
+                        .handle_haptic_effect_request(request);
                 }
             },
             EmbedderMsg::ShowNotification(webview_id, notification) => {
