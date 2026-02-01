@@ -81,25 +81,14 @@ stdenv.mkDerivation (androidEnvironment // {
   buildInputs = [
     # Native dependencies
     fontconfig freetype libunwind
-    xorg.libxcb
-    xorg.libX11
-
-    gst_all_1.gstreamer
-    gst_all_1.gst-plugins-base
-    gst_all_1.gst-plugins-good
-    gst_all_1.gst-plugins-bad
-    gst_all_1.gst-plugins-ugly
 
     rustup
     taplo
     cargo-deny
     cargo-nextest
-    llvmPackages.bintools # provides lld
-
-    udev # Needed by libudev-sys for GamePad API.
 
     # Build utilities
-    cmake dbus gcc git pkg-config which llvm perl yasm m4
+    cmake git pkg-config which llvm perl yasm m4
 
     # Ensure the Python version is same as the one in `.python-version` file so
     # that `uv` will just symlink to the one in nix store. Otherwise `uv` will
@@ -122,10 +111,25 @@ stdenv.mkDerivation (androidEnvironment // {
         # into the Nix store, not Servo and Servo’s dependencies.
         lockFile = ./support/crown/Cargo.lock;
       };
+      buildInputs = lib.optionals stdenv.isDarwin [ zlib libiconv ];
       RUSTC_BOOTSTRAP = "crown";
     })
-  ] ++ (lib.optionals stdenv.isDarwin [
-    darwin.apple_sdk.frameworks.AppKit
+  ] ++ (lib.optionals stdenv.isLinux [
+    # Linux-specific dependencies
+    xorg.libxcb
+    xorg.libX11
+    dbus
+    gcc
+    llvmPackages.bintools # provides lld
+    udev # Needed by libudev-sys for GamePad API.
+
+    gst_all_1.gstreamer
+    gst_all_1.gst-plugins-base
+    gst_all_1.gst-plugins-good
+    gst_all_1.gst-plugins-bad
+    gst_all_1.gst-plugins-ugly
+  ]) ++ (lib.optionals stdenv.isDarwin [
+    apple-sdk_15
   ]) ++ (lib.optionals buildAndroid [
     # for android builds
     openjdk17_headless
@@ -141,8 +145,8 @@ stdenv.mkDerivation (androidEnvironment // {
   TERMINFO = "${ncurses.out}/share/terminfo";
 
 
-  # Provide libraries that aren’t linked against but somehow required
-  LD_LIBRARY_PATH = lib.makeLibraryPath [
+  # Provide libraries that aren’t linked against but somehow required (Linux only)
+  LD_LIBRARY_PATH = lib.optionalString stdenv.isLinux (lib.makeLibraryPath [
     # Fixes missing library errors
     xorg.libXcursor xorg.libXrandr xorg.libXi libxkbcommon
 
@@ -153,13 +157,18 @@ stdenv.mkDerivation (androidEnvironment // {
     # $ cargo run -p libservo --example winit_minimal
     # Unable to load the libEGL shared object
     libGL
-  ];
+  ]);
 
   shellHook = ''
     # Fix invalid option errors during linking
     # https://github.com/mozilla/nixpkgs-mozilla/commit/c72ff151a3e25f14182569679ed4cd22ef352328
     unset AS
 
+    # Don't pollute ~/.rustup with toolchains installed by nixpkgs rustup, because they
+    # get patched in a way that makes them dependent on the Nix store.
+    repo_root=$(git rev-parse --show-toplevel)
+    export RUSTUP_HOME=$repo_root/.rustup
+  '' + lib.optionalString stdenv.isLinux ''
     # Compiling programs under Nix sets the interpreter (ELF INTERP) and rpath (ELF DT_RUNPATH [1])
     # to ensure that it can find the needed (ELF DT_NEEDED) libraries in the Nix store.
     #
@@ -198,11 +207,6 @@ stdenv.mkDerivation (androidEnvironment // {
       export NIX_DYNAMIC_LINKER=$(patchelf --print-interpreter /usr/bin/env)
       export NIX_DONT_SET_RPATH=1
       export NIX_LDFLAGS="$@"
-
-      # Don’t pollute ~/.rustup with toolchains installed by nixpkgs rustup, because they
-      # get patched in a way that makes them dependent on the Nix store.
-      repo_root=$(git rev-parse --show-toplevel)
-      export RUSTUP_HOME=$repo_root/.rustup
     else
       # On NixOS, export FHS wrapper paths so mach can prepend them to PATH at runtime
       # This ensures the FHS-wrapped binaries take precedence over .venv/bin
