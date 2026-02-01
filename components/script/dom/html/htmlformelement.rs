@@ -1599,7 +1599,7 @@ impl FormSubmitterElement<'_> {
     }
 }
 
-pub(crate) trait FormControl: DomObject {
+pub(crate) trait FormControl: DomObject<ReflectorType = ()> {
     fn form_owner(&self) -> Option<DomRoot<HTMLFormElement>>;
 
     fn set_form_owner(&self, form: Option<&HTMLFormElement>);
