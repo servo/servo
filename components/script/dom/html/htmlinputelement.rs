@@ -1653,7 +1653,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         self.value_changed(can_gc);
     }
 
-    // https://html.spec.whatwg.org/multipage/input.html#attr-input-colorspace
+    // https://html.spec.whatwg.org/multipage/#attr-input-colorspace
     make_enumerated_getter!(
         ColorSpace,
         "colorspace",
@@ -1662,7 +1662,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         invalid => "limited-srgb"
     );
 
-    // https://html.spec.whatwg.org/multipage/input.html#attr-input-colorspace
+    // https://html.spec.whatwg.org/multipage/#attr-input-colorspace
     make_setter!(SetColorSpace, "colorspace");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-readonly
@@ -3255,7 +3255,7 @@ impl VirtualMethods for HTMLInputElement {
                 self.form_attribute_mutated(mutation, can_gc);
             },
             local_name!("alpha") | local_name!("colorspace") => {
-                // https://html.spec.whatwg.org/multipage/input.html#attr-input-colorspace
+                // https://html.spec.whatwg.org/multipage/#attr-input-colorspace
                 // > Whenever the element's alpha or colorspace attributes are changed,
                 // the user agent must run update a color well control color given the element.
                 let mut textinput = self.textinput.borrow_mut();
