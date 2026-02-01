@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
 <link rel="match" href="border-shape-shadow-ref.html">
-<meta name="fuzzy" content="maxDifference=0-80;totalPixels=0-450">
+<meta name="fuzzy" content="maxDifference=0-80;totalPixels=0-600">
 <style>
 body {
     margin: 0;
 }
 #target {
-    width: 190px;
-    height: 190px;
-    border-shape: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    width: 200px;
+    height: 200px;
+    border-shape: xywh(0% 0% 100% 100%);
     position: relative;
     background: green;
-    box-shadow: 10px 20px 0 0px purple;
+    box-shadow: 10px 20px 0 10px purple;
     border: 10px solid black;
 }
 </style>

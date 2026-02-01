@@ -2,6 +2,12 @@ features:
 - name: has-slotted
   files:
   - has-slotted-*
+- name: slot
+  files:
+  - css-scoping-shadow-*-slot-*.html
+  - css-scoping-shadow-slotted-*.html
+  - slot-non-html-display-value.html
+  - slotted-*.html
 - name: host-context
   files:
   - host-context-*

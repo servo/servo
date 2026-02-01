@@ -12,13 +12,13 @@ typing_extensions==4.13.2; python_version < '3.9'
 -r ci/requirements_tc.txt
 -r docker/requirements.txt
 -r manifest/requirements.txt
+-r metadata/requirements.txt
 -r metadata/yaml/requirements.txt
 -r requirements_pytest.txt
 -r wave/requirements.txt
 -r webtransport/requirements.txt
 -r wpt/requirements_android.txt
 -r wpt/requirements_install.txt
--r wpt/requirements_metadata.txt
 -r wpt/requirements.txt
 -r wptrunner/requirements_chromium.txt
 -r wptrunner/requirements_firefox.txt

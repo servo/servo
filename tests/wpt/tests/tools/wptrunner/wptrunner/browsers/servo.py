@@ -13,8 +13,8 @@ from .base import get_timeout_multiplier   # noqa: F401
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.base import WdspecExecutor  # noqa: F401
 from ..executors.executorservo import (ServoTestharnessExecutor,  # noqa: F401
-                                             ServoRefTestExecutor,  # noqa: F401
-                                             ServoCrashtestExecutor)  # noqa: F401
+                                       ServoRefTestExecutor,  # noqa: F401
+                                       ServoCrashtestExecutor)  # noqa: F401
 
 here = os.path.dirname(__file__)
 

@@ -10,7 +10,7 @@
     <script>
     test(function () {
       assert_throws_dom("SecurityError", function () {
-        for (let i = 0; i < 500; i++) {
+        for (let i = 0; i < 5000; i++) {
           window.history.pushState(null, null, i);
         }
       });

@@ -10,7 +10,7 @@
 <script>
 
 const url1 = "https://{{domains[www1]}}:{{ports[webtransport-h3][0]}}/webtransport/handlers/echo.py";
-const url2 = url1.replace("www1", "www2");
+const url2 = "https://{{domains[www2]}}:{{ports[webtransport-h3][0]}}/webtransport/handlers/echo.py";
 
 const serverCertificateHashes = [
   {algorithm: "sha-256", value: new Uint8Array(32)}
@@ -19,7 +19,7 @@ const serverCertificateHashes = [
 [
   {url: url1, options: {}},
   {url: url2, options: {}, expected: "connect-src"},
-  {url: url1, options: {serverCertificateHashes}, expected: "connect-src"},
+  {url: url2, options: {serverCertificateHashes}, expected: "connect-src"},
 ].forEach(({url, options, expected}) => promise_test(async t => {
   const haveViolation = new Promise(r => window.onsecuritypolicyviolation = r);
   try {

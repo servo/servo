@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations: keyframe easing var() should not crash</title>
+<meta name="assert" content="This should not crash.">
+<style>
+@keyframes kf {
+  0% {
+    transform: translateX(0px);
+    animation-timing-function: var(--kf_ease);
+  }
+  100% {
+    transform: translateX(100px);
+  }
+}
+
+#target {
+  width: 40px;
+  height: 40px;
+  background: #4a90e2;
+  animation: kf 1s linear 1;
+  will-change: transform;
+}
+</style>
+<div id="target"></div>
+<script>
+  const target = document.getElementById("target");
+  target.getAnimations();
+  document.documentElement.style.setProperty("--kf_ease", "steps(2, start)");
+  const animation = target.getAnimations()[0];
+  animation.effect.getTiming();
+  animation.effect.getKeyframes();
+</script>

@@ -61,3 +61,6 @@ features:
 - name: width-height
   files:
   - percentage-height-replaced-content-in-auto-cb.html
+- name: svg
+  files:
+  - svg-intrinsic-size-*

@@ -2,3 +2,11 @@ features:
 - name: data-urls
   files:
   - addWindow-urlType-data.window.js
+- name: iframe-srcdoc
+  files:
+  - addIframe-srcdoc-startOn.window.js
+  - addIframe-srcdoc.window.js
+- name: iframe
+  files:
+  - addIframe-urlType.window.js
+  - addIframe.window.js

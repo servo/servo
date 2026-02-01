@@ -25,3 +25,6 @@ features:
 - name: http2
   files:
   - status.h2.window.js
+- name: iframe-sandbox
+  files:
+  - access-control-sandboxed-iframe-*

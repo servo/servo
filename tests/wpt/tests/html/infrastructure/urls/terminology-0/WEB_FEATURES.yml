@@ -3,3 +3,8 @@ features:
   files:
   - document-base-url.html
   - multiple-base.sub.html
+- name: iframe-srcdoc
+  files:
+  - document-base-url-about-srcdoc.https.window.js
+  - document-base-url-changes-about-srcdoc.https.window.js
+  - nontraditional-about-srcdoc.html

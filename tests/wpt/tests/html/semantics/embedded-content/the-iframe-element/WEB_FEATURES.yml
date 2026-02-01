@@ -9,3 +9,22 @@ features:
 - name: hashchange
   files:
   - srcdoc_change_hash.html
+- name: iframe-srcdoc
+  files:
+  - srcdoc*
+  - "!srcdoc_change_hash.html"
+- name: iframe-sandbox
+  files:
+  - iframe_sandbox_*
+  - sandbox-*
+  - sandbox_*
+- name: iframe
+  files:
+  - "*"
+  - "!iframe-loading-lazy*"
+  - "!iframe-loading-lazy-base-url*"
+  - "!iframe-with-base.html"
+  - "!srcdoc*"
+  - "!iframe_sandbox_*"
+  - "!sandbox-*"
+  - "!sandbox_*"

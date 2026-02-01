@@ -29,6 +29,9 @@
     test_invalid_value("grid-lanes", '"a a" 1fr normal fill-reverse track-reverse');
     test_invalid_value("grid-lanes", 'repeat(auto-fill, 10px) row-reverse');
     test_invalid_value("grid-lanes", '100px 100px column-reverse');
+    test_invalid_value("grid-lanes", 'row normal "a a" 100px 100px');
+    test_invalid_value("grid-lanes", '10px 20px "a a" "b b" row');
+    test_invalid_value("grid-lanes", '"a" "b" track-reverse fill-reverse row');
   </script>
 </body>
 </html>

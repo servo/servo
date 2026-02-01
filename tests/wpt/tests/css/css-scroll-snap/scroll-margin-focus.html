@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-margin" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.scroller {
+  height: 200px;
+  width: 400px;
+  border: 1px solid black;
+  overflow: auto;
+}
+.header {
+  height: 100px;
+  position: sticky;
+  top: 0;
+  background: rgb(255, 0, 0, 0.3);
+}
+.header + * {
+  scroll-margin-top: 100px;
+}
+.spacer {
+  height: 130px;
+}
+</style>
+<div class="scroller">
+  <div class="header">
+    This header may obscure content below it.
+  </div>
+  <button>Focus this button</button>
+  <div class="spacer"></div>
+  <button>Start on this button</button>
+</div>
+<script>
+test(() => {
+  const scroller = document.querySelector('.scroller');
+  let buttons = document.querySelectorAll('button');
+  assert_greater_than(scroller.scrollHeight, scroller.clientHeight,
+      'scroller should have scrolling content');
+
+  // Focusing the second button should scroll down.
+  buttons[1].focus();
+  assert_equals(scroller.scrollTop, scroller.scrollHeight - scroller.clientHeight,
+      'scrolls to bottom of scroller');
+
+  // Focusing the first button should scroll up.
+  buttons[0].focus();
+  assert_equals(scroller.scrollTop, 0,
+      'scrolls to top of scroller');
+
+}, "Focus should scroll button outside of scroll margin");
+</script>
+
+</html>

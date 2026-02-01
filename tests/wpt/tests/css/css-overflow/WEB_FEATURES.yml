@@ -20,6 +20,18 @@ features:
 - name: overflow-overlay
   files:
   - overflow-overlay.html
+- name: overflow-clip-margin
+  files:
+  - overflow-clip-margin-*
+  - overflow-no-interpolation.html
+  - paint-containment-svg.html
+- name: overflow-clip
+  files:
+  - clip-*
+  - overflow-clip-*
+  - "!overflow-clip-margin-*"
+  - dynamic-visible-to-clip-001.html
+  - rounded-overflow-clip-visible.html
 - name: overflow-shorthand
   files:
   - overflow-*
@@ -27,6 +39,7 @@ features:
   - "!overflow-scroll-*"
   - "!overflow-no-interpolation.html" # depends on transition-behavior
   - "!overflow-ellipsis-dynamic-001.html"
+  - "!overflow-clip-*"
 - name: column-pseudo
   files:
   - chrome-421199213-crash.html

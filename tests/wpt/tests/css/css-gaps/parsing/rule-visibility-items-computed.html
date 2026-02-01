@@ -14,8 +14,7 @@
   <div id="target"></div>
   </div>
   <script>
-    // TODO(samomekarajr): Add tests for shorthand 'rule-visibility-items' once implemented.
-    const properties = ["column-rule-visibility-items", "row-rule-visibility-items"];
+    const properties = ["column-rule-visibility-items", "row-rule-visibility-items", "rule-visibility-items"];
     for (const property of properties) {
       test_computed_value(property, "all");
       test_computed_value(property, "around");

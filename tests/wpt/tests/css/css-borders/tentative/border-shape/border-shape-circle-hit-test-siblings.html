@@ -1,0 +1,95 @@
+
+<!DOCTYPE html>
+<title>CSS Borders Test: hit testing border-shape circle depth order with siblings</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  .container {
+    position: relative;
+    width: 200px;
+    height: 100px;
+  }
+  .sibling {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    top: 0;
+    left: 0;
+    background: blue;
+    opacity: 0.5;
+  }
+  #target {
+    position: absolute;
+    left: 50px;
+    width: 80px;
+    height: 80px;
+    border-shape: circle(45px at 50% 50%);
+    border: 10px solid purple;
+    background: green;
+  }
+  .sibling2 {
+    position: absolute;
+    left: 100px;
+    width: 100px;
+    height: 100px;
+    background: red;
+    opacity: 0.5;
+  }
+</style>
+<div class="container">
+  <div class="sibling" id="before"></div>
+  <div id="target"></div>
+  <div class="sibling2" id="after"></div>
+</div>
+<script>
+  function getRect(el) {
+    return el.getBoundingClientRect();
+  }
+  function getCenter(el) {
+    const r = getRect(el);
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }
+  function polarToXY(center, radius, angleRad) {
+    return {
+      x: Math.round(center.x + radius * Math.cos(angleRad)),
+      y: Math.round(center.y + radius * Math.sin(angleRad))
+    };
+  }
+  let hit = null;
+  function handler(e) { hit = e.currentTarget.id; }
+  const before = document.getElementById('before');
+  const target = document.getElementById('target');
+  const after = document.getElementById('after');
+  const center = getCenter(target);
+  const strokeWidthHalf = 5; // 10px stroke-width
+  const radius = 45 + strokeWidthHalf;
+  promise_test(async t => {
+    // Checking hit on upper left part of the circle border (should be before).
+    hit = null;
+    before.addEventListener('pointerdown', handler, { once: true });
+    const { x, y } = polarToXY(center, radius + 1, (3 * Math.PI) / 4); // angle 135deg, top-left edge of the circle
+    await new test_driver.Actions().pointerMove(x, y).pointerDown().pointerUp().send();
+    assert_equals(hit, 'before', 'Before sibling hit while not overlapping');
+  });
+  promise_test(async t => {
+    // Checking hit on left part of the circle border (should be target).
+    hit = null;
+    target.addEventListener('pointerdown', handler, { once: true });
+    const { x, y } = polarToXY(center, radius, Math.PI); // angle 180deg, left edge of the circle
+    await new test_driver.Actions().pointerMove(x, y).pointerDown().pointerUp().send();
+    assert_equals(hit, 'target', 'Target has higher z-index than before sibling while overlapping');
+  });
+  promise_test(async t => {
+    // Checking hit on right part of the circle (should be after).
+    hit = null;
+    after.addEventListener('pointerdown', handler, { once: true });
+    const { x, y } = polarToXY(center, radius, 0); // angle 0deg, right edge of the circle
+    await new test_driver.Actions().pointerMove(x, y).pointerDown().pointerUp().send();
+    assert_equals(hit, 'after', 'Target has lower z-index than after sibling while overlapping');
+  });
+</script>
+

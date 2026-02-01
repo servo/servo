@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Native arrow key handler elements and Tab escape</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<meta name="assert" content="Native arrow key handler elements inside a focusgroup do not trigger focusgroup arrow navigation when focused. Tab/Shift+Tab treats them as if they have focusgroup=none, following normal Tab order.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div id=before tabindex=0>Before focusgroup</div>
+
+<div id=toolbar focusgroup="toolbar no-memory">
+  <button id=bold type="button">Bold</button>
+  <!-- Native text input is a native arrow key handler for both axes. -->
+  <input id=search type="text" value="Search" />
+  <button id=italic type="button">Italic</button>
+</div>
+
+<div id=after tabindex=0>After focusgroup</div>
+
+<script>
+  // Arrow keys CAN navigate TO a native arrow key handler (entry works).
+  promise_test(async t => {
+    const bold = document.getElementById("bold");
+    const search = document.getElementById("search");
+
+    bold.focus();
+    assert_equals(document.activeElement, bold, "Precondition: focus starts on bold button");
+
+    await focusAndKeyPress(bold, kArrowRight);
+    assert_equals(document.activeElement, search,
+                  "Arrow right should navigate TO native arrow key handler (entry allowed)");
+  }, "Arrow keys can navigate TO native arrow key handler (entry)");
+
+  // Arrow keys CANNOT navigate FROM a native arrow key handler (exit blocked).
+  // The element's native arrow key behavior takes precedence.
+  promise_test(async t => {
+    const search = document.getElementById("search");
+
+    search.focus();
+    assert_equals(document.activeElement, search, "Precondition: focus starts on native arrow key handler");
+
+    await focusAndKeyPress(search, kArrowRight);
+    assert_equals(document.activeElement, search,
+                  "Right arrow should not move focus out of native arrow key handler (native behavior)");
+
+    await focusAndKeyPress(search, kArrowLeft);
+    assert_equals(document.activeElement, search,
+                  "Left arrow should not move focus out of native arrow key handler (native behavior)");
+  }, "Arrow keys cannot navigate FROM native arrow key handler (exit blocked)");
+
+  // Tab from native arrow key handler: the element is treated as if it has
+  // focusgroup="none", so normal Tab order applies. Non-entry focusgroup
+  // items are skipped, and focus exits the focusgroup.
+  promise_test(async t => {
+    const search = document.getElementById("search");
+    const after = document.getElementById("after");
+
+    search.focus();
+    assert_equals(document.activeElement, search, "Precondition: focus starts on native arrow key handler");
+
+    await navigateFocusForward();
+    assert_equals(document.activeElement, after,
+                  "Tab from native arrow key handler should follow normal Tab order (exit focusgroup)");
+  }, "Tab from native arrow key handler follows normal Tab order");
+
+  // Shift+Tab from native arrow key handler: the element is treated as if it has
+  // focusgroup="none". Looking backward, the entry element (bold) is visited.
+  promise_test(async t => {
+    const bold = document.getElementById("bold");
+    const search = document.getElementById("search");
+
+    search.focus();
+    assert_equals(document.activeElement, search, "Precondition: focus starts on native arrow key handler");
+
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, bold,
+                  "Shift+Tab from native arrow key handler should go to entry element");
+  }, "Shift+Tab from native arrow key handler goes to entry element");
+</script>

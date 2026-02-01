@@ -2,9 +2,14 @@
 <title>View transitions: Old content is an inline element (ref)</title>
 <link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
 <link rel="author" href="mailto:bokan@chromium.org">
+<link rel="stylesheet" href="/fonts/ahem.css">
 
 <style>
-:root { background-color: rebeccapurple; }
+:root {
+  background-color: rebeccapurple;
+  font: 20px/1 Ahem;
+}
+
 body { margin: 0; }
 
 .container {
@@ -31,7 +36,7 @@ body { margin: 0; }
 
 .inline {
   background-color: limegreen;
-  color: rgba(0, 0, 0, 0);
+  color: blue;
 }
 
 .transitioned .inline {
@@ -49,20 +54,20 @@ body { margin: 0; }
 </style>
 
 <div class="container start">
-  <span>FILLER FILLER</span>
-  <span id="start" class="inline">INLINE INLINE INLINE INLINE</span>
+  <span>FILL FILL</span>
+  <span id="start" class="inline">INL INL</span>
   <p>START STATE</p>
 </div>
 
 <div class="container end transitioned">
-  <span>FILLER FILLER</span>
-  <span id="end" class="inline">INLINE INLINE INLINE INLINE</span>
+  <span>FILL FILL</span>
+  <span id="end" class="inline">INL INL</span>
   <p>END STATE</p>
 </div>
 
 <div id="dummyEndInline">
-  <span style="opacity:0">FILLER FILLER</span>
-  <span class="inline">INLINE INLINE INLINE INLINE</span>
+  <span style="opacity:0">FILL FILL</span>
+  <span class="inline">INL INL</span>
 </div>
 <script>
   let endWidth = document.getElementById('end').getBoundingClientRect().width;

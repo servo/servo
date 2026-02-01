@@ -8,6 +8,10 @@ features:
 - name: hanging-punctuation
   files:
   - hanging-punctuation-*
+- name: overflow-wrap
+  files:
+  - overflow-wrap*
+  - word-wrap*
 - name: text-spacing-trim
   files:
   - text-spacing-trim-*

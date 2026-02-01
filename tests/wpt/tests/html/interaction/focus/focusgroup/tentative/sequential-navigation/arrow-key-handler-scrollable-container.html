@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Scrollable containers as native arrow key handlers</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<meta name="assert" content="Focusable scrollable containers block arrow navigation only on their scrollable axes.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<style>
+  .scroll-container {
+    width: 100px;
+    height: 100px;
+    border: 1px solid black;
+  }
+  .scroll-content {
+    width: 200px;
+    height: 200px;
+    background: linear-gradient(to bottom right, red, blue);
+  }
+  .horizontal-scroll {
+    overflow-x: scroll;
+    overflow-y: hidden;
+  }
+  .vertical-scroll {
+    overflow-x: hidden;
+    overflow-y: scroll;
+  }
+  .both-scroll {
+    overflow: scroll;
+  }
+</style>
+
+<!-- Toolbar with horizontal-only scroll container -->
+<div id="toolbar1" focusgroup="toolbar">
+  <button id="t1_btn1">Button 1</button>
+  <div id="t1_hscroll" class="scroll-container horizontal-scroll" tabindex="0">
+    <div class="scroll-content"></div>
+  </div>
+  <button id="t1_btn2">Button 2</button>
+</div>
+
+<!-- Toolbar with vertical-only scroll container -->
+<div id="toolbar2" focusgroup="toolbar">
+  <button id="t2_btn1">Button 1</button>
+  <div id="t2_vscroll" class="scroll-container vertical-scroll" tabindex="0">
+    <div class="scroll-content"></div>
+  </div>
+  <button id="t2_btn2">Button 2</button>
+</div>
+
+<!-- Toolbar with both-axis scroll container -->
+<div id="toolbar3" focusgroup="toolbar">
+  <button id="t3_btn1">Button 1</button>
+  <div id="t3_bothscroll" class="scroll-container both-scroll" tabindex="0">
+    <div class="scroll-content"></div>
+  </div>
+  <button id="t3_btn2">Button 2</button>
+</div>
+
+<script>
+
+  // Helper to test specific arrow keys.
+  async function pressArrowKey(element, key) {
+    element.focus();
+    return test_driver.send_keys(element, key);
+  }
+
+  promise_test(async t => {
+    const btn1 = document.getElementById("t1_btn1");
+    const hscroll = document.getElementById("t1_hscroll");
+    const btn2 = document.getElementById("t1_btn2");
+
+    // Arrow navigation TO horizontal scroll container works.
+    await focusAndKeyPress(btn1, kArrowRight);
+    assert_equals(document.activeElement, hscroll,
+      "Arrow right should navigate to horizontal scroll container");
+
+    // Horizontal arrows (inline axis) are blocked - scroll container uses them.
+    await pressArrowKey(hscroll, kArrowRight);
+    assert_equals(document.activeElement, hscroll,
+      "Arrow right should NOT move focus (scroll container uses inline axis)");
+
+    await pressArrowKey(hscroll, kArrowLeft);
+    assert_equals(document.activeElement, hscroll,
+      "Arrow left should NOT move focus (scroll container uses inline axis)");
+
+    // Vertical arrows (block axis) should still work - scroll container doesn't use them.
+    await pressArrowKey(hscroll, kArrowDown);
+    assert_equals(document.activeElement, btn2,
+      "Arrow down SHOULD move focus (scroll container doesn't use block axis)");
+
+    await pressArrowKey(hscroll, kArrowUp);
+    assert_equals(document.activeElement, btn1,
+      "Arrow up SHOULD move focus (scroll container doesn't use block axis)");
+  }, "Horizontal-only scroll container blocks inline axis but allows block axis navigation");
+
+  promise_test(async t => {
+    const btn1 = document.getElementById("t2_btn1");
+    const vscroll = document.getElementById("t2_vscroll");
+    const btn2 = document.getElementById("t2_btn2");
+
+    // Arrow navigation TO vertical scroll container works.
+    await focusAndKeyPress(btn1, kArrowRight);
+    assert_equals(document.activeElement, vscroll,
+      "Arrow right should navigate to vertical scroll container");
+
+    // Vertical arrows (block axis) are blocked - scroll container uses them.
+    await pressArrowKey(vscroll, kArrowDown);
+    assert_equals(document.activeElement, vscroll,
+      "Arrow down should NOT move focus (scroll container uses block axis)");
+
+    await pressArrowKey(vscroll, kArrowUp);
+    assert_equals(document.activeElement, vscroll,
+      "Arrow up should NOT move focus (scroll container uses block axis)");
+
+    // Horizontal arrows (inline axis) should still work - scroll container doesn't use them.
+    await pressArrowKey(vscroll, kArrowRight);
+    assert_equals(document.activeElement, btn2,
+      "Arrow right SHOULD move focus (scroll container doesn't use inline axis)");
+
+    await pressArrowKey(vscroll, kArrowLeft);
+    assert_equals(document.activeElement, btn1,
+      "Arrow left SHOULD move focus (scroll container doesn't use inline axis)");
+  }, "Vertical-only scroll container blocks block axis but allows inline axis navigation");
+
+  promise_test(async t => {
+    const btn1 = document.getElementById("t3_btn1");
+    const bothscroll = document.getElementById("t3_bothscroll");
+    const btn2 = document.getElementById("t3_btn2");
+
+    // Arrow navigation TO both-axis scroll container works.
+    await focusAndKeyPress(btn1, kArrowRight);
+    assert_equals(document.activeElement, bothscroll,
+      "Arrow right should navigate to both-axis scroll container");
+
+    // All arrow keys are blocked - scroll container uses both axes.
+    await assert_arrow_keys_do_not_move_focus(bothscroll);
+  }, "Both-axis scroll container blocks all arrow navigation");
+
+</script>

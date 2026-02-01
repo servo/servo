@@ -288,6 +288,13 @@ async function testCreateAbort(t, createMethod, options, instanceMethods) {
   }
 }
 
+// Helper function to check that 'actual' is within 'expected +/- delta'.
+function isValueInRange(actual, expected, delta = 5) {
+  const lowerBound = expected - delta;
+  const upperBound = expected + delta;
+  return actual >= lowerBound && actual <= upperBound;
+}
+
 function consumeTransientUserActivation() {
   const win = window.open('about:blank', '_blank');
   if (win)

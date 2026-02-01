@@ -1,4 +1,7 @@
 features:
+- name: overflow-clip-margin
+  files:
+  - overflow-clip-margin*
 - name: scroll-markers
   files:
   - scroll-markers*

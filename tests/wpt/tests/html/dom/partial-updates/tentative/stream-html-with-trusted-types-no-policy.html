@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/helper.sub.js"></script>
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      test((t) => {
+        var container = document.querySelector("#container");
+        let d = document.createElement("div");
+        document.querySelector("#container").appendChild(d);
+        assert_throws_js(TypeError, () => d.streamHTMLUnsafe());
+      }, "Streaming with trusted types and no default policy throws.");
+    </script>
+  </body>
+</html>

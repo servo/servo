@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>pausing animated image for img</title>
+<link rel="help" href="https://webplatform.design/projects/image-animation/image-animation-property/spec/overview">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-img-paused.tentative-ref.html" />
+<script src="/common/reftest-wait.js"></script>
+<script>
+  let count = 0;
+  function loaded() {
+    count++;
+    if(count === 2) {
+        takeScreenshotDelayed(300);
+    }
+  }
+</script>
+
+<style>
+  img {
+    image-animation: paused;
+  }
+</style>
+
+<img src="../../images/anim-gr.gif" onload="loaded()" />
+<img src="../../images/anim-gr.png" onload="loaded()" />
+
+</html>

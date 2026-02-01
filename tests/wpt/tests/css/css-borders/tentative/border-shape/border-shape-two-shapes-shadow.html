@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="border-shape-two-shapes-shadow-ref.html">
+<meta name="fuzzy" content="maxDifference=0-110;totalPixels=0-1400">
+<style>
+body {
+    margin: 0;
+}
+#target {
+    width: 200px;
+    height: 200px;
+    border-shape: circle(50%) circle(25%);
+    position: relative;
+    background: green;
+    border-color: yellow;
+    box-shadow: 10px 10px 0 5px blue, 0 0 0 5px purple inset;
+}
+</style>
+<div id="target">
+</div>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Native arrow key handlers with Tab navigation and memory</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<meta name="assert" content="Focused native arrow key handlers are treated as opted-out during Tab navigation, and focus memory restores to them.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<button id="before">Before</button>
+<div id="toolbar" focusgroup="toolbar">
+  <button id="btn1">Button 1</button>
+  <input id="search" type="text" focusgroupstart placeholder="Search">
+  <button id="btn2">Button 2</button>
+</div>
+<button id="after">After</button>
+
+<script>
+
+  promise_test(async t => {
+    const btn1 = document.getElementById("btn1");
+    const search = document.getElementById("search");
+
+    // Arrow navigation TO native arrow key handler works, FROM does not.
+    await focusAndKeyPress(btn1, kArrowRight);
+    assert_equals(document.activeElement, search);
+    await assert_arrow_keys_do_not_move_focus(search);
+  }, "Native arrow key handler participates in arrow navigation as target only");
+
+  promise_test(async t => {
+    const before = document.getElementById("before");
+    const search = document.getElementById("search");
+    const after = document.getElementById("after");
+
+    // Focused native arrow key handler exits focusgroup on Tab.
+    await assert_focusgroup_tab_navigation([search, after]);
+
+    // Shift+Tab returns to focused native arrow key handler.
+    await navigateFocusBackward();
+    assert_equals(document.activeElement, search);
+
+    // Entry from before also goes to focused element (memory).
+    await assert_focusgroup_tab_navigation([before, search]);
+  }, "Focused native arrow key handler behaves as opted-out but memory restores to it");
+
+  promise_test(async t => {
+    const before = document.getElementById("before");
+    const btn2 = document.getElementById("btn2");
+    const search = document.getElementById("search");
+    const after = document.getElementById("after");
+
+    // Establish memory at btn2, then focus search and verify it takes precedence.
+    btn2.focus();
+    after.focus();
+    await assert_focusgroup_tab_navigation([before, btn2]);
+
+    search.focus();
+    await assert_focusgroup_tab_navigation([before, search]);
+  }, "Focused native arrow key handler takes precedence over memory");
+
+</script>

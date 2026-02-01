@@ -3,3 +3,11 @@ features:
   files:
   - navigation-unload-data-url.window.js
   - redirect-to-data.html
+- name: iframe-srcdoc
+  files:
+  - about-srcdoc-navigation-blocked.window.js
+  - grandparent_location_aboutsrcdoc.sub.window.js
+  - grandparent_session_aboutsrcdoc.sub.window.js
+- name: iframe
+  files:
+  - empty-iframe-load-event.html

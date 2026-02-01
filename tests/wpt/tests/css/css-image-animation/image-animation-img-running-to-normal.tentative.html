@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>image-animation: normal sync the timeline</title>
+<link rel="help" href="https://webplatform.design/projects/image-animation/image-animation-property/spec/overview">
+<meta charset="utf-8" />
+<link rel="match" href="image-animation-img-running-to-normal.tentative-ref.html" />
+<script src="/common/reftest-wait.js"></script>
+<script>
+  let count = 0;
+  function loaded() {
+    count++;
+    if (count === 1) {
+      setTimeout(() => {
+        document.getElementById('img2').src = "../../images/anim-gr.gif"
+      }, 20);
+    }
+    if (count === 2) {
+      document.getElementById('img2').style.imageAnimation = "normal"
+      takeScreenshot();
+    }
+  }
+</script>
+
+<style>
+  #img2 {
+    image-animation: running;
+  }
+</style>
+
+<img id="img1" src="../../images/anim-gr.gif" onload="loaded()" />
+<img id="img2" onload="loaded()" />
+
+</html>

@@ -30,7 +30,8 @@ async def test_frame_context(
     wait_for_event,
     wait_for_future_safe,
     domain,
-    phase
+    phase,
+    iframe
 ):
     await setup_network_test(
         events=[
@@ -40,9 +41,8 @@ async def test_frame_context(
         ],
         contexts=[new_tab["context"]],
     )
-
-    frame_url = inline("<div>foo</div>")
-    test_url = inline(f"<iframe src='{frame_url}'></iframe>", domain=domain)
+    frame_html = "<div>foo</div>"
+    test_url = inline(iframe(frame_html), domain=domain)
     await bidi_session.browsing_context.navigate(
         url=test_url, context=new_tab["context"], wait="complete"
     )

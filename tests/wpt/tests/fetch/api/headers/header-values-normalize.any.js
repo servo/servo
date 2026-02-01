@@ -49,6 +49,7 @@ for(let i = 0; i < 0x21; i++) {
           assert_equals(xhr.getResponseHeader("x-request-val2"), expectedVal2)
           assert_equals(xhr.getResponseHeader("x-request-val3"), expectedVal3)
         })
+        xhr.onerror = t.unreached_func("XHR should not fail")
         xhr.send()
       }
     }, "XMLHttpRequest with value " + encodeURI(val))

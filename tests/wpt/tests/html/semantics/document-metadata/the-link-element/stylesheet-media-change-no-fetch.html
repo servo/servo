@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>stylesheet should not re-fetch when media changes. The media change should apply immediately</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#link-type-stylesheet">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#processing-the-media-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  p {
+    color: red;
+  }
+</style>
+<body></body>
+<script>
+  promise_test(async t => {
+    const link = document.createElement("link");
+    function waitForStylesheet() {
+      return new Promise(resolve => link.addEventListener("load", resolve, {once: true}));
+    }
+    link.media = "none";
+    link.rel = "stylesheet";
+    link.href = "resources/good.css";
+    const p = document.createElement("p");
+    p.textContent = "hello";
+    document.body.appendChild(p);
+    document.body.appendChild(link);
+    await waitForStylesheet();
+    assert_equals(getComputedStyle(p).color, "rgb(255, 0, 0)");
+    link.media = "all";
+    assert_equals(getComputedStyle(p).color, "rgb(0, 128, 0)");
+    const loaded = waitForStylesheet().then(() => "load");
+    const timeout = new Promise(resolve => t.step_timeout(() => resolve("timeout"), 100));
+    const result = await Promise.race([loaded, timeout]);
+    assert_equals(result, "timeout");
+  });
+</script>

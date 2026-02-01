@@ -87,9 +87,14 @@
 
 <!-- Transitions -->
 <style>
-  #abs_transition.move {
-    top: 10px !important;
-    transition: top 1000s steps(2, start);
+  #abs_transition {
+    top: 50px;
+
+    &.move {
+      top: 10px !important;
+      transition: top 1000s steps(2, start);
+    }
+  }
 </style>
 <div class=cb>
   <div id=abs_transition class=abs></div>

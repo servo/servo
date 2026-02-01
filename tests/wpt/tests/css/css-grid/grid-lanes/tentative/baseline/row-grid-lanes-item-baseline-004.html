@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: baseline alignment with multi-track spanning items and dense packing</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#masonry-baseline-alignment">
+  <link rel="match" href="row-grid-lanes-item-baseline-004-ref.html">
+  <style>
+    .grid-lanes {
+      width: 500px;
+      border: solid 5px;
+      gap: 3px;
+      display: grid-lanes;
+      grid-lanes-direction: row;
+      grid-template-rows: repeat(4, 80px);
+      grid-lanes-pack: dense;
+      grid-auto-flow: dense;
+      background-color: #f0f0f0;
+      border-color: slateblue;
+      margin-bottom: 20px;
+      font: 16px/1 monospace;
+    }
+
+    .fb {
+      align-items: first baseline;
+    }
+
+    .lb {
+      align-items: last baseline;
+    }
+
+    .item {
+      width: 100px;
+      padding: 5px;
+      text-decoration: underline;
+    }
+
+    #item1 {
+      background-color: #8cffa0;
+      min-height: 30px;
+      grid-row: 1 / 2;
+      font-size: 16px;
+    }
+
+    #item2 {
+      background-color: #a0c8ff;
+      min-height: 40px;
+      grid-row: 1 / 2;
+      font-size: 20px;
+    }
+
+    #item3 {
+      background-color: #ffa08c;
+      min-height: 100px;
+      grid-row: 1 / 3;
+      font-size: 18px;
+    }
+
+    #item4 {
+      background-color: #ffff8c;
+      min-height: 35px;
+      grid-row: 1 / 2;
+      font-size: 14px;
+    }
+
+    #item5 {
+      background-color: #ff8cff;
+      min-height: 45px;
+      grid-row: 2 / 3;
+      font-size: 22px;
+    }
+
+    #item6 {
+      background-color: #8cffff;
+      min-height: 30px;
+      grid-row: 2 / 3;
+      font-size: 16px;
+    }
+
+    #item7 {
+      background-color: #ff8c8c;
+      min-height: 120px;
+      grid-row: 3 / 5;
+      font-size: 24px;
+    }
+
+    #item8 {
+      background-color: #c8ffa0;
+      min-height: 35px;
+      grid-row: 3 / 4;
+      font-size: 18px;
+    }
+
+    #item9 {
+      background-color: #a0a0ff;
+      min-height: 40px;
+      grid-row: 3 / 4;
+      font-size: 16px;
+    }
+
+    #item10 {
+      background-color: #ffc88c;
+      min-height: 30px;
+      grid-row: 4 / 5;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+<div class="grid-lanes fb">
+  <div id="item1" class="item">1</div>
+  <div id="item2" class="item">2</div>
+  <div id="item3" class="item">3<br/>line 2</div>
+  <div id="item4" class="item">4</div>
+  <div id="item5" class="item">5</div>
+  <div id="item6" class="item">6</div>
+  <div id="item7" class="item">7<br/>line 2</div>
+  <div id="item8" class="item">8</div>
+  <div id="item9" class="item">9</div>
+  <div id="item10" class="item">10</div>
+</div>
+<div class="grid-lanes lb">
+  <div id="item1" class="item">1</div>
+  <div id="item2" class="item">2</div>
+  <div id="item3" class="item">3<br/>line 2</div>
+  <div id="item4" class="item">4</div>
+  <div id="item5" class="item">5</div>
+  <div id="item6" class="item">6</div>
+  <div id="item7" class="item">7<br/>line 2</div>
+  <div id="item8" class="item">8</div>
+  <div id="item9" class="item">9</div>
+  <div id="item10" class="item">10</div>
+</div>
+</body>
+</html>

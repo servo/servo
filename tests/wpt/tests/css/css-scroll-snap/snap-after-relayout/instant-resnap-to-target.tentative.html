@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Scroll Snap: Re-snap after layout is instant.</title>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <script src="/css/css-scroll-snap/support/common.js"></script>
+  </head>
+  <body>
+    <style>
+      #scroller {
+        height: 200px;
+        width: 200px;
+        overflow-y: scroll;
+        border: 1px;
+        scroll-snap-type: y mandatory;
+        scroll-behavior: smooth;
+      }
+      .target {
+        scroll-snap-align: start;
+        height: 100px;
+        width: 100px;
+      }
+      .pad {
+        width: 50%;
+        height: 300px;
+      }
+      #child1 {
+        background-color: blue;
+      }
+      #child2 {
+        background-color: green;
+      }
+    </style>
+    <div id="scroller">
+      <div class="pad"></div>
+      <div id="child1"></div>
+      <div class="pad"></div>
+      <div id="child2"></div>
+      <div class="pad"></div>
+    </div>
+    <script>
+      const PAD_SIZE = 300;
+
+      promise_test(async(test) => {
+        // Scroll so as to snap to the lower child (child2).
+        const scrollend_promise =
+            waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+        child2.scrollIntoView();
+        await scrollend_promise;
+
+        assert_equals(scroller.scrollTop,
+            child2.offsetTop - scroller.offsetTop,
+            "scroller is snapped to top of child2");
+        const start_offset = scroller.scrollTop;
+        const end_offset = start_offset + PAD_SIZE;
+
+        // Flag to observe whether a smooth or instant scroll was performed.
+        let observed_intermediate_offset = false;
+        scroller.addEventListener("scroll", () => {
+          if (scroller.scrollTop != start_offset &&
+              scroller.scrollTop != end_offset) {
+            observed_intermediate_offset = true;
+          }
+        });
+
+        // Insert padding between child1 and child2, pushing child2 further
+        // down. Expect to still be snapped to child2.
+        const pad = document.createElement("div");
+        pad.className = "pad";
+        child1.after(pad);
+
+        assert_equals(scroller.scrollTop, end_offset,
+            "scroller is still snapped to top of child2");
+        assert_false(observed_intermediate_offset,
+            "instant scroll was performed");
+      }, "The re-snap to the same target is instant");
+    </script>
+  </body>
+</html>

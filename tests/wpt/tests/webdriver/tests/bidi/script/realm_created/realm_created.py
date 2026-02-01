@@ -132,7 +132,7 @@ async def test_sandbox(
 
 
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
-async def test_iframe(bidi_session, subscribe_events, top_context, inline, domain):
+async def test_iframe(bidi_session, subscribe_events, top_context, inline, domain, iframe):
     await subscribe_events(events=[REALM_CREATED_EVENT])
 
     events = []
@@ -143,8 +143,8 @@ async def test_iframe(bidi_session, subscribe_events, top_context, inline, domai
     remove_listener = bidi_session.add_event_listener(
         REALM_CREATED_EVENT, on_event)
 
-    frame_url = inline("<div>foo</div>")
-    url = inline(f"<iframe src='{frame_url}'></iframe>", domain=domain)
+    frame_html = "<div>foo</div>"
+    url = inline(iframe(frame_html), domain=domain)
     await bidi_session.browsing_context.navigate(
         url=url, context=top_context["context"], wait="complete"
     )

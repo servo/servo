@@ -24,16 +24,16 @@ promise_test(async (t) => {
 promise_test(async (t) => {
   await ensureLanguageModel();
   const session = await createLanguageModel();
-  assert_regexp_match(await session.prompt('shorthand'), /shorthand/i);
+  assert_regexp_match(await session.prompt('What is the capital of France?'), /paris/i);
   assert_regexp_match(
-      await session.prompt([{role: 'system', content: 'shorthand'}]),
-      /shorthand/i);
-}, 'Check Shorthand');
+      await session.prompt([{role: 'user', content: 'What is the capital of France?'}]),
+      /paris/i);
+}, 'Check capital of France');
 
 promise_test(async () => {
   const options = {
     initialPrompts:
-        [{role: 'user', content: [{type: 'text', value: 'The word of the day is regurgitation.'}]}]
+        [{role: 'system', content: [{type: 'text', value: 'The word of the day is regurgitation.'}]}]
   };
   await ensureLanguageModel(options);
   const session = await LanguageModel.create(options);
@@ -41,7 +41,7 @@ promise_test(async () => {
   assert_greater_than(tokenLength, 0);
   assert_equals(session.inputUsage, tokenLength);
   assert_regexp_match(
-      await session.prompt([{role: 'system', content: ''}]),
+      await session.prompt([{role: 'user', content: 'What is the word of the day?'}]),
       /regurgitation/i);
 }, 'Test that initialPrompt counts towards session inputUsage');
 

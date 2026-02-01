@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="match" href="border-shape-inset-shadow-ref.html">
+<style>
+body {
+    margin: 0;
+}
+#target {
+    width: 190px;
+    height: 190px;
+    border-shape: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+    position: relative;
+    background: green;
+    box-shadow: inset 0 0 0 10px purple;
+    border: 10px solid black;
+}
+</style>
+<div id="target">
+</div>

@@ -10,7 +10,7 @@
 <script>
 
 const url1 = "https://{{domains[www1]}}:{{ports[webtransport-h3][0]}}/webtransport/handlers/echo.py";
-const url2 = url1.replace("www1", "www2");
+const url2 = "https://{{domains[www2]}}:{{ports[webtransport-h3][0]}}/webtransport/handlers/echo.py";
 
 const serverCertificateHashes = [
   {algorithm: "sha-256", value: new Uint8Array(32)}

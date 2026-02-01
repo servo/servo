@@ -2,3 +2,9 @@ features:
 - name: target
   files:
   - "use-external-resource-target-pseudo-*"
+- name: svg
+  files:
+  - currentScale*
+  - gradient-in-symbol.svg
+  - inner-svg-*
+  - outer-svg-transform.svg

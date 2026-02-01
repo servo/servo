@@ -1,0 +1,30 @@
+<html>
+  <head>
+    <meta charset="utf8">
+    <title></title>
+    <meta name="assert"
+      content="[The attr() function] can also be used with pseudo-elements,
+               in which case the attribute's value on the pseudo-element's
+               originating element is returned.">
+    <link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+    <link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-notation">
+    <link rel=match href="attr-chained-pseudo-001-ref.html">
+    <style>
+      div {
+        margin-left: 4em;
+      }
+      div::after {
+        content: "World";
+        display: list-item;
+      }
+      div::after::marker {
+        content: attr(data-mark, "failed ");
+        color: blue;
+      }
+    </style>
+  </head>
+  <body>
+    <p>The line "World" should have "PASS" (in blue) to its left as a list-item marker:</p>
+    <div data-mark="PASS ">Hello</div>
+  </body>
+</html>
