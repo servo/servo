@@ -15,8 +15,10 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node, NodeTraits, UnbindContext};
+use crate::dom::security::csp::CspReporting;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::script_runtime::CanGc;
 
@@ -79,9 +81,15 @@ impl HTMLBaseElement {
         // urlRecord is failure;
         url_record.as_ref().is_none_or(|url_record|
             // urlRecord's scheme is "data" or "javascript"; or
-            url_record.scheme() == "data" || url_record.scheme() == "javascript")
-        // running Is base allowed for Document? on urlRecord and document returns "Blocked",
-        // TODO
+            url_record.scheme() == "data" || url_record.scheme() == "javascript"
+            // running Is base allowed for Document? on urlRecord and document returns "Blocked",
+            || !document
+                .get_csp_list()
+                .is_base_allowed_for_document(
+                    document.window().upcast::<GlobalScope>(),
+                    &url_record.clone().into_url(),
+                    &document.origin().immutable().clone().into_url_origin(),
+                ))
         {
             // then set element's frozen base URL to document's fallback base URL and return.
             *self.frozen_base_url.borrow_mut() = Some(document_fallback_url);

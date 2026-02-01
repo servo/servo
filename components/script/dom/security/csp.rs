@@ -67,6 +67,12 @@ pub(crate) trait CspReporting {
         sink_group: &str,
         source: &str,
     ) -> bool;
+    fn is_base_allowed_for_document(
+        &self,
+        global: &GlobalScope,
+        base: &url::Url,
+        self_origin: &url::Origin,
+    ) -> bool;
     fn concatenate(self, new_csp_list: Option<CspList>) -> Option<CspList>;
 }
 
@@ -223,6 +229,25 @@ impl CspReporting for Option<CspList> {
         global.report_csp_violations(violations, None, None);
 
         allowed_by_csp == CheckResult::Blocked
+    }
+
+    /// <https://www.w3.org/TR/CSP3/#allow-base-for-document>
+    fn is_base_allowed_for_document(
+        &self,
+        global: &GlobalScope,
+        base: &url::Url,
+        self_origin: &url::Origin,
+    ) -> bool {
+        let Some(csp_list) = self else {
+            return true;
+        };
+
+        let (is_base_allowed, violations) =
+            csp_list.is_base_allowed_for_document(base, self_origin);
+
+        global.report_csp_violations(violations, None, None);
+
+        is_base_allowed == CheckResult::Allowed
     }
 
     fn concatenate(self, new_csp_list: Option<CspList>) -> Option<CspList> {
