@@ -32,7 +32,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use pixels::SharedRasterImage;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentIntSize};
-use servo_url::ServoUrl;
+use servo_url::{ImmutableOrigin, ServoUrl};
 use strum::{EnumMessage, IntoStaticStr};
 use style::queries::values::PrefersColorScheme;
 use style_traits::CSSPixel;
@@ -451,6 +451,22 @@ pub enum EmbedderMsg {
     GetClipboardText(WebViewId, GenericCallback<Result<String, String>>),
     /// Sets system clipboard contents
     SetClipboardText(WebViewId, String),
+    StoreSecret(
+        WebViewId,
+        ImmutableOrigin,
+        Vec<u8>,
+        GenericSender<Result<(), String>>,
+    ),
+    RetrieveSecret(
+        WebViewId,
+        ImmutableOrigin,
+        GenericSender<Result<Option<Vec<u8>>, String>>,
+    ),
+    DeleteSecret(
+        WebViewId,
+        ImmutableOrigin,
+        GenericSender<Result<(), String>>,
+    ),
     /// Changes the cursor.
     SetCursor(WebViewId, Cursor),
     /// A favicon was detected
