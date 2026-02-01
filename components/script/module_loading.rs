@@ -21,6 +21,7 @@ use js::rust::wrappers::{
     ModuleEvaluate,
 };
 use js::rust::{HandleValue, IntoHandle};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, Referrer};
 use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
@@ -84,6 +85,7 @@ pub(crate) fn load_requested_modules(
     global: &GlobalScope,
     module: Rc<ModuleTree>,
     load_state: Option<Rc<LoadState>>,
+    policy_container: Option<PolicyContainer>,
 ) -> Rc<Promise> {
     // Step 1. If hostDefined is not present, let hostDefined be empty.
     //
@@ -103,7 +105,7 @@ pub(crate) fn load_requested_modules(
     };
 
     // Step 4. Perform InnerModuleLoading(state, module).
-    inner_module_loading(global, &Rc::new(state), module);
+    inner_module_loading(global, &Rc::new(state), module, policy_container);
 
     // Step 5. Return pc.[[Promise]].
     promise
@@ -114,6 +116,7 @@ fn inner_module_loading(
     global: &GlobalScope,
     state: &Rc<GraphLoadingState>,
     module: Rc<ModuleTree>,
+    policy_container: Option<PolicyContainer>,
 ) {
     let cx = GlobalScope::get_cx();
 
@@ -171,7 +174,7 @@ fn inner_module_loading(
 
                 match loaded_module {
                     // 1. Perform InnerModuleLoading(state, record.[[Module]]).
-                    Some(module) => inner_module_loading(global, state, module),
+                    Some(module) => inner_module_loading(global, state, module, policy_container.clone()),
                     // iii. Else,
                     None => {
                         rooted!(in(*cx) let mut referrer = UndefinedValue());
@@ -185,6 +188,7 @@ fn inner_module_loading(
                             specifier,
                             state.load_state.clone(),
                             Payload::GraphRecord(state.clone()),
+                            policy_container.clone(),
                         );
                     },
                 }
@@ -234,7 +238,7 @@ fn continue_module_loading(
     match module_completion {
         // Step 2. If moduleCompletion is a normal completion, then
         // a. Perform InnerModuleLoading(state, moduleCompletion.[[Value]]).
-        Ok(module) => inner_module_loading(global, state, module),
+        Ok(module) => inner_module_loading(global, state, module, None),
 
         // Step 3. Else,
         Err(exception) => {
@@ -304,7 +308,7 @@ fn continue_dynamic_import(
     let record = ModuleObject::new(module.get_record().map(|module| module.handle()).unwrap());
 
     // Step 3. Let loadPromise be module.LoadRequestedModules().
-    let load_promise = load_requested_modules(global, module, None);
+    let load_promise = load_requested_modules(global, module, None, None);
 
     let realm = enter_realm(global);
     let comp = InRealm::Entered(&realm);
@@ -409,6 +413,7 @@ pub(crate) fn host_load_imported_module(
     specifier: String,
     load_state: Option<Rc<LoadState>>,
     payload: Payload,
+    policy_container: Option<PolicyContainer>,
 ) {
     // Step 1. Let settingsObject be the current settings object.
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
@@ -547,6 +552,7 @@ pub(crate) fn host_load_imported_module(
         destination,
         fetch_options,
         fetch_referrer,
+        policy_container,
         on_single_fetch_complete,
     );
 }
@@ -558,6 +564,7 @@ fn fetch_a_single_imported_module_script(
     destination: Destination,
     options: ScriptFetchOptions,
     referrer: Referrer,
+    policy_container: Option<PolicyContainer>,
     on_complete: impl FnOnce(Option<Rc<ModuleTree>>) + 'static,
 ) {
     // TODO Step 1. Assert: moduleRequest.[[Attributes]] does not contain any Record entry such that entry.[[Key]] is not "type",
@@ -578,7 +585,7 @@ fn fetch_a_single_imported_module_script(
         referrer,
         false,
         Some(IntroductionType::IMPORTED_MODULE),
-        None,
+        policy_container,
         on_complete,
     );
 }

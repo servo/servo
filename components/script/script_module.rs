@@ -896,7 +896,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     let specifier = unsafe { jsstr_to_string(*cx, jsstr) };
 
     let payload = Payload::PromiseRecord(promise.clone());
-    host_load_imported_module(cx, None, reference_private, specifier, None, payload);
+    host_load_imported_module(cx, None, reference_private, specifier, None, payload, None);
 
     true
 }
@@ -1075,7 +1075,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         referrer,
         true,
         Some(IntroductionType::WORKER),
-        Some(policy_container),
+        Some(policy_container.clone()),
         move |module_tree| {
             let Some(module) = module_tree else {
                 // Step 1.1. If result is null, run onComplete given null, and abort these steps.
@@ -1099,6 +1099,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
                 module,
                 Destination::Worker,
                 owner,
+                Some(policy_container),
                 can_gc,
             );
         },
@@ -1136,6 +1137,7 @@ pub(crate) fn fetch_an_external_module_script(
                 module,
                 Destination::Script,
                 owner,
+                None,
                 can_gc,
             );
         },
@@ -1164,7 +1166,7 @@ pub(crate) fn fetch_inline_module_script(
     ));
 
     // Step 2. Fetch the descendants of and link script, given settingsObject, "script", and onComplete.
-    fetch_the_descendants_and_link_module_script(module_tree, Destination::Script, owner, can_gc);
+    fetch_the_descendants_and_link_module_script(module_tree, Destination::Script, owner, None, can_gc);
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
@@ -1172,6 +1174,7 @@ fn fetch_the_descendants_and_link_module_script(
     module_script: Rc<ModuleTree>,
     destination: Destination,
     owner: ModuleOwner,
+    policy_container: Option<PolicyContainer>,
     can_gc: CanGc,
 ) {
     let global = owner.global();
@@ -1203,7 +1206,7 @@ fn fetch_the_descendants_and_link_module_script(
 
     // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
     let loading_promise =
-        load_requested_modules(&global, module_script.clone(), Some(Rc::clone(&state)));
+        load_requested_modules(&global, module_script.clone(), Some(Rc::clone(&state)), policy_container);
 
     let fulfillment_owner = owner.clone();
     let fulfilled_module = module_script.clone();

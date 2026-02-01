@@ -517,6 +517,10 @@ impl DedicatedWorkerGlobalScope {
                     WorkerType::Module => {
                         let _ar = AutoWorkerReset::new(&global, worker.clone());
 
+                        let container = policy_container.clone();
+                        scope.set_csp_list(container.csp_list);
+                        scope.set_referrer_policy(container.referrer_policy);
+
                         fetch_a_module_worker_script_graph(
                             worker.clone(),
                             request.url,
