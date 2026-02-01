@@ -38,7 +38,7 @@ use crate::dom::textmetrics::TextMetrics;
 use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#canvasrenderingcontext2d
-#[dom_struct]
+#[dom_struct(associated_memory)]
 pub(crate) struct CanvasRenderingContext2D {
     reflector_: Reflector<AssociatedMemory>,
     canvas: HTMLCanvasElementOrOffscreenCanvas,

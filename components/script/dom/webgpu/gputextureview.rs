@@ -93,7 +93,5 @@ impl Drop for GPUTextureView {
                 self.texture_view.0, e
             );
         }
-        let reflector = script_bindings::reflector::DomObject::reflector(self);
-        reflector.drop_memory(self);
     }
 }

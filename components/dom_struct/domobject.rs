@@ -6,13 +6,21 @@ use quote::{TokenStreamExt, quote};
 
 /// First field of DomObject must be either reflector or another dom_struct,
 /// all other fields must not implement DomObject
-pub(crate) fn expand_dom_object(input: syn::ItemStruct) -> proc_macro2::TokenStream {
+pub(crate) fn expand_dom_object(
+    input: syn::ItemStruct,
+    associated_memory: bool,
+) -> proc_macro2::TokenStream {
     let fields = input.fields.iter().collect::<Vec<&syn::Field>>();
     let (first_field, fields) = fields
         .split_first()
         .expect("#[dom_struct] should not be applied on empty structs");
 
     let first_field_name = first_field.ident.as_ref().unwrap();
+    let reflector_type = if associated_memory {
+        quote! { crate::AssociatedMemory }
+    } else {
+        quote! { () }
+    };
     let mut field_types_and_cfgs = vec![];
     for field in fields {
         if field_types_and_cfgs.contains(&(&field.ty, vec![])) {
@@ -40,8 +48,10 @@ pub(crate) fn expand_dom_object(input: syn::ItemStruct) -> proc_macro2::TokenStr
         }
 
         impl #impl_generics crate::DomObject for #name #ty_generics #where_clause {
+            type ReflectorType = #reflector_type;
+
             #[inline]
-            fn reflector(&self) -> &crate::Reflector {
+            fn reflector(&self) -> &crate::Reflector<Self::ReflectorType> {
                 self.#first_field_name.reflector()
             }
         }

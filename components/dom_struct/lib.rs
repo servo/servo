@@ -12,8 +12,9 @@ use crate::domobject::expand_dom_object;
 
 #[proc_macro_attribute]
 pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
-    if !args.is_empty() {
-        panic!("#[dom_struct] takes no arguments");
+    let associated_memory = args.to_string().contains("associated_memory");
+    if !associated_memory && !args.is_empty() {
+        panic!("#[dom_struct] only takes 'associated_memory' as an argument");
     }
     let attributes = quote! {
         #[derive(deny_public_fields::DenyPublicFields, JSTraceable, MallocSizeOf)]
@@ -29,7 +30,7 @@ pub fn dom_struct(args: TokenStream, input: TokenStream) -> TokenStream {
     let item: Item = syn::parse(output).unwrap();
 
     if let Item::Struct(s) = item {
-        let expanded_dom_object = expand_dom_object(s.clone());
+        let expanded_dom_object = expand_dom_object(s.clone(), associated_memory);
         let s2 = quote! { #s #expanded_dom_object };
         if !s.generics.params.is_empty() {
             return s2.into();
