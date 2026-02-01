@@ -301,7 +301,6 @@ class Descriptor(DescriptorProvider):
         self.weakReferenceable = desc.get('weakReferenceable', False)
         self.useSystemCompartment = desc.get('useSystemCompartment', False)
         self.allowDropImpl = desc.get('allowDropImpl', False)
-        self.overrideMemoryUsage = desc.get('overrideMemoryUsage', False)
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.

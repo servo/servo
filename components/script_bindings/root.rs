@@ -74,13 +74,16 @@ where
         // so we need this shenanigan to actually trace the reflector of the
         // T pointer in Dom<T>.
         #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-        struct ReflectorStackRoot(Reflector);
-        unsafe impl JSTraceable for ReflectorStackRoot {
+        struct ReflectorStackRoot<T>(Reflector<T>);
+        unsafe impl<T> JSTraceable for ReflectorStackRoot<T> {
             unsafe fn trace(&self, tracer: *mut JSTracer) {
                 unsafe { trace_reflector(tracer, "on stack", &self.0) };
             }
         }
-        unsafe { &*(self.reflector() as *const Reflector as *const ReflectorStackRoot) }
+        unsafe {
+            &*(self.reflector() as *const Reflector<T::ReflectorType>
+                as *const ReflectorStackRoot<T::ReflectorType>)
+        }
     }
 }
 

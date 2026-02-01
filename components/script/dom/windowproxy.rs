@@ -135,12 +135,6 @@ pub(crate) struct WindowProxy {
     script_window_proxies: Rc<ScriptWindowProxies>,
 }
 
-impl Drop for WindowProxy {
-    fn drop(&mut self) {
-        self.reflector.drop_memory(self);
-    }
-}
-
 impl WindowProxy {
     fn new_inherited(
         browsing_context_id: BrowsingContextId,

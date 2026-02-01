@@ -42,7 +42,11 @@ use crate::str::USVString;
 ///
 /// # Safety
 /// tracer must point to a valid, non-null JS tracer.
-pub unsafe fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
+pub unsafe fn trace_reflector<T>(
+    tracer: *mut JSTracer,
+    description: &str,
+    reflector: &Reflector<T>,
+) {
     trace!("tracing reflector {}", description);
     unsafe { trace_object(tracer, description, reflector.rootable()) }
 }

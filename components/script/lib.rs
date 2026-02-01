@@ -86,5 +86,7 @@ pub(crate) use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 // Since they are used in derive macros,
 // it is useful that they are accessible at the root of the crate.
 pub(crate) use crate::dom::bindings::inheritance::HasParent;
-pub(crate) use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
+pub(crate) use crate::dom::bindings::reflector::{
+    AssociatedMemory, DomObject, MutDomObject, Reflector,
+};
 pub(crate) use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};

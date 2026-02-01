@@ -147,7 +147,5 @@ impl Drop for GPURenderPipeline {
                 self.render_pipeline.0, e
             );
         };
-        let reflector = script_bindings::reflector::DomObject::reflector(self);
-        reflector.drop_memory(self);
     }
 }

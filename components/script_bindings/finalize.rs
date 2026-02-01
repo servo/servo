@@ -12,6 +12,7 @@ use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
 use js::rust::GCMethods;
 
+use crate::DomObject;
 use crate::codegen::PrototypeList::PROTO_OR_IFACE_LENGTH;
 use crate::utils::{ProtoOrIfaceArray, get_proto_or_iface_array};
 use crate::weakref::{DOM_WEAK_SLOT, WeakBox, WeakReferenceable};
@@ -32,10 +33,11 @@ unsafe fn do_finalize_global(obj: *mut JSObject) {
 
 /// # Safety
 /// `this` must point to a valid, non-null instance of T.
-pub(crate) unsafe fn finalize_common<T>(this: *const T) {
+pub(crate) unsafe fn finalize_common<T: DomObject>(this: *const T) {
     if !this.is_null() {
         // The pointer can be null if the object is the unforgeable holder of that interface.
-        let _ = unsafe { Box::from_raw(this as *mut T) };
+        let this = unsafe { Box::from_raw(this as *mut T) };
+        this.reflector().drop_memory(&*this);
     }
     debug!("{} finalize: {:p}", type_name::<T>(), this);
 }
@@ -43,7 +45,7 @@ pub(crate) unsafe fn finalize_common<T>(this: *const T) {
 /// # Safety
 /// `obj` must point to a valid, non-null JS object.
 /// `this` must point to a valid, non-null instance of T.
-pub(crate) unsafe fn finalize_global<T>(obj: *mut JSObject, this: *const T) {
+pub(crate) unsafe fn finalize_global<T: DomObject>(obj: *mut JSObject, this: *const T) {
     unsafe {
         do_finalize_global(obj);
         finalize_common::<T>(this);

@@ -2612,10 +2612,8 @@ class CGAssertInheritance(CGThing):
         parentName = ""
         if parent:
             parentName = parent.identifier.name
-        elif not self.descriptor.overrideMemoryUsage:
-            parentName = "Reflector"
         else:
-            parentName = "Reflector<script_bindings::reflector::AssociatedMemory>"
+            parentName = "Reflector<_>"
 
         selfName = self.descriptor.interface.identifier.name
 
@@ -7164,16 +7162,9 @@ class CGForbidDrop(CGThing):
         self.code = f"""
 impl Drop for {firstCap(descriptor.interface.identifier.name)} {{
     fn drop(&mut self) {{
+    }}
+}}
 """
-        if not descriptor.interface.isNamespace():
-            self.code += """
-        let reflector = script_bindings::reflector::DomObject::reflector(self);
-        reflector.drop_memory(self);
-            """
-        self.code += """
-    }
-}
-        """
 
     def define(self) -> str:
         return self.code

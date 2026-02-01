@@ -69,8 +69,6 @@ impl Drop for GPUCommandBuffer {
                 self.command_buffer.0, e
             );
         }
-        let reflector = script_bindings::reflector::DomObject::reflector(self);
-        reflector.drop_memory(self);
     }
 }
 

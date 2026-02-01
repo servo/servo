@@ -202,7 +202,7 @@ impl FromJSValConvertible for ByteString {
     }
 }
 
-impl ToJSValConvertible for Reflector {
+impl<T> ToJSValConvertible for Reflector<T> {
     unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {
         let obj = self.get_jsobject().get();
         assert!(!obj.is_null());

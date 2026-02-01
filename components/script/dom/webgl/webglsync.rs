@@ -130,8 +130,6 @@ impl WebGLSync {
 
 impl Drop for WebGLSync {
     fn drop(&mut self) {
-        let reflector = script_bindings::reflector::DomObject::reflector(self);
-        reflector.drop_memory(self);
         self.delete(Operation::Fallible);
     }
 }

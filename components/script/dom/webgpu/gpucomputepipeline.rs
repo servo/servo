@@ -158,7 +158,5 @@ impl Drop for GPUComputePipeline {
                 self.compute_pipeline.0, e
             );
         };
-        let reflector = script_bindings::reflector::DomObject::reflector(self);
-        reflector.drop_memory(self);
     }
 }

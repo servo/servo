@@ -97,7 +97,7 @@ impl<T: AssociatedMemorySize> Reflector<T> {
         size_of::<D>() + size_of::<Box<D>>() + self.size.size()
     }
 
-    /// This function should be called from Drop of the DOM objects
+    /// This function should be called from finalize of the DOM objects
     pub fn drop_memory<D>(&self, d: &D) {
         unsafe {
             RemoveAssociatedMemory(self.object.get(), self.rust_size(d), MemoryUse::DOMBinding);
@@ -121,20 +121,24 @@ impl Reflector<AssociatedMemory> {
 
 /// A trait to provide access to the `Reflector` for a DOM object.
 pub trait DomObject: js::gc::Traceable + 'static {
+    type ReflectorType: AssociatedMemorySize;
     /// Returns the receiver's reflector.
-    fn reflector(&self) -> &Reflector;
+    fn reflector(&self) -> &Reflector<Self::ReflectorType>;
 }
 
 impl DomObject for Reflector<()> {
-    fn reflector(&self) -> &Reflector<()> {
+    type ReflectorType = ();
+
+    fn reflector(&self) -> &Reflector<Self::ReflectorType> {
         self
     }
 }
 
 impl DomObject for Reflector<AssociatedMemory> {
-    fn reflector(&self) -> &Reflector<()> {
-        // SAFETY: This is safe because we are only shortening the size of struct.
-        unsafe { std::mem::transmute(self) }
+    type ReflectorType = AssociatedMemory;
+
+    fn reflector(&self) -> &Reflector<Self::ReflectorType> {
+        self
     }
 }
 
