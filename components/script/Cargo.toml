@@ -38,7 +38,6 @@ aes-gcm = { workspace = true }
 aes-kw = { workspace = true }
 app_units = { workspace = true }
 argon2 = { workspace = true }
-
 arrayvec = { workspace = true }
 atomic_refcell = { workspace = true }
 aws-lc-rs = { workspace = true }

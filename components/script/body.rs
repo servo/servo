@@ -926,36 +926,25 @@ fn extract_name_from_content_disposition(headers: &HeaderMap) -> Option<String> 
 
 fn extract_filename_from_content_disposition(headers: &HeaderMap) -> Option<String> {
     let cd = headers.get(CONTENT_DISPOSITION)?.to_str().ok()?;
-    if cd.contains("filename") {
-        if let Some(index) = cd.find("filename=") {
-            let start = index + "filename=".len();
-            return Some(
-                cd.get(start..)
-                    .unwrap_or_default()
-                    .trim_matches('"')
-                    .to_owned(),
-            );
-        }
-        if let Some(index) = cd.find("filename*=UTF-8''") {
-            let start = index + "filename*=UTF-8''".len();
-            return Some(
-                cd.get(start..)
-                    .unwrap_or_default()
-                    .trim_matches('"')
-                    .to_owned(),
-            );
-        }
+    if let Some(index) = cd.find("filename=") {
+        let start = index + "filename=".len();
+        return Some(
+            cd.get(start..)
+                .unwrap_or_default()
+                .trim_matches('"')
+                .to_owned(),
+        );
+    }
+    if let Some(index) = cd.find("filename*=UTF-8''") {
+        let start = index + "filename*=UTF-8''".len();
+        return Some(
+            cd.get(start..)
+                .unwrap_or_default()
+                .trim_matches('"')
+                .to_owned(),
+        );
     }
     None
-}
-
-fn decode_utf8_without_bom(bytes: &[u8]) -> String {
-    let bytes = if bytes.starts_with(b"\xEF\xBB\xBF") {
-        &bytes[3..]
-    } else {
-        bytes
-    };
-    String::from_utf8_lossy(bytes).into_owned()
 }
 
 fn content_type_from_headers(headers: &HeaderMap) -> Result<String, Error> {
@@ -998,8 +987,9 @@ fn append_form_data_entry_from_part(
         formdata.Append_(USVString(name), blob, None);
     } else {
         // Each part whose `Content-Disposition` header does not contain a `filename` parameter must be parsed into an entry whose value is the UTF-8 decoded without BOM content of the part. This is done regardless of the presence or the value of a `Content-Type` header and regardless of the presence or the value of a `charset` parameter.
-        let value = decode_utf8_without_bom(&body);
-        formdata.Append(USVString(name), USVString(value));
+
+        let (value, _) = UTF_8.decode_without_bom_handling(&body);
+        formdata.Append(USVString(name), USVString(value.to_string()));
     }
     Ok(())
 }
@@ -1017,7 +1007,7 @@ fn append_multipart_nodes(
             },
             Node::File(file_part) => {
                 let body = fs::read(&file_part.path)
-                    .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
+                    .map_err(|_| Error::Type("file part could not be read".to_string()))?;
                 append_form_data_entry_from_part(root, formdata, &file_part.headers, body, can_gc)?;
             },
             Node::Multipart((_, inner)) => {
