@@ -28,6 +28,8 @@ use crate::desktop::tracing::trace_winit_event;
 use crate::parser::get_default_url;
 use crate::prefs::ServoShellPreferences;
 use crate::running_app_state::RunningAppState;
+#[cfg(feature = "gamepad")]
+use crate::running_app_state::ServoshellGamepadProvider;
 use crate::window::{PlatformWindow, ServoShellWindowId};
 
 pub(crate) enum AppState {
@@ -123,6 +125,8 @@ impl App {
             self.waker.clone(),
             user_content_manager,
             self.preferences.clone(),
+            #[cfg(feature = "gamepad")]
+            ServoshellGamepadProvider::maybe_new().map(Rc::new),
         ));
         running_state.open_window(platform_window, self.initial_url.as_url().clone());
 
