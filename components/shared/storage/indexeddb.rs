@@ -21,7 +21,7 @@ pub type DbError = String;
 pub type DbResult<T> = Result<T, DbError>;
 
 /// Any error from the backend, a super-set of [`DbError`]
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum BackendError {
     /// The requested database does not exist
     DbNotFound,
@@ -325,25 +325,50 @@ pub enum CreateObjectResult {
     AlreadyExists,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-/// Result of <https://w3c.github.io/IndexedDB/#open-a-database-connection>
-/// `Upgrade` is an optional first message,
-/// followed by the ultimate result.
-/// TODO: refactor messaging into a coherent whole
-/// and with a persistent communication mechanism.
-pub enum OpenDatabaseResult {
-    VersionError,
-    AbortError,
-    /// A connection with a version, updgraded or not.
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+/// Messaging used in the context of connection lifecycle management.
+pub enum ConnectionMsg {
+    /// Error if a DB is opened for a version lower than the current db version.
+    VersionError { name: String, id: Uuid },
+    /// Opening a connection was aborted.
+    AbortError { name: String, id: Uuid },
+    /// A newly created connection with a version,
+    /// updgraded or not.
     Connection {
+        name: String,
+        id: Uuid,
         version: u64,
         upgraded: bool,
     },
     /// An upgrade transaction for a version started.
     Upgrade {
+        name: String,
+        id: Uuid,
         version: u64,
         old_version: u64,
         transaction: u64,
+    },
+    /// A `versionchange` event should be fired for a connection.
+    VersionChange {
+        /// The id of the connection.
+        id: Uuid,
+        /// The name of the connection.
+        name: String,
+        version: u64,
+        old_version: u64,
+    },
+    /// A `blocked` event should be fired for a connection.
+    Blocked {
+        name: String,
+        id: Uuid,
+        version: u64,
+        old_version: u64,
+    },
+    /// A backend error related to the database occured.
+    DatabaseError {
+        name: String,
+        id: Uuid,
+        error: BackendError,
     },
 }
 
@@ -431,14 +456,14 @@ pub enum SyncOperation {
     ),
 
     CloseDatabase(
-        GenericSender<BackendResult<()>>,
         ImmutableOrigin,
+        Uuid,
         String, // Database
     ),
 
     OpenDatabase(
         // Callback for the result.
-        GenericCallback<BackendResult<OpenDatabaseResult>>,
+        GenericCallback<ConnectionMsg>,
         // Origin of the request.
         ImmutableOrigin,
         // Name of the database.
@@ -492,6 +517,13 @@ pub enum SyncOperation {
     AbortPendingUpgrade {
         name: String,
         id: Uuid,
+        origin: ImmutableOrigin,
+    },
+
+    NotifyEndOfVersionChange {
+        id: Uuid,
+        name: String,
+        old_version: u64,
         origin: ImmutableOrigin,
     },
 

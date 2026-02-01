@@ -10,6 +10,7 @@ use js::context::JSContext;
 use profile_traits::generic_channel::channel;
 use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
+use uuid::Uuid;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::{
@@ -19,7 +20,6 @@ use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransacti
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -45,16 +45,21 @@ pub struct IDBDatabase {
     /// <https://w3c.github.io/IndexedDB/#database-upgrade-transaction>
     upgrade_transaction: MutNullableDom<IDBTransaction>,
 
+    #[no_trace]
+    #[ignore_malloc_size_of = "Uuid"]
+    id: Uuid,
+
     // Flags
     /// <https://w3c.github.io/IndexedDB/#connection-close-pending-flag>
     closing: Cell<bool>,
 }
 
 impl IDBDatabase {
-    pub fn new_inherited(name: DOMString, version: u64) -> IDBDatabase {
+    pub fn new_inherited(name: DOMString, id: Uuid, version: u64) -> IDBDatabase {
         IDBDatabase {
             eventtarget: EventTarget::new_inherited(),
             name,
+            id,
             version: Cell::new(version),
             object_store_names: Default::default(),
 
@@ -66,11 +71,12 @@ impl IDBDatabase {
     pub fn new(
         global: &GlobalScope,
         name: DOMString,
+        id: Uuid,
         version: u64,
         can_gc: CanGc,
     ) -> DomRoot<IDBDatabase> {
         reflect_dom_object(
-            Box::new(IDBDatabase::new_inherited(name, version)),
+            Box::new(IDBDatabase::new_inherited(name, id, version)),
             global,
             can_gc,
         )
@@ -121,31 +127,24 @@ impl IDBDatabase {
         self.upgrade_transaction.set(Some(transaction));
     }
 
-    #[expect(dead_code)] // This will be used once we allow multiple concurrent connections
+    /// <https://w3c.github.io/IndexedDB/#eventdef-idbdatabase-versionchange>
     pub fn dispatch_versionchange(
         &self,
         old_version: u64,
         new_version: Option<u64>,
-        _can_gc: CanGc,
+        can_gc: CanGc,
     ) {
         let global = self.global();
-        let this = Trusted::new(self);
-        global.task_manager().database_access_task_source().queue(
-            task!(send_versionchange_notification: move || {
-                let this = this.root();
-                let global = this.global();
-                let event = IDBVersionChangeEvent::new(
-                    &global,
-                    Atom::from("versionchange"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                    old_version,
-                    new_version,
-                    CanGc::note()
-                );
-                event.upcast::<Event>().fire(this.upcast(), CanGc::note());
-            }),
+        let event = IDBVersionChangeEvent::new(
+            &global,
+            Atom::from("versionchange"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+            old_version,
+            new_version,
+            can_gc,
         );
+        event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 }
 
@@ -356,29 +355,23 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         )
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-close>
+    /// <https://w3c.github.io/IndexedDB/#dom-idbdatabase-close>
     fn Close(&self) {
-        // Step 1: Set the close pending flag of connection.
+        // Step 1: Run close a database connection with this connection.
+
+        // <https://w3c.github.io/IndexedDB/#close-a-database-connection>
+        // Step 1: Set connection’s close pending flag to true.
         self.closing.set(true);
 
-        // Step 2: Handle force flag
-        // FIXME:(arihant2math)
-        // Step 3: Wait for all transactions by this db to finish
-        // FIXME:(arihant2math)
-        // Step 4: If force flag is set, fire a close event
-        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
+        // Note: rest of algo runs in-parallel.
         let operation = SyncOperation::CloseDatabase(
-            sender,
             self.global().origin().immutable().clone(),
+            self.id,
             self.name.to_string(),
         );
         let _ = self
             .get_idb_thread()
             .send(IndexedDBThreadMsg::Sync(operation));
-
-        if receiver.recv().is_err() {
-            warn!("Database close failed in idb thread");
-        };
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-onabort
