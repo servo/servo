@@ -98,6 +98,8 @@ skip = [
     "bitflags",
     "cookie",
     "redox_syscall",
+    # Duplicated by getrandom 0.1 and getrandom 0.2
+    "wasi",
 
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
