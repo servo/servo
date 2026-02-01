@@ -1325,6 +1325,24 @@ pub fn http_percent_encode(bytes: &[u8]) -> String {
     percent_encoding::percent_encode(bytes, HTTP_VALUE).to_string()
 }
 
+/// Returns the cached current system locale, or en-US by default.
+pub fn get_current_locale() -> &'static (String, HeaderValue) {
+    static CURRENT_LOCALE: OnceLock<(String, HeaderValue)> = OnceLock::new();
+
+    CURRENT_LOCALE.get_or_init(|| {
+        let locale_override = servo_config::pref!(intl_locale_override);
+        let locale = if locale_override.is_empty() {
+            sys_locale::get_locale().unwrap_or_else(|| "en-US".into())
+        } else {
+            locale_override
+        };
+        let header_value = HeaderValue::from_str(&locale)
+            .ok()
+            .unwrap_or_else(|| HeaderValue::from_static("en-US"));
+        (locale, header_value)
+    })
+}
+
 /// Step 12 of <https://fetch.spec.whatwg.org/#concept-fetch>
 pub fn set_default_accept_language(headers: &mut HeaderMap) {
     // If request’s header list does not contain `Accept-Language`,
@@ -1333,11 +1351,8 @@ pub fn set_default_accept_language(headers: &mut HeaderMap) {
         return;
     }
 
-    // TODO(eijebong): Change this once typed headers are done
-    headers.insert(
-        header::ACCEPT_LANGUAGE,
-        HeaderValue::from_static("en-US,en;q=0.5"),
-    );
+    // To reduce fingerprinting we set only a single language.
+    headers.insert(header::ACCEPT_LANGUAGE, get_current_locale().1.clone());
 }
 
 pub static PRIVILEGED_SECRET: LazyLock<u32> = LazyLock::new(|| rng().next_u32());

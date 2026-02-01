@@ -176,6 +176,7 @@ jobs:
         if: ${{ inputs.unit-tests }}
         env:
           NEXTEST_RETRIES: 2 # https://github.com/servo/servo/issues/30683
+          LANG: en-US
         run: ./mach test-unit --profile ${{ inputs.profile }} --nextest-profile ci
       # We upload the test-results to Codecov to help us identify flaky unit-tests.
       - name: Upload test results to Codecov
@@ -356,6 +357,7 @@ jobs:
         shell: bash
         env:
           NEXTEST_RETRIES: 2 # https://github.com/servo/servo/issues/30683
+          LANG: en-US
         run: |
           ./mach test-unit --code-coverage \
               --profile=${{ steps.options.outputs.cargo_profile }} \
