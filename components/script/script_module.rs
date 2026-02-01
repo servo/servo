@@ -979,6 +979,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
         module_type,
         None,
         payload,
+        None,
     );
 
     true
@@ -1169,7 +1170,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
         None,
         true,
         Some(IntroductionType::WORKER),
-        Some(policy_container),
+        Some(policy_container.clone()),
         move |module_tree| {
             let Some(module) = module_tree else {
                 // Step 1.1. If result is null, run onComplete given null, and abort these steps.
@@ -1193,7 +1194,7 @@ pub(crate) fn fetch_a_module_worker_script_graph(
                 module,
                 Destination::Worker,
                 owner,
-                can_gc,
+                Some(policy_container),
             );
         },
     );
@@ -1227,7 +1228,7 @@ pub(crate) fn fetch_an_external_module_script(
             };
 
             // Step 1.2. Fetch the descendants of and link result given settingsObject, "script", and onComplete.
-            fetch_the_descendants_and_link_module_script(module, Destination::Script, owner);
+            fetch_the_descendants_and_link_module_script(module, Destination::Script, owner, None);
         },
     );
 }
@@ -1254,7 +1255,7 @@ pub(crate) fn fetch_inline_module_script(
     ));
 
     // Step 2. Fetch the descendants of and link script, given settingsObject, "script", and onComplete.
-    fetch_the_descendants_and_link_module_script(module_tree, Destination::Script, owner);
+    fetch_the_descendants_and_link_module_script(module_tree, Destination::Script, owner, None);
 }
 
 #[expect(unsafe_code)]
@@ -1263,6 +1264,7 @@ fn fetch_the_descendants_and_link_module_script(
     module_script: Rc<ModuleTree>,
     destination: Destination,
     owner: ModuleOwner,
+    policy_container: Option<PolicyContainer>,
 ) {
     let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
     let mut realm = CurrentRealm::assert(&mut cx);
@@ -1297,7 +1299,7 @@ fn fetch_the_descendants_and_link_module_script(
 
     // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
     let loading_promise =
-        load_requested_modules(cx, module_script.clone(), Some(Rc::clone(&state)));
+        load_requested_modules(cx, module_script.clone(), Some(Rc::clone(&state)), policy_container);
 
     let fulfillment_owner = owner.clone();
     let fulfilled_module = module_script.clone();
