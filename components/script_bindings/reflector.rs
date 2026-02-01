@@ -97,7 +97,7 @@ impl<T: AssociatedMemorySize> Reflector<T> {
         size_of::<D>() + size_of::<Box<D>>() + self.size.size()
     }
 
-    /// This function should be called from Drop of the DOM objects
+    /// This function should be called from finalize of the DOM objects
     pub fn drop_memory<D>(&self, d: &D) {
         unsafe {
             RemoveAssociatedMemory(self.object.get(), self.rust_size(d), MemoryUse::DOMBinding);

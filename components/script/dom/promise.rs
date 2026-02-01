@@ -85,8 +85,7 @@ impl PromiseHelper for Rc<Promise> {
 impl Drop for Promise {
     #[expect(unsafe_code)]
     fn drop(&mut self) {
-        let reflector = script_bindings::reflector::DomObject::reflector(self);
-        reflector.drop_memory(self);
+        self.reflector.drop_memory(self);
         unsafe {
             let object = self.permanent_js_root.get().to_object();
             assert!(!object.is_null());

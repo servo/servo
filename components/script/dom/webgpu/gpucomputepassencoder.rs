@@ -155,7 +155,5 @@ impl Drop for GPUComputePassEncoder {
         {
             warn!("Failed to send WebGPURequest::DropComputePass with {e:?}");
         }
-        let reflector = script_bindings::reflector::DomObject::reflector(self);
-        reflector.drop_memory(self);
     }
 }

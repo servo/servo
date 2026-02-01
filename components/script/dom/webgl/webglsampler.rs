@@ -181,8 +181,6 @@ impl WebGLSampler {
 
 impl Drop for WebGLSampler {
     fn drop(&mut self) {
-        let reflector = script_bindings::reflector::DomObject::reflector(self);
-        reflector.drop_memory(self);
         self.delete(Operation::Fallible);
     }
 }

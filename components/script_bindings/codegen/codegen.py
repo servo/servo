@@ -7162,16 +7162,9 @@ class CGForbidDrop(CGThing):
         self.code = f"""
 impl Drop for {firstCap(descriptor.interface.identifier.name)} {{
     fn drop(&mut self) {{
+    }}
+}}
 """
-        if not descriptor.interface.isNamespace():
-            self.code += """
-        let reflector = script_bindings::reflector::DomObject::reflector(self);
-        reflector.drop_memory(self);
-            """
-        self.code += """
-    }
-}
-        """
 
     def define(self) -> str:
         return self.code

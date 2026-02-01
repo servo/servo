@@ -280,8 +280,6 @@ impl WebGLRenderbuffer {
 
 impl Drop for WebGLRenderbuffer {
     fn drop(&mut self) {
-        let reflector = script_bindings::reflector::DomObject::reflector(self);
-        reflector.drop_memory(self);
         self.delete(Operation::Fallible);
     }
 }
