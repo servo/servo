@@ -35,6 +35,11 @@ pub(crate) enum InitiatorType {
     Other,
 }
 
+/// https://w3c.github.io/resource-timing/#performanceresourcetiming
+///
+/// The PerformanceResourceTiming interface facilitates timing measurement of fetched http(s) resources.
+/// For example, this interface is available for XMLHttpRequest objects [XHR], HTML elements [HTML] such as iframe,
+/// img, script, object, embed and link with the link type of stylesheet, SVG elements [SVG11] such as svg, and EventSource.
 #[dom_struct]
 pub(crate) struct PerformanceResourceTiming {
     entry: PerformanceEntry,

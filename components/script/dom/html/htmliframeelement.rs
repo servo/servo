@@ -17,8 +17,8 @@ use dom_struct::dom_struct;
 use embedder_traits::ViewportDetails;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
-use net_traits::ReferrerPolicy;
 use net_traits::request::Destination;
+use net_traits::{ReferrerPolicy, ResourceFetchTiming, ResourceTimingType};
 use profile_traits::ipc as ProfiledIpc;
 use script_traits::{NewPipelineInfo, UpdatePipelineIdReason};
 use servo_url::ServoUrl;
@@ -44,7 +44,9 @@ use crate::dom::element::{
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, UnbindContext};
+use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::trustedhtml::TrustedHTML;
+use crate::dom::types::{PerformanceEntry, PerformanceResourceTiming};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
 use crate::script_runtime::CanGc;
@@ -345,13 +347,13 @@ impl HTMLIFrameElement {
         let mut ancestor = window.GetParent();
         while let Some(a) = ancestor {
             if let Some(ancestor_url) = a.document().map(|d| d.url()) {
-                if ancestor_url.scheme() == url.scheme() &&
-                    ancestor_url.username() == url.username() &&
-                    ancestor_url.password() == url.password() &&
-                    ancestor_url.host() == url.host() &&
-                    ancestor_url.port() == url.port() &&
-                    ancestor_url.path() == url.path() &&
-                    ancestor_url.query() == url.query()
+                if ancestor_url.scheme() == url.scheme()
+                    && ancestor_url.username() == url.username()
+                    && ancestor_url.password() == url.password()
+                    && ancestor_url.host() == url.host()
+                    && ancestor_url.port() == url.port()
+                    && ancestor_url.path() == url.path()
+                    && ancestor_url.query() == url.query()
                 {
                     return;
                 }
@@ -461,8 +463,8 @@ impl HTMLIFrameElement {
         if !self.is_initial_blank_document() {
             self.pending_navigation.set(false);
         }
-        if self.pending_pipeline_id.get() != Some(new_pipeline_id) &&
-            reason == UpdatePipelineIdReason::Navigation
+        if self.pending_pipeline_id.get() != Some(new_pipeline_id)
+            && reason == UpdatePipelineIdReason::Navigation
         {
             return;
         }
@@ -562,7 +564,25 @@ impl HTMLIFrameElement {
 
         // TODO 1. Assert: element's content navigable is not null.
 
-        // TODO 2-4 Mark resource timing.
+        // Mark resource timing.
+        let document = match ScriptThread::find_document(loaded_pipeline) {
+            Some(document) => document,
+            None => return,
+        };
+
+        let performance_entry = PerformanceResourceTiming::new(
+            &document.global(),
+            self.get_url(),
+            InitiatorType::LocalName("iframe".into()), // <https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-initiatortype>
+            None,
+            &ResourceFetchTiming::new(ResourceTimingType::Resource),
+            can_gc,
+        );
+
+        document
+            .global()
+            .performance()
+            .queue_entry(performance_entry.upcast::<PerformanceEntry>());
 
         // TODO 5 Set childDocument's iframe load in progress flag.
 
@@ -592,8 +612,8 @@ impl HTMLIFrameElement {
             // If this is the initial blank doc:
             // do not fire if there is a pending navigation,
             // or if the iframe has an src.
-            !self.pending_navigation.get() &&
-                !self.upcast::<Element>().has_attribute(&local_name!("src"))
+            !self.pending_navigation.get()
+                && !self.upcast::<Element>().has_attribute(&local_name!("src"))
         } else {
             // If this is not the initial blank doc:
             // do not fire if there is a pending navigation.
