@@ -11,6 +11,7 @@ use std::{f64, ptr};
 
 use base::generic_channel::GenericSender;
 use base::text::Utf16CodeUnitLength;
+use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use embedder_traits::{
     EmbedderControlRequest, FilePickerRequest, FilterPattern, InputMethodRequest, InputMethodType,
@@ -33,8 +34,15 @@ use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDa
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::domstring::parse_floating_point_number;
 use style::attr::AttrValue;
+use style::color::{AbsoluteColor, ColorSpace};
+use style::context::QuirksMode;
+use style::parser::ParserContext;
 use style::selector_parser::PseudoElement;
 use style::str::split_commas;
+use style::stylesheets::CssRuleType;
+use style::stylesheets::origin::Origin;
+use style::values::specified::color::Color;
+use style_traits::{ParsingMode, ToCss};
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
 use time::{Month, OffsetDateTime, Time};
@@ -627,7 +635,7 @@ pub(crate) struct HTMLInputElement {
     minlength: Cell<i32>,
     #[no_trace]
     textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
-    // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag>
     value_dirty: Cell<bool>,
     /// A [`SharedSelection`] that is shared with layout. This can be updated dyanmnically
     /// and layout should reflect the new value after a display list update.
@@ -1703,20 +1711,23 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
         match self.value_mode() {
             ValueMode::Value => {
                 {
-                    // Step 3.
+                    // Step 3. Set the element's dirty value flag to true.
                     self.value_dirty.set(true);
 
-                    // Step 4.
+                    // Step 4. Invoke the value sanitization algorithm, if the element's type
+                    // attribute's current state defines one.
                     self.sanitize_value(&mut value);
 
                     let mut textinput = self.textinput.borrow_mut();
 
-                    // Step 5.
+                    // Step 5. If the element's value (after applying the value sanitization algorithm)
+                    // is different from oldValue, and the element has a text entry cursor position,
+                    // move the text entry cursor position to the end of the text control,
+                    // unselecting any selected text and resetting the selection direction to "none".
                     if textinput.get_content() != value {
-                        // Steps 1-2
+                        // Step 2. Set the element's value to the new value.
                         textinput.set_content(value);
 
-                        // Step 5.
                         textinput.clear_selection_to_end();
                     }
                 }
@@ -2432,11 +2443,9 @@ impl HTMLInputElement {
                 }
             },
             InputType::Color => {
-                if value.str().is_valid_simple_color_string() {
-                    value.make_ascii_lowercase();
-                } else {
-                    *value = "#000000".into();
-                }
+                // > The value sanitization algorithm is as follows:
+                // > Run update a color well control color for the element.
+                self.update_a_color_well_control_color(value);
             },
             InputType::Time => {
                 if !value.str().is_valid_time_string() {
@@ -2548,6 +2557,103 @@ impl HTMLInputElement {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn selection(&self) -> TextControlSelection<'_, Self> {
         TextControlSelection::new(self, &self.textinput)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#update-a-color-well-control-color>
+    fn update_a_color_well_control_color(&self, element_value: &mut DOMString) {
+        // Step 1. Assert: element is an input element whose type attribute is in the Color state.
+        debug_assert_eq!(self.input_type(), InputType::Color);
+
+        // Step 2. Let value be the result of running these steps:
+        // Step 2.1 If element's dirty value flag is true, then return the result of getting an attribute
+        // by namespace and local name given null, "value", and element.
+        // FIXME: If we do this then things break
+        // Step 2.2. Return element's value.
+        let value = element_value.to_owned();
+
+        // Step 3. Let color be the result of parsing value.
+        // Step 4. If color is failure, then set color to opaque black.
+        // TODO: Use a dummy url here, like gecko
+        // https://searchfox.org/firefox-main/rev/3eaf7e2acf8186eb7aa579561eaa1312cb89132b/servo/ports/geckolib/glue.rs#8931
+        let urlextradata = self.owner_document().url().as_url().to_owned().into();
+        let context = ParserContext::new(
+            Origin::Author,
+            &urlextradata,
+            Some(CssRuleType::Style),
+            ParsingMode::DEFAULT,
+            QuirksMode::NoQuirks,
+            Default::default(),
+            None,
+            None,
+        );
+        let input = value.str();
+        let mut input = ParserInput::new(&input);
+        let mut input = Parser::new(&mut input);
+        let color = Color::parse_and_compute(&context, &mut input, None)
+            .map(|computed_color| computed_color.resolve_to_absolute(&AbsoluteColor::BLACK))
+            .unwrap_or(AbsoluteColor::BLACK);
+
+        // Step 5. Set element's value to the result of serializing a color well control color
+        // given element and color.
+        self.serialize_a_color_well_control_color(color, element_value);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#serialize-a-color-well-control-color>
+    fn serialize_a_color_well_control_color(
+        &self,
+        mut color: AbsoluteColor,
+        destination: &mut DOMString,
+    ) {
+        // Step 1. Assert: element is an input element whose type attribute is in the Color state.
+        debug_assert_eq!(self.input_type(), InputType::Color);
+
+        // Step 2. Let htmlCompatible be false.
+        let mut html_compatible = false;
+
+        // Step 3. If element's alpha attribute is not specified, then set color's alpha component to be fully opaque.
+        let has_alpha = self
+            .upcast::<Element>()
+            .has_attribute(&local_name!("alpha"));
+        if !has_alpha {
+            color.alpha = 1.0;
+        }
+
+        // Step 4. If element's colorspace attribute is in the Limited sRGB state:
+        // TODO: Servo doesn't support the colorspace attribute yet, so this is always true
+        // Step 4.1 Set color to color converted to the 'srgb' color space.
+
+        // NOTE: Even though we don't support other values for the colorspace attribute, the color might
+        // not be in the "srgb" color space because CSS colors can specify their own colorspaces.
+        // For example: "color(display-p3 1 0 0)"
+        color = color.to_color_space(ColorSpace::Srgb);
+
+        // Step 4.2 Round each of color's components so they are in the range 0 to 255,
+        // inclusive. Components are to be rounded towards +∞.
+        color.components.0 = color.components.0.clamp(0.0, 1.0);
+        color.components.1 = color.components.1.clamp(0.0, 1.0);
+        color.components.2 = color.components.2.clamp(0.0, 1.0);
+
+        // Step 4.3 If element's alpha attribute is not specified, then set htmlCompatible to true.
+        if !has_alpha {
+            html_compatible = true;
+        }
+
+        // Step 5. Otherwise:
+        // TODO: This is unreachable, see the note on Step 4.
+
+        // Step 6. Return the result of serializing color. If htmlCompatible is true,
+        // then do so with HTML-compatible serialization requested.
+        *destination = if html_compatible {
+            format!(
+                "#{:0>2x}{:0>2x}{:0>2x}",
+                (color.components.0 * 255.0).round() as usize,
+                (color.components.1 * 255.0).round() as usize,
+                (color.components.2 * 255.0).round() as usize
+            )
+        } else {
+            color.to_css_string()
+        }
+        .into();
     }
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
