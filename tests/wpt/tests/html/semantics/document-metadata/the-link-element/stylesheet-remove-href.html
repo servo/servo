@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Removing href should remove previously applied styles</title>
+<link rel=match href=stylesheet-change-href-ref.html>
+<style>
+p {
+  color: green;
+}
+</style>
+<script>
+  function removeHref() {
+    var elem = document.getElementById('stylesheet');
+    elem.removeAttribute('href');
+    elem.onload = null;
+  }
+</script>
+<link id=stylesheet rel=stylesheet href="resources/bad.css" onload="removeHref()">
+<p>This text should be green on a white background
