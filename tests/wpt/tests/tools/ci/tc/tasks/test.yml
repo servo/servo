@@ -170,7 +170,7 @@ tasks:
                 browser: firefox
                 channel: beta
               use:
-                - trigger-weekly
+                - trigger-daily
                 - trigger-push
             - vars:
                 browser: firefox
@@ -295,7 +295,7 @@ tasks:
                 browser: firefox
                 channel: beta
               use:
-                - trigger-weekly
+                - trigger-daily
                 - trigger-push
             - vars:
                 browser: firefox
@@ -407,7 +407,7 @@ tasks:
                 browser: firefox
                 channel: beta
               use:
-                - trigger-weekly
+                - trigger-daily
                 - trigger-push
             - vars:
                 browser: firefox

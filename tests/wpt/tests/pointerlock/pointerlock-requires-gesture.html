@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<link rel="help" href="https://w3c.github.io/pointerlock" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  This page will request a pointer lock on load. The test will fail if the User
+  Agent provides the pointer lock despite the request not originating from user input.
+</body>
+<script>
+  async_test(function(test) {
+    document.addEventListener("pointerlockerror", function() {
+      test.done();
+    });
+    document.addEventListener("pointerlockchange", function() {
+      if (document.pointerLockElement) {
+        test.step(() => {
+          assert_unreached('Pointer lock should not be granted without a user gesture');
+        });
+      }
+      test.done();
+    });
+    // Catch and ignore the promise rejection - the pointerlockerror event should fire
+    // and complete the test.
+    document.body.requestPointerLock().catch(() => {});
+  }, 'Request pointer lock without user gesture should fail');
+</script>
+</html>

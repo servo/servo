@@ -11,7 +11,7 @@ var worker = 'resources/fetch-rewrite-worker.js';
 var path = base_path() + 'resources/fetch-access-control.py';
 var host_info = get_host_info();
 
-function getLoadedObject(win, contentFunc, closeFunc) {
+function getLoadedObject(t, win, contentFunc, closeFunc) {
   return new Promise(function(resolve) {
       function done(contentString) {
         var result = null;
@@ -29,7 +29,7 @@ function getLoadedObject(win, contentFunc, closeFunc) {
       }
 
       // We can't catch the network error on window. So we use the timer.
-      var timeout = setTimeout(function() {
+      var timeout = t.step_timeout(function() {
           // Failure pages are considered cross-origin in some browsers.  This
           // means you cannot even .resolve() the window because the check for
           // the .then property will throw.  Instead, treat cross-origin
@@ -42,6 +42,8 @@ function getLoadedObject(win, contentFunc, closeFunc) {
             // use default empty string for cross-domain window
           }
           done(content);
+        // TODO(https://github.com/w3c/ServiceWorker/issues/1194): adjust timeout.
+        // 10,000 ms was set when `setTimeout()` was used here, which can be too large.
         }, 10000);
 
       win.onload = function() {
@@ -57,16 +59,16 @@ function getLoadedObject(win, contentFunc, closeFunc) {
     });
 }
 
-function getLoadedFrameAsObject(frame) {
-  return getLoadedObject(frame, function(f) {
+function getLoadedFrameAsObject(t, frame) {
+  return getLoadedObject(t, frame, function(f) {
       return f.contentDocument.body.textContent;
     }, function(f) {
       f.parentNode.removeChild(f);
     });
 }
 
-function getLoadedWindowAsObject(win) {
-  return getLoadedObject(win, function(w) {
+function getLoadedWindowAsObject(t, win) {
+  return getLoadedObject(t, win, function(w) {
       return w.document.body.textContent
     }, function(w) {
       w.close();
@@ -90,7 +92,7 @@ promise_test(function(t) {
             scope + '?url=' +
             encodeURIComponent(host_info['HTTPS_ORIGIN'] + path);
           document.body.appendChild(frame);
-          return getLoadedFrameAsObject(frame);
+          return getLoadedFrameAsObject(t, frame);
         })
       .then(function(result) {
           assert_equals(
@@ -120,7 +122,7 @@ promise_test(function(t) {
                                '?ACAOrigin=' + host_info['HTTPS_ORIGIN'] +
                                '&ACACredentials=true');
           document.body.appendChild(frame);
-          return getLoadedFrameAsObject(frame);
+          return getLoadedFrameAsObject(t, frame);
         })
       .then(function(result) {
           assert_equals(
@@ -148,7 +150,7 @@ promise_test(function(t) {
             scope + '?mode=no-cors&url=' +
             encodeURIComponent(host_info['HTTPS_REMOTE_ORIGIN'] + path);
           document.body.appendChild(frame);
-          return getLoadedFrameAsObject(frame);
+          return getLoadedFrameAsObject(t, frame);
         })
       .then(function(result) {
           assert_equals(
@@ -173,7 +175,7 @@ promise_test(function(t) {
           var win = window.open(
             scope + '?url=' +
             encodeURIComponent(host_info['HTTPS_ORIGIN'] + path));
-          return getLoadedWindowAsObject(win);
+          return getLoadedWindowAsObject(t, win);
         })
       .then(function(result) {
           assert_equals(
@@ -199,7 +201,7 @@ promise_test(function(t) {
             encodeURIComponent(host_info['HTTPS_REMOTE_ORIGIN'] + path +
                                '?ACAOrigin=' + host_info['HTTPS_ORIGIN'] +
                                '&ACACredentials=true'));
-          return getLoadedWindowAsObject(win);
+          return getLoadedWindowAsObject(t, win);
         })
       .then(function(result) {
           assert_equals(
@@ -223,7 +225,7 @@ promise_test(function(t) {
           var win = window.open(
             scope + '?mode=no-cors&url=' +
             encodeURIComponent(host_info['HTTPS_REMOTE_ORIGIN'] + path));
-          return getLoadedWindowAsObject(win);
+          return getLoadedWindowAsObject(t, win);
         })
       .then(function(result) {
           assert_equals(

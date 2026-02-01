@@ -13,7 +13,7 @@ cd wpt
 
 ## System Setup
 
-Running the tests requires `python` and `pip` as well as updating the
+Running the tests requires `python` as well as updating the
 system `hosts` file.
 
 WPT requires Python 3.8 or higher.
@@ -22,13 +22,12 @@ The required setup is different depending on your operating system.
 
 ### Linux Setup
 
-If not already present, use the system package manager to install `python`,
-and `pip`.
+If not already present, use the system package manager to install `python`.
 
 On Ubuntu:
 
 ```bash
-sudo apt-get install python3 python3-pip python3-venv
+sudo apt-get install python3 python3-venv
 ```
 
 It is important to have a package that provides a `python` binary. On Fedora,

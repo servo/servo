@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Native arrow key handler with explicit focusgroup=none</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<meta name="assert" content="An element with focusgroup=none is always opted-out, regardless of whether it's a native arrow key handler.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<button id="before">Before</button>
+<div id="toolbar" focusgroup="toolbar">
+  <button id="btn1">Button 1</button>
+  <input id="search" type="text" focusgroup="none" placeholder="Search">
+  <button id="btn2">Button 2</button>
+</div>
+<button id="after">After</button>
+
+<script>
+
+  promise_test(async t => {
+    const btn1 = document.getElementById("btn1");
+    const search = document.getElementById("search");
+    const btn2 = document.getElementById("btn2");
+
+    // Element with focusgroup="none" is excluded from arrow navigation entirely.
+    await assert_arrow_navigation_bidirectional([btn1, btn2]);
+  }, "Explicit focusgroup=none excludes element from arrow navigation");
+
+  promise_test(async t => {
+    const search = document.getElementById("search");
+
+    search.focus();
+    assert_equals(document.activeElement, search, "Can manually focus opted-out element");
+
+    // Arrow keys should not trigger focusgroup navigation from opted-out element.
+    await assert_arrow_keys_do_not_move_focus(search);
+  }, "Arrow keys do not work from explicitly opted-out native arrow key handler");
+
+  promise_test(async t => {
+    const before = document.getElementById("before");
+    const btn1 = document.getElementById("btn1");
+    const search = document.getElementById("search");
+    const btn2 = document.getElementById("btn2");
+    const after = document.getElementById("after");
+
+    // Explicit opt-out means element is in normal Tab order regardless of focus state.
+    // This is different from native arrow key handler behavior which only opts-out when focused.
+    await assert_focusgroup_tab_navigation([before, btn1, search, btn2, after]);
+  }, "Explicit focusgroup=none includes element in Tab order even when not focused");
+
+</script>

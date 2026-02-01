@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <title>
-  CSS Gap Decorations: setting *rule-break to spanning-item stops painting decorations at
-  each spanning-item in fragmentation context. Tests scenario where *rule-visibility-items
+  CSS Gap Decorations: setting *rule-break to normal stops painting decorations at
+  each normal in fragmentation context. Tests scenario where *rule-visibility-items
   is set to `between`.
 </title>
 <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
@@ -31,9 +31,9 @@
     row-rule-color: red;
     row-rule-style: solid;
     row-rule-width: 5px;
-    column-rule-break: spanning-item;
+    column-rule-break: normal;
     column-rule-inset: 0px;
-    row-rule-break: spanning-item;
+    row-rule-break: normal;
     row-rule-inset: 0px;
     column-rule-visibility-items: between;
     row-rule-visibility-items: between;

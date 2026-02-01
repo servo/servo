@@ -821,4 +821,69 @@ test(t => {
       'Animated style at 50s of the fourth iteration');
 }, 'duration changes with an iteration composition operation of accumulate');
 
+test(t => {
+  const div = createDiv(t);
+  div.textContent = 'hello world';
+  const anim =
+    div.animate({ width: ['min-content', 'max-content'] },
+                { duration: 100 * MS_PER_SEC,
+                  easing: 'linear',
+                  iterations: 10,
+                  iterationComposite: 'accumulate' });
+  anim.pause();
+
+  // Incompatible intrinsic size keywords use discrete interpolation.
+  anim.currentTime = 0;
+  const widthAt0 = getComputedStyle(div).width;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
+  const widthAt50 = getComputedStyle(div).width;
+  assert_not_equals(widthAt0, widthAt50,
+  'Animated width at 0s vs 50s of the first iteration');
+
+  // Iteration accumulation is not possible because intrinsic size keywords can
+  // not be added together, so the values remain the same across iterations.
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
+  assert_equals(getComputedStyle(div).width, widthAt0,
+    'Animated width at 0s of the third iteration');
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
+  assert_equals(getComputedStyle(div).width, widthAt50,
+    'Animated width at 50s of the third iteration');
+}, 'iteration composition of incompatible intrinsic size keywords ' +
+   '(accumulation is skipped)');
+
+test(t => {
+  const div = createDiv(t);
+  div.textContent = 'hello world';
+  const anim =
+    div.animate({ width: ['calc-size(auto, size)', 'calc-size(fit-content, size)'] },
+                { duration: 100 * MS_PER_SEC,
+                  easing: 'linear',
+                  iterations: 10,
+                  iterationComposite: 'accumulate' });
+  anim.pause();
+
+  // Incompatible calc-size() bases use discrete interpolation.
+  anim.currentTime = 0;
+  const widthAt0 = getComputedStyle(div).width;
+  anim.currentTime = anim.effect.getComputedTiming().duration / 2;
+  const widthAt50 = getComputedStyle(div).width;
+  assert_not_equals(widthAt0, widthAt50,
+    'Animated width at 0s vs 50s of the first iteration');
+
+  // Third iteration. At 0%, the result has "auto" basis while the end has
+  // "fit-content" basis. They are incompatible, so accumulation is skipped.
+  anim.currentTime = anim.effect.getComputedTiming().duration * 2;
+  assert_equals(getComputedStyle(div).width, widthAt0,
+    'Animated width at 0s of the third iteration');
+
+  // However, at 50% the result has "fit-content" basis which is the same
+  // as the end so accumulation can now happen.
+  anim.currentTime += anim.effect.getComputedTiming().duration / 2;
+  assert_approx_equals(parseFloat(getComputedStyle(div).width),
+    parseFloat(widthAt50) * 3,
+    0.01,
+    'Animated width at 50s of the third iteration (accumulated)');
+}, 'iteration composition of incompatible calc-size() bases ' +
+   '(accumulation skipped at 0%, allowed at 50%)');
+
 </script>

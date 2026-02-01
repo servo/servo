@@ -25,3 +25,29 @@ interface CSSFunctionDescriptors : CSSStyleDeclaration {
 interface CSSFunctionDeclarations : CSSRule {
   [SameObject, PutForwards=cssText] readonly attribute CSSFunctionDescriptors style;
 };
+
+[Exposed=Window]
+interface CSSMixinRule : CSSGroupingRule {
+  readonly attribute CSSOMString name;
+  sequence<FunctionParameter> getParameters();
+  readonly attribute boolean contents;
+};
+
+[Exposed=Window]
+interface CSSApplyBlockRule : CSSGroupingRule {
+  readonly attribute CSSOMString name;
+  sequence<CSSOMString> getArguments();
+};
+
+[Exposed=Window]
+interface CSSApplyStatementRule : CSSRule {
+
+  readonly attribute CSSOMString name;
+  sequence<CSSOMString> getArguments();
+};
+
+[Exposed=Window]
+interface CSSContentsBlockRule : CSSGroupingRule { };
+
+[Exposed=Window]
+interface CSSContentsStatementRule : CSSRule { };

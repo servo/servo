@@ -163,8 +163,32 @@ const ALL_FEATURES = [
   'depth-sensing',
   'secondary-views',
   'camera-access',
-  'layers'
+  'layers',
+  'plane-detection'
 ];
+
+const DEFAULT_FLOOR_PLANE = {
+  type: "plane",
+  faces: [
+    { vertices: [{x: -1, y: 0, z: -1}, {x: 1, y: 0, z: -1}, {x: 1, y: 0, z: 1}] },
+    { vertices: [{x: -1, y: 0, z: -1}, {x: 1, y: 0, z: 1}, {x: -1, y: 0, z: 1}] }
+  ],
+  planeInfo: {
+    orientation: "horizontal",
+    origin: { position: [0, 0, 0], orientation: [0, 0, 0, 1] },
+    polygon: [
+      {x: -1, z: -1},
+      {x: 1, z: -1},
+      {x: 1, z: 1},
+      {x: -1, z: 1}
+    ],
+    semanticLabel: "floor"
+  }
+};
+
+const DEFAULT_WORLD_WITH_FLOOR = {
+  hitTestRegions: [ DEFAULT_FLOOR_PLANE ]
+};
 
 const TRACKED_IMMERSIVE_DEVICE = {
     supportsImmersive: true,

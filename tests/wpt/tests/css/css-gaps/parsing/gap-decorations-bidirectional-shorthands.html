@@ -25,6 +25,9 @@
     column-rule-break: intersection;
     row-rule-break: intersection;
 
+    column-rule-visibility-items: around;
+    row-rule-visibility-items: around;
+
     column-rule-edge-inset-start: 10px;
     row-rule-edge-inset-start: 10px;
     column-rule-edge-inset-end: 5px;
@@ -46,7 +49,10 @@
     row-rule-style: dotted;
 
     column-rule-break: intersection;
-    row-rule-break: spanning-item;
+    row-rule-break: normal;
+
+    column-rule-visibility-items: around;
+    row-rule-visibility-items: between;
 
     column-rule-edge-inset-start: 5px;
     row-rule-edge-inset-start: 10px;
@@ -75,6 +81,9 @@
     assert_equals(window.getComputedStyle(document.getElementById('target1')).getPropertyValue('rule-break'), 'intersection');
   }, "rule-break shorthand computed from longhand values");
   test(function() {
+    assert_equals(window.getComputedStyle(document.getElementById('target1')).getPropertyValue('rule-visibility-items'), 'around');
+  }, "rule-visibility-items shorthand computed from longhand values");
+  test(function() {
     assert_equals(window.getComputedStyle(document.getElementById('target1')).getPropertyValue('rule-inset'), '10px 5px / 10px 5px');
   }, "rule-inset shorthand computed from longhand values");
 
@@ -95,6 +104,9 @@
   test(function() {
     assert_equals(window.getComputedStyle(document.getElementById('target2')).getPropertyValue('rule-break'), '');
   }, "rule-break shorthand cannot be computed from longhand values so expect an empty string");
+  test(function() {
+    assert_equals(window.getComputedStyle(document.getElementById('target2')).getPropertyValue('rule-visibility-items'), '');
+  }, "rule-visibility-items shorthand cannot be computed from longhand values so expect an empty string");
   test(function() {
     assert_equals(window.getComputedStyle(document.getElementById('target2')).getPropertyValue('rule-inset'), '');
   }, "rule-inset shorthand cannot be computed from longhand values so expect an empty string");

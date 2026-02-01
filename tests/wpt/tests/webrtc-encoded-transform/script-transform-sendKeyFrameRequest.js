@@ -31,7 +31,7 @@ onrtctransform = event => {
 
   async function sendKeyFrameRequest() {
     try {
-      await Promise.race([transformer.sendKeyFrameRequest(), rejectInMs(8000)]);;
+      await Promise.race([transformer.sendKeyFrameRequest(), rejectInMs(16000)]);;
       transformer.options.port.postMessage('success');
     } catch (e) {
       // TODO: This does not work if we send e.name, why?
@@ -51,7 +51,7 @@ onrtctransform = event => {
 
   async function waitForFrame() {
     try {
-      await Promise.race([new Promise(r => gotFrameCallback = r), rejectInMs(8000)]);
+      await Promise.race([new Promise(r => gotFrameCallback = r), rejectInMs(16000)]);
       transformer.options.port.postMessage('got frame');
     } catch (e) {
       // TODO: This does not work if we send e.name, why?

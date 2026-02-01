@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
 <button id=before>Before</button>
@@ -28,7 +29,7 @@
     var after = document.getElementById("after");
 
     // Tab navigation should include the opted-out element in the normal tab order.
-    await assert_focus_navigation_forward([before, first, optedout, last, after]);
+    await assert_focusgroup_tab_navigation([before, first, optedout, last, after]);
   }, "Tab navigation includes opted-out element in normal tab order");
 
   promise_test(async t => {

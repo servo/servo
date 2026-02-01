@@ -87,7 +87,7 @@
     "help": "Update CODEOWNERS file",
     "virtualenv": true,
     "requirements": [
-      "../wpt/requirements_metadata.txt"
+      "requirements_update_codeowners.txt"
     ]
   }
 }

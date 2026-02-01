@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>CSS Borders Test: hit testing border-shape with overflow</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #wrapper {
+    width: 100px;
+    height: 100px;
+  }
+  #bs-target {
+    width: 200px;
+    height: 200px;
+    border-shape: circle(50% at 50% 50%);
+    border: 20px solid purple;
+    background: green;
+  }
+
+  #bs-target:hover {
+    border-color: orange;
+  }
+
+  #overflower {
+    width: 400px;
+    height: 25px;
+    background: lightblue;
+    text-align: end;
+  }
+</style>
+
+border-shape:<br>
+<div id="wrapper">
+<div id="bs-target">
+  <div id="overflower">hover here</div>
+</div>
+</div>
+<script>
+  promise_test(async t => {
+    let eventTarget;
+    const target = document.getElementById('bs-target');
+    const overflower = document.getElementById('overflower');
+    const x = 350, y = 60;
+    const rect = target.getBoundingClientRect();
+    assert_false(
+      x >= rect.left && x <= rect.right &&
+      y >= rect.top && y <= rect.bottom,
+      'Point should be outside the border-shape element');
+
+    target.addEventListener('mouseover', (e) => { eventTarget = e.target; }, { once: true });
+    await new test_driver.Actions().pointerMove(x, y).send();
+    assert_equals(eventTarget, overflower, 'Event target should be the overflowing element');
+  });
+</script>
+

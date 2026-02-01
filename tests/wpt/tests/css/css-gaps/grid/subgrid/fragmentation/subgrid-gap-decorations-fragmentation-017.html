@@ -2,7 +2,7 @@
 <title>
   Gap Decorations are shown in a grid that's fragmented. Suppressed row gaps do not
   have decorations. Test scenario where the subgrid is empty and *rule-break is
-  spanning-item.
+  normal.
 </title>
 <link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
 <link rel="match" href="subgrid-gap-decorations-fragmentation-017-ref.html">
@@ -29,8 +29,8 @@
     height: 140px;
     column-rule: skyblue solid 10px;
     row-rule: cornflowerblue solid 10px;
-    column-rule-break: spanning-item;
-    row-rule-break: spanning-item;
+    column-rule-break: normal;
+    row-rule-break: normal;
     row-rule-inset: 0px;
   }
   .subgrid {

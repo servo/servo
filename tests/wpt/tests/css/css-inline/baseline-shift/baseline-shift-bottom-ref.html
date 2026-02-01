@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-inline-3/#baseline-shift-property">
+  <style>
+    #line {
+      position: relative;
+      height: 100px;
+    }
+
+    #line > * {
+      position: absolute;
+      background: black;
+    }
+
+    #e1 { left: 0; bottom: 0; }
+    #e2 { left: 120px; bottom: 0; }
+    #e3 { left: 200px; bottom: 0; }
+  </style>
+</head>
+<body>
+  <div id="line">
+    <div id="e1" style="width: 100px; height: 100px;"></div>
+    <img id="e2" src="/css/support/60x60-green.png">
+    <div id="e3" style="width: 20px; height: 20px;"></div>
+  </div>
+</body>
+</html>

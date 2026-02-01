@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Native arrow key handler elements block arrow exit</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<meta name="assert" content="Native arrow key handler elements block arrow navigation when focused.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<!--
+  Tests that various native arrow key handler element types block arrow key navigation
+  when focused inside a focusgroup. Each element type is tested for:
+  1. Arrow navigation TO the element works (entry)
+  2. Arrow navigation FROM the element is blocked (exit blocked)
+
+  Note: Tab escape behavior is tested in conflict-elements-tab-escape.html.
+  Media elements (video/audio) and iframes are excluded as they have complex
+  focus behavior that is better tested in isolation.
+-->
+
+<!-- Text input (uses arrow keys for cursor movement) -->
+<div id="toolbar-text" focusgroup="toolbar">
+  <button id="btn-text-before">Before</button>
+  <input id="text-input" type="text" value="test">
+  <button id="btn-text-after">After</button>
+</div>
+
+<!-- Textarea (uses arrow keys for cursor movement) -->
+<div id="toolbar-textarea" focusgroup="toolbar">
+  <button id="btn-textarea-before">Before</button>
+  <textarea id="textarea">Content</textarea>
+  <button id="btn-textarea-after">After</button>
+</div>
+
+<!-- Number input (uses up/down for stepping) -->
+<div id="toolbar-number" focusgroup="toolbar">
+  <button id="btn-number-before">Before</button>
+  <input id="number-input" type="number" value="5">
+  <button id="btn-number-after">After</button>
+</div>
+
+<!-- Range input (uses left/right for value) -->
+<div id="toolbar-range" focusgroup="toolbar">
+  <button id="btn-range-before">Before</button>
+  <input id="range-input" type="range" value="50">
+  <button id="btn-range-after">After</button>
+</div>
+
+<!-- Select (uses up/down for option selection) -->
+<div id="toolbar-select" focusgroup="toolbar">
+  <button id="btn-select-before">Before</button>
+  <select id="select-input">
+    <option>A</option>
+    <option>B</option>
+  </select>
+  <button id="btn-select-after">After</button>
+</div>
+
+<!-- Contenteditable (uses arrow keys for cursor movement) -->
+<div id="toolbar-editable" focusgroup="toolbar">
+  <button id="btn-editable-before">Before</button>
+  <div id="editable" contenteditable="true" tabindex="0">Editable</div>
+  <button id="btn-editable-after">After</button>
+</div>
+
+<script>
+  const testCases = [
+    { id: 'text-input', name: 'text input' },
+    { id: 'textarea', name: 'textarea' },
+    { id: 'number-input', name: 'number input' },
+    { id: 'range-input', name: 'range input' },
+    { id: 'select-input', name: 'select' },
+    { id: 'editable', name: 'contenteditable' },
+  ];
+
+  for (const { id, name } of testCases) {
+    const element = document.getElementById(id);
+    const toolbar = element.closest('[focusgroup]');
+    const beforeBtn = toolbar.querySelector('button');
+
+    // Test: Arrow navigation TO the conflict element works.
+    promise_test(async t => {
+      beforeBtn.focus();
+      assert_equals(document.activeElement, beforeBtn, 'Precondition: before button focused');
+
+      await focusAndKeyPress(beforeBtn, kArrowRight);
+      assert_equals(document.activeElement, element,
+                    `Arrow right should navigate TO ${name}`);
+    }, `${name}: arrow navigation TO element works`);
+
+    // Test: Arrow navigation FROM the conflict element is blocked.
+    promise_test(async t => {
+      element.focus();
+      assert_equals(document.activeElement, element, `Precondition: ${name} is focused`);
+
+      await assert_arrow_keys_do_not_move_focus(element);
+    }, `${name}: arrow navigation FROM element is blocked`);
+  }
+</script>

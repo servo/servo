@@ -14,7 +14,7 @@ NAVIGATION_STARTED_EVENT = "browsingContext.navigationStarted"
 USER_PROMPT_OPENED_EVENT = "browsingContext.userPromptOpened"
 
 
-async def test_unsubscribe(bidi_session, inline, new_tab):
+async def test_unsubscribe(bidi_session, inline, new_tab, iframe):
     await bidi_session.session.subscribe(events=[NAVIGATION_FAILED_EVENT])
     await bidi_session.session.unsubscribe(events=[NAVIGATION_FAILED_EVENT])
 
@@ -26,10 +26,9 @@ async def test_unsubscribe(bidi_session, inline, new_tab):
 
     remove_listener = bidi_session.add_event_listener(NAVIGATION_FAILED_EVENT, on_event)
 
-    iframe_url = inline("<div>foo</div>", domain="alt")
     page_url = inline(
-        f"""<iframe src={iframe_url}></iframe>""",
-        parameters={"pipe": "header(Content-Security-Policy, default-src 'self')"},
+        iframe("<div>foo</div>", domain="alt"),
+        parameters={"pipe": "header(Content-Security-Policy, default-src 'self')"}
     )
 
     await bidi_session.browsing_context.navigate(
@@ -49,8 +48,10 @@ async def test_with_csp_meta_tag(
     new_tab,
     wait_for_event,
     wait_for_future_safe,
+    iframe
 ):
-    iframe_url = inline("<div>foo</div>", domain="alt")
+    iframe_html = "<div>foo</div>"
+    iframe_url = inline(iframe_html, domain="alt")
     page_url = inline(
         f"""
 <!DOCTYPE html>
@@ -60,7 +61,7 @@ async def test_with_csp_meta_tag(
   http-equiv="Content-Security-Policy"
   content="default-src 'self'" />
     </head>
-    <body><iframe src="{iframe_url}"></iframe></body>
+    <body>{iframe(iframe_html, domain="alt")}</body>
 </html>
 """
     )
@@ -117,11 +118,13 @@ async def test_with_content_blocking_header_in_top_context(
     wait_for_event,
     wait_for_future_safe,
     header,
+    iframe
 ):
-    iframe_url = inline("<div>foo</div>", domain="alt")
+    iframe_html = "<div>foo</div>"
+    iframe_url = inline(iframe_html, domain="alt")
     page_url = inline(
-        f"""<iframe src={iframe_url}></iframe>""",
-        parameters={"pipe": f"header({header})"},
+        iframe(iframe_html, domain="alt"),
+        parameters={"pipe": f"header({header})"}
     )
     await subscribe_events(events=[NAVIGATION_FAILED_EVENT, NAVIGATION_STARTED_EVENT])
 
@@ -175,13 +178,19 @@ async def test_with_x_frame_options_header(
     new_tab,
     wait_for_event,
     wait_for_future_safe,
-    header_value
+    header_value,
+    iframe
 ):
+    iframe_html = "<div>foo</div>"
     iframe_url = inline(
-        "<div>foo</div>",
+        iframe_html,
         parameters={"pipe": f"header(X-Frame-Options, {header_value})"},
     )
-    page_url = inline(f"""<iframe src={iframe_url}></iframe>""", domain="alt")
+    page_url = inline(
+        iframe(iframe_html,
+        parameters={"pipe": f"header(X-Frame-Options, {header_value})"}),
+        domain="alt"
+    )
     await subscribe_events(events=[NAVIGATION_FAILED_EVENT, NAVIGATION_STARTED_EVENT])
 
     # Track all received browsingContext.navigationStarted events in the events array.
@@ -394,9 +403,9 @@ async def test_close_iframe(
     new_tab,
     wait_for_event,
     wait_for_future_safe,
+    iframe
 ):
-    iframe_url = inline("<div>foo</div>")
-    page_url = inline(f"<iframe src={iframe_url}></iframe")
+    page_url = inline(iframe("<div>foo</div>"))
 
     # Depending on implementation, the `trickle(d10)` page can or can not yet
     # create a new document. Depending on this, `aborted` or `failed` event

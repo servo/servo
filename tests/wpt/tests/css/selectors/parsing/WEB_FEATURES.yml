@@ -28,6 +28,9 @@ features:
 - name: has-slotted
   files:
   - parse-has-slotted.tentative.html
+- name: slot
+  files:
+  - parse-slotted.html
 - name: not
   files:
   - parse-not.html

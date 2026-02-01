@@ -79,9 +79,9 @@ async def test_iframe(
     domain,
     inline,
     new_tab,
+    iframe
 ):
-    iframe_url = inline("<div id='in-iframe'>foo</div>", domain=domain)
-    page_url = inline(f"<iframe src='{iframe_url}'></iframe>")
+    page_url = inline(iframe("<div id='in-iframe'>foo</div>", domain=domain))
 
     await setup_network_test(
         events=[RESPONSE_COMPLETED_EVENT], context=new_tab["context"], test_url=page_url

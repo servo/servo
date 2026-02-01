@@ -8,3 +8,6 @@ features:
 - name: text-shadow
   files:
   - text-shadow-*
+- name: svg
+  files:
+  - marker-path-*

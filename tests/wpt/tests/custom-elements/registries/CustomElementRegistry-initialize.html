@@ -26,6 +26,18 @@
 <script>
 
 test(() => {
+    const document = new Document();
+    assert_throws_dom("NotSupportedError", () => window.customElements.initialize(document));
+}, 'initialize throws when the registry scoped is false and the root is the document.');
+
+test(() => {
+    const document = new Document();
+    const registry = new CustomElementRegistry;
+    registry.initialize(document);
+    assert_throws_dom("NotSupportedError", () => window.customElements.initialize(document));
+}, 'initialize throws when the registry scoped is false and the root document already has another registry');
+
+test(() => {
     assert_equals(typeof(window.customElements.initialize), 'function');
     assert_equals(typeof((new CustomElementRegistry).initialize), 'function');
 }, 'initialize is a function on both global and scoped CustomElementRegistry');
@@ -69,6 +81,23 @@ test(() => {
     assert_equals(shadowRoot.querySelector('a-b').customElementRegistry, registry);
     assert_equals(shadowRoot.querySelector('ef').customElementRegistry, registry);
 }, 'initialize sets element.customElementRegistry to a scoped registry');
+
+test(() => {
+    const clone = host.cloneNode(true);
+    const shadowRoot = clone.shadowRoot;
+    assert_equals(shadowRoot.customElementRegistry, null);
+    assert_equals(shadowRoot.querySelector('a-b').customElementRegistry, null);
+    assert_equals(shadowRoot.querySelector('ef').customElementRegistry, null);
+    const registry = new CustomElementRegistry;
+    registry.initialize(shadowRoot);
+    assert_equals(shadowRoot.customElementRegistry, registry);
+    assert_equals(shadowRoot.querySelector('a-b').customElementRegistry, registry);
+    assert_equals(shadowRoot.querySelector('ef').customElementRegistry, registry);
+    window.customElements.initialize(shadowRoot);
+    assert_equals(shadowRoot.customElementRegistry, registry);
+    assert_equals(shadowRoot.querySelector('a-b').customElementRegistry, registry);
+    assert_equals(shadowRoot.querySelector('ef').customElementRegistry, registry);
+}, 'initialize does not set descendants whose customElementRegistry already uses a different registry');
 
 test(() => {
     const clone = host.cloneNode(true);
@@ -136,6 +165,29 @@ test(() => {
     assert_equals(df.customElementRegistry, undefined);
 }, 'initialize works on DocumentFragment');
 
+test(() => {
+    const shadowRoot = document.getElementById('host').cloneNode(true).shadowRoot;
+    const ab = shadowRoot.querySelector('a-b');
+    const ef = shadowRoot.querySelector('ef');
+    const registry = new CustomElementRegistry();
+    ab.innerHTML = '<dummy></dummy><div></div>';
+    registry.initialize(ab);
+    assert_equals(ab.customElementRegistry, registry);
+    assert_equals(ab.firstElementChild.customElementRegistry, registry);
+    assert_equals(ab.lastElementChild.customElementRegistry, registry);
+    ef.innerHTML = '<dummy></dummy><div></div>';
+    registry.initialize(ef);
+    assert_equals(ef.customElementRegistry, registry);
+    assert_equals(ef.firstElementChild.customElementRegistry, registry);
+    assert_equals(ef.lastElementChild.customElementRegistry, registry);
+    registry.initialize(shadowRoot);
+    assert_equals(ab.customElementRegistry, registry);
+    assert_equals(ab.firstElementChild.customElementRegistry, registry);
+    assert_equals(ab.lastElementChild.customElementRegistry, registry);
+    assert_equals(ef.customElementRegistry, registry);
+    assert_equals(ef.firstElementChild.customElementRegistry, registry);
+    assert_equals(ef.lastElementChild.customElementRegistry, registry);
+}, 'initialize sets registry on shadow root descendants with no registry');
 </script>
 </body>
 </html>

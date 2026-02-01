@@ -1,4 +1,17 @@
 features:
+- name: svg
+  files:
+  - "*"
+  # Exclude tests mapped to `svg-filters`. Keep in sync with `svg-filters` mapping below
+  - "!filters-*"
+
+  # Exclude tests mapped to `opacity-svg`. Keep in sync with `opacity-svg` mapping below
+  - "!painting-fill-05-b-manual.svg"
+  - "!painting-stroke-08-t-manual.svg"
+
+  # Exclude tests mapped to `pointer-events`. Keep in sync with `pointer-events` mapping below
+  - "!animate-interact-pevents-*"
+  - "!interact-pevents-*"
 - name: svg-filters
   files:
   - "filters-*"

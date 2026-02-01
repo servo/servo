@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/41496971">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-progress-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(function() {
+  const progress = document.createElement("progress");
+  progress.max = 42;
+  assert_equals(progress.max, 42);
+  assert_equals(progress.getAttribute("max"), "42");
+
+  // Attempt to set 0
+  progress.max = 0;
+  assert_equals(progress.max, 42, "Setting max to 0 should be ignored (IDL)");
+  assert_equals(progress.getAttribute("max"), "42", "Setting max to 0 should be ignored (content attribute)");
+
+  // Attempt to set negative value
+  progress.max = -1000;
+  assert_equals(progress.max, 42, "Setting max to -1000 should be ignored (IDL)");
+  assert_equals(progress.getAttribute("max"), "42", "Setting max to -1000 should be ignored (content attribute)");
+
+  // Attempt to set another valid value
+  progress.max = 10;
+  assert_equals(progress.max, 10, "Setting max to 10 should work");
+  assert_equals(progress.getAttribute("max"), "10", "Attribute should update to 10");
+
+}, "Setting max to non-positive value should be ignored");
+</script>

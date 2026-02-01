@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<style>
+    body {
+        margin: 0;
+    }
+    svg {
+        width: 200px;
+        height: 200px;
+        overflow: visible;
+        border: 5px solid transparent;
+    }
+    .background {
+        fill: green;
+    }
+    .inset-shadow {
+        fill: none;
+        stroke: purple;
+        stroke-width: 20px;
+    }
+    .border {
+        fill: none;
+        stroke: black;
+        stroke-width: 10px;
+    }
+</style>
+
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <clipPath id="inner-clip">
+            <polygon points="100,0 200,100, 100,200, 0,100" />
+        </clipPath>
+    </defs>
+    <polygon points="100,0 200,100, 100,200, 0,100" class="background" />
+    <polygon points="100,0 200,100, 100,200, 0,100" class="inset-shadow" clip-path="url(#inner-clip)" />
+    <polygon points="100,0 200,100, 100,200, 0,100" class="border" />
+</svg>

@@ -1,9 +1,26 @@
 features:
 - name: shadow-dom
-  files: "**"
+  files:
+  - "*"
+  # Keep exclusion in sync with mappings below.
+  - "!imperative-slot-*"
+  - "!HTMLSlotElement-interface.html"
+  - "!Slottable-mixin.html"
+  - "!layout-slot-*"
+  - "!slotchange*.html"
+  - "!slots*.html"
+  - "!Document-caretPositionFromPoint.tentative.html"
+# Keep mappings below in sync with `shadow-map` mapping.
 - name: slot-assign
   files:
   - imperative-slot-*
+- name: slot
+  files:
+  - HTMLSlotElement-interface.html
+  - Slottable-mixin.html
+  - layout-slot-*
+  - slotchange*.html
+  - slots*.html
 - name: document-caretpositionfrompoint
   files:
   - Document-caretPositionFromPoint.tentative.html

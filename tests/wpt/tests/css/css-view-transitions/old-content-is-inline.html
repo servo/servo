@@ -4,11 +4,15 @@
 <link rel="help" href="https://www.w3.org/TR/css-view-transitions-1/">
 <link rel="author" href="mailto:bokan@chromium.org">
 <link rel="match" href="old-content-is-inline-ref.html">
-<meta name="fuzzy" content="maxDifference=0-255; totalPixels=0-500">
+<link rel="stylesheet" href="/fonts/ahem.css">
 <script src="/common/reftest-wait.js"></script>
 
 <style>
-body { margin : 0; }
+body {
+  margin : 0;
+  font: 20px/1 Ahem;
+}
+
 .container {
   position: absolute;
   left: 100px;
@@ -35,8 +39,7 @@ body { margin : 0; }
 
 .inline {
   background-color: limegreen;
-  /* allow small pixel diff in text */
-  color: rgba(0, 0, 0, 0);
+  color: blue;
 }
 
 .start .inline {
@@ -105,8 +108,8 @@ This subtree will be held at the animation start to test the old content's
 starting position.
 -->
 <div class="container start">
-  <span>FILLER FILLER</span>
-  <span id="start" class="inline">INLINE INLINE INLINE INLINE</span>
+  <span>FILL FILL</span>
+  <span id="start" class="inline">INL INL</span>
   <p>START STATE</p>
 </div>
 
@@ -115,8 +118,8 @@ This subtree will be held at the animation end to test the old content's
 ending position.
 -->
 <div class="container end">
-  <span>FILLER FILLER</span>
-  <span id="end" class="inline">INLINE INLINE INLINE INLINE</span>
+  <span>FILL FILL</span>
+  <span id="end" class="inline">INL INL</span>
   <p>END STATE</p>
 </div>
 

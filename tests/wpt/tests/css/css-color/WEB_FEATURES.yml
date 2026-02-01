@@ -63,3 +63,9 @@ features:
 - name: named-color
   files:
   - named-001.html
+- name: color
+  files:
+  - color-001.html
+  - color-002.html
+  - t31-color-text-a.xht
+  - t423-transparent-*

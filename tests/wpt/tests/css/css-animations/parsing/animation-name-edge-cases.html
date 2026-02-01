@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+<title>Setting 'animation-duration' to an infinite value should not hang</title>
+<link rel="author" title="yisibl(一丝)" href="https://github.com/yisibl"/>
+<link rel="author" title="Javier Fernandez" href="jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-animations/#typedef-keyframes-name">
+<link rel="match" href="animation-name-edge-cases-ref.html">
+<meta name="assert" content="@keyframes name accepts CSS Wide Keywords as strings, but rejects an empty string.">
+<style>
+  @keyframes "" {
+    to { background: red }
+  }
+  @keyframes default {
+    to { background: red }
+  }
+  @keyframes "default" {
+    to { background: green }
+  }
+  @keyframes "string" {
+    to { background: green }
+  }
+  @keyframes "none" {
+    to { background: green }
+  }
+  @keyframes "inherit" {
+    to { background: green }
+  }
+  @keyframes "initial" {
+    to { background: green }
+  }
+  @keyframes "revert" {
+    to { background: green }
+  }
+  @keyframes "revert-layer" {
+    to { background: green }
+  }
+  @keyframes "revert-rule" {
+    to { background: green }
+  }
+  @keyframes "unset" {
+    to { background: green }
+  }
+
+  .test {
+    width: 300px;
+    height: 25px;
+    margin-top: 10px;
+    background-color: red;
+    animation: 0s both;
+  }
+
+  .test-invalid {
+    background-color: green;
+  }
+</style>
+</head>
+<body>
+<h3>The following should have a green background:</h3>
+
+<div class="test" style="animation-name: 'default';"></div>
+<div class="test" style="animation-name: 'none';"></div>
+<div class="test" style="animation-name: 'inherit';"></div>
+<div class="test" style="animation-name: 'initial';"></div>
+<div class="test" style="animation-name: 'revert';"></div>
+<div class="test" style="animation-name: 'revert-layer';"></div>
+<div class="test" style="animation-name: 'revert-rule';"></div>
+
+<!-- Invalid values -->
+<div class="test test-invalid" style="animation-name: default;"></div>
+<div class="test test-invalid" style="animation-name: '';"></div>
+<div class="test" style="animation-name: 'string'; animation-name: '';"></div>
+<div class="test" style="animation-name: 'none'; animation-name: ;"></div>
+</body>
+</html>

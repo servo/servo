@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Native arrow key handlers with nested focusgroups</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<meta name="assert" content="Native arrow key handler detection considers the nearest focusgroup owner's enabled axes.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div id="outer" focusgroup="toolbar">
+  <button id="btn1">Button 1</button>
+  <div id="inner" focusgroup="toolbar inline">
+    <button id="btn2">Button 2</button>
+    <input id="search" type="text" placeholder="Search">
+    <button id="btn3">Button 3</button>
+  </div>
+  <button id="btn4">Button 4</button>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    const btn2 = document.getElementById("btn2");
+    const search = document.getElementById("search");
+
+    // Arrow navigation TO native arrow key handler works, FROM does not.
+    await focusAndKeyPress(btn2, kArrowRight);
+    assert_equals(document.activeElement, search);
+    await assert_arrow_keys_do_not_move_focus(search);
+  }, "Native arrow key handler detection respects nested focusgroup's enabled axes");
+
+  promise_test(async t => {
+    const btn1 = document.getElementById("btn1");
+    const btn2 = document.getElementById("btn2");
+    const search = document.getElementById("search");
+    const btn4 = document.getElementById("btn4");
+
+    // Arrow navigation in outer and inner focusgroups.
+    await focusAndKeyPress(btn1, kArrowDown);
+    assert_equals(document.activeElement, btn4);
+    await focusAndKeyPress(btn2, kArrowRight);
+    assert_equals(document.activeElement, search);
+
+    // Test Tab navigation with search focused.
+    await assert_focusgroup_tab_navigation([btn1, search, btn4]);
+  }, "Tab navigation with native arrow key handler in nested focusgroup");
+
+</script>

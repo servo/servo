@@ -1,5 +1,8 @@
 /*
   Methods for testing the focusgroup feature.
+
+  This file requires focus-utils.js to be loaded first for:
+  - navigateFocusForward() / navigateFocusBackward()
 */
 
 // https://w3c.github.io/webdriver/#keyboard-actions
@@ -9,8 +12,11 @@ const kArrowRight = '\uE014';
 const kArrowDown = '\uE015';
 
 // Set the focus on target and send the arrow key press event from it.
-function focusAndKeyPress(target, key) {
+async function focusAndKeyPress(target, key) {
   target.focus();
+  // Wait for a render frame to ensure focus is established before sending keys.
+  // This prevents race conditions in slower environments.
+  await new Promise(resolve => requestAnimationFrame(resolve));
   return test_driver.send_keys(target, key);
 }
 
@@ -41,37 +47,15 @@ async function assert_arrow_navigation_bidirectional(elements, shouldWrap = fals
   }
 }
 
-function waitForRender() {
-  return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-}
-
-async function navigateFocusForward() {
-  await waitForRender();
-  const kTab = '\uE004';
-  await new test_driver.send_keys(document.body, kTab);
-  await waitForRender();
-}
-
-async function navigateFocusBackward() {
-  await waitForRender();
-  const kShift = '\uE008';
-  const kTab = '\uE004';
-  await new test_driver.Actions()
-    .keyDown(kShift)
-    .keyDown(kTab)
-    .keyUp(kTab)
-    .keyUp(kShift)
-    .send();
-  await waitForRender();
-}
-
-// Test sequential (Tab) navigation through a list of elements.
-async function assert_focus_navigation_forward(elements) {
+// Test Tab navigation through DOM elements. Unlike assert_focus_navigation_forward
+// in shadow-dom's focus-utils.js (which takes string paths and requires shadow-dom.js),
+// this takes direct element references. Depends on navigateFocusForward() from
+// /resources/focus-utils.js for the actual Tab key logic.
+async function assert_focusgroup_tab_navigation(elements) {
   if (elements.length === 0) {
     return;
   }
 
-  // Focus the first element to establish starting point.
   elements[0].focus();
   assert_equals(document.activeElement, elements[0],
     `Failed to focus starting element ${elements[0].id}`);

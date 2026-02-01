@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/soft-navigation-heuristics/resources/soft-navigation-test-helper.js"></script>
+
+<h1 id="ignore">Visible Text LCP Element</h1>
+<div id="target" style="display:none">Hidden Text</div>
+<div><button id="navigateButton">Navigate!</button></div>
+
+<script>
+  promise_test(t => {
+    const helper = new SoftNavigationTestHelper(t);
+    const url = `/toggle`;
+    const modifyDOM = async () => {
+      const style = target.style;
+      setTimeout(() =>  style.display = '', 50);
+      return target.id;
+    };
+    return helper.clickAndExpectSoftNavigation(navigateButton, url, modifyDOM);
+  }, 'Soft Navigation Detection supports changing inline style display via Element.style asynchronously');
+</script>

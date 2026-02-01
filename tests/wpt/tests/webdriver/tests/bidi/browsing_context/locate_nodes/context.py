@@ -55,9 +55,9 @@ async def test_locate_in_different_contexts(bidi_session, inline, top_context, n
 
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
 @pytest.mark.asyncio
-async def test_locate_in_iframe(bidi_session, inline, top_context, domain):
-    iframe_url_1 = inline("<div id='in-iframe'>foo</div>", domain=domain)
-    page_url = inline(f"<iframe src='{iframe_url_1}'></iframe>")
+async def test_locate_in_iframe(bidi_session, inline, top_context, domain, iframe):
+    iframe_html_1 = "<div id='in-iframe'>foo</div>"
+    page_url = inline(iframe(iframe_html_1, domain=domain))
 
     await bidi_session.browsing_context.navigate(
         context=top_context["context"], url=page_url, wait="complete"

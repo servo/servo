@@ -41,9 +41,9 @@ async def test_window_context_top_level(bidi_session, top_context, await_promise
                          ids=["same_origin", "cross_origin"])
 @pytest.mark.parametrize("await_promise", [True, False])
 async def test_window_context_iframe_window(
-        bidi_session, top_context, inline, domain, await_promise):
-    frame_url = inline("<div>foo</div>")
-    url = inline(f"<iframe src='{frame_url}'></iframe>", domain=domain)
+        bidi_session, top_context, inline, domain, await_promise, iframe):
+    frame_html = "<div>foo</div>"
+    url = inline(iframe(frame_html), domain=domain)
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],
         url=url,
@@ -74,10 +74,10 @@ async def test_window_context_iframe_window(
                          ids=["same_origin", "cross_origin"])
 @pytest.mark.parametrize("await_promise", [True, False])
 async def test_window_context_iframe_content_window(
-        bidi_session, top_context, inline, domain, await_promise):
+        bidi_session, top_context, inline, domain, await_promise, iframe):
 
-    frame_url = inline("<div>foo</div>")
-    url = inline(f"<iframe src='{frame_url}'></iframe>", domain=domain)
+    frame_html = "<div>foo</div>"
+    url = inline(iframe(frame_html), domain=domain)
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],
         url=url,

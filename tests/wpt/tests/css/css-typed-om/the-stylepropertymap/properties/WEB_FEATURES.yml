@@ -51,6 +51,12 @@ features:
 - name: font-stretch
   files:
   - font-stretch.html
+- name: overflow-clip-margin
+  files:
+  - overflow-clip-margin.html
+- name: overflow-wrap
+  files:
+  - overflow-wrap.html
 - name: pointer-events
   files:
   - pointer-events.html

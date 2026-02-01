@@ -68,6 +68,7 @@ async def test_iframe(
     assert_locale_against_value,
     some_locale,
     domain,
+    iframe
 ):
     # Set locale override.
     await bidi_session.emulation.set_locale_override(
@@ -77,8 +78,7 @@ async def test_iframe(
     # Assert locale emulated in the required context.
     await assert_locale_against_value(some_locale, new_tab)
 
-    iframe_url = inline("<div id='in-iframe'>foo</div>", domain=domain)
-    page_url = inline(f"<iframe src='{iframe_url}'></iframe>")
+    page_url = inline(iframe("<div id='in-iframe'>foo</div>", domain=domain))
 
     # Load the page with iframes.
     await bidi_session.browsing_context.navigate(

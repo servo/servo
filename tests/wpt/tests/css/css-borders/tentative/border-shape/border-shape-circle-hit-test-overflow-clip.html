@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>CSS Borders Test: hit testing border-shape circle with overflow clip parent</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #outer {
+    width: 100px;
+    height: 100px;
+    overflow: clip;
+  }
+  #target {
+    width: 100px;
+    height: 100px;
+    border-shape: circle(50% at 50% 50%);
+    stroke: purple;
+    stroke-width: 10px;
+    background: green;
+  }
+</style>
+<div id="outer">
+  <div id="target"></div>
+</div>
+<script>
+  function getCenter(el) {
+    const rect = el.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }
+
+  function polarToXY(center, radius, angleRad) {
+    return {
+      x: Math.round(center.x + radius * Math.cos(angleRad)),
+      y: Math.round(center.y + radius * Math.sin(angleRad))
+    };
+  }
+
+  promise_test(async t => {
+    const target = document.getElementById('target');
+    const center = getCenter(target);
+    const strokeWidthHalf = 5; // 10px stroke-width
+    const circleRadius = 50 + strokeWidthHalf; // 100px box, circle(50%) => 50px radius
+
+    // Check a point on the edge of the circle (shouldn't hit as clipped).
+    const { x, y } = polarToXY(center, circleRadius - 2, 0); // angle 0deg, right edge of the circle, -2px just to make it inside the border-shape contour.
+    let hit = false;
+    let hitBody = false;
+    target.addEventListener('pointerdown', () => { hit = true; }, { once: true });
+    document.body.addEventListener('pointerdown', () => { hitBody = true; }, { once: true });
+    await new test_driver.Actions().pointerMove(x, y).pointerDown().pointerUp().send();
+    assert_false(hit, 'Point outside the clipped part should not hit the border-shape');
+    assert_true(hitBody, 'Point outside the clipped part should hit body');
+  });
+</script>
+

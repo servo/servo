@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<datalist id="move">
+  <option dir="rtl">
+    <progress id="progress" value="50" max="100"></progress>
+  </option>
+</datalist>
+<svg>
+  <tspan id="tspan"/><use href="#tspan"/>
+</svg>
+<script>
+  onload = () => {
+    document.getElementById("progress").appendChild(document.createElement("div"));
+    document.getElementById("tspan").appendChild(move);
+  }
+</script>

@@ -1,5 +1,14 @@
 function mainThreadBusy(ms) {
-  const target = performance.now() + ms;
+  // Add 2ms to ensure we block for *at least* the requested amount of time,
+  // even in the face of two forms of timer imprecision:
+  //
+  // (1) Firefox rounds performance.now() to 1ms for privacy protection against
+  // timing attacks (e.g., Spectre), which can cause the loop to exit up to 1ms
+  // early when timestamps round unfavorably.
+  // (2) Firefox also introduces "jitter" randomness to web-exposed timestamps,
+  // an anti-fingerprinting protection that may make performance.now() lie by
+  // up to 1ms (while still increasing monotonically).
+  const target = performance.now() + ms + 2;
   while (performance.now() < target);
 }
 

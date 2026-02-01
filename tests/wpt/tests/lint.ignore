@@ -157,6 +157,8 @@ SET TIMEOUT: common/reftest-wait.js
 SET TIMEOUT: compute-pressure/resources/support-iframe.html
 SET TIMEOUT: conformance-checkers/*
 SET TIMEOUT: content-security-policy/*
+SET TIMEOUT: css/css-image-animation/image-animation-img-running.tentative.html
+SET TIMEOUT: css/css-image-animation/image-animation-img-running-to-normal.tentative.html
 SET TIMEOUT: css/compositing/opacity-and-transform-animation-crash.html
 SET TIMEOUT: css/css-contain/contain-body-overflow-002.html
 SET TIMEOUT: css/css-display/display-contents-shadow-dom-1.html
@@ -291,6 +293,7 @@ SET TIMEOUT: service-workers/service-worker/resources/opaque-response-being-prel
 SET TIMEOUT: service-workers/service-worker/resources/opaque-response-preloaded-xhr.html
 SET TIMEOUT: service-workers/service-worker/resources/performance-timeline-worker.js
 SET TIMEOUT: service-workers/service-worker/resources/resource-timing-worker.js
+SET TIMEOUT: soft-navigation-heuristics/detection/tentative/change-style-attribute-display-4.html
 SET TIMEOUT: soft-navigation-heuristics/smoke/tentative/task-attribution.html
 SET TIMEOUT: shadow-dom/Document-prototype-currentScript.html
 SET TIMEOUT: shadow-dom/scroll-to-the-fragment-in-shadow-tree.html

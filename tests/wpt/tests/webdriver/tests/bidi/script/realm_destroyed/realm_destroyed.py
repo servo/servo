@@ -132,10 +132,10 @@ async def test_subscribe_after_sandbox_creation(
 
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
 async def test_iframe(
-    bidi_session, subscribe_events, top_context, inline, wait_for_event, wait_for_future_safe, domain
+    bidi_session, subscribe_events, top_context, inline, wait_for_event, wait_for_future_safe, domain, iframe
 ):
-    frame_url = inline("<div>foo</div>")
-    url = inline(f"<iframe src='{frame_url}'></iframe>", domain=domain)
+    frame_html = "<div>foo</div>"
+    url = inline(iframe(frame_html), domain=domain)
     await bidi_session.browsing_context.navigate(
         url=url, context=top_context["context"], wait="complete"
     )
