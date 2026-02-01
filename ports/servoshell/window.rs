@@ -92,6 +92,14 @@ impl ServoShellWindow {
             .delegate(state.clone())
             .build();
 
+        #[cfg(all(
+            feature = "gamepad",
+            not(any(target_os = "android", target_env = "ohos"))
+        ))]
+        if let Some(gamepad_provider) = state.gamepad_provider() {
+            webview.set_gamepad_provider(gamepad_provider);
+        }
+
         webview.notify_theme_change(self.platform_window.theme());
         self.add_webview(webview.clone());
         webview

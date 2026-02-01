@@ -25,14 +25,6 @@ mod running_app_state;
 mod webdriver;
 mod window;
 
-#[cfg(all(
-    feature = "gamepad",
-    not(any(target_os = "android", target_env = "ohos"))
-))]
-pub(crate) use crate::desktop::gamepad::GamepadSupport;
-#[cfg(all(feature = "gamepad", any(target_os = "android", target_env = "ohos")))]
-pub(crate) use crate::egl::gamepad::GamepadSupport;
-
 pub mod platform {
     #[cfg(target_os = "macos")]
     pub use crate::platform::macos::deinit;
