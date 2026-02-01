@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
@@ -31,14 +31,18 @@ pub(crate) struct DocumentFragment {
     node: Node,
     /// Caches for the getElement methods
     id_map: DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>>,
+
+    /// <https://dom.spec.whatwg.org/#concept-documentfragment-host>
+    host: MutNullableDom<Element>,
 }
 
 impl DocumentFragment {
     /// Creates a new DocumentFragment.
-    pub(crate) fn new_inherited(document: &Document) -> DocumentFragment {
+    pub(crate) fn new_inherited(document: &Document, host: Option<&Element>) -> DocumentFragment {
         DocumentFragment {
             node: Node::new_inherited(document),
             id_map: DomRefCell::new(HashMapTracedValues::new_fx()),
+            host: MutNullableDom::new(host),
         }
     }
 
@@ -52,7 +56,7 @@ impl DocumentFragment {
         can_gc: CanGc,
     ) -> DomRoot<DocumentFragment> {
         Node::reflect_node_with_proto(
-            Box::new(DocumentFragment::new_inherited(document)),
+            Box::new(DocumentFragment::new_inherited(document, None)),
             document,
             proto,
             can_gc,
@@ -63,6 +67,33 @@ impl DocumentFragment {
         &self,
     ) -> &DomRefCell<HashMapTracedValues<Atom, Vec<Dom<Element>>, FxBuildHasher>> {
         &self.id_map
+    }
+
+    pub(crate) fn host(&self) -> Option<DomRoot<Element>> {
+        self.host.get()
+    }
+
+    pub(crate) fn set_host(&self, host: &Element) {
+        self.host.set(Some(host));
+    }
+}
+
+pub(crate) trait LayoutDocumentFragmentHelpers<'dom> {
+    fn shadowroot_host_for_layout(self) -> LayoutDom<'dom, Element>;
+}
+
+impl<'dom> LayoutDocumentFragmentHelpers<'dom> for LayoutDom<'dom, DocumentFragment> {
+    #[inline]
+    fn shadowroot_host_for_layout(self) -> LayoutDom<'dom, Element> {
+        #[expect(unsafe_code)]
+        unsafe {
+            // https://dom.spec.whatwg.org/#shadowroot
+            // > Shadow roots’s associated host is never null.
+            self.unsafe_get()
+                .host
+                .get_inner_as_layout()
+                .expect("Shadow roots's associated host is never null")
+        }
     }
 }
 
