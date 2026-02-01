@@ -2568,7 +2568,7 @@ impl HTMLInputElement {
         // Step 2.1 If element's dirty value flag is true, then return the result of getting an attribute
         // by namespace and local name given null, "value", and element.
         // FIXME: If we do this then things break
-        // Step 3. Return element's value.
+        // Step 2.2. Return element's value.
         let value = element_value.to_owned();
 
         // Step 3. Let color be the result of parsing value.
@@ -2619,7 +2619,7 @@ impl HTMLInputElement {
         }
 
         // Step 4. If element's colorspace attribute is in the Limited sRGB state:
-        // NOTE: Servo doesn't support the colorspace attribute yet, so this is always true
+        // TODO: Servo doesn't support the colorspace attribute yet, so this is always true
         // Step 4.1 Set color to color converted to the 'srgb' color space.
 
         // NOTE: Even though we don't support other values for the colorspace attribute, the color might
@@ -2639,7 +2639,7 @@ impl HTMLInputElement {
         }
 
         // Step 5. Otherwise:
-        // NOTE: This is unreachable
+        // TODO: This is unreachable, see the note on Step 4.
 
         // Step 6. Return the result of serializing color. If htmlCompatible is true,
         // then do so with HTML-compatible serialization requested.
