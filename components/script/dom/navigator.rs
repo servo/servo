@@ -386,6 +386,11 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         false
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-pdfviewerenabled>
+    fn PdfViewerEnabled(&self) -> bool {
+        false
+    }
+
     /// <https://w3c.github.io/ServiceWorker/#navigator-service-worker-attribute>
     fn ServiceWorker(&self) -> DomRoot<ServiceWorkerContainer> {
         self.service_worker
