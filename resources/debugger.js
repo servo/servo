@@ -27,7 +27,6 @@ dbg.onNewScript = function(script, /* undefined; seems to be `script.global` now
 
 addEventListener("addDebuggee", event => {
     const {global, pipelineId: {namespaceId, index}, workerId} = event;
-    dbg.addDebuggee(global);
     const debuggerObject = dbg.addDebuggee(global);
     debuggeesToPipelineIds.set(debuggerObject, {
         namespaceId,
