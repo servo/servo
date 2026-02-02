@@ -929,11 +929,15 @@ impl Node {
         })
     }
 
+    /// <https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor>
     pub(crate) fn is_inclusive_ancestor_of(&self, child: &Node) -> bool {
+        // > An inclusive ancestor is an object or one of its ancestors.
         self == child || self.is_ancestor_of(child)
     }
 
+    /// <https://dom.spec.whatwg.org/#concept-tree-ancestor>
     pub(crate) fn is_ancestor_of(&self, possible_descendant: &Node) -> bool {
+        // > An object A is called an ancestor of an object B if and only if B is a descendant of A.
         let mut current = &possible_descendant.parent_node;
         let mut done = false;
 
@@ -949,6 +953,19 @@ impl Node {
         done
     }
 
+    /// <https://dom.spec.whatwg.org/#concept-tree-host-including-inclusive-ancestor>
+    fn is_host_including_inclusive_ancestor(&self, child: &Node) -> bool {
+        // An object A is a host-including inclusive ancestor of an object B, if either A is an inclusive ancestor of B,
+        // or if B’s root has a non-null host and A is a host-including inclusive ancestor of B’s root’s host.
+        self.is_inclusive_ancestor_of(child) ||
+            child
+                .GetRootNode(&GetRootNodeOptions::empty())
+                .downcast::<DocumentFragment>()
+                .and_then(|fragment| fragment.host())
+                .is_some_and(|host| self.is_host_including_inclusive_ancestor(host.upcast()))
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-shadow-including-inclusive-ancestor>
     pub(crate) fn is_shadow_including_inclusive_ancestor_of(&self, node: &Node) -> bool {
         node.inclusive_ancestors(ShadowIncluding::Yes)
             .any(|ancestor| &*ancestor == self)
@@ -2369,27 +2386,29 @@ impl Node {
         parent: &Node,
         child: Option<&Node>,
     ) -> ErrorResult {
-        // Step 1.
+        // Step 1. If parent is not a Document, DocumentFragment, or Element node, then throw a "HierarchyRequestError" DOMException.
         match parent.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
             },
             _ => return Err(Error::HierarchyRequest(None)),
         }
 
-        // Step 2.
-        if node.is_inclusive_ancestor_of(parent) {
+        // Step 2. If node is a host-including inclusive ancestor of parent, then throw a "HierarchyRequestError" DOMException.
+        if node.is_host_including_inclusive_ancestor(parent) {
             return Err(Error::HierarchyRequest(None));
         }
 
-        // Step 3.
+        // Step 3. If child is non-null and its parent is not parent, then throw a "NotFoundError" DOMException.
         if let Some(child) = child {
             if !parent.is_parent_of(child) {
                 return Err(Error::NotFound(None));
             }
         }
 
-        // Step 4-5.
+        // Step 4. If node is not a DocumentFragment, DocumentType, Element, or CharacterData node, then throw a "HierarchyRequestError" DOMException.
         match node.type_id() {
+            // Step 5. If either node is a Text node and parent is a document,
+            // or node is a doctype and parent is not a document, then throw a "HierarchyRequestError" DOMException.
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
                 if parent.is::<Document>() {
                     return Err(Error::HierarchyRequest(None));
@@ -2409,18 +2428,19 @@ impl Node {
             },
         }
 
-        // Step 6.
+        // Step 6. If parent is a document, and any of the statements below, switched on the interface node implements,
+        // are true, then throw a "HierarchyRequestError" DOMException.
         if parent.is::<Document>() {
             match node.type_id() {
-                // Step 6.1
                 NodeTypeId::DocumentFragment(_) => {
-                    // Step 6.1.1(b)
+                    // Step 6."DocumentFragment". If node has more than one element child or has a Text node child.
                     if node.children().any(|c| c.is::<Text>()) {
                         return Err(Error::HierarchyRequest(None));
                     }
                     match node.child_elements().count() {
                         0 => (),
-                        // Step 6.1.2
+                        // Step 6."DocumentFragment". Otherwise, if node has one element child and either parent has an element child,
+                        // child is a doctype, or child is non-null and a doctype is following child.
                         1 => {
                             if parent.child_elements().next().is_some() {
                                 return Err(Error::HierarchyRequest(None));
@@ -2434,12 +2454,11 @@ impl Node {
                                 }
                             }
                         },
-                        // Step 6.1.1(a)
                         _ => return Err(Error::HierarchyRequest(None)),
                     }
                 },
-                // Step 6.2
                 NodeTypeId::Element(_) => {
+                    // Step 6."Element". parent has an element child, child is a doctype, or child is non-null and a doctype is following child.
                     if parent.child_elements().next().is_some() {
                         return Err(Error::HierarchyRequest(None));
                     }
@@ -2452,8 +2471,9 @@ impl Node {
                         }
                     }
                 },
-                // Step 6.3
                 NodeTypeId::DocumentType => {
+                    // Step 6."DocumentType". parent has a doctype child, child is non-null and an element is preceding child,
+                    // or child is null and parent has an element child.
                     if parent.children().any(|c| c.is_doctype()) {
                         return Err(Error::HierarchyRequest(None));
                     }
@@ -2490,12 +2510,13 @@ impl Node {
         child: Option<&Node>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Node>> {
-        // Step 1.
+        // Step 1. Ensure pre-insert validity of node into parent before child.
         Node::ensure_pre_insertion_validity(node, parent, child)?;
 
-        // Steps 2-3.
+        // Step 2. Let referenceChild be child.
         let reference_child_root;
         let reference_child = match child {
+            // Step 3. If referenceChild is node, then set referenceChild to node’s next sibling.
             Some(child) if child == node => {
                 reference_child_root = node.GetNextSibling();
                 reference_child_root.as_deref()
@@ -2503,7 +2524,7 @@ impl Node {
             _ => child,
         };
 
-        // Step 4.
+        // Step 4. Insert node into parent before referenceChild.
         Node::insert(
             node,
             parent,
@@ -2512,7 +2533,7 @@ impl Node {
             can_gc,
         );
 
-        // Step 5.
+        // Step 5. Return node.
         Ok(DomRoot::from_ref(node))
     }
 
