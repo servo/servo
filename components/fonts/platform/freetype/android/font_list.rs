@@ -2,11 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+use std::fs;
 use std::path::Path;
 use std::sync::LazyLock;
 
 use base::text::{UnicodeBlock, UnicodeBlockMethod, is_cjk};
 use log::warn;
+use ndk::font::SystemFontIterator;
+use read_fonts::tables::name;
+use read_fonts::tables::os2::SelectionFlags;
+use read_fonts::{FontRef, TableProvider};
+use regex::Regex;
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{
@@ -130,32 +137,166 @@ struct FontList {
 
 impl FontList {
     fn new() -> FontList {
-        // Possible paths containing the font mapping xml file.
-        let paths = [
-            "/etc/fonts.xml",
-            "/system/etc/system_fonts.xml",
-            "/package/etc/fonts.xml",
-        ];
+        let mut font_family_hashmap: HashMap<String, Vec<Font>> = HashMap::new();
+        let system_font_iterator =
+            SystemFontIterator::new().expect("Failed to create SystemFontIterator");
+        let mut font_families_vector = Vec::new();
 
-        // Try to load and parse paths until one of them success.
-        let mut result = None;
-        paths.iter().all(|path| {
-            result = Self::from_path(path);
-            result.is_none()
-        });
+        for system_font_path in system_font_iterator {
+            // Obtain the font file
+            let font_bytes =
+                fs::read(system_font_path.path()).expect("Android returns an invalid path!");
 
-        if result.is_none() {
-            warn!("Couldn't find font list");
+            // Read the font file
+            let font = FontRef::new(&font_bytes);
+            match font {
+                Ok(f) => {
+                    // Case 1: File read successfully by FontRef::new(). This means it's a .ttf or .otf file.
+
+                    // Get the name table
+                    let name_table = f
+                        .name()
+                        .expect("Font file is corrupted as it has no name table!");
+                    let family_name = name_table
+                        .name_record()
+                        .iter()
+                        .filter(|record| record.name_id().to_u16() == 1)
+                        .find_map(|record| {
+                            record
+                                .string(name_table.string_data())
+                                .ok()
+                                .map(|s| s.to_string())
+                        });
+
+                    // Get weight and style information from OS/2 table if available
+                    let os2_table = f
+                        .os2()
+                        .expect("Font file is corrupted as it has no OS/2 table!");
+
+                    let filepath = system_font_path
+                        .path()
+                        .to_str()
+                        .expect("Failed to convert path to string!")
+                        .to_string();
+                    let re = Regex::new(r"[^/]+$").unwrap();
+                    let filename = re
+                        .find(&filepath)
+                        .expect("Invalid file path. This should never happen!")
+                        .as_str()
+                        .to_string();
+
+                    let mut style = "normal";
+                    match os2_table.fs_selection() {
+                        SelectionFlags::ITALIC => style = "italic",
+                        _ => {},
+                    };
+
+                    // Create Font entry
+                    let font_entry = Font {
+                        filename,
+                        weight: Some(os2_table.us_weight_class() as i32),
+                        style: Some(style.to_string()),
+                    };
+
+                    // Insert into hashmap
+                    font_family_hashmap
+                        .entry(family_name.expect("Font has no family name!"))
+                        .or_insert(Vec::new())
+                        .push(font_entry);
+                },
+                Err(_) => {
+                    // Case 2: File could not be read by FontRef::new(). This means it's a .ttc file.
+                    let mut traversable = true;
+                    let mut index = 0;
+
+                    while traversable {
+                        let ttc_font = FontRef::from_index(&font_bytes, index);
+                        match ttc_font {
+                            Ok(ttc_f) => {
+                                // Get the name table
+                                let name_table = ttc_f
+                                    .name()
+                                    .expect("Font file is corrupted as it has no name table!");
+                                let family_name = name_table
+                                    .name_record()
+                                    .iter()
+                                    .filter(|record| record.name_id().to_u16() == 1)
+                                    .find_map(|record| {
+                                        record
+                                            .string(name_table.string_data())
+                                            .ok()
+                                            .map(|s| s.to_string())
+                                    });
+
+                                // Get weight and style information from OS/2 table if available
+                                let os2_table = ttc_f
+                                    .os2()
+                                    .expect("Font file is corrupted as it has no OS/2 table!");
+
+                                let filepath = system_font_path
+                                    .path()
+                                    .to_str()
+                                    .expect("Failed to convert path to string!")
+                                    .to_string();
+                                let re = Regex::new(r"[^/]+$").unwrap();
+                                let filename = re
+                                    .find(&filepath)
+                                    .expect("Invalid file path. This should never happen!")
+                                    .as_str()
+                                    .to_string();
+
+                                let mut style = "normal";
+                                match os2_table.fs_selection() {
+                                    SelectionFlags::ITALIC => style = "italic",
+                                    _ => {},
+                                };
+
+                                // Create Font entry
+                                let font_entry = Font {
+                                    filename,
+                                    weight: Some(os2_table.us_weight_class() as i32),
+                                    style: Some(style.to_string()),
+                                };
+
+                                // Insert into hashmap
+                                font_family_hashmap
+                                    .entry(family_name.expect("Font has no family name!"))
+                                    .or_insert(Vec::new())
+                                    .push(font_entry);
+                            },
+                            Err(_) => {
+                                // No more fonts in the .ttc file
+                                traversable = false;
+                            },
+                        }
+                        index += 1;
+                    }
+                },
+            }
         }
 
-        match result {
-            Some(result) => result,
-            // If no xml mapping file is found fallback to some default
-            // fonts expected to be on all Android devices.
-            None => FontList {
-                families: Self::fallback_font_families(),
-                aliases: Vec::new(),
-            },
+        // unpack hashmap
+        for (key, values) in &font_family_hashmap {
+            let mut fonts = Vec::new();
+            for font in values {
+                fonts.push(Font {
+                    filename: font.filename.clone(),
+                    weight: font.weight,
+                    style: font.style.clone(),
+                });
+            }
+
+            let font_family_entry = FontFamily {
+                    name: key.to_string(),
+                    fonts,
+                };
+            font_families_vector.push(font_family_entry);
+        }
+
+        // return FontList
+        FontList {
+            families: font_families_vector,
+            aliases: Vec::new(),
         }
     }
 
