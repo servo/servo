@@ -194,50 +194,38 @@ impl Handler {
                 let sleep_duration = tick_duration - elapsed;
                 thread::sleep(Duration::from_millis(sleep_duration));
             }
-            // Handle `PendingPointerMove`s.
-            let pending_pointer_moves = std::mem::take(&mut self.pending_pointer_moves);
 
-            for PendingPointerMove {
-                input_id,
-                duration,
-                start_x,
-                start_y,
-                target_x,
-                target_y,
-                tick_start,
-            } in pending_pointer_moves
-            {
-                self.perform_pointer_move(
-                    &input_id, duration, start_x, start_y, target_x, target_y, tick_start,
-                );
-            }
+            self.process_pending_pointer_moves();
         }
 
         // Edge case: All tick actions are processed. But `pending_pointer_moves` may
         // still be non-empty.
         while !self.pending_pointer_moves.is_empty() {
             thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
-            let pending_pointer_moves = std::mem::take(&mut self.pending_pointer_moves);
-
-            for PendingPointerMove {
-                input_id,
-                duration,
-                start_x,
-                start_y,
-                target_x,
-                target_y,
-                tick_start,
-            } in pending_pointer_moves
-            {
-                self.perform_pointer_move(
-                    &input_id, duration, start_x, start_y, target_x, target_y, tick_start,
-                );
-            }
+            self.process_pending_pointer_moves();
         }
 
         // Step 2. Return success with data null.
         info!("Dispatch actions completed successfully");
         Ok(())
+    }
+
+    fn process_pending_pointer_moves(&mut self) {
+        let moves = std::mem::take(&mut self.pending_pointer_moves);
+        for PendingPointerMove {
+            input_id,
+            duration,
+            start_x,
+            start_y,
+            target_x,
+            target_y,
+            tick_start,
+        } in moves
+        {
+            self.perform_pointer_move(
+                &input_id, duration, start_x, start_y, target_x, target_y, tick_start,
+            );
+        }
     }
 
     fn wait_for_user_agent_handling_complete(&self) -> Result<(), ErrorStatus> {
