@@ -41,12 +41,6 @@ impl CrossProcessInstant {
     pub fn epoch() -> Self {
         Self { value: 0 }
     }
-
-    /// Some unspecified time epoch. This is used by `UserActivation`'s time definition.
-    /// See <https://html.spec.whatwg.org/multipage/#user-activation-data-model>.
-    pub fn inf() -> Self {
-        Self { value: u64::MAX }
-    }
 }
 
 impl Sub for CrossProcessInstant {

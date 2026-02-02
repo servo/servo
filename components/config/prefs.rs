@@ -169,7 +169,7 @@ pub struct Preferences {
     // https://testutils.spec.whatwg.org#availability
     pub dom_testutils_enabled: bool,
     /// <https://html.spec.whatwg.org/multipage/#transient-activation-duration>
-    pub dom_transient_activation_duration_ms: u64,
+    pub dom_transient_activation_duration_ms: i64,
     /// Enable WebGL2 APIs.
     // feature: WebGL2 | #41394 | Web/API/WebGL2RenderingContext
     pub dom_webgl2_enabled: bool,

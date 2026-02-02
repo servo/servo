@@ -2,9 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::ops::Add;
+
 use base::cross_process_instant::CrossProcessInstant;
 use dom_struct::dom_struct;
 use script_bindings::codegen::GenericBindings::UserActivationBinding::UserActivationMethods;
+use time::Duration;
 
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -65,7 +68,9 @@ impl UserActivation {
         for window in windows.iter() {
             // Step 5.1.
             // > Set window's last activation timestamp to the current high resolution time.
-            window.set_last_activation_timestamp(current_timestamp);
+            window.set_last_activation_timestamp(UserActivationTimestamp::TimeStamp(
+                current_timestamp,
+            ));
 
             // Step 5.2.
             // > Notify the close watcher manager about user activation given window.
@@ -85,5 +90,30 @@ impl UserActivationMethods<crate::DomTypeHolder> for UserActivation {
     fn IsActive(&self) -> bool {
         // > The isActive getter steps are to return true if this's relevant global object has transient activation, and false otherwise.
         self.global().as_window().has_transient_activation()
+    }
+}
+
+/// Timestamp definition specific to [`UserActivation`].
+/// > ... which is either a DOMHighResTimeStamp, positive infinity (indicating that W has never been activated), or negative infinity
+/// > (indicating that the activation has been consumed). Initially positive infinity.
+/// > <https://html.spec.whatwg.org/multipage/#user-activation-data-model>
+#[derive(Clone, Copy, Default, PartialEq, PartialOrd, MallocSizeOf)]
+pub(crate) enum UserActivationTimestamp {
+    NegativeInfinity,
+    TimeStamp(CrossProcessInstant),
+    #[default]
+    PositiveInfinity,
+}
+
+impl Add<i64> for UserActivationTimestamp {
+    type Output = UserActivationTimestamp;
+
+    fn add(self, rhs: i64) -> Self::Output {
+        match self {
+            UserActivationTimestamp::TimeStamp(timestamp) => {
+                UserActivationTimestamp::TimeStamp(timestamp + Duration::milliseconds(rhs))
+            },
+            _ => self,
+        }
     }
 }

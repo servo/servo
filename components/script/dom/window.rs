@@ -178,6 +178,7 @@ use crate::dom::storage::Storage;
 use crate::dom::testrunner::TestRunner;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::{ImageBitmap, MouseEvent, UIEvent};
+use crate::dom::useractivation::UserActivationTimestamp;
 use crate::dom::visualviewport::{VisualViewport, VisualViewportChanges};
 use crate::dom::webgl::webglrenderingcontext::WebGLCommandSender;
 #[cfg(feature = "webgpu")]
@@ -479,7 +480,7 @@ pub(crate) struct Window {
 
     /// <https://html.spec.whatwg.org/multipage/#last-activation-timestamp>
     #[no_trace]
-    last_activation_timestamp: Cell<CrossProcessInstant>,
+    last_activation_timestamp: Cell<UserActivationTimestamp>,
 }
 
 impl Window {
@@ -3554,11 +3555,7 @@ impl Window {
         self.navigation_start.set(CrossProcessInstant::now());
     }
 
-    pub(crate) fn last_activation_timestamp(&self) -> CrossProcessInstant {
-        self.last_activation_timestamp.get()
-    }
-
-    pub(crate) fn set_last_activation_timestamp(&self, time: CrossProcessInstant) {
+    pub(crate) fn set_last_activation_timestamp(&self, time: UserActivationTimestamp) {
         self.last_activation_timestamp.set(time);
     }
 
@@ -3662,7 +3659,8 @@ impl Window {
     /// <https://html.spec.whatwg.org/multipage/#sticky-activation>
     pub(crate) fn has_sticky_activation(&self) -> bool {
         // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, W is said to have sticky activation.
-        CrossProcessInstant::now() > self.last_activation_timestamp.get()
+        UserActivationTimestamp::TimeStamp(CrossProcessInstant::now()) >=
+            self.last_activation_timestamp.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#transient-activation>
@@ -3670,14 +3668,15 @@ impl Window {
         // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, and less than the last activation
         // > timestamp in W plus the transient activation duration, then W is said to have transient activation.
         let current_time = CrossProcessInstant::now();
-        current_time >= self.last_activation_timestamp() &&
-            current_time - self.last_activation_timestamp() <=
-                Duration::from_millis(pref!(dom_transient_activation_duration_ms))
+        UserActivationTimestamp::TimeStamp(current_time) >= self.last_activation_timestamp.get() &&
+            UserActivationTimestamp::TimeStamp(current_time) <
+                self.last_activation_timestamp.get() +
+                    pref!(dom_transient_activation_duration_ms)
     }
 
     pub(crate) fn consume_last_activation_timestamp(&self) {
-        if self.last_activation_timestamp() != CrossProcessInstant::inf() {
-            self.set_last_activation_timestamp(CrossProcessInstant::epoch());
+        if self.last_activation_timestamp.get() != UserActivationTimestamp::PositiveInfinity {
+            self.set_last_activation_timestamp(UserActivationTimestamp::NegativeInfinity);
         }
     }
 
@@ -3842,7 +3841,7 @@ impl Window {
             visual_viewport: Default::default(),
             weak_script_thread,
             has_changed_visual_viewport_dimension: Default::default(),
-            last_activation_timestamp: Cell::new(CrossProcessInstant::inf()),
+            last_activation_timestamp: Cell::new(UserActivationTimestamp::PositiveInfinity),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)
