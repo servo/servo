@@ -13,8 +13,7 @@ use profile_traits::generic_callback::GenericCallback;
 use script_bindings::inheritance::Castable;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
-    BackendError, BackendResult, DatabaseInfo, IndexedDBThreadMsg, OpenDatabaseResult,
-    SyncOperation,
+    BackendResult, ConnectionMsg, DatabaseInfo, IndexedDBThreadMsg, SyncOperation,
 };
 use stylo_atoms::Atom;
 use uuid::Uuid;
@@ -31,7 +30,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::indexeddb::idbdatabase::IDBDatabase;
 use crate::dom::indexeddb::idbopendbrequest::IDBOpenDBRequest;
 use crate::dom::promise::Promise;
 use crate::indexeddb::{convert_value_to_key, map_backend_error_to_dom_error};
@@ -45,16 +43,22 @@ pub(crate) struct DBName(pub(crate) String);
 pub struct IDBFactory {
     reflector_: Reflector,
     /// <https://www.w3.org/TR/IndexedDB-2/#connection>
-    /// The connections pending #open-a-database-connection.
-    pending_connections:
+    /// The connections opened through this factory.
+    /// We store the open request, which contains the connection.
+    /// TODO: remove when we are sure they are not needed anymore.
+    connections:
         DomRefCell<HashMapTracedValues<DBName, HashMapTracedValues<Uuid, Dom<IDBOpenDBRequest>>>>,
+
+    #[no_trace]
+    callback: DomRefCell<Option<GenericCallback<ConnectionMsg>>>,
 }
 
 impl IDBFactory {
     pub fn new_inherited() -> IDBFactory {
         IDBFactory {
             reflector_: Reflector::new(),
-            pending_connections: Default::default(),
+            connections: Default::default(),
+            callback: Default::default(),
         }
     }
 
@@ -62,93 +66,174 @@ impl IDBFactory {
         reflect_dom_object(Box::new(IDBFactory::new_inherited()), global, can_gc)
     }
 
+    /// Setup the callback to the backend service, if this hasn't been done already.
+    fn get_or_setup_callback(&self) -> GenericCallback<ConnectionMsg> {
+        if let Some(cb) = self.callback.borrow().as_ref() {
+            return cb.clone();
+        }
+
+        let global = self.global();
+        let response_listener = Trusted::new(self);
+
+        let task_source = global
+            .task_manager()
+            .database_access_task_source()
+            .to_sendable();
+        let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
+            let response_listener = response_listener.clone();
+            let response = match message {
+                Ok(inner) => inner,
+                Err(err) => return error!("Error in IndexedDB factory callback {:?}.", err),
+            };
+            task_source.queue(task!(set_request_result_to_database: move || {
+                let factory = response_listener.root();
+                factory.handle_connection_message(response, CanGc::note())
+            }));
+        })
+        .expect("Could not create open database callback");
+
+        *self.callback.borrow_mut() = Some(callback.clone());
+
+        callback
+    }
+
+    fn get_request(&self, name: String, request_id: &Uuid) -> Option<DomRoot<IDBOpenDBRequest>> {
+        let name = DBName(name);
+        let mut pending = self.connections.borrow_mut();
+        let Some(entry) = pending.get_mut(&name) else {
+            debug_assert!(false, "There should be a pending connection for {:?}", name);
+            return None;
+        };
+        let Some(request) = entry.get_mut(request_id) else {
+            debug_assert!(
+                false,
+                "There should be a pending connection for {:?}",
+                request_id
+            );
+            return None;
+        };
+        Some(request.as_rooted())
+    }
+
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     /// The steps that continue on the script-thread.
-    fn handle_open_db(
-        &self,
-        name: String,
-        response: OpenDatabaseResult,
-        request_id: Uuid,
-        can_gc: CanGc,
-    ) {
-        let name = DBName(name);
-        let request = {
-            let mut pending = self.pending_connections.borrow_mut();
-            let Some(entry) = pending.get_mut(&name) else {
-                return debug_assert!(false, "There should be a pending connection for {:?}", name);
-            };
-            let Some(request) = entry.get_mut(&request_id) else {
-                return debug_assert!(
-                    false,
-                    "There should be a pending connection for {:?}",
-                    request_id
-                );
-            };
-            request.as_rooted()
-        };
-        let global = request.global();
-        let finished = match response {
-            OpenDatabaseResult::Connection { version, upgraded } => {
+    /// This covers interacting with the current open request,
+    /// as well as with other open connections preventing the request from making progress.
+    fn handle_connection_message(&self, response: ConnectionMsg, can_gc: CanGc) {
+        match response {
+            ConnectionMsg::Connection {
+                name,
+                id,
+                version,
+                upgraded,
+            } => {
+                let Some(request) = self.get_request(name.clone(), &id) else {
+                    return debug_assert!(
+                        false,
+                        "There should be a request to handle ConnectionMsg::Connection."
+                    );
+                };
+
                 // Step 2.2: Otherwise,
                 // set request’s result to result,
                 // set request’s done flag,
                 // and fire an event named success at request.
-                request.dispatch_success(name.0.clone(), version, upgraded, can_gc);
-                true
+                request.dispatch_success(name, version, upgraded, can_gc);
             },
-            OpenDatabaseResult::Upgrade {
+            ConnectionMsg::Upgrade {
+                name,
+                id,
                 version,
                 old_version,
                 transaction,
             } => {
-                // TODO: link with backend connection concept.
-                let connection = IDBDatabase::new(
-                    &global,
-                    DOMString::from_string(name.0.clone()),
-                    version,
-                    can_gc,
-                );
-                request.set_connection(&connection);
-                request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
-                false
-            },
-            OpenDatabaseResult::VersionError => {
-                // Step 2.1 If result is an error, see dispatch_error().
-                self.dispatch_error(name.clone(), request_id, Error::Version(None), can_gc);
-                true
-            },
-            OpenDatabaseResult::AbortError => {
-                // Step 2.1 If result is an error, see dispatch_error().
-                self.dispatch_error(name.clone(), request_id, Error::Abort(None), can_gc);
-                true
-            },
-        };
-        if finished {
-            self.note_end_of_open(&name, &request.get_id());
-        }
-    }
+                let global = self.global();
 
-    fn handle_backend_error(
-        &self,
-        name: String,
-        request_id: Uuid,
-        backend_error: BackendError,
-        can_gc: CanGc,
-    ) {
-        self.dispatch_error(
-            DBName(name),
-            request_id,
-            map_backend_error_to_dom_error(backend_error),
-            can_gc,
-        );
+                let Some(request) = self.get_request(name.clone(), &id) else {
+                    return debug_assert!(
+                        false,
+                        "There should be a request to handle ConnectionMsg::Upgrade."
+                    );
+                };
+
+                let connection =
+                    request.get_or_init_connection(&global, name, version, false, can_gc);
+                request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
+            },
+            ConnectionMsg::VersionError { name, id } => {
+                // Step 2.1 If result is an error, see dispatch_error().
+                self.dispatch_error(name, id, Error::Version(None), can_gc);
+            },
+            ConnectionMsg::AbortError { name, id } => {
+                // Step 2.1 If result is an error, see dispatch_error().
+                self.dispatch_error(name, id, Error::Abort(None), can_gc);
+            },
+            ConnectionMsg::DatabaseError { name, id, error } => {
+                // Step 2.1 If result is an error, see dispatch_error().
+                self.dispatch_error(name, id, map_backend_error_to_dom_error(error), can_gc);
+            },
+            ConnectionMsg::VersionChange {
+                name,
+                id,
+                version,
+                old_version,
+            } => {
+                let global = self.global();
+                let Some(request) = self.get_request(name.clone(), &id) else {
+                    return debug_assert!(
+                        false,
+                        "There should be a request to handle ConnectionMsg::VersionChange."
+                    );
+                };
+                let connection =
+                    request.get_or_init_connection(&global, name.clone(), version, false, can_gc);
+
+                // Step 10.2: fire a version change event named versionchange at entry with db’s version and version.
+                connection.dispatch_versionchange(old_version, Some(version), can_gc);
+
+                // Step 10.3: Wait for all of the events to be fired.
+                // Note: backend is at this step; sending a message to continue algo there.
+                let operation = SyncOperation::NotifyEndOfVersionChange {
+                    id,
+                    name,
+                    old_version,
+                    origin: global.origin().immutable().clone(),
+                };
+                if global
+                    .storage_threads()
+                    .send(IndexedDBThreadMsg::Sync(operation))
+                    .is_err()
+                {
+                    error!("Failed to send SyncOperation::NotifyEndOfVersionChange.");
+                }
+            },
+            ConnectionMsg::Blocked {
+                name,
+                id,
+                version,
+                old_version,
+            } => {
+                let Some(request) = self.get_request(name, &id) else {
+                    return debug_assert!(
+                        false,
+                        "There should be a request to handle ConnectionMsg::VersionChange."
+                    );
+                };
+
+                // Step 10.4: fire a version change event named blocked at request with db’s version and version.
+                request.dispatch_blocked(old_version, Some(version), can_gc);
+            },
+        }
     }
 
     /// <https://w3c.github.io/IndexedDB/#dom-idbfactory-open>
     /// The error dispatching part from within a task part.
-    fn dispatch_error(&self, name: DBName, request_id: Uuid, dom_exception: Error, can_gc: CanGc) {
+    fn dispatch_error(&self, name: String, request_id: Uuid, dom_exception: Error, can_gc: CanGc) {
+        let name = DBName(name);
+
         // Step 5.3.1: If result is an error, then:
         let request = {
-            let mut pending = self.pending_connections.borrow_mut();
+            let mut pending = self.connections.borrow_mut();
             let Some(entry) = pending.get_mut(&name) else {
                 return debug_assert!(false, "There should be a pending connection for {:?}", name);
             };
@@ -186,7 +271,7 @@ impl IDBFactory {
     }
 
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
-    pub fn open_database(
+    fn open_database(
         &self,
         name: DOMString,
         version: Option<u64>,
@@ -196,38 +281,12 @@ impl IDBFactory {
         let request_id = request.get_id();
 
         {
-            let mut pending = self.pending_connections.borrow_mut();
+            let mut pending = self.connections.borrow_mut();
             let outer = pending.entry(DBName(name.to_string())).or_default();
             outer.insert(request_id, Dom::from_ref(request));
         }
 
-        let response_listener = Trusted::new(self);
-
-        let task_source = global
-            .task_manager()
-            .database_access_task_source()
-            .to_sendable();
-        let name = name.to_string();
-        let name_copy = name.clone();
-        let callback = GenericCallback::new(global.time_profiler_chan().clone(), move |message| {
-            let response_listener = response_listener.clone();
-            let name = name_copy.clone();
-            let request_id = request_id;
-            let backend_result = match message {
-                Ok(inner) => inner,
-                Err(err) => Err(BackendError::DbErr(format!("{err:?}"))),
-            };
-            task_source.queue(task!(set_request_result_to_database: move || {
-                let factory = response_listener.root();
-                match backend_result {
-                    Ok(response) => {
-                        factory.handle_open_db(name, response, request_id, CanGc::note())
-                    }
-                    Err(error) => factory.handle_backend_error(name, request_id, error, CanGc::note()),
-                }
-            }));
-        })
-        .expect("Could not create open database callback");
+        let callback = self.get_or_setup_callback();
 
         let open_operation = SyncOperation::OpenDatabase(
             callback,
@@ -248,25 +307,9 @@ impl IDBFactory {
         Ok(())
     }
 
-    pub(crate) fn note_end_of_open(&self, name: &DBName, id: &Uuid) {
-        let mut pending = self.pending_connections.borrow_mut();
-        let empty = {
-            let Some(entry) = pending.get_mut(name) else {
-                return debug_assert!(false, "There should be a pending connection for {:?}", name);
-            };
-            entry.remove(id);
-            entry.is_empty()
-        };
-        if empty {
-            pending.remove(name);
-        }
-    }
-
     pub(crate) fn abort_pending_upgrades(&self) {
         let global = self.global();
-
-        // Note: pending connections removed in `handle_open_db`.
-        let pending = self.pending_connections.borrow();
+        let pending = self.connections.borrow();
         let pending_upgrades = pending
             .iter()
             .map(|(key, val)| {

@@ -20,8 +20,8 @@ use rustc_hash::FxHashMap;
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
-    AsyncOperation, BackendError, BackendResult, CreateObjectResult, DatabaseInfo, DbResult,
-    IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, OpenDatabaseResult, SyncOperation,
+    AsyncOperation, BackendError, BackendResult, ConnectionMsg, CreateObjectResult, DatabaseInfo,
+    DbResult, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, SyncOperation,
 };
 use uuid::Uuid;
 
@@ -210,21 +210,27 @@ fn backend_error_from_sqlite_error(err: RusqliteError) -> BackendError {
 enum OpenRequest {
     Open {
         /// The callback used to send a result to script.
-        sender: GenericCallback<BackendResult<OpenDatabaseResult>>,
-
-        /// The origin of the request.
-        /// TODO: storage key.
-        origin: ImmutableOrigin,
+        sender: GenericCallback<ConnectionMsg>,
 
         /// The name of the database.
         db_name: String,
 
         /// Optionnaly, a requested db version.
+        /// Note: when the open algorithm starts, this will be mutated and set to something as per the algo.
         version: Option<u64>,
 
         /// Optionnaly, a version pending ugrade.
         /// Used as <https://w3c.github.io/IndexedDB/#request-processed-flag>
         pending_upgrade: Option<VersionUpgrade>,
+
+        /// This request is pending on these connections to close.
+        pending_close: HashSet<Uuid>,
+
+        /// This request is pending on these connections to fire a versionchange event.
+        /// Note: This starts as equal to `pending_close`, but when all events have fired,
+        /// not all connections need to have closed, in which case the `blocked` event
+        /// is fired on this request.
+        pending_versionchange: HashSet<Uuid>,
 
         id: Uuid,
     },
@@ -253,10 +259,11 @@ impl OpenRequest {
         let id = match self {
             OpenRequest::Open {
                 sender: _,
-                origin: _,
                 db_name: _,
                 version: _,
                 pending_upgrade: _,
+                pending_close: _,
+                pending_versionchange: _,
                 id,
             } => id,
             OpenRequest::Delete {
@@ -274,10 +281,11 @@ impl OpenRequest {
         match self {
             OpenRequest::Open {
                 sender: _,
-                origin: _,
                 db_name: _,
                 version: _,
                 pending_upgrade: _,
+                pending_close: _,
+                pending_versionchange: _,
                 id: _,
             } => true,
             OpenRequest::Delete {
@@ -289,16 +297,24 @@ impl OpenRequest {
             } => false,
         }
     }
+
+    /// An open request can be pending either an upgrade,
+    /// or the closing of other connections.
     fn is_pending(&self) -> bool {
         match self {
             OpenRequest::Open {
                 sender: _,
-                origin: _,
                 db_name: _,
                 version: _,
                 pending_upgrade,
+                pending_close,
+                pending_versionchange,
                 id: _,
-            } => pending_upgrade.is_some(),
+            } => {
+                pending_upgrade.is_some() ||
+                    !pending_close.is_empty() ||
+                    !pending_versionchange.is_empty()
+            },
             OpenRequest::Delete {
                 sender: _,
                 _origin: _,
@@ -315,14 +331,21 @@ impl OpenRequest {
         match self {
             OpenRequest::Open {
                 sender,
-                origin: _,
-                db_name: _,
+                db_name,
                 version: _,
+                pending_close: _,
+                pending_versionchange: _,
                 pending_upgrade,
-                id: _,
+                id,
             } => {
-                if sender.send(Ok(OpenDatabaseResult::AbortError)).is_err() {
-                    error!("Failed to send OpenDatabaseResult::Connection to script.");
+                if sender
+                    .send(ConnectionMsg::AbortError {
+                        name: db_name.clone(),
+                        id: *id,
+                    })
+                    .is_err()
+                {
+                    error!("Failed to send ConnectionMsg::Connection to script.");
                 };
                 pending_upgrade.as_ref().map(|upgrade| upgrade.old)
             },
@@ -348,13 +371,12 @@ struct VersionUpgrade {
 }
 
 /// <https://w3c.github.io/IndexedDB/#connection>
-#[derive(Clone, Eq, Hash, PartialEq)]
 struct Connection {
-    /// <https://w3c.github.io/IndexedDB/#connection-version>
-    version: u64,
-
     /// <https://w3c.github.io/IndexedDB/#connection-close-pending-flag>
     close_pending: bool,
+
+    /// The callback used to send a result to script.
+    sender: GenericCallback<ConnectionMsg>,
 }
 
 struct IndexedDBManager {
@@ -373,7 +395,7 @@ struct IndexedDBManager {
     connection_queues: HashMap<IndexedDBDescription, VecDeque<OpenRequest>>,
 
     /// <https://w3c.github.io/IndexedDB/#connection>
-    connections: HashMap<IndexedDBDescription, HashSet<Connection>>,
+    connections: HashMap<IndexedDBDescription, HashMap<Uuid, Connection>>,
 }
 
 impl IndexedDBManager {
@@ -452,11 +474,12 @@ impl IndexedDBManager {
         };
         let OpenRequest::Open {
             sender,
-            origin: _,
-            db_name: _,
+            db_name,
             version: _,
             pending_upgrade,
-            id: _,
+            pending_close: _,
+            pending_versionchange: _,
+            id,
         } = open_request
         else {
             return;
@@ -465,13 +488,15 @@ impl IndexedDBManager {
             return debug_assert!(false, "A pending version upgrade should exist.");
         };
         if sender
-            .send(Ok(OpenDatabaseResult::Connection {
+            .send(ConnectionMsg::Connection {
+                id,
+                name: db_name,
                 version: new,
                 upgraded: true,
-            }))
+            })
             .is_err()
         {
-            error!("Failed to send OpenDatabaseResult::Connection to script.");
+            error!("Failed to send ConnectionMsg::Connection to script.");
         };
 
         self.advance_connection_queue(key);
@@ -531,6 +556,20 @@ impl IndexedDBManager {
         was_pruned
     }
 
+    fn remove_connection(&mut self, key: &IndexedDBDescription, id: &Uuid) {
+        let is_empty = {
+            let Some(connections) = self.connections.get_mut(key) else {
+                return debug!("Connection already removed.");
+            };
+            connections.remove(id);
+            connections.is_empty()
+        };
+
+        if is_empty {
+            self.connections.remove(key);
+        }
+    }
+
     /// Aborting the current upgrade for an origin.
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
     /// Note: this only reverts the version at this point.
@@ -567,6 +606,8 @@ impl IndexedDBManager {
             debug_assert!(res.is_ok(), "Setting a db version should not fail.");
         }
 
+        self.remove_connection(&key, &id);
+
         self.advance_connection_queue(key);
     }
 
@@ -584,6 +625,9 @@ impl IndexedDBManager {
                 name,
                 origin: origin.clone(),
             };
+            for id in ids.iter() {
+                self.remove_connection(&key, id);
+            }
             {
                 let is_empty = {
                     let Some(queue) = self.connection_queues.get_mut(&key) else {
@@ -623,7 +667,7 @@ impl IndexedDBManager {
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     fn open_a_database_connection(
         &mut self,
-        sender: GenericCallback<BackendResult<OpenDatabaseResult>>,
+        sender: GenericCallback<ConnectionMsg>,
         origin: ImmutableOrigin,
         db_name: String,
         version: Option<u64>,
@@ -635,9 +679,10 @@ impl IndexedDBManager {
         };
         let open_request = OpenRequest::Open {
             sender,
-            origin,
             db_name,
             version,
+            pending_close: Default::default(),
+            pending_versionchange: Default::default(),
             pending_upgrade: None,
             id,
         };
@@ -687,12 +732,7 @@ impl IndexedDBManager {
     /// To upgrade a database with connection (a connection),
     /// a new version, and a request, run these steps:
     /// TODO: connection and request.
-    fn upgrade_database(
-        &mut self,
-        idb_description: IndexedDBDescription,
-        key: IndexedDBDescription,
-        new_version: u64,
-    ) {
+    fn upgrade_database(&mut self, key: IndexedDBDescription, new_version: u64) {
         let Some(queue) = self.connection_queues.get_mut(&key) else {
             return debug_assert!(false, "A connection queue should exist.");
         };
@@ -701,10 +741,11 @@ impl IndexedDBManager {
         };
         let OpenRequest::Open {
             sender,
-            origin: _,
-            db_name: _,
+            db_name,
             version: _,
-            id: _,
+            id,
+            pending_close: _,
+            pending_versionchange: _,
             pending_upgrade,
         } = open_request
         else {
@@ -715,7 +756,7 @@ impl IndexedDBManager {
         // TODO: connection.
         let db = self
             .databases
-            .get_mut(&idb_description)
+            .get_mut(&key)
             .expect("Db should have been opened.");
 
         // Step 2: Let transaction be a new upgrade transaction with connection used as connection.
@@ -743,11 +784,13 @@ impl IndexedDBManager {
 
         // Step 10: Queue a database task to run these steps:
         if sender
-            .send(Ok(OpenDatabaseResult::Upgrade {
+            .send(ConnectionMsg::Upgrade {
+                id: *id,
+                name: db_name.clone(),
                 version: new_version,
                 old_version,
                 transaction: transaction_id,
-            }))
+            })
             .is_err()
         {
             error!("Couldn't queue task for indexeddb upgrade event.");
@@ -761,6 +804,91 @@ impl IndexedDBManager {
     }
 
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
+    fn handle_version_change_done(
+        &mut self,
+        name: String,
+        from_id: Uuid,
+        old_version: u64,
+        origin: ImmutableOrigin,
+    ) {
+        let key = IndexedDBDescription {
+            name: name.clone(),
+            origin: origin.clone(),
+        };
+        let (can_upgrade, version) = {
+            let Some(queue) = self.connection_queues.get_mut(&key) else {
+                return debug_assert!(false, "A connection queue should exist.");
+            };
+            let Some(open_request) = queue.front_mut() else {
+                return debug_assert!(false, "An open request should be in the queue.");
+            };
+            let OpenRequest::Open {
+                sender,
+                db_name: _,
+                version,
+                id,
+                pending_upgrade: _,
+                pending_versionchange,
+                pending_close,
+            } = open_request
+            else {
+                return debug_assert!(
+                    false,
+                    "An request to open a connection should be in the queue."
+                );
+            };
+            debug_assert!(
+                pending_versionchange.contains(&from_id),
+                "The open request should be pending on the versionchange event for the connection sending the message."
+            );
+
+            pending_versionchange.remove(&from_id);
+
+            // Step 10.3: Wait for all of the events to be fired.
+            if !pending_versionchange.is_empty() {
+                return;
+            }
+
+            let Some(version) = *version else {
+                return debug_assert!(
+                    false,
+                    "An upgrade version should have been determined by now."
+                );
+            };
+
+            // Step 10.4: If any of the connections in openConnections are still not closed,
+            // queue a database task to fire a version change event named blocked
+            // at request with db’s version and version.
+            if !pending_close.is_empty() &&
+                sender
+                    .send(ConnectionMsg::Blocked {
+                        name,
+                        id: *id,
+                        version,
+                        old_version,
+                    })
+                    .is_err()
+            {
+                return debug!("Script exit during indexeddb database open");
+            }
+
+            (pending_close.is_empty(), version)
+        };
+
+        // Step 10.5: Wait until all connections in openConnections are closed.
+        // Note: if we still need to wait, the algorithm will continue in the handling of the close message.
+        if can_upgrade {
+            // Step 10.6: Run upgrade a database using connection, version and request.
+            self.upgrade_database(key.clone(), version);
+
+            let was_pruned = self.maybe_remove_front_from_queue(&key);
+            if was_pruned {
+                self.advance_connection_queue(key);
+            }
+        }
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>
     /// The part where the open request is ready for processing.
     fn open_database(&mut self, key: IndexedDBDescription) {
         let Some(queue) = self.connection_queues.get_mut(&key) else {
@@ -771,11 +899,12 @@ impl IndexedDBManager {
         };
         let OpenRequest::Open {
             sender,
-            origin,
             db_name,
             version,
-            id: _,
+            id,
             pending_upgrade: _,
+            pending_close,
+            pending_versionchange,
         } = open_request
         else {
             return debug_assert!(
@@ -784,16 +913,11 @@ impl IndexedDBManager {
             );
         };
 
-        let idb_description = IndexedDBDescription {
-            origin: origin.clone(),
-            name: db_name.clone(),
-        };
-
         let idb_base_dir = self.idb_base_dir.as_path();
-        let requested_version = version;
+        let requested_version = *version;
 
         // Step 4: Let db be the database named name in origin, or null otherwise.
-        let (db_version, version) = match self.databases.entry(idb_description.clone()) {
+        let db_version = match self.databases.entry(key.clone()) {
             Entry::Vacant(e) => {
                 // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
                 // Note: done below with the zero as first tuple item.
@@ -803,14 +927,15 @@ impl IndexedDBManager {
                 // with name name, version 0 (zero), and with no object stores.
                 // If this fails for any reason, return an appropriate error
                 // (e.g. a "QuotaExceededError" or "UnknownError" DOMException).
-                let engine = match SqliteEngine::new(
-                    idb_base_dir,
-                    &idb_description,
-                    self.thread_pool.clone(),
-                ) {
+                let engine = match SqliteEngine::new(idb_base_dir, &key, self.thread_pool.clone()) {
                     Ok(engine) => engine,
                     Err(err) => {
-                        if let Err(e) = sender.send(Err(backend_error_from_sqlite_error(err))) {
+                        let error = backend_error_from_sqlite_error(err);
+                        if let Err(e) = sender.send(ConnectionMsg::DatabaseError {
+                            id: *id,
+                            name: db_name.clone(),
+                            error,
+                        }) {
                             debug!("Script exit during indexeddb database open {:?}", e);
                         }
                         return;
@@ -821,43 +946,66 @@ impl IndexedDBManager {
                 let db_version = match db.version() {
                     Ok(version) => version,
                     Err(err) => {
-                        if let Err(e) = sender.send(Err(backend_error_from_sqlite_error(err))) {
+                        let error = backend_error_from_sqlite_error(err);
+                        if let Err(e) = sender.send(ConnectionMsg::DatabaseError {
+                            id: *id,
+                            name: db_name.clone(),
+                            error,
+                        }) {
                             debug!("Script exit during indexeddb database open {:?}", e);
                         }
-
                         return;
                     },
                 };
 
-                let version = if created_db_path {
-                    requested_version.unwrap_or(1)
+                *version = if created_db_path {
+                    Some(requested_version.unwrap_or(1))
                 } else {
-                    requested_version.unwrap_or(db_version)
+                    Some(requested_version.unwrap_or(db_version))
                 };
 
                 e.insert(db);
-                (db_version, version)
+                db_version
             },
             Entry::Occupied(db) => {
                 let db_version = match db.get().version() {
                     Ok(version) => version,
                     Err(err) => {
-                        if let Err(e) = sender.send(Err(backend_error_from_sqlite_error(err))) {
+                        let error = backend_error_from_sqlite_error(err);
+                        if let Err(e) = sender.send(ConnectionMsg::DatabaseError {
+                            id: *id,
+                            name: db_name.clone(),
+                            error,
+                        }) {
                             debug!("Script exit during indexeddb database open {:?}", e);
                         }
                         return;
                     },
                 };
                 // Step 5: If version is undefined, let version be 1 if db is null, or db’s version otherwise.
-                (db_version, requested_version.unwrap_or(db_version))
+                *version = Some(requested_version.unwrap_or(db_version));
+                db_version
             },
+        };
+
+        let Some(version) = *version else {
+            return debug_assert!(
+                false,
+                "An upgrade version should have been determined by now."
+            );
         };
 
         // Step 7: If db’s version is greater than version,
         // return a newly created "VersionError" DOMException
         // and abort these steps.
         if version < db_version {
-            if sender.send(Ok(OpenDatabaseResult::VersionError)).is_err() {
+            if sender
+                .send(ConnectionMsg::VersionError {
+                    name: db_name.clone(),
+                    id: *id,
+                })
+                .is_err()
+            {
                 debug!("Script exit during indexeddb database open");
             }
             return;
@@ -866,52 +1014,59 @@ impl IndexedDBManager {
         // Step 8: Let connection be a new connection to db.
         // Step 9: Set connection’s version to version.
         let connection = Connection {
-            version,
             close_pending: false,
+            sender: sender.clone(),
         };
-        let entry = self.connections.entry(idb_description.clone()).or_default();
-        let open_connections = entry.clone();
-        entry.insert(connection);
+        let entry = self.connections.entry(key.clone()).or_default();
+        entry.insert(*id, connection);
 
         // Step 10: If db’s version is less than version, then:
         if db_version < version {
             // Step 10.1: Let openConnections be the set of all connections,
             // except connection, associated with db.
-            // Note: done above with `open_connections`.
-
-            // Step 10.2: For each entry of openConnections
-            for _conn in open_connections
-                .into_iter()
-                .filter(|conn| conn.close_pending)
-            {
-                // TODO: queue a database task to fire a version change event
+            let open_connections = entry
+                .iter_mut()
+                .filter(|(other_id, conn)| !conn.close_pending && *other_id != id);
+            for (id_to_close, conn) in open_connections {
+                // Step 10.2: For each entry of openConnections
+                // queue a database task to fire a version change event
                 // named versionchange at entry with db’s version and version.
+                if conn
+                    .sender
+                    .send(ConnectionMsg::VersionChange {
+                        name: db_name.clone(),
+                        id: *id_to_close,
+                        version,
+                        old_version: db_version,
+                    })
+                    .is_err()
+                {
+                    error!("Failed to send ConnectionMsg::Connection to script.");
+                };
+                pending_close.insert(*id_to_close);
+                pending_versionchange.insert(*id_to_close);
+            }
+            if !pending_close.is_empty() {
+                // Step 10.3: Wait for all of the events to be fired.
+                return;
             }
 
-            // that does not have its close pending flag set to true,
-            // queue a database task to fire a version change event
-            // named versionchange at entry with db’s version and version.
-            // Step 10.3: Wait for all of the events to be fired.
-            // Step 10.4: If any of the connections in openConnections are still not closed,
-            // queue a database task to fire a version change event named blocked
-            // at request with db’s version and version.
-            // Step 10.5: Wait until all connections in openConnections are closed.
-            // TODO: implement connections.
-
             // Step 10.6: Run upgrade a database using connection, version and request.
-            self.upgrade_database(idb_description, key, version);
+            self.upgrade_database(key, version);
             return;
         }
 
         // Step 11:
         if sender
-            .send(Ok(OpenDatabaseResult::Connection {
+            .send(ConnectionMsg::Connection {
+                name: db_name.clone(),
+                id: *id,
                 version: db_version,
                 upgraded: false,
-            }))
+            })
             .is_err()
         {
-            error!("Failed to send OpenDatabaseResult::Connection to script.");
+            error!("Failed to send ConnectionMsg::Connection to script.");
         };
     }
 
@@ -1022,6 +1177,79 @@ impl IndexedDBManager {
         *processed = true;
     }
 
+    /// <https://w3c.github.io/IndexedDB/#closing-connection>
+    fn close_database(&mut self, origin: ImmutableOrigin, id: Uuid, name: String) {
+        // Step 1: Set connection’s close pending flag to true.
+        // TODO: seems like a script only flag.
+
+        // Step 2: If the forced flag is true,
+        // then for each transaction created using connection
+        // run abort a transaction with transaction and newly created "AbortError" DOMException.
+        // Step 3: Wait for all transactions created using connection to complete.
+        // Once they are complete, connection is closed.
+        // TODO: transaction lifecycle.
+
+        // Step 4: If the forced flag is true, then fire an event named close at connection.
+        // TODO: implement, probably only on the script side of things.
+
+        // Note: below we are continuing
+        // <https://w3c.github.io/IndexedDB/#open-a-database-connection>
+        // in the case that an open request is waiting for connections to close.
+        let key = IndexedDBDescription { origin, name };
+        let (can_upgrade, version) = {
+            self.remove_connection(&key, &id);
+
+            let Some(queue) = self.connection_queues.get_mut(&key) else {
+                return;
+            };
+            let Some(open_request) = queue.front_mut() else {
+                return;
+            };
+            if let OpenRequest::Open {
+                sender: _,
+                db_name: _,
+                version,
+                id: _,
+                pending_upgrade,
+                pending_versionchange,
+                pending_close,
+            } = open_request
+            {
+                pending_close.remove(&id);
+                (
+                    // Note: need to exclude requests that have already started upgrading.
+                    pending_close.is_empty() &&
+                        pending_versionchange.is_empty() &&
+                        !pending_upgrade.is_some(),
+                    *version,
+                )
+            } else {
+                (false, None)
+            }
+        };
+
+        // <https://w3c.github.io/IndexedDB/#open-a-database-connection>
+        // Step 10.3: Wait for all of the events to be fired.
+        // Step 10.5: Wait until all connections in openConnections are closed.
+        // Note: both conditions must be checked here,
+        // because that is the condition enabling the upgrade to proceed.
+        if can_upgrade {
+            // Step 10.6: Run upgrade a database using connection, version and request.
+            let Some(version) = version else {
+                return debug_assert!(
+                    false,
+                    "An upgrade version should have been determined by now."
+                );
+            };
+            self.upgrade_database(key.clone(), version);
+
+            let was_pruned = self.maybe_remove_front_from_queue(&key);
+            if was_pruned {
+                self.advance_connection_queue(key);
+            }
+        }
+    }
+
     fn handle_sync_operation(&mut self, operation: SyncOperation) {
         match operation {
             SyncOperation::GetDatabases(sender, origin) => {
@@ -1078,18 +1306,8 @@ impl IndexedDBManager {
                     debug!("Couldn't send SyncOperation::GetDatabases reply.");
                 }
             },
-            SyncOperation::CloseDatabase(sender, origin, db_name) => {
-                // TODO: Wait for all transactions created using connection to complete.
-                // Note: current behavior is as if the `forced` flag is always set.
-                // TODO: do not delete the database, only the connection.
-                let idb_description = IndexedDBDescription {
-                    origin,
-                    name: db_name,
-                };
-                if let Some(_db) = self.databases.remove(&idb_description) {
-                    // TODO: maybe a close database function should be added to the trait and called here?
-                }
-                let _ = sender.send(Ok(()));
+            SyncOperation::CloseDatabase(origin, id, db_name) => {
+                self.close_database(origin, id, db_name);
             },
             SyncOperation::OpenDatabase(sender, origin, db_name, version, id) => {
                 self.open_a_database_connection(sender, origin, db_name, version, id);
@@ -1207,6 +1425,14 @@ impl IndexedDBManager {
                 let transaction_id = self.serial_number_counter;
                 self.serial_number_counter += 1;
                 let _ = sender.send(transaction_id);
+            },
+            SyncOperation::NotifyEndOfVersionChange {
+                name,
+                id,
+                old_version,
+                origin,
+            } => {
+                self.handle_version_change_done(name, id, old_version, origin);
             },
             SyncOperation::Exit(_) => {
                 unreachable!("We must've already broken out of event loop.");
