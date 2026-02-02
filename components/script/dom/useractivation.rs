@@ -8,7 +8,9 @@ use script_bindings::codegen::GenericBindings::UserActivationBinding::UserActiva
 
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::document::{AncestorNavigablesIterator, DescendantNavigablesIterator, Document};
+use crate::dom::document::{
+    Document, SameOriginDescendantNavigablesIterator, SameoriginAncestorNavigablesIterator,
+};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
@@ -31,35 +33,42 @@ impl UserActivation {
 
     /// <https://html.spec.whatwg.org/multipage/#activation-notification>
     pub(crate) fn handle_user_activation_notification(document: &Document) {
-        // > 1. Assert: document is fully active.
+        // Step 1.
+        // > Assert: document is fully active.
         debug_assert!(
             document.is_fully_active(),
             "Document should be fully active at this moment"
         );
 
-        // > 2. Let windows be « document's relevant global object ».
+        // Step 2.
+        // > Let windows be « document's relevant global object ».
         let owner_window = document.window();
         rooted_vec!(let mut windows <- vec![Dom::from_ref(owner_window)].into_iter());
 
-        // > 3. Extend windows with the active window of each of document's ancestor navigables.
+        // Step 3.
+        // > Extend windows with the active window of each of document's ancestor navigables.
         // TODO: this would not work for disimilar origin ancestor, since we doesn't store the document in this script thread.
-        for document in AncestorNavigablesIterator::new(DomRoot::from_ref(document)) {
+        for document in SameoriginAncestorNavigablesIterator::new(DomRoot::from_ref(document)) {
             windows.push(Dom::from_ref(document.window()));
         }
 
-        // > 4. Extend windows with the active window of each of document's descendant navigables, filtered to include only
-        // >    those navigables whose active document's origin is same origin with document's origin.
-        for document in DescendantNavigablesIterator::new(DomRoot::from_ref(document)) {
+        // Step 4.
+        // > Extend windows with the active window of each of document's descendant navigables, filtered to include only
+        // > those navigables whose active document's origin is same origin with document's origin.
+        for document in SameOriginDescendantNavigablesIterator::new(DomRoot::from_ref(document)) {
             windows.push(Dom::from_ref(document.window()));
         }
 
-        // > 5. For each window in windows:
+        // Step 5.
+        // > For each window in windows:
         let current_timestamp = CrossProcessInstant::now();
         for window in windows.iter() {
-            // > 5.1. Set window's last activation timestamp to the current high resolution time.
+            // Step 5.1.
+            // > Set window's last activation timestamp to the current high resolution time.
             window.set_last_activation_timestamp(current_timestamp);
 
-            // > 5.2. Notify the close watcher manager about user activation given window.
+            // Step 5.2.
+            // > Notify the close watcher manager about user activation given window.
             // TODO: impl close watcher
         }
     }

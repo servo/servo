@@ -182,9 +182,7 @@ use crate::dom::touchevent::TouchEvent as DomTouchEvent;
 use crate::dom::touchlist::TouchList;
 use crate::dom::treewalker::TreeWalker;
 use crate::dom::trustedhtml::TrustedHTML;
-use crate::dom::types::{
-    HTMLCanvasElement, HTMLDialogElement, UserActivation, VisibilityStateEntry,
-};
+use crate::dom::types::{HTMLCanvasElement, HTMLDialogElement, VisibilityStateEntry};
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::websocket::WebSocket;
@@ -4402,6 +4400,7 @@ impl Document {
             // TODO: Add checks for whether fullscreen is supported as definition.
 
             // > - This’s relevant global object has transient activation or the algorithm is triggered by a user generated orientation change.
+            // TODO: implement screen orientation API
             if !pending.owner_window().has_transient_activation() {
                 error = true;
             }
@@ -6735,18 +6734,20 @@ impl DocumentHelpers for Document {
     }
 }
 
-/// <https://html.spec.whatwg.org/multipage/document-sequences.html#ancestor-navigables>
-pub(crate) struct AncestorNavigablesIterator {
+/// Iterator for same origin ancestor navigables, returning the active documents of the navigables.
+/// <https://html.spec.whatwg.org/multipage/#ancestor-navigables>
+// TODO: Find a way for something equivalent for cross origin document.
+pub(crate) struct SameoriginAncestorNavigablesIterator {
     document: DomRoot<Document>,
 }
 
-impl AncestorNavigablesIterator {
+impl SameoriginAncestorNavigablesIterator {
     pub(crate) fn new(document: DomRoot<Document>) -> Self {
         Self { document }
     }
 }
 
-impl Iterator for AncestorNavigablesIterator {
+impl Iterator for SameoriginAncestorNavigablesIterator {
     type Item = DomRoot<Document>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -6756,12 +6757,15 @@ impl Iterator for AncestorNavigablesIterator {
     }
 }
 
-/// <https://html.spec.whatwg.org/multipage/document-sequences.html#ancestor-navigables>
-pub(crate) struct DescendantNavigablesIterator {
+/// Iterator for same origin descendant navigables in a shadow-including tree order, returning the
+/// active documents of the navigables.
+/// <https://html.spec.whatwg.org/multipage/#descendant-navigables>
+// TODO: Find a way for something equivalent for cross origin document.
+pub(crate) struct SameOriginDescendantNavigablesIterator {
     stack: Vec<Box<dyn Iterator<Item = DomRoot<HTMLIFrameElement>>>>,
 }
 
-impl DescendantNavigablesIterator {
+impl SameOriginDescendantNavigablesIterator {
     pub(crate) fn new(document: DomRoot<Document>) -> Self {
         let iframes: Vec<DomRoot<HTMLIFrameElement>> = document.iframes().iter().collect();
         Self {
@@ -6779,7 +6783,7 @@ impl DescendantNavigablesIterator {
     }
 }
 
-impl Iterator for DescendantNavigablesIterator {
+impl Iterator for SameOriginDescendantNavigablesIterator {
     type Item = DomRoot<Document>;
 
     fn next(&mut self) -> Option<Self::Item> {

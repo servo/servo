@@ -145,7 +145,9 @@ use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
 use crate::dom::customelementregistry::CustomElementRegistry;
-use crate::dom::document::{AnimationFrameCallback, DescendantNavigablesIterator, Document};
+use crate::dom::document::{
+    AnimationFrameCallback, Document, SameOriginDescendantNavigablesIterator,
+};
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -3679,7 +3681,7 @@ impl Window {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/interaction.html#consume-user-activation>
+    /// <https://html.spec.whatwg.org/multipage/#consume-user-activation>
     pub(crate) fn consume_user_activation(&self) {
         // Step 1.
         // > If W's navigable is null, then return.
@@ -3706,7 +3708,7 @@ impl Window {
         top_level_document
             .window()
             .consume_last_activation_timestamp();
-        for document in DescendantNavigablesIterator::new(top_level_document) {
+        for document in SameOriginDescendantNavigablesIterator::new(top_level_document) {
             document.window().consume_last_activation_timestamp();
         }
     }

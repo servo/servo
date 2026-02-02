@@ -722,7 +722,6 @@ impl Event {
     /// <https://dom.spec.whatwg.org/#firing-events>
     pub(crate) fn fire(&self, target: &EventTarget, can_gc: CanGc) -> bool {
         self.set_trusted(true);
-        // log::error!("[ztp] fire {:?}", self.Type());
 
         target.dispatch_event(self, can_gc)
     }
