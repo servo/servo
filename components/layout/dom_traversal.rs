@@ -236,11 +236,18 @@ fn traverse_picker_icon_pseudo_element<'dom>(
         return;
     };
 
-    if !matches!(element.type_id(), Some(LayoutNodeType::Element(LayoutElementType::HTMLSelectElement))) {
+    if !matches!(
+        element.type_id(),
+        Some(LayoutNodeType::Element(
+            LayoutElementType::HTMLSelectElement
+        ))
+    ) {
         return;
     }
 
-    let Some(pseudo_element_info) = info.with_pseudo_element(context, PseudoElement::ServoPickerIcon) else {
+    let Some(pseudo_element_info) =
+        info.with_pseudo_element(context, PseudoElement::ServoPickerIcon)
+    else {
         return;
     };
 
