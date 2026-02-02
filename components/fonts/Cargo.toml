@@ -37,7 +37,7 @@ num-traits = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
 profile_traits = { workspace = true }
-read-fonts = { workspace = true }
+read-fonts.workspace = true
 serde = { workspace = true }
 servo-tracing = { workspace = true }
 servo_arc = { workspace = true }
@@ -53,6 +53,7 @@ unicode-properties = { workspace = true }
 unicode-script = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
+regex.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = { workspace = true }
@@ -69,6 +70,7 @@ servo_allocator = { path = "../allocator" }
 fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
 
 [target.'cfg(target_os = "android")'.dependencies]
+ndk = {version = "0.9.0", features = ["api-level-29"]}
 xml = "1.1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
