@@ -1594,6 +1594,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-accept
     make_setter!(SetAccept, "accept");
 
+    // https://html.spec.whatwg.org/multipage/#dom-input-alpha
+    make_bool_getter!(Alpha, "alpha");
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-alpha
+    make_bool_setter!(SetAlpha, "alpha");
+
     // https://html.spec.whatwg.org/multipage/#dom-input-alt
     make_getter!(Alt, "alt");
 
@@ -2615,9 +2621,7 @@ impl HTMLInputElement {
         let mut html_compatible = false;
 
         // Step 3. If element's alpha attribute is not specified, then set color's alpha component to be fully opaque.
-        let has_alpha = self
-            .upcast::<Element>()
-            .has_attribute(&local_name!("alpha"));
+        let has_alpha = self.Alpha();
         if !has_alpha {
             color.alpha = 1.0;
         }
