@@ -160,8 +160,11 @@ impl HTMLLinkElement {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn remove_stylesheet(&self) {
         if let Some(stylesheet) = self.stylesheet.borrow_mut().take() {
-            let owner = self.stylesheet_list_owner();
-            owner.remove_stylesheet(StylesheetSource::Element(Dom::from_ref(self.upcast())), &stylesheet);
+            let owner = self.stylesheet_list_owner()
+            owner.remove_stylesheet(
+                StylesheetSource::Element(Dom::from_ref(self.upcast())),
+                &stylesheet,
+            );
             self.clean_stylesheet_ownership();
             owner.invalidate_stylesheets();
         }
