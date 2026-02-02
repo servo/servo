@@ -471,6 +471,7 @@ impl Handler {
             event_loop_waker,
             default_preferences,
             pending_input_event_receivers: Default::default(),
+            pending_pointer_moves: Default::default(),
             num_pending_actions: Cell::new(0),
         }
     }

@@ -68,7 +68,7 @@ pub(crate) enum InputSourceState {
 }
 
 pub(crate) struct PendingPointerMove {
-    input_id: &str,
+    input_id: String,
     duration: u64,
     start_x: f64,
     start_y: f64,
@@ -193,6 +193,45 @@ impl Handler {
             if elapsed < tick_duration {
                 let sleep_duration = tick_duration - elapsed;
                 thread::sleep(Duration::from_millis(sleep_duration));
+            }
+            // Handle `PendingPointerMove`s.
+            let pending_pointer_moves = std::mem::take(&mut self.pending_pointer_moves);
+
+            for PendingPointerMove {
+                input_id,
+                duration,
+                start_x,
+                start_y,
+                target_x,
+                target_y,
+                tick_start,
+            } in pending_pointer_moves
+            {
+                self.perform_pointer_move(
+                    &input_id, duration, start_x, start_y, target_x, target_y, tick_start,
+                );
+            }
+        }
+
+        // Edge case: All tick actions are processed. But `pending_pointer_moves` may
+        // still be non-empty.
+        while !self.pending_pointer_moves.is_empty() {
+            thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
+            let pending_pointer_moves = std::mem::take(&mut self.pending_pointer_moves);
+
+            for PendingPointerMove {
+                input_id,
+                duration,
+                start_x,
+                start_y,
+                target_x,
+                target_y,
+                tick_start,
+            } in pending_pointer_moves
+            {
+                self.perform_pointer_move(
+                    &input_id, duration, start_x, start_y, target_x, target_y, tick_start,
+                );
             }
         }
 
@@ -635,16 +674,15 @@ impl Handler {
         // We use [`PendingPointerMove`] to achieve the same effect as asynchronous wait and
         // parallelism required by spec.
         // This conveniently unify the wait interval between ticks.
-        self.pending_pointer_moves
-            .push(PendingPointerMove {
-                input_id,
-                duration,
-                start_x,
-                start_y,
-                target_x,
-                target_y,
-                tick_start,
-            });
+        self.pending_pointer_moves.push(PendingPointerMove {
+            input_id: input_id.to_owned(),
+            duration,
+            start_x,
+            start_y,
+            target_x,
+            target_y,
+            tick_start,
+        });
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-scroll-action>
