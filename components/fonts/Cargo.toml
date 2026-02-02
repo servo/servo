@@ -53,7 +53,6 @@ unicode-properties = { workspace = true }
 unicode-script = { workspace = true }
 url = { workspace = true }
 webrender_api = { workspace = true }
-regex.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = { workspace = true }
