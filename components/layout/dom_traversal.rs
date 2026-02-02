@@ -222,11 +222,18 @@ fn traverse_picker_icon_pseudo_element<'dom>(
         return;
     };
 
-    if !matches!(element.type_id(), Some(LayoutNodeType::Element(LayoutElementType::HTMLSelectElement))) {
+    if !matches!(
+        element.type_id(),
+        Some(LayoutNodeType::Element(
+            LayoutElementType::HTMLSelectElement
+        ))
+    ) {
         return;
     }
 
-    let Some(pseudo_element_info) = info.with_pseudo_element(context, PseudoElement::ServoPickerIcon) else {
+    let Some(pseudo_element_info) =
+        info.with_pseudo_element(context, PseudoElement::ServoPickerIcon)
+    else {
         return;
     };
 
@@ -239,7 +246,8 @@ fn traverse_picker_icon_pseudo_element<'dom>(
         Display::Contents => {
             let items = generate_pseudo_element_content(&pseudo_element_info, context);
             let box_slot = pseudo_element_info.node.box_slot();
-            let shared_inline_styles: SharedInlineStyles = (&pseudo_element_info).into();
+            let shared_inline_styles =
+                SharedInlineStyles::from_info_and_context(&pseudo_element_info, context);
             box_slot.set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
 
             handler.enter_display_contents(shared_inline_styles);
