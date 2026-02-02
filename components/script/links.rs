@@ -28,7 +28,7 @@ bitflags::bitflags! {
     /// attribute.
     ///
     /// Refer to <https://html.spec.whatwg.org/multipage/#linkTypes> for more information.
-    #[derive(Clone, Copy, Debug)]
+    #[derive(Clone, Copy, Debug, PartialEq)]
     pub(crate) struct LinkRelations: u32 {
         /// <https://html.spec.whatwg.org/multipage/#rel-alternate>
         const ALTERNATE = 1;
