@@ -68,7 +68,7 @@ pub(crate) enum InputSourceState {
 }
 
 pub(crate) struct PendingPointerMove {
-    pointer_id: u32,
+    input_id: &str,
     duration: u64,
     start_x: f64,
     start_y: f64,
@@ -636,9 +636,8 @@ impl Handler {
         // parallelism required by spec.
         // This conveniently unify the wait interval between ticks.
         self.pending_pointer_moves
-            .borrow_mut()
             .push(PendingPointerMove {
-                pointer_id: *pointer_id,
+                input_id,
                 duration,
                 start_x,
                 start_y,

@@ -187,7 +187,7 @@ struct Handler {
     num_pending_actions: Cell<u32>,
 
     /// Moves that are currently in-progress and need to be ticked.
-    pending_pointer_moves: RefCell<Vec<PendingPointerMove>>,
+    pending_pointer_moves: Vec<PendingPointerMove>,
 
     /// The base set of preferences to treat as default when resetting.
     default_preferences: Preferences,
