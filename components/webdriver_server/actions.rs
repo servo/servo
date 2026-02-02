@@ -67,6 +67,16 @@ pub(crate) enum InputSourceState {
     Wheel,
 }
 
+pub(crate) struct PendingPointerMove {
+    pointer_id: u32,
+    duration: u64,
+    start_x: f64,
+    start_y: f64,
+    target_x: f64,
+    target_y: f64,
+    tick_start: Instant,
+}
+
 /// <https://w3c.github.io/webdriver/#dfn-pointer-input-source>
 pub(crate) struct PointerInputState {
     subtype: PointerType,
@@ -527,99 +537,97 @@ impl Handler {
         target_y: f64,
         tick_start: Instant,
     ) {
-        loop {
-            // Step 1. Let time delta be the time since the beginning of the
-            // current tick, measured in milliseconds on a monotonic clock.
-            let time_delta = tick_start.elapsed().as_millis();
+        // Step 1. Let time delta be the time since the beginning of the
+        // current tick, measured in milliseconds on a monotonic clock.
+        let time_delta = tick_start.elapsed().as_millis();
 
-            // Step 2. Let duration ratio be the ratio of time delta and duration,
-            // if duration is greater than 0, or 1 otherwise.
-            let duration_ratio = if duration > 0 {
-                time_delta as f64 / duration as f64
-            } else {
-                1.0
-            };
+        // Step 2. Let duration ratio be the ratio of time delta and duration,
+        // if duration is greater than 0, or 1 otherwise.
+        let duration_ratio = if duration > 0 {
+            time_delta as f64 / duration as f64
+        } else {
+            1.0
+        };
 
-            // Step 3. If duration ratio is 1, or close enough to 1 that the
-            // implementation will not further subdivide the move action,
-            // let last be true. Otherwise let last be false.
-            let last = 1.0 - duration_ratio < 0.001;
+        // Step 3. If duration ratio is 1, or close enough to 1 that the
+        // implementation will not further subdivide the move action,
+        // let last be true. Otherwise let last be false.
+        let last = 1.0 - duration_ratio < 0.001;
 
-            // Step 4. If last is true, let x equal target x and y equal target y.
-            // Otherwise
-            // let x equal an approximation to duration ratio × (target x - start x) + start x,
-            // and y equal an approximation to duration ratio × (target y - start y) + start y.
-            let (x, y) = if last {
-                (target_x, target_y)
-            } else {
-                (
-                    duration_ratio * (target_x - start_x) + start_x,
-                    duration_ratio * (target_y - start_y) + start_y,
-                )
-            };
+        // Step 4. If last is true, let x equal target x and y equal target y.
+        // Otherwise
+        // let x equal an approximation to duration ratio × (target x - start x) + start x,
+        // and y equal an approximation to duration ratio × (target y - start y) + start y.
+        let (x, y) = if last {
+            (target_x, target_y)
+        } else {
+            (
+                duration_ratio * (target_x - start_x) + start_x,
+                duration_ratio * (target_y - start_y) + start_y,
+            )
+        };
 
-            // Step 5 - 6: Let current x/y equal the x/y property of input state.
-            let PointerInputState {
-                x: current_x,
-                y: current_y,
-                subtype,
-                pressed,
-                pointer_id,
-            } = self.get_pointer_input_state(input_id);
+        // Step 5 - 6: Let current x/y equal the x/y property of input state.
+        let PointerInputState {
+            x: current_x,
+            y: current_y,
+            subtype,
+            pressed,
+            pointer_id,
+        } = self.get_pointer_input_state(input_id);
 
-            // Step 7. If x != current x or y != current y, run the following steps:
-            // FIXME: Actually "last" should not be checked here based on spec.
-            if x != *current_x || y != *current_y || last {
-                // Step 7.1. Let buttons be equal to input state's pressed property.
-                // Step 7.2. Perform implementation-specific action dispatch steps
-                let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
+        // Step 7. If x != current x or y != current y, run the following steps:
+        // FIXME: Actually "last" should not be checked here based on spec.
+        if x != *current_x || y != *current_y || last {
+            // Step 7.1. Let buttons be equal to input state's pressed property.
+            // Step 7.2. Perform implementation-specific action dispatch steps
+            let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
 
-                // For a pointer of type "mouse"
-                // this will always produce events including at least a pointerMove event.
-                match subtype {
-                    PointerType::Mouse => {
-                        let input_event = InputEvent::MouseMove(MouseMoveEvent::new(point));
-                        if last {
-                            self.send_blocking_input_event_to_embedder(input_event);
-                        } else {
-                            self.send_input_event_to_embedder(input_event);
-                        }
-                    },
-                    // In the case where the pointerType is "pen" or "touch", and buttons is empty,
-                    // this may be a no-op.
-                    PointerType::Touch | PointerType::Pen => {
-                        if pressed.contains(&ELEMENT_CLICK_BUTTON) {
-                            let input_event = InputEvent::Touch(TouchEvent::new(
-                                TouchEventType::Move,
-                                TouchId(*pointer_id as i32),
-                                point,
-                            ));
-                            // We should NOT block here. TouchMove is special, and may never
-                            // be forwarded to constellation and handled.
-                            self.send_input_event_to_embedder(input_event);
-                        }
-                    },
-                }
-
-                // Step 7.3. Let input state's x property equal x and y property equal y.
-                let pointer_input_state = self.get_pointer_input_state_mut(input_id);
-                pointer_input_state.x = x;
-                pointer_input_state.y = y;
+            // For a pointer of type "mouse"
+            // this will always produce events including at least a pointerMove event.
+            match subtype {
+                PointerType::Mouse => {
+                    let input_event = InputEvent::MouseMove(MouseMoveEvent::new(point));
+                    if last {
+                        self.send_blocking_input_event_to_embedder(input_event);
+                    } else {
+                        self.send_input_event_to_embedder(input_event);
+                    }
+                },
+                // In the case where the pointerType is "pen" or "touch", and buttons is empty,
+                // this may be a no-op.
+                PointerType::Touch | PointerType::Pen => {
+                    if pressed.contains(&ELEMENT_CLICK_BUTTON) {
+                        let input_event = InputEvent::Touch(TouchEvent::new(
+                            TouchEventType::Move,
+                            TouchId(*pointer_id as i32),
+                            point,
+                        ));
+                        // We should NOT block here. TouchMove is special, and may never
+                        // be forwarded to constellation and handled.
+                        self.send_input_event_to_embedder(input_event);
+                    }
+                },
             }
 
-            // Step 8. If last is true, return.
-            if last {
-                return;
-            }
-
-            // Step 9. Run the following substeps in parallel:
-            // Step 9.1. Asynchronously wait for an implementationdefined amount of time to pass
-            thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
-
-            // Step 9.2. Perform a pointer move with arguments
-            // input state, duration, start x, start y, target x, target y.
-            // Notice that this simply repeat what we have done until last is true.
+            // Step 7.3. Let input state's x property equal x and y property equal y.
+            let pointer_input_state = self.get_pointer_input_state_mut(input_id);
+            pointer_input_state.x = x;
+            pointer_input_state.y = y;
         }
+
+        // Step 8. If last is true, return.
+        if last {
+            return;
+        }
+
+        // Step 9. Run the following substeps in parallel:
+        // Step 9.1. Asynchronously wait for an implementationdefined amount of time to pass
+        thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
+
+        // Step 9.2. Perform a pointer move with arguments
+        // input state, duration, start x, start y, target x, target y.
+        // Notice that this simply repeat what we have done until last is true.
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-scroll-action>
