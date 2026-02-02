@@ -41,6 +41,7 @@ mod layout_image;
 
 pub(crate) mod document_collection;
 pub(crate) mod iframe_collection;
+pub(crate) mod iframe_context;
 pub(crate) mod image_animation;
 pub mod layout_dom;
 pub(crate) mod messaging;

@@ -143,6 +143,7 @@ use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
 use crate::dom::worklet::WorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
+use crate::iframe_context::IframeContext;
 use crate::messaging::{
     CommonScriptMsg, MainThreadScriptMsg, MixedMessage, ScriptEventLoopSender,
     ScriptThreadReceivers, ScriptThreadSenders,
@@ -150,7 +151,7 @@ use crate::messaging::{
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
 use crate::navigation::{InProgressLoad, NavigationListener};
-use crate::network_listener::FetchResponseListener;
+use crate::network_listener::{FetchResponseListener, submit_timing};
 use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_mutation_observers::ScriptMutationObservers;
 use crate::script_runtime::{
@@ -3725,6 +3726,17 @@ impl ScriptThread {
 
         if let Some(idx) = idx {
             let (_, context) = self.incomplete_parser_contexts.0.borrow_mut().remove(idx);
+
+            // we need to register an iframe entry to the performance timeline if present
+            if let Some(document) = context.get_document()// get the document from the context
+                && let Some(window_proxy) = document.browsing_context() // check if there is a window_proxy
+                && let Some(frame_element) = window_proxy.frame_element()// retrieval of the frame element if present
+                && let Some(frame_element) = frame_element.downcast::<HTMLIFrameElement>()
+            {
+                let iframe_ctx = IframeContext::new(&frame_element);
+                submit_timing(&iframe_ctx, &eof, &timing, CanGc::note());
+            }
+
             context.process_response_eof(request_id, eof, timing);
         }
     }

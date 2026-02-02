@@ -95,7 +95,7 @@ pub(crate) struct HTMLIFrameElement {
 impl HTMLIFrameElement {
     /// <https://html.spec.whatwg.org/multipage/#otherwise-steps-for-iframe-or-frame-elements>,
     /// step 1.
-    fn get_url(&self) -> ServoUrl {
+    pub(crate) fn get_url(&self) -> ServoUrl {
         let element = self.upcast::<Element>();
         element
             .get_attribute(&ns!(), &local_name!("src"))

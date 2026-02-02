@@ -507,6 +507,10 @@ impl ServoParser {
         self.tokenizer.get_current_line()
     }
 
+    pub(crate) fn get_document(&self) -> DomRoot<Document> {
+        self.document.as_rooted()
+    }
+
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(
         document: &Document,
@@ -958,6 +962,12 @@ impl ParserContext {
 
     pub(crate) fn set_about_base_url(&mut self, about_base_url: Option<ServoUrl>) {
         self.navigation_params.about_base_url = about_base_url;
+    }
+
+    pub(crate) fn get_document(&self) -> Option<DomRoot<Document>> {
+        self.parser
+            .as_ref()
+            .map(|parser| parser.root().get_document())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#creating-a-policy-container-from-a-fetch-response>
