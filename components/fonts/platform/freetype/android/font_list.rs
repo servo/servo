@@ -3,15 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-use std::fs;
+use std::fs::File;
 use std::sync::LazyLock;
 
 use base::text::{UnicodeBlock, UnicodeBlockMethod, is_cjk};
 use log::warn;
 use ndk::font::SystemFontIterator;
-use read_fonts::tables::os2::SelectionFlags;
-use read_fonts::{FontRef, TableProvider};
-use regex::Regex;
+use read_fonts::{FileRef, FontRef, TableProvider};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{
@@ -54,17 +52,17 @@ impl FontList {
             SystemFontIterator::new().expect("Failed to create SystemFontIterator");
         let mut font_families_vector = Vec::new();
 
-        for system_font_path in system_font_iterator {
+        for system_font in system_font_iterator {
             // Obtain the font file
-            let font_bytes =
-                fs::read(system_font_path.path()).expect("Android returns an invalid path!");
+            let font_bytes = File::open(system_font.path())
+                .and_then(|file| unsafe { memmap2::Mmap::map(&file) })
+                .unwrap();
 
             // Read the font file
-            let font = FontRef::new(&font_bytes);
+            let font = FileRef::new(&font_bytes).expect("Font file cannot be read.");
             match font {
-                Ok(f) => {
-                    // Case 1: File read successfully by FontRef::new(). This means it's a .ttf or .otf file.
-
+                FileRef::Font(f) => {
+                    // Case 1: This means it's a .ttf or .otf file.
                     // Get the name table
                     let name_table = f
                         .name()
@@ -80,33 +78,22 @@ impl FontList {
                                 .map(|s| s.to_string())
                         });
 
-                    // Get weight and style information from OS/2 table if available
-                    let os2_table = f
-                        .os2()
-                        .expect("Font file is corrupted as it has no OS/2 table!");
-
-                    let filepath = system_font_path
+                    let filepath = system_font
                         .path()
                         .to_str()
                         .expect("Failed to convert path to string!")
                         .to_string();
-                    let re = Regex::new(r"[^/]+$").unwrap();
-                    let filename = re
-                        .find(&filepath)
-                        .expect("Invalid file path. This should never happen!")
-                        .as_str()
-                        .to_string();
+                    let filename = filepath.split("/").last().unwrap_or("").to_string();
 
                     let mut style = "normal";
-                    match os2_table.fs_selection() {
-                        SelectionFlags::ITALIC => style = "italic",
-                        _ => {},
-                    };
+                    if system_font.is_italic() {
+                        style = "italic";
+                    }
 
                     // Create Font entry
                     let font_entry = Font {
                         filename,
-                        weight: Some(os2_table.us_weight_class() as i32),
+                        weight: Some(system_font.weight().to_u16() as i32),
                         style: Some(style.to_string()),
                     };
 
@@ -116,8 +103,8 @@ impl FontList {
                         .or_insert(Vec::new())
                         .push(font_entry);
                 },
-                Err(_) => {
-                    // Case 2: File could not be read by FontRef::new(). This means it's a .ttc file.
+                FileRef::Collection(_) => {
+                    // Case 2: This means it's a .ttc file.
                     let mut traversable = true;
                     let mut index = 0;
 
@@ -140,33 +127,22 @@ impl FontList {
                                             .map(|s| s.to_string())
                                     });
 
-                                // Get weight and style information from OS/2 table if available
-                                let os2_table = ttc_f
-                                    .os2()
-                                    .expect("Font file is corrupted as it has no OS/2 table!");
-
-                                let filepath = system_font_path
+                                let filepath = system_font
                                     .path()
                                     .to_str()
                                     .expect("Failed to convert path to string!")
                                     .to_string();
-                                let re = Regex::new(r"[^/]+$").unwrap();
-                                let filename = re
-                                    .find(&filepath)
-                                    .expect("Invalid file path. This should never happen!")
-                                    .as_str()
-                                    .to_string();
+                                let filename = filepath.split("/").last().unwrap_or("").to_string();
 
                                 let mut style = "normal";
-                                match os2_table.fs_selection() {
-                                    SelectionFlags::ITALIC => style = "italic",
-                                    _ => {},
-                                };
+                                if system_font.is_italic() {
+                                    style = "italic";
+                                }
 
                                 // Create Font entry
                                 let font_entry = Font {
                                     filename,
-                                    weight: Some(os2_table.us_weight_class() as i32),
+                                    weight: Some(system_font.weight().to_u16() as i32),
                                     style: Some(style.to_string()),
                                 };
 
