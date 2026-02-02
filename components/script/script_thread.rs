@@ -3734,7 +3734,11 @@ impl ScriptThread {
                 && let Some(frame_element) = frame_element.downcast::<HTMLIFrameElement>()
             {
                 let iframe_ctx = IframeContext::new(&frame_element);
-                submit_timing(&iframe_ctx, &eof, &timing, CanGc::note());
+
+                // submit_timing will only accept timing that is of type ResourceTimingType::Resource
+                let mut resource_timing = timing.clone();
+                resource_timing.timing_type = ResourceTimingType::Resource;
+                submit_timing(&iframe_ctx, &eof, &resource_timing, CanGc::note());
             }
 
             context.process_response_eof(request_id, eof, timing);

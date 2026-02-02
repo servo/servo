@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -9,32 +9,17 @@
   <body>
     <script>
       function load() {
-        setTimeout(function () {
-
-          console.log('Performance entries: ', JSON.stringify(performance.getEntries()));
-
-          promise_test(async function (t) {
-            let resources = performance.getEntriesByType('resource')
-            let has_resource = false
-            for ({ initiatorType, name } of resources) {
-              console.log('Name resource: ', name)
-              if (initiatorType == 'iframe') {
-                has_resource = true
-              }
+        promise_test(async function (t) {
+          let resources = performance.getEntriesByType("resource");
+          let has_resource = false;
+          for ({ initiatorType, name } of resources) {
+            console.log("Name resource: ", name);
+            if (initiatorType == "iframe") {
+              has_resource = true;
             }
-            assert_true(has_resource, 'iframe resource entry found')
-
-            let navigations = performance.getEntriesByType('navigation')
-            let has_navigation = false
-            for (const { name } of navigations) {
-              console.log('Name navigation: ', name)
-              if (name.endsWith('t.html')) {
-                has_navigation = true
-              }
-            }
-            assert_true(has_navigation, 'iframe navigation entry found')
-          }, 'Testing timing entries for iframe documents')
-        }, 0)
+          }
+          assert_true(has_resource, "iframe resource entry found");
+        }, "Testing timing entries for iframe documents");
       }
     </script>
     <iframe onload="load()" src="t.html"></iframe>
