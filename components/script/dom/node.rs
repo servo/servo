@@ -2863,7 +2863,7 @@ impl Node {
                 .assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Skip);
 
             // Step 10.2 Run assign slottables for a tree with node.
-            node.assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Skip);
+            node.assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Force);
         }
 
         // TODO: Step 15. transient registered observers
