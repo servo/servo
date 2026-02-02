@@ -566,13 +566,13 @@ impl Element {
         true
     }
 
+    /// Whether this element is styled such that it establish a scroll container.
     /// <https://www.w3.org/TR/css-overflow-3/#scroll-container>
-    fn establish_scroll_container(&self) -> bool {
-        // TODO: scrolling mechanism, such as scrollbar (We don't have scrollbar yet)
-        //       self.has_scrolling_mechanism()
+    fn establishes_scroll_container(&self) -> bool {
+        // CSS computed value has make sure that either both axis is scrollable or none is scrollable.
         self.upcast::<Node>()
             .effective_overflow()
-            .is_some_and(|overflow| overflow.x.is_scrollable())
+            .is_some_and(|overflow| overflow.establishes_scroll_container())
     }
 
     fn has_overflow(&self) -> bool {
@@ -2702,7 +2702,9 @@ impl Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() || !self.establish_scroll_container() || !self.has_overflow()
+        if !self.has_css_layout_box() ||
+            !self.establishes_scroll_container() ||
+            !self.has_overflow()
         {
             return;
         }
@@ -3372,7 +3374,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() || !self.establish_scroll_container() || !self.has_overflow()
+        if !self.has_css_layout_box() ||
+            !self.establishes_scroll_container() ||
+            !self.has_overflow()
         {
             return;
         }
@@ -3470,7 +3474,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() || !self.establish_scroll_container() || !self.has_overflow()
+        if !self.has_css_layout_box() ||
+            !self.establishes_scroll_container() ||
+            !self.has_overflow()
         {
             return;
         }

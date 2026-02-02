@@ -473,6 +473,13 @@ impl AxesOverflow {
             y: self.y.to_scrollable(),
         }
     }
+
+    /// Whether or not the `overflow` value establishes a scroll container.
+    pub fn establishes_scroll_container(&self) -> bool {
+        // Checking one axis suffices, because the computed value ensures that
+        // either both axes are scrollable, or none is scrollable.
+        self.x.is_scrollable()
+    }
 }
 
 #[derive(Clone)]
