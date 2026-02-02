@@ -622,12 +622,30 @@ impl Handler {
         }
 
         // Step 9. Run the following substeps in parallel:
-        // Step 9.1. Asynchronously wait for an implementationdefined amount of time to pass
-        thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
+        // Step 9.1. Asynchronously wait for an implementation defined amount of time to pass.
+        // Step 9.2. Perform a pointer move with arguments input state,
+        // duration, start x, start y, target x, target y.
 
-        // Step 9.2. Perform a pointer move with arguments
-        // input state, duration, start x, start y, target x, target y.
-        // Notice that this simply repeat what we have done until last is true.
+        // NOTE: The initial pointer movement is performed synchronously.
+        // This ensures determinism in the sequence of the first event
+        // triggered by each action in the tick.
+        // Subsequent movements (if any) are performed asynchronously.
+        // This allows events from two pointerMove actions in the tick to be interspersed.
+
+        // We use [`PendingPointerMove`] to achieve the same effect as asynchronous wait and
+        // parallelism required by spec.
+        // This conveniently unify the wait interval between ticks.
+        self.pending_pointer_moves
+            .borrow_mut()
+            .push(PendingPointerMove {
+                pointer_id: *pointer_id,
+                duration,
+                start_x,
+                start_y,
+                target_x,
+                target_y,
+                tick_start,
+            });
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-scroll-action>
