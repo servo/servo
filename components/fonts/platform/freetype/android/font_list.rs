@@ -8,8 +8,9 @@ use std::sync::LazyLock;
 
 use base::text::{UnicodeBlock, UnicodeBlockMethod, is_cjk};
 use log::warn;
-use ndk::font::SystemFontIterator;
-use read_fonts::{FileRef, FontRef, TableProvider};
+use ndk::font::{Font as NDK_Font, SystemFontIterator};
+use read_fonts::tables::name::Name;
+use read_fonts::{FileRef, TableProvider};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{
@@ -67,97 +68,18 @@ impl FontList {
                     let name_table = f
                         .name()
                         .expect("Font file is corrupted as it has no name table!");
-                    let family_name = name_table
-                        .name_record()
-                        .iter()
-                        .filter(|record| record.name_id().to_u16() == 1)
-                        .find_map(|record| {
-                            record
-                                .string(name_table.string_data())
-                                .ok()
-                                .map(|s| s.to_string())
-                        });
-
-                    let filepath = system_font
-                        .path()
-                        .to_str()
-                        .expect("Failed to convert path to string!")
-                        .to_string();
-                    let filename = filepath.split("/").last().unwrap_or("").to_string();
-
-                    let mut style = "normal";
-                    if system_font.is_italic() {
-                        style = "italic";
-                    }
-
-                    // Create Font entry
-                    let font_entry = Font {
-                        filename,
-                        weight: Some(system_font.weight().to_u16() as i32),
-                        style: Some(style.to_string()),
-                    };
-
-                    // Insert into hashmap
-                    font_family_hashmap
-                        .entry(family_name.expect("Font has no family name!"))
-                        .or_insert(Vec::new())
-                        .push(font_entry);
+                    Self::create_font_entry(&mut font_family_hashmap, &system_font, name_table);
                 },
-                FileRef::Collection(_) => {
+                FileRef::Collection(ttc_f) => {
                     // Case 2: This means it's a .ttc file.
-                    let mut traversable = true;
-                    let mut index = 0;
 
-                    while traversable {
-                        let ttc_font = FontRef::from_index(&font_bytes, index);
-                        match ttc_font {
-                            Ok(ttc_f) => {
-                                // Get the name table
-                                let name_table = ttc_f
-                                    .name()
-                                    .expect("Font file is corrupted as it has no name table!");
-                                let family_name = name_table
-                                    .name_record()
-                                    .iter()
-                                    .filter(|record| record.name_id().to_u16() == 1)
-                                    .find_map(|record| {
-                                        record
-                                            .string(name_table.string_data())
-                                            .ok()
-                                            .map(|s| s.to_string())
-                                    });
-
-                                let filepath = system_font
-                                    .path()
-                                    .to_str()
-                                    .expect("Failed to convert path to string!")
-                                    .to_string();
-                                let filename = filepath.split("/").last().unwrap_or("").to_string();
-
-                                let mut style = "normal";
-                                if system_font.is_italic() {
-                                    style = "italic";
-                                }
-
-                                // Create Font entry
-                                let font_entry = Font {
-                                    filename,
-                                    weight: Some(system_font.weight().to_u16() as i32),
-                                    style: Some(style.to_string()),
-                                };
-
-                                // Insert into hashmap
-                                font_family_hashmap
-                                    .entry(family_name.expect("Font has no family name!"))
-                                    .or_insert(Vec::new())
-                                    .push(font_entry);
-                            },
-                            Err(_) => {
-                                // No more fonts in the .ttc file
-                                traversable = false;
-                            },
-                        }
-                        index += 1;
+                    for ttc_font in ttc_f.iter() {
+                        // Get the name table
+                        let name_table = ttc_font
+                            .expect("")
+                            .name()
+                            .expect("Font file is corrupted as it has no name table!");
+                        Self::create_font_entry(&mut font_family_hashmap, &system_font, name_table);
                     }
                 },
             }
@@ -186,6 +108,48 @@ impl FontList {
             families: font_families_vector,
             aliases: Vec::new(),
         }
+    }
+
+    fn create_font_entry(
+        font_family_hashmap: &mut HashMap<String, Vec<Font>>,
+        system_font: &NDK_Font,
+        name_table: Name,
+    ) {
+        let family_name = name_table
+            .name_record()
+            .iter()
+            .filter(|record| record.name_id().to_u16() == 1)
+            .find_map(|record| {
+                record
+                    .string(name_table.string_data())
+                    .ok()
+                    .map(|s| s.to_string())
+            });
+
+        let filepath = system_font
+            .path()
+            .to_str()
+            .expect("Failed to convert path to string!")
+            .to_string();
+        let filename = filepath.split("/").last().unwrap_or("").to_string();
+
+        let mut style = "normal";
+        if system_font.is_italic() {
+            style = "italic";
+        }
+
+        // Create Font entry
+        let font_entry = Font {
+            filename,
+            weight: Some(system_font.weight().to_u16() as i32),
+            style: Some(style.to_string()),
+        };
+
+        // Insert into hashmap
+        font_family_hashmap
+            .entry(family_name.expect("Font has no family name!"))
+            .or_insert(Vec::new())
+            .push(font_entry);
     }
 
     // All Android fonts are located in /system/fonts
