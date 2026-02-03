@@ -102,7 +102,7 @@ fn try_python_command(mut command: Command) -> Result<Command, String> {
 /// Note: This function should be kept in sync with the version in `components/servo/build.rs`
 fn find_python() -> Command {
     let mut command = Command::new("uv");
-    command.args(["run", "python"]);
+    command.args(["run", "--frozen", "python"]);
 
     let command_result = try_python_command(command).inspect_err(|e| println!("cargo:warning={e}"));
     if let Ok(command) = command_result {

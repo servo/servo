@@ -30,7 +30,7 @@
         fi
     }
 
-    run_in_nix_if_needed uv run python ${MACH_DIR}/mach "$@"
+    run_in_nix_if_needed uv run --frozen python ${MACH_DIR}/mach "$@"
 }
 '''
 
