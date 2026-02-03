@@ -13,7 +13,8 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::context::JSContext;
+use js::jsapi::{Heap, JSContext as RawJSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use net_traits::image_cache::ImageCache;
@@ -210,7 +211,7 @@ impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
         &self.task_queue
     }
 
-    fn handle_event(&self, event: MixedMessage, cx: &mut js::context::JSContext) -> bool {
+    fn handle_event(&self, event: MixedMessage, cx: &mut JSContext) -> bool {
         self.handle_mixed_message(event, cx)
     }
 
@@ -614,7 +615,7 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
-    fn handle_script_event(&self, msg: WorkerScriptMsg, cx: &mut js::context::JSContext) {
+    fn handle_script_event(&self, msg: WorkerScriptMsg, cx: &mut JSContext) {
         match msg {
             WorkerScriptMsg::DOMMessage(message_data) => {
                 if self.upcast::<WorkerGlobalScope>().is_execution_ready() {
@@ -629,7 +630,7 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
-    fn handle_mixed_message(&self, msg: MixedMessage, cx: &mut js::context::JSContext) -> bool {
+    fn handle_mixed_message(&self, msg: MixedMessage, cx: &mut JSContext) -> bool {
         if self.upcast::<WorkerGlobalScope>().is_closing() {
             return false;
         }
@@ -699,16 +700,16 @@ impl DedicatedWorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage>
     fn post_message_impl(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
-        let data = structuredclone::write(cx, message, Some(transfer))?;
+        let data = structuredclone::write(cx.into(), message, Some(transfer))?;
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         let global_scope = self.upcast::<GlobalScope>();
         let pipeline_id = global_scope.pipeline_id();
-        let task = Box::new(task!(post_worker_message: move || {
-            Worker::handle_message(worker, data, CanGc::note());
+        let task = Box::new(task!(post_worker_message: move |cx| {
+            Worker::handle_message(worker, data, cx);
         }));
         self.parent_event_loop_sender
             .send(CommonScriptMsg::Task(
@@ -749,7 +750,7 @@ impl DedicatedWorkerGlobalScope {
 }
 
 #[expect(unsafe_code)]
-pub(crate) unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
+pub(crate) unsafe extern "C" fn interrupt_callback(cx: *mut RawJSContext) -> bool {
     let in_realm_proof = AlreadyInRealm::assert_for_cx(unsafe { SafeJSContext::from_ptr(cx) });
     let global = unsafe { GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)) };
 
@@ -773,7 +774,7 @@ impl DedicatedWorkerGlobalScopeMethods<crate::DomTypeHolder> for DedicatedWorker
     /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage>
     fn PostMessage(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
@@ -783,7 +784,7 @@ impl DedicatedWorkerGlobalScopeMethods<crate::DomTypeHolder> for DedicatedWorker
     /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage>
     fn PostMessage_(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
     ) -> ErrorResult {
@@ -794,7 +795,8 @@ impl DedicatedWorkerGlobalScopeMethods<crate::DomTypeHolder> for DedicatedWorker
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
                 .collect(),
         );
-        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        #[expect(unsafe_code)]
+        let guard = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
         self.post_message_impl(cx, message, guard)
     }
 
