@@ -1,7 +1,7 @@
 [package]
 name = "servoshell"
 build = "build.rs"
-version = "0.0.4"
+version = "0.0.5"
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
