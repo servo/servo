@@ -6,7 +6,7 @@
            UpgradeCode="060cd15d-eab1-4614-b438-3988e3efdcf1"
            Language="1033"
            Codepage="1252"
-           Version="0.0.4">
+           Version="0.0.5">
     <Package Id="*"
              Keywords="Installer"
              Description="Servo Tech Demo Installer"

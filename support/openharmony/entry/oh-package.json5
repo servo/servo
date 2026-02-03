@@ -5,7 +5,7 @@
   "name": "servoshell",
   "description": "Please describe the basic information.",
   "main": "",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "dependencies": {
     "libservoshell.so": "file:./src/main/cpp/types/libentry"
   }
