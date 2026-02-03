@@ -9,24 +9,23 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from enum import Enum
 import enum
 import os
+import pathlib
 import random
 import shutil
-import pathlib
 import subprocess
 import sys
 import time
 from decimal import Decimal
-
+from enum import Enum
 
 from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode
+from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.common.options import ArgOptions
-from urllib3.exceptions import ProtocolError
-from PIL import Image
 from selenium.webdriver.remote.webelement import WebElement
+from urllib3.exceptions import ProtocolError
 
 WEBDRIVER_PORT = 7000
 MITMPROXY_PORT = str(random.randrange(7150, 9000))
@@ -68,8 +67,10 @@ class MitmProxy:
                     self.port,
                     "--server-replay",
                     self.dump_file,
+                    # reply with 404 if request is not in dump_file
                     "--set",
                     "server_replay_extra=404",
+                    # do not delete a request from the dump_file after fulfillment
                     "--set",
                     "server_replay_reuse=true",
                 ]
@@ -192,7 +193,7 @@ def port_forward(port: int | str, reverse: bool) -> PortMapResult:
     print(f"Setting up HDC port forwarding: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     if result.stdout.startswith("[Fail]TCP Port listen failed"):
-        print("FOrward failed")
+        print("Forward failed")
         return PortMapResult.FORWARD_FAILED
     elif result.stdout.startswith("[Fail]"):
         print("Forward failed other way")
@@ -356,8 +357,8 @@ def run_test(test_fn, test_name: str, use_mitmproxy: MitmProxyRunType = MitmProx
                 cmd_str,
                 timeout=10,
             )
-            close_usb_popup(hdc)
             with HarmonyDevicePerfMode():
+                close_usb_popup(hdc)
                 test_fn()
     except Exception as e:
         print(f"Scenario test `{test_name}` failed with error: {e} (exception: {type(e)})")
