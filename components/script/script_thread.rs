@@ -132,7 +132,7 @@ use crate::dom::document::{
 };
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::html::htmliframeelement::HTMLIFrameElement;
+use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext};
 use crate::dom::node::NodeTraits;
 use crate::dom::servoparser::{ParserContext, ServoParser};
 use crate::dom::types::DebuggerGlobalScope;
@@ -150,7 +150,7 @@ use crate::messaging::{
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::mime::{APPLICATION, CHARSET, MimeExt, TEXT, XML};
 use crate::navigation::{InProgressLoad, NavigationListener};
-use crate::network_listener::FetchResponseListener;
+use crate::network_listener::{FetchResponseListener, submit_timing};
 use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_mutation_observers::ScriptMutationObservers;
 use crate::script_runtime::{
@@ -3725,6 +3725,26 @@ impl ScriptThread {
 
         if let Some(idx) = idx {
             let (_, context) = self.incomplete_parser_contexts.0.borrow_mut().remove(idx);
+
+            // we need to register an iframe entry to the performance timeline if present
+            if let Some(window_proxy) = context
+                .get_document()
+                .and_then(|document| document.browsing_context())
+            {
+                if let Some(frame_element) = window_proxy.frame_element() {
+                    let iframe_ctx = IframeContext::new(
+                        frame_element
+                            .downcast::<HTMLIFrameElement>()
+                            .expect("WindowProxy::frame_element should be an HTMLIFrameElement"),
+                    );
+
+                    // submit_timing will only accept timing that is of type ResourceTimingType::Resource
+                    let mut resource_timing = timing.clone();
+                    resource_timing.timing_type = ResourceTimingType::Resource;
+                    submit_timing(&iframe_ctx, &eof, &resource_timing, CanGc::note());
+                }
+            }
+
             context.process_response_eof(request_id, eof, timing);
         }
     }

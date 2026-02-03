@@ -42,11 +42,14 @@ use crate::dom::element::{
     AttributeMutation, Element, LayoutElementHelpers, reflect_referrer_policy_attribute,
 };
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, UnbindContext};
+use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::trustedhtml::TrustedHTML;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
+use crate::network_listener::ResourceTimingListener;
 use crate::script_runtime::CanGc;
 use crate::script_thread::{ScriptThread, with_script_thread};
 use crate::script_window_proxies::ScriptWindowProxies;
@@ -95,7 +98,7 @@ pub(crate) struct HTMLIFrameElement {
 impl HTMLIFrameElement {
     /// <https://html.spec.whatwg.org/multipage/#otherwise-steps-for-iframe-or-frame-elements>,
     /// step 1.
-    fn get_url(&self) -> ServoUrl {
+    pub(crate) fn get_url(&self) -> ServoUrl {
         let element = self.upcast::<Element>();
         element
             .get_attribute(&ns!(), &local_name!("src"))
@@ -988,5 +991,37 @@ impl VirtualMethods for HTMLIFrameElement {
         self.destroy_child_navigable(can_gc);
 
         self.owner_document().invalidate_iframes_collection();
+    }
+}
+
+/// IframeContext is a wrapper around [`HTMLIFrameElement`] that implements the [`ResourceTimingListener`] trait.
+/// Note: this implementation of `resource_timing_global` returns the parent document's global scope, not the iframe's global scope.
+pub(crate) struct IframeContext<'a> {
+    // The iframe element that this context is associated with.
+    element: &'a HTMLIFrameElement,
+    // The URL of the iframe document.
+    url: ServoUrl,
+}
+
+impl<'a> IframeContext<'a> {
+    /// Creates a new IframeContext from a reference to an HTMLIFrameElement.
+    pub fn new(element: &'a HTMLIFrameElement) -> Self {
+        Self {
+            element,
+            url: element.get_url(),
+        }
+    }
+}
+
+impl<'a> ResourceTimingListener for IframeContext<'a> {
+    fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
+        (
+            InitiatorType::LocalName("iframe".to_string()),
+            self.url.clone(),
+        )
+    }
+
+    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
+        self.element.upcast::<Node>().owner_doc().global()
     }
 }
