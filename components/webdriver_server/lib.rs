@@ -73,7 +73,9 @@ use webdriver::response::{
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
-use crate::actions::{ELEMENT_CLICK_BUTTON, InputSourceState, PointerInputState};
+use crate::actions::{
+    ELEMENT_CLICK_BUTTON, InputSourceState, PendingPointerMove, PointerInputState,
+};
 use crate::session::{PageLoadStrategy, WebDriverSession};
 use crate::timeout::{DEFAULT_IMPLICIT_WAIT, DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
 
@@ -183,6 +185,9 @@ struct Handler {
 
     /// Number of pending actions of which WebDriver is waiting for responses.
     num_pending_actions: Cell<u32>,
+
+    /// Moves that are currently in-progress and need to be ticked.
+    pending_pointer_moves: Vec<PendingPointerMove>,
 
     /// The base set of preferences to treat as default when resetting.
     default_preferences: Preferences,
@@ -466,6 +471,7 @@ impl Handler {
             event_loop_waker,
             default_preferences,
             pending_input_event_receivers: Default::default(),
+            pending_pointer_moves: Default::default(),
             num_pending_actions: Cell::new(0),
         }
     }
