@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::default::Default;
+use std::rc::Rc;
 
 use base::generic_channel::GenericSend;
 use dom_struct::dom_struct;
@@ -17,7 +18,9 @@ use uuid::Uuid;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::URLBinding::URLMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{
+    DomGlobal, Reflector, reflect_weak_referenceable_dom_object_with_proto,
+};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
@@ -55,7 +58,12 @@ impl URL {
         url: ServoUrl,
         can_gc: CanGc,
     ) -> DomRoot<URL> {
-        reflect_dom_object_with_proto(Box::new(URL::new_inherited(url)), global, proto, can_gc)
+        reflect_weak_referenceable_dom_object_with_proto(
+            Rc::new(URL::new_inherited(url)),
+            global,
+            proto,
+            can_gc,
+        )
     }
 
     pub(crate) fn query_pairs(&self) -> Vec<(String, String)> {

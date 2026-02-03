@@ -5,6 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use std::cell::Cell;
 use std::os::raw::c_int;
+use std::rc::Rc;
 use std::sync::Once;
 
 use canvas_traits::webgl::{
@@ -16,7 +17,7 @@ use mozangle::shaders::{BuiltInResources, CompileOptions, Output, ShaderValidato
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_weak_referenceable_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::webgl::extensions::WebGLExtensions;
@@ -82,8 +83,8 @@ impl WebGLShader {
         shader_type: u32,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
-            Box::new(WebGLShader::new_inherited(context, id, shader_type)),
+        reflect_weak_referenceable_dom_object(
+            Rc::new(WebGLShader::new_inherited(context, id, shader_type)),
             &*context.global(),
             can_gc,
         )

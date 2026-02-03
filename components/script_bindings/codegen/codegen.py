@@ -2558,8 +2558,6 @@ class CGDOMJSClass(CGThing):
                 args["resolveHook"] = "Some(resolve_global)"
                 args["mayResolveHook"] = "Some(may_resolve_global)"
             args["traceHook"] = "js::jsapi::JS_GlobalObjectTraceHook"
-        elif self.descriptor.weakReferenceable:
-            args["slots"] = "2"
         return f"""
 static CLASS_OPS: ThreadUnsafeOnceLock<JSClassOps> = ThreadUnsafeOnceLock::new();
 
@@ -2945,7 +2943,10 @@ def DomTypes(descriptors: list[Descriptor],
                 ]
 
             if descriptor.concrete and not descriptor.isGlobal():
-                traits += ["crate::reflector::DomObjectWrap<Self>"]
+                if descriptor.weakReferenceable:
+                    traits += ["crate::reflector::WeakReferenceableDomObjectWrap<Self>"]
+                else:
+                    traits += ["crate::reflector::DomObjectWrap<Self>"]
 
         if not descriptor.interface.isCallback() and not descriptor.interface.isIteratorInterface():
             nonConstMembers = [m for m in descriptor.interface.members if not m.isConst()]
@@ -3263,7 +3264,7 @@ class CGWrapMethod(CGAbstractMethod):
         args = [Argument('SafeJSContext', 'cx'),
                 Argument('&D::GlobalScope', 'scope'),
                 Argument('Option<HandleObject>', 'given_proto'),
-                Argument(f"Box<{descriptor.concreteType}>", 'object'),
+                Argument(f"{'Rc' if descriptor.weakReferenceable else 'Box'}<{descriptor.concreteType}>", 'object'),
                 Argument('CanGc', '_can_gc')]
         retval = f'DomRoot<{descriptor.concreteType}>'
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
@@ -3323,14 +3324,9 @@ JS_SetReservedSlot(
     &PrivateValue(raw.as_ptr() as *const libc::c_void),
 );
 """
-        if self.descriptor.weakReferenceable:
-            create += """
-let val = PrivateValue(ptr::null());
-JS_SetReservedSlot(obj.get(), DOM_WEAK_SLOT, &val);
-"""
 
         return CGGeneric(f"""
-let raw = Root::new(MaybeUnreflectedDom::from_box(object));
+let raw = Root::new(MaybeUnreflectedDom::from_{ "rc" if self.descriptor.weakReferenceable else "box" }(object));
 
 let scope = scope.reflector().get_jsobject();
 assert!(!scope.get().is_null());
@@ -3488,6 +3484,30 @@ impl DomObjectWrap<crate::DomTypeHolder> for {firstCap(ifaceName)} {{
         &GlobalScope,
         Option<HandleObject>,
         Box<Self>,
+        CanGc,
+    ) -> Root<Dom<Self>> = {bindingModule}::Wrap::<crate::DomTypeHolder>;
+}}
+"""
+
+
+class CGWeakReferenceableDomObjectWrap(CGThing):
+    """
+    Class for codegen of an implementation of the WeakReferenceableDomObjectWrap trait.
+    """
+    def __init__(self, descriptor: Descriptor) -> None:
+        CGThing.__init__(self)
+        self.descriptor = descriptor
+
+    def define(self) -> str:
+        ifaceName = self.descriptor.interface.identifier.name
+        bindingModule = f"crate::dom::bindings::codegen::GenericBindings::{toBindingPath(self.descriptor)}"
+        return f"""
+impl WeakReferenceableDomObjectWrap<crate::DomTypeHolder> for {firstCap(ifaceName)} {{
+    const WRAP: unsafe fn(
+        SafeJSContext,
+        &GlobalScope,
+        Option<HandleObject>,
+        Rc<Self>,
         CanGc,
     ) -> Root<Dom<Self>> = {bindingModule}::Wrap::<crate::DomTypeHolder>;
 }}
@@ -6811,7 +6831,7 @@ def finalizeHook(descriptor: Descriptor, hookName: str, context: str) -> str:
     if descriptor.isGlobal():
         release = "finalize_global(obj, this);"
     elif descriptor.weakReferenceable:
-        release = "finalize_weak_referenceable(obj, this);"
+        release = "finalize_weak_referenceable(this);"
     else:
         release = "finalize_common(this);"
     return release
@@ -8022,7 +8042,10 @@ class CGConcreteBindingRoot(CGThing):
             if d.interface.isIteratorInterface():
                 cgthings.append(CGDomObjectIteratorWrap(d))
             elif d.concrete and not d.isGlobal():
-                cgthings.append(CGDomObjectWrap(d))
+                if d.weakReferenceable:
+                    cgthings.append(CGWeakReferenceableDomObjectWrap(d))
+                else:
+                    cgthings.append(CGDomObjectWrap(d))
 
             if d.weakReferenceable:
                 cgthings.append(CGWeakReferenceableTrait(d))

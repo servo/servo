@@ -5,6 +5,7 @@
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr::{self, NonNull};
+use std::rc::Rc;
 
 use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
@@ -34,7 +35,9 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{
+    DomGlobal, DomObject, reflect_weak_referenceable_dom_object_with_proto,
+};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString, is_token};
 use crate::dom::blob::Blob;
@@ -135,8 +138,8 @@ impl WebSocket {
         sender: IpcSender<WebSocketDomAction>,
         can_gc: CanGc,
     ) -> DomRoot<WebSocket> {
-        let websocket = reflect_dom_object_with_proto(
-            Box::new(WebSocket::new_inherited(url, sender)),
+        let websocket = reflect_weak_referenceable_dom_object_with_proto(
+            Rc::new(WebSocket::new_inherited(url, sender)),
             global,
             proto,
             can_gc,

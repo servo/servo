@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use dom_struct::dom_struct;
@@ -85,8 +86,8 @@ impl HTMLVideoElement {
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<HTMLVideoElement> {
-        Node::reflect_node_with_proto(
-            Box::new(HTMLVideoElement::new_inherited(
+        Node::reflect_weak_referenceable_node_with_proto(
+            Rc::new(HTMLVideoElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,

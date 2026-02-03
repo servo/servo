@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 use std::mem;
+use std::rc::Rc;
 use std::str::{Chars, FromStr};
 use std::time::Duration;
 
@@ -27,7 +28,9 @@ use crate::dom::bindings::codegen::Bindings::EventSourceBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{
+    DomGlobal, reflect_weak_referenceable_dom_object_with_proto,
+};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{GlobalCspReporting, Violation};
@@ -505,8 +508,8 @@ impl EventSource {
         with_credentials: bool,
         can_gc: CanGc,
     ) -> DomRoot<EventSource> {
-        reflect_dom_object_with_proto(
-            Box::new(EventSource::new_inherited(url, with_credentials)),
+        reflect_weak_referenceable_dom_object_with_proto(
+            Rc::new(EventSource::new_inherited(url, with_credentials)),
             global,
             proto,
             can_gc,

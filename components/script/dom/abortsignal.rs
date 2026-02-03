@@ -22,7 +22,9 @@ use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
 use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{
+    DomGlobal, reflect_weak_referenceable_dom_object_with_proto,
+};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
@@ -107,8 +109,8 @@ impl AbortSignal {
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<AbortSignal> {
-        reflect_dom_object_with_proto(
-            Box::new(AbortSignal::new_inherited()),
+        reflect_weak_referenceable_dom_object_with_proto(
+            Rc::new(AbortSignal::new_inherited()),
             global,
             proto,
             can_gc,

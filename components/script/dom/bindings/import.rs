@@ -4,6 +4,7 @@
 
 pub(crate) mod base {
     pub(crate) use std::ptr;
+    pub(crate) use std::rc::Rc;
 
     #[expect(unused_imports)]
     pub(crate) use js::context::JSContext;
@@ -22,7 +23,7 @@ pub(crate) mod module {
     pub(crate) use super::base::*;
     pub(crate) use crate::dom::bindings::iterable::IterableIterator;
     pub(crate) use crate::dom::bindings::reflector::{
-        DomObjectIteratorWrap, DomObjectWrap, Reflector,
+        DomObjectIteratorWrap, DomObjectWrap, Reflector, WeakReferenceableDomObjectWrap,
     };
     pub(crate) use crate::dom::bindings::root::{Dom, Root};
     pub(crate) use crate::dom::bindings::weakref::WeakReferenceable;

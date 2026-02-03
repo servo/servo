@@ -53,7 +53,9 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{
+    DomGlobal, Reflector, reflect_weak_referenceable_dom_object,
+};
 use crate::dom::bindings::root::{DomOnceCell, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -318,7 +320,11 @@ impl WebGLRenderingContext {
             size,
             attrs,
         ) {
-            Ok(ctx) => Some(reflect_dom_object(Box::new(ctx), window, can_gc)),
+            Ok(ctx) => Some(reflect_weak_referenceable_dom_object(
+                Rc::new(ctx),
+                window,
+                can_gc,
+            )),
             Err(msg) => {
                 error!("Couldn't create WebGLRenderingContext: {}", msg);
                 let event = WebGLContextEvent::new(

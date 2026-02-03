@@ -112,8 +112,8 @@ impl HTMLCanvasElement {
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<HTMLCanvasElement> {
-        Node::reflect_node_with_proto(
-            Box::new(HTMLCanvasElement::new_inherited(
+        Node::reflect_weak_referenceable_node_with_proto(
+            Rc::new(HTMLCanvasElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,

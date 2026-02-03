@@ -22,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::MessagePortBinding::{
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorResult, ErrorToJsval, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_weak_referenceable_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone::{self, StructuredData};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -56,7 +56,11 @@ impl MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#create-a-new-messageport-object>
     pub(crate) fn new(owner: &GlobalScope, can_gc: CanGc) -> DomRoot<MessagePort> {
         let port_id = MessagePortId::new();
-        reflect_dom_object(Box::new(MessagePort::new_inherited(port_id)), owner, can_gc)
+        reflect_weak_referenceable_dom_object(
+            Rc::new(MessagePort::new_inherited(port_id)),
+            owner,
+            can_gc,
+        )
     }
 
     /// Create a new port for an incoming transfer-received one.
@@ -66,8 +70,8 @@ impl MessagePort {
         entangled_port: Option<MessagePortId>,
         can_gc: CanGc,
     ) -> DomRoot<MessagePort> {
-        reflect_dom_object(
-            Box::new(MessagePort {
+        reflect_weak_referenceable_dom_object(
+            Rc::new(MessagePort {
                 message_port_id: transferred_port,
                 eventtarget: EventTarget::new_inherited(),
                 detached: Cell::new(false),
