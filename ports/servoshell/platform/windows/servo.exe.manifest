@@ -4,7 +4,7 @@
           xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
   <assemblyIdentity type="win32"
                     name="servo.Servo"
-                    version="0.0.4.0"/>
+                    version="0.0.5.0"/>
 
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>
