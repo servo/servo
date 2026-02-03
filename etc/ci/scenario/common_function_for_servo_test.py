@@ -12,6 +12,7 @@
 from enum import Enum
 import enum
 import os
+import random
 import shutil
 import pathlib
 import subprocess
@@ -19,7 +20,6 @@ import sys
 import time
 from decimal import Decimal
 
-import psutil
 
 from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode
 from selenium import webdriver
@@ -29,7 +29,7 @@ from PIL import Image
 from selenium.webdriver.remote.webelement import WebElement
 
 WEBDRIVER_PORT = 7000
-MITMPROXY_PORT = "7153"
+MITMPROXY_PORT = str(random.randrange(7150, 9000))
 SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
 ABOUT_BLANK = "about:blank"
 MITMPROXY_VERSION = "12.2.1"
@@ -58,15 +58,11 @@ class MitmProxy:
 
     def __enter__(self):
         # for record the external recorder will record
+        # make sure mitmproxy is installed
         if self.use_proxy == MitmProxyRunType.REPLAY:
             print("Running mitmproxy for replay")
             self.mitmproxy = subprocess.Popen(
                 [
-                    "uv",
-                    "tool",
-                    "run",
-                    "--from",
-                    f"mitmproxy@{MITMPROXY_VERSION}",
                     "mitmdump",
                     "-p",
                     self.port,
@@ -82,11 +78,6 @@ class MitmProxy:
             print("Running mitmproxy in forwarding mode")
             self.mitmproxy = subprocess.Popen(
                 [
-                    "uv",
-                    "tool",
-                    "run",
-                    "--from",
-                    f"mitmproxy@{MITMPROXY_VERSION}",
                     "mitmdump",
                     "-w",
                     self.dump_file,
@@ -103,10 +94,6 @@ class MitmProxy:
         if self.mitmproxy:
             print("Killing mitmproxy")
             self.mitmproxy.kill()
-            for proc in psutil.process_iter():
-                if "mitmdump" == proc.name():
-                    proc.kill()
-                    break
             time.sleep(2)
 
 

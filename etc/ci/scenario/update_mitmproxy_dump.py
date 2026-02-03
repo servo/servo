@@ -50,11 +50,6 @@ if __name__ == "__main__":
 
     mitmproxy = subprocess.Popen(
         [
-            "uv",
-            "tool",
-            "run",
-            "--from",
-            "mitmproxy",
             "mitmdump",
             "-w",
             args.dump_file,

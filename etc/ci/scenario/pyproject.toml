@@ -6,7 +6,6 @@ dependencies = [
     "selenium",
     "hdc-py>=0.1.2",
     "pillow",
-    "psutil>=7.2.1",
 ]
 license = "Apache-2.0 OR MIT"
 
