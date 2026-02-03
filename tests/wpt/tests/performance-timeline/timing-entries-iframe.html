@@ -13,7 +13,6 @@
           let resources = performance.getEntriesByType("resource");
           let has_resource = false;
           for ({ initiatorType, name } of resources) {
-            console.log("Name resource: ", name);
             if (initiatorType == "iframe") {
               has_resource = true;
             }

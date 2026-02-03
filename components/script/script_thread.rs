@@ -3733,7 +3733,7 @@ impl ScriptThread {
                 && let Some(frame_element) = window_proxy.frame_element()// retrieval of the frame element if present
                 && let Some(frame_element) = frame_element.downcast::<HTMLIFrameElement>()
             {
-                let iframe_ctx = IframeContext::new(&frame_element);
+                let iframe_ctx = IframeContext::new(frame_element);
 
                 // submit_timing will only accept timing that is of type ResourceTimingType::Resource
                 let mut resource_timing = timing.clone();
