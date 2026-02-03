@@ -8,7 +8,6 @@ use std::time::{Duration, Instant};
 
 use base::generic_channel;
 use base::id::BrowsingContextId;
-use crossbeam_channel::Select;
 use embedder_traits::{
     InputEvent, KeyboardEvent, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, TouchEvent,
     TouchEventType, TouchId, WebDriverCommandMsg, WebDriverScriptCommand, WebViewPoint, WheelDelta,
@@ -229,20 +228,11 @@ impl Handler {
     }
 
     fn wait_for_user_agent_handling_complete(&self) -> Result<(), ErrorStatus> {
-        let mut pending_event_receivers =
+        let pending_receivers =
             std::mem::take(&mut *self.pending_input_event_receivers.borrow_mut());
 
-        while !pending_event_receivers.is_empty() {
-            let mut select = Select::new();
-            for receiver in &pending_event_receivers {
-                select.recv(receiver);
-            }
-
-            let operation = select.select();
-            let index = operation.index();
-            let _ = operation.recv(&pending_event_receivers[index]);
-
-            pending_event_receivers.remove(index);
+        for receiver in pending_receivers {
+            let _ = receiver.recv();
         }
 
         Ok(())
