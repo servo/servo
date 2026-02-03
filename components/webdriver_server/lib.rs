@@ -183,9 +183,6 @@ struct Handler {
     /// TODO: Once we upgrade crossbeam-channel this can be replaced with a `WaitGroup`.
     pending_input_event_receivers: RefCell<Vec<Receiver<()>>>,
 
-    /// Number of pending actions of which WebDriver is waiting for responses.
-    num_pending_actions: Cell<u32>,
-
     /// Moves that are currently in-progress and need to be ticked.
     pending_pointer_moves: Vec<PendingPointerMove>,
 
@@ -472,7 +469,6 @@ impl Handler {
             default_preferences,
             pending_input_event_receivers: Default::default(),
             pending_pointer_moves: Default::default(),
-            num_pending_actions: Cell::new(0),
         }
     }
 
