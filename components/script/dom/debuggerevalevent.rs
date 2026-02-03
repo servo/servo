@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use script_bindings::reflector::DomObject;
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::DebuggerEvalEventMethods;
@@ -45,6 +44,7 @@ impl DebuggerEvalEvent {
 }
 
 impl DebuggerEvalEventMethods<crate::DomTypeHolder> for DebuggerEvalEvent {
+    // check-tidy: no specs after this line
     fn Code(&self) -> DOMString {
         self.code.clone()
     }
