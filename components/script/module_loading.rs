@@ -12,7 +12,6 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::rc::Rc;
 
-use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::jsapi::{HandleValue as RawHandleValue, IsCyclicModule, JSObject, ModuleType};
 use js::jsval::{ObjectValue, UndefinedValue};
@@ -34,7 +33,7 @@ use crate::dom::bindings::settings_stack::AutoIncumbentScript;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_module::{
     ModuleHandler, ModuleObject, ModuleOwner, ModuleTree, RethrowError, ScriptFetchOptions,
     fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
@@ -83,7 +82,7 @@ pub(crate) struct GraphLoadingState {
 
 /// <https://tc39.es/ecma262/#sec-LoadRequestedModules>
 pub(crate) fn load_requested_modules(
-    cx: &mut JSContext,
+    cx: &mut CurrentRealm,
     module: Rc<ModuleTree>,
     load_state: Option<Rc<LoadState>>,
 ) -> Rc<Promise> {
@@ -113,10 +112,11 @@ pub(crate) fn load_requested_modules(
 }
 
 /// <https://tc39.es/ecma262/#sec-InnerModuleLoading>
-fn inner_module_loading(cx: &mut JSContext, state: &Rc<GraphLoadingState>, module: Rc<ModuleTree>) {
-    let realm = CurrentRealm::assert(cx);
-    let global = GlobalScope::from_current_realm(&realm);
-
+fn inner_module_loading(
+    cx: &mut CurrentRealm,
+    state: &Rc<GraphLoadingState>,
+    module: Rc<ModuleTree>,
+) {
     // Step 1. Assert: state.[[IsLoading]] is true.
     assert!(state.is_loading.get());
 
@@ -166,6 +166,9 @@ fn inner_module_loading(cx: &mut JSContext, state: &Rc<GraphLoadingState>, modul
                 let specifier =
                     unsafe { jsstr_to_string(cx.raw_cx(), std::ptr::NonNull::new(jsstr).unwrap()) };
                 let module_type = unsafe { GetRequestedModuleType(cx, module_handle, index) };
+
+                let realm = CurrentRealm::assert(cx);
+                let global = GlobalScope::from_current_realm(&realm);
 
                 // ii. Else if module.[[LoadedModules]] contains a LoadedModuleRequest Record record
                 // such that ModuleRequestsEqual(record, request) is true, then
@@ -226,7 +229,7 @@ fn inner_module_loading(cx: &mut JSContext, state: &Rc<GraphLoadingState>, modul
 
 /// <https://tc39.es/ecma262/#sec-ContinueModuleLoading>
 fn continue_module_loading(
-    cx: &mut JSContext,
+    cx: &mut CurrentRealm,
     state: &Rc<GraphLoadingState>,
     module_completion: Result<Rc<ModuleTree>, RethrowError>,
 ) {
@@ -257,7 +260,7 @@ fn continue_module_loading(
 
 /// <https://tc39.es/ecma262/#sec-FinishLoadingImportedModule>
 fn finish_loading_imported_module(
-    cx: &mut JSContext,
+    cx: &mut CurrentRealm,
     referrer_module: Option<Rc<ModuleTree>>,
     module_request_specifier: String,
     payload: Payload,
@@ -288,7 +291,7 @@ fn finish_loading_imported_module(
 
 /// <https://tc39.es/ecma262/#sec-ContinueDynamicImport>
 fn continue_dynamic_import(
-    cx: &mut JSContext,
+    cx: &mut CurrentRealm,
     promise: Rc<Promise>,
     module_completion: Result<Rc<ModuleTree>, RethrowError>,
 ) {
@@ -311,10 +314,6 @@ fn continue_dynamic_import(
     // Step 3. Let loadPromise be module.LoadRequestedModules().
     let load_promise = load_requested_modules(cx, module, None);
 
-    let realm = enter_realm(&*global);
-    let comp = InRealm::Entered(&realm);
-    let _ais = AutoIncumbentScript::new(&global);
-
     // Step 4. Let rejectedClosure be a new Abstract Closure with parameters (reason)
     // that captures promiseCapability and performs the following steps when called:
     // Step 5. Let onRejected be CreateBuiltinFunction(rejectedClosure, 1, "", « »).
@@ -333,6 +332,7 @@ fn continue_dynamic_import(
                 cx,
                 std::ptr::NonNull::new(global_scope.reflector().get_jsobject().get()).unwrap(),
             );
+            let in_realm_proof = (&mut realm.current_realm()).into();
             let cx = &mut *realm;
             // a. Let link be Completion(module.Link()).
             let link = unsafe { ModuleLink(cx, record.handle()) };
@@ -387,13 +387,16 @@ fn continue_dynamic_import(
                 })),
                 CanGc::note(),
             );
-            let realm = enter_realm(&*global_scope);
-            let comp = InRealm::Entered(&realm);
-            evaluate_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+            let in_realm = InRealm::Already(&in_realm_proof);
+            evaluate_promise.append_native_handler(&handler, in_realm, CanGc::from_cx(cx));
 
             // g. Return unused.
         }),
     ));
+
+    let mut realm = enter_auto_realm(cx, &*global);
+    let mut realm = realm.current_realm();
+    let _ais = AutoIncumbentScript::new(&global);
 
     // Step 8. Perform PerformPromiseThen(loadPromise, linkAndEvaluate, onRejected).
     let handler = PromiseNativeHandler::new(
@@ -402,16 +405,18 @@ fn continue_dynamic_import(
         Some(Box::new(OnRejectedHandler {
             promise: promise.clone(),
         })),
-        CanGc::from_cx(cx),
+        CanGc::from_cx(&mut realm),
     );
-    load_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+    let in_realm_proof = (&mut realm).into();
+    let in_realm = InRealm::Already(&in_realm_proof);
+    load_promise.append_native_handler(&handler, in_realm, CanGc::from_cx(&mut realm));
 
     // Step 9. Return unused.
 }
 
 /// <https://html.spec.whatwg.org/multipage/#hostloadimportedmodule>
 pub(crate) fn host_load_imported_module(
-    cx: &mut JSContext,
+    cx: &mut CurrentRealm,
     referrer_module: Option<Rc<ModuleTree>>,
     referrer: RawHandleValue,
     specifier: String,
@@ -506,9 +511,11 @@ pub(crate) fn host_load_imported_module(
         ),
     };
 
-    let mut cx = unsafe { JSContext::from_ptr(std::ptr::NonNull::new(cx.raw_cx()).unwrap()) };
     let on_single_fetch_complete = move |module_tree: Option<Rc<ModuleTree>>| {
-        let cx = &mut cx;
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let mut realm = CurrentRealm::assert(&mut cx);
+        let cx = &mut realm;
+
         // Step 1. Let completion be null.
         let completion = match module_tree {
             // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).

@@ -907,16 +907,17 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
 ) -> bool {
     // Safety: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
-    let promise =
-        Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, (&mut cx).into());
+    let cx = &mut cx;
+    let promise = Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx.into());
 
-    let jsstr = unsafe { GetModuleRequestSpecifier(&cx, Handle::from_raw(specifier)) };
-    let module_type = unsafe { GetModuleRequestType(&cx, Handle::from_raw(specifier)) };
+    let jsstr = unsafe { GetModuleRequestSpecifier(cx, Handle::from_raw(specifier)) };
+    let module_type = unsafe { GetModuleRequestType(cx, Handle::from_raw(specifier)) };
     let specifier = unsafe { jsstr_to_string(cx.raw_cx(), NonNull::new(jsstr).unwrap()) };
 
+    let mut realm = CurrentRealm::assert(cx);
     let payload = Payload::PromiseRecord(promise.clone());
     host_load_imported_module(
-        &mut cx,
+        &mut realm,
         None,
         reference_private,
         specifier,
@@ -990,20 +991,22 @@ unsafe extern "C" fn HostResolveImportedModule(
 ) -> *mut JSObject {
     // Safety: it is safe to construct a JSContext from engine hook.
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
-    let realm = CurrentRealm::assert(&mut cx);
+    let mut realm = CurrentRealm::assert(&mut cx);
     let global_scope = GlobalScope::from_current_realm(&realm);
+
+    let cx = &mut realm;
 
     // Step 5.
     let module_data = unsafe { module_script_from_reference_private(&reference_private) };
-    let jsstr = unsafe { GetModuleRequestSpecifier(&cx, Handle::from_raw(specifier)) };
-    let module_type = unsafe { GetModuleRequestType(&cx, Handle::from_raw(specifier)) };
+    let jsstr = unsafe { GetModuleRequestSpecifier(cx, Handle::from_raw(specifier)) };
+    let module_type = unsafe { GetModuleRequestType(cx, Handle::from_raw(specifier)) };
 
     let specifier = unsafe { jsstr_to_string(cx.raw_cx(), NonNull::new(jsstr).unwrap()) };
     let url = ModuleTree::resolve_module_specifier(
         &global_scope,
         module_data,
         DOMString::from(specifier),
-        CanGc::note(),
+        CanGc::from_cx(cx),
     );
 
     // Step 6.
@@ -1142,7 +1145,8 @@ fn fetch_the_descendants_and_link_module_script(
     owner: ModuleOwner,
 ) {
     let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-    let cx = &mut cx;
+    let mut realm = CurrentRealm::assert(&mut cx);
+    let cx = &mut realm;
 
     let global = owner.global();
 
