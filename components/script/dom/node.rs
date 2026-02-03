@@ -9,6 +9,7 @@ use std::cell::{Cell, LazyCell, UnsafeCell};
 use std::default::Default;
 use std::f64::consts::PI;
 use std::marker::PhantomData;
+use std::rc::Rc;
 use std::slice::from_ref;
 use std::{cmp, fmt, iter};
 
@@ -37,6 +38,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
 use script_bindings::codegen::InheritTypes::DocumentFragmentTypeId;
+use script_bindings::reflector::WeakReferenceableDomObjectWrap;
 use script_traits::DocumentActivity;
 use servo_arc::Arc as ServoArc;
 use servo_config::pref;
@@ -83,7 +85,7 @@ use crate::dom::bindings::inheritance::{
     Castable, CharacterDataTypeId, ElementTypeId, EventTargetTypeId, HTMLElementTypeId, NodeTypeId,
     SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId,
 };
-use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto, reflect_weak_referenceable_dom_object_with_proto};
 use crate::dom::bindings::root::{
     Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout, UnrootedDom,
 };
@@ -2430,6 +2432,19 @@ impl Node {
     {
         let window = document.window();
         reflect_dom_object_with_proto(node, window, proto, can_gc)
+    }
+
+    pub(crate) fn reflect_weak_referenceable_node_with_proto<N>(
+        node: Rc<N>,
+        document: &Document,
+        proto: Option<HandleObject>,
+        can_gc: CanGc,
+    ) -> DomRoot<N>
+    where
+        N: DerivedFrom<Node> + DomObject + WeakReferenceableDomObjectWrap<crate::DomTypeHolder>,
+    {
+        let window = document.window();
+        reflect_weak_referenceable_dom_object_with_proto(node, window, proto, can_gc)
     }
 
     pub(crate) fn new_inherited(doc: &Document) -> Node {
