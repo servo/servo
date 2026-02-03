@@ -45,26 +45,61 @@ pub(crate) struct DevtoolsConsoleMessage {
     // source_id
 }
 
-impl From<ConsoleMessage> for DevtoolsConsoleMessage {
-    fn from(console_message: ConsoleMessage) -> Self {
+impl DevtoolsConsoleMessage {
+    pub(crate) fn new(message: ConsoleMessage, registry: &ActorRegistry) -> Self {
         Self {
-            fields: console_message.fields,
-            arguments: console_message
+            fields: message.fields,
+            arguments: message
                 .arguments
                 .into_iter()
-                .map(console_argument_to_value)
+                .map(|argument| console_argument_to_value(argument, registry))
                 .collect(),
-            stacktrace: console_message.stacktrace,
+            stacktrace: message.stacktrace,
         }
     }
 }
 
-fn console_argument_to_value(argument: ConsoleArgument) -> Value {
+fn console_argument_to_value(argument: ConsoleArgument, registry: &ActorRegistry) -> Value {
     match argument {
         ConsoleArgument::String(value) => Value::String(value),
         ConsoleArgument::Integer(value) => Value::Number(value.into()),
         ConsoleArgument::Number(value) => {
             Number::from_f64(value).map(Value::from).unwrap_or_default()
+        },
+        ConsoleArgument::Object(object) => {
+            // Create a new actor for the object.
+            // These are currently never cleaned up, and we make no attempt at re-using the same actor
+            // if the same object is logged repeatedly.
+            let actor = ObjectActor::register(registry, None);
+
+            let own_properties: serde_json::Map<String, Value> = object
+                .own_properties
+                .iter()
+                .map(|property| {
+                    let property_descriptor = serde_json::json!({
+                        "configurable": property.configurable,
+                        "enumerable": property.enumerable,
+                        "writable": property.writable,
+                        "value": console_argument_to_value(property.value.clone(), registry),
+                    });
+                    (property.key.clone(), property_descriptor)
+                })
+                .collect();
+            serde_json::json!({
+              "type": "object",
+              "actor": actor,
+              "class": object.class,
+              "ownPropertyLength": object.own_properties.len(),
+              "extensible": true,
+              "frozen": false,
+              "sealed": false,
+              "isError": false,
+              "preview": {
+                "kind": "Object",
+                "ownProperties": own_properties,
+                "ownPropertiesLength": object.own_properties.len()
+              }
+            })
         },
     }
 }
