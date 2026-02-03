@@ -24,7 +24,7 @@ pub(crate) struct UserActivation {
 }
 
 impl UserActivation {
-    pub(crate) fn new_inherited() -> UserActivation {
+    fn new_inherited() -> UserActivation {
         UserActivation {
             reflector_: Reflector::new(),
         }
@@ -50,7 +50,7 @@ impl UserActivation {
 
         // Step 3.
         // > Extend windows with the active window of each of document's ancestor navigables.
-        // TODO: this would not work for disimilar origin ancestor, since we doesn't store the document in this script thread.
+        // TODO: this would not work for disimilar origin ancestor, since we don't store the document in this script thread.
         for document in SameoriginAncestorNavigablesIterator::new(DomRoot::from_ref(document)) {
             windows.push(Dom::from_ref(document.window()));
         }

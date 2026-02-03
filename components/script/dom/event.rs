@@ -294,8 +294,8 @@ impl Event {
         // > When a user interaction causes firing of an activation triggering input event in a Document document, the user agent
         // > must perform the following activation notification steps before dispatching the event:
         // <https://html.spec.whatwg.org/multipage/#user-activation-processing-model>
-        if self.is_trusted.get() && self.is_an_activation_triggering_input_event() {
-            // TODO: it is not quite clear what does the spec mean by in a `Document`.
+        if self.is_an_activation_triggering_input_event() {
+            // TODO: it is not quite clear what does the spec mean by in a `Document`. https://github.com/whatwg/html/issues/12126
             if let Some(document) = target.downcast::<Node>().map(|node| node.owner_doc()) {
                 UserActivation::handle_user_activation_notification(&document);
             }
@@ -702,7 +702,12 @@ impl Event {
 
     /// <https://html.spec.whatwg.org/multipage/#activation-triggering-input-event>
     fn is_an_activation_triggering_input_event(&self) -> bool {
-        // > An activation triggering input event is any event whose isTrusted attribute is true and whose type is one of:
+        // > An activation triggering input event is any event whose isTrusted attribute is true ..
+        if !self.is_trusted.get() {
+            return false;
+        }
+
+        // > and whose type is one of:
         let event_type = self.Type();
         match_domstring_ascii!(event_type,
             // > - "keydown", provided the key is neither the Esc key nor a shortcut key reserved by the user agent;
