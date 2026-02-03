@@ -30,7 +30,7 @@ use crate::prefs::ServoShellPreferences;
 use crate::running_app_state::RunningAppState;
 #[cfg(feature = "gamepad")]
 use crate::running_app_state::ServoshellGamepadDelegate;
-use crate::window::{PlatformWindow, ServoShellWindowId};
+use crate::window::{PlatformWindow, ServoShellWindowId, TopLevelWebViewCreationType};
 
 pub(crate) enum AppState {
     Initializing,
@@ -132,7 +132,11 @@ impl App {
             #[cfg(feature = "gamepad")]
             ServoshellGamepadDelegate::maybe_new().map(Rc::new),
         ));
-        running_state.open_window(platform_window, self.initial_url.as_url().clone());
+        let initial_url = self.initial_url.as_url().clone();
+        running_state.open_window(
+            platform_window,
+            TopLevelWebViewCreationType::WithUrl(initial_url),
+        );
 
         self.state = AppState::Running(running_state);
     }

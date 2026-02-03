@@ -14,7 +14,7 @@ use servo::{
 use url::Url;
 
 use crate::running_app_state::RunningAppState;
-use crate::window::PlatformWindow;
+use crate::window::{PlatformWindow, TopLevelWebViewCreationType};
 
 #[derive(Default)]
 pub(crate) struct WebDriverEmbedderControls {
@@ -162,7 +162,10 @@ impl RunningAppState {
                             NewWindowTypeHint::Window | NewWindowTypeHint::Auto,
                             Some(create_platform_window),
                         ) => {
-                            let window = self.open_window(create_platform_window(url.clone()), url);
+                            let window = self.open_window(
+                                create_platform_window(url.clone()),
+                                TopLevelWebViewCreationType::WithUrl(url),
+                            );
                             window
                                 .active_webview()
                                 .expect("Should have at last one WebView in new window")
@@ -172,7 +175,10 @@ impl RunningAppState {
                             .values()
                             .nth(0)
                             .expect("Expected at least one window to be open")
-                            .create_toplevel_webview(self.clone(), url),
+                            .create_toplevel_webview(
+                                self.clone(),
+                                TopLevelWebViewCreationType::WithUrl(url),
+                            ),
                     };
 
                     if let Err(error) = response_sender.send(new_webview.id()) {
