@@ -5,6 +5,7 @@
 use base::generic_channel;
 use base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
+use itertools::Itertools;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::gc::MutableHandleValue;
@@ -692,7 +693,19 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     fn IndexNames(&self) -> DomRoot<DOMStringList> {
         DOMStringList::new(
             &self.global(),
-            self.index_names.borrow().clone(),
+            self.index_names
+                .borrow()
+                .clone()
+                .iter()
+                .map(|dom_string| dom_string.str().encode_utf16().collect())
+                .sorted()
+                .map(|utf16_str: Vec<u16>| {
+                    DOMString::from_string(
+                        String::from_utf16(utf16_str.as_slice())
+                            .expect("can't convert object store name from utf16 back to utf8"),
+                    )
+                })
+                .collect(),
             CanGc::note(),
         )
     }
@@ -719,20 +732,24 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         if self.transaction.Mode() != IDBTransactionMode::Versionchange {
             return Err(Error::InvalidState(None));
         }
+
         // TODO: Step 4. If store has been deleted, throw an "InvalidStateError" DOMException.
         // Step 5. If transaction is not active, throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
+
         // Step 6. If an index named name already exists in store, throw a "ConstraintError" DOMException.
         if self.index_names.borrow().contains(&name) {
             return Err(Error::Constraint(None));
         }
+
         // TODO: Step 7. If keyPath is not a valid key path, throw a "SyntaxError" DOMException.
-        // TODO: Step 8. Let unique be set if options’s unique member is true, and unset otherwise.
-        // TODO: Step 9. Let multiEntry be set if options’s multiEntry member is true, and unset otherwise.
+        // Step 8. Let unique be set if options’s unique member is true, and unset otherwise.
+        // Step 9. Let multiEntry be set if options’s multiEntry member is true, and unset otherwise.
         // Step 10. If keyPath is a sequence and multiEntry is set, throw an "InvalidAccessError" DOMException.
         if matches!(key_path, KeyPath::StringSequence(_)) && options.multiEntry {
             return Err(Error::InvalidAccess(None));
         }
+
         // Step 11. Let index be a new index in store.
         // Set index’s name to name and key path to keyPath. If unique is set, set index’s unique flag.
         // If multiEntry is set, set index’s multiEntry flag.
@@ -758,8 +775,10 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         if result.is_err() {
             return Err(Error::Operation(None));
         }
+
         // Step 12. Add index to this object store handle's index set.
         self.index_names.borrow_mut().push(name.clone());
+
         // Step 13. Return a new index handle associated with index and this object store handle.
         Ok(IDBIndex::new(
             &self.global(),
@@ -788,7 +807,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 7. Remove index from this object store handle's index set.
         self.index_names.borrow_mut().retain(|n| n != &name);
         // Step 8. Destroy index.
-        let (sender, receiver) = generic_channel::channel().unwrap();
+        let (sender, _) = generic_channel::channel().unwrap();
         let delete_index_operation = SyncOperation::DeleteIndex(
             sender,
             self.global().origin().immutable().clone(),
@@ -799,10 +818,6 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.get_idb_thread()
             .send(IndexedDBThreadMsg::Sync(delete_index_operation))
             .unwrap();
-        let result = receiver.recv().unwrap();
-        if result.is_err() {
-            return Err(Error::Operation(None));
-        }
         Ok(())
     }
 }
