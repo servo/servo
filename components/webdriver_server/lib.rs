@@ -14,7 +14,7 @@ mod timeout;
 mod user_prompt;
 
 use std::borrow::ToOwned;
-use std::cell::{Cell, LazyCell, RefCell};
+use std::cell::{LazyCell, RefCell};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Cursor;
 use std::net::{SocketAddr, SocketAddrV4};
