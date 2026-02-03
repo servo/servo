@@ -245,8 +245,6 @@ impl Handler {
             pending_event_receivers.remove(index);
         }
 
-        self.num_pending_actions.set(0);
-
         Ok(())
     }
 
