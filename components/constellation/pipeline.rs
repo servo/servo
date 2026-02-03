@@ -217,7 +217,7 @@ impl Pipeline {
         }
     }
 
-    /// Set whether or not this Pipeline has an active document.
+    /// Set whether or not this [`Pipeline`] has an active document.
     pub(crate) fn set_has_active_document(&mut self, has_active_document: bool) {
         if self.has_active_document == has_active_document {
             return;
@@ -231,10 +231,10 @@ impl Pipeline {
         }
     }
 
-    /// Set whether this Pipeline is throttled or unthrottled. If the Pipeline
+    /// Set whether this [`Pipeline`] is throttled or unthrottled. If the Pipeline
     /// does not have an active Document, it will not be unthrottled until it does.
     pub(crate) fn send_throttle_messages(&self, throttled: bool) {
-        // Never unthrottled Pipelines that do not have an active Document.
+        // Never unthrottle Pipelines that do not have an active Document.
         let throttled = !self.has_active_document || throttled;
 
         if let Err(error) = self

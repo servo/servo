@@ -9,10 +9,11 @@ use std::sync::atomic::AtomicU64;
 use euclid::Scale;
 use log::warn;
 use servo::{
-    AuthenticationRequest, BluetoothDeviceSelectionRequest, ConsoleLogLevel, Cursor,
-    DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntPoint, DeviceIntSize, DevicePixel,
-    EmbedderControl, EmbedderControlId, InputEventId, InputEventResult, MediaSessionEvent,
-    PermissionRequest, RenderingContext, ScreenGeometry, WebView, WebViewBuilder, WebViewId,
+    AuthenticationRequest, BluetoothDeviceSelectionRequest, ConsoleLogLevel,
+    CreateNewWebViewRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel,
+    DeviceIntPoint, DeviceIntSize, DevicePixel, EmbedderControl, EmbedderControlId, InputEventId,
+    InputEventResult, MediaSessionEvent, PermissionRequest, RenderingContext, ScreenGeometry,
+    WebView, WebViewBuilder, WebViewId,
 };
 use url::Url;
 
@@ -67,6 +68,11 @@ pub(crate) struct ServoShellWindow {
     pending_commands: RefCell<Vec<UserInterfaceCommand>>,
 }
 
+pub(crate) enum TopLevelWebViewCreationRequest {
+    WithUrl(Url),
+    WithCreateRequest(CreateNewWebViewRequest),
+}
+
 impl ServoShellWindow {
     pub(crate) fn new(platform_window: Rc<dyn PlatformWindow>) -> Self {
         Self {
@@ -88,27 +94,33 @@ impl ServoShellWindow {
     pub(crate) fn create_and_activate_toplevel_webview(
         self: &Rc<Self>,
         state: Rc<RunningAppState>,
-        url: Url,
+        creation_type: TopLevelWebViewCreationRequest,
     ) -> WebView {
-        let webview = self.create_toplevel_webview(state, url);
+        let webview = self.create_toplevel_webview(state, creation_type);
         self.activate_webview(webview.id());
         webview
     }
 
     /// Must be called *after* `self` is in `state.windows`, otherwise it will panic.
-    #[servo::servo_tracing::instrument(skip(self, state))]
+    #[servo::servo_tracing::instrument(skip(self, state, creation_type))]
     pub(crate) fn create_toplevel_webview(
-        self: &Rc<Self>,
+        &self,
         state: Rc<RunningAppState>,
-        url: Url,
+        creation_type: TopLevelWebViewCreationRequest,
     ) -> WebView {
-        #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(unused_mut))]
-        let mut webview_builder =
-            WebViewBuilder::new(state.servo(), self.platform_window.rendering_context())
-                .url(url)
-                .hidpi_scale_factor(self.platform_window.hidpi_scale_factor())
-                .user_content_manager(state.user_content_manager.clone())
-                .delegate(state.clone());
+        let mut webview_builder = match creation_type {
+            TopLevelWebViewCreationRequest::WithUrl(url) => {
+                WebViewBuilder::new(state.servo(), self.platform_window.rendering_context())
+                    .url(url)
+            },
+            TopLevelWebViewCreationRequest::WithCreateRequest(request) => {
+                request.builder(self.platform_window.rendering_context())
+            },
+        };
+        webview_builder = webview_builder
+            .hidpi_scale_factor(self.platform_window.hidpi_scale_factor())
+            .user_content_manager(state.user_content_manager.clone())
+            .delegate(state.clone());
 
         #[cfg(all(
             feature = "gamepad",
@@ -356,18 +368,27 @@ impl ServoShellWindow {
                 UserInterfaceCommand::NewWebView => {
                     self.set_needs_update();
                     let url = Url::parse("servo:newtab").expect("Should always be able to parse");
-                    self.create_and_activate_toplevel_webview(state.clone(), url);
+                    self.create_and_activate_toplevel_webview(
+                        state.clone(),
+                        TopLevelWebViewCreationRequest::WithUrl(url),
+                    );
                 },
                 UserInterfaceCommand::CloseWebView(id) => {
                     self.set_needs_update();
                     self.close_webview(id);
                 },
-                UserInterfaceCommand::NewWindow => {
-                    if let Some(create_platform_window) = create_platform_window {
-                        let url = Url::parse("servo:newtab").unwrap();
-                        let platform_window = create_platform_window(url.clone());
-                        state.open_window(platform_window, url);
-                    }
+                UserInterfaceCommand::NewWindow(creation_request) => {
+                    let Some(create_platform_window) = create_platform_window else {
+                        continue;
+                    };
+                    let url = match &creation_request {
+                        TopLevelWebViewCreationRequest::WithUrl(url) => url.clone(),
+                        TopLevelWebViewCreationRequest::WithCreateRequest(..) => {
+                            Url::parse("servo:newtab").unwrap()
+                        },
+                    };
+                    let platform_window = create_platform_window(url);
+                    state.open_window(platform_window, creation_request);
                 },
             }
         }

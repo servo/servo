@@ -86,7 +86,7 @@ pub enum EmbedderToConstellationMessage {
     ExitFullScreen(WebViewId),
     /// Media session action.
     MediaSessionAction(MediaSessionActionType),
-    /// Notify the Constellation that a WebView has been hidden. Hidden WebViews are throttled,
+    /// Notify the Constellation that a WebView has been hidden. Hidden `WebView`s are throttled,
     /// which means they use less resources, by stopping animations and running timers at a
     /// heavily limited rate.
     SetWebViewHidden(WebViewId, bool),

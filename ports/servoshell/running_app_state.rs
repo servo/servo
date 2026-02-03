@@ -46,7 +46,9 @@ use url::Url;
 pub(crate) use crate::desktop::gamepad::ServoshellGamepadDelegate;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 use crate::webdriver::WebDriverEmbedderControls;
-use crate::window::{PlatformWindow, ServoShellWindow, ServoShellWindowId};
+use crate::window::{
+    PlatformWindow, ServoShellWindow, ServoShellWindowId, TopLevelWebViewCreationRequest,
+};
 
 #[cfg(all(
     any(coverage, llvm_pgo),
@@ -165,7 +167,7 @@ pub(crate) enum UserInterfaceCommand {
     ReloadAll,
     NewWebView,
     CloseWebView(WebViewId),
-    NewWindow,
+    NewWindow(TopLevelWebViewCreationRequest),
 }
 
 pub(crate) struct RunningAppState {
@@ -285,13 +287,13 @@ impl RunningAppState {
     pub(crate) fn open_window(
         self: &Rc<Self>,
         platform_window: Rc<dyn PlatformWindow>,
-        initial_url: Url,
+        creation_request: TopLevelWebViewCreationRequest,
     ) -> Rc<ServoShellWindow> {
         let window = Rc::new(ServoShellWindow::new(platform_window.clone()));
         self.windows
             .borrow_mut()
             .insert(window.id(), window.clone());
-        window.create_and_activate_toplevel_webview(self.clone(), initial_url);
+        window.create_and_activate_toplevel_webview(self.clone(), creation_request);
 
         // If the window already has platform focus, mark it as focused in our application state.
         if platform_window.has_platform_focus() {
@@ -418,12 +420,6 @@ impl RunningAppState {
         self: &Rc<Self>,
         create_platform_window: Option<&dyn Fn(Url) -> Rc<dyn PlatformWindow>>,
     ) -> bool {
-        // We clone here to avoid a double borrow. User interface commands can update the list of windows.
-        let windows: Vec<_> = self.windows.borrow().values().cloned().collect();
-        for window in windows {
-            window.handle_interface_commands(self, create_platform_window);
-        }
-
         self.handle_webdriver_messages(create_platform_window);
 
         /* #[cfg(all(
@@ -438,6 +434,12 @@ impl RunningAppState {
 
         for window in self.windows.borrow().values() {
             window.update_and_request_repaint_if_necessary(self);
+        }
+
+        // We clone here to avoid a double borrow. User interface commands can update the list of windows.
+        let windows: Vec<_> = self.windows.borrow().values().cloned().collect();
+        for window in windows {
+            window.handle_interface_commands(self, create_platform_window);
         }
 
         if self.servoshell_preferences.exit_after_stable_image && self.achieved_stable_image.get() {
@@ -751,8 +753,18 @@ impl WebViewDelegate for RunningAppState {
 
     fn request_create_new(&self, parent_webview: WebView, request: CreateNewWebViewRequest) {
         let window = self.window_for_webview(&parent_webview);
-        let platform_window = window.platform_window();
 
+        // When WebDriver wants to open a new WebView, do this in a new window. Normally, servoshell
+        // throttles WebViews that are hidden, but WebDriver expects all opened WebViews to stay
+        // active. Using a separate window ensures this.
+        if self.servoshell_preferences.webdriver_port.get().is_some() {
+            window.queue_user_interface_command(UserInterfaceCommand::NewWindow(
+                TopLevelWebViewCreationRequest::WithCreateRequest(request),
+            ));
+            return;
+        }
+
+        let platform_window = window.platform_window();
         let webview = request
             .builder(platform_window.rendering_context())
             .hidpi_scale_factor(platform_window.hidpi_scale_factor())
@@ -761,15 +773,7 @@ impl WebViewDelegate for RunningAppState {
 
         webview.notify_theme_change(platform_window.theme());
         window.add_webview(webview.clone());
-
-        // When WebDriver is enabled, do not focus and raise the WebView to the top,
-        // as that is what the specification expects. Otherwise, we would like `window.open()`
-        // to create a new foreground tab
-        if self.servoshell_preferences.webdriver_port.get().is_none() {
-            window.activate_webview(webview.id());
-        } else {
-            webview.hide();
-        }
+        window.activate_webview(webview.id());
     }
 
     fn notify_closed(&self, webview: WebView) {

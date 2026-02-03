@@ -134,7 +134,7 @@ impl ConstellationWebView {
         self.theme
     }
 
-    /// Whether or not the WebView is hidden.
+    /// Whether or not the [`ConstellationWebView`] is hidden.
     pub(crate) fn hidden(&self) -> bool {
         self.hidden
     }
