@@ -1,0 +1,228 @@
+Welcome to Mesa's GLSL compiler.  A brief overview of how things flow:
+
+1) lex and yacc-based preprocessor takes the incoming shader string
+and produces a new string containing the preprocessed shader.  This
+takes care of things like #if, #ifdef, #define, and preprocessor macro
+invocations.  Note that #version, #extension, and some others are
+passed straight through.  See glcpp/*
+
+2) lex and yacc-based parser takes the preprocessed string and
+generates the AST (abstract syntax tree).  Almost no checking is
+performed in this stage.  See glsl_lexer.ll and glsl_parser.yy.
+
+3) The AST is converted to "HIR".  This is the intermediate
+representation of the compiler.  Constructors are generated, function
+calls are resolved to particular function signatures, and all the
+semantic checking is performed.  See ast_*.cpp for the conversion, and
+ir.h for the IR structures.
+
+4) The driver (Mesa, or main.cpp for the standalone binary) performs
+optimizations.  These include copy propagation, dead code elimination,
+constant folding, and others.  Generally the driver will call
+optimizations in a loop, as each may open up opportunities for other
+optimizations to do additional work.  See most files called ir_*.cpp
+
+5) linking is performed.  This does checking to ensure that the
+outputs of the vertex shader match the inputs of the fragment shader,
+and assigns locations to uniforms, attributes, and varyings.  See
+linker.cpp.
+
+6) The driver may perform additional optimization at this point, as
+for example dead code elimination previously couldn't remove functions
+or global variable usage when we didn't know what other code would be
+linked in.
+
+7) The driver performs code generation out of the IR, taking a linked
+shader program and producing a compiled program for each stage.  See
+../mesa/program/ir_to_mesa.cpp for Mesa IR code generation.
+
+FAQ:
+
+Q: What is HIR versus IR versus LIR?
+
+A: The idea behind the naming was that ast_to_hir would produce a
+high-level IR ("HIR"), with things like matrix operations, structure
+assignments, etc., present.  A series of lowering passes would occur
+that do things like break matrix multiplication into a series of dot
+products/MADs, make structure assignment be a series of assignment of
+components, flatten if statements into conditional moves, and such,
+producing a low level IR ("LIR").
+
+However, it now appears that each driver will have different
+requirements from a LIR.  A 915-generation chipset wants all functions
+inlined, all loops unrolled, all ifs flattened, no variable array
+accesses, and matrix multiplication broken down.  The Mesa IR backend
+for swrast would like matrices and structure assignment broken down,
+but it can support function calls and dynamic branching.  A 965 vertex
+shader IR backend could potentially even handle some matrix operations
+without breaking them down, but the 965 fragment shader IR backend
+would want to break to have (almost) all operations down channel-wise
+and perform optimization on that.  As a result, there's no single
+low-level IR that will make everyone happy.  So that usage has fallen
+out of favor, and each driver will perform a series of lowering passes
+to take the HIR down to whatever restrictions it wants to impose
+before doing codegen.
+
+Q: How is the IR structured?
+
+A: The best way to get started seeing it would be to run the
+standalone compiler against a shader:
+
+./glsl_compiler --dump-lir \
+	~/src/piglit/tests/shaders/glsl-orangebook-ch06-bump.frag
+
+So for example one of the ir_instructions in main() contains:
+
+(assign (constant bool (1)) (var_ref litColor)  (expression vec3 * (var_ref Surf
+aceColor) (var_ref __retval) ) )
+
+Or more visually:
+                     (assign)
+                 /       |        \
+        (var_ref)  (expression *)  (constant bool 1)
+         /          /           \
+(litColor)      (var_ref)    (var_ref)
+                  /                  \
+           (SurfaceColor)          (__retval)
+
+which came from:
+
+litColor = SurfaceColor * max(dot(normDelta, LightDir), 0.0);
+
+(the max call is not represented in this expression tree, as it was a
+function call that got inlined but not brought into this expression
+tree)
+
+Each of those nodes is a subclass of ir_instruction.  A particular
+ir_instruction instance may only appear once in the whole IR tree with
+the exception of ir_variables, which appear once as variable
+declarations:
+
+(declare () vec3 normDelta)
+
+and multiple times as the targets of variable dereferences:
+...
+(assign (constant bool (1)) (var_ref __retval) (expression float dot
+ (var_ref normDelta) (var_ref LightDir) ) )
+...
+(assign (constant bool (1)) (var_ref __retval) (expression vec3 -
+ (var_ref LightDir) (expression vec3 * (constant float (2.000000))
+ (expression vec3 * (expression float dot (var_ref normDelta) (var_ref
+ LightDir) ) (var_ref normDelta) ) ) ) )
+...
+
+Each node has a type.  Expressions may involve several different types:
+(declare (uniform ) mat4 gl_ModelViewMatrix)
+((assign (constant bool (1)) (var_ref constructor_tmp) (expression
+ vec4 * (var_ref gl_ModelViewMatrix) (var_ref gl_Vertex) ) )
+
+An expression tree can be arbitrarily deep, and the compiler tries to
+keep them structured like that so that things like algebraic
+optimizations ((color * 1.0 == color) and ((mat1 * mat2) * vec == mat1
+* (mat2 * vec))) or recognizing operation patterns for code generation
+(vec1 * vec2 + vec3 == mad(vec1, vec2, vec3)) are easier.  This comes
+at the expense of additional trickery in implementing some
+optimizations like CSE where one must navigate an expression tree.
+
+Q: Why no SSA representation?
+
+A: Converting an IR tree to SSA form makes dead code elimination,
+common subexpression elimination, and many other optimizations much
+easier.  However, in our primarily vector-based language, there's some
+major questions as to how it would work.  Do we do SSA on the scalar
+or vector level?  If we do it at the vector level, we're going to end
+up with many different versions of the variable when encountering code
+like:
+
+(assign (constant bool (1)) (swiz x (var_ref __retval) ) (var_ref a) )
+(assign (constant bool (1)) (swiz y (var_ref __retval) ) (var_ref b) )
+(assign (constant bool (1)) (swiz z (var_ref __retval) ) (var_ref c) )
+
+If every masked update of a component relies on the previous value of
+the variable, then we're probably going to be quite limited in our
+dead code elimination wins, and recognizing common expressions may
+just not happen.  On the other hand, if we operate channel-wise, then
+we'll be prone to optimizing the operation on one of the channels at
+the expense of making its instruction flow different from the other
+channels, and a vector-based GPU would end up with worse code than if
+we didn't optimize operations on that channel!
+
+Once again, it appears that our optimization requirements are driven
+significantly by the target architecture.  For now, targeting the Mesa
+IR backend, SSA does not appear to be that important to producing
+excellent code, but we do expect to do some SSA-based optimizations
+for the 965 fragment shader backend when that is developed.
+
+Q: How should I expand instructions that take multiple backend instructions?
+
+Sometimes you'll have to do the expansion in your code generation --
+see, for example, ir_to_mesa.cpp's handling of ir_unop_sqrt.  However,
+in many cases you'll want to do a pass over the IR to convert
+non-native instructions to a series of native instructions.  For
+example, for the Mesa backend we have ir_div_to_mul_rcp.cpp because
+Mesa IR (and many hardware backends) only have a reciprocal
+instruction, not a divide.  Implementing non-native instructions this
+way gives the chance for constant folding to occur, so (a / 2.0)
+becomes (a * 0.5) after codegen instead of (a * (1.0 / 2.0))
+
+Q: How shoud I handle my special hardware instructions with respect to IR?
+
+Our current theory is that if multiple targets have an instruction for
+some operation, then we should probably be able to represent that in
+the IR.  Generally this is in the form of an ir_{bin,un}op expression
+type.  For example, we initially implemented fract() using (a -
+floor(a)), but both 945 and 965 have instructions to give that result,
+and it would also simplify the implementation of mod(), so
+ir_unop_fract was added.  The following areas need updating to add a
+new expression type:
+
+ir.h (new enum)
+ir.cpp:operator_strs (used for ir_reader)
+ir_constant_expression.cpp (you probably want to be able to constant fold)
+ir_validate.cpp (check users have the right types)
+
+You may also need to update the backends if they will see the new expr type:
+
+../mesa/program/ir_to_mesa.cpp
+
+You can then use the new expression from builtins (if all backends
+would rather see it), or scan the IR and convert to use your new
+expression type (see ir_mod_to_floor, for example).
+
+Q: How is memory management handled in the compiler?
+
+The hierarchical memory allocator "talloc" developed for the Samba
+project is used, so that things like optimization passes don't have to
+worry about their garbage collection so much.  It has a few nice
+features, including low performance overhead and good debugging
+support that's trivially available.
+
+Generally, each stage of the compile creates a talloc context and
+allocates its memory out of that or children of it.  At the end of the
+stage, the pieces still live are stolen to a new context and the old
+one freed, or the whole context is kept for use by the next stage.
+
+For IR transformations, a temporary context is used, then at the end
+of all transformations, reparent_ir reparents all live nodes under the
+shader's IR list, and the old context full of dead nodes is freed.
+When developing a single IR transformation pass, this means that you
+want to allocate instruction nodes out of the temporary context, so if
+it becomes dead it doesn't live on as the child of a live node.  At
+the moment, optimization passes aren't passed that temporary context,
+so they find it by calling talloc_parent() on a nearby IR node.  The
+talloc_parent() call is expensive, so many passes will cache the
+result of the first talloc_parent().  Cleaning up all the optimization
+passes to take a context argument and not call talloc_parent() is left
+as an exercise.
+
+Q: What is the file naming convention in this directory?
+
+Initially, there really wasn't one.  We have since adopted one:
+
+ - Files that implement code lowering passes should be named lower_*
+   (e.g., lower_builtins.cpp).
+ - Files that implement optimization passes should be named opt_*.
+ - Files that implement a class that is used throught the code should
+   take the name of that class (e.g., ir_hierarchical_visitor.cpp).
+ - Files that contain code not fitting in one of the previous
+   categories should have a sensible name (e.g., glsl_parser.yy).

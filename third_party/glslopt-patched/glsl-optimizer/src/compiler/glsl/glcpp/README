@@ -1,0 +1,30 @@
+glcpp -- GLSL "C" preprocessor
+
+This is a simple preprocessor designed to provide the preprocessing
+needs of the GLSL language. The requirements for this preprocessor are
+specified in the GLSL 1.30 specification availble from:
+
+http://www.opengl.org/registry/doc/GLSLangSpec.Full.1.30.10.pdf
+
+This specification is not precise on some semantics, (for example,
+#define and #if), defining these merely "as is standard for C++
+preprocessors". To fill in these details, I've been using a draft of
+the C99 standard as available from:
+
+http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
+
+Any downstream compiler accepting output from glcpp should be prepared
+to encounter and deal with the following preprocessor macros:
+
+	#line
+	#pragma
+	#extension
+
+All other macros will be handled according to the GLSL specification
+and will not appear in the output.
+
+Known limitations
+-----------------
+A file that ends with a function-like macro name as the last
+non-whitespace token will result in a parse error, (where it should be
+passed through as is).

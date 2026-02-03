@@ -1,0 +1,62 @@
+This local copy of a SHA1 implementation based on the sources below.
+
+Why:
+ - Some libraries suffer from race condition and other issues. For example see
+commit ade3108bb5b0 ("util: Fix race condition on libgcrypt initialization").
+
+ - Fold the handling and detection of _eight_ implementations at configure
+stage and _seven_ different codepaths.
+
+ - Have a single, uniform, code used by developers, testers and users.
+
+ - Avoid conflicts when using software which ships with it's own SHA1 library.
+The latter of which conflicting with the one mesa is build against.
+
+
+
+Source:
+The SHA1 implementation is copied verbatim from the following links.
+At the time of checkout HEAD is 1.25 and 1.24 respectively.
+
+http://cvsweb.openbsd.org/cgi-bin/cvsweb/~checkout~/src/lib/libc/hash/sha1.c?rev=HEAD
+http://cvsweb.openbsd.org/cgi-bin/cvsweb/~checkout~/src/include/sha1.h?rev=HEAD
+
+
+Notes:
+ - The files should not have any local changes. If there are any they should be
+clearly documented below and one should aim to upstream them where possible.
+ 
+ - Files will be periodically syncronised with the respective upstream sources.
+Updates will be made regularly, but since the code is _not_ aimed as a
+cryptography solution any issues found should not be considered security ones.
+
+
+Local changes:
+ - Removed __bounded__ attribute qualifiers. Unavailable on platforms targeted
+by Mesa. Upstream status: TBD (N/A ?)
+
+ - Pick the sha1.h header from the current folder, by using "" over <> in the
+include directive. Upstream status: TBD
+
+ - Remove unused function prototypes - SHA1End, SHA1File, SHA1FileChunk and
+SHA1Data. Upstream status: TBD
+
+ - Use stdint.h integer types - u_int{8,16,32}_t -> uint{8,16,32}_t and
+u_int -> uint32_t, change header include. Upstream status: TBD
+
+ - Revert sha1.c rev 1.26 change (introduce DEF_WEAK).
+Upstream status: TBD (N/A ?)
+
+ - Add stdint.h include in sha1.h for uint*_t types. Upstream status: TBD
+
+ - Add stddef.h include in sha1.h for size_t type. Upstream status: TBD
+
+ - Use memset over explicit_bzero, since memset_s once isn't widely available.
+Upstream status: TBD (N/A ?)
+
+ - Manually expand __BEGIN_DECLS/__END_DECLS and make sure that they include
+the struct declaration.
+Upstream status: TBD
+
+ - Add non-typedef struct name.
+Upstream status: TBD

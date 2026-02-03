@@ -1,0 +1,12 @@
+- Detect code paths in non-void functions that don't reach a return statement
+
+- Improve handling of constants and their initializers.  Constant initializers
+  should never generate any code.  This is trival for scalar constants.  It is
+  also trivial for arrays, matrices, and vectors that are accessed with
+  constant index values.  For others it is more complicated.  Perhaps these
+  cases should be silently converted to uniforms?
+
+- Track source locations throughout the IR.  There are currently several
+  places where we cannot emit line numbers for errors (and currently emit 0:0)
+  because we've "lost" the line number information.  This is particularly
+  noticeable at link time.
