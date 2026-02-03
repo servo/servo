@@ -132,7 +132,7 @@ use crate::dom::document::{
 };
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::html::htmliframeelement::HTMLIFrameElement;
+use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext};
 use crate::dom::node::NodeTraits;
 use crate::dom::servoparser::{ParserContext, ServoParser};
 use crate::dom::types::DebuggerGlobalScope;
@@ -143,7 +143,6 @@ use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
 use crate::dom::worklet::WorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
-use crate::iframe_context::IframeContext;
 use crate::messaging::{
     CommonScriptMsg, MainThreadScriptMsg, MixedMessage, ScriptEventLoopSender,
     ScriptThreadReceivers, ScriptThreadSenders,
@@ -3728,17 +3727,22 @@ impl ScriptThread {
             let (_, context) = self.incomplete_parser_contexts.0.borrow_mut().remove(idx);
 
             // we need to register an iframe entry to the performance timeline if present
-            if let Some(document) = context.get_document()// get the document from the context
-                && let Some(window_proxy) = document.browsing_context() // check if there is a window_proxy
-                && let Some(frame_element) = window_proxy.frame_element()// retrieval of the frame element if present
-                && let Some(frame_element) = frame_element.downcast::<HTMLIFrameElement>()
+            if let Some(window_proxy) = context
+                .get_document()
+                .and_then(|document| document.browsing_context())
             {
-                let iframe_ctx = IframeContext::new(frame_element);
+                if let Some(frame_element) = window_proxy.frame_element() {
+                    let iframe_ctx = IframeContext::new(
+                        frame_element
+                            .downcast::<HTMLIFrameElement>()
+                            .expect("WindowProxy::frame_element should be an HTMLIFrameElement"),
+                    );
 
-                // submit_timing will only accept timing that is of type ResourceTimingType::Resource
-                let mut resource_timing = timing.clone();
-                resource_timing.timing_type = ResourceTimingType::Resource;
-                submit_timing(&iframe_ctx, &eof, &resource_timing, CanGc::note());
+                    // submit_timing will only accept timing that is of type ResourceTimingType::Resource
+                    let mut resource_timing = timing.clone();
+                    resource_timing.timing_type = ResourceTimingType::Resource;
+                    submit_timing(&iframe_ctx, &eof, &resource_timing, CanGc::note());
+                }
             }
 
             context.process_response_eof(request_id, eof, timing);
