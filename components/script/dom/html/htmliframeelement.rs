@@ -445,7 +445,9 @@ impl HTMLIFrameElement {
         self.pending_pipeline_id.set(None);
         self.about_blank_pipeline_id.set(None);
         self.webview_id.set(None);
-        self.browsing_context_id.set(None);
+        if let Some(browsing_context_id) = self.browsing_context_id.take() {
+            self.script_window_proxies.remove(browsing_context_id)
+        }
     }
 
     pub(crate) fn update_pipeline_id(

@@ -22,7 +22,6 @@ use crate::messaging::ScriptThreadSenders;
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ScriptWindowProxies {
-    /// TODO: this map grows, but never shrinks. Issue #15258.
     map: DomRefCell<HashMapTracedValues<BrowsingContextId, Dom<WindowProxy>, FxBuildHasher>>,
 }
 
@@ -55,6 +54,10 @@ impl ScriptWindowProxies {
 
     pub(crate) fn insert(&self, id: BrowsingContextId, proxy: DomRoot<WindowProxy>) {
         self.map.borrow_mut().insert(id, Dom::from_ref(&*proxy));
+    }
+
+    pub(crate) fn remove(&self, id: BrowsingContextId) {
+        self.map.borrow_mut().remove(&id);
     }
 
     // Get the browsing context for a pipeline that may exist in another
