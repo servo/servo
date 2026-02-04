@@ -23,7 +23,7 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.options import ArgOptions
-from urllib3.exceptions import ProtocolError
+from urllib3.exceptions import ProtocolError, MaxRetryError
 from selenium.common.exceptions import NoSuchElementException
 
 from enum import Enum
@@ -53,7 +53,7 @@ def create_driver(webdriver_port: int, timeout: int = 3) -> webdriver.Remote | N
     while driver is None and time.time() - start_time < timeout:
         try:
             driver = webdriver.Remote(command_executor=f"http://127.0.0.1:{webdriver_port}", options=options)
-        except (ConnectionError, ProtocolError):
+        except (ConnectionError, ProtocolError, MaxRetryError):
             time.sleep(0.2)
         except Exception as e:
             print(f"Unexpected exception when creating webdriver: {e}, {type(e)}")
@@ -139,7 +139,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run Blink Perf Tests on Servo Instance.")
     parser.add_argument("servo_path", type=str, help="the servo binary")
     parser.add_argument(
-        "-w", "--webdriver", default=7000, type=int, action="store", help="The webdriver port servo will listen on."
+        "-w", "--webdriver", default=7123, type=int, action="store", help="The webdriver port servo will listen on."
     )
     parser.add_argument(
         "-p",
