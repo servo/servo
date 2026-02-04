@@ -49,7 +49,7 @@ def run_test(name: str, f):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Create a mitmdump file from google, servo and scenariotest")
+    parser = argparse.ArgumentParser(description="Create a mitmdump file from google, servo, speedometer and scenario tests")
     parser.add_argument("dump_file", type=str, help="the file we write the dump to")
     args = parser.parse_args()
 
