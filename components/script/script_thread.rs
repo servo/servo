@@ -1938,6 +1938,9 @@ impl ScriptThread {
             ScriptThreadMessage::UpdatePinchZoomInfos(id, pinch_zoom_infos) => {
                 self.handle_update_pinch_zoom_infos(id, pinch_zoom_infos, CanGc::from_cx(cx));
             },
+            ScriptThreadMessage::SetAccessibilityActive(webview_id, pipeline_id, active) => {
+                self.set_accessibility_active(webview_id, pipeline_id, active);
+            },
         }
     }
 
@@ -3554,6 +3557,21 @@ impl ScriptThread {
             return;
         };
         document.event_handler().note_pending_input_event(event);
+    }
+
+    fn set_accessibility_active(
+        &self,
+        _webview_id: WebViewId,
+        pipeline_id: PipelineId,
+        active: bool,
+    ) {
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Set accessibility active/inactive sent to closed pipeline {pipeline_id}.");
+            return;
+        };
+        let window = document.window();
+        let layout = window.layout();
+        layout.set_accessibility_active(active);
     }
 
     /// Handle a "navigate an iframe" message from the constellation.
