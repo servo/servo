@@ -57,17 +57,12 @@ use crate::script_runtime::CanGc;
 const DEFAULT_SELECT_SIZE: u32 = 0;
 
 const SELECT_BOX_STYLE: &str = "
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    height: 100%;
+    vertical-align: middle;
 ";
 
 const TEXT_CONTAINER_STYLE: &str = "flex: 1;";
-
-const CHEVRON_CONTAINER_STYLE: &str = "
-    font-size: 16px;
-    margin: 4px;
-";
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct OptionsFilter;
@@ -291,28 +286,6 @@ impl HTMLSelectElement {
         text_container
             .upcast::<Node>()
             .AppendChild(text.upcast::<Node>(), can_gc)
-            .unwrap();
-
-        let chevron_container = Element::create(
-            QualName::new(None, ns!(html), local_name!("div")),
-            None,
-            &document,
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
-            can_gc,
-        );
-        chevron_container.set_string_attribute(
-            &local_name!("style"),
-            CHEVRON_CONTAINER_STYLE.into(),
-            can_gc,
-        );
-        chevron_container
-            .upcast::<Node>()
-            .set_text_content_for_element(Some("▾".into()), can_gc);
-        select_box
-            .upcast::<Node>()
-            .AppendChild(chevron_container.upcast::<Node>(), can_gc)
             .unwrap();
 
         root.upcast::<Node>()

@@ -143,6 +143,8 @@ fn traverse_children_of<'dom>(
 
     if is_element {
         traverse_eager_pseudo_element(PseudoElement::After, parent_element_info, context, handler);
+
+        traverse_picker_icon_pseudo_element(parent_element_info, context, handler);
     }
 }
 
@@ -200,6 +202,55 @@ fn traverse_eager_pseudo_element<'dom>(
     else {
         return;
     };
+    if pseudo_element_info.style.ineffective_content_property() {
+        return;
+    }
+
+    match Display::from(pseudo_element_info.style.get_box().display) {
+        Display::None => {},
+        Display::Contents => {
+            let items = generate_pseudo_element_content(&pseudo_element_info, context);
+            let box_slot = pseudo_element_info.node.box_slot();
+            let shared_inline_styles: SharedInlineStyles = (&pseudo_element_info).into();
+            box_slot.set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
+
+            handler.enter_display_contents(shared_inline_styles);
+            traverse_pseudo_element_contents(&pseudo_element_info, context, handler, items);
+            handler.leave_display_contents();
+        },
+        Display::GeneratingBox(display) => {
+            let items = generate_pseudo_element_content(&pseudo_element_info, context);
+            let box_slot = pseudo_element_info.node.box_slot();
+            let contents = Contents::for_pseudo_element(items);
+            handler.handle_element(&pseudo_element_info, display, contents, box_slot);
+        },
+    }
+}
+
+fn traverse_picker_icon_pseudo_element<'dom>(
+    info: &NodeAndStyleInfo<'dom>,
+    context: &LayoutContext,
+    handler: &mut impl TraversalHandler<'dom>,
+) {
+    let Some(element) = info.node.as_element() else {
+        return;
+    };
+
+    if !matches!(
+        element.type_id(),
+        Some(LayoutNodeType::Element(
+            LayoutElementType::HTMLSelectElement
+        ))
+    ) {
+        return;
+    }
+
+    let Some(pseudo_element_info) =
+        info.with_pseudo_element(context, PseudoElement::ServoPickerIcon)
+    else {
+        return;
+    };
+
     if pseudo_element_info.style.ineffective_content_property() {
         return;
     }

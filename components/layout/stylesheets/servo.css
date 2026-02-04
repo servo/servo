@@ -139,6 +139,21 @@ input[type="file"]:disabled::before {
   color: grey;
 }
 
+select::-servo-picker-icon {
+  content: " ";
+  background-image: url('<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180"> <path d="M0 12h180L90 167z" style="fill:currentcolor"/> </svg>');
+  background-size: 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+  width: 0.75em;
+  height: 0.75em;
+  vertical-align: middle;
+  line-height: 1;
+  margin-inline-start: 5px;
+
+  display: inline-block;
+}
+
 input[type="file"]::before {
   content: "Choose File";
   display: inline-block;

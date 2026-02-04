@@ -1868,6 +1868,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             },
             Some(ref pseudo) if pseudo == "::selection" => Some(PseudoElement::Selection),
             Some(ref pseudo) if pseudo == "::marker" => Some(PseudoElement::Marker),
+            Some(ref pseudo) if pseudo == "::-servo-picker-icon" => {
+                Some(PseudoElement::ServoPickerIcon)
+            },
             Some(ref pseudo) if pseudo.starts_with(':') => {
                 // Step 3.2: If type is failure, or is a ::slotted() or ::part()
                 // pseudo-element, let obj be null.
