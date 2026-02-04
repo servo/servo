@@ -59,10 +59,7 @@ impl<'dom> ServoShadowRoot<'dom> {
         stylist: &mut Stylist,
         guard: &StyleSharedRwLockReadGuard,
     ) {
-        unsafe {
-            self.shadow_root
-                .flush_stylesheets::<ServoLayoutElement>(stylist, guard)
-        }
+        unsafe { self.shadow_root.flush_stylesheets(stylist, guard) }
     }
 
     pub fn is_ua_widget(&self) -> bool {
