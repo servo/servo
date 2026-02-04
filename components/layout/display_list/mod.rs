@@ -559,7 +559,8 @@ impl InspectorHighlight {
             maybe_box_fragment: None,
         });
 
-        // We only need to highlight the first `SpatialId`.
+        // We only need to highlight the first `SpatialId`. Typically this will include the bottommost
+        // fragment for a node, which generally surrounds the entire content.
         if spatial_id != state.spatial_id {
             return;
         }
