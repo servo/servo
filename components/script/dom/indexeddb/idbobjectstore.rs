@@ -5,7 +5,6 @@
 use base::generic_channel;
 use base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
-use itertools::Itertools;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::gc::MutableHandleValue;
@@ -691,23 +690,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-indexnames>
     fn IndexNames(&self, can_gc: CanGc) -> DomRoot<DOMStringList> {
-        DOMStringList::new(
-            &self.global(),
-            self.index_names
-                .borrow()
-                .clone()
-                .iter()
-                .map(|dom_string| dom_string.str().encode_utf16().collect())
-                .sorted()
-                .map(|utf16_str: Vec<u16>| {
-                    DOMString::from_string(
-                        String::from_utf16(utf16_str.as_slice())
-                            .expect("can't convert object store name from utf16 back to utf8"),
-                    )
-                })
-                .collect(),
-            can_gc,
-        )
+        DOMStringList::new_sorted(&self.global(), &self.index_names.borrow(), can_gc)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-transaction>
