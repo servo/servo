@@ -92,9 +92,9 @@ impl IndependentFormattingContext {
             Contents::Replaced(contents) => {
                 base_fragment_info.flags.insert(FragmentFlags::IS_REPLACED);
                 // Some replaced elements can have inner widgets, e.g. `<video controls>`.
-                let widget = node_and_style_info
-                    .node
-                    .as_element()
+                let widget = Some(node_and_style_info.node)
+                    .filter(|node| node.pseudo_element_chain().is_empty())
+                    .and_then(|node| node.as_element())
                     .and_then(|element| element.shadow_root())
                     .is_some_and(|shadow_root| shadow_root.is_ua_widget())
                     .then(|| {
