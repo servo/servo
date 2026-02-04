@@ -98,7 +98,6 @@ pub struct IDBObjectStore {
 
 impl IDBObjectStore {
     pub fn new_inherited(
-        _global: &GlobalScope,
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
@@ -134,7 +133,6 @@ impl IDBObjectStore {
     ) -> DomRoot<IDBObjectStore> {
         reflect_dom_object(
             Box::new(IDBObjectStore::new_inherited(
-                global,
                 db_name,
                 name,
                 options,
