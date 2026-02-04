@@ -153,7 +153,7 @@ script_traits = { path = "components/shared/script" }
 sea-query = { version = "1.0.0-rc.30", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = { version = "0.8.0-rc.15" }
 sec1 = "0.7"
-selectors = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
+selectors = { git = "https://github.com/servo/stylo", rev = "b19f4140f490af9cdd7557a83f86940bc097e716" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
@@ -162,7 +162,7 @@ servo-media = { git = "https://github.com/servo/media", rev = "f384dbc4ff8b5c6f8
 servo-media-dummy = { git = "https://github.com/servo/media", rev = "f384dbc4ff8b5c6f8db2c763306cbe2281d66391" }
 servo-media-gstreamer = { git = "https://github.com/servo/media", rev = "f384dbc4ff8b5c6f8db2c763306cbe2281d66391" }
 servo-tracing = { path = "components/servo_tracing" }
-servo_arc = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "b19f4140f490af9cdd7557a83f86940bc097e716" }
 sha1 = "0.10"
 sha2 = "0.10"
 sha3 = "0.10"
@@ -171,12 +171,12 @@ smallvec = { version = "1.15", features = ["serde", "union"] }
 storage_traits = { path = "components/shared/storage" }
 string_cache = "0.9"
 strum = { version = "0.27", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
-stylo_atoms = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
-stylo_config = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
-stylo_dom = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
-stylo_traits = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
+stylo = { git = "https://github.com/servo/stylo", rev = "b19f4140f490af9cdd7557a83f86940bc097e716" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "b19f4140f490af9cdd7557a83f86940bc097e716" }
+stylo_config = { git = "https://github.com/servo/stylo", rev = "b19f4140f490af9cdd7557a83f86940bc097e716" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "b19f4140f490af9cdd7557a83f86940bc097e716" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "b19f4140f490af9cdd7557a83f86940bc097e716" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "b19f4140f490af9cdd7557a83f86940bc097e716" }
 surfman = { version = "0.11.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
