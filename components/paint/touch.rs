@@ -317,6 +317,7 @@ impl TouchHandler {
             .get(&sequence_id)
             .expect("Touch sequence not found.")
     }
+
     pub(crate) fn get_touch_sequence_mut(
         &mut self,
         sequence_id: TouchSequenceId,
