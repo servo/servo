@@ -30,9 +30,8 @@ servo.pftrace
 webrender-captures/
 /screenshots
 
-# We do not check this in for the moment, until the issue from
-# https://github.com/servo/servo/pull/42169 can be addressed.
-uv.lock
+# Python setuptools
+/servo.egg-info
 
 # Allow CSV files to be used as resources in tests
 !/tests/**/*.csv

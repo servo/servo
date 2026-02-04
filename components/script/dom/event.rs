@@ -11,6 +11,9 @@ use devtools_traits::{TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
 use embedder_traits::InputEventResult;
 use js::rust::HandleObject;
+use keyboard_types::{Key, NamedKey};
+use script_bindings::codegen::GenericBindings::PointerEventBinding::PointerEventMethods;
+use script_bindings::match_domstring_ascii;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -38,6 +41,7 @@ use crate::dom::html::htmlslotelement::HTMLSlotElement;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::types::{KeyboardEvent, PointerEvent, UserActivation};
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -287,6 +291,16 @@ impl Event {
         can_gc: CanGc,
         // TODO legacy_did_output_listeners_throw_flag for indexeddb
     ) -> bool {
+        // > When a user interaction causes firing of an activation triggering input event in a Document document, the user agent
+        // > must perform the following activation notification steps before dispatching the event:
+        // <https://html.spec.whatwg.org/multipage/#user-activation-processing-model>
+        if self.is_an_activation_triggering_input_event() {
+            // TODO: it is not quite clear what does the spec mean by in a `Document`. https://github.com/whatwg/html/issues/12126
+            if let Some(document) = target.downcast::<Node>().map(|node| node.owner_doc()) {
+                UserActivation::handle_user_activation_notification(&document);
+            }
+        }
+
         let mut target = DomRoot::from_ref(target);
 
         // Step 1. Set event’s dispatch flag.
@@ -686,9 +700,34 @@ impl Event {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#activation-triggering-input-event>
+    fn is_an_activation_triggering_input_event(&self) -> bool {
+        // > An activation triggering input event is any event whose isTrusted attribute is true ..
+        if !self.is_trusted.get() {
+            return false;
+        }
+
+        // > and whose type is one of:
+        let event_type = self.Type();
+        match_domstring_ascii!(event_type,
+            // > - "keydown", provided the key is neither the Esc key nor a shortcut key reserved by the user agent;
+            "keydown" => self.downcast::<KeyboardEvent>().expect("`Event` with type `keydown` should be a `KeyboardEvent` interface").key() != Key::Named(NamedKey::Escape),
+            // > - "mousedown";
+            "mousedown" => true,
+            // > - "pointerdown", provided the event's pointerType is "mouse";
+            "pointerdown" => self.downcast::<PointerEvent>().expect("`Event` with type `pointerdown` should be a `PointerEvent` interface").PointerType().eq("mouse"),
+            // > - "pointerup", provided the event's pointerType is not "mouse"; or
+            "pointerup" => !self.downcast::<PointerEvent>().expect("`Event` with type `pointerup` should be a `PointerEvent` interface").PointerType().eq("mouse"),
+            // > - "touchend".
+            "touchend" => true,
+            _ => false,
+        )
+    }
+
     /// <https://dom.spec.whatwg.org/#firing-events>
     pub(crate) fn fire(&self, target: &EventTarget, can_gc: CanGc) -> bool {
         self.set_trusted(true);
+
         target.dispatch_event(self, can_gc)
     }
 

@@ -98,6 +98,7 @@ markup5ever = { workspace = true }
 media = { path = "../media" }
 metrics = { path = "../metrics" }
 mime = { workspace = true }
+mime-multipart-hyper1 = { workspace = true }
 mime_guess = { workspace = true }
 ml-dsa = { workspace = true }
 ml-kem = { workspace = true }

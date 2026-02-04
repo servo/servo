@@ -297,7 +297,9 @@ fn layout_1d(
     // > | zero).
     if let Repeat::Round = repeat {
         let round = |number: f32| number.round().max(1.0);
-        *tile_size = positioning_area_size / round(positioning_area_size / *tile_size);
+        if positioning_area_size != 0.0 {
+            *tile_size = positioning_area_size / round(positioning_area_size / *tile_size);
+        }
     }
     // https://drafts.csswg.org/css-backgrounds/#background-position
     let mut position = position

@@ -10,7 +10,7 @@ use ocb3::aead::AeadMutInPlace;
 use ocb3::aead::consts::{U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16};
 use ocb3::{KeyInit, Nonce, Ocb3};
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::KeyUsage;
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
@@ -18,8 +18,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
-    ALG_AES_OCB, ExportedKey, KeyAlgorithmAndDerivatives, SubtleAeadParams,
-    SubtleAesDerivedKeyParams, SubtleAesKeyAlgorithm, SubtleAesKeyGenParams, aes_common,
+    ExportedKey, SubtleAeadParams, SubtleAesDerivedKeyParams, SubtleAesKeyGenParams, aes_common,
 };
 use crate::script_runtime::CanGc;
 
@@ -488,63 +487,15 @@ pub(crate) fn import_key(
     usages: Vec<KeyUsage>,
     can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
-    // Step 1. Let keyData be the key data to be imported.
-
-    // Step 2. If usages contains an entry which is not one of "encrypt", "decrypt", "wrapKey" or
-    // "unwrapKey", then throw a SyntaxError.
-    if usages.iter().any(|usage| {
-        !matches!(
-            usage,
-            KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
-        )
-    }) {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not one of \"encrypt\", \"decrypt\", \"wrapKey\" \
-            or \"unwrapKey\""
-                .to_string(),
-        )));
-    }
-
-    // Step 3.
-    let data = aes_common::import_key_from_key_data(
+    aes_common::import_key(
         AesAlgorithm::AesOcb,
+        global,
         format,
         key_data,
         extractable,
-        &usages,
-    )?;
-
-    // Step 4. Let key be a new CryptoKey object representing an AES key with value data.
-    // Step 5. Let algorithm be a new AesKeyAlgorithm.
-    // Step 6. Set the name attribute of algorithm to "AES-OCB".
-    // Step 7. Set the length attribute of algorithm to the length, in bits, of data.
-    // Step 8. Set the [[algorithm]] internal slot of key to algorithm.
-    let handle = match data.len() {
-        16 => Handle::Aes128Key(Key::<Aes128>::clone_from_slice(&data)),
-        24 => Handle::Aes192Key(Key::<Aes192>::clone_from_slice(&data)),
-        32 => Handle::Aes256Key(Key::<Aes256>::clone_from_slice(&data)),
-        _ => {
-            return Err(Error::Data(Some(
-                "The length in bits of key is not 128, 192 or 256".to_string(),
-            )));
-        },
-    };
-    let algorithm = SubtleAesKeyAlgorithm {
-        name: ALG_AES_OCB.to_string(),
-        length: data.len() as u16 * 8,
-    };
-    let key = CryptoKey::new(
-        global,
-        KeyType::Secret,
-        extractable,
-        KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm),
         usages,
-        handle,
         can_gc,
-    );
-
-    // Step 9. Return key.
-    Ok(key)
+    )
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-export-key>

@@ -2,6 +2,9 @@
 <title>Remove the single element on the fullscreen element stack</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/fullscreen/trusted-click.js"></script>
 <div id="log"></div>
 <div id="single"></div>
 <script>
@@ -18,6 +21,6 @@
             });
             single.remove();
         });
-        single.requestFullscreen();
+        trusted_request(single, document.body);
     });
 </script>

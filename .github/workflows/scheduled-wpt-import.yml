@@ -54,6 +54,7 @@ jobs:
           echo "CURRENT_DATE=$CURRENT_DATE" >> $GITHUB_ENV
           ./mach update-wpt linux/raw/*.log
           git add tests/wpt/meta
+          uv lock
           git commit -a --amend -s --no-edit
       - name: Push changes
         uses: ad-m/github-push-action@master

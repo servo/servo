@@ -960,6 +960,12 @@ impl ParserContext {
         self.navigation_params.about_base_url = about_base_url;
     }
 
+    pub(crate) fn get_document(&self) -> Option<DomRoot<Document>> {
+        self.parser
+            .as_ref()
+            .map(|parser| parser.root().document.as_rooted())
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#creating-a-policy-container-from-a-fetch-response>
     fn create_policy_container_from_fetch_response(metadata: &Metadata) -> PolicyContainer {
         // Step 1. If response's URL's scheme is "blob", then return a clone of response's URL's blob URL entry's environment's policy container.

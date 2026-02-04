@@ -7845,29 +7845,33 @@
     "fullscreen": {
      "reftests": {
       "fullscreen-baseline.html": [
-       "80503a9befe86e8cbd109eaf870f41c92a1952b2",
+       "d2e69834916d5cee450e82fda582984009bcb984",
        [
-        null,
+        "mozilla/fullscreen/reftests/fullscreen-baseline.html",
         [
          [
           "/_mozilla/mozilla/fullscreen/reftests/fullscreen-baseline-ref.html",
           "=="
          ]
         ],
-        {}
+        {
+         "testdriver": true
+        }
        ]
       ],
       "fullscreen-hides-others.html": [
-       "83a9abd907fc899dcfb60bab24691feb25878f7c",
+       "d342af57df5e80ea19ad5552593b48fd5426a95f",
        [
-        null,
+        "mozilla/fullscreen/reftests/fullscreen-hides-others.html",
         [
          [
           "/_mozilla/mozilla/fullscreen/reftests/fullscreen-baseline-ref.html",
           "=="
          ]
         ],
-        {}
+        {
+         "testdriver": true
+        }
        ]
       ]
      }
@@ -13761,10 +13765,12 @@
      ]
     ],
     "fullscreen-remove-single.html": [
-     "1e3246f791df31532c32a816a14e4e3959582146",
+     "5a85570e73902a5821c37e455deedb315c07d5cf",
      [
       null,
-      {}
+      {
+       "testdriver": true
+      }
      ]
     ],
     "getBoundingClientRect.html": [
@@ -14022,7 +14028,7 @@
      ]
     ],
     "interfaces.https.html": [
-     "a7bc174f6724e2c0641bc19135c709e2a42a3ad0",
+     "29bc9e4d45ccee82ae4f5bd165b551565c839605",
      [
       null,
       {}

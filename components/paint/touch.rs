@@ -165,7 +165,7 @@ pub struct TouchPoint {
 }
 
 impl TouchPoint {
-    pub fn new(id: TouchId, point: Point2D<f32, DevicePixel>) -> Self {
+    fn new(id: TouchId, point: Point2D<f32, DevicePixel>) -> Self {
         TouchPoint { id, point }
     }
 }
@@ -208,7 +208,7 @@ pub(crate) struct FlingAction {
 }
 
 impl TouchHandler {
-    pub fn new(webview_id: WebViewId) -> Self {
+    pub(crate) fn new(webview_id: WebViewId) -> Self {
         let finished_info = TouchSequenceInfo {
             state: TouchSequenceState::Finished,
             active_touch_points: vec![],
@@ -239,11 +239,9 @@ impl TouchHandler {
     }
 
     pub(crate) fn is_handling_touch_move(&self, sequence_id: TouchSequenceId) -> bool {
-        if let Some(sequence) = self.touch_sequence_map.get(&sequence_id) {
-            sequence.handling_touch_move
-        } else {
-            false
-        }
+        self.touch_sequence_map
+            .get(&sequence_id)
+            .is_some_and(|seq| seq.handling_touch_move)
     }
 
     pub(crate) fn prevent_click(&mut self, sequence_id: TouchSequenceId) {
@@ -264,12 +262,10 @@ impl TouchHandler {
 
     /// Returns true if default move actions are allowed, false if prevented or the result
     /// is still pending.,
-    pub(crate) fn move_allowed(&mut self, sequence_id: TouchSequenceId) -> bool {
-        if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
-            sequence.prevent_move == TouchMoveAllowed::Allowed
-        } else {
-            true
-        }
+    pub(crate) fn move_allowed(&self, sequence_id: TouchSequenceId) -> bool {
+        self.touch_sequence_map
+            .get(&sequence_id)
+            .is_none_or(|sequence| sequence.prevent_move == TouchMoveAllowed::Allowed)
     }
 
     pub(crate) fn take_pending_touch_move_actions(
@@ -284,7 +280,7 @@ impl TouchHandler {
 
     pub(crate) fn remove_pending_touch_move_actions(&mut self, sequence_id: TouchSequenceId) {
         if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
-            sequence.pending_touch_move_actions = Vec::new();
+            sequence.pending_touch_move_actions.clear();
         }
     }
 
@@ -302,7 +298,7 @@ impl TouchHandler {
         debug_assert!(old.is_some(), "Sequence already removed?");
     }
 
-    pub fn get_current_touch_sequence_mut(&mut self) -> &mut TouchSequenceInfo {
+    fn get_current_touch_sequence_mut(&mut self) -> &mut TouchSequenceInfo {
         self.touch_sequence_map
             .get_mut(&self.current_sequence_id)
             .expect("Current Touch sequence does not exist")
@@ -316,11 +312,12 @@ impl TouchHandler {
         self.touch_sequence_map.get_mut(&self.current_sequence_id)
     }
 
-    pub(crate) fn get_touch_sequence(&self, sequence_id: TouchSequenceId) -> &TouchSequenceInfo {
+    fn get_touch_sequence(&self, sequence_id: TouchSequenceId) -> &TouchSequenceInfo {
         self.touch_sequence_map
             .get(&sequence_id)
             .expect("Touch sequence not found.")
     }
+
     pub(crate) fn get_touch_sequence_mut(
         &mut self,
         sequence_id: TouchSequenceId,
@@ -328,7 +325,7 @@ impl TouchHandler {
         self.touch_sequence_map.get_mut(&sequence_id)
     }
 
-    pub fn on_touch_down(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) {
+    pub(crate) fn on_touch_down(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) {
         // if the current sequence ID does not exist in the map, then it was already handled
         if !self
             .touch_sequence_map
@@ -370,7 +367,7 @@ impl TouchHandler {
         }
     }
 
-    pub fn notify_new_frame_start(&mut self) -> Option<FlingAction> {
+    pub(crate) fn notify_new_frame_start(&mut self) -> Option<FlingAction> {
         let touch_sequence = self.touch_sequence_map.get_mut(&self.current_sequence_id)?;
 
         let Flinging {
@@ -417,7 +414,7 @@ impl TouchHandler {
         self.observing_frames_for_fling.set(false);
     }
 
-    pub fn on_touch_move(
+    pub(crate) fn on_touch_move(
         &mut self,
         id: TouchId,
         point: Point2D<f32, DevicePixel>,
@@ -520,7 +517,7 @@ impl TouchHandler {
         action
     }
 
-    pub fn on_touch_up(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) {
+    pub(crate) fn on_touch_up(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) {
         let Some(touch_sequence) = self.try_get_current_touch_sequence_mut() else {
             warn!("Current touch sequence not found");
             return;
@@ -604,7 +601,7 @@ impl TouchHandler {
         );
     }
 
-    pub fn on_touch_cancel(&mut self, id: TouchId, _point: Point2D<f32, DevicePixel>) {
+    pub(crate) fn on_touch_cancel(&mut self, id: TouchId, _point: Point2D<f32, DevicePixel>) {
         // A similar thing with touch move can happen here where the event is coming from a different webview.
         let Some(touch_sequence) = self.try_get_current_touch_sequence_mut() else {
             return;

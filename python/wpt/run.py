@@ -81,14 +81,19 @@ def run_tests(default_binary_path: str, multiprocess: bool, **kwargs: Any) -> in
         kwargs.setdefault("binary_args", ["-M"])
 
     given_http_proxy_uri = False
+    given_https_proxy_uri = False
     if prefs:
         for pref in prefs:
             kwargs["binary_args"].append("--pref=" + pref)
             given_http_proxy_uri |= "network_http_proxy_uri" in pref
+            given_https_proxy_uri |= "network_https_proxy_uri" in pref
     # We clearly dictates no proxy unless users know what they are doing.
     # This is to override potential default http_proxy/https_proxy.
     if not given_http_proxy_uri:
         kwargs["binary_args"].append("--pref=network_http_proxy_uri=")
+
+    if not given_https_proxy_uri:
+        kwargs["binary_args"].append("--pref=network_https_proxy_uri=")
 
     if not kwargs.get("no_default_test_types"):
         test_types = {

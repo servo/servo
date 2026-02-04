@@ -53,6 +53,7 @@ use crate::dom::permissions::Permissions;
 use crate::dom::pluginarray::PluginArray;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::servointernals::ServoInternals;
+use crate::dom::types::UserActivation;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpu::GPU;
 use crate::dom::window::Window;
@@ -128,6 +129,7 @@ pub(crate) struct Navigator {
     #[cfg(feature = "gamepad")]
     has_gamepad_gesture: Cell<bool>,
     servo_internals: MutNullableDom<ServoInternals>,
+    user_activation: MutNullableDom<UserActivation>,
 }
 
 impl Navigator {
@@ -153,6 +155,7 @@ impl Navigator {
             #[cfg(feature = "gamepad")]
             has_gamepad_gesture: Cell::new(false),
             servo_internals: Default::default(),
+            user_activation: Default::default(),
         }
     }
 
@@ -592,6 +595,12 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
             register_or_unregister: RegisterOrUnregister::Unregister,
         });
         Ok(())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-navigator-useractivation>
+    fn UserActivation(&self, can_gc: CanGc) -> DomRoot<UserActivation> {
+        self.user_activation
+            .or_init(|| UserActivation::new(&self.global(), can_gc))
     }
 }
 

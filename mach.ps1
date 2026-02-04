@@ -23,4 +23,4 @@ if ($arguments.Count -gt 0) {
     }
 }
 
-uv run python (Join-Path $workdir "mach") @arguments
+uv run --frozen python (Join-Path $workdir "mach") @arguments

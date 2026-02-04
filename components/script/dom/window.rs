@@ -145,7 +145,9 @@ use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
 use crate::dom::customelementregistry::CustomElementRegistry;
-use crate::dom::document::{AnimationFrameCallback, Document};
+use crate::dom::document::{
+    AnimationFrameCallback, Document, SameOriginDescendantNavigablesIterator,
+};
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -176,6 +178,7 @@ use crate::dom::storage::Storage;
 use crate::dom::testrunner::TestRunner;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::{ImageBitmap, MouseEvent, UIEvent};
+use crate::dom::useractivation::UserActivationTimestamp;
 use crate::dom::visualviewport::{VisualViewport, VisualViewportChanges};
 use crate::dom::webgl::webglrenderingcontext::WebGLCommandSender;
 #[cfg(feature = "webgpu")]
@@ -474,6 +477,10 @@ pub(crate) struct Window {
 
     /// [`VisualViewport`] dimension changed and we need to process it on the next tick.
     has_changed_visual_viewport_dimension: Cell<bool>,
+
+    /// <https://html.spec.whatwg.org/multipage/#last-activation-timestamp>
+    #[no_trace]
+    last_activation_timestamp: Cell<UserActivationTimestamp>,
 }
 
 impl Window {
@@ -3548,6 +3555,10 @@ impl Window {
         self.navigation_start.set(CrossProcessInstant::now());
     }
 
+    pub(crate) fn set_last_activation_timestamp(&self, time: UserActivationTimestamp) {
+        self.last_activation_timestamp.set(time);
+    }
+
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
         self.as_global_scope()
             .script_to_embedder_chan()
@@ -3642,6 +3653,62 @@ impl Window {
             let svg = node.downcast::<SVGSVGElement>().unwrap();
             svg.serialize_and_cache_subtree();
             node.dirty(NodeDamage::Other);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#sticky-activation>
+    pub(crate) fn has_sticky_activation(&self) -> bool {
+        // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, W is said to have sticky activation.
+        UserActivationTimestamp::TimeStamp(CrossProcessInstant::now()) >=
+            self.last_activation_timestamp.get()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#transient-activation>
+    pub(crate) fn has_transient_activation(&self) -> bool {
+        // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, and less than the last activation
+        // > timestamp in W plus the transient activation duration, then W is said to have transient activation.
+        let current_time = CrossProcessInstant::now();
+        UserActivationTimestamp::TimeStamp(current_time) >= self.last_activation_timestamp.get() &&
+            UserActivationTimestamp::TimeStamp(current_time) <
+                self.last_activation_timestamp.get() +
+                    pref!(dom_transient_activation_duration_ms)
+    }
+
+    pub(crate) fn consume_last_activation_timestamp(&self) {
+        if self.last_activation_timestamp.get() != UserActivationTimestamp::PositiveInfinity {
+            self.set_last_activation_timestamp(UserActivationTimestamp::NegativeInfinity);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#consume-user-activation>
+    pub(crate) fn consume_user_activation(&self) {
+        // Step 1.
+        // > If W's navigable is null, then return.
+        if self.undiscarded_window_proxy().is_none() {
+            return;
+        }
+
+        // Step 2.
+        // > Let top be W's navigable's top-level traversable.
+        let Some(top_level_document) = self
+            .webview_window_proxy()
+            .and_then(|window_proxy| window_proxy.document())
+        else {
+            return;
+        };
+
+        // Step 3.
+        // > Let navigables be the inclusive descendant navigables of top's active document.
+        // Step 4.
+        // > Let windows be the list of Window objects constructed by taking the active window of each item in navigables.
+        // Step 5.
+        // > For each window in windows, if window's last activation timestamp is not positive infinity, then set window's last activation timestamp to negative infinity.
+        // TODO: this would not work for disimilar origin descendant, since we doesn't store the document in this script thread.
+        top_level_document
+            .window()
+            .consume_last_activation_timestamp();
+        for document in SameOriginDescendantNavigablesIterator::new(top_level_document) {
+            document.window().consume_last_activation_timestamp();
         }
     }
 
@@ -3774,6 +3841,7 @@ impl Window {
             visual_viewport: Default::default(),
             weak_script_thread,
             has_changed_visual_viewport_dimension: Default::default(),
+            last_activation_timestamp: Cell::new(UserActivationTimestamp::PositiveInfinity),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)

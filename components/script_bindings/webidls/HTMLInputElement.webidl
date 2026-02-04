@@ -9,6 +9,7 @@ interface HTMLInputElement : HTMLElement {
 
   [CEReactions]
            attribute DOMString accept;
+  [CEReactions] attribute boolean alpha;
   [CEReactions]
            attribute DOMString alt;
   // [CEReactions]
