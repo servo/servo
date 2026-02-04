@@ -265,11 +265,9 @@ impl TouchHandler {
     /// Returns true if default move actions are allowed, false if prevented or the result
     /// is still pending.,
     pub(crate) fn move_allowed(&mut self, sequence_id: TouchSequenceId) -> bool {
-        if let Some(sequence) = self.touch_sequence_map.get(&sequence_id) {
-            sequence.prevent_move == TouchMoveAllowed::Allowed
-        } else {
-            true
-        }
+        self.touch_sequence_map
+            .get(&sequence_id)
+            .map_or(true, |seq| seq.prevent_move == TouchMoveAllowed::Allowed)
     }
 
     pub(crate) fn take_pending_touch_move_actions(
