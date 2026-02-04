@@ -709,6 +709,8 @@ impl Layout for LayoutThread {
 
         Ok(())
     }
+
+    fn set_accessibility_active(&self, _active: bool) {}
 }
 
 impl LayoutThread {
