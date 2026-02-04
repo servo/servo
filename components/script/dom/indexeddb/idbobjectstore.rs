@@ -735,7 +735,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 11. Let index be a new index in store.
         // Set index’s name to name and key path to keyPath. If unique is set, set index’s unique flag.
         // If multiEntry is set, set index’s multiEntry flag.
-        let (sender, receiver) = generic_channel::channel().unwrap();
+        let (sender, _) = generic_channel::channel().unwrap();
         let create_index_operation = SyncOperation::CreateIndex(
             sender,
             self.global().origin().immutable().clone(),
@@ -751,10 +751,6 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             .send(IndexedDBThreadMsg::Sync(create_index_operation))
             .is_err()
         {
-            return Err(Error::Operation(None));
-        }
-        let result = receiver.recv().unwrap();
-        if result.is_err() {
             return Err(Error::Operation(None));
         }
 
