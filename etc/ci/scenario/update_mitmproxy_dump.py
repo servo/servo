@@ -10,7 +10,9 @@
 # except according to those terms.
 
 # Simply run this script with mitmproxy installed and uv `uv run update_mitmproxy_dump.py /tmp/current-dump.
-# This does run the tests then to create the dump file.
+# This does run the tests then to create the dump file. If you are behind a proxy yourself, you need to uncomment
+# the mode line below and replace <YOUR_PROXY_ADDRESS> with your address, for example, the line shoud look like:
+# "--mode", "upstream:http://127.0.0.1:3128",
 
 import subprocess
 import argparse
@@ -58,7 +60,7 @@ if __name__ == "__main__":
             args.dump_file,
             "-p",
             common_function_for_servo_test.MITMPROXY_PORT,
-            # "--mode", "upstream:http://127.0.0.1:3128",
+            # "--mode", "upstream:<YOUR_PROXY_ADDRESS>",
             "--set",
             "ssl_insecure=true",
         ]
