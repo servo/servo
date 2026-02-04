@@ -55,6 +55,7 @@ impl ServoTest {
         // Set the proxy to null as the tests will all be on localhost, hence, proxy might interfer.
         let mut preferences = Preferences::default();
         preferences.network_http_proxy_uri = String::new();
+        preferences.network_https_proxy_uri = String::new();
 
         let builder = ServoBuilder::default()
             .preferences(preferences)
