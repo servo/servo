@@ -12,6 +12,11 @@ use std::rc::Rc;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use euclid::Rect;
 use image::{DynamicImage, ImageFormat, RgbaImage};
+#[cfg(all(
+    any(coverage, llvm_pgo),
+    any(target_os = "android", target_env = "ohos")
+))]
+use libc::c_char;
 use log::{error, info, warn};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, CSSPixel, ConsoleLogLevel, CreateNewWebViewRequest,
@@ -32,6 +37,15 @@ pub(crate) use crate::desktop::gamepad::ServoshellGamepadProvider;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 use crate::webdriver::WebDriverEmbedderControls;
 use crate::window::{PlatformWindow, ServoShellWindow, ServoShellWindowId};
+
+#[cfg(all(
+    any(coverage, llvm_pgo),
+    any(target_os = "android", target_env = "ohos")
+))]
+unsafe extern "C" {
+    fn __llvm_profile_set_filename(file: *const c_char);
+    fn __llvm_profile_write_file();
+}
 
 #[derive(Default)]
 pub struct WebViewCollection {
@@ -322,6 +336,28 @@ impl RunningAppState {
         // to run wpt test using servodriver.
         self.servoshell_preferences.webdriver_port.set(None);
         self.exit_scheduled.set(true);
+
+        #[cfg(all(
+            any(coverage, llvm_pgo),
+            any(target_os = "android", target_env = "ohos")
+        ))]
+        {
+            use std::ffi::CString;
+
+            use crate::prefs::default_config_dir;
+
+            let mut profile_path = default_config_dir().expect("Need a config dir");
+            profile_path.push("profiles/");
+            let filename = format!(
+                "{}/profile-%h-%p.profraw",
+                profile_path.to_str().expect("Should be unicode")
+            );
+            let c_filename = CString::new(filename).expect("Need a valid cstring");
+            unsafe {
+                __llvm_profile_set_filename(c_filename.as_ptr() as *const c_char);
+                __llvm_profile_write_file()
+            }
+        }
     }
 
     #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]

@@ -18,6 +18,10 @@ name = "servo"
 path = "main.rs"
 bench = false
 
+[lints.rust]
+# These are not official flags but still used for testing and pgo.
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)', 'cfg(llvm_pgo)'] }
+
 # Some of these dependencies are only needed for a specific target OS, but
 # since build-scripts can't detect the Cargo target OS at build-time, we
 # must unconditionally add these dependencies. See https://github.com/rust-lang/cargo/issues/4932
