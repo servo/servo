@@ -16,8 +16,9 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleAesDerivedKeyParams, SubtleAesKeyAlgorithm, SubtleAesKeyGenParams,
+    ALG_AES_CBC, ALG_AES_CTR, ALG_AES_GCM, ALG_AES_KW, ALG_AES_OCB, ExportedKey, JsonWebKeyExt,
+    JwkStringField, KeyAlgorithmAndDerivatives, SubtleAesDerivedKeyParams, SubtleAesKeyAlgorithm,
+    SubtleAesKeyGenParams,
 };
 use crate::script_runtime::CanGc;
 
@@ -35,6 +36,9 @@ pub(crate) enum AesAlgorithm {
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-generate-key>
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-generate-key>
+///
+/// The step order in the specification of AES-OCB is slightly different, but it is equivalent to
+/// this implementation.
 pub(crate) fn generate_key(
     aes_algorithm: AesAlgorithm,
     global: &GlobalScope,
@@ -106,32 +110,32 @@ pub(crate) fn generate_key(
         };
 
     // Step 5. Let key be a new CryptoKey object representing the generated AES key.
-    // Step 6. Set the [[type]] internal slot of key to "secret".
-    // Step 7. Let algorithm be a new AesKeyAlgorithm.
-    // Step 9. Set the length attribute of algorithm to equal the length member of
+    // Step 6. Let algorithm be a new AesKeyAlgorithm.
+    // Step 8. Set the length attribute of algorithm to equal the length member of
     // normalizedAlgorithm.
+    // Step 9. Set the [[type]] internal slot of key to "secret".
     // Step 10. Set the [[algorithm]] internal slot of key to algorithm.
     // Step 11. Set the [[extractable]] internal slot of key to be extractable.
     // Step 12. Set the [[usages]] internal slot of key to be usages.
     let algorithm_name = match aes_algorithm {
         AesAlgorithm::AesCtr => {
-            // Step 8. Set the name attribute of algorithm to "AES-CTR".
+            // Step 7. Set the name attribute of algorithm to "AES-CTR".
             "AES-CTR"
         },
         AesAlgorithm::AesCbc => {
-            // Step 8. Set the name attribute of algorithm to "AES-CBC".
+            // Step 7. Set the name attribute of algorithm to "AES-CBC".
             "AES-CBC"
         },
         AesAlgorithm::AesGcm => {
-            // Step 8. Set the name attribute of algorithm to "AES-GCM".
+            // Step 7. Set the name attribute of algorithm to "AES-GCM".
             "AES-GCM"
         },
         AesAlgorithm::AesKw => {
-            // Step 8. Set the name attribute of algorithm to "AES-KW".
+            // Step 7. Set the name attribute of algorithm to "AES-KW".
             "AES-KW"
         },
         AesAlgorithm::AesOcb => {
-            // Step 8. Set the name attribute of algorithm to "AES-OCB".
+            // Step 7. Set the name attribute of algorithm to "AES-OCB".
             "AES-OCB"
         },
     };
@@ -153,18 +157,63 @@ pub(crate) fn generate_key(
     Ok(key)
 }
 
-/// Step 3 of <https://w3c.github.io/webcrypto/#aes-ctr-operations-import-key>
-/// Step 3 of <https://w3c.github.io/webcrypto/#aes-cbc-operations-import-key>
-/// Step 3 of <https://w3c.github.io/webcrypto/#aes-gcm-operations-import-key>
-/// Step 3 of <https://w3c.github.io/webcrypto/#aes-kw-operations-import-key>
-/// Step 3 of <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-import-key>
-pub(crate) fn import_key_from_key_data(
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-import-key>
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-import-key>
+/// <https://w3c.github.io/webcrypto/#aes-gcm-operations-import-key>
+/// <https://w3c.github.io/webcrypto/#aes-kw-operations-import-key>
+/// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-import-key>
+///
+/// The specification of AES-OCB has one more step at the beginning of the operation:
+///
+/// > Let keyData be the key data to be imported.
+///
+/// As it is simply used to name the variable, it is safe to omit it in the implementation below to
+/// align with the specification of other AES algorithms.
+pub(crate) fn import_key(
     aes_algorithm: AesAlgorithm,
+    global: &GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
-    usages: &[KeyUsage],
-) -> Result<Vec<u8>, Error> {
+    usages: Vec<KeyUsage>,
+    can_gc: CanGc,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    match &aes_algorithm {
+        AesAlgorithm::AesCtr |
+        AesAlgorithm::AesCbc |
+        AesAlgorithm::AesGcm |
+        AesAlgorithm::AesOcb => {
+            // Step 1. If usages contains an entry which is not one of "encrypt", "decrypt",
+            // "wrapKey" or "unwrapKey", then throw a SyntaxError.
+            if usages.iter().any(|usage| {
+                !matches!(
+                    usage,
+                    KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
+                )
+            }) {
+                return Err(Error::Syntax(Some(
+                    "Usages contains an entry which is not one of \"encrypt\", \"decrypt\", \
+                    \"wrapKey\"  or \"unwrapKey\""
+                        .to_string(),
+                )));
+            }
+        },
+        AesAlgorithm::AesKw => {
+            // Step 1. If usages contains an entry which is not one of "wrapKey" or "unwrapKey",
+            // then throw a SyntaxError.
+            if usages
+                .iter()
+                .any(|usage| !matches!(usage, KeyUsage::WrapKey | KeyUsage::UnwrapKey))
+            {
+                return Err(Error::Syntax(Some(
+                    "Usages contains an entry which is not one of \"wrapKey\"  or \"unwrapKey\""
+                        .to_string(),
+                )));
+            }
+        },
+    }
+
+    // Step 2.
     let data;
     match format {
         // If format is "raw": (Only applied to AES-CTR, AES-CBC, AES-GCM, AES-KW)
@@ -177,10 +226,11 @@ pub(crate) fn import_key_from_key_data(
                     AesAlgorithm::AesKw
             ) =>
         {
-            // Step 1. Let data be keyData.
+            // Step 2.1. Let data be keyData.
             data = key_data.to_vec();
 
-            // Step 2. If the length in bits of data is not 128, 192 or 256 then throw a DataError.
+            // Step 2.2. If the length in bits of data is not 128, 192 or 256 then throw a
+            // DataError.
             if !matches!(data.len(), 16 | 24 | 32) {
                 return Err(Error::Data(Some(
                     "The length in bits of data is not 128, 192 or 256".to_string(),
@@ -189,10 +239,11 @@ pub(crate) fn import_key_from_key_data(
         },
         // If format is "raw-secret":
         KeyFormat::Raw_secret => {
-            // Step 1. Let data be keyData.
+            // Step 2.1. Let data be keyData.
             data = key_data.to_vec();
 
-            // Step 2. If the length in bits of data is not 128, 192 or 256 then throw a DataError.
+            // Step 2.2. If the length in bits of data is not 128, 192 or 256 then throw a
+            // DataError.
             if !matches!(data.len(), 16 | 24 | 32) {
                 return Err(Error::Data(Some(
                     "The length in bits of key is not 128, 192 or 256".to_string(),
@@ -201,28 +252,28 @@ pub(crate) fn import_key_from_key_data(
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
-            // Step 1.
+            // Step 2.1.
             // If keyData is a JsonWebKey dictionary:
             //     Let jwk equal keyData.
             // Otherwise:
             //     Throw a DataError.
             let jwk = JsonWebKey::parse(GlobalScope::get_cx(), key_data)?;
 
-            // Step 3.2. If the kty field of jwk is not "oct", then throw a DataError.
+            // Step 2.2. If the kty field of jwk is not "oct", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "oct") {
                 return Err(Error::Data(Some(
                     "The kty field of jwk is not \"oct\"".to_string(),
                 )));
             }
 
-            // Step 3. If jwk does not meet the requirements of Section 6.4 of JSON Web Algorithms
-            // [JWA], then throw a DataError.
-            // Step 4. Let data be the byte sequence obtained by decoding the k field of jwk.
+            // Step 2.3. If jwk does not meet the requirements of Section 6.4 of JSON Web
+            // Algorithms [JWA], then throw a DataError.
+            // Step 2.4. Let data be the byte sequence obtained by decoding the k field of jwk.
             data = jwk.decode_required_string_field(JwkStringField::K)?;
 
             match aes_algorithm {
                 AesAlgorithm::AesCtr => {
-                    // Step 5.
+                    // Step 2.5.
                     // If data has length 128 bits:
                     //     If the alg field of jwk is present, and is not "A128CTR", then throw a
                     //     DataError.
@@ -252,7 +303,7 @@ pub(crate) fn import_key_from_key_data(
                     }
                 },
                 AesAlgorithm::AesCbc => {
-                    // Step 5.
+                    // Step 2.5.
                     // If data has length 128 bits:
                     //     If the alg field of jwk is present, and is not "A128CBC", then throw a
                     //     DataError.
@@ -282,7 +333,7 @@ pub(crate) fn import_key_from_key_data(
                     }
                 },
                 AesAlgorithm::AesGcm => {
-                    // Step 5.
+                    // Step 2.5.
                     // If data has length 128 bits:
                     //     If the alg field of jwk is present, and is not "A128GCM", then throw a
                     //     DataError.
@@ -312,7 +363,7 @@ pub(crate) fn import_key_from_key_data(
                     }
                 },
                 AesAlgorithm::AesKw => {
-                    // Step 5.
+                    // Step 2.5.
                     // If data has length 128 bits:
                     //     If the alg field of jwk is present, and is not "A128KW", then throw a
                     //     DataError.
@@ -342,7 +393,7 @@ pub(crate) fn import_key_from_key_data(
                     }
                 },
                 AesAlgorithm::AesOcb => {
-                    // Step 5.
+                    // Step 2.5.
                     // If data has length 128 bits:
                     //     If the alg field of jwk is present, and is not "A128OCB", then throw a
                     //     DataError.
@@ -373,8 +424,8 @@ pub(crate) fn import_key_from_key_data(
                 },
             }
 
-            // Step 6. If usages is non-empty and the use field of jwk is present and is not "enc",
-            // then throw a DataError.
+            // Step 2.6. If usages is non-empty and the use field of jwk is present and is not
+            // "enc", then throw a DataError.
             if !usages.is_empty() && jwk.use_.as_ref().is_some_and(|use_| use_ != "enc") {
                 return Err(Error::Data(Some(
                     "Usages is non-empty and the use field of jwk is present and is not \"enc\""
@@ -382,12 +433,12 @@ pub(crate) fn import_key_from_key_data(
                 )));
             }
 
-            // Step 7. If the key_ops field of jwk is present, and is invalid according to the
+            // Step 2.7. If the key_ops field of jwk is present, and is invalid according to the
             // requirements of JSON Web Key [JWK] or does not contain all of the specified usages
             // values, then throw a DataError.
-            jwk.check_key_ops(usages)?;
+            jwk.check_key_ops(&usages)?;
 
-            // Step 8. If the ext field of jwk is present and has the value false and extractable
+            // Step 2.8. If the ext field of jwk is present and has the value false and extractable
             // is true, then throw a DataError.
             if jwk.ext.is_some_and(|ext| !ext) && extractable {
                 return Err(Error::Data(Some(
@@ -406,7 +457,58 @@ pub(crate) fn import_key_from_key_data(
         },
     }
 
-    Ok(data)
+    // Step 3. Let key be a new CryptoKey object representing an AES key with value data.
+    // Step 4. Set the [[type]] internal slot of key to "secret".
+    // Step 5. Let algorithm be a new AesKeyAlgorithm.
+    // Step 7. Set the length attribute of algorithm to the length, in bits, of data.
+    // Step 8. Set the [[algorithm]] internal slot of key to algorithm.
+    let handle = match data.len() {
+        16 => Handle::Aes128Key(Key::<Aes128>::clone_from_slice(&data)),
+        24 => Handle::Aes192Key(Key::<Aes192>::clone_from_slice(&data)),
+        32 => Handle::Aes256Key(Key::<Aes256>::clone_from_slice(&data)),
+        _ => {
+            return Err(Error::Data(Some(
+                "The length in bits of data is not 128, 192 or 256".to_string(),
+            )));
+        },
+    };
+    let algorithm = SubtleAesKeyAlgorithm {
+        name: match &aes_algorithm {
+            AesAlgorithm::AesCtr => {
+                // Step 6. Set the name attribute of algorithm to "AES-CTR".
+                ALG_AES_CTR.to_string()
+            },
+            AesAlgorithm::AesCbc => {
+                // Step 6. Set the name attribute of algorithm to "AES-CBC".
+                ALG_AES_CBC.to_string()
+            },
+            AesAlgorithm::AesGcm => {
+                // Step 6. Set the name attribute of algorithm to "AES-GCM".
+                ALG_AES_GCM.to_string()
+            },
+            AesAlgorithm::AesKw => {
+                // Step 6. Set the name attribute of algorithm to "AES-KW".
+                ALG_AES_KW.to_string()
+            },
+            AesAlgorithm::AesOcb => {
+                // Step 6. Set the name attribute of algorithm to "AES-OCB".
+                ALG_AES_OCB.to_string()
+            },
+        },
+        length: data.len() as u16 * 8,
+    };
+    let key = CryptoKey::new(
+        global,
+        KeyType::Secret,
+        extractable,
+        KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm),
+        usages,
+        handle,
+        can_gc,
+    );
+
+    // Step 9. Return key.
+    Ok(key)
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-ctr-operations-export-key>
