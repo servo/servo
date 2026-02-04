@@ -267,7 +267,7 @@ impl TouchHandler {
     pub(crate) fn move_allowed(&mut self, sequence_id: TouchSequenceId) -> bool {
         self.touch_sequence_map
             .get(&sequence_id)
-            .map_or(true, |seq| seq.prevent_move == TouchMoveAllowed::Allowed)
+            .is_none_or(|sequence| sequence.prevent_move == TouchMoveAllowed::Allowed)
     }
 
     pub(crate) fn take_pending_touch_move_actions(
@@ -282,7 +282,7 @@ impl TouchHandler {
 
     pub(crate) fn remove_pending_touch_move_actions(&mut self, sequence_id: TouchSequenceId) {
         if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
-            sequence.pending_touch_move_actions = Vec::new();
+            sequence.pending_touch_move_actions.clear();
         }
     }
 
