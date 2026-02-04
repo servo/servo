@@ -690,7 +690,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-indexnames>
-    fn IndexNames(&self) -> DomRoot<DOMStringList> {
+    fn IndexNames(&self, can_gc: CanGc) -> DomRoot<DOMStringList> {
         DOMStringList::new(
             &self.global(),
             self.index_names
@@ -706,7 +706,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
                     )
                 })
                 .collect(),
-            CanGc::note(),
+            can_gc,
         )
     }
 
@@ -726,6 +726,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         name: DOMString,
         key_path: StringOrStringSequence,
         options: &IDBIndexParameters,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBIndex>> {
         let key_path: KeyPath = key_path.into();
         // Step 3. If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
@@ -786,7 +787,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             name,
             options.multiEntry,
             options.unique,
-            CanGc::note(),
+            can_gc,
         ))
     }
 
