@@ -247,7 +247,7 @@ impl BoxTree {
             &(&initial_containing_block).into(),
         );
 
-        let mut root_fragments = independent_layout.fragments.into_iter().collect::<Vec<_>>();
+        let mut root_fragments = independent_layout.fragments;
 
         // Zero box for `:root { display: none }`, one for the root element otherwise.
         assert!(root_fragments.len() <= 1);

@@ -10,8 +10,8 @@ use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use itertools::Itertools;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{
-    AxesOverflow, BoxAreaType, LayoutElementType, LayoutNodeType, OffsetParentResponse,
-    PhysicalSides, ScrollContainerQueryFlags, ScrollContainerResponse,
+    AxesOverflow, BoxAreaType, CSSPixelRectIterator, LayoutElementType, LayoutNodeType,
+    OffsetParentResponse, PhysicalSides, ScrollContainerQueryFlags, ScrollContainerResponse,
 };
 use paint_api::display_list::ScrollTree;
 use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
@@ -93,8 +93,8 @@ pub(crate) fn process_box_area_request(
     area: BoxAreaType,
     exclude_transform_and_inline: bool,
 ) -> Option<Rect<Au, CSSPixel>> {
-    let rects: Vec<_> = node
-        .fragments_for_pseudo(None)
+    let fragments = node.fragments_for_pseudo(None);
+    let mut rects = fragments
         .iter()
         .filter(|fragment| {
             !exclude_transform_and_inline ||
@@ -103,13 +103,10 @@ pub(crate) fn process_box_area_request(
                     .is_none_or(|fragment| !fragment.borrow().is_inline_box())
         })
         .filter_map(|node| node.cumulative_box_area_rect(area))
-        .collect();
-    if rects.is_empty() {
-        return None;
-    }
-    let rect_union = rects
-        .iter()
-        .fold(Rect::zero(), |unioned_rect, rect| rect.union(&unioned_rect));
+        .peekable();
+
+    rects.peek()?;
+    let rect_union = rects.fold(Rect::zero(), |unioned_rect, rect| rect.union(&unioned_rect));
 
     if exclude_transform_and_inline {
         return Some(rect_union);
@@ -128,23 +125,19 @@ pub(crate) fn process_box_areas_request(
     stacking_context_tree: &StackingContextTree,
     node: ServoThreadSafeLayoutNode<'_>,
     area: BoxAreaType,
-) -> Vec<Rect<Au, CSSPixel>> {
-    let fragments = node.fragments_for_pseudo(None);
-    let box_areas = fragments
-        .iter()
-        .filter_map(|node| node.cumulative_box_area_rect(area));
+) -> CSSPixelRectIterator {
+    let fragments = node
+        .fragments_for_pseudo(None)
+        .into_iter()
+        .filter_map(move |fragment| fragment.cumulative_box_area_rect(area));
 
     let Some(transform) =
         root_transform_for_layout_node(&stacking_context_tree.paint_info.scroll_tree, node)
     else {
-        return box_areas
-            .map(|rect| Rect::new(rect.origin, Size2D::zero()))
-            .collect();
+        return Box::new(fragments.map(|rect| Rect::new(rect.origin, Size2D::zero())));
     };
 
-    box_areas
-        .filter_map(|rect| transform_au_rectangle(rect, transform))
-        .collect()
+    Box::new(fragments.filter_map(move |rect| transform_au_rectangle(rect, transform)))
 }
 
 pub fn process_client_rect_request(node: ServoThreadSafeLayoutNode<'_>) -> Rect<i32, CSSPixel> {
@@ -891,7 +884,7 @@ pub fn get_the_text_steps(node: ServoLayoutNode<'_>) -> String {
         results.append(&mut current);
     }
 
-    let mut output = Vec::new();
+    let mut output = String::new();
     for item in results {
         match item {
             InnerOrOuterTextItem::Text(s) => {
@@ -899,10 +892,10 @@ pub fn get_the_text_steps(node: ServoLayoutNode<'_>) -> String {
                 if !s.is_empty() {
                     if max_req_line_break_count > 0 {
                         // Step 5.
-                        output.push("\u{000A}".repeat(max_req_line_break_count));
+                        output.push_str(&"\u{000A}".repeat(max_req_line_break_count));
                         max_req_line_break_count = 0;
                     }
-                    output.push(s);
+                    output.push_str(&s);
                 }
             },
             InnerOrOuterTextItem::RequiredLineBreakCount(count) => {
@@ -920,7 +913,7 @@ pub fn get_the_text_steps(node: ServoLayoutNode<'_>) -> String {
             },
         }
     }
-    output.into_iter().collect()
+    output
 }
 
 enum InnerOrOuterTextItem {
