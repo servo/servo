@@ -9,6 +9,9 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+# Simply run this script with mitmproxy installed and uv `uv run update_mitmproxy_dump.py /tmp/current-dump.
+# This does run the tests then to create the dump file.
+
 import subprocess
 import argparse
 import time
