@@ -9,24 +9,93 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import enum
 import os
-import shutil
 import pathlib
+import random
+import shutil
 import subprocess
 import sys
 import time
 from decimal import Decimal
+from enum import Enum
 
 from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode
+from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.common.options import ArgOptions
-from urllib3.exceptions import ProtocolError
-from PIL import Image
 from selenium.webdriver.remote.webelement import WebElement
+from urllib3.exceptions import ProtocolError
 
 WEBDRIVER_PORT = 7000
+MITMPROXY_PORT = str(random.randrange(7150, 9000))
 SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
 ABOUT_BLANK = "about:blank"
+MITMPROXY_VERSION = "12.2.1"
+
+
+class MitmProxyRunType(enum.Enum):
+    # replay a recorded interaction
+    REPLAY = (1,)
+    # record an interaction
+    RECORD = (2,)
+    # start proxy and just forward
+    FORWARD = (3,)
+    # do not do anything with the proxy
+    NOPROXY = (4,)
+
+    def should_servo_proxy(self) -> bool:
+        return self == MitmProxyRunType.REPLAY or self == MitmProxyRunType.RECORD or self == MitmProxyRunType.FORWARD
+
+
+class MitmProxy:
+    def __init__(self, use_proxy: MitmProxyRunType, dump_file, port: str):
+        self.mitmproxy = None
+        self.use_proxy = use_proxy
+        self.dump_file = dump_file
+        self.port = port
+
+    def __enter__(self):
+        # for record the external recorder will record
+        # make sure mitmproxy is installed
+        if self.use_proxy == MitmProxyRunType.REPLAY:
+            print("Running mitmproxy for replay")
+            self.mitmproxy = subprocess.Popen(
+                [
+                    "mitmdump",
+                    "-p",
+                    self.port,
+                    "--server-replay",
+                    self.dump_file,
+                    # reply with 404 if request is not in dump_file
+                    "--set",
+                    "server_replay_extra=404",
+                    # do not delete a request from the dump_file after fulfillment
+                    "--set",
+                    "server_replay_reuse=true",
+                ]
+            )
+        elif self.use_proxy == MitmProxyRunType.FORWARD:
+            print("Running mitmproxy in forwarding mode")
+            self.mitmproxy = subprocess.Popen(
+                [
+                    "mitmdump",
+                    "-w",
+                    self.dump_file,
+                    # "--mode", "upstream:http://127.0.0.1:3128",
+                    "-p",
+                    self.port,
+                    "--set",
+                    "ssl_insecure=true",
+                ]
+            )
+        return self
+
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        if self.mitmproxy:
+            print("Killing mitmproxy")
+            self.mitmproxy.kill()
+            time.sleep(2)
 
 
 def calculate_frame_rate():
@@ -100,6 +169,40 @@ def create_driver(timeout: int = 10) -> webdriver.Remote:
     return driver
 
 
+class PortMapResult(Enum):
+    SUCCESSFUL = (1,)
+    PORT_EXISTS = (2,)
+    FORWARD_FAILED = (3,)
+
+    def is_success(self) -> bool:
+        return self == PortMapResult.SUCCESSFUL or self == PortMapResult.PORT_EXISTS
+
+
+# Sets up the port forward.
+def port_forward(port: int | str, reverse: bool) -> PortMapResult:
+    cmd = ["hdc", "fport", "ls"]
+    output = subprocess.check_output(cmd, encoding="utf-8")
+    if f"tcp:{port}" in output:
+        return PortMapResult.PORT_EXISTS
+
+    cmd = []
+    if reverse:
+        cmd = ["hdc", "rport", f"tcp:{port}", f"tcp:{port}"]
+    else:
+        cmd = ["hdc", "fport", f"tcp:{port}", f"tcp:{port}"]
+    print(f"Setting up HDC port forwarding: {' '.join(cmd)}")
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    if result.stdout.startswith("[Fail]TCP Port listen failed"):
+        print("Forward failed")
+        return PortMapResult.FORWARD_FAILED
+    elif result.stdout.startswith("[Fail]"):
+        print("Forward failed other way")
+        raise RuntimeError(f"HDC port forwarding failed with: {result.stdout}")
+
+    print("Port forward successful")
+    return PortMapResult.SUCCESSFUL
+
+
 def setup_hdc_forward(timeout: int = 5):
     """
     set hdc forward
@@ -107,26 +210,13 @@ def setup_hdc_forward(timeout: int = 5):
     """
     for v in ("HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy"):
         os.environ.pop(v, None)
-    cmd = ["hdc", "fport", "ls"]
-    output = subprocess.check_output(cmd, encoding="utf-8")
-    if f"tcp:{WEBDRIVER_PORT} tcp:7000" in output:
-        print("HDC port forwarding already established - skipping")
-        return
 
     start_time = time.time()
     while time.time() - start_time < timeout:
         try:
-            cmd = ["hdc", "fport", f"tcp:{WEBDRIVER_PORT}", "tcp:7000"]
-            print(f"Setting up HDC port forwarding: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-            # The port forwarding can fail if servo didn't start yet.
-            if result.stdout.startswith("[Fail]TCP Port listen failed"):
-                time.sleep(0.2)
-                continue
-            elif result.stdout.startswith("[Fail]"):
-                raise RuntimeError(f"HDC port forwarding failed with: {result.stdout}")
-            print(f"HDC port forwarding established on port {WEBDRIVER_PORT}")
-            return
+            if port_forward(WEBDRIVER_PORT, False).is_success() and port_forward(MITMPROXY_PORT, True).is_success():
+                return
+            time.sleep(0.2)
         except FileNotFoundError:
             print("HDC command not found. Make sure OHOS SDK is installed and hdc is in PATH.")
             raise
@@ -241,22 +331,35 @@ def close_usb_popup(hdc: HarmonyDeviceConnector):
 
 # We always load "about:blank" first, and then use
 # WebDriver to load target url so that it is blocked until fully loaded.
-def run_test(test_fn, test_name: str):
+def run_test(test_fn, test_name: str, use_mitmproxy: MitmProxyRunType = MitmProxyRunType.FORWARD):
+    # if os.environ.get("CI") and use_mitmproxy == MitmProxyRunType.NOPROXY:
+    # if we are in CI and nobody overrode our mitmproxy type we want to replay.
+    #    print("Setting mitmproxy replay")
+    #    use_mitmproxy = MitmProxyRunType.REPLAY
+
+    dump_file = pathlib.Path("/tmp/mitmdump-current")
+    if use_mitmproxy == MitmProxyRunType.REPLAY and not dump_file.is_file():
+        print(f"Dump file {dump_file} did not exist. We will abort")
+        return
+    hdc = HarmonyDeviceConnector()
     try:
         print("Stopping potential old servo instance ...")
         stop_servo()
-        hdc = HarmonyDeviceConnector()
-        print("Starting new servo instance...")
-        hdc.cmd(f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn --webdriver", timeout=10)
+
         setup_hdc_forward()
-        close_usb_popup(hdc)
-    except Exception as e:
-        print(f"Scenario test setup failed with error: {e} (exception: {type(e)})")
-        stop_servo()
-        sys.exit(1)
-    try:
-        with HarmonyDevicePerfMode():
-            test_fn()
+        with MitmProxy(use_mitmproxy, dump_file, MITMPROXY_PORT):
+            print("Starting new servo instance...")
+            time.sleep(5)
+            cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver"
+            if use_mitmproxy.should_servo_proxy():
+                cmd_str += f" --psn=--pref=network_https_proxy_uri=http://127.0.0.1:{MITMPROXY_PORT} --psn=--pref=network_http_proxy_uri=http://127.0.0.1:{MITMPROXY_PORT} --psn=--ignore-certificate-errors"
+            hdc.cmd(
+                cmd_str,
+                timeout=10,
+            )
+            with HarmonyDevicePerfMode():
+                close_usb_popup(hdc)
+                test_fn()
     except Exception as e:
         print(f"Scenario test `{test_name}` failed with error: {e} (exception: {type(e)})")
         hdc.screenshot(f"servo_scenario_{test_name}_error.jpg")
