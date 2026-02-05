@@ -15,12 +15,13 @@ use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use net::test_util::{make_body, make_server, replace_host_table};
+use servo::user_contents::UserStyleSheet;
 use servo::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
     ContextMenuItem, CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType,
     JSValue, JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction,
     MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, RenderingContext, Servo,
-    SimpleDialog, Theme, UserContentManager, WebView, WebViewBuilder, WebViewDelegate,
+    SimpleDialog, Theme, UserContentManager, UserScript, WebView, WebViewBuilder, WebViewDelegate,
 };
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
@@ -920,7 +921,7 @@ fn test_user_content_manager_empty() {
 }
 
 #[test]
-fn test_user_content_manager() {
+fn test_user_content_manager_user_script() {
     let servo_test = ServoTest::new();
 
     // Use a http server instead of a data url to allow the `webview.reload()` call below to reuse
@@ -931,7 +932,7 @@ fn test_user_content_manager() {
     });
 
     let user_content_manager = Rc::new(UserContentManager::new(servo_test.servo()));
-    user_content_manager.add_script("window.fromUserContentScript = 42;".into());
+    user_content_manager.add_script(Rc::new("window.fromUserContentScript = 42;".into()));
 
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .user_content_manager(user_content_manager.clone())
@@ -944,11 +945,12 @@ fn test_user_content_manager() {
     assert_eq!(result, Ok(JSValue::Number(42.0)));
 
     // Add a second user script to the `UserContentManager`.
-    user_content_manager.add_script("window.fromSecondUserContentScript = 32;".into());
+    let second_user_script = Rc::new(UserScript::from("window.fromSecondUserContentScript = 32;"));
+    user_content_manager.add_script(second_user_script.clone());
 
     // The second user script must immediately take effect in any new WebViews.
     let new_webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .user_content_manager(user_content_manager)
+        .user_content_manager(user_content_manager.clone())
         .url(Url::parse("data:text/html,<!DOCTYPE html>").unwrap())
         .build();
     let load_webview = new_webview.clone();
@@ -973,9 +975,24 @@ fn test_user_content_manager() {
 
     let load_webview = webview.clone();
     let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-    let result = evaluate_javascript(&servo_test, webview, "window.fromSecondUserContentScript");
+    let result = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "window.fromSecondUserContentScript",
+    );
 
     assert_eq!(result, Ok(JSValue::Number(32.0)));
+
+    // Test that removing the user script works. Trigger a reload and ensure the second user script
+    // no longer has effect on the page.
+    user_content_manager.remove_script(second_user_script);
+    webview.reload();
+
+    let load_webview = webview.clone();
+    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+    let result = evaluate_javascript(&servo_test, webview, "window.fromSecondUserContentScript");
+
+    assert_eq!(result, Ok(JSValue::Undefined));
 }
 
 #[test]
@@ -991,8 +1008,9 @@ fn test_user_content_manager_for_auxiliary_webviews() {
         fn request_create_new(&self, _parent_webview: WebView, request: CreateNewWebViewRequest) {
             let user_content_manager_for_auxiliary_webview = UserContentManager::new(&self.servo);
             // Add a different user script to the `UserContentManager` of auxiliary webview.
-            user_content_manager_for_auxiliary_webview
-                .add_script("window.fromAuxiliaryUserContentScript = 32;".into());
+            user_content_manager_for_auxiliary_webview.add_script(Rc::new(
+                "window.fromAuxiliaryUserContentScript = 32;".into(),
+            ));
             let auxiliary_webview = request
                 .builder(self.rendering_context.clone())
                 .user_content_manager(Rc::new(user_content_manager_for_auxiliary_webview))
@@ -1010,7 +1028,7 @@ fn test_user_content_manager_for_auxiliary_webviews() {
     });
 
     let user_content_manager = UserContentManager::new(servo_test.servo());
-    user_content_manager.add_script("window.fromUserContentScript = 42;".into());
+    user_content_manager.add_script(Rc::new("window.fromUserContentScript = 42;".into()));
 
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
@@ -1071,6 +1089,71 @@ fn test_user_content_manager_for_auxiliary_webviews() {
             JSValue::Number(32.0),
         ]))
     );
+}
+
+#[test]
+fn test_user_content_manager_for_user_stylesheets() {
+    let servo_test = ServoTest::new();
+
+    let user_content_manager = Rc::new(UserContentManager::new(servo_test.servo()));
+
+    #[cfg(not(target_os = "windows"))]
+    let url = Url::from_file_path("/test/test.css").unwrap();
+    #[cfg(target_os = "windows")]
+    let url = Url::from_file_path("C:\\test\\test.css").unwrap();
+
+    let user_stylesheet = Rc::new(UserStyleSheet::new(
+        "div { width: 100px; height: 50px }\
+        p { width: 200px; height: 200px }"
+            .into(),
+        url,
+    ));
+    user_content_manager.add_stylesheet(user_stylesheet.clone());
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .user_content_manager(user_content_manager.clone())
+        .url(
+            Url::parse(
+                "data:text/html,<!DOCTYPE html>\
+                        <style>p { width: 300px; height: 300px }</style>\
+                        <div id='div1'></div><p id='p1'>test paragraph</p>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    let load_webview = webview.clone();
+    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    let result = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "[ div1.offsetWidth, div1.offsetHeight, p1.offsetWidth, p1.offsetHeight ]",
+    );
+    assert_eq!(
+        result,
+        Ok(JSValue::Array(vec![
+            // `div` elements uses the rules from the user stylesheet since the author stylesheet doesn't
+            // have any rules that match `div`s.
+            JSValue::Number(100.0),
+            JSValue::Number(50.0),
+            // `p` element uses the rules from author stylesheet as they have precendece over user
+            // rules from user stylesheets.
+            JSValue::Number(300.0),
+            JSValue::Number(300.0),
+        ]))
+    );
+
+    // Test that removing the stylesheet works.
+    user_content_manager.remove_stylesheet(user_stylesheet);
+    webview.reload();
+
+    let load_webview = webview.clone();
+    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    let result = evaluate_javascript(&servo_test, webview.clone(), "div1.offsetHeight");
+
+    assert_eq!(result, Ok(JSValue::Number(0.0)));
 }
 
 #[test]

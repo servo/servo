@@ -51,7 +51,7 @@ use devtools_traits::{
     CSSError, DevtoolScriptControlMsg, DevtoolsPageInfo, NavigationState,
     ScriptToDevtoolsControlMsg, WorkerId,
 };
-use embedder_traits::user_contents::{UserContentManagerId, UserContents};
+use embedder_traits::user_contents::{UserContentManagerId, UserContents, UserScript};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, EmbedderMsg, FocusSequenceNumber,
     JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType, Theme,
@@ -91,10 +91,16 @@ use script_traits::{
     NewPipelineInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage,
     UpdatePipelineIdReason,
 };
+use servo_arc::Arc as ServoArc;
 use servo_config::{opts, prefs};
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
+use style::context::QuirksMode;
+use style::error_reporting::RustLogReporter;
+use style::global_style_data::GLOBAL_STYLE_DATA;
+use style::media_queries::MediaList;
+use style::stylesheets::{AllowImportRules, DocumentStyleSheet, Origin, Stylesheet};
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
 use timers::{TimerEventRequest, TimerId, TimerScheduler};
@@ -223,6 +229,40 @@ impl Drop for ScriptUserInteractingGuard {
     }
 }
 
+/// This is the `ScriptThread`'s version of [`UserContents`] with the difference that user
+/// stylesheets are represented as parsed `DocumentStyleSheet`s instead of simple source strings.
+struct ScriptThreadUserContents {
+    user_scripts: Rc<Vec<UserScript>>,
+    user_stylesheets: Rc<Vec<DocumentStyleSheet>>,
+}
+
+impl From<UserContents> for ScriptThreadUserContents {
+    fn from(user_contents: UserContents) -> Self {
+        let shared_lock = &GLOBAL_STYLE_DATA.shared_lock;
+        let user_stylesheets = user_contents
+            .stylesheets
+            .iter()
+            .map(|user_stylesheet| {
+                DocumentStyleSheet(ServoArc::new(Stylesheet::from_str(
+                    user_stylesheet.source(),
+                    user_stylesheet.url().into(),
+                    Origin::User,
+                    ServoArc::new(shared_lock.wrap(MediaList::empty())),
+                    shared_lock.clone(),
+                    None,
+                    Some(&RustLogReporter),
+                    QuirksMode::NoQuirks,
+                    AllowImportRules::Yes,
+                )))
+            })
+            .collect();
+        Self {
+            user_scripts: Rc::new(user_contents.scripts),
+            user_stylesheets: Rc::new(user_stylesheets),
+        }
+    }
+}
+
 #[derive(JSTraceable)]
 // ScriptThread instances are rooted on creation, so this is okay
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
@@ -336,7 +376,8 @@ pub struct ScriptThread {
     /// with a copy of the map in constellation (via the `InitialScriptState`). After that,
     /// the constellation forwards any mutations to this `ScriptThread` using messages.
     #[no_trace]
-    user_contents_for_manager_id: RefCell<FxHashMap<UserContentManagerId, Rc<UserContents>>>,
+    user_contents_for_manager_id:
+        RefCell<FxHashMap<UserContentManagerId, ScriptThreadUserContents>>,
 
     /// Application window's GL Context for Media player
     #[no_trace]
@@ -956,7 +997,7 @@ impl ScriptThread {
         let user_contents_for_manager_id =
             FxHashMap::from_iter(state.user_contents_for_manager_id.into_iter().map(
                 |(user_content_manager_id, user_contents)| {
-                    (user_content_manager_id, Rc::new(user_contents))
+                    (user_content_manager_id, user_contents.into())
                 },
             ));
 
@@ -1923,7 +1964,7 @@ impl ScriptThread {
             ScriptThreadMessage::SetUserContents(user_content_manager_id, user_contents) => {
                 self.user_contents_for_manager_id
                     .borrow_mut()
-                    .insert(user_content_manager_id, Rc::new(user_contents));
+                    .insert(user_content_manager_id, user_contents.into());
             },
             ScriptThreadMessage::DestroyUserContentManager(user_content_manager_id) => {
                 self.user_contents_for_manager_id
@@ -3243,6 +3284,21 @@ impl ScriptThread {
             &self.paint_api,
         );
 
+        let (user_contents, user_stylesheets) = incomplete
+            .user_content_manager_id
+            .and_then(|user_content_manager_id| {
+                self.user_contents_for_manager_id
+                    .borrow()
+                    .get(&user_content_manager_id)
+                    .map(|script_thread_user_contents| {
+                        (
+                            script_thread_user_contents.user_scripts.clone(),
+                            script_thread_user_contents.user_stylesheets.clone(),
+                        )
+                    })
+            })
+            .unwrap_or_default();
+
         let layout_config = LayoutConfig {
             id: incomplete.pipeline_id,
             webview_id: incomplete.webview_id,
@@ -3254,18 +3310,9 @@ impl ScriptThread {
             time_profiler_chan: self.senders.time_profiler_sender.clone(),
             paint_api: self.paint_api.clone(),
             viewport_details: incomplete.viewport_details,
+            user_stylesheets,
             theme: incomplete.theme,
         };
-
-        let user_contents =
-            incomplete
-                .user_content_manager_id
-                .and_then(|user_content_manager_id| {
-                    self.user_contents_for_manager_id
-                        .borrow()
-                        .get(&user_content_manager_id)
-                        .cloned()
-                });
 
         // Create the window and document objects.
         let window = Window::new(
