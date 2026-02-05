@@ -232,9 +232,8 @@ impl Handler {
         }
     }
 
-    fn wait_for_input_event_handled(&self) -> Result<(), ErrorStatus> {
-        let pending_receivers =
-            std::mem::take(&mut *self.pending_input_event_receivers.borrow_mut());
+    fn wait_for_input_event_handled(&mut self) -> Result<(), ErrorStatus> {
+        let pending_receivers = std::mem::take(&mut self.pending_input_event_receivers);
 
         for receiver in pending_receivers {
             let _ = receiver.recv();
@@ -668,7 +667,7 @@ impl Handler {
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-scroll-action>
     fn dispatch_scroll_action(
-        &self,
+        &mut self,
         input_id: &str,
         action: &WheelScrollAction,
         tick_duration: u64,
@@ -751,7 +750,7 @@ impl Handler {
     /// <https://w3c.github.io/webdriver/#dfn-perform-a-scroll>
     #[expect(clippy::too_many_arguments)]
     fn perform_scroll(
-        &self,
+        &mut self,
         duration: u64,
         x: f64,
         y: f64,
