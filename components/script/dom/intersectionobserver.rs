@@ -453,10 +453,7 @@ impl IntersectionObserver {
                     //
                     // There are uncertainties whether the browsing context we should consider is the browsing
                     // context of the target or observer. <https://github.com/w3c/IntersectionObserver/issues/456>
-                    document
-                        .window()
-                        .webview_window_proxy()
-                        .and_then(|window_proxy| window_proxy.document())
+                    document.window().top_level_document()
                 } else if let Some(ElementOrDocument::Document(document)) = &self.root {
                     Some(document.clone())
                 } else {

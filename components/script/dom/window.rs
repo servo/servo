@@ -648,13 +648,19 @@ impl Window {
         })
     }
 
-    /// Returns the window proxy of the webview, which is the top-level ancestor browsing context.
+    /// Get the active [`Document`] of top-level browsing context, or return [`Window`]'s [`Document`]
+    /// if it's browing context is the top-level browsing context.
     /// <https://html.spec.whatwg.org/multipage/#top-level-browsing-context>
-    pub(crate) fn webview_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
-        self.undiscarded_window_proxy().and_then(|window_proxy| {
-            self.script_window_proxies
-                .find_window_proxy(window_proxy.webview_id().into())
-        })
+    pub(crate) fn top_level_document(&self) -> Option<DomRoot<Document>> {
+        let window_proxy = self.undiscarded_window_proxy()?;
+        if window_proxy.is_top_level() {
+            Some(self.Document())
+        } else {
+            let top_level_window_proxy = self
+                .script_window_proxies
+                .find_window_proxy(window_proxy.webview_id().into())?;
+            top_level_window_proxy.document()
+        }
     }
 
     #[cfg(feature = "bluetooth")]
@@ -1832,8 +1838,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             .window_proxy
             .get()
             .expect("Should always have a WindowProxy when calling WebdriverWindow");
-        // Window must be top level browsing context.
-        assert!(window_proxy.browsing_context_id() == window_proxy.webview_id());
+        assert!(window_proxy.is_top_level(), "Window must be top level browsing context.");
         assert!(self.webview_id().to_string() == webview_id);
         DomRoot::from_ref(window_proxy)
     }
@@ -3690,10 +3695,7 @@ impl Window {
 
         // Step 2.
         // > Let top be W's navigable's top-level traversable.
-        let Some(top_level_document) = self
-            .webview_window_proxy()
-            .and_then(|window_proxy| window_proxy.document())
-        else {
+        let Some(top_level_document) = self.top_level_document() else {
             return;
         };
 

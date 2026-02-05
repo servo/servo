@@ -680,6 +680,10 @@ impl WindowProxy {
         result
     }
 
+    pub(crate) fn is_top_level(&self) -> bool {
+        self.browsing_context_id == self.webview_id
+    }
+
     /// Run [the focusing steps] with this browsing context.
     ///
     /// [the focusing steps]: https://html.spec.whatwg.org/multipage/#focusing-steps
