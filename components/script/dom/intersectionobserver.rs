@@ -405,7 +405,7 @@ impl IntersectionObserver {
     }
 
     /// Connect the observer itself into owner doc if it is unconnected.
-    /// We check if we are already connected
+    /// If the [`IntersectionObserver`] is already connected, do nothing.
     fn connect_to_owner(&self) {
         if !self.is_connected.get() {
             self.owner_doc.add_intersection_observer(self);
