@@ -10,8 +10,8 @@ use std::collections::HashMap;
 use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
-use malloc_size_of_derive::MallocSizeOf;
 use devtools_traits::{DevtoolScriptControlMsg, EventListenerInfo, NodeInfo, ShadowRootMode};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
