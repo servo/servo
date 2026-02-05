@@ -414,7 +414,7 @@ impl Preferences {
             dom_worklet_testing_enabled: false,
             dom_worklet_timeout_ms: 10,
             dom_visual_viewport_enabled: false,
-            experimental_accessibility_enabled: false,
+            accessibility_enabled: false,
             fonts_default: String::new(),
             fonts_default_monospace_size: 13,
             fonts_default_size: 16,
