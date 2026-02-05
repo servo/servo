@@ -50,7 +50,8 @@ use crate::dom::element::{
     set_cross_origin_attribute,
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
-use crate::dom::globalscope::{ClassicScript, ErrorReporting, GlobalScope, RethrowErrors};
+use crate::dom::global_scope_script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;

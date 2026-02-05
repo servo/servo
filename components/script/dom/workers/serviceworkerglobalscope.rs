@@ -45,7 +45,8 @@ use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
 use crate::dom::extendablemessageevent::ExtendableMessageEvent;
-use crate::dom::globalscope::{ErrorReporting, GlobalScope, RethrowErrors};
+use crate::dom::global_scope_script_execution::{ErrorReporting, RethrowErrors};
+use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::TrustedWorkerAddress;

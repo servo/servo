@@ -32,7 +32,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;
 use crate::dom::document::RefreshRedirectDue;
 use crate::dom::eventsource::EventSourceTimeoutCallback;
-use crate::dom::globalscope::{ErrorReporting, GlobalScope, RethrowErrors};
+use crate::dom::global_scope_script_execution::{ErrorReporting, RethrowErrors};
+use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "testbinding")]
 use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::trustedscript::TrustedScript;

@@ -306,6 +306,7 @@ pub(crate) mod gamepad;
 pub(crate) use self::gamepad::*;
 pub(crate) mod geolocation;
 pub(crate) use self::geolocation::*;
+pub(crate) mod global_scope_script_execution;
 #[expect(dead_code)]
 pub(crate) mod globalscope;
 pub(crate) mod hashchangeevent;
