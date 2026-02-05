@@ -43,6 +43,7 @@ use embedder_traits::{
 use euclid::default::Rect as UntypedRect;
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::{CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext};
+use js::context::JSContext;
 use js::glue::DumpJSStack;
 use js::jsapi::{
     GCReason, Heap, JS_GC, JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE,
@@ -191,7 +192,7 @@ use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEvent
 use crate::microtask::{Microtask, UserMicrotask};
 use crate::network_listener::{ResourceTimingListener, submit_timing};
 use crate::realms::{InRealm, enter_realm};
-use crate::script_runtime::{CanGc, JSContext, Runtime};
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::task_source::SendableTaskSource;
@@ -554,8 +555,8 @@ impl Window {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn get_cx(&self) -> JSContext {
-        unsafe { JSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
+    pub(crate) fn get_cx(&self) -> SafeJSContext {
+        unsafe { SafeJSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
     }
 
     pub(crate) fn get_js_runtime(&self) -> Ref<'_, Option<Rc<Runtime>>> {
@@ -1301,7 +1302,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-opener>
     fn GetOpener(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         in_realm_proof: InRealm,
         mut retval: MutableHandleValue,
     ) -> Fallible<()> {
@@ -1329,7 +1330,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#dom-opener>
-    fn SetOpener(&self, cx: JSContext, value: HandleValue) -> ErrorResult {
+    fn SetOpener(&self, cx: SafeJSContext, value: HandleValue) -> ErrorResult {
         // Step 1.
         if value.is_null() {
             if let Some(proxy) = self.window_proxy.get() {
@@ -1476,7 +1477,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-reporterror>
-    fn ReportError(&self, cx: JSContext, error: HandleValue, can_gc: CanGc) {
+    fn ReportError(&self, cx: SafeJSContext, error: HandleValue, can_gc: CanGc) {
         self.as_global_scope()
             .report_an_exception(cx, error, can_gc);
     }
@@ -1495,7 +1496,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-settimeout>
     fn SetTimeout(
         &self,
-        _cx: JSContext,
+        _cx: SafeJSContext,
         callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -1527,7 +1528,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval>
     fn SetInterval(
         &self,
-        _cx: JSContext,
+        _cx: SafeJSContext,
         callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -1708,7 +1709,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-window-postmessage>
     fn PostMessage(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         target_origin: USVString,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
@@ -1723,7 +1724,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
     fn PostMessage_(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         options: RootedTraceableBox<WindowPostMessageOptions>,
     ) -> ErrorResult {
@@ -1735,7 +1736,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
                 .collect(),
         );
-        let transfer = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        #[expect(unsafe_code)]
+        let transfer = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
 
         let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
         let source = incumbent.as_window();
@@ -1784,7 +1786,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
     }
 
-    fn WebdriverCallback(&self, cx: JSContext, value: HandleValue, realm: InRealm, can_gc: CanGc) {
+    fn WebdriverCallback(
+        &self,
+        cx: SafeJSContext,
+        value: HandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
         let webdriver_script_sender = self.webdriver_script_chan.borrow_mut().take();
         if let Some(webdriver_script_sender) = webdriver_script_sender {
             let result = jsval_to_webdriver(cx, &self.globalscope, value, realm, can_gc);
@@ -1792,7 +1800,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
     }
 
-    fn WebdriverException(&self, cx: JSContext, value: HandleValue, can_gc: CanGc) {
+    fn WebdriverException(&self, cx: SafeJSContext, value: HandleValue, can_gc: CanGc) {
         let webdriver_script_sender = self.webdriver_script_chan.borrow_mut().take();
         if let Some(webdriver_script_sender) = webdriver_script_sender {
             let _ =
@@ -2169,7 +2177,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-window-event>
-    fn Event(&self, cx: JSContext, rval: MutableHandleValue) {
+    fn Event(&self, cx: SafeJSContext, rval: MutableHandleValue) {
         if let Some(ref event) = *self.current_event.borrow() {
             event
                 .reflector()
@@ -2334,7 +2342,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-structuredclone>
     fn StructuredClone(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         value: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
         can_gc: CanGc,
@@ -2358,7 +2366,7 @@ impl Window {
     // https://heycam.github.io/webidl/#named-properties-object
     // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
     pub(crate) fn create_named_properties_object(
-        cx: JSContext,
+        cx: SafeJSContext,
         proto: HandleObject,
         object: MutableHandleObject,
     ) {
@@ -2384,12 +2392,12 @@ impl Window {
         target_origin: &USVString,
         source_origin: ImmutableOrigin,
         source: &Window,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
         // Step 1-2, 6-8.
-        let data = structuredclone::write(cx, message, Some(transfer))?;
+        let data = structuredclone::write(cx.into(), message, Some(transfer))?;
 
         // Step 3-5.
         let target_origin = match target_origin.0[..].as_ref() {
@@ -4037,7 +4045,7 @@ unsafe extern "C" fn dump_js_stack(cx: *mut RawJSContext) {
 
 impl WindowHelpers for Window {
     fn create_named_properties_object(
-        cx: JSContext,
+        cx: SafeJSContext,
         proto: HandleObject,
         object: MutableHandleObject,
     ) {
