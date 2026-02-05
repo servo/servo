@@ -519,6 +519,9 @@ impl LineItemLayout<'_, '_> {
                 let line_height = line_height(style, font_metrics, &inline_box_state.base.flags);
                 (line_height - line_gap).scale_by(0.5)
             },
+            BaselineShift::Keyword(BaselineShiftKeyword::Center) => {
+                (self.line_metrics.block_size - line_gap).scale_by(0.5)
+            },
             BaselineShift::Keyword(BaselineShiftKeyword::Bottom) => {
                 let line_height = line_height(style, font_metrics, &inline_box_state.base.flags);
                 let half_leading = (line_height - line_gap).scale_by(0.5);
@@ -915,6 +918,9 @@ impl AtomicLineItem {
     fn calculate_block_start(&self, line_metrics: &LineMetrics) -> Au {
         match self.fragment.borrow().style().clone_baseline_shift() {
             BaselineShift::Keyword(BaselineShiftKeyword::Top) => Au::zero(),
+            BaselineShift::Keyword(BaselineShiftKeyword::Center) => {
+                (line_metrics.block_size - self.size.block).scale_by(0.5)
+            },
             BaselineShift::Keyword(BaselineShiftKeyword::Bottom) => {
                 line_metrics.block_size - self.size.block
             },

@@ -2305,7 +2305,9 @@ impl InlineContainerState {
                 // TODO: We should distinguish these from `baseline` in order to implement "aligned subtrees" properly.
                 // See https://drafts.csswg.org/css2/#aligned-subtree.
                 BaselineShift::Keyword(
-                    BaselineShiftKeyword::Top | BaselineShiftKeyword::Bottom,
+                    BaselineShiftKeyword::Top |
+                    BaselineShiftKeyword::Bottom |
+                    BaselineShiftKeyword::Center,
                 ) => Au::zero(),
                 BaselineShift::Keyword(BaselineShiftKeyword::Sub) => {
                     block_size.resolve().scale_by(FONT_SUBSCRIPT_OFFSET_RATIO)
@@ -2538,7 +2540,9 @@ fn effective_baseline_shift(
 fn is_baseline_relative(baseline_shift: BaselineShift) -> bool {
     !matches!(
         baseline_shift,
-        BaselineShift::Keyword(BaselineShiftKeyword::Top | BaselineShiftKeyword::Bottom)
+        BaselineShift::Keyword(
+            BaselineShiftKeyword::Top | BaselineShiftKeyword::Bottom | BaselineShiftKeyword::Center
+        )
     )
 }
 
