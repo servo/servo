@@ -36,6 +36,7 @@ jobs:
           sparse-checkout: |
             .github
             etc/ci
+            uv.lock
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
