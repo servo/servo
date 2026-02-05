@@ -198,7 +198,7 @@ jobs:
       UV_PROJECT: "etc/ci/scenario"
     continue-on-error: true
     runs-on: hos-runner
-    needs: test-harmonyos-aarch64
+    needs: build-harmonyos-aarch64
     outputs:
       job_status: ${{ steps.result.outputs.JOB_STATUS }}
     if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.outputs.job_status == 'success'
@@ -390,17 +390,16 @@ jobs:
   collect-job-results:
     name: Collect Job Results
     runs-on: ubuntu-latest
-    needs: [build-harmonyos-aarch64, bench-harmonyos-aarch64, test-harmonyos-aarch64, scenario-test-harmonyos]
+    needs: [build-harmonyos-aarch64, bench-harmonyos-aarch64, scenario-test-harmonyos]
     outputs:
       collected_job_status: ${{ steps.result.outputs.JOB_RESULTS_JSON }}
     steps:
       - name: Save result as job output
         id: result
         run: |
-          JSON_FMT='{"build-harmonyos-aarch64":{"result":"%s"},"bench-harmonyos-aarch64":{"result":"%s"},"test-harmonyos-aarch64":{"result":"%s"},"scenario-test-harmonyos":{"result":"%s"}}'
+          JSON_FMT='{"build-harmonyos-aarch64":{"result":"%s"},"bench-harmonyos-aarch64":{"result":"%s"},"scenario-test-harmonyos":{"result":"%s"}}'
           printf "JOB_RESULTS_JSON=$JSON_FMT" \
                   "${{ needs.build-harmonyos-aarch64.outputs.job_status }}" \
                   "${{ needs.bench-harmonyos-aarch64.outputs.job_status }}" \
-                  "${{ needs.test-harmonyos-aarch64.outputs.job_status }}" \
                   "${{ needs.scenario-test-harmonyos.outputs.job_status }}" \
             >> $GITHUB_OUTPUT
