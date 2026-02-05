@@ -327,8 +327,8 @@ pub struct Preferences {
     pub viewport_meta_enabled: bool,
     pub log_filter: String,
 
-    // Whether the experimental accessibility code is enabled
-    pub experimental_accessibility_enabled: bool,
+    // Whether the accessibility code is enabled.
+    pub accessibility_enabled: bool,
 }
 
 impl Preferences {
