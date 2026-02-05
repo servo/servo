@@ -401,12 +401,17 @@ impl TouchHandler {
 
     pub(crate) fn stop_fling_if_needed(&mut self) {
         let current_sequence_id = self.current_sequence_id;
-        let touch_sequence = self.get_current_touch_sequence_mut();
+        let Some(touch_sequence) = self.try_get_current_touch_sequence_mut() else {
+            debug!(
+                "Touch sequence already removed before stoping potential flinging during Paint update"
+            );
+            return;
+        };
         let Flinging { .. } = touch_sequence.state else {
             return;
         };
         let _span = profile_traits::info_span!("TouchHandler::FlingEnd").entered();
-        debug!("Stopping fling in touch sequence {current_sequence_id:?}");
+        debug!("Stopping flinging in touch sequence {current_sequence_id:?}");
         touch_sequence.state = Finished;
         // If we were flinging previously, there could still be a touch_up event result
         // coming in after we stopped flinging
