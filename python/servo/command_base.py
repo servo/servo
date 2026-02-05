@@ -504,6 +504,9 @@ class CommandBase(object):
         else:
             env.setdefault("CC", "clang-cl.exe")
             env.setdefault("CXX", "clang-cl.exe")
+            # winget doesn't add LLVM to the PATH, so append the default install location. If LLVM
+            # was installed to an alternative location, then the user should have set the PATH.
+            util.append_paths_to_env(env, "PATH", os.path.join(env["PROGRAMFILES"], "LLVM", "bin"))
 
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"

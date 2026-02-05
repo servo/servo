@@ -45,7 +45,7 @@ For more detailed build instructions, see the Servo Book under [Getting the Code
 
 ### Windows
 
-- Download [`uv`](https://docs.astral.sh/uv/getting-started/installation/#standalone-installer), [`choco`](https://chocolatey.org/install#individual), and [`rustup`](https://win.rustup.rs/)
+- Download [`uv`](https://docs.astral.sh/uv/getting-started/installation/#standalone-installer), [`winget`](https://github.com/microsoft/winget-cli#installing-the-client), and [`rustup`](https://win.rustup.rs/)
   - Be sure to select *Quick install via the Visual Studio Community installer*
 - In the Visual Studio Installer, ensure the following components are installed:
   - **Windows 10/11 SDK (anything >= 10.0.19041.0)** (`Microsoft.VisualStudio.Component.Windows{10, 11}SDK.{>=19041}`)

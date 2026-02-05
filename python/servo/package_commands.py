@@ -35,7 +35,7 @@ from servo.command_base import (
     CommandBase,
     is_windows,
 )
-from servo.util import delete
+from servo.util import delete, append_paths_to_env
 
 from python.servo.platform.build_target import SanitizerKind
 from servo.platform.build_target import is_android, is_openharmony
@@ -292,6 +292,11 @@ class PackageCommands(CommandBase):
             open(wxs_path, "w").write(
                 template.render(exe_path=target_dir, dir_to_temp=dir_to_temp, resources_path=dir_to_resources)
             )
+
+            # If the WiX installer set the WIX env var, then add it to PATH.
+            # TODO: When WIX is upgraded to v6, this won't be needed any more.
+            if "WIX" in env:
+                append_paths_to_env(env, "PATH", path.join(env["WIX"], "bin"))
 
             # run candle and light
             print("Creating MSI")
