@@ -42,6 +42,7 @@ jobs:
             python/servo/try_parser.py
             .github/actions/setup-python
             .python-version
+            uv.lock
           sparse-checkout-cone-mode: false
       - name: Setup Python
         uses: ./.github/actions/setup-python
