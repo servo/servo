@@ -218,7 +218,7 @@ impl ApplicationHandler<AppEvent> for App {
             .and_then(|window_id| state.window(ServoShellWindowId::from(u64::from(window_id))))
         {
             if let Some(headed_window) = window.platform_window().as_headed_window() {
-                headed_window.handle_winit_app_event(&window, app_event);
+                headed_window.handle_winit_app_event(state.clone(), app_event);
             }
         }
 

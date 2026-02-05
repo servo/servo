@@ -23,7 +23,7 @@ publish = false
 rust-version = "1.86.0"
 
 [workspace.dependencies]
-accesskit = { version = "0.21.1", features = ["serde"] }
+accesskit = { version = "0.23.0", features = ["serde"] }
 accountable-refcell = "0.2.2"
 aes = "0.8.4"
 aes-gcm = "0.10.3"
@@ -319,3 +319,7 @@ codegen-units = 1
 #
 # mozjs = { path = "../mozjs/mozjs" }
 # mozjs_sys = { path = "../mozjs/mozjs-sys" }
+
+# Pending egui bumping their accesskit version: https://github.com/emilk/egui/pull/7850
+egui = { git = "https://github.com/emilk/egui.git", rev = "c59091a8f28564e2b21286d4e38cf2858e6bf328" }
+egui-winit = { git = "https://github.com/emilk/egui.git", rev = "c59091a8f28564e2b21286d4e38cf2858e6bf328" }

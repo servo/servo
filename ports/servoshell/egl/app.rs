@@ -8,7 +8,7 @@ use base::generic_channel::GenericCallback;
 use dpi::PhysicalSize;
 use euclid::{Rect, Scale};
 use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey};
-use log::{info, warn};
+use log::{info, trace, warn};
 use raw_window_handle::{DisplayHandle, RawWindowHandle, WindowHandle};
 use servo::{
     DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntSize, DevicePixel, DevicePoint,

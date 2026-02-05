@@ -83,6 +83,7 @@ mod from_embedder {
                 Self::EmbedderControlResponse(..) => target!("EmbedderControlResponse"),
                 Self::UserContentManagerAction(..) => target!("UserContentManagerAction"),
                 Self::UpdatePinchZoomInfos(..) => target!("UpdatePinchZoomInfos"),
+                Self::SetAccessibilityEnabled(..) => target!("SetAccessibilityEnabled"),
             }
         }
     }

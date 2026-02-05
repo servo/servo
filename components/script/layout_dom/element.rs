@@ -1038,6 +1038,10 @@ impl<'dom> ServoThreadSafeLayoutElement<'dom> {
     pub fn slotted_nodes(&self) -> &[ServoLayoutNode<'dom>] {
         self.element.slotted_nodes()
     }
+
+    pub fn is_html_element(&self) -> bool {
+        self.element.is_html_element()
+    }
 }
 
 impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> {
