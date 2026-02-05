@@ -178,7 +178,7 @@ fn console_object_from_handle_value(
         GetPropertyKeys(
             *cx,
             object.handle(),
-            jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
+            jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS | jsapi::JSITER_HIDDEN,
             ids.handle_mut(),
         )
     } {
@@ -225,9 +225,9 @@ fn console_object_from_handle_value(
 
         own_properties.push(ConsoleArgumentPropertyValue {
             key,
-            configurable: descriptor.hasConfigurable_(),
-            enumerable: descriptor.hasEnumerable_(),
-            writable: descriptor.hasWritable_(),
+            configurable: descriptor.hasConfigurable_() && descriptor.configurable_(),
+            enumerable: descriptor.hasEnumerable_() && descriptor.enumerable_(),
+            writable: descriptor.hasWritable_() && descriptor.writable_(),
             value: console_argument_from_handle_value(cx, property.handle()),
         });
     }
