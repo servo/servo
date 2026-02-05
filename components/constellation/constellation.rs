@@ -3002,6 +3002,9 @@ where
     }
 
     fn set_accessibility_active(&mut self, active: bool) {
+        if !(pref!(accessibility_enabled)) {
+            return;
+        }
         self.accessibility_active = active;
         for browsing_context in self.browsing_contexts.values_mut() {
             if let Some(pipeline) = self.pipelines.get(&browsing_context.pipeline_id) {
