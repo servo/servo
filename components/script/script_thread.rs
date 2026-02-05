@@ -2118,6 +2118,9 @@ impl ScriptThread {
                 },
                 None => warn!("Message sent to closed pipeline {}.", id),
             },
+            DevtoolScriptControlMsg::GetEventListenerInfo(id, node, reply) => {
+                devtools::handle_get_event_listener_info(&documents, id, &node, reply)
+            },
             DevtoolScriptControlMsg::GetRootNode(id, reply) => {
                 devtools::handle_get_root_node(&documents, id, reply, CanGc::from_cx(cx))
             },

@@ -11,6 +11,7 @@ use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use deny_public_fields::DenyPublicFields;
+use devtools_traits::EventListenerInfo;
 use dom_struct::dom_struct;
 use js::jsapi::JS::CompileFunction;
 use js::jsapi::{JS_GetFunctionObject, SupportUnscopables};
@@ -1097,6 +1098,22 @@ impl EventTarget {
     /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
     pub(crate) fn is_content_event_handler(name: &str) -> bool {
         CONTENT_EVENT_HANDLER_NAMES.contains(&name)
+    }
+
+    pub(crate) fn summarize_event_listeners_for_devtools(&self) -> Vec<EventListenerInfo> {
+        let handlers = self.handlers.borrow();
+        let mut listener_infos = Vec::with_capacity(handlers.0.len());
+        for (event_type, event_listeners) in &handlers.0 {
+            for event_listener in event_listeners.iter() {
+                let event_listener_entry = event_listener.borrow();
+                listener_infos.push(EventListenerInfo {
+                    event_type: event_type.to_string(),
+                    capturing: event_listener_entry.phase() == ListenerPhase::Capturing,
+                });
+            }
+        }
+
+        listener_infos
     }
 }
 
