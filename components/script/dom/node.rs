@@ -2548,12 +2548,18 @@ impl Node {
         debug_assert!(child.is_none_or(|child| Some(parent) == child.GetParentNode().as_deref()));
 
         // Step 1. Let nodes be node’s children, if node is a DocumentFragment node; otherwise « node ».
-        rooted_vec!(let mut new_nodes);
-        let new_nodes = if let NodeTypeId::DocumentFragment(_) = node.type_id() {
-            new_nodes.extend(node.children().map(|node| Dom::from_ref(&*node)));
-            new_nodes.r()
+        let mut unrooted_vec = js::gc::RootableVec::new_unrooted();
+        let fragment_nodes = if let NodeTypeId::DocumentFragment(_) = node.type_id() {
+            let mut rooted_vec = js::gc::RootedVec::new(&mut unrooted_vec);
+            rooted_vec.extend(node.children().map(|n| Dom::from_ref(&*n)));
+            Some(rooted_vec)
         } else {
-            from_ref(&node)
+            None
+        };
+
+        let new_nodes = match fragment_nodes {
+            Some(ref vec) => vec.r(),
+            None => from_ref(&node),
         };
 
         // Step 2. Let count be nodes’s size.
