@@ -36,10 +36,7 @@ pub use self::background_hang_monitor::*;
             target_env = "musl"
         )
     ),
-    all(
-        target_os = "windows",
-        target_arch = "aarch64"
-    ),
+    all(target_os = "windows", target_arch = "aarch64"),
 ))]
 pub(crate) use crate::sampler::DummySampler as SamplerImpl;
 #[cfg(all(
