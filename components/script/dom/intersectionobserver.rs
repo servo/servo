@@ -414,7 +414,7 @@ impl IntersectionObserver {
     }
 
     /// Disconnect the observer itself from owner doc.
-    /// We we were already disconnected from the observer
+    /// If not connected to a [`Document`], do nothing.
     fn disconnect_from_owner(&self) {
         if self.is_connected.get() {
             self.owner_doc.remove_intersection_observer(self);
