@@ -1,3 +1,4 @@
+import aioquic
 import asyncio
 import contextlib
 import logging
@@ -380,13 +381,14 @@ class WebTransportSession:
         """
         stream_id = self._http.create_webtransport_stream(
             session_id=self.session_id, is_unidirectional=False)
-        # TODO(bashi): Remove this workaround when aioquic supports receiving
-        # data on server-initiated bidirectional streams.
-        stream = self._http._get_or_create_stream(stream_id)
-        assert stream.frame_type is None
-        assert stream.session_id is None
-        stream.frame_type = FrameType.WEBTRANSPORT_STREAM
-        stream.session_id = self.session_id
+        if aioquic.__version__ <= "1.2.0":
+            # TODO(bashi): Remove this workaround when aioquic supports receiving
+            # data on server-initiated bidirectional streams.
+            stream = self._http._get_or_create_stream(stream_id)
+            assert stream.frame_type is None
+            assert stream.session_id is None
+            stream.frame_type = FrameType.WEBTRANSPORT_STREAM
+            stream.session_id = self.session_id
         return stream_id
 
     def send_stream_data(self,
