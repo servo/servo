@@ -101,7 +101,7 @@ pub(crate) struct IntersectionObserver {
     track_visibility: Cell<bool>,
 
     /// Whether or not this [`IntersectionObserver`] is connected to its owning [`Document`].
-    is_connected: Cell<bool>,
+    connected_to_document: Cell<bool>,
 }
 
 impl IntersectionObserver {
