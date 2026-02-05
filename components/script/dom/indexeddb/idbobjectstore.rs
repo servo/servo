@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use base::generic_channel;
 use base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -735,9 +734,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 11. Let index be a new index in store.
         // Set index’s name to name and key path to keyPath. If unique is set, set index’s unique flag.
         // If multiEntry is set, set index’s multiEntry flag.
-        let (sender, _) = generic_channel::channel().unwrap();
         let create_index_operation = SyncOperation::CreateIndex(
-            sender,
             self.global().origin().immutable().clone(),
             self.db_name.to_string(),
             self.name.borrow().to_string(),
@@ -785,9 +782,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         // Step 7. Remove index from this object store handle's index set.
         self.index_names.borrow_mut().retain(|n| n != &name);
         // Step 8. Destroy index.
-        let (sender, _) = generic_channel::channel().unwrap();
         let delete_index_operation = SyncOperation::DeleteIndex(
-            sender,
             self.global().origin().immutable().clone(),
             self.db_name.to_string(),
             self.name.borrow().to_string(),

@@ -41,7 +41,7 @@ impl DOMStringList {
     /// <https://www.w3.org/TR/IndexedDB-2/#sorted-name-list>
     pub(crate) fn new_sorted(
         global: &GlobalScope,
-        strings: &Vec<DOMString>,
+        strings: &[DOMString],
         can_gc: CanGc,
     ) -> DomRoot<DOMStringList> {
         let sorted = strings

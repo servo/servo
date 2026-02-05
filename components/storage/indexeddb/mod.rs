@@ -1341,7 +1341,6 @@ impl IndexedDBManager {
                 let _ = sender.send(result.ok_or(BackendError::DbNotFound));
             },
             SyncOperation::CreateIndex(
-                sender,
                 origin,
                 db_name,
                 store_name,
@@ -1351,19 +1350,12 @@ impl IndexedDBManager {
                 multi_entry,
             ) => {
                 if let Some(db) = self.get_database(origin, db_name) {
-                    let result =
-                        db.create_index(&store_name, index_name, key_path, unique, multi_entry);
-                    let _ = sender.send(result.map_err(BackendError::from));
-                } else {
-                    let _ = sender.send(Err(BackendError::DbNotFound));
+                    let _ = db.create_index(&store_name, index_name, key_path, unique, multi_entry);
                 }
             },
-            SyncOperation::DeleteIndex(sender, origin, db_name, store_name, index_name) => {
+            SyncOperation::DeleteIndex(origin, db_name, store_name, index_name) => {
                 if let Some(db) = self.get_database(origin, db_name) {
-                    let result = db.delete_index(&store_name, index_name);
-                    let _ = sender.send(result.map_err(BackendError::from));
-                } else {
-                    let _ = sender.send(Err(BackendError::DbNotFound));
+                    let _ = db.delete_index(&store_name, index_name);
                 }
             },
             SyncOperation::Commit(sender, _origin, _db_name, _txn) => {
