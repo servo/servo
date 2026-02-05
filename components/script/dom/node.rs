@@ -1435,6 +1435,7 @@ impl Node {
                 .map(DocumentType::system_id)
                 .cloned()
                 .map(String::from),
+            has_event_listeners: self.upcast::<EventTarget>().has_handlers(),
         }
     }
 

@@ -175,6 +175,8 @@ pub struct NodeInfo {
 
     /// The `DOCTYPE` system identifier if this is a `DocumentType` node, `None` otherwise
     pub doctype_system_identifier: Option<String>,
+
+    pub has_event_listeners: bool,
 }
 
 pub struct StartedTimelineMarker {
@@ -273,6 +275,8 @@ pub enum DevtoolScriptControlMsg {
     ),
     /// Retrieve the computed CSS style properties for the given node.
     GetComputedStyle(PipelineId, String, GenericSender<Option<Vec<NodeStyle>>>),
+    /// Get information about event listeners on a node.
+    GetEventListenerInfo(PipelineId, String, GenericSender<Vec<EventListenerInfo>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.
     GetLayout(
         PipelineId,
@@ -533,4 +537,10 @@ pub struct PauseFrameResult {
     #[serde(rename = "type")]
     pub type_: String,
     pub url: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct EventListenerInfo {
+    pub event_type: String,
+    pub capturing: bool,
 }
