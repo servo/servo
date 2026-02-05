@@ -97,7 +97,7 @@ keyboard-types = { workspace = true }
 layout = { path = "../layout" }
 layout_api = { workspace = true }
 log = { workspace = true }
-media = { path = "../media" }
+media = { path = "../media/media-thread" }
 mozangle = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }

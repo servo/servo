@@ -16,8 +16,11 @@ euclid = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
 paint_api = { workspace = true }
+rand = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo-media = { workspace = true }
-servo_config = { path = "../config" }
+servo-media-auto = { path = "../backends/auto" }
+servo-media-dummy = { path = "../backends/dummy" }
+servo_config = { path = "../../config" }
 webrender_api = { workspace = true }

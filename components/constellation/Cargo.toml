@@ -42,7 +42,7 @@ ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 layout_api = { workspace = true }
 log = { workspace = true }
-media = { path = "../media" }
+media = { path = "../media/media-thread" }
 net = { path = "../net" }
 net_traits = { workspace = true }
 paint_api = { workspace = true }

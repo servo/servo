@@ -32,7 +32,7 @@ keyboard-types = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
-media = { path = "../../media" }
+media = { path = "../../media/media-thread" }
 net_traits = { workspace = true }
 paint_api = { workspace = true }
 pixels = { path = "../../pixels" }

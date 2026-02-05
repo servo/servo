@@ -1,0 +1,20 @@
+[package]
+name = "servo-media-gstreamer-render"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "servo_media_gstreamer_render"
+path = "lib.rs"
+
+[dependencies]
+gstreamer = { workspace = true }
+gstreamer-video = { workspace = true }
+
+[dependencies.sm-player]
+package = "servo-media-player"
+path = "../../../player"

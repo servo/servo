@@ -368,3 +368,67 @@ jobs:
           files: codecov.json,support/crown/codecov.json
           fail_ci_if_error: true
           flags: unittests
+
+  media-examples:
+    name: Media Examples
+    if: ${{ inputs.unit-tests }}
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v5
+      if: github.event_name != 'pull_request_target'
+      with:
+        fetch-depth: 1
+    - name: Install Dependencies
+      run: |
+        sudo bash -c 'apt-add-repository -y https://mirrors.kernel.org/ubuntu'
+        sudo apt update
+        sudo apt install -y \
+          gstreamer1.0-libav \
+          gstreamer1.0-plugins-bad \
+          gstreamer1.0-plugins-base \
+          gstreamer1.0-plugins-good \
+          gstreamer1.0-plugins-ugly \
+          gstreamer1.0-tools \
+          libasound2-plugins \
+          libfaad2 \
+          libffi7 \
+          libfftw3-single3 \
+          libges-1.0-dev \
+          libgstreamer-plugins-bad1.0-dev\
+          libgstreamer-plugins-base1.0-dev \
+          libgstreamer1.0-dev \
+          libgstrtspserver-1.0-dev \
+          libjack-jackd2-0 \
+          libmms0 \
+          libmpg123-0 \
+          libopus0 \
+          liborc-0.4-0 \
+          liborc-0.4-dev \
+          libpulsedsp \
+          libsamplerate0 \
+          libspeexdsp1 \
+          libtdb1 \
+          libtheora0 \
+          libtwolame0 \
+          libwayland-egl1-mesa \
+          libwebrtc-audio-processing1 \
+          pulseaudio \
+          pulseaudio-utils \
+          webp
+    - name: Determine MSRV
+      id: msrv
+      uses: ./.github/actions/parse_msrv
+    - name: Install MSRV
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ steps.msrv.outputs.rust_version }}
+    - name: Virtual Audio Devices
+      run: |
+        jackd -d dummy &
+        pulseaudio --start
+        gst-inspect-1.0 | grep Total
+    - name: Run Examples
+      run: |
+        ls components/media/media-thread/examples/*.rs | xargs -I{} basename  {} .rs  | grep -v params_connect | RUST_BACKTRACE=1 GST_DEBUG=3 xargs -I{} cargo run -p media --example {}

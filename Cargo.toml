@@ -74,13 +74,23 @@ flate2 = "1.1"
 fonts_traits = { path = "components/shared/fonts" }
 freetype-sys = "0.20"
 gleam = "0.15"
+glib = "0.21"
+glib-sys = "0.21"
 glow = "0.16.0"
 gstreamer = { version = "0.24", features = ["v1_18"] }
+gstreamer-app = "0.24"
+gstreamer-audio = "0.24"
 gstreamer-base = "0.24"
 gstreamer-gl = "0.24"
+gstreamer-gl-egl = "0.24"
 gstreamer-gl-sys = "0.24"
+gstreamer-gl-wayland = "0.24"
+gstreamer-gl-x11 = "0.24"
+gstreamer-play = "0.24"
+gstreamer-sdp = "0.24"
 gstreamer-sys = "0.24"
 gstreamer-video = "0.24"
+gstreamer-webrtc = { version = "0.24", features = ["v1_18"] }
 harfbuzz-sys = "0.6.1"
 headers = "0.4"
 hitrace = "0.1.6"
@@ -158,9 +168,9 @@ serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
-servo-media = { git = "https://github.com/servo/media", rev = "f384dbc4ff8b5c6f8db2c763306cbe2281d66391" }
-servo-media-dummy = { git = "https://github.com/servo/media", rev = "f384dbc4ff8b5c6f8db2c763306cbe2281d66391" }
-servo-media-gstreamer = { git = "https://github.com/servo/media", rev = "f384dbc4ff8b5c6f8db2c763306cbe2281d66391" }
+servo-media = { path = "components/media/servo-media" }
+servo-media-dummy = { path = "components/media/backends/dummy" }
+servo-media-gstreamer = { path = "components/media/backends/gstreamer" }
 servo-tracing = { path = "components/servo_tracing" }
 servo_arc = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
 sha1 = "0.10"
