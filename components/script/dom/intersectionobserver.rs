@@ -100,7 +100,7 @@ pub(crate) struct IntersectionObserver {
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-trackvisibility-slot>
     track_visibility: Cell<bool>,
 
-    /// Are we connected to the owner document
+    /// Whether or not this [`IntersectionObserver`] is connected to its owning [`Document`].
     is_connected: Cell<bool>,
 }
 
