@@ -274,6 +274,11 @@ debug = true
 lto = "thin"
 codegen-units = 1
 
+# A custom profile for building libservo in CI, while minimizing target dir.
+[profile.ci_dev]
+inherits = "dev"
+debug = false
+
 [patch.crates-io]
 # If you need to temporarily test Servo with a local fork of some upstream
 # crate, add that here. Use the form:
