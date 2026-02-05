@@ -395,10 +395,11 @@ impl WindowProxy {
 
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     pub(crate) fn stop_delaying_load_events_mode(&self) {
-        self.delaying_load_events_mode.set(false);
-        if let Some(document) = self.document() {
-            if !document.loader().events_inhibited() {
-                ScriptThread::mark_document_with_no_blocked_loads(&document);
+        if self.delaying_load_events_mode.replace(false) {
+            if let Some(document) = self.document() {
+                if !document.loader().events_inhibited() {
+                    ScriptThread::mark_document_with_no_blocked_loads(&document);
+                }
             }
         }
     }
