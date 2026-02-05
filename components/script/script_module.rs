@@ -251,11 +251,11 @@ impl ModuleTree {
     }
 }
 
-struct ModuleSource {
-    source: Rc<DOMString>,
-    unminified_dir: Option<String>,
-    external: bool,
-    url: ServoUrl,
+pub(crate) struct ModuleSource {
+    pub source: Rc<DOMString>,
+    pub unminified_dir: Option<String>,
+    pub external: bool,
+    pub url: ServoUrl,
 }
 
 impl crate::unminify::ScriptSource for ModuleSource {
