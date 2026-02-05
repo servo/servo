@@ -14,7 +14,7 @@ mod timeout;
 mod user_prompt;
 
 use std::borrow::ToOwned;
-use std::cell::{LazyCell, RefCell};
+use std::cell::LazyCell;
 use std::collections::{BTreeMap, HashMap};
 use std::io::Cursor;
 use std::net::{SocketAddr, SocketAddrV4};
@@ -181,7 +181,7 @@ struct Handler {
     /// Once these receivers receive a response, we know that the event has been handled.
     ///
     /// TODO: Once we upgrade crossbeam-channel this can be replaced with a `WaitGroup`.
-    pending_input_event_receivers: RefCell<Vec<Receiver<()>>>,
+    pending_input_event_receivers: Vec<Receiver<()>>,
 
     /// Moves that are currently in-progress and need to be ticked.
     pending_pointer_moves: Vec<PendingPointerMove>,
@@ -494,7 +494,7 @@ impl Handler {
         ));
     }
 
-    fn send_blocking_input_event_to_embedder(&self, input_event: InputEvent) {
+    fn send_blocking_input_event_to_embedder(&mut self, input_event: InputEvent) {
         let (result_sender, result_receiver) = unbounded();
         if self
             .send_message_to_embedder(WebDriverCommandMsg::InputEvent(
@@ -504,9 +504,7 @@ impl Handler {
             ))
             .is_ok()
         {
-            self.pending_input_event_receivers
-                .borrow_mut()
-                .push(result_receiver);
+            self.pending_input_event_receivers.push(result_receiver);
         }
     }
 
