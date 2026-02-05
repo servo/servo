@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 use std::cell::Cell;
 use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
@@ -9,7 +13,7 @@ use crate::AudioBackend;
 use crate::decoder::{AudioDecoder, AudioDecoderCallbacks, AudioDecoderOptions};
 use crate::graph::{AudioGraph, InputPort, NodeId, OutputPort, PortId};
 use crate::node::{AudioNodeInit, AudioNodeMessage, ChannelInfo};
-use crate::render_thread::{AudioRenderThread, AudioRenderThreadMsg};
+use crate::render_thread::{AudioRenderThread, AudioRenderThreadMsg, SinkEosCallback};
 use crate::sink::AudioSinkError;
 
 /// Describes the state of the audio context on the control thread.
