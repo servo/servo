@@ -14,7 +14,8 @@ use malloc_size_of_derive::MallocSizeOf;
 use style::Zero;
 use style::computed_values::position::T as Position;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
-use style::values::generics::box_::{GenericVerticalAlign, VerticalAlignKeyword};
+use style::values::computed::BaselineShift;
+use style::values::generics::box_::BaselineShiftKeyword;
 use style::values::specified::align::AlignFlags;
 use style::values::specified::box_::DisplayOutside;
 use unicode_bidi::{BidiInfo, Level};
@@ -513,12 +514,12 @@ impl LineItemLayout<'_, '_> {
 
         // The baseline offset that we have in `Self::baseline_offset` is relative to the line
         // baseline, so we need to make it relative to the line block start.
-        match inline_box_state.base.style.clone_vertical_align() {
-            GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) => {
+        match inline_box_state.base.style.clone_baseline_shift() {
+            BaselineShift::Keyword(BaselineShiftKeyword::Top) => {
                 let line_height = line_height(style, font_metrics, &inline_box_state.base.flags);
                 (line_height - line_gap).scale_by(0.5)
             },
-            GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => {
+            BaselineShift::Keyword(BaselineShiftKeyword::Bottom) => {
                 let line_height = line_height(style, font_metrics, &inline_box_state.base.flags);
                 let half_leading = (line_height - line_gap).scale_by(0.5);
                 self.line_metrics.block_size - line_height + half_leading
@@ -912,9 +913,9 @@ impl AtomicLineItem {
     /// Given the metrics for a line, our vertical alignment, and our block size, find a block start
     /// position relative to the top of the line.
     fn calculate_block_start(&self, line_metrics: &LineMetrics) -> Au {
-        match self.fragment.borrow().style().clone_vertical_align() {
-            GenericVerticalAlign::Keyword(VerticalAlignKeyword::Top) => Au::zero(),
-            GenericVerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => {
+        match self.fragment.borrow().style().clone_baseline_shift() {
+            BaselineShift::Keyword(BaselineShiftKeyword::Top) => Au::zero(),
+            BaselineShift::Keyword(BaselineShiftKeyword::Bottom) => {
                 line_metrics.block_size - self.size.block
             },
 
