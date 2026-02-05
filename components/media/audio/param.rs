@@ -29,7 +29,7 @@ pub enum ParamDir {
 
 /// An AudioParam.
 ///
-/// https://webaudio.github.io/web-audio-api/#AudioParam
+/// <https://webaudio.github.io/web-audio-api/#AudioParam>
 pub struct Param {
     val: f32,
     kind: ParamRate,
@@ -275,7 +275,7 @@ pub enum RampKind {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-/// https://webaudio.github.io/web-audio-api/#dfn-automation-event
+/// <https://webaudio.github.io/web-audio-api/#dfn-automation-event>
 pub(crate) enum AutomationEvent {
     SetValue(f32),
     SetValueAtTime(f32, Tick),

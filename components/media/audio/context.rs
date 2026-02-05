@@ -243,9 +243,9 @@ impl AudioContext {
             .send(AudioRenderThreadMsg::DisconnectAllFrom(node));
     }
 
-    // /// Disconnect all outgoing connections from a node's output
-    // ///
-    // /// https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-output
+    /// Disconnect all outgoing connections from a node's output
+    ///
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-output>>
     pub fn disconnect_output(&self, out: PortId<OutputPort>) {
         let _ = self
             .sender
@@ -254,7 +254,7 @@ impl AudioContext {
 
     /// Disconnect connections from a node to another node
     ///
-    /// https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode>
     pub fn disconnect_between(&self, from: NodeId, to: NodeId) {
         let _ = self
             .sender
@@ -263,7 +263,7 @@ impl AudioContext {
 
     /// Disconnect connections from a node to another node's input
     ///
-    /// https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationparam
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationparam>
     pub fn disconnect_to(&self, from: NodeId, to: PortId<InputPort>) {
         let _ = self
             .sender
@@ -272,16 +272,16 @@ impl AudioContext {
 
     /// Disconnect all outgoing connections from a node's output to another node
     ///
-    /// https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output>
     pub fn disconnect_output_between(&self, out: PortId<OutputPort>, to: NodeId) {
         let _ = self
             .sender
             .send(AudioRenderThreadMsg::DisconnectOutputBetween(out, to));
     }
 
-    // /// Disconnect all outgoing connections from a node's output to another node's input
-    // ///
-    // /// https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output-input
+    /// Disconnect all outgoing connections from a node's output to another node's input
+    ///
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output-input>
     pub fn disconnect_output_between_to(&self, out: PortId<OutputPort>, inp: PortId<InputPort>) {
         let _ = self
             .sender

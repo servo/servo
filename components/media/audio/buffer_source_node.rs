@@ -55,7 +55,7 @@ impl Default for AudioBufferSourceNodeOptions {
 }
 
 /// AudioBufferSourceNode engine.
-/// https://webaudio.github.io/web-audio-api/#AudioBufferSourceNode
+/// <https://webaudio.github.io/web-audio-api/#AudioBufferSourceNode>
 #[derive(AudioScheduledSourceNode, AudioNodeCommon)]
 #[allow(dead_code)]
 pub(crate) struct AudioBufferSourceNode {

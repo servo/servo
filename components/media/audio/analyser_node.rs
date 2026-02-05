@@ -41,7 +41,7 @@ impl AudioNodeEngine for AnalyserNode {
     }
 }
 
-/// From https://webaudio.github.io/web-audio-api/#dom-analysernode-fftsize
+/// From <https://webaudio.github.io/web-audio-api/#dom-analysernode-fftsize>
 pub const MAX_FFT_SIZE: usize = 32768;
 pub const MAX_BLOCK_COUNT: usize = MAX_FFT_SIZE / FRAMES_PER_BLOCK_USIZE;
 
@@ -181,7 +181,7 @@ impl AnalysisEngine {
         self.fft_computed = false;
     }
 
-    /// https://webaudio.github.io/web-audio-api/#blackman-window
+    /// <https://webaudio.github.io/web-audio-api/#blackman-window>
     fn compute_blackman_windows(&mut self) {
         if self.blackman_windows.len() == self.fft_size {
             return;

@@ -86,8 +86,8 @@ impl BackendInit for OhosBackend {
     }
 }
 
-//https://developer.huawei.com/consumer/en/doc/harmonyos-guides/obtain-supported-codecs
-//https://developer.huawei.com/consumer/en/doc/harmonyos-guides/media-kit-intro-V5#supported-formats-and-protocols
+// https://developer.huawei.com/consumer/en/doc/harmonyos-guides/obtain-supported-codecs
+// https://developer.huawei.com/consumer/en/doc/harmonyos-guides/media-kit-intro-V5#supported-formats-and-protocols
 
 impl Backend for OhosBackend {
     fn create_player(

@@ -208,7 +208,7 @@ impl AudioGraph {
 
     /// Disconnect all outgoing connections from a node
     ///
-    /// https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect>
     pub fn disconnect_all_from(&mut self, node: NodeId) {
         let edges = self.graph.edges(node.0).map(|e| e.id()).collect::<Vec<_>>();
         for edge in edges {
@@ -216,9 +216,9 @@ impl AudioGraph {
         }
     }
 
-    // /// Disconnect all outgoing connections from a node's output
-    // ///
-    // /// https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-output
+    /// Disconnect all outgoing connections from a node's output
+    ///
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-output>
     pub fn disconnect_output(&mut self, out: PortId<OutputPort>) {
         let candidates: Vec<_> = self
             .graph
@@ -239,7 +239,7 @@ impl AudioGraph {
 
     /// Disconnect connections from a node to another node
     ///
-    /// https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode>
     pub fn disconnect_between(&mut self, from: NodeId, to: NodeId) {
         let edge = self
             .graph
@@ -253,7 +253,7 @@ impl AudioGraph {
 
     /// Disconnect all outgoing connections from a node's output to another node
     ///
-    /// https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output>
     pub fn disconnect_output_between(&mut self, out: PortId<OutputPort>, to: NodeId) {
         let edge = self
             .graph
@@ -276,7 +276,7 @@ impl AudioGraph {
     ///
     /// Only used in WebAudio for disconnecting audio params
     ///
-    /// https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationparam
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationparam>
     pub fn disconnect_to(&mut self, node: NodeId, inp: PortId<InputPort>) {
         let edge = self
             .graph
@@ -297,8 +297,8 @@ impl AudioGraph {
 
     /// Disconnect all outgoing connections from a node's output to another node's input
     ///
-    /// https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output-input
-    /// https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationparam-output
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationnode-output-input>
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-disconnect-destinationparam-output>
     pub fn disconnect_output_between_to(
         &mut self,
         out: PortId<OutputPort>,

@@ -138,8 +138,8 @@ impl PannerNode {
     /// given AudioListener's position, forward, and up vectors
     /// in degrees
     ///
-    /// https://webaudio.github.io/web-audio-api/#azimuth-elevation
-    /// https://webaudio.github.io/web-audio-api/#Spatialization-distance-effects
+    /// <https://webaudio.github.io/web-audio-api/#azimuth-elevation>
+    /// <https://webaudio.github.io/web-audio-api/#Spatialization-distance-effects>
     fn azimuth_elevation_distance(
         &self,
         listener: (Vector3D<f32>, Vector3D<f32>, Vector3D<f32>),
@@ -190,7 +190,7 @@ impl PannerNode {
         (azimuth, elevation, distance as f64)
     }
 
-    /// https://webaudio.github.io/web-audio-api/#Spatialization-sound-cones
+    /// <https://webaudio.github.io/web-audio-api/#Spatialization-sound-cones>
     fn cone_gain(&self, listener: (Vector3D<f32>, Vector3D<f32>, Vector3D<f32>)) -> f64 {
         let (listener_position, _, _) = listener;
         let source_position = Vector3D::new(

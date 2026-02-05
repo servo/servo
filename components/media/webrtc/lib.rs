@@ -93,7 +93,7 @@ pub trait WebRtcBackend {
     ) -> Self::Controller;
 }
 
-/// https://www.w3.org/TR/webrtc/#rtcsdptype
+/// <https://www.w3.org/TR/webrtc/#rtcsdptype>
 #[derive(Copy, Clone, Hash, Debug, PartialEq, Eq)]
 pub enum SdpType {
     Answer,
@@ -132,18 +132,18 @@ impl FromStr for SdpType {
     }
 }
 
-/// https://www.w3.org/TR/webrtc/#rtcsessiondescription-class
+/// <https://www.w3.org/TR/webrtc/#rtcsessiondescription-class>
 ///
-/// https://developer.mozilla.org/en-US/docs/Web/API/RTCSessionDescription
+/// <https://developer.mozilla.org/en-US/docs/Web/API/RTCSessionDescription>
 #[derive(Clone, Hash, Debug, PartialEq, Eq)]
 pub struct SessionDescription {
     pub type_: SdpType,
     pub sdp: String,
 }
 
-/// https://www.w3.org/TR/webrtc/#rtcicecandidate-interface
+/// <https://www.w3.org/TR/webrtc/#rtcicecandidate-interface>
 ///
-/// https://developer.mozilla.org/en-US/docs/Web/API/RTCIceCandidate
+/// <https://developer.mozilla.org/en-US/docs/Web/API/RTCIceCandidate>
 #[derive(Clone, Hash, Debug, PartialEq, Eq)]
 pub struct IceCandidate {
     pub sdp_mline_index: u32,
@@ -151,7 +151,7 @@ pub struct IceCandidate {
     // XXXManishearth this is missing a bunch
 }
 
-/// https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection#RTCBundlePolicy_enum
+/// <https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection#RTCBundlePolicy_enum>
 #[derive(Clone, Copy, Hash, Debug, PartialEq, Eq)]
 pub enum BundlePolicy {
     Balanced,
@@ -169,7 +169,7 @@ impl BundlePolicy {
     }
 }
 
-/// https://www.w3.org/TR/webrtc/#rtcsignalingstate-enum
+/// <https://www.w3.org/TR/webrtc/#rtcsignalingstate-enum>
 #[derive(Clone, Copy, Hash, Debug, PartialEq, Eq)]
 pub enum SignalingState {
     Stable,
@@ -180,7 +180,7 @@ pub enum SignalingState {
     Closed,
 }
 
-/// https://www.w3.org/TR/webrtc/#rtcicegatheringstate-enum
+/// <https://www.w3.org/TR/webrtc/#rtcicegatheringstate-enum>
 #[derive(Clone, Copy, Hash, Debug, PartialEq, Eq)]
 pub enum GatheringState {
     New,
@@ -188,7 +188,7 @@ pub enum GatheringState {
     Complete,
 }
 
-/// https://www.w3.org/TR/webrtc/#rtciceconnectionstate-enum
+/// <https://www.w3.org/TR/webrtc/#rtciceconnectionstate-enum>
 #[derive(Clone, Copy, Hash, Debug, PartialEq, Eq)]
 pub enum IceConnectionState {
     New,

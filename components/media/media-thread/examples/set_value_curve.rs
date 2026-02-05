@@ -21,7 +21,7 @@ fn run_example(servo_media: Arc<ServoMedia>) {
     let context = context.lock().unwrap();
     let dest = context.dest_node();
 
-    //Initializing the values vector for SetValueCurve function
+    // Initializing the values vector for SetValueCurve function
     let values = vec![
         0., 0., 0., 0., 1., 1., 1., 1., 0., 0., 0., 0., 1., 1., 1., 1., 0., 0., 0., 0.,
     ];

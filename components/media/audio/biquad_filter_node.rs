@@ -72,7 +72,7 @@ impl BiquadState {
     }
 }
 
-/// https://webaudio.github.io/web-audio-api/#biquadfilternode
+/// <https://webaudio.github.io/web-audio-api/#biquadfilternode>
 #[derive(AudioNodeCommon)]
 pub(crate) struct BiquadFilterNode {
     channel_info: ChannelInfo,
@@ -154,7 +154,7 @@ impl BiquadFilterNode {
 
     /// Update the coefficients a1, a2, b0, b1, b2, given the sample_rate
     ///
-    /// See https://webaudio.github.io/web-audio-api/#filters-characteristics
+    /// See <https://webaudio.github.io/web-audio-api/#filters-characteristics>
     fn update_coefficients(&mut self, fs: f32) {
         let g: f64 = self.gain.value().into();
         let q: f64 = self.q.value().into();
