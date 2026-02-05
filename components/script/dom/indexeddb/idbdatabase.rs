@@ -166,7 +166,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         }
 
         // Step 3
-        Ok(match store_names {
+        let transaction = match store_names {
             StringOrStringSequence::String(name) => IDBTransaction::new(
                 &self.global(),
                 self,
@@ -185,7 +185,21 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
                     CanGc::note(),
                 )
             },
-        })
+        };
+        if mode != IDBTransactionMode::Versionchange {
+            // https://w3c.github.io/IndexedDB/#dom-idbdatabase-transaction
+            // Step 8: Set transaction’s cleanup event loop to the current event loop.
+            // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+            // “transactions created by a script call to transaction() are deactivated once the task that invoked the script has completed.”
+            // https://w3c.github.io/IndexedDB/#transaction-concept
+            // “A transaction optionally has a cleanup event loop which is an event loop.”
+            // Versionchange transactions can’t be manually created; only script-created transactions()
+            // are subject to HTML cleanup deactivation.
+            transaction.set_cleanup_event_loop();
+            self.global().register_indexeddb_transaction(&transaction);
+            transaction.set_registered_in_global();
+        }
+        Ok(transaction)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-createobjectstore>

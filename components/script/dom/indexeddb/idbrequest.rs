@@ -15,7 +15,7 @@ use profile_traits::generic_callback::GenericCallback;
 use serde::{Deserialize, Serialize};
 use storage_traits::indexeddb::{
     AsyncOperation, AsyncReadOnlyOperation, BackendError, BackendResult, IndexedDBKeyType,
-    IndexedDBRecord, IndexedDBThreadMsg, IndexedDBTxnMode, PutItemResult,
+    IndexedDBRecord, IndexedDBThreadMsg, IndexedDBTxnMode, PutItemResult, SyncOperation,
 };
 use stylo_atoms::Atom;
 
@@ -45,6 +45,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 struct RequestListener {
     request: Trusted<IDBRequest>,
     iteration_param: Option<IterationParam>,
+    request_id: u64,
 }
 
 pub enum IdbResult {
@@ -122,11 +123,47 @@ impl From<u64> for IdbResult {
 }
 
 impl RequestListener {
+    fn send_request_handled(transaction: &IDBTransaction, request_id: u64) {
+        let global = transaction.global();
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // Step 5:
+        // The implementation must attempt to commit an inactive transaction when
+        // all requests placed against the transaction have completed and their
+        // returned results handled, no new requests have been placed against the
+        // transaction, and the transaction has not been aborted
+        // An explicit call to commit() will initiate a commit without waiting
+        // for request results to be handled by script.
+        // When committing, the transaction state is set to committing.
+        // The implementation must atomically write any changes to the
+        // database made by requests placed against the transaction.
+        // That is, either all of the changes must be written, or if an error occurs,
+        // such as a disk write error, the implementation must not write any of the changes
+        // to the database, and the steps to abort a transaction will be followed.
+        if global
+            .storage_threads()
+            .send(IndexedDBThreadMsg::Sync(SyncOperation::RequestHandled {
+                origin: global.origin().immutable().clone(),
+                db_name: transaction.get_db_name().to_string(),
+                txn: transaction.get_serial_number(),
+                request_id,
+            }))
+            .is_err()
+        {
+            error!("Failed to send SyncOperation::RequestHandled");
+        }
+        transaction.mark_request_handled(request_id);
+    }
+
     // https://www.w3.org/TR/IndexedDB-2/#async-execute-request
     // Implements Step 5.4
     fn handle_async_request_finished(&self, cx: &mut JSContext, result: BackendResult<IdbResult>) {
         let request = self.request.root();
         let global = request.global();
+
+        let transaction = request
+            .transaction
+            .get()
+            .expect("Request unexpectedly has no transaction");
 
         // Substep 1: Set the result of request to result.
         request.set_ready_state_done();
@@ -158,7 +195,7 @@ impl RequestListener {
                         });
                     if let Err(e) = result {
                         warn!("Error reading structuredclone data");
-                        Self::handle_async_request_error(&global, cx, request, e);
+                        Self::handle_async_request_error(&global, cx, request, e, self.request_id);
                         return;
                     };
                 },
@@ -177,7 +214,13 @@ impl RequestListener {
                             });
                         if let Err(e) = result {
                             warn!("Error reading structuredclone data");
-                            Self::handle_async_request_error(&global, cx, request, e);
+                            Self::handle_async_request_error(
+                                &global,
+                                cx,
+                                request,
+                                e,
+                                self.request_id,
+                            );
                             return;
                         };
                     }
@@ -194,7 +237,13 @@ impl RequestListener {
                         Ok(cursor) => cursor,
                         Err(e) => {
                             warn!("Error reading structuredclone data");
-                            Self::handle_async_request_error(&global, cx, request, e);
+                            Self::handle_async_request_error(
+                                &global,
+                                cx,
+                                request,
+                                e,
+                                self.request_id,
+                            );
                             return;
                         },
                     };
@@ -218,7 +267,7 @@ impl RequestListener {
                 },
                 IdbResult::Error(error) => {
                     // Substep 2
-                    Self::handle_async_request_error(&global, cx, request, error);
+                    Self::handle_async_request_error(&global, cx, request, error, self.request_id);
                     return;
                 },
             }
@@ -231,11 +280,6 @@ impl RequestListener {
 
             // Substep 3.3: Fire a success event at request.
             // TODO: follow spec here
-            let transaction = request
-                .transaction
-                .get()
-                .expect("Request unexpectedly has no transaction");
-
             let event = Event::new(
                 &global,
                 Atom::from("success"),
@@ -244,17 +288,38 @@ impl RequestListener {
                 CanGc::from_cx(cx),
             );
 
+            // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+            // When each request associated with a transaction is processed,
+            // a success or error event will be fired. While the event is being
+            // dispatched, the transaction state is set to active, allowing additional
+            // requests to be made against the transaction. Once the event dispatch is
+            // complete, the transaction’s state is set to inactive again.
             transaction.set_active_flag(true);
             event
                 .upcast::<Event>()
                 .fire(request.upcast(), CanGc::from_cx(cx));
+            // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+            // Once the event dispatch is complete, the transaction’s state is set to inactive again.
             transaction.set_active_flag(false);
             // Notify the transaction that this request has finished.
             transaction.request_finished();
+            // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+            // The implementation must attempt to commit an inactive transaction
+            // when all requests placed against the transaction have completed and
+            // their returned results handled, no new requests have been placed
+            // against the transaction, and the transaction has not been aborted
+
+            Self::send_request_handled(&transaction, self.request_id);
         } else {
             // FIXME:(arihant2math) dispatch correct error
             // Substep 2
-            Self::handle_async_request_error(&global, cx, request, Error::Data(None));
+            Self::handle_async_request_error(
+                &global,
+                cx,
+                request,
+                Error::Data(None),
+                self.request_id,
+            );
         }
     }
 
@@ -265,13 +330,14 @@ impl RequestListener {
         cx: &mut JSContext,
         request: DomRoot<IDBRequest>,
         error: Error,
+        request_id: u64,
     ) {
         // Substep 1: Set the result of request to undefined.
         rooted!(&in(cx) let undefined = UndefinedValue());
         request.set_result(undefined.handle());
 
         // Substep 2: Set the error of request to result.
-        request.set_error(Some(error), CanGc::from_cx(cx));
+        request.set_error(Some(error.clone()), CanGc::from_cx(cx));
 
         // Substep 3: Fire an error event at request.
         // TODO: follow the spec here
@@ -288,14 +354,38 @@ impl RequestListener {
             CanGc::from_cx(cx),
         );
 
-        // TODO: why does the transaction need to be active?
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // When each request associated with a transaction is processed,
+        // a success or error event will be fired. While the event is being
+        // dispatched, the transaction state is set to active, allowing additional
+        // requests to be made against the transaction. Once the event dispatch is
+        // complete, the transaction’s state is set to inactive again.
         transaction.set_active_flag(true);
-        event
+        // https://w3c.github.io/IndexedDB/#events
+        // Set event’s bubbles and cancelable attributes to false.
+        let default_not_prevented = event
             .upcast::<Event>()
             .fire(request.upcast(), CanGc::from_cx(cx));
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // Once the event dispatch is complete, the transaction’s state is set to inactive again.
         transaction.set_active_flag(false);
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // An explicit call to abort() will initiate an abort. An abort will also be initiated following a failed request that is not handled by script.
+        if default_not_prevented {
+            // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+            // An explicit call to abort() will initiate an abort.
+            // An abort will also be initiated following a failed request that is not handled by script.
+            transaction.initiate_abort(error.clone(), CanGc::from_cx(cx));
+            transaction.request_backend_abort();
+        }
         // Notify the transaction that this request has finished.
         transaction.request_finished();
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // The implementation must attempt to commit an inactive transaction
+        // when all requests placed against the transaction have completed and
+        // their returned results handled, no new requests have been placed against
+        // the transaction, and the transaction has not been aborted
+        Self::send_request_handled(&transaction, request_id);
     }
 }
 
@@ -370,9 +460,11 @@ impl IDBRequest {
         let global = transaction.global();
 
         // Step 2: Assert: transaction is active.
-        if !transaction.is_active() {
+        if !transaction.is_active() || !transaction.is_usable() {
             return Err(Error::TransactionInactive(None));
         }
+
+        let request_id = transaction.allocate_request_id();
 
         // Step 3: If request was not given, let request be a new request with source as source.
         let request = request.unwrap_or_else(|| {
@@ -396,6 +488,7 @@ impl IDBRequest {
         let response_listener = RequestListener {
             request: Trusted::new(&request),
             iteration_param: iteration_param.clone(),
+            request_id,
         };
 
         let task_source = global
@@ -412,7 +505,8 @@ impl IDBRequest {
                         if let BackendError::DbErr(e) = e {
                             error!("Error in IndexedDB operation: {}", e);
                         }
-                    }).map(|t| t.into()));
+                    }).map(|t| t.into()),
+                );
             }));
         };
         let callback = GenericCallback::new(global.time_profiler_chan().clone(), closure)
@@ -434,6 +528,8 @@ impl IDBRequest {
             );
         }
 
+        // Start is a backend database task (spec). Script does not model it with a
+        // separate queued task, backend scheduling decides when requests begin.
         transaction
             .global()
             .storage_threads()
@@ -442,6 +538,7 @@ impl IDBRequest {
                 transaction.get_db_name().to_string(),
                 source.get_name().to_string(),
                 transaction.get_serial_number(),
+                request_id,
                 transaction_mode,
                 operation,
             ))

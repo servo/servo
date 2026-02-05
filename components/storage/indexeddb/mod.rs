@@ -89,6 +89,12 @@ impl IndexedDBDescription {
 struct IndexedDBEnvironment<E: KvsEngine> {
     engine: E,
     transactions: FxHashMap<u64, KvsTransaction>,
+    queued_readwrite: VecDeque<u64>,
+    queued_readonly: VecDeque<u64>,
+    running_readwrite: Option<u64>,
+    running_readonly: HashSet<u64>,
+    handled_next_unhandled_request_id: FxHashMap<u64, u64>,
+    handled_pending: FxHashMap<u64, HashSet<u64>>,
 }
 
 impl<E: KvsEngine> IndexedDBEnvironment<E> {
@@ -96,6 +102,22 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         IndexedDBEnvironment {
             engine,
             transactions: FxHashMap::default(),
+            queued_readwrite: VecDeque::new(),
+            queued_readonly: VecDeque::new(),
+            running_readwrite: None,
+            running_readonly: HashSet::new(),
+            handled_next_unhandled_request_id: FxHashMap::default(),
+            handled_pending: FxHashMap::default(),
+        }
+    }
+
+    fn enqueue_txn(&mut self, txn: u64, mode: &IndexedDBTxnMode) {
+        let queue = match mode {
+            IndexedDBTxnMode::Readonly => &mut self.queued_readonly,
+            _ => &mut self.queued_readwrite,
+        };
+        if !queue.contains(&txn) {
+            queue.push_back(txn);
         }
     }
 
@@ -106,25 +128,110 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         mode: IndexedDBTxnMode,
         operation: AsyncOperation,
     ) {
-        self.transactions
-            .entry(serial_number)
-            .or_insert_with(|| KvsTransaction {
-                requests: VecDeque::new(),
-                mode,
-            })
-            .requests
-            .push_back(KvsOperation {
-                operation,
-                store_name: String::from(store_name),
-            });
+        let mut enqueue_mode = None;
+        match self.transactions.entry(serial_number) {
+            Entry::Occupied(mut entry) => {
+                let transaction = entry.get_mut();
+                let transaction_mode = transaction.mode.clone();
+                let was_empty = transaction.requests.is_empty();
+                transaction.requests.push_back(KvsOperation {
+                    operation,
+                    store_name: String::from(store_name),
+                });
+                if was_empty {
+                    let is_running = match transaction_mode {
+                        IndexedDBTxnMode::Readonly => {
+                            self.running_readonly.contains(&serial_number)
+                        },
+                        _ => self.running_readwrite == Some(serial_number),
+                    };
+                    if !is_running {
+                        enqueue_mode = Some(transaction_mode);
+                    }
+                }
+            },
+            Entry::Vacant(entry) => {
+                entry
+                    .insert(KvsTransaction {
+                        requests: VecDeque::new(),
+                        mode: mode.clone(),
+                    })
+                    .requests
+                    .push_back(KvsOperation {
+                        operation,
+                        store_name: String::from(store_name),
+                    });
+                enqueue_mode = Some(mode);
+            },
+        };
+        if let Some(mode) = enqueue_mode {
+            self.enqueue_txn(serial_number, &mode);
+        }
+    }
+
+    fn schedule_transactions(&mut self) {
+        // when a request comes in and the transaction can be started you can immediately run it;
+        // otherwise run it when the transaction starts. Also re-check queued txns whenever another finishes.
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // “Read-only transactions can run concurrently.”
+        // “Read/write transactions are exclusive.”
+        if self.running_readwrite.is_some() {
+            return;
+        }
+
+        while let Some(txn) = self.queued_readonly.pop_front() {
+            let Some(transaction) = self.transactions.get(&txn) else {
+                continue;
+            };
+            if transaction.requests.is_empty() {
+                continue;
+            }
+            self.running_readonly.insert(txn);
+            self.start_transaction(txn, None);
+            self.running_readonly.remove(&txn);
+        }
+
+        if !self.running_readonly.is_empty() {
+            return;
+        }
+
+        while let Some(txn) = self.queued_readwrite.pop_front() {
+            let Some(transaction) = self.transactions.get(&txn) else {
+                continue;
+            };
+            if transaction.requests.is_empty() {
+                continue;
+            }
+            self.running_readwrite = Some(txn);
+            self.start_transaction(txn, None);
+            self.running_readwrite = None;
+            break;
+        }
     }
 
     // Executes all requests for a transaction (without committing)
     fn start_transaction(&mut self, txn: u64, sender: Option<GenericSender<BackendResult<()>>>) {
+        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // The implementation must queue a database task to start the transaction asynchronously.
+        // “Requests must be executed in the order in which they were made against the transaction.”
         // FIXME:(arihant2math) find optimizations in this function
         //   rather than on the engine level code (less repetition)
-        if let Some(txn) = self.transactions.remove(&txn) {
-            let _ = self.engine.process_transaction(txn).blocking_recv();
+        loop {
+            let (mode, requests) = match self.transactions.get_mut(&txn) {
+                Some(transaction) => {
+                    let mode = transaction.mode.clone();
+                    let requests = std::mem::take(&mut transaction.requests);
+                    (mode, requests)
+                },
+                None => break,
+            };
+            if requests.is_empty() {
+                break;
+            }
+            let _ = self
+                .engine
+                .process_transaction(KvsTransaction { mode, requests })
+                .blocking_recv();
         }
 
         // We have a sender if the transaction is started manually, and they
@@ -134,6 +241,43 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
                 warn!("IDBTransaction starter dropped its channel");
             }
         }
+    }
+
+    fn mark_request_handled(&mut self, txn: u64, request_id: u64) {
+        let current = self
+            .handled_next_unhandled_request_id
+            .get(&txn)
+            .copied()
+            .unwrap_or(0);
+        if request_id == current {
+            let mut next = current + 1;
+            if let Some(pending) = self.handled_pending.get_mut(&txn) {
+                while pending.remove(&next) {
+                    next += 1;
+                }
+                if pending.is_empty() {
+                    self.handled_pending.remove(&txn);
+                }
+            }
+            self.handled_next_unhandled_request_id.insert(txn, next);
+        } else if request_id > current {
+            self.handled_pending
+                .entry(txn)
+                .or_default()
+                .insert(request_id);
+        }
+    }
+
+    fn abort_transaction(&mut self, txn: u64) {
+        self.transactions.remove(&txn);
+        self.queued_readonly.retain(|queued| *queued != txn);
+        self.queued_readwrite.retain(|queued| *queued != txn);
+        if self.running_readwrite == Some(txn) {
+            self.running_readwrite = None;
+        }
+        self.running_readonly.remove(&txn);
+        self.handled_next_unhandled_request_id.remove(&txn);
+        self.handled_pending.remove(&txn);
     }
 
     fn has_key_generator(&self, store_name: &str) -> bool {
@@ -452,15 +596,19 @@ impl IndexedDBManager {
                 IndexedDBThreadMsg::Sync(operation) => {
                     self.handle_sync_operation(operation);
                 },
-                IndexedDBThreadMsg::Async(origin, db_name, store_name, txn, mode, operation) => {
+                IndexedDBThreadMsg::Async(
+                    origin,
+                    db_name,
+                    store_name,
+                    txn,
+                    _request_id,
+                    mode,
+                    operation,
+                ) => {
                     if let Some(db) = self.get_database_mut(origin, db_name) {
                         // Queues an operation for a transaction without starting it
                         db.queue_operation(&store_name, txn, mode, operation);
-                        // FIXME:(arihant2math) Schedule transactions properly
-                        // while db.transactions.iter().any(|s| s.1.mode == IndexedDBTxnMode::Readwrite) {
-                        //     std::hint::spin_loop();
-                        // }
-                        db.start_transaction(txn, None);
+                        db.schedule_transactions();
                     }
                 },
                 IndexedDBThreadMsg::OpenTransactionInactive { name, origin } => {
@@ -1365,9 +1513,52 @@ impl IndexedDBManager {
                     let _ = db.delete_index(&store_name, index_name);
                 }
             },
-            SyncOperation::Commit(sender, _origin, _db_name, _txn) => {
-                // FIXME:(arihant2math) This does nothing at the moment
-                let _ = sender.send(Ok(()));
+            SyncOperation::Commit(callback, origin, db_name, txn) => {
+                // https://w3c.github.io/IndexedDB/#commit-a-transaction
+                // TODO: implement the commit algorithm and only reply after the backend has
+                // transitioned the transaction to committed/aborted (should be atomic).
+                let _ = callback.send(storage_traits::indexeddb::TxnCompleteMsg {
+                    origin: origin.clone(),
+                    db_name: db_name.clone(),
+                    txn,
+                    result: Ok(()),
+                });
+                if let Some(db) = self.get_database_mut(origin, db_name) {
+                    db.schedule_transactions();
+                }
+            },
+            SyncOperation::Abort(callback, origin, db_name, txn) => {
+                // https://w3c.github.io/IndexedDB/#abort-a-transaction
+                // “When a transaction is aborted the implementation must undo (roll back) any changes that were made to the database during that transaction.”
+                // TODO: implement the abort algorithm and rollback for the engine.
+                if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
+                    db.abort_transaction(txn);
+                }
+                let _ = callback.send(storage_traits::indexeddb::TxnCompleteMsg {
+                    origin: origin.clone(),
+                    db_name: db_name.clone(),
+                    txn,
+                    result: Err(BackendError::Abort),
+                });
+                if let Some(db) = self.get_database_mut(origin, db_name) {
+                    db.schedule_transactions();
+                }
+            },
+            SyncOperation::RequestHandled {
+                origin,
+                db_name,
+                txn,
+                request_id,
+            } => {
+                // https://w3c.github.io/IndexedDB/#transaction-lifecycl
+                // The implementation must attempt to commit an inactive transaction
+                // when all requests placed against the transaction have completed
+                // and their returned results handled, no new requests have been
+                // placed against the transaction, and the transaction has not been aborted
+
+                if let Some(db) = self.get_database_mut(origin, db_name) {
+                    db.mark_request_handled(txn, request_id);
+                }
             },
             SyncOperation::UpgradeVersion(sender, origin, db_name, _txn, version) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
@@ -1406,6 +1597,7 @@ impl IndexedDBManager {
             SyncOperation::StartTransaction(sender, origin, db_name, txn) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
                     db.start_transaction(txn, Some(sender));
+                    db.schedule_transactions();
                 } else {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
