@@ -141,11 +141,11 @@ impl WebRtcControllerBackend for GStreamerWebRtcController {
         let stream =
             get_stream(stream_id).expect("Media streams registry does not contain such ID");
         let mut stream = stream.lock().unwrap();
-        let mut stream = stream
+        let stream = stream
             .as_mut_any()
             .downcast_mut::<GStreamerMediaStream>()
             .ok_or("Does not currently support non-gstreamer streams")?;
-        self.link_stream(stream_id, &mut stream, false)?;
+        self.link_stream(stream_id, stream, false)?;
         if self.delayed_negotiation && (self.streams.len() > 1 || self.pending_streams.len() > 1) {
             self.delayed_negotiation = false;
             self.signaller.on_negotiation_needed(&self.thread);
@@ -167,7 +167,7 @@ impl WebRtcControllerBackend for GStreamerWebRtcController {
         let mut data_channels = self.data_channels.lock().unwrap();
         match data_channels.get(id) {
             Some(ref channel) => match channel {
-                &&DataChannelEventTarget::Created(ref channel) => {
+                DataChannelEventTarget::Created(channel) => {
                     channel.close();
                     Ok(())
                 },
@@ -187,7 +187,7 @@ impl WebRtcControllerBackend for GStreamerWebRtcController {
     ) -> WebRtcResult {
         match self.data_channels.lock().unwrap().get(id) {
             Some(ref channel) => match channel {
-                &&DataChannelEventTarget::Created(ref channel) => {
+                DataChannelEventTarget::Created(channel) => {
                     channel.send(message);
                     Ok(())
                 },
@@ -238,11 +238,8 @@ impl WebRtcControllerBackend for GStreamerWebRtcController {
                             return Ok(());
                         },
                         DataChannelEventTarget::Created(_) => {
-                            match event {
-                                DataChannelEvent::Close => {
-                                    data_channels.remove(&channel_id);
-                                },
-                                _ => {},
+                            if let DataChannelEvent::Close = event {
+                                data_channels.remove(&channel_id);
                             }
                             self.signaller
                                 .on_data_channel_event(channel_id, event, &self.thread);
@@ -501,16 +498,16 @@ impl GStreamerWebRtcController {
 
     /// link_stream, but for all pending streams
     fn flush_pending_streams(&mut self, request_new_pads: bool) -> WebRtcResult {
-        let pending_streams = mem::replace(&mut self.pending_streams, vec![]);
+        let pending_streams = std::mem::take(&mut self.pending_streams);
         for stream_id in pending_streams {
             let stream =
                 get_stream(&stream_id).expect("Media streams registry does not contain such ID");
             let mut stream = stream.lock().unwrap();
-            let mut stream = stream
+            let stream = stream
                 .as_mut_any()
                 .downcast_mut::<GStreamerMediaStream>()
                 .ok_or("Does not currently support non-gstreamer streams")?;
-            self.link_stream(&stream_id, &mut stream, request_new_pads)?;
+            self.link_stream(&stream_id, stream, request_new_pads)?;
         }
         Ok(())
     }
@@ -606,9 +603,8 @@ impl GStreamerWebRtcController {
                                 match channel {
                                     &mut &mut DataChannelEventTarget::Buffered(ref mut events) => {
                                         for event in events.drain(0..) {
-                                            match event {
-                                                DataChannelEvent::Close => closed_channel = true,
-                                                _ => {},
+                                            if let DataChannelEvent::Close = event {
+                                                closed_channel = true
                                             }
                                             thread_.internal_event(
                                                 InternalEvent::OnDataChannelEvent(id, event),
@@ -623,11 +619,11 @@ impl GStreamerWebRtcController {
                             }
                             data_channels.remove(&id);
                         }
-                        if !closed_channel {
-                            if register_data_channel(data_channels.clone(), id, channel).is_err() {
-                                warn!("Could not register data channel {:?}", id);
-                                return None;
-                            }
+                        if !closed_channel &&
+                            register_data_channel(data_channels.clone(), id, channel).is_err()
+                        {
+                            warn!("Could not register data channel {:?}", id);
+                            return None;
                         }
                     },
                     Err(error) => {

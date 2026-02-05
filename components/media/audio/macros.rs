@@ -31,10 +31,10 @@ macro_rules! make_render_thread_state_change(
     ($fn_name:ident, $state:ident, $sink_method:ident) => (
         fn $fn_name(&mut self) -> StateChangeResult {
             if self.state == ProcessingState::$state {
-                return Ok(());
+                return Some(());
             }
             self.state = ProcessingState::$state;
-            self.sink.$sink_method().map_err(|_| ())
+            self.sink.$sink_method().ok()
         }
     );
 );

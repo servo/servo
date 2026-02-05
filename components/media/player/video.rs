@@ -8,7 +8,7 @@ pub enum VideoFrameData {
 }
 
 pub trait Buffer: Send + Sync {
-    fn to_vec(&self) -> Result<VideoFrameData, ()>;
+    fn to_vec(&self) -> Option<VideoFrameData>;
 }
 
 #[derive(Clone)]
@@ -20,10 +20,9 @@ pub struct VideoFrame {
 }
 
 impl VideoFrame {
-    pub fn new(width: i32, height: i32, buffer: Arc<dyn Buffer>) -> Result<Self, ()> {
+    pub fn new(width: i32, height: i32, buffer: Arc<dyn Buffer>) -> Option<Self> {
         let data = buffer.to_vec()?;
-
-        Ok(VideoFrame {
+        Some(VideoFrame {
             width,
             height,
             data,
@@ -54,17 +53,14 @@ impl VideoFrame {
     }
 
     pub fn is_gl_texture(&self) -> bool {
-        match self.data {
-            VideoFrameData::Texture(_) | VideoFrameData::OESTexture(_) => true,
-            _ => false,
-        }
+        matches!(
+            self.data,
+            VideoFrameData::Texture(_) | VideoFrameData::OESTexture(_)
+        )
     }
 
     pub fn is_external_oes(&self) -> bool {
-        match self.data {
-            VideoFrameData::OESTexture(_) => true,
-            _ => false,
-        }
+        matches!(self.data, VideoFrameData::OESTexture(_))
     }
 }
 

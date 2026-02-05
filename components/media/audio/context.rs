@@ -3,7 +3,7 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread::Builder;
 
-use servo_media_traits::{BackendMsg, ClientContextId, MediaInstance};
+use servo_media_traits::{BackendMsg, ClientContextId, MediaInstance, MediaInstanceError};
 
 use crate::AudioBackend;
 use crate::decoder::{AudioDecoder, AudioDecoderCallbacks, AudioDecoderOptions};
@@ -25,7 +25,7 @@ pub enum ProcessingState {
     Closed,
 }
 
-pub type StateChangeResult = Result<(), ()>;
+pub type StateChangeResult = Option<()>;
 
 /// Identify the type of playback, which affects tradeoffs between audio output
 /// and power consumption.
@@ -125,6 +125,17 @@ pub struct AudioContext {
     make_decoder: Arc<dyn Fn() -> Box<dyn AudioDecoder> + Sync + Send>,
 }
 
+#[derive(Debug)]
+pub struct AudioContextError;
+
+impl std::fmt::Display for AudioContextError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(formatter, "AudioContextError")
+    }
+}
+
+impl std::error::Error for AudioContextError {}
+
 impl AudioContext {
     /// Constructs a new audio context.
     pub fn new<B: AudioBackend>(
@@ -161,14 +172,9 @@ impl AudioContext {
             })
             .expect("Failed to spawn AudioRenderThread");
 
-        let init_thread_result = init_receiver
+        init_receiver
             .recv()
-            .expect("Failed to receive result from AudioRenderThread");
-
-        if let Err(e) = init_thread_result {
-            return Err(e);
-        }
-
+            .expect("Failed to receive result from AudioRenderThread")?;
         Ok(Self {
             id,
             client_context_id: *client_context_id,
@@ -200,12 +206,12 @@ impl AudioContext {
         rx.recv().unwrap()
     }
 
-    pub fn create_node(&self, node_type: AudioNodeInit, ch: ChannelInfo) -> Result<NodeId, ()> {
+    pub fn create_node(&self, node_type: AudioNodeInit, ch: ChannelInfo) -> Option<NodeId> {
         let (tx, rx) = mpsc::channel();
         let _ = self
             .sender
             .send(AudioRenderThreadMsg::CreateNode(node_type, tx, ch));
-        rx.recv().map_err(|_| ())
+        rx.recv().ok()
     }
 
     // Resume audio processing.
@@ -281,8 +287,9 @@ impl AudioContext {
     /// Asynchronously decodes the audio file data contained in the given
     /// buffer.
     pub fn decode_audio_data(&self, data: Vec<u8>, callbacks: AudioDecoderCallbacks) {
-        let mut options = AudioDecoderOptions::default();
-        options.sample_rate = self.sample_rate;
+        let options = AudioDecoderOptions {
+            sample_rate: self.sample_rate,
+        };
         let make_decoder = self.make_decoder.clone();
         Builder::new()
             .name("AudioDecoder".to_owned())
@@ -294,10 +301,7 @@ impl AudioContext {
             .unwrap();
     }
 
-    pub fn set_eos_callback(
-        &self,
-        callback: Box<dyn Fn(Box<dyn AsRef<[f32]>>) + Send + Sync + 'static>,
-    ) {
+    pub fn set_eos_callback(&self, callback: SinkEosCallback) {
         let _ = self
             .sender
             .send(AudioRenderThreadMsg::SetSinkEosCallback(callback));
@@ -333,22 +337,22 @@ impl MediaInstance for AudioContext {
         self.id
     }
 
-    fn mute(&self, val: bool) -> Result<(), ()> {
+    fn mute(&self, val: bool) -> Result<(), MediaInstanceError> {
         self.set_mute(val);
         Ok(())
     }
 
-    fn suspend(&self) -> Result<(), ()> {
+    fn suspend(&self) -> Result<(), MediaInstanceError> {
         let (tx, _) = mpsc::channel();
         self.sender
             .send(AudioRenderThreadMsg::Suspend(tx))
-            .map_err(|_| ())
+            .map_err(|_| MediaInstanceError)
     }
 
-    fn resume(&self) -> Result<(), ()> {
+    fn resume(&self) -> Result<(), MediaInstanceError> {
         let (tx, _) = mpsc::channel();
         self.sender
             .send(AudioRenderThreadMsg::Resume(tx))
-            .map_err(|_| ())
+            .map_err(|_| MediaInstanceError)
     }
 }

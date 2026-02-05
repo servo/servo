@@ -13,5 +13,5 @@ pub struct MediaDeviceInfo {
 }
 
 pub trait MediaDeviceMonitor {
-    fn enumerate_devices(&self) -> Result<Vec<MediaDeviceInfo>, ()>;
+    fn enumerate_devices(&self) -> Option<Vec<MediaDeviceInfo>>;
 }

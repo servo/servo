@@ -121,9 +121,9 @@ impl AudioSink for GStreamerAudioSink {
                 AudioSinkError::Backend(format!("autoaudiosink creation failed: {error:?}"))
             })?;
         self.pipeline
-            .add_many(&[&appsrc, &resample, &convert, &sink])
+            .add_many([&appsrc, &resample, &convert, &sink])
             .map_err(|error| AudioSinkError::Backend(error.to_string()))?;
-        gstreamer::Element::link_many(&[&appsrc, &resample, &convert, &sink])
+        gstreamer::Element::link_many([&appsrc, &resample, &convert, &sink])
             .map_err(|error| AudioSinkError::Backend(error.to_string()))?;
 
         Ok(())
@@ -155,9 +155,9 @@ impl AudioSink for GStreamerAudioSink {
             .clone();
 
         self.pipeline
-            .add_many(&[&appsrc, &convert, &sink])
+            .add_many([&appsrc, &convert, &sink])
             .map_err(|error| AudioSinkError::Backend(error.to_string()))?;
-        gstreamer::Element::link_many(&[&appsrc, &convert, &sink])
+        gstreamer::Element::link_many([&appsrc, &convert, &sink])
             .map_err(|error| AudioSinkError::Backend(error.to_string()))?;
 
         Ok(())
@@ -182,7 +182,7 @@ impl AudioSink for GStreamerAudioSink {
     }
 
     fn push_data(&self, mut chunk: Chunk) -> Result<(), AudioSinkError> {
-        if let Some(block) = chunk.blocks.get(0) {
+        if let Some(block) = chunk.blocks.first() {
             self.set_channels_if_changed(block.chan_count())?;
         }
 
@@ -215,7 +215,7 @@ impl AudioSink for GStreamerAudioSink {
             buffer.set_duration(next_pts - pts);
 
             // sometimes nothing reaches the output
-            if chunk.len() == 0 {
+            if chunk.is_empty() {
                 chunk.blocks.push(Default::default());
                 chunk.blocks[0].repeat(channels as u8);
             }

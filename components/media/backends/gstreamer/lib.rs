@@ -28,7 +28,7 @@ use media_stream::GStreamerMediaStream;
 use mime::Mime;
 use once_cell::sync::{Lazy, OnceCell};
 use registry_scanner::GSTREAMER_REGISTRY_SCANNER;
-use servo_media::{Backend, BackendDeInit, BackendInit, SupportsMediaType};
+use servo_media::{Backend, BackendDeInit, BackendInit, MediaInstanceError, SupportsMediaType};
 use servo_media_audio::context::{AudioContext, AudioContextOptions};
 use servo_media_audio::decoder::AudioDecoder;
 use servo_media_audio::sink::AudioSinkError;
@@ -49,9 +49,12 @@ static BACKEND_BASE_TIME: Lazy<gstreamer::ClockTime> =
 
 static BACKEND_THREAD: OnceCell<bool> = OnceCell::new();
 
+pub type WeakMediaInstance = Weak<Mutex<dyn MediaInstance>>;
+pub type WeakMediaInstanceHashMap = HashMap<ClientContextId, Vec<(usize, WeakMediaInstance)>>;
+
 pub struct GStreamerBackend {
     capture_mocking: AtomicBool,
-    instances: Arc<Mutex<HashMap<ClientContextId, Vec<(usize, Weak<Mutex<dyn MediaInstance>>)>>>>,
+    instances: Arc<Mutex<WeakMediaInstanceHashMap>>,
     next_instance_id: AtomicUsize,
     /// Channel to communicate media instances with its owner Backend.
     backend_chan: Arc<Mutex<Sender<BackendMsg>>>,
@@ -89,10 +92,10 @@ impl GStreamerBackend {
             let mut path = plugin_dir.clone();
             path.push(plugin);
             let registry = gstreamer::Registry::get();
-            if let Ok(p) = gstreamer::Plugin::load_file(&path) {
-                if registry.add_plugin(&p).is_ok() {
-                    continue;
-                }
+            if gstreamer::Plugin::load_file(&path)
+                .is_ok_and(|plugin| registry.add_plugin(&plugin).is_ok())
+            {
+                continue;
             }
             errors.push(*plugin);
         }
@@ -101,9 +104,9 @@ impl GStreamerBackend {
             return Err(ErrorLoadingPlugins(errors));
         }
 
-        let instances: Arc<
-            Mutex<HashMap<ClientContextId, Vec<(usize, Weak<Mutex<dyn MediaInstance>>)>>>,
-        > = Arc::new(Mutex::new(HashMap::new()));
+        type MediaInstancesVec = Vec<(usize, Weak<Mutex<dyn MediaInstance>>)>;
+        let instances: HashMap<ClientContextId, MediaInstancesVec> = Default::default();
+        let instances = Arc::new(Mutex::new(instances));
 
         let instances_ = instances.clone();
         let (backend_chan, recvr) = mpsc::channel();
@@ -141,7 +144,7 @@ impl GStreamerBackend {
     fn media_instance_action(
         &self,
         id: &ClientContextId,
-        cb: &dyn Fn(&dyn MediaInstance) -> Result<(), ()>,
+        cb: &dyn Fn(&dyn MediaInstance) -> Result<(), MediaInstanceError>,
     ) {
         let mut instances = self.instances.lock().unwrap();
         match instances.get_mut(id) {
@@ -183,7 +186,7 @@ impl Backend for GStreamerBackend {
             gl_context,
         )));
         let mut instances = self.instances.lock().unwrap();
-        let entry = instances.entry(*context_id).or_insert(Vec::new());
+        let entry = instances.entry(*context_id).or_default();
         entry.push((id, Arc::downgrade(&player).clone()));
         player
     }
@@ -200,7 +203,7 @@ impl Backend for GStreamerBackend {
         let audio_context = Arc::new(Mutex::new(audio_context));
 
         let mut instances = self.instances.lock().unwrap();
-        let entry = instances.entry(*client_context_id).or_insert(Vec::new());
+        let entry = instances.entry(*client_context_id).or_default();
         entry.push((id, Arc::downgrade(&audio_context).clone()));
 
         Ok(audio_context)
@@ -219,7 +222,7 @@ impl Backend for GStreamerBackend {
     }
 
     fn create_stream_output(&self) -> Box<dyn MediaOutput> {
-        Box::new(media_stream::MediaSink::new())
+        Box::new(media_stream::MediaSink::default())
     }
 
     fn create_stream_and_socket(

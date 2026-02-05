@@ -75,10 +75,10 @@ impl AnalysisEngine {
         min_decibels: f64,
         max_decibels: f64,
     ) -> Self {
-        debug_assert!(fft_size >= 32 && fft_size <= 32768);
+        debug_assert!((32..=32768).contains(&fft_size));
         // must be a power of two
-        debug_assert!(fft_size & fft_size - 1 == 0);
-        debug_assert!(smoothing_constant <= 1. && smoothing_constant >= 0.);
+        debug_assert!(fft_size & (fft_size - 1) == 0);
+        debug_assert!((0. ..=1.).contains(&smoothing_constant));
         debug_assert!(max_decibels > min_decibels);
         Self {
             fft_size,
@@ -96,9 +96,9 @@ impl AnalysisEngine {
     }
 
     pub fn set_fft_size(&mut self, fft_size: usize) {
-        debug_assert!(fft_size >= 32 && fft_size <= 32768);
+        debug_assert!((32..=32768).contains(&fft_size));
         // must be a power of two
-        debug_assert!(fft_size & fft_size - 1 == 0);
+        debug_assert!(fft_size & (fft_size - 1) == 0);
         self.fft_size = fft_size;
         self.fft_computed = false;
     }
@@ -108,7 +108,7 @@ impl AnalysisEngine {
     }
 
     pub fn set_smoothing_constant(&mut self, smoothing_constant: f64) {
-        debug_assert!(smoothing_constant <= 1. && smoothing_constant >= 0.);
+        debug_assert!((0. ..=1.).contains(&smoothing_constant));
         self.smoothing_constant = smoothing_constant;
         self.fft_computed = false;
     }
@@ -235,8 +235,8 @@ impl AnalysisEngine {
     pub fn fill_time_domain_data(&self, dest: &mut [f32]) {
         let mut data_idx = self.convert_index(0);
         let end = cmp::min(self.fft_size, dest.len());
-        for n in 0..end {
-            dest[n] = self.data[data_idx];
+        for entry in &mut dest[0..end] {
+            *entry = self.data[data_idx];
             self.advance_index(&mut data_idx);
         }
     }
@@ -244,9 +244,9 @@ impl AnalysisEngine {
     pub fn fill_byte_time_domain_data(&self, dest: &mut [u8]) {
         let mut data_idx = self.convert_index(0);
         let end = cmp::min(self.fft_size, dest.len());
-        for n in 0..end {
+        for entry in &mut dest[0..end] {
             let result = 128. * (1. + self.data[data_idx]);
-            dest[n] = clamp_255(result);
+            *entry = clamp_255(result);
             self.advance_index(&mut data_idx)
         }
     }
@@ -254,16 +254,16 @@ impl AnalysisEngine {
     pub fn fill_frequency_data(&mut self, dest: &mut [f32]) {
         self.compute_fft();
         let len = cmp::min(dest.len(), self.computed_fft_data.len());
-        dest[0..len].copy_from_slice(&mut self.computed_fft_data[0..len]);
+        dest[0..len].copy_from_slice(&self.computed_fft_data[0..len]);
     }
 
     pub fn fill_byte_frequency_data(&mut self, dest: &mut [u8]) {
         self.compute_fft();
         let len = cmp::min(dest.len(), self.computed_fft_data.len());
         let ratio = 255. / (self.max_decibels - self.min_decibels);
-        for freq in 0..len {
-            let result = ratio * (self.computed_fft_data[freq] as f64 - self.min_decibels);
-            dest[freq] = clamp_255(result as f32);
+        for (index, freq) in dest[0..len].iter_mut().enumerate() {
+            let result = ratio * (self.computed_fft_data[index] as f64 - self.min_decibels);
+            *freq = clamp_255(result as f32);
         }
     }
 }

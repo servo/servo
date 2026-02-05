@@ -47,14 +47,14 @@ impl GStreamerDeviceMonitor {
 }
 
 impl MediaDeviceMonitor for GStreamerDeviceMonitor {
-    fn enumerate_devices(&self) -> Result<Vec<MediaDeviceInfo>, ()> {
+    fn enumerate_devices(&self) -> Option<Vec<MediaDeviceInfo>> {
         {
             if let Some(ref devices) = *self.devices.borrow() {
-                return Ok(devices.clone());
+                return Some(devices.clone());
             }
         }
-        let devices = self.get_devices()?;
+        let devices = self.get_devices().ok()?;
         *self.devices.borrow_mut() = Some(devices.clone());
-        Ok(devices)
+        Some(devices)
     }
 }

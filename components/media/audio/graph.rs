@@ -123,8 +123,7 @@ impl Edge {
     ) -> bool {
         self.connections
             .iter()
-            .find(|e| e.input_idx == input_idx && e.output_idx == output_idx)
-            .is_some()
+            .any(|e| e.input_idx == input_idx && e.output_idx == output_idx)
     }
 
     fn remove_by_output(&mut self, output_idx: PortIndex<OutputPort>) {
@@ -403,7 +402,7 @@ impl AudioGraph {
                 }
 
                 for (i, mut blocks) in blocks.drain(..).enumerate() {
-                    if blocks.len() == 0 {
+                    if blocks.is_empty() {
                         if mode == ChannelCountMode::Explicit {
                             // It's silence, but mix it anyway
                             chunk.blocks[i].mix(count, interpretation);

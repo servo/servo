@@ -50,7 +50,7 @@ impl AudioNodeEngine for MediaElementSourceNode {
     }
 
     fn process(&mut self, mut inputs: Chunk, _info: &BlockInfo) -> Chunk {
-        debug_assert!(inputs.len() == 0);
+        debug_assert!(inputs.is_empty());
 
         let buffers = self.buffers.lock().unwrap();
         let chans = buffers.len() as u8;
@@ -127,6 +127,6 @@ impl AudioRenderer for MediaElementSourceNodeRenderer {
                 *entry.insert(buffers.len())
             },
         };
-        self.buffers.lock().unwrap()[(channel - 1) as usize].extend_from_slice((*sample).as_ref());
+        self.buffers.lock().unwrap()[channel - 1].extend_from_slice((*sample).as_ref());
     }
 }

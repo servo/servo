@@ -10,11 +10,11 @@ type RegisteredMediaStream = Arc<Mutex<dyn MediaStream>>;
 static MEDIA_STREAMS_REGISTRY: LazyLock<Mutex<HashMap<MediaStreamId, RegisteredMediaStream>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-#[derive(Clone, Copy, Hash, Eq, PartialEq)]
+#[derive(Clone, Copy, Default, Hash, Eq, PartialEq)]
 pub struct MediaStreamId(Uuid);
 impl MediaStreamId {
     pub fn new() -> MediaStreamId {
-        Self { 0: Uuid::new_v4() }
+        Default::default()
     }
 
     pub fn id(self) -> Uuid {
@@ -24,11 +24,8 @@ impl MediaStreamId {
 
 pub fn register_stream(stream: Arc<Mutex<dyn MediaStream>>) -> MediaStreamId {
     let id = MediaStreamId::new();
-    stream.lock().unwrap().set_id(id.clone());
-    MEDIA_STREAMS_REGISTRY
-        .lock()
-        .unwrap()
-        .insert(id.clone(), stream);
+    stream.lock().unwrap().set_id(id);
+    MEDIA_STREAMS_REGISTRY.lock().unwrap().insert(id, stream);
     id
 }
 

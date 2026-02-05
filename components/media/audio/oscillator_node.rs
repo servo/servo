@@ -64,8 +64,8 @@ impl OscillatorNode {
         Self {
             channel_info,
             oscillator_type: options.oscillator_type,
-            frequency: Param::new(options.freq.into()),
-            detune: Param::new(options.detune.into()),
+            frequency: Param::new(options.freq),
+            detune: Param::new(options.detune),
             phase: 0.,
             start_at: None,
             stop_at: None,
@@ -95,7 +95,7 @@ impl AudioNodeEngine for OscillatorNode {
         // XXX Implement this properly and according to self.options
         // as defined in https://webaudio.github.io/web-audio-api/#oscillatornode
         use std::f64::consts::PI;
-        debug_assert!(inputs.len() == 0);
+        debug_assert!(inputs.is_empty());
         inputs.blocks.push(Default::default());
         let (start_at, stop_at) = match self.should_play_at(info.frame) {
             ShouldPlay::No => {
@@ -140,26 +140,23 @@ impl AudioNodeEngine for OscillatorNode {
                         if self.phase >= PI && self.phase < two_pi {
                             value = vol * 1.0;
                         } else if self.phase > 0.0 && self.phase < PI {
-                            value = vol * (-1.0);
+                            value = -vol;
                         }
                     },
 
                     OscillatorType::Sawtooth => {
-                        value = vol * ((self.phase as f64) / (PI)) as f32;
+                        value = vol * (self.phase / (PI)) as f32;
                     },
 
                     OscillatorType::Triangle => {
                         if self.phase >= 0. && self.phase < PI / 2. {
-                            value = vol * 2.0 * ((self.phase as f64) / (PI)) as f32;
+                            value = vol * 2.0 * (self.phase / (PI)) as f32;
                         } else if self.phase >= PI / 2. && self.phase < PI {
-                            value =
-                                vol * (1. - (((self.phase as f64) - (PI / 2.)) * (2. / PI)) as f32);
+                            value = vol * (1. - ((self.phase - (PI / 2.)) * (2. / PI)) as f32);
                         } else if self.phase >= PI && self.phase < (3. * PI / 2.) {
-                            value = vol *
-                                -1. *
-                                (1. - (((self.phase as f64) - (PI / 2.)) * (2. / PI)) as f32);
+                            value = -vol * (1. - ((self.phase - (PI / 2.)) * (2. / PI)) as f32);
                         } else if self.phase >= 3. * PI / 2. && self.phase < 2. * PI {
-                            value = vol * (-2.0) * ((self.phase as f64) / (PI)) as f32;
+                            value = vol * (-2.0) * (self.phase / (PI)) as f32;
                         }
                     },
 

@@ -1,5 +1,3 @@
-use std::i32;
-
 use gstreamer;
 use gstreamer::caps::NoFeature;
 use gstreamer::prelude::*;

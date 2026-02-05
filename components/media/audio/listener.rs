@@ -49,7 +49,7 @@ impl AudioNodeEngine for AudioListenerNode {
     }
 
     fn process(&mut self, mut inputs: Chunk, info: &BlockInfo) -> Chunk {
-        debug_assert!(inputs.len() == 0);
+        debug_assert!(inputs.is_empty());
 
         // XXXManishearth in the common case when all of these are constant,
         // it would be nice to instead send just the constant values down

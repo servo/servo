@@ -12,7 +12,7 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
 
 use ipc_channel::ipc::IpcSender;
-use servo_media::{Backend, BackendInit, SupportsMediaType};
+use servo_media::{Backend, BackendInit, MediaInstanceError, SupportsMediaType};
 use servo_media_audio::block::{Block, Chunk};
 use servo_media_audio::context::{AudioContext, AudioContextOptions};
 use servo_media_audio::decoder::{AudioDecoder, AudioDecoderCallbacks, AudioDecoderOptions};
@@ -367,15 +367,15 @@ impl MediaInstance for DummyPlayer {
         0
     }
 
-    fn mute(&self, _val: bool) -> Result<(), ()> {
+    fn mute(&self, _val: bool) -> Result<(), MediaInstanceError> {
         Ok(())
     }
 
-    fn suspend(&self) -> Result<(), ()> {
+    fn suspend(&self) -> Result<(), MediaInstanceError> {
         Ok(())
     }
 
-    fn resume(&self) -> Result<(), ()> {
+    fn resume(&self) -> Result<(), MediaInstanceError> {
         Ok(())
     }
 }
@@ -383,7 +383,7 @@ impl MediaInstance for DummyPlayer {
 struct DummyMediaDeviceMonitor;
 
 impl MediaDeviceMonitor for DummyMediaDeviceMonitor {
-    fn enumerate_devices(&self) -> Result<Vec<MediaDeviceInfo>, ()> {
-        Ok(vec![])
+    fn enumerate_devices(&self) -> Option<Vec<MediaDeviceInfo>> {
+        Some(vec![])
     }
 }

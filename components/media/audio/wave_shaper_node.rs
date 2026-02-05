@@ -160,15 +160,15 @@ impl AudioNodeEngine for WaveShaperNode {
                 );
             };
 
-            let mut upsampler = self.upsampler.as_mut().unwrap();
-            let mut downsampler = self.downsampler.as_mut().unwrap();
+            let upsampler = self.upsampler.as_mut().unwrap();
+            let downsampler = self.downsampler.as_mut().unwrap();
 
             let mut oversampled_buffer: Vec<f32> =
                 vec![0.; FRAMES_PER_BLOCK_USIZE * sampling_factor];
 
             for chan in 0..channels {
                 let out_len = WaveShaperNode::resample(
-                    &mut upsampler,
+                    upsampler,
                     chan,
                     block.data_chan(chan),
                     &mut oversampled_buffer,
@@ -181,13 +181,13 @@ impl AudioNodeEngine for WaveShaperNode {
                     out_len
                 );
 
-                WaveShaperNode::apply_curve(&mut oversampled_buffer, &curve);
+                WaveShaperNode::apply_curve(&mut oversampled_buffer, curve);
 
                 let out_len = WaveShaperNode::resample(
-                    &mut downsampler,
+                    downsampler,
                     chan,
                     &oversampled_buffer,
-                    &mut block.data_chan_mut(chan),
+                    block.data_chan_mut(chan),
                 );
 
                 debug_assert!(
@@ -197,7 +197,7 @@ impl AudioNodeEngine for WaveShaperNode {
                 );
             }
         } else {
-            WaveShaperNode::apply_curve(block.data_mut(), &curve);
+            WaveShaperNode::apply_curve(block.data_mut(), curve);
         }
 
         inputs
@@ -207,7 +207,7 @@ impl AudioNodeEngine for WaveShaperNode {
 }
 
 impl WaveShaperNode {
-    fn silence_produces_nonsilent_output(curve: &Vec<f32>) -> bool {
+    fn silence_produces_nonsilent_output(curve: &[f32]) -> bool {
         let len = curve.len();
         let len_halved = ((len - 1) as f32) / 2.;
         let curve_index: f32 = len_halved;
@@ -218,7 +218,7 @@ impl WaveShaperNode {
         shaped_val == 0.0
     }
 
-    fn apply_curve(buf: &mut [f32], curve: &Vec<f32>) {
+    fn apply_curve(buf: &mut [f32], curve: &[f32]) {
         let len = curve.len();
         let len_halved = ((len - 1) as f32) / 2.;
         buf.iter_mut().for_each(|sample| {

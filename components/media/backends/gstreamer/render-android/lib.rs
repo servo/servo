@@ -112,7 +112,7 @@ impl Render for RenderAndroid {
         true
     }
 
-    fn build_frame(&self, sample: gstreamer::Sample) -> Result<VideoFrame, ()> {
+    fn build_frame(&self, sample: gstreamer::Sample) -> Option<VideoFrame> {
         if self.gst_context.lock().unwrap().is_none() && self.gl_upload.lock().unwrap().is_some() {
             *self.gst_context.lock().unwrap() = match self.gl_upload.lock().unwrap().as_ref() {
                 Some(glupload) => Some(glupload.property::<gstreamer_gl::GLContext>("context")),
@@ -136,7 +136,7 @@ impl Render for RenderAndroid {
             })
             .is_some();
 
-        let info = gstreamer_video::VideoInfo::from_caps(caps).map_err(|_| ())?;
+        let info = gstreamer_video::VideoInfo::from_caps(caps).ok()?;
 
         if self.gst_context.lock().unwrap().is_some() {
             if let Some(sync_meta) = buffer.meta::<gstreamer_gl::GLSyncMeta>() {

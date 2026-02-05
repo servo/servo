@@ -148,9 +148,9 @@ pub(crate) trait AudioNodeEngine: Send + AudioNodeCommon {
             AudioNodeMessage::SetChannelCount(c) => self.set_channel_count(c),
             AudioNodeMessage::SetChannelMode(c) => self.set_channel_count_mode(c),
             AudioNodeMessage::SetChannelInterpretation(c) => self.set_channel_interpretation(c),
-            AudioNodeMessage::SetParam(id, event) => {
-                self.get_param(id).insert_event(event.to_event(sample_rate))
-            },
+            AudioNodeMessage::SetParam(id, event) => self
+                .get_param(id)
+                .insert_event(event.convert_to_event(sample_rate)),
             AudioNodeMessage::SetParamRate(id, rate) => self.get_param(id).set_rate(rate),
             _ => self.message_specific(msg, sample_rate),
         }

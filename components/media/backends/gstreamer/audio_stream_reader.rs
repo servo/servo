@@ -69,7 +69,7 @@ impl GStreamerAudioStreamReader {
         pipeline
             .add_many(&elements[1..])
             .map_err(|error| format!("pipeline adding failed: {error:?}"))?;
-        gstreamer::Element::link_many(&elements)
+        gstreamer::Element::link_many(elements)
             .map_err(|error| format!("element linking failed: {error:?}"))?;
         for e in &elements {
             e.sync_state_with_parent().map_err(|e| e.to_string())?;

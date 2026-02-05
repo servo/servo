@@ -9,6 +9,7 @@ use byte_slice_cast::AsSliceOf;
 use glib::prelude::*;
 use gstreamer_play::prelude::*;
 use ipc_channel::ipc::{IpcReceiver, IpcSender, channel};
+use servo_media::MediaInstanceError;
 use servo_media_player::audio::AudioRenderer;
 use servo_media_player::context::PlayerGLContext;
 use servo_media_player::metadata::Metadata;
@@ -39,7 +40,7 @@ fn metadata_from_media_info(media_info: &gstreamer_play::PlayMediaInfo) -> Resul
     let dur = media_info.duration();
     let duration = if let Some(dur) = dur {
         let mut nanos = dur.nseconds();
-        nanos = nanos % 1_000_000_000;
+        nanos %= 1_000_000_000;
         let seconds = dur.seconds();
         Some(time::Duration::new(seconds, nanos as u32))
     } else {
@@ -137,18 +138,12 @@ impl PlayerInner {
         // Set input_size to proxy its value, since it
         // could be set by the user before calling .setup().
         self.input_size = size;
-        match self.source {
-            // The input size is only useful for seekable streams.
-            Some(ref mut source) => {
-                if let PlayerSource::Seekable(source) = source {
-                    source.set_size(if size > 0 {
-                        size as i64
-                    } else {
-                        -1 // live source
-                    });
-                }
-            },
-            _ => (),
+        if let Some(PlayerSource::Seekable(ref mut source)) = self.source {
+            source.set_size(if size > 0 {
+                size as i64
+            } else {
+                -1 // live source
+            });
         }
         Ok(())
     }
@@ -285,16 +280,14 @@ impl PlayerInner {
     }
 
     pub fn push_data(&mut self, data: Vec<u8>) -> Result<(), PlayerError> {
-        if let Some(ref mut source) = self.source {
-            if let PlayerSource::Seekable(source) = source {
-                if self.enough_data.load(Ordering::Relaxed) {
-                    return Err(PlayerError::EnoughData);
-                }
-                return source
-                    .push_buffer(data)
-                    .map(|_| ())
-                    .map_err(|_| PlayerError::BufferPushFailed);
+        if let Some(PlayerSource::Seekable(ref mut source)) = self.source {
+            if self.enough_data.load(Ordering::Relaxed) {
+                return Err(PlayerError::EnoughData);
             }
+            return source
+                .push_buffer(data)
+                .map(|_| ())
+                .map_err(|_| PlayerError::BufferPushFailed);
         }
         Err(PlayerError::BufferPushFailed)
     }
@@ -309,8 +302,7 @@ impl PlayerInner {
         let Some(duration) = self
             .last_metadata
             .as_ref()
-            .map(|metadata| metadata.duration)
-            .flatten()
+            .and_then(|metadata| metadata.duration)
         else {
             return buffered_ranges;
         };
@@ -358,26 +350,23 @@ impl PlayerInner {
 
     fn set_stream(&mut self, stream: &MediaStreamId, only_stream: bool) -> Result<(), PlayerError> {
         debug_assert!(self.stream_type == StreamType::Stream);
-        if let Some(ref source) = self.source {
-            if let PlayerSource::Stream(source) = source {
-                let stream =
-                    get_stream(stream).expect("Media streams registry does not contain such ID");
-                let mut stream = stream.lock().unwrap();
-                if let Some(mut stream) = stream.as_mut_any().downcast_mut::<GStreamerMediaStream>()
-                {
-                    let playbin = self
-                        .player
-                        .pipeline()
-                        .dynamic_cast::<gstreamer::Pipeline>()
-                        .unwrap();
-                    let clock = gstreamer::SystemClock::obtain();
-                    playbin.set_base_time(*BACKEND_BASE_TIME);
-                    playbin.set_start_time(gstreamer::ClockTime::NONE);
-                    playbin.use_clock(Some(&clock));
+        if let Some(PlayerSource::Stream(ref source)) = self.source {
+            let stream =
+                get_stream(stream).expect("Media streams registry does not contain such ID");
+            let mut stream = stream.lock().unwrap();
+            if let Some(stream) = stream.as_mut_any().downcast_mut::<GStreamerMediaStream>() {
+                let playbin = self
+                    .player
+                    .pipeline()
+                    .dynamic_cast::<gstreamer::Pipeline>()
+                    .unwrap();
+                let clock = gstreamer::SystemClock::obtain();
+                playbin.set_base_time(*BACKEND_BASE_TIME);
+                playbin.set_start_time(gstreamer::ClockTime::NONE);
+                playbin.use_clock(Some(&clock));
 
-                    source.set_stream(&mut stream, only_stream);
-                    return Ok(());
-                }
+                source.set_stream(stream, only_stream);
+                return Ok(());
             }
         }
         Err(PlayerError::SetStreamFailed)
@@ -452,6 +441,7 @@ pub struct GStreamerPlayer {
 }
 
 impl GStreamerPlayer {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         id: usize,
         context_id: &ClientContextId,
@@ -489,7 +479,7 @@ impl GStreamerPlayer {
 
         // Check that we actually have the elements that we
         // need to make this work.
-        for element in vec!["playbin3", "decodebin3", "queue"].iter() {
+        for element in ["playbin3", "decodebin3", "queue"] {
             if gstreamer::ElementFactory::find(element).is_none() {
                 return Err(PlayerError::Backend(format!(
                     "Missing dependency: {}",
@@ -554,7 +544,7 @@ impl GStreamerPlayer {
 
             let audio_sink = audio_sink.dynamic_cast::<gstreamer_app::AppSink>().unwrap();
 
-            let weak_audio_renderer = Arc::downgrade(&audio_renderer);
+            let weak_audio_renderer = Arc::downgrade(audio_renderer);
 
             audio_sink.set_callbacks(
                 gstreamer_app::AppSinkCallbacks::builder()
@@ -768,11 +758,9 @@ impl GStreamerPlayer {
                 let weak_video_renderer = Arc::downgrade(&video_renderer);
 
                 move |sample: gstreamer::Sample| {
-                    let frame = render
-                        .lock()
-                        .unwrap()
-                        .get_frame_from_sample(sample)
-                        .map_err(|_| gstreamer::FlowError::Error)?;
+                    let Some(frame) = render.lock().unwrap().get_frame_from_sample(sample) else {
+                        return Err(gstreamer::FlowError::Error);
+                    };
 
                     match weak_video_renderer.upgrade() {
                         Some(video_renderer) => {
@@ -915,7 +903,7 @@ impl GStreamerPlayer {
                     signal_adapter.play().stop();
                 });
 
-            let _ = inner.player.pause();
+            inner.player.pause();
 
             (receiver, error_handler_id)
         };
@@ -1001,20 +989,20 @@ impl MediaInstance for GStreamerPlayer {
         self.id
     }
 
-    fn mute(&self, val: bool) -> Result<(), ()> {
-        self.set_mute(val).map_err(|_| ())
+    fn mute(&self, val: bool) -> Result<(), MediaInstanceError> {
+        self.set_mute(val).map_err(|_| MediaInstanceError)
     }
 
-    fn suspend(&self) -> Result<(), ()> {
-        self.pause().map_err(|_| ())
+    fn suspend(&self) -> Result<(), MediaInstanceError> {
+        self.pause().map_err(|_| MediaInstanceError)
     }
 
-    fn resume(&self) -> Result<(), ()> {
+    fn resume(&self) -> Result<(), MediaInstanceError> {
         if !self.can_resume() {
             return Ok(());
         }
 
-        self.play().map_err(|_| ())
+        self.play().map_err(|_| MediaInstanceError)
     }
 }
 

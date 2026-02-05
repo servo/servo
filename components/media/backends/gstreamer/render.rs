@@ -81,9 +81,9 @@ struct GStreamerBuffer {
 }
 
 impl Buffer for GStreamerBuffer {
-    fn to_vec(&self) -> Result<VideoFrameData, ()> {
-        let data = self.frame.plane_data(0).map_err(|_| ())?;
-        Ok(VideoFrameData::Raw(Arc::new(data.to_vec())))
+    fn to_vec(&self) -> Option<VideoFrameData> {
+        let data = self.frame.plane_data(0).ok()?;
+        Some(VideoFrameData::Raw(Arc::new(data.to_vec())))
     }
 }
 
@@ -106,16 +106,14 @@ impl GStreamerRender {
         }
     }
 
-    pub fn get_frame_from_sample(&self, sample: gstreamer::Sample) -> Result<VideoFrame, ()> {
+    pub fn get_frame_from_sample(&self, sample: gstreamer::Sample) -> Option<VideoFrame> {
         if let Some(render) = self.render.as_ref() {
             render.build_frame(sample)
         } else {
-            let buffer = sample.buffer_owned().ok_or(())?;
-            let caps = sample.caps().ok_or(())?;
-            let info = gstreamer_video::VideoInfo::from_caps(caps).map_err(|_| ())?;
-
-            let frame =
-                gstreamer_video::VideoFrame::from_buffer_readable(buffer, &info).map_err(|_| ())?;
+            let buffer = sample.buffer_owned()?;
+            let caps = sample.caps()?;
+            let info = gstreamer_video::VideoInfo::from_caps(caps).ok()?;
+            let frame = gstreamer_video::VideoFrame::from_buffer_readable(buffer, &info).ok()?;
 
             VideoFrame::new(
                 info.width() as i32,

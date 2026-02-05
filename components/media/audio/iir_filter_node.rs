@@ -83,7 +83,7 @@ pub struct IIRFilterNode {
 impl IIRFilterNode {
     pub fn new(options: IIRFilterNodeOptions, channel_info: ChannelInfo) -> Self {
         debug_assert!(
-            options.feedforward.len() > 0,
+            !options.feedforward.is_empty(),
             "NotSupportedError: feedforward must have at least one coeff"
         );
 
@@ -99,7 +99,7 @@ impl IIRFilterNode {
         );
 
         debug_assert!(
-            options.feedback.len() > 0,
+            !options.feedback.is_empty(),
             "NotSupportedError: feedback must have at least one coeff"
         );
 
@@ -135,9 +135,9 @@ impl IIRFilterNode {
         );
 
         frequency_hz.iter().enumerate().for_each(|(idx, &f)| {
-            if f < 0.0 || f >= 1.0 {
-                mag_response[idx] = std::f32::NAN;
-                phase_response[idx] = std::f32::NAN;
+            if !(0.0..1.0).contains(&f) {
+                mag_response[idx] = f32::NAN;
+                phase_response[idx] = f32::NAN;
             } else {
                 let f = (-f as f64) * std::f64::consts::PI;
                 let z = Complex64::new(f64::cos(f), f64::sin(f));

@@ -66,13 +66,7 @@ impl AudioNodeEngine for StereoPannerNode {
                 // https://webaudio.github.io/web-audio-api/#stereopanner-algorithm
 
                 // clamp pan to [-1, 1]
-                pan = if pan < -1. {
-                    -1.
-                } else if pan > 1. {
-                    1.
-                } else {
-                    pan
-                };
+                pan = pan.clamp(-1., 1.);
 
                 let x = if mono {
                     (pan + 1.) / 2.
@@ -99,11 +93,11 @@ impl AudioNodeEngine for StereoPannerNode {
                     l[index] = input * gain_l;
                     r[index] = input * gain_r;
                 } else if pan <= 0. {
-                    l[index] = l[index] + r[index] * gain_l;
-                    r[index] = r[index] * gain_r;
+                    l[index] += r[index] * gain_l;
+                    r[index] *= gain_r;
                 } else {
-                    r[index] = r[index] + l[index] * gain_r;
-                    l[index] = l[index] * gain_l;
+                    r[index] += l[index] * gain_r;
+                    l[index] *= gain_l;
                 }
             }
         }

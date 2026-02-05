@@ -7,7 +7,7 @@ use once_cell::sync::Lazy;
 // This scanner is used to lazily analyze the registry and to provide information about
 // the set of supported mime types and codecs that the backend is able to deal with.
 pub static GSTREAMER_REGISTRY_SCANNER: Lazy<GStreamerRegistryScanner> =
-    Lazy::new(|| GStreamerRegistryScanner::new());
+    Lazy::new(GStreamerRegistryScanner::new);
 
 pub struct GStreamerRegistryScanner {
     supported_mime_types: HashSet<&'static str>,

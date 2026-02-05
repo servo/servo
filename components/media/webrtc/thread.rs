@@ -68,7 +68,7 @@ impl WebRtcController {
         let _ = self.sender.send(RtcThreadEvent::CreateAnswer(cb));
     }
     pub fn add_stream(&self, stream: &MediaStreamId) {
-        let _ = self.sender.send(RtcThreadEvent::AddStream(stream.clone()));
+        let _ = self.sender.send(RtcThreadEvent::AddStream(*stream));
     }
     pub fn create_data_channel(&self, init: DataChannelInit) -> Option<DataChannelId> {
         let (sender, receiver) = channel();
@@ -150,11 +150,9 @@ pub fn handle_rtc_event(
             .create_data_channel(&init)
             .map(|id| {
                 let _ = sender.send(Some(id));
-                ()
             })
-            .map_err(|e| {
+            .inspect_err(|_| {
                 let _ = sender.send(None);
-                e
             }),
         RtcThreadEvent::CloseDataChannel(id) => controller.close_data_channel(&id),
         RtcThreadEvent::SendDataChannelMessage(id, message) => {

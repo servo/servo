@@ -39,6 +39,10 @@ impl Default for Chunk {
 }
 
 impl Chunk {
+    pub fn is_empty(&self) -> bool {
+        self.blocks.is_empty()
+    }
+
     pub fn len(&self) -> usize {
         self.blocks.len()
     }
@@ -189,8 +193,10 @@ impl Block {
     }
 
     pub fn take(&mut self) -> Block {
-        let mut new = Block::default();
-        new.channels = self.channels;
+        let new = Block {
+            channels: self.channels,
+            ..Default::default()
+        };
         mem::replace(self, new)
     }
 
@@ -524,7 +530,7 @@ impl<'a> FrameIterator<'a> {
             self.frame.advance();
             Some(FrameRef {
                 frame: curr,
-                block: &mut self.block,
+                block: self.block,
             })
         } else {
             None

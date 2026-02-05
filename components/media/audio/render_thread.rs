@@ -24,6 +24,8 @@ use crate::stereo_panner::StereoPannerNode;
 use crate::wave_shaper_node::WaveShaperNode;
 use crate::{AudioBackend, AudioStreamReader};
 
+pub type SinkEosCallback = Box<dyn Fn(Box<dyn AsRef<[f32]>>) + Send + Sync + 'static>;
+
 pub enum AudioRenderThreadMsg {
     CreateNode(AudioNodeInit, Sender<NodeId>, ChannelInfo),
     ConnectPorts(PortId<OutputPort>, PortId<InputPort>),
@@ -41,7 +43,7 @@ pub enum AudioRenderThreadMsg {
     DisconnectOutputBetween(PortId<OutputPort>, NodeId),
     DisconnectOutputBetweenTo(PortId<OutputPort>, PortId<InputPort>),
 
-    SetSinkEosCallback(Box<dyn Fn(Box<dyn AsRef<[f32]>>) + Send + Sync + 'static>),
+    SetSinkEosCallback(SinkEosCallback),
 
     SetMute(bool),
 }
@@ -59,7 +61,10 @@ impl AudioSink for Sink {
     ) -> Result<(), AudioSinkError> {
         match *self {
             Sink::RealTime(ref sink) => sink.init(sample_rate, sender),
-            Sink::Offline(ref sink) => Ok(sink.init(sample_rate, sender).unwrap()),
+            Sink::Offline(ref sink) => {
+                sink.init(sample_rate, sender).unwrap();
+                Ok(())
+            },
         }
     }
 
@@ -70,14 +75,20 @@ impl AudioSink for Sink {
     fn play(&self) -> Result<(), AudioSinkError> {
         match *self {
             Sink::RealTime(ref sink) => sink.play(),
-            Sink::Offline(ref sink) => Ok(sink.play().unwrap()),
+            Sink::Offline(ref sink) => {
+                sink.play().unwrap();
+                Ok(())
+            },
         }
     }
 
     fn stop(&self) -> Result<(), AudioSinkError> {
         match *self {
             Sink::RealTime(ref sink) => sink.stop(),
-            Sink::Offline(ref sink) => Ok(sink.stop().unwrap()),
+            Sink::Offline(ref sink) => {
+                sink.stop().unwrap();
+                Ok(())
+            },
         }
     }
 
@@ -91,7 +102,10 @@ impl AudioSink for Sink {
     fn push_data(&self, chunk: Chunk) -> Result<(), AudioSinkError> {
         match *self {
             Sink::RealTime(ref sink) => sink.push_data(chunk),
-            Sink::Offline(ref sink) => Ok(sink.push_data(chunk).unwrap()),
+            Sink::Offline(ref sink) => {
+                sink.push_data(chunk).unwrap();
+                Ok(())
+            },
         }
     }
 
@@ -255,7 +269,7 @@ impl AudioRenderThread {
         self.graph.process(&info)
     }
 
-    fn set_mute(&mut self, val: bool) -> () {
+    fn set_mute(&mut self, val: bool) {
         self.muted = val;
     }
 
@@ -324,18 +338,17 @@ impl AudioRenderThread {
                 // we wait for messages coming from the control thread or
                 // the audio sink. The audio sink will notify whenever it
                 // needs more data.
-                if let Ok(msg) = event_queue.recv() {
-                    if handle_msg(self, msg) {
-                        break;
-                    }
+                if event_queue.recv().is_ok_and(|msg| handle_msg(self, msg)) {
+                    break;
                 }
             } else {
                 // If we have not pushed enough data into the audio sink yet,
                 // we process the control message queue
-                if let Ok(msg) = event_queue.try_recv() {
-                    if handle_msg(self, msg) {
-                        break;
-                    }
+                if event_queue
+                    .try_recv()
+                    .is_ok_and(|msg| handle_msg(self, msg))
+                {
+                    break;
                 }
 
                 if self.state == ProcessingState::Suspended {

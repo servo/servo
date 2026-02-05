@@ -325,11 +325,11 @@ impl BiquadFilterNode {
                 self.a2 = (a + 1.) - (a - 1.) * cos_omega - alpha_rt_a;
             },
         }
-        self.b0 = self.b0 / a0;
-        self.b1 = self.b1 / a0;
-        self.b2 = self.b2 / a0;
-        self.a1 = self.a1 / a0;
-        self.a2 = self.a2 / a0;
+        self.b0 /= a0;
+        self.b1 /= a0;
+        self.b2 /= a0;
+        self.a1 /= a0;
+        self.a2 /= a0;
     }
 }
 
@@ -398,14 +398,13 @@ impl AudioNodeEngine for BiquadFilterNode {
     }
 
     fn message_specific(&mut self, message: AudioNodeMessage, sample_rate: f32) {
-        match message {
-            AudioNodeMessage::BiquadFilterNode(m) => match m {
+        if let AudioNodeMessage::BiquadFilterNode(m) = message {
+            match m {
                 BiquadFilterNodeMessage::SetFilterType(f) => {
                     self.filter = f;
                     self.update_coefficients(sample_rate);
                 },
-            },
-            _ => (),
+            }
         }
     }
 }

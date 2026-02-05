@@ -119,7 +119,7 @@ mod imp {
 
             // set the stream size (in bytes) to current offset if
             // size is lesser than it
-            let _ = u64::try_from(self.appsrc.size()).and_then(|size| {
+            if let Ok(size) = u64::try_from(self.appsrc.size()) {
                 if pos.offset > size {
                     gstreamer::debug!(
                         self.cat,
@@ -131,8 +131,7 @@ mod imp {
                     let new_size = i64::try_from(pos.offset).unwrap();
                     self.appsrc.set_size(new_size);
                 }
-                Ok(())
-            });
+            }
 
             // Split the received vec<> into buffers that are of a
             // size basesrc suggest. It is important not to push
@@ -153,7 +152,7 @@ mod imp {
             for i in 0..num_blocks {
                 let start = usize::try_from(i * block_size + data_offset).unwrap();
                 data_offset = 0;
-                let size = usize::try_from(block_size.min((length - start as u64).into())).unwrap();
+                let size = usize::try_from(block_size.min(length - start as u64)).unwrap();
                 let end = start + size;
 
                 let buffer_offset = buffer_starting_offset + start as u64;

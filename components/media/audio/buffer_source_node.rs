@@ -109,7 +109,7 @@ impl AudioBufferSourceNode {
             loop_end: options.loop_end,
             loop_start: options.loop_start,
             playback_rate: Param::new_krate(options.playback_rate),
-            buffer_duration: std::f64::INFINITY,
+            buffer_duration: f64::INFINITY,
             start_at: None,
             start_offset: None,
             start_duration: None,
@@ -152,7 +152,7 @@ impl AudioNodeEngine for AudioBufferSourceNode {
     }
 
     fn process(&mut self, mut inputs: Chunk, info: &BlockInfo) -> Chunk {
-        debug_assert!(inputs.len() == 0);
+        debug_assert!(inputs.is_empty());
 
         if self.buffer.is_none() {
             inputs.blocks.push(Default::default());
@@ -392,6 +392,10 @@ impl AudioBuffer {
 
     pub fn len(&self) -> usize {
         self.buffers[0].len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn chans(&self) -> u8 {

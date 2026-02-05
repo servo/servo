@@ -26,7 +26,7 @@ impl AudioNodeEngine for MediaStreamSourceNode {
     }
 
     fn process(&mut self, mut inputs: Chunk, _: &BlockInfo) -> Chunk {
-        debug_assert!(inputs.len() == 0);
+        debug_assert!(inputs.is_empty());
 
         if !self.playing {
             self.playing = true;

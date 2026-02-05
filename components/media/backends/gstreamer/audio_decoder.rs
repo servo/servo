@@ -18,11 +18,12 @@ impl AsRef<[f32]> for GStreamerAudioDecoderProgress {
     }
 }
 
+#[derive(Default)]
 pub struct GStreamerAudioDecoder {}
 
 impl GStreamerAudioDecoder {
     pub fn new() -> Self {
-        Self {}
+        Default::default()
     }
 }
 
@@ -57,11 +58,11 @@ impl AudioDecoder for GStreamerAudioDecoder {
         // decodebin uses something called a "sometimes-pad", which is basically
         // a pad that will show up when a certain condition is met,
         // in decodebins case that is media being decoded
-        if let Err(e) = pipeline.add_many(&[&appsrc, &decodebin]) {
+        if let Err(e) = pipeline.add_many([&appsrc, &decodebin]) {
             return callbacks.error(AudioDecoderError::Backend(e.to_string()));
         }
 
-        if let Err(e) = gstreamer::Element::link_many(&[&appsrc, &decodebin]) {
+        if let Err(e) = gstreamer::Element::link_many([&appsrc, &decodebin]) {
             return callbacks.error(AudioDecoderError::Backend(e.to_string()));
         }
 

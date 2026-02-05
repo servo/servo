@@ -14,60 +14,50 @@ pub enum AudioDecoderError {
     StateChangeFailed,
 }
 
+type AudioDecoderEosCallback = Box<dyn FnOnce() + Send + 'static>;
+type AudioDecoderErrorCallback = Box<dyn FnOnce(AudioDecoderError) + Send + 'static>;
+type AudioDecoderProgressCallback = Box<dyn Fn(Box<dyn AsRef<[f32]>>, u32) + Send + Sync + 'static>;
+type AudioDecoderReadyCallback = Box<dyn FnOnce(u32) + Send + 'static>;
+
 pub struct AudioDecoderCallbacks {
-    pub eos: Mutex<Option<Box<dyn FnOnce() + Send + 'static>>>,
-    pub error: Mutex<Option<Box<dyn FnOnce(AudioDecoderError) + Send + 'static>>>,
-    pub progress: Option<Box<dyn Fn(Box<dyn AsRef<[f32]>>, u32) + Send + Sync + 'static>>,
-    pub ready: Mutex<Option<Box<dyn FnOnce(u32) + Send + 'static>>>,
+    pub eos: Mutex<Option<AudioDecoderEosCallback>>,
+    pub error: Mutex<Option<AudioDecoderErrorCallback>>,
+    pub progress: Option<AudioDecoderProgressCallback>,
+    pub ready: Mutex<Option<AudioDecoderReadyCallback>>,
 }
 
 impl AudioDecoderCallbacks {
-    pub fn new() -> AudioDecoderCallbacksBuilder {
-        AudioDecoderCallbacksBuilder {
-            eos: None,
-            error: None,
-            progress: None,
-            ready: None,
+    pub fn eos(&self) {
+        if let Some(callback) = self.eos.lock().unwrap().take() {
+            callback();
         }
     }
 
-    pub fn eos(&self) {
-        let eos = self.eos.lock().unwrap().take();
-        match eos {
-            None => return,
-            Some(callback) => callback(),
-        };
-    }
-
     pub fn error(&self, error: AudioDecoderError) {
-        let callback = self.error.lock().unwrap().take();
-        match callback {
-            None => return,
-            Some(callback) => callback(error),
-        };
+        if let Some(callback) = self.error.lock().unwrap().take() {
+            callback(error);
+        }
     }
 
     pub fn progress(&self, buffer: Box<dyn AsRef<[f32]>>, channel: u32) {
-        match self.progress {
-            None => return,
-            Some(ref callback) => callback(buffer, channel),
-        };
+        if let Some(callback) = self.progress.as_ref() {
+            callback(buffer, channel);
+        }
     }
 
     pub fn ready(&self, channels: u32) {
-        let ready = self.ready.lock().unwrap().take();
-        match ready {
-            None => return,
-            Some(callback) => callback(channels),
-        };
+        if let Some(callback) = self.ready.lock().unwrap().take() {
+            callback(channels);
+        }
     }
 }
 
+#[derive(Default)]
 pub struct AudioDecoderCallbacksBuilder {
-    eos: Option<Box<dyn FnOnce() + Send + 'static>>,
-    error: Option<Box<dyn FnOnce(AudioDecoderError) + Send + 'static>>,
-    progress: Option<Box<dyn Fn(Box<dyn AsRef<[f32]>>, u32) + Send + Sync + 'static>>,
-    ready: Option<Box<dyn FnOnce(u32) + Send + 'static>>,
+    eos: Option<AudioDecoderEosCallback>,
+    error: Option<AudioDecoderErrorCallback>,
+    progress: Option<AudioDecoderProgressCallback>,
+    ready: Option<AudioDecoderReadyCallback>,
 }
 
 impl AudioDecoderCallbacksBuilder {

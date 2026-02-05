@@ -169,7 +169,7 @@ impl PannerNode {
         if front_back < 0. {
             azimuth = 360. - azimuth;
         }
-        if (azimuth >= 0.) && (azimuth <= 270.) {
+        if (0. ..=270.).contains(&azimuth) {
             azimuth = 90. - azimuth;
         } else {
             azimuth = 450. - azimuth;
@@ -317,11 +317,7 @@ impl AudioNodeEngine for PannerNode {
                     // https://webaudio.github.io/web-audio-api/#Spatialization-equal-power-panning
 
                     // clamp to [-180, 180], then wrap to [-90, 90]
-                    if azimuth < -180. {
-                        azimuth = -180.
-                    } else if azimuth > 180. {
-                        azimuth = 180.
-                    }
+                    azimuth = azimuth.clamp(-180., 180.);
                     if azimuth < -90. {
                         azimuth = -180. - azimuth;
                     } else if azimuth > 90. {
@@ -353,11 +349,11 @@ impl AudioNodeEngine for PannerNode {
                         l[index] = input * gain_l;
                         r[index] = input * gain_r;
                     } else if azimuth <= 0. {
-                        l[index] = l[index] + r[index] * gain_l;
-                        r[index] = r[index] * gain_r;
+                        l[index] += r[index] * gain_l;
+                        r[index] *= gain_r;
                     } else {
-                        r[index] = r[index] + l[index] * gain_r;
-                        l[index] = l[index] * gain_l;
+                        r[index] += l[index] * gain_r;
+                        l[index] *= gain_l;
                     }
                     l[index] = l[index] * distance_gain as f32 * cone_gain as f32;
                     r[index] = r[index] * distance_gain as f32 * cone_gain as f32;
@@ -389,8 +385,8 @@ impl AudioNodeEngine for PannerNode {
     }
 
     fn message_specific(&mut self, message: AudioNodeMessage, _sample_rate: f32) {
-        match message {
-            AudioNodeMessage::PannerNode(p) => match p {
+        if let AudioNodeMessage::PannerNode(p) = message {
+            match p {
                 PannerNodeMessage::SetPanningModel(p) => {
                     if p == PanningModel::HRTF {
                         log::warn!("HRTF requested but not supported");
@@ -404,8 +400,7 @@ impl AudioNodeEngine for PannerNode {
                 PannerNodeMessage::SetConeInner(val) => self.cone_inner_angle = val,
                 PannerNodeMessage::SetConeOuter(val) => self.cone_outer_angle = val,
                 PannerNodeMessage::SetConeGain(val) => self.cone_outer_gain = val,
-            },
-            _ => (),
+            }
         }
     }
 }

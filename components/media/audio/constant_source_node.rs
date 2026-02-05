@@ -29,7 +29,7 @@ impl ConstantSourceNode {
     pub fn new(options: ConstantSourceNodeOptions, channel_info: ChannelInfo) -> Self {
         Self {
             channel_info,
-            offset: Param::new(options.offset.into()),
+            offset: Param::new(options.offset),
             start_at: None,
             stop_at: None,
             onended_callback: None,
@@ -47,7 +47,7 @@ impl AudioNodeEngine for ConstantSourceNode {
     }
 
     fn process(&mut self, mut inputs: Chunk, info: &BlockInfo) -> Chunk {
-        debug_assert!(inputs.len() == 0);
+        debug_assert!(inputs.is_empty());
 
         inputs.blocks.push(Default::default());
 

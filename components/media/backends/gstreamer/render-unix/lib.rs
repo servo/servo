@@ -13,7 +13,6 @@ use sm_gst_render::Render;
 use sm_player::PlayerError;
 use sm_player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
 use sm_player::video::{Buffer, VideoFrame, VideoFrameData};
-use {sm_gst_render, sm_player};
 
 struct GStreamerBuffer {
     is_external_oes: bool,
@@ -21,17 +20,17 @@ struct GStreamerBuffer {
 }
 
 impl Buffer for GStreamerBuffer {
-    fn to_vec(&self) -> Result<VideoFrameData, ()> {
+    fn to_vec(&self) -> Option<VideoFrameData> {
         // packed formats are guaranteed to be in a single plane
         if self.frame.format() == gstreamer_video::VideoFormat::Rgba {
-            let tex_id = self.frame.texture_id(0).map_err(|_| ())?;
-            Ok(if self.is_external_oes {
+            let tex_id = self.frame.texture_id(0).ok()?;
+            Some(if self.is_external_oes {
                 VideoFrameData::OESTexture(tex_id)
             } else {
                 VideoFrameData::Texture(tex_id)
             })
         } else {
-            Err(())
+            None
         }
     }
 }
@@ -48,14 +47,11 @@ impl RenderUnix {
     ///
     /// # Arguments
     ///
-    /// * `context` - is the PlayerContext trait object from
-    /// application.
+    /// * `context` - is the PlayerContext trait object from application.
     pub fn new(app_gl_context: Box<dyn PlayerGLContext>) -> Option<RenderUnix> {
         // Check that we actually have the elements that we
         // need to make this work.
-        if gstreamer::ElementFactory::find("glsinkbin").is_none() {
-            return None;
-        }
+        gstreamer::ElementFactory::find("glsinkbin")?;
 
         let display_native = app_gl_context.get_native_display();
         let gl_context = app_gl_context.get_gl_context();
@@ -169,16 +165,18 @@ impl Render for RenderUnix {
         true
     }
 
-    fn build_frame(&self, sample: gstreamer::Sample) -> Result<VideoFrame, ()> {
+    fn build_frame(&self, sample: gstreamer::Sample) -> Option<VideoFrame> {
         if self.gst_context.lock().unwrap().is_none() && self.gl_upload.lock().unwrap().is_some() {
-            *self.gst_context.lock().unwrap() = match self.gl_upload.lock().unwrap().as_ref() {
-                Some(glupload) => Some(glupload.property::<gstreamer_gl::GLContext>("context")),
-                _ => None,
-            };
+            *self.gst_context.lock().unwrap() = self
+                .gl_upload
+                .lock()
+                .unwrap()
+                .as_ref()
+                .map(|glupload| glupload.property::<gstreamer_gl::GLContext>("context"));
         }
 
-        let buffer = sample.buffer_owned().ok_or(())?;
-        let caps = sample.caps().ok_or(())?;
+        let buffer = sample.buffer_owned()?;
+        let caps = sample.caps()?;
 
         let is_external_oes = caps
             .structure(0)
@@ -193,10 +191,8 @@ impl Render for RenderUnix {
             })
             .is_some();
 
-        let info = gstreamer_video::VideoInfo::from_caps(caps).map_err(|_| ())?;
-        let frame =
-            gstreamer_gl::GLVideoFrame::from_buffer_readable(buffer, &info).map_err(|_| ())?;
-
+        let info = gstreamer_video::VideoInfo::from_caps(caps).ok()?;
+        let frame = gstreamer_gl::GLVideoFrame::from_buffer_readable(buffer, &info).ok()?;
         VideoFrame::new(
             info.width() as i32,
             info.height() as i32,
@@ -243,28 +239,25 @@ impl Render for RenderUnix {
         let display_ = self.display.clone();
         let context_ = self.app_context.clone();
         bus.set_sync_handler(move |_, msg| {
-            match msg.view() {
-                gstreamer::MessageView::NeedContext(ctxt) => {
-                    if let Some(el) = msg
-                        .src()
-                        .map(|s| s.clone().downcast::<gstreamer::Element>().unwrap())
-                    {
-                        let context_type = ctxt.context_type();
-                        if context_type == *gstreamer_gl::GL_DISPLAY_CONTEXT_TYPE {
-                            let ctxt = gstreamer::Context::new(context_type, true);
-                            ctxt.set_gl_display(&display_);
-                            el.set_context(&ctxt);
-                        } else if context_type == "gst.gl.app_context" {
-                            let mut ctxt = gstreamer::Context::new(context_type, true);
-                            {
-                                let s = ctxt.get_mut().unwrap().structure_mut();
-                                s.set_value("context", context_.to_send_value());
-                            }
-                            el.set_context(&ctxt);
+            if let gstreamer::MessageView::NeedContext(ctxt) = msg.view() {
+                if let Some(el) = msg
+                    .src()
+                    .map(|s| s.clone().downcast::<gstreamer::Element>().unwrap())
+                {
+                    let context_type = ctxt.context_type();
+                    if context_type == *gstreamer_gl::GL_DISPLAY_CONTEXT_TYPE {
+                        let ctxt = gstreamer::Context::new(context_type, true);
+                        ctxt.set_gl_display(&display_);
+                        el.set_context(&ctxt);
+                    } else if context_type == "gst.gl.app_context" {
+                        let mut ctxt = gstreamer::Context::new(context_type, true);
+                        {
+                            let s = ctxt.get_mut().unwrap().structure_mut();
+                            s.set_value("context", context_.to_send_value());
                         }
+                        el.set_context(&ctxt);
                     }
-                },
-                _ => (),
+                }
             }
 
             gstreamer::BusSyncReply::Pass

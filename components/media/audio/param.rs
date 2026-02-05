@@ -109,7 +109,7 @@ impl Param {
         // that there were connected inputs, so we should not
         // directly return `false` after this point, instead returning
         // `changed`
-        changed |= if let Some(block) = self.blocks.get(0) {
+        changed |= if let Some(block) = self.blocks.first() {
             // store to be summed with `val` later
             self.block_mix_val = block.data_chan_frame(tick.0 as usize, 0);
             true
@@ -249,16 +249,16 @@ impl Param {
         // common case
         if self.current_event >= self.events.len() && self.blocks.is_empty() {
             if self.val != 0. {
-                for tick in 0..(FRAMES_PER_BLOCK_USIZE) {
+                for block_tick in &mut block[0..FRAMES_PER_BLOCK_USIZE] {
                     // ideally this can use some kind of vectorized memset()
-                    block[tick] = self.val;
+                    *block_tick = self.val;
                 }
             }
         // if the value is zero, our buffer is already zeroed
         } else {
-            for tick in 0..(FRAMES_PER_BLOCK_USIZE) {
-                self.update(info, Tick(tick as u64));
-                block[tick] = self.val;
+            for block_tick in &mut block[0..FRAMES_PER_BLOCK_USIZE] {
+                self.update(info, Tick(*block_tick as u64));
+                *block_tick = self.val;
             }
         }
     }
@@ -299,7 +299,7 @@ pub enum UserAutomationEvent {
 }
 
 impl UserAutomationEvent {
-    pub(crate) fn to_event(self, rate: f32) -> AutomationEvent {
+    pub(crate) fn convert_to_event(self, rate: f32) -> AutomationEvent {
         match self {
             UserAutomationEvent::SetValue(val) => AutomationEvent::SetValue(val),
             UserAutomationEvent::SetValueAtTime(val, time) => {
@@ -394,12 +394,10 @@ impl AutomationEvent {
         event_start_time: Tick,
         event_start_value: f32,
     ) -> bool {
-        if let Some(start_time) = self.start_time() {
-            if start_time > current_tick {
-                // The previous event finished and we advanced to this
-                // event, but it's not started yet. Return early
-                return false;
-            }
+        if matches!(self.start_time(), Some(start_time) if start_time > current_tick) {
+            // The previous event finished and we advanced to this
+            // event, but it's not started yet. Return early
+            return false;
         }
 
         match *self {
@@ -439,11 +437,10 @@ impl AutomationEvent {
                 true
             },
             AutomationEvent::SetValueCurveAtTime(ref values, start, duration) => {
-                let progress = ((((current_tick.0 as f32) - (start.0 as f32)) as f32) /
-                    (duration.0 as f32)) as f32;
+                let progress = ((current_tick.0 as f32) - (start.0 as f32)) / (duration.0 as f32);
                 debug_assert!(progress >= 0.);
                 let n = values.len() as f32;
-                let k_float = ((n - 1.) * progress) as f32;
+                let k_float = (n - 1.) * progress;
                 let k = k_float.floor();
                 if (k + 1.) < n {
                     let progress = k_float - k;

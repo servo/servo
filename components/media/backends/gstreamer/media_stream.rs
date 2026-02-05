@@ -152,9 +152,9 @@ impl GStreamerMediaStream {
                 let queue2 = gstreamer::ElementFactory::make("queue").build().unwrap();
 
                 pipeline
-                    .add_many(&[&vp8enc, &rtpvp8pay, &queue2, &capsfilter])
+                    .add_many([&vp8enc, &rtpvp8pay, &queue2, &capsfilter])
                     .unwrap();
-                gstreamer::Element::link_many(&[&src, &vp8enc, &rtpvp8pay, &queue2, &capsfilter])
+                gstreamer::Element::link_many([&src, &vp8enc, &rtpvp8pay, &queue2, &capsfilter])
                     .unwrap();
                 vp8enc.sync_state_with_parent().unwrap();
                 rtpvp8pay.sync_state_with_parent().unwrap();
@@ -170,9 +170,9 @@ impl GStreamerMediaStream {
                     .unwrap();
                 let queue3 = gstreamer::ElementFactory::make("queue").build().unwrap();
                 pipeline
-                    .add_many(&[&opusenc, &rtpopuspay, &queue3, &capsfilter])
+                    .add_many([&opusenc, &rtpopuspay, &queue3, &capsfilter])
                     .unwrap();
-                gstreamer::Element::link_many(&[&src, &opusenc, &rtpopuspay, &queue3, &capsfilter])
+                gstreamer::Element::link_many([&src, &opusenc, &rtpopuspay, &queue3, &capsfilter])
                     .unwrap();
                 opusenc.sync_state_with_parent().unwrap();
                 rtpopuspay.sync_state_with_parent().unwrap();
@@ -245,14 +245,9 @@ impl Drop for GStreamerMediaStream {
     }
 }
 
+#[derive(Default)]
 pub struct MediaSink {
     streams: Vec<Arc<Mutex<dyn MediaStream>>>,
-}
-
-impl MediaSink {
-    pub fn new() -> Self {
-        MediaSink { streams: vec![] }
-    }
 }
 
 impl MediaOutput for MediaSink {

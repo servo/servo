@@ -3,7 +3,7 @@ use std::sync::mpsc::Sender;
 use servo_media_streams::MediaSocket;
 
 use crate::block::Chunk;
-use crate::render_thread::AudioRenderThreadMsg;
+use crate::render_thread::{AudioRenderThreadMsg, SinkEosCallback};
 
 #[derive(Debug, PartialEq)]
 pub enum AudioSinkError {
@@ -31,8 +31,5 @@ pub trait AudioSink: Send {
     fn stop(&self) -> Result<(), AudioSinkError>;
     fn has_enough_data(&self) -> bool;
     fn push_data(&self, chunk: Chunk) -> Result<(), AudioSinkError>;
-    fn set_eos_callback(
-        &self,
-        callback: Box<dyn Fn(Box<dyn AsRef<[f32]>>) + Send + Sync + 'static>,
-    );
+    fn set_eos_callback(&self, callback: SinkEosCallback);
 }
