@@ -47,6 +47,7 @@ use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId, RequestMode,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
+use script_bindings::cformat;
 use script_bindings::domstring::BytesView;
 use script_bindings::error::Fallible;
 use script_bindings::trace::CustomTraceable;
@@ -310,8 +311,9 @@ impl ModuleTree {
             loaded_modules: DomRefCell::new(IndexMap::new()),
         };
 
+        let c_url = cformat!("{url}");
         let mut compile_options =
-            unsafe { CompileOptionsWrapper::new_raw(*cx, url.as_str(), line_number) };
+            unsafe { CompileOptionsWrapper::new_raw(*cx, c_url, line_number) };
         if let Some(introduction_type) = introduction_type {
             compile_options.set_introduction_type(introduction_type);
         }
@@ -391,7 +393,8 @@ impl ModuleTree {
         // Step 3. Set script's base URL and fetch options to null.
         // Note: We don't need to call `SetModulePrivate` for json scripts
 
-        let mut compile_options = unsafe { CompileOptionsWrapper::new_raw(*cx, url.as_str(), 1) };
+        let c_url = cformat!("{url}");
+        let mut compile_options = unsafe { CompileOptionsWrapper::new_raw(*cx, c_url, 1) };
         if let Some(introduction_type) = introduction_type {
             compile_options.set_introduction_type(introduction_type);
         }

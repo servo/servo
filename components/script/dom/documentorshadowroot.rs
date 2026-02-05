@@ -446,7 +446,9 @@ impl DocumentOrShadowRoot {
                     owner,
                 )
             },
-            Ok(ConversionResult::Failure(msg)) => Err(Error::Type(msg.to_string())),
+            Ok(ConversionResult::Failure(msg)) => Err(Error::Type(
+                String::from_utf8_lossy(msg.as_ref().to_bytes()).into_owned(),
+            )),
             Err(_) => Err(Error::Type(
                 "The provided value is not a sequence of 'CSSStylesheet'.".to_owned(),
             )),

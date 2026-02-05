@@ -18,6 +18,7 @@ use js::jsval::JSVal;
 use js::rust::{CompileOptionsWrapper, HandleObject, transform_u16_to_source_text};
 use libc::c_char;
 use rustc_hash::FxBuildHasher;
+use script_bindings::cformat;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
 use stylo_atoms::Atom;
@@ -759,9 +760,8 @@ impl EventTarget {
         let args = if is_error { ERROR_ARG_NAMES } else { ARG_NAMES };
 
         let cx = GlobalScope::get_cx();
-        let options = unsafe {
-            CompileOptionsWrapper::new_raw(*cx, &handler.url.to_string(), handler.line as u32)
-        };
+        let url = cformat!("{}", handler.url);
+        let options = unsafe { CompileOptionsWrapper::new_raw(*cx, url, handler.line as u32) };
 
         // Step 3.9, subsection Scope steps 1-6
         let scopechain = js::rust::EnvironmentChain::new(*cx, SupportUnscopables::Yes);

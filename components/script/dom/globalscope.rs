@@ -67,6 +67,7 @@ use net_traits::{
 };
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use rustc_hash::{FxBuildHasher, FxHashMap};
+use script_bindings::cformat;
 use script_bindings::domstring::BytesView;
 use script_bindings::interfaces::GlobalScopeHelpers;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -3891,6 +3892,9 @@ fn compile_script(
     line_number: u32,
     introduction_type: Option<&'static CStr>,
 ) -> *mut JSScript {
+    // TODO: pass filename as CString to avoid allocation
+    // See https://github.com/servo/servo/issues/42126
+    let filename = cformat!("{filename}");
     let mut options = unsafe { CompileOptionsWrapper::new_raw(*cx, filename, line_number) };
     if let Some(introduction_type) = introduction_type {
         options.set_introduction_type(introduction_type);
