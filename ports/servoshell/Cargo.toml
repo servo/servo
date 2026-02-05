@@ -61,7 +61,7 @@ webxr = ["libservo/webxr"]
 
 [dependencies]
 accesskit = { workspace = true }
-bpaf = { version = "0.9.21", features = ["derive"] }
+bpaf = { version = "0.9.23", features = ["derive"] }
 cfg-if = { workspace = true }
 crossbeam-channel = { workspace = true }
 dpi = { workspace = true }
