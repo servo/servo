@@ -3,15 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::Rect;
-use paint_api::largest_contentful_paint_candidate::{
-    LCPCandidate, LCPCandidateID, LargestContentfulPaintType,
-};
+use paint_api::largest_contentful_paint_candidate::LCPCandidate;
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
 use webrender_api::units::{LayoutRect, LayoutSize};
 
 use crate::query::transform_au_rectangle;
 
-pub(crate) struct LargestContentfulPaintCandidateCollector {
+pub(crate) struct PaintCandidateCollector {
     /// The LCP candidate, it may be a image or text.
     pub lcp_candidate: Option<LCPCandidate>,
     /// The rect of viewport.
@@ -21,7 +19,7 @@ pub(crate) struct LargestContentfulPaintCandidateCollector {
     pub did_lcp_candidate_update: bool,
 }
 
-impl LargestContentfulPaintCandidateCollector {
+impl PaintCandidateCollector {
     pub fn new(viewport_size: LayoutSize) -> Self {
         Self {
             lcp_candidate: None,
@@ -30,14 +28,12 @@ impl LargestContentfulPaintCandidateCollector {
         }
     }
 
-    pub fn add_or_update_candidate(
-        &mut self,
-        lcp_type: LargestContentfulPaintType,
-        lcp_candidate_id: LCPCandidateID,
+    pub fn candidate_size(
+        &self,
         clip_rect: LayoutRect,
         bounds: LayoutRect,
         transform: FastLayoutTransform,
-    ) {
+    ) -> usize {
         let clipped_rect = bounds
             .intersection(&clip_rect)
             .unwrap_or(LayoutRect::zero());
@@ -51,14 +47,11 @@ impl LargestContentfulPaintCandidateCollector {
             .intersection(&self.viewport_rect.to_rect().cast_unit())
             .unwrap_or(Rect::zero());
         let area = visual_rect.size.width * visual_rect.size.height;
-        if area == 0.0 {
-            return;
-        }
 
-        self.update_candidate(LCPCandidate::new(lcp_candidate_id, lcp_type, area as usize));
+        area as usize
     }
 
-    fn update_candidate(&mut self, candidate: LCPCandidate) {
+    pub fn add_or_update_lcp_candidate(&mut self, candidate: LCPCandidate) {
         if let Some(ref mut latest_candidate) = self.lcp_candidate {
             if candidate.area > latest_candidate.area {
                 *latest_candidate = candidate;

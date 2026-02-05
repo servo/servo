@@ -13,9 +13,12 @@ use fonts::GlyphStore;
 use gradient::WebRenderGradient;
 use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
-use paint_api::largest_contentful_paint_candidate::{LCPCandidateID, LargestContentfulPaintType};
+use paint_api::largest_contentful_paint_candidate::{
+    ContentfulPaintType, LCPCandidate, LCPCandidateID,
+};
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DiagnosticsLogging;
+use servo_config::pref;
 use servo_geometry::MaxRect;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
@@ -66,12 +69,12 @@ mod clip;
 mod conversions;
 mod gradient;
 mod hit_test;
-mod largest_contenful_paint_candidate_collector;
+mod paint_candidate_collector;
 mod stacking_context;
 
 use background::BackgroundPainter;
 pub(crate) use hit_test::HitTest;
-pub(crate) use largest_contenful_paint_candidate_collector::LargestContentfulPaintCandidateCollector;
+pub(crate) use paint_candidate_collector::PaintCandidateCollector;
 pub(crate) use stacking_context::*;
 
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(AU_PER_PX);
@@ -122,7 +125,7 @@ pub(crate) struct DisplayListBuilder<'a> {
     device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
 
     /// The collector for calculating Largest Contentful Paint
-    lcp_candidate_collector: Option<&'a mut LargestContentfulPaintCandidateCollector>,
+    paint_candidate_collector: Option<&'a mut PaintCandidateCollector>,
 }
 
 struct InspectorHighlight {
@@ -171,7 +174,7 @@ impl DisplayListBuilder<'_> {
         device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
         highlighted_dom_node: Option<OpaqueNode>,
         debug: &DiagnosticsLogging,
-        lcp_candidate_collector: Option<&mut LargestContentfulPaintCandidateCollector>,
+        paint_candidate_collector: Option<&mut PaintCandidateCollector>,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let paint_info = &mut stacking_context_tree.paint_info;
@@ -200,7 +203,7 @@ impl DisplayListBuilder<'_> {
             clip_map: Default::default(),
             image_resolver,
             device_pixel_ratio,
-            lcp_candidate_collector,
+            paint_candidate_collector,
         };
 
         builder.add_all_spatial_nodes();
@@ -521,26 +524,34 @@ impl DisplayListBuilder<'_> {
     }
 
     #[inline]
-    fn collect_lcp_candidate(
+    fn collect_paint_candidate(
         &mut self,
-        lcp_type: LargestContentfulPaintType,
+        contentful_paint_type: ContentfulPaintType,
         lcp_candidate_id: LCPCandidateID,
         clip_rect: LayoutRect,
         bounds: LayoutRect,
     ) {
-        if let Some(lcp_collector) = &mut self.lcp_candidate_collector {
+        if let Some(paint_collector) = &mut self.paint_candidate_collector {
             let transform = self
                 .paint_info
                 .scroll_tree
                 .cumulative_node_to_root_transform(self.current_scroll_node_id);
-            lcp_collector.add_or_update_candidate(
-                lcp_type,
-                lcp_candidate_id,
-                clip_rect,
-                bounds,
-                transform,
-            );
+            let area = paint_collector.candidate_size(clip_rect, bounds, transform);
+            if area == 0 {
+                return;
+            }
+
+            // Collect LCP candidate only if LCP feature is enabled
+            if pref!(largest_contentful_paint_enabled) {
+                paint_collector.add_or_update_lcp_candidate(LCPCandidate::new(
+                    lcp_candidate_id,
+                    contentful_paint_type,
+                    area,
+                ));
+            }
         }
+        // Mark the page as contentful when we have a valid paint candidate
+        self.mark_is_contentful();
     }
 }
 
@@ -630,8 +641,6 @@ impl Fragment {
                 let style = image.base.style();
                 match style.get_inherited_box().visibility {
                     Visibility::Visible => {
-                        builder.mark_is_contentful();
-
                         let image_rendering =
                             style.get_inherited_box().image_rendering.to_webrender();
                         let rect = image
@@ -654,6 +663,17 @@ impl Fragment {
                                 image_key,
                                 wr::ColorF::WHITE,
                             );
+                            let lcp_candidate_id = image
+                                .base
+                                .tag
+                                .map(|tag| LCPCandidateID(tag.node.id()))
+                                .unwrap_or(LCPCandidateID(0));
+                            builder.collect_paint_candidate(
+                                ContentfulPaintType::Image,
+                                lcp_candidate_id,
+                                common.clip_rect,
+                                rect,
+                            );
                         }
 
                         if image.showing_broken_image_icon {
@@ -663,18 +683,6 @@ impl Fragment {
                                 &common,
                             );
                         }
-
-                        let lcp_candidate_id = image
-                            .base
-                            .tag
-                            .map(|tag| LCPCandidateID(tag.node.id()))
-                            .unwrap_or(LCPCandidateID(0));
-                        builder.collect_lcp_candidate(
-                            LargestContentfulPaintType::Image,
-                            lcp_candidate_id,
-                            common.clip_rect,
-                            rect,
-                        );
                     },
                     Visibility::Hidden => (),
                     Visibility::Collapse => (),
@@ -685,7 +693,7 @@ impl Fragment {
                 let style = iframe.base.style();
                 match style.get_inherited_box().visibility {
                     Visibility::Visible => {
-                        builder.mark_is_contentful();
+                        // TODO: Need to consider context for while considering iframe as paint candidate
                         let rect = iframe
                             .base
                             .rect
@@ -732,9 +740,6 @@ impl Fragment {
     ) {
         // NB: The order of painting text components (CSS Text Decoration Module Level 3) is:
         // shadows, underline, overline, text, text-emphasis, and then line-through.
-
-        builder.mark_is_contentful();
-
         let rect = fragment
             .base
             .rect
@@ -826,6 +831,12 @@ impl Fragment {
             fragment.font_key,
             rgba(color),
             None,
+        );
+        builder.collect_paint_candidate(
+            ContentfulPaintType::Text,
+            LCPCandidateID(0),
+            common.clip_rect,
+            rect.to_webrender(),
         );
 
         for text_decoration in text_decorations.iter() {
@@ -1392,8 +1403,8 @@ impl<'a> BuilderForBoxFragment<'a> {
                             .tag
                             .map(|tag| LCPCandidateID(tag.node.id()))
                             .unwrap_or(LCPCandidateID(0));
-                        builder.collect_lcp_candidate(
-                            LargestContentfulPaintType::BackgroundImage,
+                        builder.collect_paint_candidate(
+                            ContentfulPaintType::BackgroundImage,
                             lcp_candidate_id,
                             layer.common.clip_rect,
                             layer.bounds,
