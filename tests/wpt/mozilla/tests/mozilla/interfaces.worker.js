@@ -97,7 +97,6 @@ test_interfaces([
   "PerformanceMeasure",
   "PerformanceObserver",
   "PerformanceObserverEntryList",
-  "PerformancePaintTiming",
   "PerformanceResourceTiming",
   "PermissionStatus",
   "Permissions",
