@@ -22,11 +22,14 @@ pub struct ServoTest {
 }
 
 impl ServoTest {
+<<<<<<< HEAD
     #[expect(dead_code)] // Used by some tests and not others
     pub(crate) fn new() -> Self {
         Self::new_with_builder(|builder| builder)
     }
 
+=======
+>>>>>>> 153be7749bf (tests: improves servo test)
     pub(crate) fn new_with_builder<F>(customize: F) -> Self
     where
         F: FnOnce(ServoBuilder) -> ServoBuilder,
