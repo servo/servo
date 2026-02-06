@@ -482,7 +482,7 @@ impl IDBTransaction {
                 // “When a transaction is committed or aborted, its state is set to finished.”
                 this.finished.set(true);
                 if this.registered_in_global.get() {
-                    this.global().get_indexeddb().unregister_indexeddb_transaction(&*this);
+                    this.global().get_indexeddb().unregister_indexeddb_transaction(&this);
                     this.registered_in_global.set(false);
                 }
             }));
