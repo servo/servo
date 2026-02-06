@@ -1471,3 +1471,17 @@ pub(crate) fn transform_au_rectangle(
     };
     outer_transformed_rect.map(|transformed_rect| f32_rect_to_au_rect(transformed_rect).cast_unit())
 }
+
+pub fn process_effective_overflow_query(
+    node: ServoThreadSafeLayoutNode<'_>,
+) -> Option<AxesOverflow> {
+    let fragments = node.fragments_for_pseudo(None);
+    let box_fragment = fragments.first()?.retrieve_box_fragment()?;
+    let box_fragment = box_fragment.borrow();
+
+    Some(
+        box_fragment
+            .style()
+            .effective_overflow(box_fragment.base.flags),
+    )
+}

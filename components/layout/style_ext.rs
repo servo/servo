@@ -679,9 +679,8 @@ impl ComputedValuesExt for ComputedValues {
 
     /// Whether or not the `overflow` value of this style establishes a scroll container.
     fn establishes_scroll_container(&self, fragment_flags: FragmentFlags) -> bool {
-        // Checking one axis suffices, because the computed value ensures that
-        // either both axes are scrollable, or none is scrollable.
-        self.effective_overflow(fragment_flags).x.is_scrollable()
+        self.effective_overflow(fragment_flags)
+            .establishes_scroll_container()
     }
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.

@@ -56,8 +56,8 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    BoxAreaType, ElementsFromPointFlags, ElementsFromPointResult, FragmentType, Layout,
-    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
+    AxesOverflow, BoxAreaType, ElementsFromPointFlags, ElementsFromPointResult, FragmentType,
+    Layout, LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
     PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle,
     RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
     combine_id_with_fragment_type,
@@ -3043,6 +3043,20 @@ impl Window {
     ) -> Vec<ElementsFromPointResult> {
         self.layout_reflow(QueryMsg::ElementsFromPoint);
         self.layout().query_elements_from_point(point, flags)
+    }
+
+    pub(crate) fn query_effective_overflow(&self, node: &Node) -> Option<AxesOverflow> {
+        self.layout_reflow(QueryMsg::EffectiveOverflow);
+        self.query_effective_overflow_without_reflow(node)
+    }
+
+    pub(crate) fn query_effective_overflow_without_reflow(
+        &self,
+        node: &Node,
+    ) -> Option<AxesOverflow> {
+        self.layout
+            .borrow()
+            .query_effective_overflow(node.to_trusted_node_address())
     }
 
     pub(crate) fn hit_test_from_input_event(

@@ -26,7 +26,7 @@ use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::wrapper_traits::SharedSelection;
 use layout_api::{
-    BoxAreaType, GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType,
+    AxesOverflow, BoxAreaType, GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType,
     LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData, StyleData, TrustedNodeAddress,
 };
 use libc::{self, c_void, uintptr_t};
@@ -1086,6 +1086,15 @@ impl Node {
         // these steps."
         // "7. Return the width of the element’s scrolling area."
         window.scrolling_area_query(Some(self))
+    }
+
+    pub(crate) fn effective_overflow(&self) -> Option<AxesOverflow> {
+        self.owner_window().query_effective_overflow(self)
+    }
+
+    pub(crate) fn effective_overflow_without_reflow(&self) -> Option<AxesOverflow> {
+        self.owner_window()
+            .query_effective_overflow_without_reflow(self)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
@@ -3348,7 +3357,7 @@ impl Node {
         self.xml_serialize(xml_serialize::TraversalScope::ChildrenOnly(None))
     }
 
-    /// Return true if this node establishes a "scrolling box" for the purposes of `scrollIntoView`.
+    /// Return true if this node establishes a "scrolling box".
     pub(crate) fn establishes_scrolling_box(&self) -> bool {
         // For now, `Document` represents the viewport.
         //
@@ -3361,13 +3370,12 @@ impl Node {
             // Shadow roots and other nodes are not scrolling boxes.
             return false;
         };
-        // TODO: This should ask layout whether or not the element establishes a scrolling
-        // box. This heuristic is wrong.
-        element.style().is_some_and(|style| {
-            let overflow_x = style.get_box().clone_overflow_x();
-            let overflow_y = style.get_box().clone_overflow_y();
-            overflow_x.is_scrollable() || overflow_y.is_scrollable()
-        })
+
+        // > Elements and viewports have an associated scrolling box if the element or viewport has a scrolling mechanism,
+        // > or it overflows its content area and the used value of the overflow-x or overflow-y property is not
+        // > overflow/hidden or overflow/clip. [CSS3-BOX]
+        // TODO: handle scrolling mechanism.
+        element.establishes_scroll_container() && element.has_overflow()
     }
 }
 
