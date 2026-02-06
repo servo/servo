@@ -26,8 +26,9 @@ use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::wrapper_traits::SharedSelection;
 use layout_api::{
-    BoxAreaType, GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType,
-    LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData, StyleData, TrustedNodeAddress,
+    BoxAreaType, CSSPixelRectIterator, GenericLayoutData, HTMLCanvasData, HTMLMediaData,
+    LayoutElementType, LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData, StyleData,
+    TrustedNodeAddress,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -1038,7 +1039,7 @@ impl Node {
             .box_area_query(self, BoxAreaType::Padding, false)
     }
 
-    pub(crate) fn border_boxes(&self) -> Vec<Rect<Au, CSSPixel>> {
+    pub(crate) fn border_boxes(&self) -> CSSPixelRectIterator {
         self.owner_window()
             .box_areas_query(self, BoxAreaType::Border)
     }

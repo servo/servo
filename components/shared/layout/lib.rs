@@ -348,11 +348,7 @@ pub trait Layout {
         area: BoxAreaType,
         exclude_transform_and_inline: bool,
     ) -> Option<Rect<Au, CSSPixel>>;
-    fn query_box_areas(
-        &self,
-        node: TrustedNodeAddress,
-        area: BoxAreaType,
-    ) -> Vec<Rect<Au, CSSPixel>>;
+    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> CSSPixelRectIterator;
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32, CSSPixel>;
     fn query_current_css_zoom(&self, node: TrustedNodeAddress) -> f32;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
@@ -418,6 +414,8 @@ pub enum BoxAreaType {
     Padding,
     Border,
 }
+
+pub type CSSPixelRectIterator = Box<dyn Iterator<Item = Rect<Au, CSSPixel>>>;
 
 #[derive(Default)]
 pub struct PhysicalSides {
