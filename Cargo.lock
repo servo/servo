@@ -3326,8 +3326,6 @@ dependencies = [
 [[package]]
 name = "glslopt"
 version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ba4741358604ca0848c27ecc069d68e62e11cde81e38aac1da3c54b79ab5adf"
 dependencies = [
  "cc",
 ]
