@@ -321,6 +321,17 @@ impl Fragment {
                     Cursor::Text,
                 )
             },
+            Fragment::ElidedText(elided_text) => {
+                // TODO: hit tests should not hit elided text (overflowing text that got replaced with overflow indicator). Handle this in the future.
+                let text = &elided_text.borrow().text_fragment;
+                hit_test_fragment_inner(
+                    &text.base.style(),
+                    text.base.rect,
+                    BorderRadius::zero(),
+                    FragmentFlags::empty(),
+                    Cursor::Text,
+                )
+            },
             _ => false,
         }
     }
