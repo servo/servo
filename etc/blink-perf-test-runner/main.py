@@ -27,6 +27,7 @@ from urllib3.exceptions import ProtocolError, MaxRetryError
 from selenium.common.exceptions import NoSuchElementException
 
 from enum import Enum
+import re
 
 
 class AbortReason(Enum):
@@ -83,23 +84,38 @@ def kill_servo():
     subprocess.Popen(["killall", "servo"])
 
 
-def test(s: str, driver: webdriver.Remote) -> tuple[str, str, str] | AbortReason:
+_PATTERN = re.compile(
+    r"""
+Time:\s+
+values\s+[0-9.,\s]+(?P<unit>ms|runs\/s)\s+
+avg\s+(?P<avg>[0-9.]+)\s+(?P=unit)\s+
+median\s+[0-9.]+\s+(?P=unit)\s+
+stdev\s+[0-9.]+\s+(?P=unit)\s+
+min\s+(?P<min>[0-9.]+)\s+(?P=unit)\s+
+max\s+(?P<max>[0-9.]+)\s+(?P=unit)
+""",
+    re.VERBOSE,
+)
+
+
+def test(s: str, driver: webdriver.Remote) -> tuple[float, float, float] | AbortReason:
     """Run a test by loading a website, and returning (avg, min, max).
     This will run for MAX_WAIT_TIME seconds and return as soon as the avg line exists in the log element"""
 
     print("Running: " + canonical_test_path(s, None))
     try:
         driver.get(s)
+        avg_line, min_line, max_line = None, None, None
         for i in range(MAX_WAIT_TIME):
             element = driver.find_element(By.ID, "log")
             text = element.text
-            result_lines = text.split("\n")
-            # get the avg line or return None if it doesn't exist yet
-            avg_line = next(filter(lambda x: "avg" in x, result_lines), None)
-            min_line = next(filter(lambda x: "min" in x, result_lines), None)
-            max_line = next(filter(lambda x: "max" in x, result_lines), None)
+            m = _PATTERN.search(text)
+            if m:
+                avg_line = float(m.group("avg"))
+                min_line = float(m.group("min"))
+                max_line = float(m.group("max"))
             if avg_line is not None and min_line is not None and max_line is not None:
-                return (avg_line.split()[1], min_line.split()[1], max_line.split()[1])
+                return (avg_line, min_line, max_line)
             time.sleep(1)
     except NoSuchElementException:
         print("Could not find log?")
