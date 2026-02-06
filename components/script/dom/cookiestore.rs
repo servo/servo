@@ -17,8 +17,10 @@ use itertools::Itertools;
 use js::jsval::NullValue;
 use net_traits::CookieSource::NonHTTP;
 use net_traits::{CookieAsyncResponse, CookieData, CoreResourceMsg};
+use script_bindings::codegen::GenericBindings::CookieStoreBinding::CookieSameSite;
 use script_bindings::script_runtime::CanGc;
 use servo_url::ServoUrl;
+use time::OffsetDateTime;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CookieStoreBinding::{
@@ -493,10 +495,26 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
 
         // 6.1. Let r be the result of running set a cookie with url, options["name"], options["value"],
         // options["expires"], options["domain"], options["path"], options["sameSite"], and options["partitioned"].
-        let cookie = Cookie::build((
+        let mut cookie = Cookie::build((
             Cow::Owned(options.name.to_string()),
             Cow::Owned(options.value.to_string()),
-        ));
+        ))
+        .path(options.path.0.clone())
+        .secure(true)
+        .http_only(false)
+        .same_site(match options.sameSite {
+            CookieSameSite::Lax => SameSite::Lax,
+            CookieSameSite::Strict => SameSite::Strict,
+            CookieSameSite::None => SameSite::None,
+        });
+        if let Some(domain) = &options.domain {
+            cookie.inner_mut().set_domain(domain.0.clone());
+        }
+        if let Some(expiry) = options.expires {
+            cookie.inner_mut().set_expires(
+                OffsetDateTime::from_unix_timestamp((*expiry / 1000.0) as i64).unwrap(),
+            );
+        }
         // TODO: This currently doesn't implement all the "set a cookie" steps which involves
         // additional processing of the name and value
 
