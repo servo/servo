@@ -41,7 +41,7 @@ impl TouchSequenceId {
 }
 
 /// Minimum number of `DeviceIndependentPixel` to begin touch scrolling/Pinching.
-const TOUCH_PAN_MIN_SCREEN_PX: f32 = 20.0;
+const TOUCH_PAN_MIN_SCREEN_PX: f32 = 10.0;
 /// Factor by which the flinging velocity changes on each tick.
 const FLING_SCALING_FACTOR: f32 = 0.95;
 /// Minimum velocity required for transitioning to fling when panning ends.
