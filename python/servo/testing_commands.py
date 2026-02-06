@@ -31,6 +31,7 @@ from mach.decorators import (
     CommandArgument,
     CommandProvider,
 )
+import python.servo.test_command_base as test_command_base
 
 import servo.devtools_tests
 import servo.try_parser
@@ -390,6 +391,9 @@ class MachCommands(CommandBase):
                 raise e
         else:
             print("SKIP: Install tshark manually")
+
+        print("Running command_base tests...")
+        passed = test_command_base.run_tests() and passed
 
         if all or tests:
             print("Running WebIDL tests...")
