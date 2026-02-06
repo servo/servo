@@ -72,34 +72,70 @@ fn console_argument_to_value(argument: ConsoleArgument, registry: &ActorRegistry
             // if the same object is logged repeatedly.
             let actor = ObjectActor::register(registry, None);
 
-            let own_properties: serde_json::Map<String, Value> = object
+            #[derive(Serialize)]
+            struct PropertyDescriptor {
+                configurable: bool,
+                enumerable: bool,
+                writable: bool,
+                value: Value,
+            }
+
+            #[derive(Serialize)]
+            #[serde(rename_all = "camelCase")]
+            struct DevtoolsConsoleObjectArgument {
+                r#type: String,
+                actor: String,
+                class: String,
+                own_property_length: usize,
+                extensible: bool,
+                frozen: bool,
+                sealed: bool,
+                is_error: bool,
+                preview: DevtoolsConsoleObjectArgumentPreview,
+            }
+
+            #[derive(Serialize)]
+            #[serde(rename_all = "camelCase")]
+            struct DevtoolsConsoleObjectArgumentPreview {
+                kind: String,
+                own_properties: HashMap<String, PropertyDescriptor>,
+                own_properties_length: usize,
+            }
+
+            let own_properties: HashMap<String, PropertyDescriptor> = object
                 .own_properties
-                .iter()
+                .into_iter()
                 .map(|property| {
-                    let property_descriptor = serde_json::json!({
-                        "configurable": property.configurable,
-                        "enumerable": property.enumerable,
-                        "writable": property.writable,
-                        "value": console_argument_to_value(property.value.clone(), registry),
-                    });
-                    (property.key.clone(), property_descriptor)
+                    let property_descriptor = PropertyDescriptor {
+                        configurable: property.configurable,
+                        enumerable: property.enumerable,
+                        writable: property.writable,
+                        value: console_argument_to_value(property.value, registry),
+                    };
+
+                    (property.key, property_descriptor)
                 })
                 .collect();
-            serde_json::json!({
-              "type": "object",
-              "actor": actor,
-              "class": object.class,
-              "ownPropertyLength": object.own_properties.len(),
-              "extensible": true,
-              "frozen": false,
-              "sealed": false,
-              "isError": false,
-              "preview": {
-                "kind": "Object",
-                "ownProperties": own_properties,
-                "ownPropertiesLength": object.own_properties.len()
-              }
-            })
+
+            let argument = DevtoolsConsoleObjectArgument {
+                r#type: "object".to_owned(),
+                actor,
+                class: object.class,
+                own_property_length: own_properties.len(),
+                extensible: true,
+                frozen: false,
+                sealed: false,
+                is_error: false,
+                preview: DevtoolsConsoleObjectArgumentPreview {
+                    kind: "Object".to_string(),
+                    own_properties_length: own_properties.len(),
+                    own_properties,
+                },
+            };
+
+            // to_value can fail if the implementation of Serialize fails or there are non-string map keys.
+            // Neither should be possible here
+            serde_json::to_value(argument).unwrap()
         },
     }
 }
