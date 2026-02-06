@@ -4,7 +4,7 @@
 #   commit which supports the required rustc version
 # - the version in support/crown/rust-toolchain.toml
 # - the version in .github/devcontainer.json
-channel = "1.91.0"
+channel = "1.92.0"
 
 components = [
     "clippy",
