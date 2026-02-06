@@ -35,7 +35,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::{ImageCache, ImageCacheFactory, PendingImageId};
 use paint_api::CrossProcessPaintApi;
 use parking_lot::RwLock;
-use pixels::RasterImage;
+use pixels::{RasterImage, Repeat};
 use profile_traits::mem::Report;
 use profile_traits::time;
 use rustc_hash::FxHashMap;
@@ -727,14 +727,21 @@ pub struct ImageAnimationState {
     #[ignore_malloc_size_of = "RasterImage"]
     pub image: Arc<RasterImage>,
     pub active_frame: usize,
+    pub current_loop_count: Option<u32>,
     frame_start_time: f64,
 }
 
 impl ImageAnimationState {
     pub fn new(image: Arc<RasterImage>, last_update_time: f64) -> Self {
+        let current_loop_count = match &image.loop_count {
+            None => unreachable!("Loop_count of Animated Image should not be None"),
+            Some(repeat) if Repeat::Infinite == *repeat => None,
+            _ => Some(0),
+        };
         Self {
             image,
             active_frame: 0,
+            current_loop_count,
             frame_start_time: last_update_time,
         }
     }
@@ -764,6 +771,15 @@ impl ImageAnimationState {
         if self.image.frames.len() <= 1 {
             return false;
         }
+        if let Some(repeat) = &self.image.loop_count &&
+            let Repeat::Finite(loop_times) = repeat
+        {
+            if let Some(current_loop_count) = self.current_loop_count {
+                if current_loop_count >= loop_times.get() {
+                    return false;
+                }
+            }
+        }
         let image = &self.image;
         let time_interval_since_last_update = now - self.frame_start_time;
         let mut remain_time_interval = time_interval_since_last_update -
@@ -775,8 +791,12 @@ impl ImageAnimationState {
                 .unwrap()
                 .as_secs_f64();
         let mut next_active_frame_id = self.active_frame;
+        let mut advance_loop = 0;
         while remain_time_interval > 0.0 {
             next_active_frame_id = (next_active_frame_id + 1) % image.frames.len();
+            if next_active_frame_id == image.frames.len() - 1 {
+                advance_loop += 1;
+            }
             remain_time_interval -= image
                 .frames
                 .get(next_active_frame_id)
@@ -787,6 +807,9 @@ impl ImageAnimationState {
         }
         if self.active_frame == next_active_frame_id {
             return false;
+        }
+        if let Some(current_loop_cnt) = self.current_loop_count {
+            self.current_loop_count = Some(current_loop_cnt + advance_loop);
         }
         self.active_frame = next_active_frame_id;
         self.frame_start_time = now;
@@ -844,6 +867,7 @@ impl AnimatingImages {
             self.dirty = true;
             *entry = ImageAnimationState::new(image.clone(), current_timeline_value);
         }
+        // Todo: We may not want to re-insert the node when animating image loop cnt reached.
     }
 
     pub fn remove(&mut self, node: OpaqueNode) {

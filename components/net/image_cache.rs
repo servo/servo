@@ -1052,6 +1052,7 @@ impl ImageCache for ImageCacheImpl {
                 id: None,
                 cors_status: vector_image.cors_status,
                 is_opaque: false,
+                loop_count: None,
             };
 
             let mut store = store.lock();
