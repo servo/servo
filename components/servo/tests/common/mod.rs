@@ -23,7 +23,7 @@ pub struct ServoTest {
 
 impl ServoTest {
     pub(crate) fn new() -> Self {
-        Self::new_with_builder(|b| b)
+        Self::new_with_builder(|builder| builder)
     }
 
     pub(crate) fn new_with_builder<F>(customize: F) -> Self
