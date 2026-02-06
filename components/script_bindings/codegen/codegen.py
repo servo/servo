@@ -9204,6 +9204,7 @@ impl {base} {{
         descriptors = config.getDescriptors(register=True, isCallback=False)
         topTypes = []
         hierarchy = defaultdict(list)
+        weak_referenceable: set[str] = {d.name for d in descriptors if d.weakReferenceable}
         for descriptor in descriptors:
             name = descriptor.name
             upcast = descriptor.hasDescendants()
@@ -9215,6 +9216,12 @@ impl {base} {{
             if downcast:
                 assert descriptor.interface.parent is not None
                 hierarchy[descriptor.interface.parent.identifier.name].append(name)
+
+                if descriptor.interface.parent.identifier.name in weak_referenceable and not descriptor.weakReferenceable:
+                    raise Exception(f"Interface {name} derives from "
+                                    f"{descriptor.interface.parent.identifier.name}, "
+                                    f"which is weak referenceable, so {name} must "
+                                    f"also be weak referenceable.")
 
         typeIdCode: list = []
         topTypeVariants = [
