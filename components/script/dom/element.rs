@@ -3219,7 +3219,6 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let win = self.owner_window();
         let raw_rects = self.upcast::<Node>().border_boxes();
         let rects: Vec<DomRoot<DOMRect>> = raw_rects
-            .iter()
             .map(|rect| {
                 DOMRect::new(
                     win.upcast(),
