@@ -156,6 +156,16 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         mode: IDBTransactionMode,
         _options: &IDBTransactionOptions,
     ) -> Fallible<DomRoot<IDBTransaction>> {
+        let store_names_len = match &store_names {
+            StringOrStringSequence::String(_) => 1,
+            StringOrStringSequence::StringSequence(sequence) => sequence.len(),
+        };
+        println!(
+            "[IDBDBG_DB_TXN_CREATE] db={} mode={:?} stores={}",
+            self.get_name().to_string(),
+            mode,
+            store_names_len
+        );
         // FIXIME:(arihant2math) use options
         // Step 1: Check if upgrade transaction is running
         // FIXME:(rasviitanen)
@@ -200,6 +210,11 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
                 .get_indexeddb()
                 .register_indexeddb_transaction(&transaction);
             transaction.set_registered_in_global();
+            println!(
+                "[IDBDBG_DB_TXN_REGISTER] db={} txn={}",
+                self.get_name().to_string(),
+                transaction.get_serial_number()
+            );
         }
         Ok(transaction)
     }

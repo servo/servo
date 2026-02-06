@@ -124,6 +124,13 @@ impl IDBTransaction {
         can_gc: CanGc,
     ) -> DomRoot<IDBTransaction> {
         let serial_number = IDBTransaction::register_new(global, connection.get_name());
+        println!(
+            "[IDBDBG_TXN_NEW] txn={} db={} mode={:?} scope_len={}",
+            serial_number,
+            connection.get_name().to_string(),
+            mode,
+            scope.Length()
+        );
         reflect_dom_object(
             Box::new(IDBTransaction::new_inherited(
                 connection,
@@ -149,6 +156,14 @@ impl IDBTransaction {
         open_request_id: Option<Uuid>,
         can_gc: CanGc,
     ) -> DomRoot<IDBTransaction> {
+        println!(
+            "[IDBDBG_TXN_NEW_WITH_ID] txn={} db={} mode={:?} scope_len={} open_request_id={}",
+            transaction_id,
+            connection.get_name().to_string(),
+            mode,
+            scope.Length(),
+            open_request_id.is_some()
+        );
         reflect_dom_object(
             Box::new(IDBTransaction::new_inherited(
                 connection,
@@ -187,6 +202,13 @@ impl IDBTransaction {
         // “inactive … No requests can be made against the transaction when it is in this state.”
         // “finished … Once a transaction has committed or aborted, it enters this state.”
         // “When a transaction is committed or aborted, its state is set to finished.”
+        println!(
+            "[IDBDBG_ACTIVE] txn={} db={} {}->{}",
+            self.serial_number,
+            self.db.get_name().to_string(),
+            self.active.get(),
+            status
+        );
         self.active.set(status);
     }
 
@@ -210,16 +232,30 @@ impl IDBTransaction {
         self.finished.get()
     }
 
+    pub(crate) fn is_committing(&self) -> bool {
+        self.committing.get()
+    }
+
     pub(crate) fn set_cleanup_event_loop(&self) {
         // https://w3c.github.io/IndexedDB/#transaction-concept
         // A transaction optionally has a cleanup event loop which is an event loop.
         self.cleanup_event_loop.set(ScriptEventLoopId::installed());
+        println!(
+            "[IDBDBG_TXN_SET_CLEANUP] txn={} db={}",
+            self.serial_number,
+            self.db.get_name().to_string()
+        );
     }
 
     pub(crate) fn clear_cleanup_event_loop(&self) {
         // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
         // Clear transaction’s cleanup event loop.
         self.cleanup_event_loop.set(None);
+        println!(
+            "[IDBDBG_TXN_CLEAR_CLEANUP] txn={} db={}",
+            self.serial_number,
+            self.db.get_name().to_string()
+        );
     }
 
     pub(crate) fn cleanup_event_loop_matches_current(&self) -> bool {
@@ -234,11 +270,16 @@ impl IDBTransaction {
     }
 
     fn attempt_commit(&self) -> bool {
+        println!(
+            "[IDBDBG_TXN_ATTEMPT_COMMIT] txn={} db={}",
+            self.serial_number,
+            self.db.get_name().to_string()
+        );
         let this = Trusted::new(self);
         let global = self.global();
         let task_source = global
             .task_manager()
-            .database_access_task_source()
+            .dom_manipulation_task_source()
             .to_sendable();
 
         let callback = GenericCallback::new(
@@ -285,19 +326,40 @@ impl IDBTransaction {
         // placed against the transaction. That is, either all of the changes must be written,
         // or if an error occurs, such as a disk write error, the implementation must not write
         // any of the changes to the database, and the steps to abort a transaction will be followed.
-        if self
+        let send_result = self
             .get_idb_thread()
-            .send(IndexedDBThreadMsg::Sync(commit_operation))
-            .is_err()
-        {
+            .send(IndexedDBThreadMsg::Sync(commit_operation));
+        if send_result.is_err() {
+            eprintln!(
+                "[IDBDBG_TXN_COMMIT_SEND] txn={} db={} result=error",
+                self.serial_number,
+                self.db.get_name().to_string()
+            );
             return false;
         }
+        println!(
+            "[IDBDBG_TXN_COMMIT_SEND] txn={} db={} result=success",
+            self.serial_number,
+            self.db.get_name().to_string()
+        );
 
         self.committing.set(true);
         true
     }
 
     pub(crate) fn maybe_commit(&self) {
+        println!(
+            "[IDBDBG_TXN_MAYBE_COMMIT] txn={} db={} active={} pending={} handled_next={} issued={} finished={} abort_initiated={} committing={}",
+            self.serial_number,
+            self.db.get_name().to_string(),
+            self.active.get(),
+            self.pending_request_count.get(),
+            self.handled_next_unhandled_id.get(),
+            self.issued_count(),
+            self.finished.get(),
+            self.abort_initiated.get(),
+            self.committing.get()
+        );
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
         // “The implementation must attempt to commit an inactive transaction when all requests
         //  placed against the transaction have completed and their returned results handled,
@@ -352,8 +414,16 @@ impl IDBTransaction {
         self.serial_number
     }
 
-    fn issued_count(&self) -> u64 {
+    pub(crate) fn issued_count(&self) -> u64 {
         self.next_request_id.get()
+    }
+
+    pub(crate) fn pending_request_count(&self) -> usize {
+        self.pending_request_count.get()
+    }
+
+    pub(crate) fn handled_next_unhandled_id(&self) -> u64 {
+        self.handled_next_unhandled_id.get()
     }
 
     /// request_id is only required to be unique within this transaction.
@@ -386,6 +456,19 @@ impl IDBTransaction {
         // the transaction is allowed to finish.
         self.pending_request_count
             .set(self.pending_request_count.get() + 1);
+        println!(
+            "[IDBDBG_TXN_ADD_REQUEST] txn={} db={} pending={}",
+            self.serial_number,
+            self.db.get_name().to_string(),
+            self.pending_request_count.get()
+        );
+    }
+
+    pub(crate) fn has_request(&self, request: &IDBRequest) -> bool {
+        self.requests
+            .borrow()
+            .iter()
+            .any(|entry| std::ptr::eq::<IDBRequest>(&**entry, request))
     }
 
     /// Must be called by an `IDBRequest` when it finishes (either success or
@@ -401,6 +484,12 @@ impl IDBTransaction {
         }
         let remaining = self.pending_request_count.get() - 1;
         self.pending_request_count.set(remaining);
+        println!(
+            "[IDBDBG_TXN_REQUEST_FINISHED] txn={} db={} remaining={}",
+            self.serial_number,
+            self.db.get_name().to_string(),
+            remaining
+        );
     }
 
     pub(crate) fn initiate_abort(&self, error: Error, can_gc: CanGc) {
@@ -411,6 +500,12 @@ impl IDBTransaction {
         if self.finished.get() || self.abort_initiated.get() {
             return;
         }
+        println!(
+            "[IDBDBG_TXN_ABORT_INIT] txn={} db={} error={:?}",
+            self.serial_number,
+            self.db.get_name().to_string(),
+            error
+        );
         self.abort_initiated.set(true);
         // https://w3c.github.io/IndexedDB/#transaction-concept
         // A transaction has a error which is set if the transaction is aborted.
@@ -427,11 +522,16 @@ impl IDBTransaction {
             return;
         }
         self.abort_requested.set(true);
+        println!(
+            "[IDBDBG_TXN_ABORT_SEND] txn={} db={}",
+            self.serial_number,
+            self.db.get_name().to_string()
+        );
         let this = Trusted::new(self);
         let global = self.global();
         let task_source = global
             .task_manager()
-            .database_access_task_source()
+            .dom_manipulation_task_source()
             .to_sendable();
         let callback = GenericCallback::new(
             global.time_profiler_chan().clone(),
@@ -462,10 +562,15 @@ impl IDBTransaction {
             return;
         }
         self.committing.set(false);
+        println!(
+            "[IDBDBG_TXN_ABORT_FINALIZE] txn={} db={}",
+            self.serial_number,
+            self.db.get_name().to_string()
+        );
         let this = Trusted::new(self);
         self.global()
             .task_manager()
-            .database_access_task_source()
+            .dom_manipulation_task_source()
             .queue(task!(send_abort_notification: move || {
                 let this = this.root();
                 this.active.set(false);
@@ -493,6 +598,11 @@ impl IDBTransaction {
             return;
         }
         self.committing.set(false);
+        println!(
+            "[IDBDBG_TXN_COMMIT_FINALIZE] txn={} db={}",
+            self.serial_number,
+            self.db.get_name().to_string()
+        );
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
         // When a transaction is committed or aborted, its state is set to finished.
         self.finished.set(true);
@@ -508,7 +618,7 @@ impl IDBTransaction {
     fn dispatch_complete(&self) {
         let global = self.global();
         let this = Trusted::new(self);
-        global.task_manager().database_access_task_source().queue(
+        global.task_manager().dom_manipulation_task_source().queue(
             task!(send_complete_notification: move || {
                 let this = this.root();
                 let global = this.global();

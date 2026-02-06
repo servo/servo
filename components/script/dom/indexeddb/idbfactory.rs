@@ -75,10 +75,20 @@ impl IDBFactory {
         {
             return;
         }
+        println!(
+            "[IDBDBG_FACTORY_REGISTER] db={} txn={}",
+            txn.get_db_name().to_string(),
+            txn.get_serial_number()
+        );
         v.push(Dom::from_ref(txn));
     }
 
     pub(crate) fn unregister_indexeddb_transaction(&self, txn: &IDBTransaction) {
+        println!(
+            "[IDBDBG_FACTORY_UNREGISTER] db={} txn={}",
+            txn.get_db_name().to_string(),
+            txn.get_serial_number()
+        );
         self.indexeddb_transactions
             .borrow_mut()
             .retain(|entry| !std::ptr::eq::<IDBTransaction>(&**entry, txn));
@@ -113,6 +123,22 @@ impl IDBFactory {
         }
         for txn in snapshot {
             if txn.cleanup_event_loop_matches_current() {
+                let db_name = txn.get_db_name().to_string();
+                if db_name.contains("event-dispatch-active-flag") {
+                    println!(
+                        "[IDBDBG_CLEANUP] txn={} db={} clears_routing=false pending={} issued={} handled_next={}",
+                        txn.get_serial_number(),
+                        db_name,
+                        txn.pending_request_count(),
+                        txn.issued_count(),
+                        txn.handled_next_unhandled_id()
+                    );
+                }
+                println!(
+                    "[IDBDBG_FACTORY_CLEANUP] db={} txn={}",
+                    db_name,
+                    txn.get_serial_number()
+                );
                 txn.set_active_flag(false);
                 txn.clear_cleanup_event_loop();
                 if txn.is_usable() {

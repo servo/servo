@@ -233,9 +233,6 @@ pub(crate) struct GlobalScope {
     /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-object-map>
     worker_map: DomRefCell<HashMapTracedValues<ServiceWorkerId, Dom<ServiceWorker>, FxBuildHasher>>,
 
-    /// IndexedDB transactions created by script in this global.
-    // indexeddb_transactions: DomRefCell<Vec<Dom<IDBTransaction>>>,
-
     /// Pipeline id associated with this global.
     #[no_trace]
     pipeline_id: PipelineId,
@@ -784,7 +781,6 @@ impl GlobalScope {
             registration_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             cookie_store: Default::default(),
             worker_map: DomRefCell::new(HashMapTracedValues::new_fx()),
-            // indexeddb_transactions: DomRefCell::new(Vec::new()),
             pipeline_id,
             devtools_wants_updates: Default::default(),
             console_timers: DomRefCell::new(Default::default()),
