@@ -928,6 +928,14 @@ impl Servo {
         self.0.site_data_manager.borrow()
     }
 
+    pub fn set_accessibility_active(&self, active: bool) {
+        self.0
+            .constellation_proxy
+            .send(EmbedderToConstellationMessage::SetAccessibilityActive(
+                active,
+            ));
+    }
+
     pub(crate) fn paint<'a>(&'a self) -> Ref<'a, Paint> {
         self.0.paint.borrow()
     }
