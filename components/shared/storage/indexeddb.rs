@@ -299,6 +299,8 @@ pub enum AsyncReadWriteOperation {
         callback: GenericCallback<BackendResult<PutItemResult>>,
         key: Option<IndexedDBKeyType>,
         value: Vec<u8>,
+        /// (index_id, is_unique, key)
+        index_keys: Vec<(i32, bool, IndexedDBKeyType)>,
         should_overwrite: bool,
     },
 

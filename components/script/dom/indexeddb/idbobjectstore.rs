@@ -264,6 +264,7 @@ impl IDBObjectStore {
                     callback,
                     key: serialized_key,
                     value: serialized_value,
+                    index_keys: vec![],
                     should_overwrite: overwrite,
                 })
             },
