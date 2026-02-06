@@ -124,7 +124,7 @@ impl IntersectionObserver {
             thresholds: Default::default(),
             delay: Default::default(),
             track_visibility: Default::default(),
-            is_connected: Cell::new(false),
+            connected_to_document: Cell::new(false),
         }
     }
 
@@ -407,16 +407,16 @@ impl IntersectionObserver {
     /// Connect the observer itself into owner doc if it is unconnected.
     /// If the [`IntersectionObserver`] is already connected, do nothing.
     fn connect_to_owner(&self) {
-        if !self.is_connected.get() {
+        if !self.connected_to_document.get() {
             self.owner_doc.add_intersection_observer(self);
-            self.is_connected.set(true);
+            self.connected_to_document.set(true);
         }
     }
 
     /// Disconnect the observer itself from owner doc.
     /// If not connected to a [`Document`], do nothing.
     fn disconnect_from_owner(&self) {
-        if self.is_connected.get() {
+        if self.connected_to_document.get() {
             self.owner_doc.remove_intersection_observer(self);
         }
     }
@@ -758,9 +758,6 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-observe>
     fn Observe(&self, target: &Element) {
         self.observe_target_element(target);
-
-        // Connect to owner doc to be accessed in the event loop.
-        self.connect_to_owner();
     }
 
     /// > Run the unobserve a target Element algorithm, providing this and target.
