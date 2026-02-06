@@ -280,7 +280,7 @@ jobs:
           name: servoshell-hos-${{ inputs.profile }}.hap
       - name: Test hdc device
         # First we ensure a device is actually connected and working.
-        run: ! hdc list targets | grep -q Empty
+        run: hdc list targets && hdc shell echo hello world
       - name: Sign the hap
         run: |
           ls -la
@@ -415,7 +415,7 @@ jobs:
           name: servoshell-hos-${{ inputs.profile }}.hap
       - name: Test hdc device
         # First we ensure a device is actually connected and working.
-        run: ! hdc list targets | grep -q Empty
+        run: hdc list targets && hdc shell echo hello world
       - name: Sign the hap
         run: |
           ls -la
