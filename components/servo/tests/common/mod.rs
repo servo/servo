@@ -22,10 +22,6 @@ pub struct ServoTest {
 }
 
 impl ServoTest {
-    pub(crate) fn new() -> Self {
-        Self::new_with_builder(|builder| builder)
-    }
-
     pub(crate) fn new_with_builder<F>(customize: F) -> Self
     where
         F: FnOnce(ServoBuilder) -> ServoBuilder,
@@ -52,7 +48,7 @@ impl ServoTest {
         }
 
         let user_event_triggered = Arc::new(AtomicBool::new(false));
-        // Set the proxy to null as the tests will all be on localhost, hence, proxy might interfer.
+        // Set the proxy to null as the tests will all be on localhost, hence, proxy might interfere.
         let mut preferences = Preferences::default();
         preferences.network_http_proxy_uri = String::new();
         preferences.network_https_proxy_uri = String::new();
@@ -184,7 +180,7 @@ pub(crate) fn show_webview_and_wait_for_rendering_to_be_ready(
 
     delegate.reset();
 
-    // Trigger a change to the display of the document, so that we get at last one
+    // Trigger a change to the display of the document, so that we get at least one
     // new frame after load is complete.
     let _ = evaluate_javascript(
         &servo_test,
