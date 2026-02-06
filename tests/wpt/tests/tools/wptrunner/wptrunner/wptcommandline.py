@@ -769,7 +769,7 @@ def create_parser_metadata_update(product_choices=None):
     parser.add_argument("--extra-property", action="append", default=[],
                         help="Extra property from run_info.json to use in metadata update.")
     # TODO: Should make this required iff run=logfile
-    parser.add_argument("run_log", nargs="*", type=abs_path,
+    parser.add_argument("run_log", nargs="*", type=url_or_path,
                         help="Log file from run of tests")
     commandline.add_logging_group(parser)
     return parser
