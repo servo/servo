@@ -51,7 +51,7 @@ cfg-if = "1.0.4"
 chacha20poly1305 = "0.10"
 chardetng = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
-cipher = { version = "0.4.4", features = ["alloc"] }
+cipher = { version = "0.5.0", features = ["alloc"] }
 constellation_traits = { path = "components/shared/constellation" }
 content-security-policy = { version = "0.6.0", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
