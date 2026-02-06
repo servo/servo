@@ -17,7 +17,7 @@ use std::{env, process};
     )
 ))]
 use gaol::profile::{Operation, PathPattern, Profile};
-use ipc_channel::Error;
+use ipc_channel::IpcError;
 use serde::{Deserialize, Serialize};
 use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
@@ -146,7 +146,7 @@ pub fn content_process_sandbox_profile() {
     target_arch = "arm",
     target_arch = "aarch64"
 ))]
-pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, Error> {
+pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcError> {
     use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
     // Note that this function can panic, due to process creation,
     // avoiding this panic would require a mechanism for dealing
@@ -177,7 +177,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, Error
     not(target_arch = "arm"),
     not(target_arch = "aarch64")
 ))]
-pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, Error> {
+pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcError> {
     use gaol::sandbox::{self, Sandbox, SandboxMethods};
     use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
 

@@ -99,7 +99,9 @@ use background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
-use base::generic_channel::{GenericCallback, GenericSend, GenericSender, RoutedReceiver};
+use base::generic_channel::{
+    GenericCallback, GenericSend, GenericSender, RoutedReceiver, SendError,
+};
 use base::id::{
     BrowsingContextGroupId, BrowsingContextId, HistoryStateId, MessagePortId, MessagePortRouterId,
     PainterId, PipelineId, PipelineNamespace, PipelineNamespaceId, PipelineNamespaceRequest,
@@ -139,7 +141,7 @@ use embedder_traits::{
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
 use fonts::SystemFontServiceProxy;
-use ipc_channel::Error as IpcError;
+use ipc_channel::IpcError;
 use ipc_channel::router::ROUTER;
 use keyboard_types::{Key, KeyState, Modifiers, NamedKey};
 use layout_api::{LayoutFactory, ScriptThreadFactory};
@@ -1033,7 +1035,7 @@ where
             is_private,
         ) {
             Ok(event_loop) => event_loop,
-            Err(error) => return self.handle_send_error(new_pipeline_id, error),
+            Err(error) => return self.handle_send_error(new_pipeline_id, error.into()),
         };
 
         let user_content_manager_id = self
@@ -2812,7 +2814,7 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_send_error(&mut self, pipeline_id: PipelineId, error: IpcError) {
+    fn handle_send_error(&mut self, pipeline_id: PipelineId, error: SendError) {
         error!("Error sending message to {pipeline_id:?}: {error}",);
 
         // Ignore errors from unknown Pipelines.

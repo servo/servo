@@ -36,7 +36,7 @@ impl<T: Serialize + for<'de> Deserialize<'de>> Default for GenericReceiverSet<T>
 }
 enum GenericReceiverSetVariants<T: for<'de> Deserialize<'de>> {
     Ipc(ipc_channel::ipc::IpcReceiverSet),
-    Crossbeam(Vec<crossbeam_channel::Receiver<Result<T, ipc_channel::Error>>>),
+    Crossbeam(Vec<crossbeam_channel::Receiver<Result<T, ipc_channel::IpcError>>>),
 }
 
 #[cfg(test)]

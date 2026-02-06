@@ -34,7 +34,7 @@ impl Process {
     }
 }
 
-type ProcessReceiver = Receiver<Result<(), ipc_channel::Error>>;
+type ProcessReceiver = Receiver<Result<(), ipc_channel::IpcError>>;
 
 pub(crate) struct ProcessManager {
     processes: Vec<(Process, ProcessReceiver)>,
