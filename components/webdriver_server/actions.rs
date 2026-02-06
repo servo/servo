@@ -287,7 +287,15 @@ impl Handler {
                         ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
                             PointerUpAction {
                                 button: pointer_down_action.button,
-                                ..Default::default()
+                                width: pointer_down_action.width,
+                                height: pointer_down_action.height,
+                                pressure: pointer_down_action.pressure,
+                                tangentialPressure: pointer_down_action.tangentialPressure,
+                                tiltX: pointer_down_action.tiltX,
+                                tiltY: pointer_down_action.tiltY,
+                                twist: pointer_down_action.twist,
+                                altitudeAngle: pointer_down_action.altitudeAngle,
+                                azimuthAngle: pointer_down_action.azimuthAngle,
                             },
                         ))),
                     ));
