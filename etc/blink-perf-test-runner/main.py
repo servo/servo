@@ -25,6 +25,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.options import ArgOptions
 from urllib3.exceptions import ProtocolError, MaxRetryError
 from selenium.common.exceptions import NoSuchElementException
+from dataclasses import dataclass
 
 from enum import Enum
 import re
@@ -98,7 +99,15 @@ max\s+(?P<max>[0-9.]+)\s+(?P=unit)
 )
 
 
-def test(s: str, driver: webdriver.Remote) -> tuple[float, float, float] | AbortReason:
+@dataclass(frozen=True)
+class TestResult:
+    value: float
+    lower_value: float
+    upper_value: float
+    unit: str
+
+
+def test(s: str, driver: webdriver.Remote) -> TestResult | AbortReason:
     """Run a test by loading a website, and returning (avg, min, max).
     This will run for MAX_WAIT_TIME seconds and return as soon as the avg line exists in the log element"""
 
@@ -114,8 +123,9 @@ def test(s: str, driver: webdriver.Remote) -> tuple[float, float, float] | Abort
                 avg_line = float(m.group("avg"))
                 min_line = float(m.group("min"))
                 max_line = float(m.group("max"))
-            if avg_line is not None and min_line is not None and max_line is not None:
-                return (avg_line, min_line, max_line)
+                unit = m.group("unit")
+            if avg_line is not None and min_line is not None and max_line is not None and unit is not None:
+                return TestResult(value=avg_line, lower_value=min_line, upper_value=max_line, unit=unit)
             time.sleep(1)
     except NoSuchElementException:
         print("Could not find log?")
@@ -174,19 +184,25 @@ def main():
             for file in files:
                 if test_file(file):
                     filePath = os.path.join(os.path.abspath(root), file)
-                    result = test("file://" + filePath, webdriver)
-                    if result == AbortReason.Panic:
-                        print("Restarting servo")
-                        start_servo(args.webdriver, args.servo_path)
-                    elif result == AbortReason.NotFound:
-                        pass
-                    else:
-                        combined_result = {}
-                        combined_result["value"] = result[0]
-                        combined_result["lower_value"] = result[1]
-                        combined_result["upper_value"] = result[2]
+                    if "many-block-children-rebuild-box-tree.html" in filePath:
+                        result = test("file://" + filePath, webdriver)
+                        if result == AbortReason.Panic:
+                            print("Restarting servo")
+                            start_servo(args.webdriver, args.servo_path)
+                        elif result == AbortReason.NotFound:
+                            pass
+                        else:
+                            combined_result = {}
+                            combined_result["value"] = result.value
+                            combined_result["lower_value"] = result.lower_value
+                            combined_result["upper_value"] = result.upper_value
 
-                        final_result[canonical_test_path(filePath, args.prepend)] = {"throughput": combined_result}
+                            if result.unit == "ms":
+                                final_result[canonical_test_path(filePath, args.prepend)] = {"ms": combined_result}
+                            else:
+                                final_result[canonical_test_path(filePath, args.prepend)] = {
+                                    "throughput": combined_result
+                                }
 
     print(final_result)
     write_file(final_result)
