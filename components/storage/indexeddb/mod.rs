@@ -22,7 +22,7 @@ use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
     AsyncOperation, BackendError, BackendResult, ConnectionMsg, CreateObjectResult, DatabaseInfo,
     DbResult, IndexedDBIndex, IndexedDBObjectStore, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath,
-    SyncOperation,
+    SyncOperation, TxnCompleteMsg,
 };
 use uuid::Uuid;
 
@@ -43,10 +43,12 @@ impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
         }
         idb_base_dir.push("IndexedDB");
 
+        let manager_sender = chan.clone();
+
         thread::Builder::new()
             .name("IndexedDBManager".to_owned())
             .spawn(move || {
-                IndexedDBManager::new(port, idb_base_dir).start();
+                IndexedDBManager::new(port, manager_sender, idb_base_dir).start();
             })
             .expect("Thread spawning failed");
 
@@ -88,6 +90,7 @@ impl IndexedDBDescription {
 
 struct IndexedDBEnvironment<E: KvsEngine> {
     engine: E,
+    manager_sender: GenericSender<IndexedDBThreadMsg>,
     transactions: FxHashMap<u64, KvsTransaction>,
     queued_readwrite: VecDeque<u64>,
     queued_readonly: VecDeque<u64>,
@@ -98,9 +101,13 @@ struct IndexedDBEnvironment<E: KvsEngine> {
 }
 
 impl<E: KvsEngine> IndexedDBEnvironment<E> {
-    fn new(engine: E) -> IndexedDBEnvironment<E> {
+    fn new(
+        engine: E,
+        manager_sender: GenericSender<IndexedDBThreadMsg>,
+    ) -> IndexedDBEnvironment<E> {
         IndexedDBEnvironment {
             engine,
+            manager_sender,
             transactions: FxHashMap::default(),
             queued_readwrite: VecDeque::new(),
             queued_readonly: VecDeque::new(),
@@ -169,7 +176,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         }
     }
 
-    fn schedule_transactions(&mut self) {
+    fn schedule_transactions(&mut self, origin: ImmutableOrigin, db_name: &str) {
         // when a request comes in and the transaction can be started you can immediately run it;
         // otherwise run it when the transaction starts. Also re-check queued txns whenever another finishes.
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
@@ -179,6 +186,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             return;
         }
 
+        // Drain runnable readonly txns first.
         while let Some(txn) = self.queued_readonly.pop_front() {
             let Some(transaction) = self.transactions.get(&txn) else {
                 continue;
@@ -186,61 +194,99 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             if transaction.requests.is_empty() {
                 continue;
             }
+
+            // Mark running and start async.
+            // DO NOT clear here; clear on EngineTxnBatchComplete.
             self.running_readonly.insert(txn);
-            self.start_transaction(txn, None);
-            self.running_readonly.remove(&txn);
+            self.start_transaction(origin.clone(), db_name.to_string(), txn, None);
         }
 
         if !self.running_readonly.is_empty() {
             return;
         }
 
+        // Start at most one readwrite txn.
         while let Some(txn) = self.queued_readwrite.pop_front() {
             let Some(transaction) = self.transactions.get(&txn) else {
                 continue;
             };
+
             if transaction.requests.is_empty() {
                 continue;
             }
+
+            // Mark running and start async.
+            // DO NOT clear here; clear on EngineTxnBatchComplete.
             self.running_readwrite = Some(txn);
-            self.start_transaction(txn, None);
-            self.running_readwrite = None;
-            break;
+            self.start_transaction(origin, db_name.to_string(), txn, None);
+            return;
         }
     }
 
     // Executes all requests for a transaction (without committing)
-    fn start_transaction(&mut self, txn: u64, sender: Option<GenericSender<BackendResult<()>>>) {
+    fn start_transaction(
+        &mut self,
+        origin: ImmutableOrigin,
+        db_name: String,
+        txn: u64,
+        sender: Option<GenericSender<BackendResult<()>>>,
+    ) {
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
         // The implementation must queue a database task to start the transaction asynchronously.
         // “Requests must be executed in the order in which they were made against the transaction.”
-        // FIXME:(arihant2math) find optimizations in this function
-        //   rather than on the engine level code (less repetition)
-        loop {
-            let (mode, requests) = match self.transactions.get_mut(&txn) {
-                Some(transaction) => {
-                    let mode = transaction.mode.clone();
-                    let requests = std::mem::take(&mut transaction.requests);
-                    (mode, requests)
-                },
-                None => break,
-            };
-            if requests.is_empty() {
-                break;
+
+        // Take the current queued batch of requests for this txn.
+        // If more requests arrive while the engine is running, they’ll be queued into
+        // transaction.requests and scheduled in a later batch once we receive EngineTxnBatchComplete.
+        let (mode, requests) = match self.transactions.get_mut(&txn) {
+            Some(transaction) => {
+                let mode = transaction.mode.clone();
+                let requests = std::mem::take(&mut transaction.requests);
+                (mode, requests)
+            },
+            None => {
+                // If a manual starter is waiting, treat as "nothing to do".
+                if let Some(sender) = sender {
+                    let _ = sender.send(Ok(()));
+                }
+                return;
+            },
+        };
+
+        if requests.is_empty() {
+            if let Some(sender) = sender {
+                let _ = sender.send(Ok(()));
             }
-            let _ = self
-                .engine
-                .process_transaction(KvsTransaction { mode, requests })
-                .blocking_recv();
+            // Important: if there was no work, do NOT send EngineTxnBatchComplete,
+            // otherwise we can create a pointless reschedule loop.
+            return;
         }
 
-        // We have a sender if the transaction is started manually, and they
-        // probably want to know when it is finished
-        if let Some(sender) = sender {
-            if sender.send(Ok(())).is_err() {
-                warn!("IDBTransaction starter dropped its channel");
+        let rx = self
+            .engine
+            .process_transaction(KvsTransaction { mode, requests });
+
+        // We must notify the manager thread when the engine finishes so it can:
+        // - clear running_readonly / running_readwrite
+        // - re-run scheduling (maybe start next queued txn or next batch)
+        let manager_sender = self.manager_sender.clone();
+
+        // NOTE: This is the “database task” that runs asynchronously.
+        thread::spawn(move || {
+            let _ = rx.blocking_recv();
+
+            let _ = manager_sender.send(IndexedDBThreadMsg::EngineTxnBatchComplete {
+                origin,
+                db_name,
+                txn,
+            });
+
+            // We have a sender if the transaction is started manually, and they
+            // probably want to know when it is finished.
+            if let Some(sender) = sender {
+                let _ = sender.send(Ok(()));
             }
-        }
+        });
     }
 
     fn mark_request_handled(&mut self, txn: u64, request_id: u64) {
@@ -532,6 +578,7 @@ struct Connection {
 
 struct IndexedDBManager {
     port: GenericReceiver<IndexedDBThreadMsg>,
+    manager_sender: GenericSender<IndexedDBThreadMsg>,
     idb_base_dir: PathBuf,
     databases: HashMap<IndexedDBDescription, IndexedDBEnvironment<SqliteEngine>>,
     thread_pool: Arc<ThreadPool>,
@@ -550,7 +597,11 @@ struct IndexedDBManager {
 }
 
 impl IndexedDBManager {
-    fn new(port: GenericReceiver<IndexedDBThreadMsg>, idb_base_dir: PathBuf) -> IndexedDBManager {
+    fn new(
+        port: GenericReceiver<IndexedDBThreadMsg>,
+        manager_sender: GenericSender<IndexedDBThreadMsg>,
+        idb_base_dir: PathBuf,
+    ) -> IndexedDBManager {
         debug!("New indexedDBManager");
 
         // Uses an estimate of the system cpus to process IndexedDB transactions
@@ -563,6 +614,7 @@ impl IndexedDBManager {
 
         IndexedDBManager {
             port,
+            manager_sender,
             idb_base_dir,
             databases: HashMap::new(),
             thread_pool: Arc::new(ThreadPool::new(thread_count, "IndexedDB".to_string())),
@@ -605,14 +657,42 @@ impl IndexedDBManager {
                     mode,
                     operation,
                 ) => {
-                    if let Some(db) = self.get_database_mut(origin, db_name) {
+                    if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
                         // Queues an operation for a transaction without starting it
                         db.queue_operation(&store_name, txn, mode, operation);
-                        db.schedule_transactions();
+                        db.schedule_transactions(origin, &db_name);
                     }
                 },
                 IndexedDBThreadMsg::OpenTransactionInactive { name, origin } => {
                     self.handle_open_transaction_inactive(name, origin);
+                },
+                IndexedDBThreadMsg::EngineTxnBatchComplete {
+                    origin,
+                    db_name,
+                    txn,
+                } => {
+                    if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
+                        // Decide which running flag to clear based on txn mode.
+                        let mode = db.transactions.get(&txn).map(|t| t.mode.clone());
+
+                        match mode {
+                            Some(IndexedDBTxnMode::Readonly) => {
+                                db.running_readonly.remove(&txn);
+                            },
+                            Some(_) => {
+                                if db.running_readwrite == Some(txn) {
+                                    db.running_readwrite = None;
+                                }
+                            },
+                            None => {
+                                // txn might have been aborted/removed; nothing to clear
+                            },
+                        }
+
+                        // If more requests were queued while this batch was running,
+                        // schedule again now.
+                        db.schedule_transactions(origin, &db_name);
+                    }
                 },
             }
         }
@@ -1097,7 +1177,7 @@ impl IndexedDBManager {
                     },
                 };
                 let created_db_path = engine.created_db_path();
-                let db = IndexedDBEnvironment::new(engine);
+                let db = IndexedDBEnvironment::new(engine, self.manager_sender.clone());
                 let db_version = match db.version() {
                     Ok(version) => version,
                     Err(err) => {
@@ -1517,14 +1597,14 @@ impl IndexedDBManager {
                 // https://w3c.github.io/IndexedDB/#commit-a-transaction
                 // TODO: implement the commit algorithm and only reply after the backend has
                 // transitioned the transaction to committed/aborted (should be atomic).
-                let _ = callback.send(storage_traits::indexeddb::TxnCompleteMsg {
+                let _ = callback.send(TxnCompleteMsg {
                     origin: origin.clone(),
                     db_name: db_name.clone(),
                     txn,
                     result: Ok(()),
                 });
-                if let Some(db) = self.get_database_mut(origin, db_name) {
-                    db.schedule_transactions();
+                if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
+                    db.schedule_transactions(origin, &db_name);
                 }
             },
             SyncOperation::Abort(callback, origin, db_name, txn) => {
@@ -1540,8 +1620,8 @@ impl IndexedDBManager {
                     txn,
                     result: Err(BackendError::Abort),
                 });
-                if let Some(db) = self.get_database_mut(origin, db_name) {
-                    db.schedule_transactions();
+                if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
+                    db.schedule_transactions(origin, &db_name);
                 }
             },
             SyncOperation::RequestHandled {
@@ -1590,14 +1670,6 @@ impl IndexedDBManager {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
                     let result = db.delete_object_store(&store_name);
                     let _ = sender.send(result.map_err(BackendError::from));
-                } else {
-                    let _ = sender.send(Err(BackendError::DbNotFound));
-                }
-            },
-            SyncOperation::StartTransaction(sender, origin, db_name, txn) => {
-                if let Some(db) = self.get_database_mut(origin, db_name) {
-                    db.start_transaction(txn, Some(sender));
-                    db.schedule_transactions();
                 } else {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }

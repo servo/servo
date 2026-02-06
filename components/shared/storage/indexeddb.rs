@@ -528,15 +528,6 @@ pub enum SyncOperation {
         String, // Database
     ),
 
-    /// Starts executing the requests of a transaction
-    /// <https://www.w3.org/TR/IndexedDB-2/#transaction-start>
-    StartTransaction(
-        GenericSender<BackendResult<()>>,
-        ImmutableOrigin,
-        String, // Database
-        u64,    // The serial number of the mutating transaction
-    ),
-
     /// Returns the version of the database
     Version(
         GenericSender<BackendResult<u64>>,
@@ -583,6 +574,11 @@ pub enum IndexedDBThreadMsg {
     OpenTransactionInactive {
         name: String,
         origin: ImmutableOrigin,
+    },
+    EngineTxnBatchComplete {
+        origin: ImmutableOrigin,
+        db_name: String,
+        txn: u64,
     },
 }
 

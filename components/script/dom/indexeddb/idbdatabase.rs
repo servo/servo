@@ -196,7 +196,9 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             // Versionchange transactions can’t be manually created; only script-created transactions()
             // are subject to HTML cleanup deactivation.
             transaction.set_cleanup_event_loop();
-            self.global().register_indexeddb_transaction(&transaction);
+            self.global()
+                .get_indexeddb()
+                .register_indexeddb_transaction(&transaction);
             transaction.set_registered_in_global();
         }
         Ok(transaction)

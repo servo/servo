@@ -115,7 +115,6 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::global_scope_script_execution::{compile_script, evaluate_script};
 use crate::dom::idbfactory::IDBFactory;
-use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
@@ -235,7 +234,7 @@ pub(crate) struct GlobalScope {
     worker_map: DomRefCell<HashMapTracedValues<ServiceWorkerId, Dom<ServiceWorker>, FxBuildHasher>>,
 
     /// IndexedDB transactions created by script in this global.
-    indexeddb_transactions: DomRefCell<Vec<Dom<IDBTransaction>>>,
+    // indexeddb_transactions: DomRefCell<Vec<Dom<IDBTransaction>>>,
 
     /// Pipeline id associated with this global.
     #[no_trace]
@@ -785,7 +784,7 @@ impl GlobalScope {
             registration_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             cookie_store: Default::default(),
             worker_map: DomRefCell::new(HashMapTracedValues::new_fx()),
-            indexeddb_transactions: DomRefCell::new(Vec::new()),
+            // indexeddb_transactions: DomRefCell::new(Vec::new()),
             pipeline_id,
             devtools_wants_updates: Default::default(),
             console_timers: DomRefCell::new(Default::default()),
@@ -2989,69 +2988,6 @@ impl GlobalScope {
             return worker.IndexedDB();
         }
         unreachable!("IndexedDB is only exposed on Window and WorkerGlobalScope.");
-    }
-
-    pub(crate) fn register_indexeddb_transaction(&self, txn: &IDBTransaction) {
-        self.indexeddb_transactions
-            .borrow_mut()
-            .push(Dom::from_ref(txn));
-    }
-
-    pub(crate) fn register_indexeddb_transaction2(&self, txn: &IDBTransaction) {
-        let mut v = self.indexeddb_transactions.borrow_mut();
-        if v.iter()
-            .any(|entry| std::ptr::eq::<IDBTransaction>(&**entry, txn))
-        {
-            return;
-        }
-        v.push(Dom::from_ref(txn));
-    }
-    pub(crate) fn unregister_indexeddb_transaction(&self, txn: &IDBTransaction) {
-        self.indexeddb_transactions
-            .borrow_mut()
-            .retain(|entry| !std::ptr::eq::<IDBTransaction>(&**entry, txn));
-    }
-
-    pub(crate) fn cleanup_indexeddb_transactions(&self) -> bool {
-        // We implement the HTML-triggered deactivation effect by tracking script-created
-        // transactions on the global and deactivating them at the microtask checkpoint.
-        let snapshot: Vec<DomRoot<IDBTransaction>> = {
-            let mut transactions = self.indexeddb_transactions.borrow_mut();
-            transactions.retain(|txn| !txn.is_finished());
-
-            transactions
-                .iter()
-                .map(|txn| DomRoot::from_ref(&**txn))
-                .collect()
-        };
-        // https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint
-        // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
-        // To cleanup Indexed Database transactions, run the following steps.
-        // They will return true if any transactions were cleaned up, or false otherwise.
-        // If there are no transactions with cleanup event loop matching the current event loop, return false.
-        // For each transaction transaction with cleanup event loop matching the current event loop:
-        // Set transaction’s state to inactive.
-        // Clear transaction’s cleanup event loop.
-        // Return true.
-        let any_matching = snapshot
-            .iter()
-            .any(|txn| txn.cleanup_event_loop_matches_current());
-        if !any_matching {
-            return false;
-        }
-        for txn in snapshot {
-            if txn.cleanup_event_loop_matches_current() {
-                txn.set_active_flag(false);
-                txn.clear_cleanup_event_loop();
-                if txn.is_usable() {
-                    txn.maybe_commit();
-                }
-            }
-        }
-        self.indexeddb_transactions
-            .borrow_mut()
-            .retain(|txn| !txn.is_finished());
-        true
     }
 
     /// Perform a microtask checkpoint.
