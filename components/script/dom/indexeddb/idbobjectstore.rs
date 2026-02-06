@@ -13,7 +13,7 @@ use profile_traits::generic_channel::channel;
 use script_bindings::error::ErrorResult;
 use storage_traits::indexeddb::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, IndexedDBKeyType,
-    IndexedDBThreadMsg, SyncOperation,
+    IndexedDBThreadMsg, Operation,
 };
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -124,7 +124,7 @@ impl IDBObjectStore {
     fn has_key_generator(&self) -> bool {
         let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
 
-        let operation = SyncOperation::HasKeyGenerator(
+        let operation = Operation::HasKeyGenerator(
             sender,
             self.global().origin().immutable().clone(),
             self.db_name.to_string(),

@@ -21,7 +21,7 @@ use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
     AsyncOperation, BackendError, BackendResult, ConnectionMsg, CreateObjectResult, DatabaseInfo,
-    DbResult, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, SyncOperation,
+    DbResult, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, Operation,
 };
 use uuid::Uuid;
 
@@ -438,7 +438,7 @@ impl IndexedDBManager {
                 },
             };
             match message {
-                IndexedDBThreadMsg::Sync(SyncOperation::Exit(sender)) => {
+                IndexedDBThreadMsg::Sync(Operation::Exit(sender)) => {
                     let _ = sender.send(());
                     break;
                 },
@@ -1250,9 +1250,9 @@ impl IndexedDBManager {
         }
     }
 
-    fn handle_sync_operation(&mut self, operation: SyncOperation) {
+    fn handle_sync_operation(&mut self, operation: Operation) {
         match operation {
-            SyncOperation::GetDatabases(sender, origin) => {
+            Operation::GetDatabases(sender, origin) => {
                 // The in-parallel steps of https://www.w3.org/TR/IndexedDB/#dom-idbfactory-databases
 
                 // Step 4.1 Let databases be the set of databases in storageKey.
@@ -1303,44 +1303,44 @@ impl IndexedDBManager {
 
                 // Step 4.4: Queue a database task to resolve p with result.
                 if sender.send(result).is_err() {
-                    debug!("Couldn't send SyncOperation::GetDatabases reply.");
+                    debug!("Couldn't send Operation::GetDatabases reply.");
                 }
             },
-            SyncOperation::CloseDatabase(origin, id, db_name) => {
+            Operation::CloseDatabase(origin, id, db_name) => {
                 self.close_database(origin, id, db_name);
             },
-            SyncOperation::OpenDatabase(sender, origin, db_name, version, id) => {
+            Operation::OpenDatabase(sender, origin, db_name, version, id) => {
                 self.open_a_database_connection(sender, origin, db_name, version, id);
             },
-            SyncOperation::AbortPendingUpgrades {
+            Operation::AbortPendingUpgrades {
                 pending_upgrades,
                 origin,
             } => {
                 self.abort_pending_upgrades(pending_upgrades, origin);
             },
-            SyncOperation::AbortPendingUpgrade { name, id, origin } => {
+            Operation::AbortPendingUpgrade { name, id, origin } => {
                 self.abort_pending_upgrade(name, id, origin);
             },
-            SyncOperation::DeleteDatabase(callback, origin, db_name, id) => {
+            Operation::DeleteDatabase(callback, origin, db_name, id) => {
                 let idb_description = IndexedDBDescription {
                     origin,
                     name: db_name,
                 };
                 self.start_delete_database(idb_description, id, callback);
             },
-            SyncOperation::HasKeyGenerator(sender, origin, db_name, store_name) => {
+            Operation::HasKeyGenerator(sender, origin, db_name, store_name) => {
                 let result = self
                     .get_database(origin, db_name)
                     .map(|db| db.has_key_generator(&store_name));
                 let _ = sender.send(result.ok_or(BackendError::DbNotFound));
             },
-            SyncOperation::KeyPath(sender, origin, db_name, store_name) => {
+            Operation::KeyPath(sender, origin, db_name, store_name) => {
                 let result = self
                     .get_database(origin, db_name)
                     .map(|db| db.key_path(&store_name));
                 let _ = sender.send(result.ok_or(BackendError::DbNotFound));
             },
-            SyncOperation::CreateIndex(
+            Operation::CreateIndex(
                 sender,
                 origin,
                 db_name,
@@ -1358,7 +1358,7 @@ impl IndexedDBManager {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
-            SyncOperation::DeleteIndex(sender, origin, db_name, store_name, index_name) => {
+            Operation::DeleteIndex(sender, origin, db_name, store_name, index_name) => {
                 if let Some(db) = self.get_database(origin, db_name) {
                     let result = db.delete_index(&store_name, index_name);
                     let _ = sender.send(result.map_err(BackendError::from));
@@ -1366,11 +1366,11 @@ impl IndexedDBManager {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
-            SyncOperation::Commit(sender, _origin, _db_name, _txn) => {
+            Operation::Commit(sender, _origin, _db_name, _txn) => {
                 // FIXME:(arihant2math) This does nothing at the moment
                 let _ = sender.send(Ok(()));
             },
-            SyncOperation::UpgradeVersion(sender, origin, db_name, _txn, version) => {
+            Operation::UpgradeVersion(sender, origin, db_name, _txn, version) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
                     if version > db.version().unwrap_or(0) {
                         let _ = db.set_version(version);
@@ -1381,7 +1381,7 @@ impl IndexedDBManager {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
-            SyncOperation::CreateObjectStore(
+            Operation::CreateObjectStore(
                 sender,
                 origin,
                 db_name,
@@ -1396,7 +1396,7 @@ impl IndexedDBManager {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
-            SyncOperation::DeleteObjectStore(sender, origin, db_name, store_name) => {
+            Operation::DeleteObjectStore(sender, origin, db_name, store_name) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
                     let result = db.delete_object_store(&store_name);
                     let _ = sender.send(result.map_err(BackendError::from));
@@ -1404,21 +1404,21 @@ impl IndexedDBManager {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
-            SyncOperation::StartTransaction(sender, origin, db_name, txn) => {
+            Operation::StartTransaction(sender, origin, db_name, txn) => {
                 if let Some(db) = self.get_database_mut(origin, db_name) {
                     db.start_transaction(txn, Some(sender));
                 } else {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
-            SyncOperation::Version(sender, origin, db_name) => {
+            Operation::Version(sender, origin, db_name) => {
                 if let Some(db) = self.get_database(origin, db_name) {
                     let _ = sender.send(db.version().map_err(backend_error_from_sqlite_error));
                 } else {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }
             },
-            SyncOperation::RegisterNewTxn(sender, _origin, _db_name) => {
+            Operation::RegisterNewTxn(sender, _origin, _db_name) => {
                 // Note: ignoring origin and name for now,
                 // but those could be used again when implementing
                 // lifecycle.
@@ -1426,7 +1426,7 @@ impl IndexedDBManager {
                 self.serial_number_counter += 1;
                 let _ = sender.send(transaction_id);
             },
-            SyncOperation::NotifyEndOfVersionChange {
+            Operation::NotifyEndOfVersionChange {
                 name,
                 id,
                 old_version,
@@ -1434,7 +1434,7 @@ impl IndexedDBManager {
             } => {
                 self.handle_version_change_done(name, id, old_version, origin);
             },
-            SyncOperation::Exit(_) => {
+            Operation::Exit(_) => {
                 unreachable!("We must've already broken out of event loop.");
             },
         }

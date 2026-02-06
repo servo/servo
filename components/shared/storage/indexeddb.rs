@@ -379,7 +379,7 @@ pub struct DatabaseInfo {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum SyncOperation {
+pub enum Operation {
     /// Gets existing databases.
     GetDatabases(
         GenericCallback<BackendResult<Vec<DatabaseInfo>>>,
@@ -533,7 +533,7 @@ pub enum SyncOperation {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum IndexedDBThreadMsg {
-    Sync(SyncOperation),
+    Sync(Operation),
     Async(
         ImmutableOrigin,
         String, // Database

@@ -166,7 +166,7 @@ use servo_config::{opts, pref};
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::client_storage::ClientStorageThreadMessage;
-use storage_traits::indexeddb::{IndexedDBThreadMsg, SyncOperation};
+use storage_traits::indexeddb::{IndexedDBThreadMsg, Operation};
 use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
 use style::global_style_data::StyleThreadPool;
 #[cfg(feature = "webgpu")]
@@ -2694,11 +2694,11 @@ where
             warn!("Exit client storage thread failed ({})", e);
         }
         debug!("Exiting indexeddb resource threads.");
-        if let Err(e) =
-            self.public_storage_threads
-                .send(IndexedDBThreadMsg::Sync(SyncOperation::Exit(
-                    indexeddb_ipc_sender,
-                )))
+        if let Err(e) = self
+            .public_storage_threads
+            .send(IndexedDBThreadMsg::Sync(Operation::Exit(
+                indexeddb_ipc_sender,
+            )))
         {
             warn!("Exit indexeddb thread failed ({})", e);
         }
