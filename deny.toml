@@ -35,6 +35,12 @@ ignore = [
     # The attack complexity of this vulnerability is high,
     # and no exploit is known yet.
     "RUSTSEC-2025-0144",
+    # Denial of service, stack exhaustion attack possible
+    # time 0.3.46 bumped the MSRV, the fix is in 0.3.47.
+    # Known workarounds: Limiting the length of user input
+    # To be determined if we use any of the vulnerable functions,
+    # without limiting the length of user-input.
+    "RUSTSEC-2026-0009",
 ]
 
 # This section is considered when running `cargo deny check licenses`
