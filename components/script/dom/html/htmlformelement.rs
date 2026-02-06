@@ -1797,6 +1797,17 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> {
         }
     }
 
+    fn moving_steps(&self, can_gc: CanGc) {
+        // If movedNode is a form-associated element with a non-null form owner and movedNode and
+        // its form owner are no longer in the same tree, then reset the form owner of movedNode.
+        let same_subtree = self
+            .form_owner()
+            .is_none_or(|form| self.to_element().is_in_same_home_subtree(&*form));
+        if !same_subtree {
+            self.reset_form_owner(can_gc)
+        }
+    }
+
     // XXXKiChjang: Implement these on inheritors
     // fn satisfies_constraints(&self) -> bool;
 }

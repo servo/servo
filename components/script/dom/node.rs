@@ -8,6 +8,7 @@ use std::borrow::Cow;
 use std::cell::{Cell, LazyCell, UnsafeCell};
 use std::default::Default;
 use std::f64::consts::PI;
+use std::ops::Deref;
 use std::slice::from_ref;
 use std::{cmp, fmt, iter};
 
@@ -457,6 +458,48 @@ impl Node {
         }
     }
 
+    pub(crate) fn complete_move_subtree(root: &Node) {
+        // Flags that reset when a node is moved
+        const RESET_FLAGS: NodeFlags = NodeFlags::IS_IN_A_DOCUMENT_TREE
+            .union(NodeFlags::IS_CONNECTED)
+            .union(NodeFlags::HAS_DIRTY_DESCENDANTS)
+            .union(NodeFlags::HAS_SNAPSHOT)
+            .union(NodeFlags::HANDLED_SNAPSHOT);
+
+        // Since both the initial traversal in light dom and the inner traversal
+        // in shadow DOM share the same code, we define a closure to prevent omissions.
+        let cleanup_node = |node: &Node| {
+            node.style_data.borrow_mut().take();
+            node.layout_data.borrow_mut().take();
+        };
+
+        for node in root.traverse_preorder(ShadowIncluding::No) {
+            node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
+            cleanup_node(&node);
+
+            // Make sure that we don't accidentally initialize the rare data for this node
+            // by setting it to None
+            if node.containing_shadow_root().is_some() {
+                // Reset the containing shadowRoot after we unbind the node, since some elements
+                // require the containing shadowRoot for cleanup logic (e.g. <style>).
+                node.set_containing_shadow_root(None);
+            }
+
+            // If the element has a shadow root attached to it then we traverse that as well,
+            // but without touching the IS_IN_SHADOW_TREE flags of the children,
+            // and without resetting the contained shadow root
+            if let Some(shadow_root) = node.downcast::<Element>().and_then(Element::shadow_root) {
+                for node in shadow_root
+                    .upcast::<Node>()
+                    .traverse_preorder(ShadowIncluding::Yes)
+                {
+                    node.set_flag(RESET_FLAGS, false);
+                    cleanup_node(&node);
+                }
+            }
+        }
+    }
+
     /// Removes the given child from this node's list of children.
     ///
     /// Fails unless `child` is a child of this node.
@@ -500,6 +543,17 @@ impl Node {
         self.children_count.set(self.children_count.get() - 1);
 
         Self::complete_remove_subtree(child, &context, can_gc);
+    }
+
+    fn move_child(&self, child: &Node) {
+        assert!(child.parent_node.get().as_deref() == Some(self));
+        self.note_dirty_descendants();
+
+        child.prev_sibling.set(None);
+        child.next_sibling.set(None);
+        child.parent_node.set(None);
+        self.children_count.set(self.children_count.get() - 1);
+        Self::complete_move_subtree(child)
     }
 
     pub(crate) fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
@@ -1202,6 +1256,289 @@ impl Node {
 
         // Step 3. Replace all with node within this.
         Node::replace_all(Some(&node), self, can_gc);
+        Ok(())
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-movebefore>
+    pub(crate) fn move_before(
+        &self,
+        node: &Node,
+        child: Option<&Node>,
+        can_gc: CanGc,
+    ) -> ErrorResult {
+        // Step 1. Let referenceChild be child.
+        // Step 2. If referenceChild is node, then set referenceChild to node’s next sibling.
+        let reference_child_root;
+        let reference_child = match child {
+            Some(child) if child == node => {
+                reference_child_root = node.GetNextSibling();
+                reference_child_root.as_deref()
+            },
+            _ => child,
+        };
+
+        // Step 3. Move node into this before referenceChild.
+        Node::move_fn(node, self, reference_child, can_gc)
+    }
+
+    /// <https://dom.spec.whatwg.org/#move>
+    pub(crate) fn move_fn(
+        node: &Node,
+        new_parent: &Node,
+        child: Option<&Node>,
+        can_gc: CanGc,
+    ) -> ErrorResult {
+        // Step 1. If newParent’s shadow-including root is not the same as node’s shadow-including
+        // root, then throw a "HierarchyRequestError" DOMException.
+        // This has the side effect of ensuring that a move is only performed if newParent’s
+        // connected is node’s connected.
+        let mut options = GetRootNodeOptions::empty();
+        options.composed = true;
+        if new_parent.GetRootNode(&options) != node.GetRootNode(&options) {
+            return Err(Error::HierarchyRequest(None));
+        }
+
+        // Step 2. If node is a host-including inclusive ancestor of newParent, then throw a
+        // "HierarchyRequestError" DOMException.
+        if node.is_inclusive_ancestor_of(new_parent) {
+            return Err(Error::HierarchyRequest(None));
+        }
+
+        // Step 3. If child is non-null and its parent is not newParent, then throw a
+        // "NotFoundError" DOMException.
+        if let Some(child) = child {
+            if !new_parent.is_parent_of(child) {
+                return Err(Error::NotFound(None));
+            }
+        }
+
+        // Step 4. If node is not an Element or a CharacterData node, then throw a
+        // "HierarchyRequestError" DOMException.
+        // Step 5. If node is a Text node and newParent is a document, then throw a
+        // "HierarchyRequestError" DOMException.
+        match node.type_id() {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
+                if new_parent.is::<Document>() {
+                    return Err(Error::HierarchyRequest(None));
+                }
+            },
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
+            NodeTypeId::Element(_) => (),
+            NodeTypeId::DocumentFragment(_) |
+            NodeTypeId::DocumentType |
+            NodeTypeId::Document(_) |
+            NodeTypeId::Attr => {
+                return Err(Error::HierarchyRequest(None));
+            },
+        }
+
+        // Step 6. If newParent is a document, node is an Element node, and either newParent has an
+        // element child, child is a doctype, or child is non-null and a doctype is following child
+        // then throw a "HierarchyRequestError" DOMException.
+        if new_parent.is::<Document>() && node.is::<Element>() {
+            // either newParent has an element child
+            if new_parent.child_elements().next().is_some() {
+                return Err(Error::HierarchyRequest(None));
+            }
+
+            // child is a doctype
+            // or child is non-null and a doctype is following child
+            if child.is_some_and(|child| {
+                child
+                    .inclusively_following_siblings()
+                    .any(|child| child.is_doctype())
+            }) {
+                return Err(Error::HierarchyRequest(None));
+            }
+        }
+
+        // Step 7. Let oldParent be node’s parent.
+        // Step 8. Assert: oldParent is non-null.
+        let old_parent = node
+            .parent_node
+            .get()
+            .expect("old_parent should always be initialized");
+
+        // Step 9. Run the live range pre-remove steps, given node.
+        let cached_index = Node::live_range_pre_remove_steps(node, &old_parent);
+
+        // TODO Step 10. For each NodeIterator object iterator whose root’s node document is node’s
+        // node document: run the NodeIterator pre-remove steps given node and iterator.
+
+        // Step 11. Let oldPreviousSibling be node’s previous sibling.
+        let old_previous_sibling = node.prev_sibling.get();
+
+        // Step 12. Let oldNextSibling be node’s next sibling.
+        let old_next_sibling = node.next_sibling.get();
+
+        let prev_sibling = node.GetPreviousSibling();
+        match prev_sibling {
+            None => {
+                old_parent
+                    .first_child
+                    .set(node.next_sibling.get().as_deref());
+            },
+            Some(ref prev_sibling) => {
+                prev_sibling
+                    .next_sibling
+                    .set(node.next_sibling.get().as_deref());
+            },
+        }
+        let next_sibling = node.GetNextSibling();
+        match next_sibling {
+            None => {
+                old_parent
+                    .last_child
+                    .set(node.prev_sibling.get().as_deref());
+            },
+            Some(ref next_sibling) => {
+                next_sibling
+                    .prev_sibling
+                    .set(node.prev_sibling.get().as_deref());
+            },
+        }
+
+        let mut context = MoveContext::new(
+            Some(&old_parent),
+            prev_sibling.as_deref(),
+            next_sibling.as_deref(),
+            cached_index,
+        );
+
+        // Step 13. Remove node from oldParent’s children.
+        old_parent.move_child(node);
+
+        // Step 14. If node is assigned, then run assign slottables for node’s assigned slot.
+        if let Some(slot) = node.assigned_slot() {
+            slot.assign_slottables();
+        }
+
+        // Step 15. If oldParent’s root is a shadow root, and oldParent is a slot whose assigned
+        // nodes is empty, then run signal a slot change for oldParent.
+        if old_parent.is_in_a_shadow_tree() {
+            if let Some(slot_element) = old_parent.downcast::<HTMLSlotElement>() {
+                if !slot_element.has_assigned_nodes() {
+                    slot_element.signal_a_slot_change();
+                }
+            }
+        }
+
+        // Step 16. If node has an inclusive descendant that is a slot:
+        let has_slot_descendant = node
+            .traverse_preorder(ShadowIncluding::No)
+            .any(|element| element.is::<HTMLSlotElement>());
+        if has_slot_descendant {
+            // Step 16.1. Run assign slottables for a tree with oldParent’s root.
+            old_parent
+                .GetRootNode(&GetRootNodeOptions::empty())
+                .assign_slottables_for_a_tree();
+
+            // Step 16.2. Run assign slottables for a tree with node.
+            node.assign_slottables_for_a_tree();
+        }
+
+        // Step 17. If child is non-null:
+        if let Some(child) = child {
+            // Step 17.1. For each live range whose start node is newParent and start offset is
+            // greater than child’s index: increase its start offset by 1.
+            // Step 17.2. For each live range whose end node is newParent and end offset is greater
+            // than child’s index: increase its end offset by 1.
+            new_parent
+                .ranges()
+                .increase_above(new_parent, child.index(), 1)
+        }
+
+        // Step 18. Let newPreviousSibling be child’s previous sibling if child is non-null, and
+        // newParent’s last child otherwise.
+        let new_previous_sibling = child.map_or_else(
+            || new_parent.last_child.get(),
+            |child| child.prev_sibling.get(),
+        );
+
+        // Step 19. If child is null, then append node to newParent’s children.
+        // Step 20. Otherwise, insert node into newParent’s children before child’s index.
+        new_parent.add_child(node, child, can_gc);
+
+        // Step 21. If newParent is a shadow host whose shadow root’s slot assignment is "named" and
+        // node is a slottable, then assign a slot for node.
+        if let Some(shadow_root) = new_parent
+            .downcast::<Element>()
+            .and_then(Element::shadow_root)
+        {
+            if shadow_root.SlotAssignment() == SlotAssignmentMode::Named {
+                let cx = GlobalScope::get_cx();
+                if node.is::<Element>() || node.is::<Text>() {
+                    rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(node)));
+                    slottable.assign_a_slot();
+                }
+            }
+        }
+
+        // Step 22. If newParent’s root is a shadow root, and newParent is a slot whose assigned
+        // nodes is empty, then run signal a slot change for newParent.
+        if new_parent.is_in_a_shadow_tree() {
+            if let Some(slot_element) = new_parent.downcast::<HTMLSlotElement>() {
+                if !slot_element.has_assigned_nodes() {
+                    slot_element.signal_a_slot_change();
+                }
+            }
+        }
+
+        // Step 23. Run assign slottables for a tree with node’s root.
+        node.GetRootNode(&GetRootNodeOptions::empty())
+            .assign_slottables_for_a_tree();
+
+        // Step 24. For each shadow-including inclusive descendant inclusiveDescendant of node, in
+        // shadow-including tree order:
+        for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
+            // Step 24.1. If inclusiveDescendant is node, then run the moving steps with
+            // inclusiveDescendant and oldParent.
+            // Otherwise, run the moving steps with inclusiveDescendant and null.
+            if descendant.deref() == node {
+                vtable_for(&descendant).moving_steps(&context, can_gc);
+            } else {
+                context.old_parent = None;
+                vtable_for(&descendant).moving_steps(&context, can_gc);
+            }
+
+            // Step 24.2. If inclusiveDescendant is custom and newParent is connected,
+            if let Some(descendant) = descendant.downcast::<Element>() {
+                if descendant.is_custom() && new_parent.is_connected() {
+                    // then enqueue a custom element callback reaction with
+                    // inclusiveDescendant, callback name "connectedMoveCallback", and « ».
+                    let custom_element_reaction_stack =
+                        ScriptThread::custom_element_reaction_stack();
+                    custom_element_reaction_stack.enqueue_callback_reaction(
+                        descendant,
+                        CallbackReaction::ConnectedMove,
+                        None,
+                    );
+                }
+            }
+        }
+
+        // Step 25. Queue a tree mutation record for oldParent with « », « node »,
+        // oldPreviousSibling, and oldNextSibling.
+        let moved = [node];
+        let mutation = LazyCell::new(|| Mutation::ChildList {
+            added: None,
+            removed: Some(&moved),
+            prev: old_previous_sibling.as_deref(),
+            next: old_next_sibling.as_deref(),
+        });
+        MutationObserver::queue_a_mutation_record(&old_parent, mutation);
+
+        // Step 26. Queue a tree mutation record for newParent with « node », « »,
+        // newPreviousSibling, and child.
+        let mutation = LazyCell::new(|| Mutation::ChildList {
+            added: Some(&moved),
+            removed: None,
+            prev: new_previous_sibling.as_deref(),
+            next: child,
+        });
+        MutationObserver::queue_a_mutation_record(new_parent, mutation);
+
         Ok(())
     }
 
@@ -2821,31 +3158,7 @@ impl Node {
 
         // Step 3. Run the live range pre-remove steps.
         // https://dom.spec.whatwg.org/#live-range-pre-remove-steps
-        let cached_index = {
-            if parent.ranges_is_empty() {
-                None
-            } else {
-                // Step 1. Let parent be node’s parent.
-                // Step 2. Assert: parent is not null.
-                // NOTE: We already have the parent.
-
-                // Step 3. Let index be node’s index.
-                let index = node.index();
-
-                // Steps 4-5 are handled in Node::unbind_from_tree.
-
-                // Step 6. For each live range whose start node is parent and start offset is greater than index,
-                // decrease its start offset by 1.
-                // Step 7. For each live range whose end node is parent and end offset is greater than index,
-                // decrease its end offset by 1.
-                parent.ranges().decrease_above(parent, index, 1);
-
-                // Parent had ranges, we needed the index, let's keep track of
-                // it to avoid computing it for other ranges when calling
-                // unbind_from_tree recursively.
-                Some(index)
-            }
-        };
+        let cached_index = Node::live_range_pre_remove_steps(node, parent);
 
         // TODO: Step 4. Pre-removing steps for node iterators
 
@@ -2912,6 +3225,33 @@ impl Node {
             MutationObserver::queue_a_mutation_record(parent, mutation);
         }
         parent.owner_doc().remove_script_and_layout_blocker();
+    }
+
+    /// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps>
+    fn live_range_pre_remove_steps(node: &Node, parent: &Node) -> Option<u32> {
+        if parent.ranges_is_empty() {
+            return None;
+        }
+
+        // Step 1. Let parent be node’s parent.
+        // Step 2. Assert: parent is not null.
+        // NOTE: We already have the parent.
+
+        // Step 3. Let index be node’s index.
+        let index = node.index();
+
+        // Steps 4-5 are handled in Node::unbind_from_tree.
+
+        // Step 6. For each live range whose start node is parent and start offset is greater than index,
+        // decrease its start offset by 1.
+        // Step 7. For each live range whose end node is parent and end offset is greater than index,
+        // decrease its end offset by 1.
+        parent.ranges().decrease_above(parent, index, 1);
+
+        // Parent had ranges, we needed the index, let's keep track of
+        // it to avoid computing it for other ranges when calling
+        // unbind_from_tree recursively.
+        Some(index)
     }
 
     /// Ensure that for styles, we clone the already-parsed property declaration block.
@@ -4197,7 +4537,26 @@ impl VirtualMethods for Node {
         // unbind operation happened further up in the tree and we should not
         // drain any ranges.
         if !self.is_in_a_shadow_tree() && !self.ranges_is_empty() {
-            self.ranges().drain_to_parent(context, self);
+            self.ranges()
+                .drain_to_parent(context.parent, context.index(), self);
+        }
+    }
+
+    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(context, can_gc);
+        }
+
+        // Ranges should only drain to the parent from inclusive non-shadow
+        // including descendants. If we're in a shadow tree at this point then the
+        // unbind operation happened further up in the tree and we should not
+        // drain any ranges.
+        if let Some(old_parent) = context.old_parent &&
+            !self.is_in_a_shadow_tree() &&
+            !self.ranges_is_empty()
+        {
+            self.ranges()
+                .drain_to_parent(old_parent, context.index(), self);
         }
     }
 
@@ -4472,6 +4831,46 @@ impl<'a> UnbindContext<'a> {
     }
 
     /// The index of the inclusive ancestor that was removed from the tree.
+    pub(crate) fn index(&self) -> u32 {
+        if let Some(index) = self.index.get() {
+            return index;
+        }
+        let index = self.prev_sibling.map_or(0, |sibling| sibling.index() + 1);
+        self.index.set(Some(index));
+        index
+    }
+}
+
+/// The context of the moving from a tree of a node when one of its
+/// inclusive ancestors is moved.
+pub(crate) struct MoveContext<'a> {
+    /// The index of the inclusive ancestor that was moved.
+    index: Cell<Option<u32>>,
+    /// The old parent, if any, of the inclusive ancestor that was moved.
+    pub(crate) old_parent: Option<&'a Node>,
+    /// The previous sibling of the inclusive ancestor that was moved.
+    prev_sibling: Option<&'a Node>,
+    /// The next sibling of the inclusive ancestor that was moved.
+    pub(crate) next_sibling: Option<&'a Node>,
+}
+
+impl<'a> MoveContext<'a> {
+    /// Create a new `MoveContext` value.
+    pub(crate) fn new(
+        old_parent: Option<&'a Node>,
+        prev_sibling: Option<&'a Node>,
+        next_sibling: Option<&'a Node>,
+        cached_index: Option<u32>,
+    ) -> Self {
+        MoveContext {
+            index: Cell::new(cached_index),
+            old_parent,
+            prev_sibling,
+            next_sibling,
+        }
+    }
+
+    /// The index of the inclusive ancestor that was moved from the tree.
     pub(crate) fn index(&self) -> u32 {
         if let Some(index) = self.index.get() {
             return index;

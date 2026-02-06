@@ -156,6 +156,11 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
         self.upcast::<Node>().replace_children(nodes, can_gc)
     }
 
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-movebefore>
+    fn MoveBefore(&self, node: &Node, child: Option<&Node>, can_gc: CanGc) -> ErrorResult {
+        self.upcast::<Node>().move_before(node, child, can_gc)
+    }
+
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         self.upcast::<Node>().query_selector(selectors)

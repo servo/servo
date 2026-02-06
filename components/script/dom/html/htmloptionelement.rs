@@ -30,8 +30,8 @@ use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
 use crate::dom::node::{
-    BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, ShadowIncluding,
-    UnbindContext,
+    BindContext, ChildrenMutation, CloneChildrenFlag, MoveContext, Node, NodeTraits,
+    ShadowIncluding, UnbindContext,
 };
 use crate::dom::text::Text;
 use crate::dom::types::DocumentFragment;
@@ -492,5 +492,38 @@ impl VirtualMethods for HTMLOptionElement {
                 }
             }
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#the-option-element:html-element-moving-steps>
+    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(context, can_gc);
+        }
+
+        // The option HTML element moving steps, given movedNode and oldParent, are to run update an
+        // option's nearest ancestor select given movedNode.
+        let element = self.upcast::<Element>();
+        if let Some(old_parent) = context.old_parent {
+            if let Some(select) = old_parent
+                .inclusive_ancestors(ShadowIncluding::No)
+                .find_map(DomRoot::downcast::<HTMLSelectElement>)
+            {
+                select
+                    .validity_state(can_gc)
+                    .perform_validation_and_update(ValidationFlags::all(), can_gc);
+                select.ask_for_reset();
+            }
+
+            if self.upcast::<Node>().GetParentNode().is_some() {
+                element.check_parent_disabled_state_for_option();
+            } else {
+                element.check_disabled_attribute();
+            }
+        }
+
+        element.check_parent_disabled_state_for_option();
+
+        self.pick_if_selected_and_reset();
+        self.update_select_validity(can_gc);
     }
 }
