@@ -22,7 +22,6 @@ pub struct ServoTest {
 }
 
 impl ServoTest {
-    #[expect(dead_code)] // Used by some tests and not others
     pub(crate) fn new() -> Self {
         Self::new_with_builder(|b| b)
     }
@@ -200,5 +199,3 @@ pub(crate) fn show_webview_and_wait_for_rendering_to_be_ready(
     let captured_delegate = delegate.clone();
     servo_test.spin(move || !captured_delegate.new_frame_ready.get());
 }
-
-
