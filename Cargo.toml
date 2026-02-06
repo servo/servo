@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "components/media/examples",
     "components/xpath",
     "ports/servoshell",
     "tests/unit/*",

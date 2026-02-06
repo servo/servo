@@ -64,8 +64,8 @@ mod platform {
             false
         }
 
-        fn build_frame(&self, _: gstreamer::Sample) -> Result<VideoFrame, ()> {
-            Err(())
+        fn build_frame(&self, _: gstreamer::Sample) -> Option<VideoFrame> {
+            None
         }
 
         fn build_video_sink(

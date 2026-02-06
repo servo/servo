@@ -1,5 +1,5 @@
 [package]
-name = "media"
+name = "media-examples"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -7,17 +7,10 @@ edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
 
-[lib]
-name = "media"
-path = "lib.rs"
-
 [dependencies]
 euclid = { workspace = true }
-ipc-channel = { workspace = true }
-log = { workspace = true }
-paint_api = { workspace = true }
-rustc-hash = { workspace = true }
+rand = { workspace = true }
 serde = { workspace = true }
 servo-media = { workspace = true }
-servo_config = { path = "../../config" }
-webrender_api = { workspace = true }
+servo-media-auto = { path = "../backends/auto" }
+servo-media-dummy = { path = "../backends/dummy" }

@@ -5382,14 +5382,23 @@ dependencies = [
  "ipc-channel",
  "log",
  "paint_api",
- "rand 0.9.2",
  "rustc-hash 2.1.1",
+ "serde",
+ "servo-media",
+ "servo_config",
+ "webrender_api",
+]
+
+[[package]]
+name = "media-examples"
+version = "0.0.1"
+dependencies = [
+ "euclid",
+ "rand 0.9.2",
  "serde",
  "servo-media",
  "servo-media-auto",
  "servo-media-dummy",
- "servo_config",
- "webrender_api",
 ]
 
 [[package]]

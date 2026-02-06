@@ -431,4 +431,4 @@ jobs:
         gst-inspect-1.0 | grep Total
     - name: Run Examples
       run: |
-        ls components/media/media-thread/examples/*.rs | xargs -I{} basename  {} .rs  | grep -v params_connect | RUST_BACKTRACE=1 GST_DEBUG=3 xargs -I{} cargo run -p media --example {}
+        ls components/media/examples/examples/*.rs | xargs -I{} basename  {} .rs  | grep -v params_connect | RUST_BACKTRACE=1 GST_DEBUG=3 xargs -I{} cargo run -p media-examples --example {}
