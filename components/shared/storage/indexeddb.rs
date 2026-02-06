@@ -311,6 +311,36 @@ pub enum AsyncReadOnlyOperation {
         callback: GenericCallback<BackendResult<Vec<IndexedDBRecord>>>,
         key_range: IndexedDBKeyRange,
     },
+
+    IndexGetKey {
+        callback: GenericCallback<BackendResult<Option<IndexedDBKeyType>>>,
+        index_name: String,
+        key_range: IndexedDBKeyRange,
+    },
+    IndexGetItem {
+        callback: GenericCallback<BackendResult<Option<Vec<u8>>>>,
+        index_name: String,
+        key_range: IndexedDBKeyRange,
+    },
+
+    IndexGetAllKeys {
+        callback: GenericCallback<BackendResult<Vec<IndexedDBKeyType>>>,
+        index_name: String,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    },
+    IndexGetAllItems {
+        callback: GenericCallback<BackendResult<Vec<Vec<u8>>>>,
+        index_name: String,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    },
+
+    IndexCount {
+        callback: GenericCallback<BackendResult<u64>>,
+        index_name: String,
+        key_range: IndexedDBKeyRange,
+    },
 }
 
 impl AsyncReadOnlyOperation {
@@ -322,6 +352,11 @@ impl AsyncReadOnlyOperation {
             Self::GetAllItems { callback, .. } => callback.send(Err(error)),
             Self::Count { callback, .. } => callback.send(Err(error)),
             Self::Iterate { callback, .. } => callback.send(Err(error)),
+            Self::IndexGetKey { callback, .. } => callback.send(Err(error)),
+            Self::IndexGetItem { callback, .. } => callback.send(Err(error)),
+            Self::IndexGetAllKeys { callback, .. } => callback.send(Err(error)),
+            Self::IndexGetAllItems { callback, .. } => callback.send(Err(error)),
+            Self::IndexCount { callback, .. } => callback.send(Err(error)),
         };
     }
 }
@@ -333,6 +368,8 @@ pub enum AsyncReadWriteOperation {
         callback: GenericCallback<BackendResult<PutItemResult>>,
         key: Option<IndexedDBKeyType>,
         value: Vec<u8>,
+        /// (index_name, is_unique, key)
+        index_keys: Vec<(String, bool, IndexedDBKeyType)>,
         should_overwrite: bool,
         /// New object store key generator current number to persist if the put succeeds.
         key_generator_current_number: Option<i32>,
