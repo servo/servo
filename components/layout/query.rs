@@ -413,6 +413,7 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
         Fragment::Image(_) |
         Fragment::IFrame(_) => true,
         Fragment::Text(_) => false,
+        Fragment::ElidedText(_) => false, // TODO(richardtjokroutomo): marker
     }
 }
 

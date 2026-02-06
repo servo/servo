@@ -96,6 +96,7 @@ use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::computed_values::line_break::T as LineBreak;
+use style::computed_values::overflow_x::T as Overflow_X;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::vertical_align::T as VerticalAlign;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -105,8 +106,8 @@ use style::properties::ComputedValues;
 use style::properties::style_structs::InheritedText;
 use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::generics::font::LineHeight;
-use style::values::specified::box_::BaselineSource;
-use style::values::specified::text::TextAlignKeyword;
+use style::values::specified::box_::{BaselineSource, DisplayInside};
+use style::values::specified::text::{TextAlignKeyword, TextOverflowSide};
 use style::values::specified::{TextAlignLast, TextJustify};
 use text_run::{
     TextRun, XI_LINE_BREAKING_CLASS_GL, XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ,
@@ -1153,6 +1154,17 @@ impl InlineFormattingContextLayout<'_> {
 
         let baseline_offset = effective_block_advance.find_baseline_offset();
         let start_positioning_context_length = self.positioning_context.len();
+        let ifc_style = self.ifc.shared_inline_styles.style.borrow();
+
+        let mut can_be_elided = match &ifc_style.get_text().text_overflow.second {
+            TextOverflowSide::Clip => false,
+            TextOverflowSide::Ellipsis => true,
+            TextOverflowSide::String(_s) => false, // TODO: add support for text-overflow: string
+        };
+        can_be_elided = can_be_elided &&
+            (ifc_style.get_box().overflow_x != Overflow_X::Visible) &&
+            (ifc_style.get_box().display.inside() == DisplayInside::Flow);
+
         let fragments = LineItemLayout::layout_line_items(
             self,
             line_to_layout.line_items,
@@ -1160,6 +1172,7 @@ impl InlineFormattingContextLayout<'_> {
             &effective_block_advance,
             justification_adjustment,
             is_phantom_line,
+            can_be_elided,
         );
 
         if !is_phantom_line {
