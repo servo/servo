@@ -92,6 +92,23 @@ impl CredentialsContainer {
         }
         Err(Error::NotSupported(None))
     }
+
+    /// <https://www.w3.org/TR/credential-management-1/#abstract-opdef-prevent-silent-access>
+    fn prevent_silent_access(&self) -> Fallible<Rc<Promise>> {
+        let qlobal = self.global();
+        // Step 1. Let origin be settings’ origin.
+        let _origin = qlobal.origin();
+        // Step 2. If settings’s relevant global object’s associated Document is not fully active, then return a promise rejected with an "InvalidStateError" DOMException.
+        if !qlobal.as_window().Document().is_fully_active() {
+            return Err(Error::InvalidState(None));
+        }
+        // TODO: Step 3. Let p be a new promise.
+        // TODO: Step 4. Run the following seps in parallel:
+        // TODO: Step 4.1. Set origin’s prevent silent access flag in the credential store.
+        // TODO: Step 4.2. Resolve p with undefined.
+        // TODO: Step 5. Return p.
+        Err(Error::NotSupported(None))
+    }
 }
 
 impl CredentialsContainerMethods<DomTypeHolder> for CredentialsContainer {
@@ -112,6 +129,6 @@ impl CredentialsContainerMethods<DomTypeHolder> for CredentialsContainer {
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credentialscontainer-preventsilentaccess>
     fn PreventSilentAccess(&self) -> Fallible<Rc<Promise>> {
-        Err(Error::NotSupported(None))
+        self.prevent_silent_access()
     }
 }
