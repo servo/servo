@@ -99,6 +99,9 @@ pub(crate) struct IntersectionObserver {
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-trackvisibility-slot>
     track_visibility: Cell<bool>,
+
+    /// Whether or not this [`IntersectionObserver`] is connected to its owning [`Document`].
+    connected_to_document: Cell<bool>,
 }
 
 impl IntersectionObserver {
@@ -121,6 +124,7 @@ impl IntersectionObserver {
             thresholds: Default::default(),
             delay: Default::default(),
             track_visibility: Default::default(),
+            connected_to_document: Cell::new(false),
         }
     }
 
@@ -276,7 +280,7 @@ impl IntersectionObserver {
         target.add_initial_intersection_observer_registration(self);
 
         if self.observation_targets.borrow().is_empty() {
-            self.connect_to_owner_unchecked();
+            self.connect_to_owner();
         }
 
         // Step 4
@@ -310,7 +314,7 @@ impl IntersectionObserver {
 
         // Should disconnect from owner if it is not observing anything.
         if self.observation_targets.borrow().is_empty() {
-            self.disconnect_from_owner_unchecked();
+            self.disconnect_from_owner();
         }
     }
 
@@ -401,15 +405,20 @@ impl IntersectionObserver {
     }
 
     /// Connect the observer itself into owner doc if it is unconnected.
-    /// It would not check whether the observer is already connected or not inside the doc.
-    fn connect_to_owner_unchecked(&self) {
-        self.owner_doc.add_intersection_observer(self);
+    /// If the [`IntersectionObserver`] is already connected, do nothing.
+    fn connect_to_owner(&self) {
+        if !self.connected_to_document.get() {
+            self.owner_doc.add_intersection_observer(self);
+            self.connected_to_document.set(true);
+        }
     }
 
     /// Disconnect the observer itself from owner doc.
-    /// It would not check whether the observer is already disconnected or not inside the doc.
-    fn disconnect_from_owner_unchecked(&self) {
-        self.owner_doc.remove_intersection_observer(self);
+    /// If not connected to a [`Document`], do nothing.
+    fn disconnect_from_owner(&self) {
+        if self.connected_to_document.get() {
+            self.owner_doc.remove_intersection_observer(self);
+        }
     }
 
     /// > The root intersection rectangle for an IntersectionObserver is
@@ -747,9 +756,6 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-observe>
     fn Observe(&self, target: &Element) {
         self.observe_target_element(target);
-
-        // Connect to owner doc to be accessed in the event loop.
-        self.connect_to_owner_unchecked();
     }
 
     /// > Run the unobserve a target Element algorithm, providing this and target.
@@ -771,7 +777,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
         self.observation_targets.borrow_mut().clear();
 
         // We should remove this observer from the event loop.
-        self.disconnect_from_owner_unchecked();
+        self.disconnect_from_owner();
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-takerecords>
