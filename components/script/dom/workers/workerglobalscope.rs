@@ -22,6 +22,7 @@ use headers::{HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
 use js::realm::CurrentRealm;
 use js::rust::{HandleValue, MutableHandleValue, ParentRuntime};
 use mime::Mime;
+use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, RequestBuilder, RequestId,
@@ -150,6 +151,34 @@ impl FetchResponseListener for ScriptFetchContext {
             FetchMetadata::Unfiltered(m) => m,
             FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
         });
+
+        let Some(ref metadata) = self.response else {
+            return;
+        };
+
+        // The processResponseConsumeBody steps defined inside
+        // [run a worker](https://html.spec.whatwg.org/multipage/#run-a-worker)
+        let scope = self.scope.root();
+        let global_scope = scope.upcast::<GlobalScope>();
+
+        // Step 1. Set worker global scope's url to response's url.
+        scope.set_url(metadata.final_url.clone());
+
+        // Step 2. Set inside settings's creation URL to response's url.
+        global_scope.set_creation_url(metadata.final_url.clone());
+
+        // Step 3. Initialize worker global scope's policy container given worker global scope, response, and inside settings.
+        scope
+            .initialize_policy_container_for_worker_global_scope(&metadata, &self.policy_container);
+
+        // TODO Step 4. If the Run CSP initialization for a global object algorithm returns "Blocked"
+        // when executed upon worker global scope, set response to a network error.
+
+        scope.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
+            &metadata.final_url.clone(),
+            &metadata.headers,
+        ));
+        global_scope.set_https_state(metadata.https_state);
     }
 
     fn process_response_chunk(&mut self, _request_id: RequestId, mut chunk: Vec<u8>) {
@@ -176,27 +205,9 @@ impl FetchResponseListener for ScriptFetchContext {
             scope.on_complete(None, self.worker.clone(), cx);
             return;
         }
+
         let metadata = self.response.take().unwrap();
-
-        // The processResponseConsumeBody steps defined inside
-        // [run a worker](https://html.spec.whatwg.org/multipage/#run-a-worker)
-
         let global_scope = scope.upcast::<GlobalScope>();
-
-        // Step 1. Set worker global scope's url to response's url.
-        scope.set_url(metadata.final_url.clone());
-
-        // Step 2. Set inside settings's creation URL to response's url.
-        global_scope.set_creation_url(metadata.final_url.clone());
-
-        // Step 3. Initialize worker global scope's policy container given worker global scope, response, and inside settings.
-        scope
-            .initialize_policy_container_for_worker_global_scope(&metadata, &self.policy_container);
-        scope.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
-            &metadata.final_url.clone(),
-            &metadata.headers,
-        ));
-        global_scope.set_https_state(metadata.https_state);
 
         // The processResponseConsumeBody steps defined inside
         // [fetch a classic worker script](https://html.spec.whatwg.org/multipage/#fetch-a-classic-worker-script)
