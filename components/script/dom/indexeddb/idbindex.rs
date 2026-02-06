@@ -64,6 +64,22 @@ impl IDBIndex {
             can_gc,
         )
     }
+
+    pub(crate) fn name(&self) -> String {
+        self.name.to_string()
+    }
+
+    pub(crate) fn key_path(&self) -> &KeyPath {
+        &self.key_path
+    }
+
+    pub(crate) fn multi_entry(&self) -> bool {
+        self.multi_entry
+    }
+
+    pub(crate) fn unique(&self) -> bool {
+        self.unique
+    }
 }
 
 impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {

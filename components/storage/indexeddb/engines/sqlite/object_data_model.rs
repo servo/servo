@@ -4,7 +4,7 @@
 use rusqlite::Row;
 use sea_query::Iden;
 
-#[derive(Iden)]
+#[derive(Clone, Copy, Iden)]
 pub enum Column {
     #[iden = "object_data"]
     Table,

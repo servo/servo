@@ -294,6 +294,18 @@ impl IDBObjectStore {
         };
         // Step 12. Let operation be an algorithm to run store a record into an object store with store, clone, key, and no-overwrite flag.
         // Step 13. Return the result (an IDBRequest) of running asynchronously execute a request with handle and operation.
+        let mut index_keys = Vec::new();
+        for index in self.index_set.borrow().values() {
+            // https://www.w3.org/TR/IndexedDB/#store-a-record-into-an-object-store: Step 5.1
+            // Let index key be the result of extracting a key from a value using a key path with value, index’s key path, and index’s multiEntry flag.
+            let index_key = extract_key(cx, value, index.key_path(), Some(index.multi_entry()))?;
+
+            // https://www.w3.org/TR/IndexedDB/#store-a-record-into-an-object-store: Step 5.2
+            // If index key is an exception, or invalid, or failure, take no further actions for index, and continue these steps for the next index.
+            if let ExtractionResult::Key(key) = index_key {
+                index_keys.push((index.name(), index.unique(), key));
+            }
+        }
         IDBRequest::execute_async(
             self,
             |callback| {
@@ -301,6 +313,7 @@ impl IDBObjectStore {
                     callback,
                     key: serialized_key,
                     value: serialized_value,
+                    index_keys,
                     should_overwrite: overwrite,
                 })
             },
