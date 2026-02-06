@@ -191,76 +191,6 @@ jobs:
         if: always()
         run: echo "JOB_STATUS=${{ job.status }}" | tee $GITHUB_OUTPUT
 
-  test-harmonyos-aarch64:
-    name: Test HarmonyOS aarch64
-    # Don't block servos Merge queue on this job failing.
-    # Since we just added this, there might be some hidden issues,
-    # so in the beginning we will just do a best effort approach but ignore errors.
-    continue-on-error: true
-    runs-on: hos-runner
-    if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.outputs.job_status == 'success'
-    needs: build-harmonyos-aarch64
-    outputs:
-      job_status: ${{ steps.result.outputs.JOB_STATUS }}
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          # Name of the artifact to download.
-          # If unspecified, all artifacts for the run are downloaded.
-          name: servoshell-hos-${{ inputs.profile }}.hap
-      - name: Test hdc device
-        # First we ensure a device is actually connected and working.
-        run: hdc list targets && hdc shell echo hello world
-      - name: Sign the hap
-        run: |
-          ls -la
-          /usr/bin/sign-hos.sh servoshell-default-unsigned.hap servoshell-hos-signed.hap
-      - name: Install
-        run: |
-          # Uninstall first. hdc is not very reliable in terms of exiting with an error, so we uninstall first
-          # to make sure we don't use a previous version if installation failed for some reason.
-          hdc uninstall org.servo.servo
-          hdc install -r servoshell-hos-signed.hap
-      - name: Test loading servo.org
-        env:
-          TRACE_BUFFER_SZ_KB: "524288" # 512 MB
-        run: |
-          mkdir test_output
-          hdc shell aa force-stop org.servo.servo
-          # Hitrace allows us to save application and system traces, which is useful to analyze performance.
-          # The main reason however, is that we can use the application traces to determine if servo
-          # successfully reaches certain locations in the code, in particular if a page is successfully loaded.
-          hdc shell hitrace -b "${TRACE_BUFFER_SZ_KB}" app graphic ohos freq idle memory --trace_begin
-          # We start servo, tell it to load a website (servo.org).
-          hdc shell aa start -a EntryAbility -b org.servo.servo -U https://servo.org
-          servo_pid=$(hdc shell pidof org.servo.servo)
-          # We don't really know how long servo needs to load a webpage, so we just wait 10s.
-          sleep 10
-          # We dump the trace in ftrace format to disk
-          hdc shell hitrace -b "${TRACE_BUFFER_SZ_KB}" --trace_finish -o /data/local/tmp/ohtrace.txt
-          hdc shell snapshot_display -f /data/local/tmp/servo.jpeg
-          hdc file recv /data/local/tmp/servo.jpeg  test_output/servo_hos_screenshot.jpeg
-          hdc file recv /data/local/tmp/ohtrace.txt  test_output/servo.ftrace
-          # To limit the logsize we only save logs from servo.
-          hdc shell hilog --exit -D 0xE0C3 > test_output/servo.log
-      # todo: Also benchmark some other websites....
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          path: test_output
-          name: hos-${{ inputs.profile }}-test-output
-      - name: Check success
-        run: |
-          # would be empty if servo crashed.
-          servo_pid=$(hdc shell pidof org.servo.servo)
-          [[ $servo_pid =~ ^[0-9]+$ ]] || { echo "It looks like servo crashed!" ; exit 1; }
-          # If the grep fails, then the trace output for the "page loaded" prompt is missing
-          grep 'tracing_mark_write.*PageLoadEndedPrompt' test_output/servo.ftrace
-      - name: Save result as job output
-        id: result
-        if: always()
-        run: echo "JOB_STATUS=${{ job.status }}" | tee $GITHUB_OUTPUT
-
   bench-harmonyos-aarch64:
     name: Benching HarmonyOS aarch64
     env:
@@ -268,7 +198,7 @@ jobs:
       UV_PROJECT: "etc/ci/scenario"
     continue-on-error: true
     runs-on: hos-runner
-    needs: test-harmonyos-aarch64
+    needs: build-harmonyos-aarch64
     outputs:
       job_status: ${{ steps.result.outputs.JOB_STATUS }}
     if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.outputs.job_status == 'success'
@@ -460,17 +390,16 @@ jobs:
   collect-job-results:
     name: Collect Job Results
     runs-on: ubuntu-latest
-    needs: [build-harmonyos-aarch64, bench-harmonyos-aarch64, test-harmonyos-aarch64, scenario-test-harmonyos]
+    needs: [build-harmonyos-aarch64, bench-harmonyos-aarch64, scenario-test-harmonyos]
     outputs:
       collected_job_status: ${{ steps.result.outputs.JOB_RESULTS_JSON }}
     steps:
       - name: Save result as job output
         id: result
         run: |
-          JSON_FMT='{"build-harmonyos-aarch64":{"result":"%s"},"bench-harmonyos-aarch64":{"result":"%s"},"test-harmonyos-aarch64":{"result":"%s"},"scenario-test-harmonyos":{"result":"%s"}}'
+          JSON_FMT='{"build-harmonyos-aarch64":{"result":"%s"},"bench-harmonyos-aarch64":{"result":"%s"},"scenario-test-harmonyos":{"result":"%s"}}'
           printf "JOB_RESULTS_JSON=$JSON_FMT" \
                   "${{ needs.build-harmonyos-aarch64.outputs.job_status }}" \
                   "${{ needs.bench-harmonyos-aarch64.outputs.job_status }}" \
-                  "${{ needs.test-harmonyos-aarch64.outputs.job_status }}" \
                   "${{ needs.scenario-test-harmonyos.outputs.job_status }}" \
             >> $GITHUB_OUTPUT
