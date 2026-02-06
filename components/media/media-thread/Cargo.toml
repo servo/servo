@@ -19,5 +19,5 @@ paint_api = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo-media = { workspace = true }
-servo_config = { path = "../config" }
+servo_config = { path = "../../config" }
 webrender_api = { workspace = true }

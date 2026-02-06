@@ -1,0 +1,24 @@
+[package]
+name = "servo-media-ohos"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "servo_media_ohos"
+path = "lib.rs"
+
+[dependencies]
+servo-media = { path = "../../servo-media" }
+servo-media-audio = { path = "../../audio" }
+servo-media-player = { path = "../../player" }
+servo-media-streams = { path = "../../streams" }
+servo-media-traits = { path = "../../traits" }
+servo-media-webrtc = { path = "../../webrtc" }
+mime = "0.3.13"
+once_cell = "1.18.0"
+log = "0.4"
+ohos-media-sys = { version = "0.0.5" ,features = ["api-21"] }

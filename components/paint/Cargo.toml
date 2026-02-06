@@ -34,7 +34,7 @@ gleam = { workspace = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
-media = { path = "../media" }
+media = { path = "../media/media-thread" }
 malloc_size_of = { workspace = true }
 paint_api = { workspace = true }
 profile_traits = { workspace = true }
