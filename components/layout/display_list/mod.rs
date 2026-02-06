@@ -715,7 +715,30 @@ impl Fragment {
                         builder,
                         containing_block,
                         text_decorations,
+                        None,
                     ),
+                    Visibility::Hidden => (),
+                    Visibility::Collapse => (),
+                }
+            },
+            Fragment::ElidedText(elided_text) => {
+                let elided_text = &*elided_text.borrow();
+                match elided_text
+                    .text_fragment
+                    .base
+                    .style()
+                    .get_inherited_box()
+                    .visibility
+                {
+                    Visibility::Visible => {
+                        self.build_display_list_for_text_fragment(
+                            &elided_text.text_fragment,
+                            builder,
+                            containing_block,
+                            text_decorations,
+                            Some((elided_text.original_advance, elided_text.boundary)),
+                        );
+                    },
                     Visibility::Hidden => (),
                     Visibility::Collapse => (),
                 }
@@ -729,10 +752,10 @@ impl Fragment {
         builder: &mut DisplayListBuilder,
         containing_block: &PhysicalRect<Au>,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
+        overflow_indicator_data: Option<(Au, Au)>, // TODO: Make the signature Option<(Au, (Au, Au))> once two sided `text-overflow: ellipsis` has been supported
     ) {
         // NB: The order of painting text components (CSS Text Decoration Module Level 3) is:
         // shadows, underline, overline, text, text-emphasis, and then line-through.
-
         builder.mark_is_contentful();
 
         let rect = fragment
@@ -749,6 +772,7 @@ impl Fragment {
             baseline_origin,
             fragment.justification_adjustment,
             include_whitespace,
+            overflow_indicator_data,
         );
 
         if glyphs.is_empty() {
@@ -1716,12 +1740,20 @@ fn glyphs(
     mut baseline_origin: PhysicalPoint<Au>,
     justification_adjustment: Au,
     include_whitespace: bool,
+    // (original_advance, maximum advance before eliding)
+    additional_data: Option<(Au, Au)>, // TODO: Make the signature Option<(Au, (Au, Au))> once two sided `text-overflow: ellipsis` has been supported.
 ) -> (Vec<GlyphInstance>, Au) {
     let mut glyphs = vec![];
     let mut largest_advance = Au::zero();
+    let mut total_advance = Au::zero();
+
+    if let Some((original_inline_advance, _)) = additional_data {
+        total_advance += original_inline_advance
+    };
 
     for run in glyph_runs {
         for glyph in run.glyphs() {
+            total_advance += glyph.advance();
             if !run.is_whitespace() || include_whitespace {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let point = LayoutPoint::new(
@@ -1732,7 +1764,14 @@ fn glyphs(
                     index: glyph.id(),
                     point,
                 };
-                glyphs.push(glyph_instance);
+                match additional_data {
+                    Some((_, boundaries)) => {
+                        if total_advance <= boundaries {
+                            glyphs.push(glyph_instance);
+                        }
+                    },
+                    None => glyphs.push(glyph_instance),
+                }
             }
 
             if glyph.char_is_word_separator() {

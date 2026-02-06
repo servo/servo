@@ -965,7 +965,10 @@ impl Fragment {
                     text_decorations,
                 );
             },
-            Fragment::Text(_) | Fragment::Image(_) | Fragment::IFrame(_) => {
+            Fragment::Text(_) |
+            Fragment::Image(_) |
+            Fragment::IFrame(_) |
+            Fragment::ElidedText(_) => {
                 stacking_context
                     .contents
                     .push(StackingContextContent::Fragment {
