@@ -35,6 +35,10 @@ ignore = [
     # The attack complexity of this vulnerability is high,
     # and no exploit is known yet.
     "RUSTSEC-2025-0144",
+    # The crate `time` has vulnerability.
+    # Need to upgrade to 0.3.47 above.
+    # Cannot right now due to MSRV.
+    "RUSTSEC-2026-0009",
 ]
 
 # This section is considered when running `cargo deny check licenses`
