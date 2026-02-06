@@ -25,8 +25,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.options import ArgOptions
 from urllib3.exceptions import ProtocolError, MaxRetryError
 from selenium.common.exceptions import NoSuchElementException
+from dataclasses import dataclass
 
 from enum import Enum
+import re
 
 
 class AbortReason(Enum):
@@ -83,23 +85,47 @@ def kill_servo():
     subprocess.Popen(["killall", "servo"])
 
 
-def test(s: str, driver: webdriver.Remote) -> tuple[str, str, str] | AbortReason:
+_PATTERN = re.compile(
+    r"""
+Time:\s+
+values\s+[0-9.,\s]+(?P<unit>ms|runs\/s)\s+
+avg\s+(?P<avg>[0-9.]+)\s+(?P=unit)\s+
+median\s+[0-9.]+\s+(?P=unit)\s+
+stdev\s+[0-9.]+\s+(?P=unit)\s+
+min\s+(?P<min>[0-9.]+)\s+(?P=unit)\s+
+max\s+(?P<max>[0-9.]+)\s+(?P=unit)
+""",
+    re.VERBOSE,
+)
+
+
+@dataclass(frozen=True)
+class TestResult:
+    value: float
+    lower_value: float
+    upper_value: float
+    unit: str
+
+
+def test(s: str, driver: webdriver.Remote) -> TestResult | AbortReason:
     """Run a test by loading a website, and returning (avg, min, max).
     This will run for MAX_WAIT_TIME seconds and return as soon as the avg line exists in the log element"""
 
     print("Running: " + canonical_test_path(s, None))
     try:
         driver.get(s)
+        avg_line, min_line, max_line = None, None, None
         for i in range(MAX_WAIT_TIME):
             element = driver.find_element(By.ID, "log")
             text = element.text
-            result_lines = text.split("\n")
-            # get the avg line or return None if it doesn't exist yet
-            avg_line = next(filter(lambda x: "avg" in x, result_lines), None)
-            min_line = next(filter(lambda x: "min" in x, result_lines), None)
-            max_line = next(filter(lambda x: "max" in x, result_lines), None)
-            if avg_line is not None and min_line is not None and max_line is not None:
-                return (avg_line.split()[1], min_line.split()[1], max_line.split()[1])
+            m = _PATTERN.search(text)
+            if m:
+                avg_line = float(m.group("avg"))
+                min_line = float(m.group("min"))
+                max_line = float(m.group("max"))
+                unit = m.group("unit")
+            if avg_line is not None and min_line is not None and max_line is not None and unit is not None:
+                return TestResult(value=avg_line, lower_value=min_line, upper_value=max_line, unit=unit)
             time.sleep(1)
     except NoSuchElementException:
         print("Could not find log?")
@@ -166,11 +192,14 @@ def main():
                         pass
                     else:
                         combined_result = {}
-                        combined_result["value"] = result[0]
-                        combined_result["lower_value"] = result[1]
-                        combined_result["upper_value"] = result[2]
+                        combined_result["value"] = result.value
+                        combined_result["lower_value"] = result.lower_value
+                        combined_result["upper_value"] = result.upper_value
 
-                        final_result[canonical_test_path(filePath, args.prepend)] = {"throughput": combined_result}
+                        if result.unit == "ms":
+                            final_result[canonical_test_path(filePath, args.prepend)] = {"ms": combined_result}
+                        else:
+                            final_result[canonical_test_path(filePath, args.prepend)] = {"throughput": combined_result}
 
     print(final_result)
     write_file(final_result)
