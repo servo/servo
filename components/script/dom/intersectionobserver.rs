@@ -453,7 +453,8 @@ impl IntersectionObserver {
                     //
                     // There are uncertainties whether the browsing context we should consider is the browsing
                     // context of the target or observer. <https://github.com/w3c/IntersectionObserver/issues/456>
-                    document.window().top_level_document()
+                    // TODO: This wouldn't work if top level document is in another ScriptThread.
+                    document.window().top_level_document_if_local()
                 } else if let Some(ElementOrDocument::Document(document)) = &self.root {
                     Some(document.clone())
                 } else {

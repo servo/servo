@@ -650,18 +650,17 @@ impl Window {
 
     /// Get the active [`Document`] of top-level browsing context, or return [`Window`]'s [`Document`]
     /// if it's browing context is the top-level browsing context. Returning none if the [`WindowProxy`]
-    /// is discarded or the [`Document`] is in another thread (having dissimilar origin).
+    /// is discarded or the [`Document`] is in another `ScriptThread`.
     /// <https://html.spec.whatwg.org/multipage/#top-level-browsing-context>
-    pub(crate) fn top_level_document(&self) -> Option<DomRoot<Document>> {
-        let window_proxy = self.undiscarded_window_proxy()?;
-        if window_proxy.is_top_level() {
-            Some(self.Document())
-        } else {
-            let top_level_window_proxy = self
-                .script_window_proxies
-                .find_window_proxy(window_proxy.webview_id().into())?;
-            top_level_window_proxy.document()
+    pub(crate) fn top_level_document_if_local(&self) -> Option<DomRoot<Document>> {
+        if self.is_top_level() {
+            return Some(self.Document());
         }
+
+        let window_proxy = self.undiscarded_window_proxy()?;
+        self.script_window_proxies
+            .find_window_proxy(window_proxy.webview_id().into())?
+            .document()
     }
 
     #[cfg(feature = "bluetooth")]
@@ -1839,7 +1838,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             .window_proxy
             .get()
             .expect("Should always have a WindowProxy when calling WebdriverWindow");
-        assert!(window_proxy.is_top_level(), "Window must be top level browsing context.");
+        assert!(
+            self.is_top_level(),
+            "Window must be top level browsing context."
+        );
         assert!(self.webview_id().to_string() == webview_id);
         DomRoot::from_ref(window_proxy)
     }
@@ -3696,7 +3698,8 @@ impl Window {
 
         // Step 2.
         // > Let top be W's navigable's top-level traversable.
-        let Some(top_level_document) = self.top_level_document() else {
+        // TODO: This wouldn't work if top level document is in another ScriptThread.
+        let Some(top_level_document) = self.top_level_document_if_local() else {
             return;
         };
 
