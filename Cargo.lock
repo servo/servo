@@ -6429,6 +6429,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ohos-window-sys"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "148f1cee6293c44299ac86b49a8e48a150a005aa5555575d8ab81b7bf6bc9e97"
+dependencies = [
+ "ohos-sys-opaque-types",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8559,8 +8568,10 @@ dependencies = [
  "ohos-deviceinfo",
  "ohos-ime",
  "ohos-ime-sys",
+ "ohos-sys-opaque-types",
  "ohos-vsync",
  "ohos-window-manager-sys",
+ "ohos-window-sys",
  "raw-window-handle",
  "rustls",
  "serde_json",

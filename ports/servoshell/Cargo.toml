@@ -102,6 +102,8 @@ ohos-deviceinfo = "0.1.0"
 ohos-ime = "0.4.2"
 ohos-ime-sys = "0.2.3"
 ohos-vsync = "0.1.3"
+ohos-window-sys = { version = "0.1.3", features = ["api-14"] }
+ohos-sys-opaque-types = { version = "0.1.3" }
 ohos-window-manager-sys = { version = "0.1", features = ["api-14"] }
 xcomponent-sys = { version = "0.3.5", features = ["api-14", "keyboard-types"] }
 
