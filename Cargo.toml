@@ -24,7 +24,7 @@ publish = false
 rust-version = "1.86.0"
 
 [workspace.dependencies]
-accesskit = { version = "0.21.1", features = ["serde"] }
+accesskit = { version = "0.24.0", features = ["serde"] }
 accountable-refcell = "0.2.2"
 aes = "0.8.4"
 aes-gcm = "0.10.3"
@@ -334,3 +334,9 @@ codegen-units = 1
 #
 # mozjs = { path = "../mozjs/mozjs" }
 # mozjs_sys = { path = "../mozjs/mozjs-sys" }
+
+# Pending egui bumping their accesskit version: https://github.com/emilk/egui/pull/7850
+# This is only used in servoshell.
+# TODO: When these are no longer needed remove the exception in deny.toml as well.
+egui = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e051785b4fd3af9ef92eda5b61177f" }
+egui-winit = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e051785b4fd3af9ef92eda5b61177f" }

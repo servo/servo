@@ -109,7 +109,12 @@ skip = [
     "itertools",
 
     # Duplicated by egui
+    "foldhash",
+    "windows-collections",
+    "windows-future",
+    "windows-numerics",
     "windows-strings",
+    "windows-threading",
 
     # Duplicated by egui-file-dialog
     "windows",
@@ -222,4 +227,9 @@ skip = [
 
 # github.com organizations to allow git sources for
 [sources.allow-org]
-github = ["servo"]
+github = [
+    "servo",
+
+    # Temporarily needed by servoshell: see root Cargo.toml
+    "emilk",
+]
