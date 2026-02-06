@@ -33,7 +33,9 @@ use crate::dom::bindings::codegen::UnionTypes::{MediaStreamTrackOrString, String
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{
+    DomGlobal, reflect_weak_referenceable_dom_object_with_proto,
+};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -181,8 +183,8 @@ impl RTCPeerConnection {
         config: &RTCConfiguration,
         can_gc: CanGc,
     ) -> DomRoot<RTCPeerConnection> {
-        let this = reflect_dom_object_with_proto(
-            Box::new(RTCPeerConnection::new_inherited()),
+        let this = reflect_weak_referenceable_dom_object_with_proto(
+            Rc::new(RTCPeerConnection::new_inherited()),
             window,
             proto,
             can_gc,

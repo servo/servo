@@ -4,6 +4,8 @@
 
 //! The `Reflector` struct.
 
+use std::rc::Rc;
+
 use js::rust::HandleObject;
 use script_bindings::interfaces::GlobalScopeHelpers;
 
@@ -35,6 +37,37 @@ pub(crate) fn reflect_dom_object_with_proto<D, T, U>(
 where
     D: DomTypes,
     T: DomObject + DomObjectWrap<D>,
+    U: DerivedFrom<D::GlobalScope>,
+{
+    let global_scope = global.upcast();
+    unsafe { T::WRAP(D::GlobalScope::get_cx(), global_scope, proto, obj, can_gc) }
+}
+
+/// Create the reflector for a new DOM object and yield ownership to the
+/// reflector.
+pub(crate) fn reflect_weak_referenceable_dom_object<D, T, U>(
+    obj: Rc<T>,
+    global: &U,
+    can_gc: CanGc,
+) -> DomRoot<T>
+where
+    D: DomTypes,
+    T: DomObject + WeakReferenceableDomObjectWrap<D>,
+    U: DerivedFrom<D::GlobalScope>,
+{
+    let global_scope = global.upcast();
+    unsafe { T::WRAP(D::GlobalScope::get_cx(), global_scope, None, obj, can_gc) }
+}
+
+pub(crate) fn reflect_weak_referenceable_dom_object_with_proto<D, T, U>(
+    obj: Rc<T>,
+    global: &U,
+    proto: Option<HandleObject>,
+    can_gc: CanGc,
+) -> DomRoot<T>
+where
+    D: DomTypes,
+    T: DomObject + WeakReferenceableDomObjectWrap<D>,
     U: DerivedFrom<D::GlobalScope>,
 {
     let global_scope = global.upcast();

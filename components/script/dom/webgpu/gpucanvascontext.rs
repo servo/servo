@@ -4,6 +4,7 @@
 
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
+use std::rc::Rc;
 
 use arrayvec::ArrayVec;
 use base::{Epoch, generic_channel};
@@ -28,7 +29,9 @@ use crate::dom::bindings::codegen::Bindings::WebGPUBinding::{
 };
 use crate::dom::bindings::codegen::UnionTypes::HTMLCanvasElementOrOffscreenCanvas as RootedHTMLCanvasElementOrOffscreenCanvas;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{
+    DomGlobal, Reflector, reflect_weak_referenceable_dom_object,
+};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
@@ -126,8 +129,8 @@ impl GPUCanvasContext {
         channel: WebGPU,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(
-            Box::new(GPUCanvasContext::new_inherited(
+        reflect_weak_referenceable_dom_object(
+            Rc::new(GPUCanvasContext::new_inherited(
                 global,
                 HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(Dom::from_ref(canvas)),
                 channel,

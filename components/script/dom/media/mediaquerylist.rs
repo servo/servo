@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::EventTargetBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryListMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_weak_referenceable_dom_object;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
@@ -52,8 +52,8 @@ impl MediaQueryList {
         media_query_list: MediaList,
         can_gc: CanGc,
     ) -> DomRoot<MediaQueryList> {
-        reflect_dom_object(
-            Box::new(MediaQueryList::new_inherited(document, media_query_list)),
+        reflect_weak_referenceable_dom_object(
+            Rc::new(MediaQueryList::new_inherited(document, media_query_list)),
             document.window(),
             can_gc,
         )

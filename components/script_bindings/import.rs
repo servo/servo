@@ -144,6 +144,5 @@ pub(crate) mod module {
         get_property_on_prototype, has_property_on_prototype, may_resolve_global,
         may_resolve_window, resolve_global, resolve_window, trace_global,
     };
-    pub(crate) use crate::weakref::DOM_WEAK_SLOT;
     pub(crate) use crate::{JSTraceable, proxyhandler};
 }

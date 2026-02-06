@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 
@@ -12,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::StaticRangeBinding::{
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::NodeTypeId;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
@@ -55,8 +57,8 @@ impl StaticRange {
         init: &StaticRangeInit,
         can_gc: CanGc,
     ) -> DomRoot<StaticRange> {
-        reflect_dom_object_with_proto(
-            Box::new(StaticRange::new_inherited(
+        reflect_weak_referenceable_dom_object_with_proto(
+            Rc::new(StaticRange::new_inherited(
                 &init.startContainer,
                 init.startOffset,
                 &init.endContainer,

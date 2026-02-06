@@ -5,6 +5,7 @@
 use std::cell::RefCell;
 use std::cmp::{Ordering, PartialOrd};
 use std::iter;
+use std::rc::Rc;
 
 use app_units::Au;
 use dom_struct::dom_struct;
@@ -25,7 +26,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrString;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::JSTraceable;
@@ -122,8 +123,8 @@ impl Range {
         end_offset: u32,
         can_gc: CanGc,
     ) -> DomRoot<Range> {
-        let range = reflect_dom_object_with_proto(
-            Box::new(Range::new_inherited(
+        let range = reflect_weak_referenceable_dom_object_with_proto(
+            Rc::new(Range::new_inherited(
                 start_container,
                 start_offset,
                 end_container,

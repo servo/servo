@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::rc::Rc;
 
 use js::jsapi::{AddAssociatedMemory, Heap, JSObject, MemoryUse, RemoveAssociatedMemory};
 use js::rust::HandleObject;
@@ -201,6 +202,21 @@ pub trait DomObjectWrap<D: DomTypes>: Sized + DomObject + DomGlobalGeneric<D> {
         &D::GlobalScope,
         Option<HandleObject>,
         Box<Self>,
+        CanGc,
+    ) -> Root<Dom<Self>>;
+}
+
+/// A trait to provide a function pointer to wrap function for DOM objects.
+pub trait WeakReferenceableDomObjectWrap<D: DomTypes>:
+    Sized + DomObject + DomGlobalGeneric<D>
+{
+    /// Function pointer to the general wrap function type
+    #[expect(clippy::type_complexity)]
+    const WRAP: unsafe fn(
+        JSContext,
+        &D::GlobalScope,
+        Option<HandleObject>,
+        Rc<Self>,
         CanGc,
     ) -> Root<Dom<Self>>;
 }

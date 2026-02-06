@@ -37,7 +37,7 @@ use crate::dom::bindings::codegen::UnionTypes::GPUPipelineLayoutOrGPUAutoLayoutM
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_weak_referenceable_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -158,8 +158,8 @@ impl GPUDevice {
         let features = GPUSupportedFeatures::Constructor(global, None, features, can_gc).unwrap();
         let adapter_info = GPUAdapterInfo::clone_from(global, &adapter.Info(), can_gc);
         let lost_promise = Promise::new(global, can_gc);
-        let device = reflect_dom_object(
-            Box::new(GPUDevice::new_inherited(
+        let device = reflect_weak_referenceable_dom_object(
+            Rc::new(GPUDevice::new_inherited(
                 channel,
                 adapter,
                 &features,

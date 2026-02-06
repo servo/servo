@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::rust::HandleObject;
@@ -42,8 +44,8 @@ impl HTMLAudioElement {
         proto: Option<HandleObject>,
         can_gc: CanGc,
     ) -> DomRoot<HTMLAudioElement> {
-        Node::reflect_node_with_proto(
-            Box::new(HTMLAudioElement::new_inherited(
+        Node::reflect_weak_referenceable_node_with_proto(
+            Rc::new(HTMLAudioElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
