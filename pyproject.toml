@@ -6,10 +6,19 @@ requires-python = ">=3.11"
 dynamic = ["dependencies"]
 
 [tool.setuptools.dynamic]
-dependencies = { file = ["python/requirements.txt", "tests/wpt/tests/tools/requirements_tests.txt", "tests/wpt/tests/tools/wptrunner/requirements.txt"] }
+dependencies = { file = [
+    "python/requirements.txt",
+    "tests/wpt/tests/tools/requirements_tests.txt",
+    "tests/wpt/tests/tools/wptrunner/requirements.txt",
+] }
 
 [tool.setuptools.packages.find]
 exclude = ["config*"]
+
+# This ensures that any generated `egg_info` due to the use of setuptools above
+# is generated into the build directory instead of into the project root.
+[tool.distutils.egg_info]
+egg_base = ".venv"
 
 [tool.ruff]
 line-length = 120
