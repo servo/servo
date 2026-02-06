@@ -203,10 +203,7 @@ fn test_check_default_headers_loaded_in_every_request() {
         HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
     );
 
-    headers.insert(
-        header::ACCEPT_LANGUAGE,
-        HeaderValue::from_static("en-US,en;q=0.5"),
-    );
+    headers.insert(header::ACCEPT_LANGUAGE, HeaderValue::from_static("en-US"));
 
     headers.typed_insert::<UserAgent>(crate::DEFAULT_USER_AGENT.parse().unwrap());
 
@@ -364,10 +361,7 @@ fn test_request_and_response_data_with_network_messages() {
         HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"),
     );
 
-    headers.insert(
-        header::ACCEPT_LANGUAGE,
-        HeaderValue::from_static("en-US,en;q=0.5"),
-    );
+    headers.insert(header::ACCEPT_LANGUAGE, HeaderValue::from_static("en-US"));
 
     headers.typed_insert::<UserAgent>(crate::DEFAULT_USER_AGENT.parse().unwrap());
 

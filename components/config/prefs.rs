@@ -213,6 +213,10 @@ pub struct Preferences {
     pub image_key_batch_size: i64,
     /// Whether or not the DOM inspector should show shadow roots of user-agent shadow trees
     pub inspector_show_servo_internal_shadow_roots: bool,
+    /// A locale tag (eg. es-ES) to use for language negotiation instead of the system locale.
+    /// An empty string represents no override.
+    /// TODO: Option<> support in PrefValue
+    pub intl_locale_override: String,
     pub js_asmjs_enabled: bool,
     pub js_asyncstack: bool,
     pub js_baseline_interpreter_enabled: bool,
@@ -423,6 +427,7 @@ impl Preferences {
             gfx_texture_swizzling_enabled: true,
             image_key_batch_size: 10,
             inspector_show_servo_internal_shadow_roots: false,
+            intl_locale_override: String::new(),
             js_asmjs_enabled: true,
             js_asyncstack: false,
             js_baseline_interpreter_enabled: true,
