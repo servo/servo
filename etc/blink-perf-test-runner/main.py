@@ -184,25 +184,22 @@ def main():
             for file in files:
                 if test_file(file):
                     filePath = os.path.join(os.path.abspath(root), file)
-                    if "many-block-children-rebuild-box-tree.html" in filePath:
-                        result = test("file://" + filePath, webdriver)
-                        if result == AbortReason.Panic:
-                            print("Restarting servo")
-                            start_servo(args.webdriver, args.servo_path)
-                        elif result == AbortReason.NotFound:
-                            pass
-                        else:
-                            combined_result = {}
-                            combined_result["value"] = result.value
-                            combined_result["lower_value"] = result.lower_value
-                            combined_result["upper_value"] = result.upper_value
+                    result = test("file://" + filePath, webdriver)
+                    if result == AbortReason.Panic:
+                        print("Restarting servo")
+                        start_servo(args.webdriver, args.servo_path)
+                    elif result == AbortReason.NotFound:
+                        pass
+                    else:
+                        combined_result = {}
+                        combined_result["value"] = result.value
+                        combined_result["lower_value"] = result.lower_value
+                        combined_result["upper_value"] = result.upper_value
 
-                            if result.unit == "ms":
-                                final_result[canonical_test_path(filePath, args.prepend)] = {"ms": combined_result}
-                            else:
-                                final_result[canonical_test_path(filePath, args.prepend)] = {
-                                    "throughput": combined_result
-                                }
+                        if result.unit == "ms":
+                            final_result[canonical_test_path(filePath, args.prepend)] = {"ms": combined_result}
+                        else:
+                            final_result[canonical_test_path(filePath, args.prepend)] = {"throughput": combined_result}
 
     print(final_result)
     write_file(final_result)
