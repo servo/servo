@@ -136,6 +136,19 @@
   },
   "reftest": {
    "appearance": {
+    "input-text-caret-mixed-language.html": [
+     "9fd52d39a076d9d03876efd93af30402e17e5ee0",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/input-text-caret-mixed-language-ref.html",
+        "!="
+       ]
+      ],
+      {}
+     ]
+    ],
     "input-textual-definite-width.html": [
      "59f1797fab3d1889bbcb7863178c6c5ef9e54f19",
      [
@@ -8269,6 +8282,10 @@
     []
    ],
    "appearance": {
+    "input-text-caret-mixed-language-ref.html": [
+     "ff0b91f2a8857fdefa4a8a3d7d75e06e53e699cf",
+     []
+    ],
     "input-textual-definite-width-ref.html": [
      "7a256be23b3c084bb8477d7380a8b1801ec07f05",
      []
