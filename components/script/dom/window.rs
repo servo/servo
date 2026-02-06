@@ -649,7 +649,8 @@ impl Window {
     }
 
     /// Get the active [`Document`] of top-level browsing context, or return [`Window`]'s [`Document`]
-    /// if it's browing context is the top-level browsing context.
+    /// if it's browing context is the top-level browsing context. Returning none if the [`WindowProxy`]
+    /// is discarded or the [`Document`] is in another thread (having dissimilar origin).
     /// <https://html.spec.whatwg.org/multipage/#top-level-browsing-context>
     pub(crate) fn top_level_document(&self) -> Option<DomRoot<Document>> {
         let window_proxy = self.undiscarded_window_proxy()?;
