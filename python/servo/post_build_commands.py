@@ -10,6 +10,7 @@
 import json
 import os
 import os.path as path
+import pathlib
 import subprocess
 from subprocess import CompletedProcess
 from shutil import copy2
@@ -203,6 +204,20 @@ class PostBuildCommands(CommandBase):
         os.environ["CARGO_LLVM_COV"] = "1"
         os.environ["CARGO_LLVM_COV_SHOW_ENV"] = "1"
         os.environ["CARGO_LLVM_COV_TARGET_DIR"] = target_dir
+        profraw_files = [pathlib.Path(target_dir).joinpath(f) for f in os.listdir(target_dir) if f.endswith(".profraw")]
+        zero_size_profraw_files = [f for f in profraw_files if os.path.getsize(f) == 0]
+        suspicously_small_files = [f for f in profraw_files if 0 < os.path.getsize(f) < 8000000 ]
+        filtered_profraw_files = [f for f in profraw_files if os.path.getsize(f) > 0]
+        if len(zero_size_profraw_files) > 0:
+            print(f"Warning found {len(zero_size_profraw_files)} zero-sized profraw files: {zero_size_profraw_files}")
+            print(f"Removing {len(zero_size_profraw_files)} files, keeping {len(filtered_profraw_files)} files.")
+            for file in zero_size_profraw_files:
+                os.remove(file)
+        if len(suspicously_small_files) > 0:
+            print(f"Warning found {len(suspicously_small_files)} files with size < 8MB: {suspicously_small_files}")
+            for file in suspicously_small_files:
+                print(f"Removing {file}")
+                os.rename(file, str(file) + ".broken")
         try:
             cargo_llvm_cov_cmd = ["cargo", "llvm-cov", "report", "--target", self.target.triple()]
             cargo_llvm_cov_cmd.extend(build_type.as_cargo_arg())

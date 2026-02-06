@@ -712,7 +712,7 @@ class CommandBase(object):
                         target_dir = get_target_dir()
                         # See `cargo llvm-cov show-env`. We only need the profile file environment variable
                         # The other variables are only required when creating a coverage report.
-                        os.environ["LLVM_PROFILE_FILE"] = f"{target_dir}/servo-%p-%14m.profraw"
+                        os.environ["LLVM_PROFILE_FILE"] = f"{target_dir}/servo-%p.profraw"
 
                 if binary_selection:
                     if "servo_binary" not in kwargs:
