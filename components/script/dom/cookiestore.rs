@@ -206,6 +206,8 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         // 4. Let url be settings’s creation URL.
         let creation_url = global.creation_url();
 
+        let name = CookieStore::normalize(&name);
+
         // 6. Run the following steps in parallel:
         let res = self
             .global()
@@ -213,7 +215,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .send(CoreResourceMsg::GetCookieDataForUrlAsync(
                 self.droppable.store_id,
                 creation_url.clone(),
-                Some(name.into()),
+                Some(name),
             ));
         if res.is_err() {
             error!("Failed to send cookiestore message to resource threads");
@@ -297,7 +299,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .send(CoreResourceMsg::GetCookieDataForUrlAsync(
                 self.droppable.store_id,
                 final_url.clone(),
-                options.name.clone().map(|val| val.0),
+                options.name.clone().map(|val| CookieStore::normalize(&val)),
             ));
         if res.is_err() {
             error!("Failed to send cookiestore message to resource threads");
@@ -327,6 +329,9 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         // 4. Let url be settings’s creation URL.
         let creation_url = global.creation_url();
 
+        // Normalize name here rather than passing the un-nomarlized name around to the resource thread and back
+        let name = CookieStore::normalize(&name);
+
         // 6. Run the following steps in parallel:
         let res =
             self.global()
@@ -334,7 +339,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                 .send(CoreResourceMsg::GetAllCookieDataForUrlAsync(
                     self.droppable.store_id,
                     creation_url.clone(),
-                    Some(name.to_string()),
+                    Some(name),
                 ));
         if res.is_err() {
             error!("Failed to send cookiestore message to resource threads");
@@ -411,7 +416,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                 .send(CoreResourceMsg::GetAllCookieDataForUrlAsync(
                     self.droppable.store_id,
                     final_url.clone(),
-                    options.name.clone().map(|val| val.0),
+                    options.name.clone().map(|val| CookieStore::normalize(&val)),
                 ));
         if res.is_err() {
             error!("Failed to send cookiestore message to resource threads");
@@ -440,12 +445,18 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             return p;
         }
 
+        // From https://cookiestore.spec.whatwg.org/#set-cookie-algorithm
+        // Normalize name and value
+        // We do this here so we don't have to modify the cookie name/value again
+        let name = CookieStore::normalize(&name);
+        let value = CookieStore::normalize(&value);
+
         // 4. Let url be settings’s creation URL.
         // 5. Let domain be null.
         // 6. Let path be "/".
         // 7. Let sameSite be strict.
         // 8. Let partitioned be false.
-        let cookie = Cookie::build((Cow::Owned(name.to_string()), Cow::Owned(value.to_string())))
+        let cookie = Cookie::build((Cow::Owned(name), Cow::Owned(value)))
             .path("/")
             .secure(true)
             .same_site(SameSite::Strict)
@@ -493,20 +504,23 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         // 4. Let url be settings’s creation URL.
         let creation_url = global.creation_url();
 
+        // From https://cookiestore.spec.whatwg.org/#set-cookie-algorithm
+        // Normalize name and value
+        // We do this here so we don't have to modify the cookie name/value again
+        let name = CookieStore::normalize(&options.name);
+        let value = CookieStore::normalize(&options.value);
+
         // 6.1. Let r be the result of running set a cookie with url, options["name"], options["value"],
         // options["expires"], options["domain"], options["path"], options["sameSite"], and options["partitioned"].
-        let mut cookie = Cookie::build((
-            Cow::Owned(options.name.to_string()),
-            Cow::Owned(options.value.to_string()),
-        ))
-        .path(options.path.0.clone())
-        .secure(true)
-        .http_only(false)
-        .same_site(match options.sameSite {
-            CookieSameSite::Lax => SameSite::Lax,
-            CookieSameSite::Strict => SameSite::Strict,
-            CookieSameSite::None => SameSite::None,
-        });
+        let mut cookie = Cookie::build((Cow::Owned(name), Cow::Owned(value)))
+            .path(options.path.0.clone())
+            .secure(true)
+            .http_only(false)
+            .same_site(match options.sameSite {
+                CookieSameSite::Lax => SameSite::Lax,
+                CookieSameSite::Strict => SameSite::Strict,
+                CookieSameSite::None => SameSite::None,
+            });
         if let Some(domain) = &options.domain {
             cookie.inner_mut().set_domain(domain.0.clone());
         }
@@ -608,5 +622,12 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
 
         // 7. Return p.
         p
+    }
+}
+
+impl CookieStore {
+    /// <https://cookiestore.spec.whatwg.org/#normalize-a-cookie-name-or-value>
+    fn normalize(value: &USVString) -> String {
+        value.trim_matches([' ', '\t']).into()
     }
 }
