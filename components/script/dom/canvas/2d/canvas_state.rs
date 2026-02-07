@@ -33,6 +33,7 @@ use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font;
 use style::stylesheets::CssRuleType;
+use style::values::computed::XLang;
 use style::values::computed::font::FontStyle;
 use style::values::specified::color::Color;
 use style_traits::values::ToCss;
@@ -2344,7 +2345,8 @@ impl CanvasState {
             // TODO: This should ultimately handle emoji variation selectors, but raqote does not yet
             // have support for color glyphs.
             let script = Script::from(character);
-            let font = font_group.find_by_codepoint(font_context, character, None, None, None);
+            let font =
+                font_group.find_by_codepoint(font_context, character, None, XLang("".into()));
 
             if !current_text_run.script_and_font_compatible(script, &font) {
                 let previous_text_run = std::mem::replace(

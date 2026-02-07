@@ -13,6 +13,7 @@ use std::{iter, str};
 
 use app_units::Au;
 use base::id::PainterId;
+use base::text::{UnicodeBlock, UnicodeBlockMethod};
 use bitflags::bitflags;
 use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
@@ -30,7 +31,7 @@ use style::properties::style_structs::Font as FontStyleStruct;
 use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
-use style::values::computed::{FontStretch, FontStyle, FontSynthesis, FontWeight};
+use style::values::computed::{FontStretch, FontStyle, FontSynthesis, FontWeight, XLang};
 use unicode_script::Script;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontVariation};
 
@@ -561,13 +562,39 @@ impl Deref for FontRef {
     }
 }
 
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+pub struct FallbackKey {
+    script: Script,
+    unicode_block: Option<UnicodeBlock>,
+    lang: XLang,
+}
+
+impl FallbackKey {
+    fn new(options: &FallbackFontSelectionOptions) -> Self {
+        Self {
+            script: Script::from(options.character),
+            unicode_block: options.character.block(),
+            lang: options.lang.clone(),
+        }
+    }
+}
+
 /// A `FontGroup` is a prioritised list of fonts for a given set of font styles. It is used by
 /// `TextRun` to decide which font to render a character with. If none of the fonts listed in the
 /// styles are suitable, a fallback font may be used.
 #[derive(MallocSizeOf)]
 pub struct FontGroup {
+    /// The [`FontDescriptor`] which describes the properties of the fonts that should
+    /// be loaded for this [`FontGroup`].
     descriptor: FontDescriptor,
+    /// The families that have been loaded for this [`FontGroup`]. This correponds to the
+    /// list of fonts specified in CSS.
     families: SmallVec<[FontGroupFamily; 8]>,
+    /// A list of fallbacks that have been used in this [`FontGroup`]. Currently this
+    /// can grow indefinitely, but maybe in the future it should be an LRU cache.
+    /// It's unclear if this is the right thing to do. Perhaps fallbacks should
+    /// always be stored here as it's quite likely that they will be used again.
+    fallbacks: RwLock<HashMap<FallbackKey, FontRef>>,
 }
 
 impl FontGroup {
@@ -582,6 +609,7 @@ impl FontGroup {
         FontGroup {
             descriptor,
             families,
+            fallbacks: Default::default(),
         }
     }
 
@@ -594,8 +622,7 @@ impl FontGroup {
         font_context: &FontContext,
         codepoint: char,
         next_codepoint: Option<char>,
-        first_fallback: Option<FontRef>,
-        lang: Option<String>,
+        lang: XLang,
     ) -> Option<FontRef> {
         // Tab characters are converted into spaces when rendering.
         // TODO: We should not render a tab character. Instead they should be converted into tab stops
@@ -641,11 +668,12 @@ impl FontGroup {
             return font_or_synthesized_small_caps(font);
         }
 
-        if let Some(ref first_fallback) = first_fallback {
-            if char_in_template(first_fallback.template.clone()) &&
-                font_has_glyph_and_presentation(first_fallback)
+        let fallback_key = FallbackKey::new(&options);
+        if let Some(fallback) = self.fallbacks.read().get(&fallback_key) {
+            if char_in_template(fallback.template.clone()) &&
+                font_has_glyph_and_presentation(fallback)
             {
-                return font_or_synthesized_small_caps(first_fallback.clone());
+                return font_or_synthesized_small_caps(fallback.clone());
             }
         }
 
@@ -655,7 +683,11 @@ impl FontGroup {
             &char_in_template,
             &font_has_glyph_and_presentation,
         ) {
-            return font_or_synthesized_small_caps(font);
+            let fallback = font_or_synthesized_small_caps(font);
+            if let Some(fallback) = fallback.clone() {
+                self.fallbacks.write().insert(fallback_key, fallback);
+            }
+            return fallback;
         }
 
         self.first(font_context)

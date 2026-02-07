@@ -74,7 +74,7 @@ use style::stylist::Stylist;
 use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
 use style::values::computed::font::GenericFontFamily;
-use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLength};
+use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLength, XLang};
 use style::values::specified::font::{KeywordInfo, QueryFontMetricsFlags};
 use style::values::{Parser, SourceLocation};
 use style::{Zero, driver};
@@ -1557,7 +1557,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .zero_horizontal_advance
             .or_else(|| {
                 font_group
-                    .find_by_codepoint(font_context, '0', None, None, None)?
+                    .find_by_codepoint(font_context, '0', None, XLang("".into()))?
                     .metrics
                     .zero_horizontal_advance
             })
@@ -1567,7 +1567,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .ic_horizontal_advance
             .or_else(|| {
                 font_group
-                    .find_by_codepoint(font_context, '\u{6C34}', None, None, None)?
+                    .find_by_codepoint(font_context, '\u{6C34}', None, XLang("".into()))?
                     .metrics
                     .ic_horizontal_advance
             })

@@ -24,7 +24,7 @@ use libc::{c_char, c_int};
 use log::debug;
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
-use style::values::computed::{FontStretch, FontStyle, FontWeight};
+use style::values::computed::{FontStretch, FontStyle, FontWeight, XLang};
 use unicode_script::Script;
 
 use crate::font::map_platform_values_to_style_values;
@@ -188,13 +188,13 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
             // In Japanese typography, it is not common to use different fonts
             // for Kanji(Han), Hiragana, and Katakana within the same document.
             // We uniformly fallback to Japanese fonts when the document language is Japanese.
-            _ if options.lang == Some(String::from("ja")) => {
+            _ if options.lang == XLang("ja".into()) => {
                 families.push("TakaoPGothic");
             },
             _ if matches!(
                 Script::from(options.character),
                 Script::Bopomofo | Script::Han
-            ) && options.lang != Some(String::from("ja")) =>
+            ) && options.lang != XLang("ja".into()) =>
             {
                 families.push("WenQuanYi Micro Hei");
             },
