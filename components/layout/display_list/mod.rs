@@ -751,7 +751,7 @@ impl Fragment {
             include_whitespace,
         );
 
-        if glyphs.is_empty() {
+        if glyphs.is_empty() && fragment.offsets.is_none() {
             return;
         }
 

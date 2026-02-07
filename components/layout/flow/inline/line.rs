@@ -531,7 +531,7 @@ impl LineItemLayout<'_, '_> {
     }
 
     fn layout_text_run(&mut self, text_item: TextRunLineItem) {
-        if text_item.text.is_empty() {
+        if text_item.text.is_empty() && text_item.offsets.is_none() {
             return;
         }
 
