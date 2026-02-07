@@ -253,6 +253,19 @@
       {}
      ]
     ],
+    "text-advance-less-than-ink-clipping.html": [
+     "a726bd2881ff7cb29a9e68f8e7f1fae728b9382e",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/text-advance-less-than-ink-clipping-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "textarea-caret-following-linebreak.html": [
      "55bc06e372e9ce8ad4d62d368a644c1f1cd3ffd9",
      [
@@ -8324,6 +8337,10 @@
       []
      ]
     },
+    "text-advance-less-than-ink-clipping-ref.html": [
+     "af9ec609b175040a66756fb6ce00d81a2e5707ec",
+     []
+    ],
     "textarea-caret-following-linebreak-ref.html": [
      "f424853f243ff0fe4c43506db800b51afc294113",
      []
