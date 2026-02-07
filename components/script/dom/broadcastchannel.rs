@@ -18,7 +18,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CanGc};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct BroadcastChannel {
