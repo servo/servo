@@ -19,6 +19,9 @@ from geckordp.actors.watcher import WatcherActor
 from geckordp.actors.web_console import WebConsoleActor
 from geckordp.actors.resources import Resources
 from geckordp.actors.events import Events
+from geckordp.actors.inspector import InspectorActor
+from geckordp.actors.walker import WalkerActor
+from geckordp.actors.node import NodeActor
 from geckordp.rdp_client import RDPClient
 import http.server
 import os.path
@@ -716,6 +719,21 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             },
         )
 
+    def test_inspector_event_listeners(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/inspector/event_listeners.html")
+        with Devtools.connect() as devtools:
+            inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
+            walker = WalkerActor(devtools.client, inspector.get_walker()["actor"])
+            document_element = walker.document_element("")["actor"]
+
+            button = walker.query_selector(document_element, "button")["node"]
+            span = walker.query_selector(document_element, "span")["node"]
+            div = walker.query_selector(document_element, "div")["node"]
+
+            self.assert_event_listeners(button, [{"type": "click", "capturing": False}], devtools)
+            self.assert_event_listeners(span, [{"type": "hover", "capturing": True}], devtools)
+            self.assert_event_listeners(div, None, devtools)
+
     # Sets `base_url` and `web_server` and `web_server_thread`.
     @classmethod
     def setUpClass(cls):
@@ -803,6 +821,20 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             cls.web_server_threads = None
         if cls.base_urls is not None:
             cls.base_urls = None
+
+    def assert_event_listeners(self, node: dict, expected_listeners: Optional[Any], devtools: Devtools):
+        if expected_listeners is None:
+            self.assertFalse(node["hasEventListeners"])
+            return
+
+        self.assertTrue(node["hasEventListeners"])
+        nodeActor = NodeActor(devtools.client, node["actor"])
+        event_listener_info = nodeActor.get_event_listener_info()
+        self.assertEqual(len(event_listener_info), len(expected_listeners))
+
+        for expected_listener, actual_listener in zip(expected_listeners, event_listener_info):
+            for key, value in expected_listener.items():
+                self.assertEqual(actual_listener[key], value)
 
     def assert_sources_list(
         self, expected_sources_by_target: Counter[FrozenMultiset[Source]], *, devtools: Optional[Devtools] = None

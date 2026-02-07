@@ -9,7 +9,7 @@ use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use devtools_traits::{
     AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty, EvaluateJSReply,
-    NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
+    EventListenerInfo, NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
 };
 use js::conversions::jsstr_to_string;
 use js::jsval::UndefinedValue;
@@ -40,7 +40,7 @@ use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
-use crate::dom::types::HTMLElement;
+use crate::dom::types::{EventTarget, HTMLElement};
 use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, IntroductionType};
 
@@ -95,6 +95,23 @@ pub(crate) fn handle_evaluate_js(
         }
     };
     reply.send(result).unwrap();
+}
+
+pub(crate) fn handle_get_event_listener_info(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    node_id: &str,
+    reply: GenericSender<Vec<EventListenerInfo>>,
+) {
+    let Some(node) = find_node_by_unique_id(documents, pipeline, node_id) else {
+        reply.send(vec![]).unwrap();
+        return;
+    };
+
+    let event_listeners = node
+        .upcast::<EventTarget>()
+        .summarize_event_listeners_for_devtools();
+    reply.send(event_listeners).unwrap();
 }
 
 pub(crate) fn handle_get_root_node(
