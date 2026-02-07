@@ -869,7 +869,7 @@ class MachCommands(CommandBase):
 
         # From here on out, we need to always clean up the commit we added to the branch.
         try:
-            result = call(["git", "push", "--quiet", remote, "--force", "HEAD:try"])
+            result = call(["git", "push", "--no-verify", "--quiet", remote, "--force", "HEAD:try"])
             if result != 0:
                 return result
 
