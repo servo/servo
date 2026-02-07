@@ -24,9 +24,9 @@ use js::conversions::jsstr_to_string;
 use js::gc::StackGCVector;
 use js::glue::{
     CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchablePointer, DispatchableRun,
-    JS_GetReservedSlot, JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId,
-    StreamConsumerConsumeChunk, StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd,
-    StreamConsumerStreamError,
+    JS_GetReservedSlot, JobQueueTraps, RUST_js_GetErrorMessage, RegisterScriptEnvironmentPreparer,
+    RunScriptEnvironmentPreparerClosure, SetBuildId, StreamConsumerConsumeChunk,
+    StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
 };
 use js::jsapi::{
     AsmJSOption, BuildIdCharVector, CompilationType, Dispatchable_MaybeShuttingDown, GCDescription,
@@ -36,8 +36,8 @@ use js::jsapi::{
     JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps, JSContext as RawJSContext, JSGCParamKey,
     JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSString, JSTracer, JobQueue,
     MimeType, MutableHandleObject, MutableHandleString, PromiseRejectionHandlingState,
-    PromiseUserInputEventHandlingState, RuntimeCode, SetProcessBuildIdOp,
-    StreamConsumer as JSStreamConsumer,
+    PromiseUserInputEventHandlingState, RuntimeCode, ScriptEnvironmentPreparer_Closure,
+    SetProcessBuildIdOp, StreamConsumer as JSStreamConsumer,
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::panic::wrap_panic;
@@ -60,10 +60,10 @@ use profile_traits::mem::{Report, ReportKind};
 use profile_traits::path;
 use profile_traits::time::ProfilerCategory;
 use script_bindings::script_runtime::{mark_runtime_dead, runtime_is_alive};
+use script_bindings::settings_stack::run_a_script;
 use servo_config::{opts, pref};
 use style::thread_state::{self, ThreadState};
 
-use crate::ScriptThread;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
@@ -71,7 +71,7 @@ use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
 use crate::dom::bindings::conversions::{
     get_dom_class, private_from_object, root_from_handleobject, root_from_object,
 };
-use crate::dom::bindings::error::{Error, throw_dom_exception};
+use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{
     LiveDOMReferences, Trusted, TrustedPromise, trace_refcounted_objects,
@@ -94,6 +94,7 @@ use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
 use crate::script_module::EnsureModuleHooksInitialized;
 use crate::task_source::TaskSourceName;
+use crate::{DomTypeHolder, ScriptThread};
 
 static JOB_QUEUE_TRAPS: JobQueueTraps = JobQueueTraps {
     getHostDefinedData: Some(get_host_defined_data),
@@ -859,6 +860,11 @@ impl Runtime {
                 ptr::null_mut(),
             );
 
+            RegisterScriptEnvironmentPreparer(
+                cx.raw_cx(),
+                Some(invoke_script_environment_preparer),
+            );
+
             EnsureModuleHooksInitialized(runtime.rt());
 
             let cx = runtime.cx();
@@ -1416,6 +1422,22 @@ unsafe extern "C" fn consume_stream(
 unsafe extern "C" fn report_stream_error(_cx: *mut RawJSContext, error_code: usize) {
     error!("Error initializing StreamConsumer: {:?}", unsafe {
         RUST_js_GetErrorMessage(ptr::null_mut(), error_code as u32)
+    });
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C" fn invoke_script_environment_preparer(
+    global: HandleObject,
+    closure: *mut ScriptEnvironmentPreparer_Closure,
+) {
+    let cx = GlobalScope::get_cx();
+    let global = unsafe { GlobalScope::from_object(global.get()) };
+    let ar = enter_realm(&*global);
+
+    run_a_script::<DomTypeHolder, _>(&global, || {
+        if unsafe { !RunScriptEnvironmentPreparerClosure(*cx, closure) } {
+            report_pending_exception(cx, true, InRealm::Entered(&ar), CanGc::note());
+        };
     });
 }
 
