@@ -9,7 +9,7 @@ use base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
 use profile_traits::generic_channel::channel;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
-use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
+use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, Operation};
 use stylo_atoms::Atom;
 use uuid::Uuid;
 
@@ -148,7 +148,7 @@ impl IDBTransaction {
 
         global
             .storage_threads()
-            .send(IndexedDBThreadMsg::Sync(SyncOperation::RegisterNewTxn(
+            .send(IndexedDBThreadMsg::Sync(Operation::RegisterNewTxn(
                 sender,
                 global.origin().immutable().clone(),
                 db_name.to_string(),
@@ -245,7 +245,7 @@ impl IDBTransaction {
         let db_name = self.db.get_name().to_string();
         let object_store_name = object_store_name.to_string();
 
-        let operation = SyncOperation::HasKeyGenerator(
+        let operation = Operation::HasKeyGenerator(
             sender,
             origin.clone(),
             db_name.clone(),
@@ -259,7 +259,7 @@ impl IDBTransaction {
         let auto_increment = receiver.recv().ok()?.ok()?;
 
         let (sender, receiver) = channel(self.global().time_profiler_chan().clone())?;
-        let operation = SyncOperation::KeyPath(sender, origin, db_name, object_store_name);
+        let operation = Operation::KeyPath(sender, origin, db_name, object_store_name);
 
         let _ = idb_sender.send(IndexedDBThreadMsg::Sync(operation));
 
@@ -323,7 +323,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
     fn Commit(&self) -> Fallible<()> {
         // Step 1
         let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
-        let start_operation = SyncOperation::Commit(
+        let start_operation = Operation::Commit(
             sender,
             self.global().origin().immutable().clone(),
             self.db.get_name().to_string(),
@@ -378,12 +378,14 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
             };
             if global
                 .storage_threads()
-                .send(IndexedDBThreadMsg::Sync(
-                    SyncOperation::AbortPendingUpgrade { name, id, origin },
-                ))
+                .send(IndexedDBThreadMsg::Sync(Operation::AbortPendingUpgrade {
+                    name,
+                    id,
+                    origin,
+                }))
                 .is_err()
             {
-                error!("Failed to send SyncOperation::AbortPendingUpgrade");
+                error!("Failed to send Operation::AbortPendingUpgrade");
             }
         }
 

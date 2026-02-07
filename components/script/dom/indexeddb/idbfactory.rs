@@ -13,7 +13,7 @@ use profile_traits::generic_callback::GenericCallback;
 use script_bindings::inheritance::Castable;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
-    BackendResult, ConnectionMsg, DatabaseInfo, IndexedDBThreadMsg, SyncOperation,
+    BackendResult, ConnectionMsg, DatabaseInfo, IndexedDBThreadMsg, Operation,
 };
 use stylo_atoms::Atom;
 use uuid::Uuid;
@@ -193,7 +193,7 @@ impl IDBFactory {
 
                 // Step 10.3: Wait for all of the events to be fired.
                 // Note: backend is at this step; sending a message to continue algo there.
-                let operation = SyncOperation::NotifyEndOfVersionChange {
+                let operation = Operation::NotifyEndOfVersionChange {
                     id,
                     name,
                     old_version,
@@ -204,7 +204,7 @@ impl IDBFactory {
                     .send(IndexedDBThreadMsg::Sync(operation))
                     .is_err()
                 {
-                    error!("Failed to send SyncOperation::NotifyEndOfVersionChange.");
+                    error!("Failed to send Operation::NotifyEndOfVersionChange.");
                 }
             },
             ConnectionMsg::Blocked {
@@ -288,7 +288,7 @@ impl IDBFactory {
 
         let callback = self.get_or_setup_callback();
 
-        let open_operation = SyncOperation::OpenDatabase(
+        let open_operation = Operation::OpenDatabase(
             callback,
             global.origin().immutable().clone(),
             name.to_string(),
@@ -320,15 +320,13 @@ impl IDBFactory {
         let origin = global.origin().immutable().clone();
         if global
             .storage_threads()
-            .send(IndexedDBThreadMsg::Sync(
-                SyncOperation::AbortPendingUpgrades {
-                    pending_upgrades,
-                    origin,
-                },
-            ))
+            .send(IndexedDBThreadMsg::Sync(Operation::AbortPendingUpgrades {
+                pending_upgrades,
+                origin,
+            }))
             .is_err()
         {
-            error!("Failed to send SyncOperation::AbortPendingUpgrade");
+            error!("Failed to send Operation::AbortPendingUpgrade");
         }
     }
 }
@@ -454,14 +452,13 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         })
         .expect("Could not create delete database callback");
 
-        let get_operation =
-            SyncOperation::GetDatabases(callback, global.origin().immutable().clone());
+        let get_operation = Operation::GetDatabases(callback, global.origin().immutable().clone());
         if global
             .storage_threads()
             .send(IndexedDBThreadMsg::Sync(get_operation))
             .is_err()
         {
-            error!("Failed to send SyncOperation::GetDatabases");
+            error!("Failed to send Operation::GetDatabases");
         }
 
         // Step 5: Return p.

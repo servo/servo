@@ -8,7 +8,7 @@ use js::jsval::UndefinedValue;
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use script_bindings::conversions::SafeToJSValConvertible;
-use storage_traits::indexeddb::{BackendResult, IndexedDBThreadMsg, SyncOperation};
+use storage_traits::indexeddb::{BackendResult, IndexedDBThreadMsg, Operation};
 use stylo_atoms::Atom;
 use uuid::Uuid;
 
@@ -257,7 +257,7 @@ impl IDBOpenDBRequest {
         })
         .expect("Could not create delete database callback");
 
-        let delete_operation = SyncOperation::DeleteDatabase(
+        let delete_operation = Operation::DeleteDatabase(
             callback,
             global.origin().immutable().clone(),
             name,

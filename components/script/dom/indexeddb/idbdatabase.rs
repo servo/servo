@@ -8,7 +8,7 @@ use base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use profile_traits::generic_channel::channel;
-use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
+use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, Operation};
 use stylo_atoms::Atom;
 use uuid::Uuid;
 
@@ -107,7 +107,7 @@ impl IDBDatabase {
 
     pub fn version(&self) -> u64 {
         let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
-        let operation = SyncOperation::Version(
+        let operation = Operation::Version(
             sender,
             self.global().origin().immutable().clone(),
             self.name.to_string(),
@@ -257,7 +257,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
                 KeyPath::Sequence(s.iter().map(|s| s.to_string()).collect())
             },
         });
-        let operation = SyncOperation::CreateObjectStore(
+        let operation = Operation::CreateObjectStore(
             sender,
             self.global().origin().immutable().clone(),
             self.name.to_string(),
@@ -313,7 +313,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // Step 7
         let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
 
-        let operation = SyncOperation::DeleteObjectStore(
+        let operation = Operation::DeleteObjectStore(
             sender,
             self.global().origin().immutable().clone(),
             self.name.to_string(),
@@ -364,7 +364,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         self.closing.set(true);
 
         // Note: rest of algo runs in-parallel.
-        let operation = SyncOperation::CloseDatabase(
+        let operation = Operation::CloseDatabase(
             self.global().origin().immutable().clone(),
             self.id,
             self.name.to_string(),
