@@ -160,6 +160,10 @@ name = "largest_contentful_paint"
 path = "tests/largest_contentful_paint.rs"
 
 [[test]]
+name = "performance_paint_timing"
+path = "tests/performance_paint_timing.rs"
+
+[[test]]
 name = "network_manager"
 
 [[test]]

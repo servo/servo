@@ -8,6 +8,7 @@ use script_traits::ProgressiveWebMetricType;
 use time::Duration;
 
 use super::performanceentry::{EntryType, PerformanceEntry};
+use crate::dom::bindings::codegen::Bindings::PerformancePaintTimingBinding::PerformancePaintTimingMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -52,3 +53,5 @@ impl PerformancePaintTiming {
         reflect_dom_object(Box::new(entry), global, can_gc)
     }
 }
+
+impl PerformancePaintTimingMethods<crate::DomTypeHolder> for PerformancePaintTiming {}
