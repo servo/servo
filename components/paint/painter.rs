@@ -1199,7 +1199,7 @@ impl Painter {
         };
 
         self.send_root_pipeline_display_list();
-        self.lcp_calculator.note_webview_removed(webview_id);
+        self.lcp_calculator.enable_for_webview(webview_id);
     }
 
     pub(crate) fn is_empty(&mut self) -> bool {
@@ -1308,6 +1308,14 @@ impl Painter {
             webview_renderer.notify_scroll_event(scroll, point);
         }
         self.disable_lcp_calculation_for_webview(webview_id);
+    }
+
+    pub(crate) fn enable_lcp_calculation(&mut self, webview_id: WebViewId) {
+        self.enable_lcp_calculation_for_webview(webview_id);
+    }
+
+    pub(crate) fn lcp_calculation_enabled_for_webview(&self, webview_id: WebViewId) -> bool {
+        self.lcp_calculator.enabled_for_webview(webview_id)
     }
 
     pub(crate) fn pinch_zoom(
@@ -1435,10 +1443,9 @@ impl Painter {
         pipeline_id: PipelineId,
         epoch: Epoch,
     ) {
-        if self
-            .lcp_calculator
-            .append_lcp_candidate(webview_id, pipeline_id.into(), lcp_candidate)
-        {
+        if self.lcp_calculation_enabled_for_webview(webview_id) {
+            self.lcp_calculator
+                .append_lcp_candidate(pipeline_id.into(), lcp_candidate);
             if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
                 webview_renderer
                     .ensure_pipeline_details(pipeline_id)
@@ -1451,6 +1458,10 @@ impl Painter {
     /// Disable LCP feature when the user interacts with the page.
     fn disable_lcp_calculation_for_webview(&mut self, webview_id: WebViewId) {
         self.lcp_calculator.disable_for_webview(webview_id);
+    }
+
+    fn enable_lcp_calculation_for_webview(&mut self, webview_id: WebViewId) {
+        self.lcp_calculator.enable_for_webview(webview_id);
     }
 }
 

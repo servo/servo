@@ -12,9 +12,11 @@ use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
 use paint_api::rendering_context::{RenderingContext, SoftwareRenderingContext};
 use servo::{
-    EmbedderControl, JSValue, JavaScriptEvaluationError, LoadStatus, Preferences, Servo,
-    ServoBuilder, SimpleDialog, WebView, WebViewDelegate,
+    EmbedderControl, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus, MouseButton,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Preferences, Servo, ServoBuilder,
+    SimpleDialog, WebView, WebViewDelegate,
 };
+use webrender_api::units::DevicePoint;
 
 pub struct ServoTest {
     pub servo: Servo,
@@ -145,6 +147,24 @@ impl WebViewDelegate for WebViewDelegateImpl {
         self.number_of_controls_hidden
             .set(self.number_of_controls_hidden.get() + 1);
     }
+}
+
+// Used by some unit tests only. Since they compile into different binaries,
+// it will be flagged as unused for certain unit tests.
+#[allow(dead_code)]
+pub(crate) fn click_at_point(webview: &WebView, point: DevicePoint) {
+    let point = point.into();
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
+    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        MouseButtonAction::Down,
+        MouseButton::Left,
+        point,
+    )));
+    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
+        MouseButtonAction::Up,
+        MouseButton::Left,
+        point,
+    )));
 }
 
 // Used by some unit tests only. Since they compile into different binaries,
