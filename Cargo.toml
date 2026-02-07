@@ -319,3 +319,5 @@ codegen-units = 1
 #
 # mozjs = { path = "../mozjs/mozjs" }
 # mozjs_sys = { path = "../mozjs/mozjs-sys" }
+mozjs = { git = "https://github.com/servo/mozjs.git", rev = "refs/pull/704/head" }
+mozjs_sys = { git = "https://github.com/servo/mozjs.git", rev = "refs/pull/704/head" }
