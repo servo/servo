@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "components/media/examples",
     "components/xpath",
     "ports/servoshell",
     "tests/unit/*",
@@ -74,13 +75,23 @@ flate2 = "1.1"
 fonts_traits = { path = "components/shared/fonts" }
 freetype-sys = "0.20"
 gleam = "0.15"
+glib = "0.21"
+glib-sys = "0.21"
 glow = "0.16.0"
 gstreamer = { version = "0.24", features = ["v1_18"] }
+gstreamer-app = "0.24"
+gstreamer-audio = "0.24"
 gstreamer-base = "0.24"
 gstreamer-gl = "0.24"
+gstreamer-gl-egl = "0.24"
 gstreamer-gl-sys = "0.24"
+gstreamer-gl-wayland = "0.24"
+gstreamer-gl-x11 = "0.24"
+gstreamer-play = "0.24"
+gstreamer-sdp = "0.24"
 gstreamer-sys = "0.24"
 gstreamer-video = "0.24"
+gstreamer-webrtc = { version = "0.24", features = ["v1_18"] }
 harfbuzz-sys = "0.6.1"
 headers = "0.4"
 hitrace = "0.1.6"
@@ -111,6 +122,7 @@ malloc_size_of_derive = "0.1"
 markup5ever = "0.38"
 memmap2 = "0.9.9"
 mime = "0.3.13"
+mime-multipart-hyper1 = "0.10.0"
 mime_guess = "2.0.5"
 ml-dsa = "0.0.4"
 ml-kem = { version = "0.2", features = ["deterministic"] }
@@ -123,6 +135,10 @@ num-bigint-dig = "0.8"
 num-derive = "0.4.2"
 num-traits = "0.2"
 num_cpus = "1.17.0"
+objc2 = "0.6.3"
+objc2-core-foundation = "0.3.2"
+objc2-core-graphics = "0.3.2"
+objc2-core-text = "0.3.2"
 ocb3 = "0.1.0"
 openxr = "0.20"
 paint_api = { path = "components/shared/paint" }
@@ -152,16 +168,16 @@ script_traits = { path = "components/shared/script" }
 sea-query = { version = "1.0.0-rc.30", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = { version = "0.8.0-rc.15" }
 sec1 = "0.7"
-selectors = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
+selectors = { git = "https://github.com/servo/stylo", rev = "3b46f3ef27eb14ca276b4bf3ff041a6c43d93827" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
 serde_json = "1.0"
-servo-media = { git = "https://github.com/servo/media", rev = "f384dbc4ff8b5c6f8db2c763306cbe2281d66391" }
-servo-media-dummy = { git = "https://github.com/servo/media", rev = "f384dbc4ff8b5c6f8db2c763306cbe2281d66391" }
-servo-media-gstreamer = { git = "https://github.com/servo/media", rev = "f384dbc4ff8b5c6f8db2c763306cbe2281d66391" }
+servo-media = { path = "components/media/servo-media" }
+servo-media-dummy = { path = "components/media/backends/dummy" }
+servo-media-gstreamer = { path = "components/media/backends/gstreamer" }
 servo-tracing = { path = "components/servo_tracing" }
-servo_arc = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "3b46f3ef27eb14ca276b4bf3ff041a6c43d93827" }
 sha1 = "0.10"
 sha2 = "0.10"
 sha3 = "0.10"
@@ -170,12 +186,12 @@ smallvec = { version = "1.15", features = ["serde", "union"] }
 storage_traits = { path = "components/shared/storage" }
 string_cache = "0.9"
 strum = { version = "0.27", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
-stylo_atoms = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
-stylo_config = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
-stylo_dom = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
-stylo_traits = { git = "https://github.com/servo/stylo", rev = "fce45cfa72008327d714575913bc9c968fa1446c" }
+stylo = { git = "https://github.com/servo/stylo", rev = "3b46f3ef27eb14ca276b4bf3ff041a6c43d93827" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "3b46f3ef27eb14ca276b4bf3ff041a6c43d93827" }
+stylo_config = { git = "https://github.com/servo/stylo", rev = "3b46f3ef27eb14ca276b4bf3ff041a6c43d93827" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "3b46f3ef27eb14ca276b4bf3ff041a6c43d93827" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "3b46f3ef27eb14ca276b4bf3ff041a6c43d93827" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "3b46f3ef27eb14ca276b4bf3ff041a6c43d93827" }
 surfman = { version = "0.11.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"

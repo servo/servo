@@ -88,23 +88,25 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
         // Step 2.5
         let media = ServoMedia::get();
         let device_monitor = media.get_device_monitor();
-        let result_list = match device_monitor.enumerate_devices() {
-            Ok(devices) => devices
-                .iter()
-                .map(|device| {
-                    // XXX The media backend has no way to group devices yet.
-                    MediaDeviceInfo::new(
-                        &self.global(),
-                        &device.device_id,
-                        device.kind.convert(),
-                        &device.label,
-                        "",
-                        can_gc,
-                    )
-                })
-                .collect(),
-            Err(_) => Vec::new(),
-        };
+        let result_list = device_monitor
+            .enumerate_devices()
+            .map(|devices| {
+                devices
+                    .iter()
+                    .map(|device| {
+                        // XXX The media backend has no way to group devices yet.
+                        MediaDeviceInfo::new(
+                            &self.global(),
+                            &device.device_id,
+                            device.kind.convert(),
+                            &device.label,
+                            "",
+                            can_gc,
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
 
         p.resolve_native(&result_list, can_gc);
 

@@ -22,8 +22,8 @@ use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use layout_api::wrapper_traits::LayoutNode;
 use layout_api::{
-    BoxAreaType, IFrameSizes, Layout, LayoutConfig, LayoutDamage, LayoutFactory,
-    OffsetParentResponse, PhysicalSides, PropertyRegistration, QueryMsg, ReflowGoal,
+    BoxAreaType, CSSPixelRectIterator, IFrameSizes, Layout, LayoutConfig, LayoutDamage,
+    LayoutFactory, OffsetParentResponse, PhysicalSides, PropertyRegistration, QueryMsg, ReflowGoal,
     ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult, RegisterPropertyError,
     ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
 };
@@ -51,7 +51,6 @@ use style::context::{
 };
 use style::custom_properties::{SpecifiedValue, parse_name};
 use style::dom::{OpaqueNode, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
-use style::error_reporting::RustLogReporter;
 use style::font_metrics::FontMetrics;
 use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::invalidation::element::restyle_hints::RestyleHint;
@@ -68,7 +67,7 @@ use style::selector_parser::{PseudoElement, RestyleDamage, SnapshotMap};
 use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
-    CustomMediaMap, DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument, UrlExtraData,
+    CustomMediaMap, DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument,
     UserAgentStylesheets,
 };
 use style::stylist::Stylist;
@@ -150,6 +149,11 @@ pub struct LayoutThread {
 
     /// Whether or not user agent stylesheets have been added to the Stylist or not.
     have_added_user_agent_stylesheets: bool,
+
+    // A vector of parsed `DocumentStyleSheet`s representing the corresponding `UserStyleSheet`s
+    // associated with the `WebView` to which this `Layout` belongs. The `DocumentStylesheet`s might
+    // be shared with `Layout`s in the same `ScriptThread`.
+    user_stylesheets: Rc<Vec<DocumentStyleSheet>>,
 
     /// Whether or not this [`LayoutImpl`]'s [`Device`] has changed since the last restyle.
     /// If it has, a restyle is pending.
@@ -356,15 +360,11 @@ impl Layout for LayoutThread {
     ///
     /// See <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>.
     #[servo_tracing::instrument(skip_all)]
-    fn query_box_areas(
-        &self,
-        node: TrustedNodeAddress,
-        area: BoxAreaType,
-    ) -> Vec<Rect<Au, CSSPixel>> {
+    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> CSSPixelRectIterator {
         // If we have not built a fragment tree yet, there is no way we have layout information for
         // this query, which can be run without forcing a layout (for IntersectionObserver).
         if self.fragment_tree.borrow().is_none() {
-            return vec![];
+            return Box::new(std::iter::empty());
         }
 
         let node = unsafe { ServoLayoutNode::new(&node) };
@@ -765,6 +765,7 @@ impl LayoutThread {
             debug: opts::get().debug.clone(),
             previously_highlighted_dom_node: Cell::new(None),
             lcp_candidate_collector: Default::default(),
+            user_stylesheets: config.user_stylesheets,
         }
     }
 
@@ -960,11 +961,25 @@ impl LayoutThread {
         snapshot_map: &SnapshotMap,
     ) {
         if !self.have_added_user_agent_stylesheets {
+            // TODO: The field `user_or_user_agent_stylesheets` should only contain the user agent
+            // stylesheets as user stylesheets are specified separately. Potentially the struct in
+            // stylo should be renamed so that the field is no longer implies user stylesheets are
+            // set here.
             for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
                 self.stylist
                     .append_stylesheet(stylesheet.clone(), guards.ua_or_user);
                 self.load_all_web_fonts_from_stylesheet_with_guard(
                     stylesheet,
+                    guards.ua_or_user,
+                    &reflow_request.document_context,
+                );
+            }
+
+            for user_stylesheet in self.user_stylesheets.iter() {
+                self.stylist
+                    .append_stylesheet(user_stylesheet.clone(), guards.ua_or_user);
+                self.load_all_web_fonts_from_stylesheet_with_guard(
+                    user_stylesheet,
                     guards.ua_or_user,
                     &reflow_request.document_context,
                 );
@@ -1431,7 +1446,7 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
 
     // FIXME: presentational-hints.css should be at author origin with zero specificity.
     //        (Does it make a difference?)
-    let mut user_or_user_agent_stylesheets = vec![
+    let user_agent_stylesheets = vec![
         parse_ua_stylesheet(shared_lock, "user-agent.css", USER_AGENT_CSS)?,
         parse_ua_stylesheet(shared_lock, "servo.css", SERVO_CSS)?,
         parse_ua_stylesheet(
@@ -1441,29 +1456,12 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         )?,
     ];
 
-    for (contents, url) in &opts::get().user_stylesheets {
-        user_or_user_agent_stylesheets.push(DocumentStyleSheet(ServoArc::new(
-            Stylesheet::from_bytes(
-                contents,
-                UrlExtraData(url.get_arc()),
-                None,
-                None,
-                Origin::User,
-                ServoArc::new(shared_lock.wrap(MediaList::empty())),
-                shared_lock.clone(),
-                None,
-                Some(&RustLogReporter),
-                QuirksMode::NoQuirks,
-            ),
-        )));
-    }
-
     let quirks_mode_stylesheet =
         parse_ua_stylesheet(shared_lock, "quirks-mode.css", QUIRKS_MODE_CSS)?;
 
     Ok(UserAgentStylesheets {
         shared_lock: shared_lock.clone(),
-        user_or_user_agent_stylesheets,
+        user_or_user_agent_stylesheets: user_agent_stylesheets,
         quirks_mode_stylesheet,
     })
 }

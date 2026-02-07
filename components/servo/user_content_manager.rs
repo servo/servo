@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
 use constellation_traits::{EmbedderToConstellationMessage, UserContentManagerAction};
-use embedder_traits::user_contents::{UserContentManagerId, UserScript};
+use embedder_traits::user_contents::{UserContentManagerId, UserScript, UserStyleSheet};
 
 use crate::Servo;
 
@@ -29,11 +31,38 @@ impl UserContentManager {
         self.id
     }
 
-    pub fn add_script(&self, user_script: UserScript) {
+    pub fn add_script(&self, user_script: Rc<UserScript>) {
         self.servo.constellation_proxy().send(
             EmbedderToConstellationMessage::UserContentManagerAction(
                 self.id,
-                UserContentManagerAction::AddUserScript(user_script),
+                UserContentManagerAction::AddUserScript((*user_script).clone()),
+            ),
+        );
+    }
+
+    pub fn remove_script(&self, user_script: Rc<UserScript>) {
+        self.servo.constellation_proxy().send(
+            EmbedderToConstellationMessage::UserContentManagerAction(
+                self.id,
+                UserContentManagerAction::RemoveUserScript(user_script.id()),
+            ),
+        );
+    }
+
+    pub fn add_stylesheet(&self, user_stylesheet: Rc<UserStyleSheet>) {
+        self.servo.constellation_proxy().send(
+            EmbedderToConstellationMessage::UserContentManagerAction(
+                self.id,
+                UserContentManagerAction::AddUserStyleSheet((*user_stylesheet).clone()),
+            ),
+        );
+    }
+
+    pub fn remove_stylesheet(&self, user_stylesheet: Rc<UserStyleSheet>) {
+        self.servo.constellation_proxy().send(
+            EmbedderToConstellationMessage::UserContentManagerAction(
+                self.id,
+                UserContentManagerAction::RemoveUserStyleSheet(user_stylesheet.id()),
             ),
         );
     }

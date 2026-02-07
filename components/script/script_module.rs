@@ -8,6 +8,7 @@
 use std::cell::{OnceCell, RefCell};
 use std::ffi::CStr;
 use std::fmt::Debug;
+use std::ptr::NonNull;
 use std::rc::Rc;
 use std::{mem, ptr};
 
@@ -17,23 +18,26 @@ use html5ever::local_name;
 use hyper_serde::Serde;
 use indexmap::IndexMap;
 use indexmap::map::Entry;
+use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::gc::MutableHandleValue;
 use js::jsapi::{
-    CompileJsonModule1, CompileModule1, ExceptionStackBehavior, GetModuleRequestSpecifier,
-    GetModuleRequestType, GetModuleResolveHook, Handle as RawHandle, HandleValue as RawHandleValue,
-    Heap, JS_ClearPendingException, JS_DefineProperty4, JS_NewStringCopyN, JSAutoRealm, JSContext,
-    JSObject, JSPROP_ENUMERATE, JSRuntime, ModuleErrorBehaviour, ModuleType,
-    SetModuleDynamicImportHook, SetModuleMetadataHook, SetModulePrivate, SetModuleResolveHook,
-    SetScriptPrivateReferenceHooks, ThrowOnModuleEvaluationFailure, Value,
+    CompileJsonModule1, CompileModule1, ExceptionStackBehavior, GetModuleResolveHook,
+    Handle as RawHandle, HandleValue as RawHandleValue, Heap, JS_ClearPendingException,
+    JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JSRuntime,
+    ModuleErrorBehaviour, ModuleType, SetModuleDynamicImportHook, SetModuleMetadataHook,
+    SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks,
+    ThrowOnModuleEvaluationFailure, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
-use js::realm::CurrentRealm;
-use js::rust::wrappers::{
-    JS_GetPendingException, JS_SetPendingException, ModuleEvaluate, ModuleLink,
+use js::realm::{AutoRealm, CurrentRealm};
+use js::rust::wrappers::{JS_GetPendingException, JS_SetPendingException, ModuleEvaluate};
+use js::rust::wrappers2::{
+    GetModuleRequestSpecifier, GetModuleRequestType, JS_DefineProperty4, JS_NewStringCopyN,
+    ModuleLink,
 };
 use js::rust::{
-    CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue, IntoHandle,
+    CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue,
     transform_str_to_source_text,
 };
 use mime::Mime;
@@ -82,7 +86,7 @@ use crate::module_loading::{
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener,
 };
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::realms::{InRealm, enter_realm};
 use crate::script_runtime::{CanGc, IntroductionType, JSContext as SafeJSContext};
 use crate::task::NonSendTaskBox;
 
@@ -247,11 +251,11 @@ impl ModuleTree {
     }
 }
 
-struct ModuleSource {
-    source: Rc<DOMString>,
-    unminified_dir: Option<String>,
-    external: bool,
-    url: ServoUrl,
+pub(crate) struct ModuleSource {
+    pub source: Rc<DOMString>,
+    pub unminified_dir: Option<String>,
+    pub external: bool,
+    pub url: ServoUrl,
 }
 
 impl crate::unminify::ScriptSource for ModuleSource {
@@ -418,35 +422,6 @@ impl ModuleTree {
 
         // Step 7. Return script.
         module
-    }
-
-    #[expect(unsafe_code)]
-    /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
-    /// Step 5-2.
-    pub(crate) fn instantiate_module_tree(
-        global: &GlobalScope,
-        module_record: js::gc::HandleObject,
-    ) -> Result<(), RethrowError> {
-        let cx = GlobalScope::get_cx();
-        let _ac = JSAutoRealm::new(*cx, *global.reflector().get_jsobject());
-
-        unsafe {
-            if !ModuleLink(*cx, module_record) {
-                warn!("fail to link & instantiate module");
-
-                rooted!(in(*cx) let mut exception = UndefinedValue());
-                assert!(JS_GetPendingException(*cx, exception.handle_mut()));
-                JS_ClearPendingException(*cx);
-
-                Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
-                    exception.get(),
-                ))))
-            } else {
-                debug!("module instantiated successfully");
-
-                Ok(())
-            }
-        }
     }
 
     /// Execute the provided module, storing the evaluation return value in the provided
@@ -925,22 +900,24 @@ unsafe extern "C" fn host_release_top_level_script(value: *const Value) {
 /// <https://tc39.es/ecma262/#sec-hostimportmoduledynamically>
 /// <https://html.spec.whatwg.org/multipage/#hostimportmoduledynamically(referencingscriptormodule,-specifier,-promisecapability)>
 pub(crate) unsafe extern "C" fn host_import_module_dynamically(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     reference_private: RawHandleValue,
     specifier: RawHandle<*mut JSObject>,
     promise: RawHandle<*mut JSObject>,
 ) -> bool {
-    // Step 1.
-    let cx = unsafe { SafeJSContext::from_ptr(cx) };
-    let promise = Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx);
+    // Safety: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    let cx = &mut cx;
+    let promise = Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx.into());
 
-    let jsstr = ptr::NonNull::new(unsafe { GetModuleRequestSpecifier(*cx, specifier) }).unwrap();
-    let module_type = unsafe { GetModuleRequestType(*cx, specifier) };
-    let specifier = unsafe { jsstr_to_string(*cx, jsstr) };
+    let jsstr = unsafe { GetModuleRequestSpecifier(cx, Handle::from_raw(specifier)) };
+    let module_type = unsafe { GetModuleRequestType(cx, Handle::from_raw(specifier)) };
+    let specifier = unsafe { jsstr_to_string(cx.raw_cx(), NonNull::new(jsstr).unwrap()) };
 
+    let mut realm = CurrentRealm::assert(cx);
     let payload = Payload::PromiseRecord(promise.clone());
     host_load_imported_module(
-        cx,
+        &mut realm,
         None,
         reference_private,
         specifier,
@@ -1008,22 +985,29 @@ pub(crate) unsafe fn module_script_from_reference_private(
 /// <https://tc39.es/ecma262/#sec-HostLoadImportedModule>
 /// <https://html.spec.whatwg.org/multipage/#hostloadimportedmodule>
 unsafe extern "C" fn HostResolveImportedModule(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     reference_private: RawHandleValue,
     specifier: RawHandle<*mut JSObject>,
 ) -> *mut JSObject {
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(unsafe { SafeJSContext::from_ptr(cx) });
-    let global_scope = unsafe { GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)) };
+    // Safety: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    let mut realm = CurrentRealm::assert(&mut cx);
+    let global_scope = GlobalScope::from_current_realm(&realm);
+
+    let cx = &mut realm;
 
     // Step 5.
     let module_data = unsafe { module_script_from_reference_private(&reference_private) };
-    let jsstr =
-        std::ptr::NonNull::new(unsafe { GetModuleRequestSpecifier(cx, specifier) }).unwrap();
-    let module_type = unsafe { GetModuleRequestType(cx, specifier) };
+    let jsstr = unsafe { GetModuleRequestSpecifier(cx, Handle::from_raw(specifier)) };
+    let module_type = unsafe { GetModuleRequestType(cx, Handle::from_raw(specifier)) };
 
-    let specifier = DOMString::from_string(unsafe { jsstr_to_string(cx, jsstr) });
-    let url =
-        ModuleTree::resolve_module_specifier(&global_scope, module_data, specifier, CanGc::note());
+    let specifier = unsafe { jsstr_to_string(cx.raw_cx(), NonNull::new(jsstr).unwrap()) };
+    let url = ModuleTree::resolve_module_specifier(
+        &global_scope,
+        module_data,
+        DOMString::from(specifier),
+        CanGc::from_cx(cx),
+    );
 
     // Step 6.
     assert!(url.is_ok());
@@ -1060,12 +1044,14 @@ unsafe extern "C" fn HostResolveImportedModule(
 /// <https://tc39.es/ecma262/#sec-hostgetimportmetaproperties>
 /// <https://html.spec.whatwg.org/multipage/#hostgetimportmetaproperties>
 unsafe extern "C" fn HostPopulateImportMeta(
-    cx: *mut JSContext,
+    cx: *mut RawJSContext,
     reference_private: RawHandleValue,
     meta_object: RawHandle<*mut JSObject>,
 ) -> bool {
-    let in_realm_proof = AlreadyInRealm::assert_for_cx(unsafe { SafeJSContext::from_ptr(cx) });
-    let global_scope = unsafe { GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof)) };
+    // Safety: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    let realm = CurrentRealm::assert(&mut cx);
+    let global_scope = GlobalScope::from_current_realm(&realm);
 
     // Step 2.
     let base_url = match unsafe { module_script_from_reference_private(&reference_private) } {
@@ -1075,20 +1061,20 @@ unsafe extern "C" fn HostPopulateImportMeta(
 
     let url_string = unsafe {
         JS_NewStringCopyN(
-            cx,
+            &mut cx,
             base_url.as_str().as_ptr() as *const _,
             base_url.as_str().len(),
         )
     };
-    rooted!(in(cx) let url_string = url_string);
+    rooted!(&in(cx) let url_string = url_string);
 
     // Step 3.
     unsafe {
         JS_DefineProperty4(
-            cx,
-            meta_object,
+            &mut cx,
+            Handle::from_raw(meta_object),
             c"url".as_ptr(),
-            url_string.handle().into_handle(),
+            url_string.handle(),
             JSPROP_ENUMERATE.into(),
         )
     }
@@ -1121,12 +1107,7 @@ pub(crate) fn fetch_an_external_module_script(
             };
 
             // Step 1.2. Fetch the descendants of and link result given settingsObject, "script", and onComplete.
-            fetch_the_descendants_and_link_module_script(
-                module,
-                Destination::Script,
-                owner,
-                can_gc,
-            );
+            fetch_the_descendants_and_link_module_script(module, Destination::Script, owner);
         },
     );
 }
@@ -1153,16 +1134,20 @@ pub(crate) fn fetch_inline_module_script(
     ));
 
     // Step 2. Fetch the descendants of and link script, given settingsObject, "script", and onComplete.
-    fetch_the_descendants_and_link_module_script(module_tree, Destination::Script, owner, can_gc);
+    fetch_the_descendants_and_link_module_script(module_tree, Destination::Script, owner);
 }
 
+#[expect(unsafe_code)]
 /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
 fn fetch_the_descendants_and_link_module_script(
     module_script: Rc<ModuleTree>,
     destination: Destination,
     owner: ModuleOwner,
-    can_gc: CanGc,
 ) {
+    let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+    let mut realm = CurrentRealm::assert(&mut cx);
+    let cx = &mut realm;
+
     let global = owner.global();
 
     // Step 1. Let record be moduleScript's record.
@@ -1174,7 +1159,7 @@ fn fetch_the_descendants_and_link_module_script(
         module_script.set_rethrow_error(parse_error.unwrap());
 
         // Step 2.2. Run onComplete given moduleScript.
-        owner.notify_owner_to_finish(Some(module_script), can_gc);
+        owner.notify_owner_to_finish(Some(module_script), CanGc::from_cx(cx));
 
         // Step 2.3. Return.
         return;
@@ -1192,28 +1177,34 @@ fn fetch_the_descendants_and_link_module_script(
 
     // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
     let loading_promise =
-        load_requested_modules(&global, module_script.clone(), Some(Rc::clone(&state)));
+        load_requested_modules(cx, module_script.clone(), Some(Rc::clone(&state)));
 
     let fulfillment_owner = owner.clone();
     let fulfilled_module = module_script.clone();
 
     // Step 6. Upon fulfillment of loadingPromise, run the following steps:
     let loading_promise_fulfillment = ModuleHandler::new_boxed(Box::new(
-        task!(fulfilled_steps: |fulfillment_owner: ModuleOwner| {
+        task!(fulfilled_steps: |cx, fulfillment_owner: ModuleOwner| {
             let global = fulfillment_owner.global();
+            let mut realm = AutoRealm::new(
+                cx,
+                NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
+            );
+            let cx = &mut *realm;
 
-            if let Some(record) = fulfilled_module.get_record() {
-                // Step 6.1. Perform record.Link().
-                let instantiated = ModuleTree::instantiate_module_tree(&global, record.handle());
+            let handle = fulfilled_module.get_record().map(|module| module.handle()).unwrap();
 
-                // If this throws an exception, catch it, and set moduleScript's error to rethrow to that exception.
-                if let Err(exception) = instantiated {
-                    fulfilled_module.set_rethrow_error(exception);
-                }
+            // Step 6.1. Perform record.Link().
+            let link = unsafe { ModuleLink(cx, handle) };
+
+            // If this throws an exception, catch it, and set moduleScript's error to rethrow to that exception.
+            if !link {
+                let exception = RethrowError::from_pending_exception(cx.into());
+                fulfilled_module.set_rethrow_error(exception);
             }
 
             // Step 6.2. Run onComplete given moduleScript.
-            fulfillment_owner.notify_owner_to_finish(Some(fulfilled_module), CanGc::note());
+            fulfillment_owner.notify_owner_to_finish(Some(fulfilled_module), CanGc::from_cx(cx));
         }),
     ));
 
@@ -1239,14 +1230,14 @@ fn fetch_the_descendants_and_link_module_script(
         &global,
         Some(loading_promise_fulfillment),
         Some(loading_promise_rejection),
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     let realm = enter_realm(&*global);
     let comp = InRealm::Entered(&realm);
     let _ais = AutoIncumbentScript::new(&global);
 
-    loading_promise.append_native_handler(&handler, comp, can_gc);
+    loading_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script>

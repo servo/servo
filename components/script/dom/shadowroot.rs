@@ -35,12 +35,12 @@ use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::css::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::document::Document;
-use crate::dom::documentfragment::DocumentFragment;
+use crate::dom::documentfragment::{DocumentFragment, LayoutDocumentFragmentHelpers};
 use crate::dom::documentorshadowroot::{
     DocumentOrShadowRoot, ServoStylesheetInDocument, StylesheetSource,
 };
@@ -71,7 +71,6 @@ pub(crate) struct ShadowRoot {
     document_fragment: DocumentFragment,
     document_or_shadow_root: DocumentOrShadowRoot,
     document: Dom<Document>,
-    host: Dom<Element>,
     /// List of author styles associated with nodes in this shadow tree.
     #[custom_trace]
     author_styles: DomRefCell<AuthorStyles<ServoStylesheetInDocument>>,
@@ -124,7 +123,7 @@ impl ShadowRoot {
         clonable: bool,
         is_user_agent_widget: IsUserAgentWidget,
     ) -> ShadowRoot {
-        let document_fragment = DocumentFragment::new_inherited(document);
+        let document_fragment = DocumentFragment::new_inherited(document, Some(host));
         let node = document_fragment.upcast::<Node>();
         node.set_flag(NodeFlags::IS_IN_SHADOW_TREE, true);
         node.set_flag(
@@ -136,7 +135,6 @@ impl ShadowRoot {
             document_fragment,
             document_or_shadow_root: DocumentOrShadowRoot::new(document.window()),
             document: Dom::from_ref(document),
-            host: Dom::from_ref(host),
             author_styles: DomRefCell::new(AuthorStyles::new()),
             stylesheet_list: MutNullableDom::new(None),
             window: Dom::from_ref(document.window()),
@@ -279,11 +277,11 @@ impl ShadowRoot {
         self.document.invalidate_shadow_roots_stylesheets();
         self.author_styles.borrow_mut().stylesheets.force_dirty();
         // Mark the host element dirty so a reflow will be performed.
-        self.host.upcast::<Node>().dirty(NodeDamage::Style);
+        self.Host().upcast::<Node>().dirty(NodeDamage::Style);
 
         // Also mark the host element with `RestyleHint::restyle_subtree` so a reflow
         // can traverse into the shadow tree.
-        let mut restyle = self.document.ensure_pending_restyle(&self.host);
+        let mut restyle = self.document.ensure_pending_restyle(&self.Host());
         restyle.hint.insert(RestyleHint::restyle_subtree());
     }
 
@@ -452,7 +450,9 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
 
     /// <https://dom.spec.whatwg.org/#dom-shadowroot-host>
     fn Host(&self) -> DomRoot<Element> {
-        self.host.as_rooted()
+        self.upcast::<DocumentFragment>()
+            .host()
+            .expect("ShadowRoot always has an element as host")
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-document-stylesheets>
@@ -640,9 +640,9 @@ pub(crate) trait LayoutShadowRootHelpers<'dom> {
 
 impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
     #[inline]
-    #[expect(unsafe_code)]
     fn get_host_for_layout(self) -> LayoutDom<'dom, Element> {
-        unsafe { self.unsafe_get().host.to_layout() }
+        self.upcast::<DocumentFragment>()
+            .shadowroot_host_for_layout()
     }
 
     #[inline]

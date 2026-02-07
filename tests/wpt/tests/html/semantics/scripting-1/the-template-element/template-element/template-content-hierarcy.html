@@ -45,11 +45,10 @@ test(() => {
   assert_not_equals(new_doc, tmpl_doc);
 
   // Try moving tmpl.content to new_doc and check the results.
-  const tmplContentNodeDocument = tmpl.content.ownerDocument;
   const tmplContentAdoptResult = new_doc.adoptNode(tmpl.content);
   assert_equals(tmpl.content, tmplContentAdoptResult);
   assert_equals(tmpl.ownerDocument, document);
-  assert_equals(tmpl.content.ownerDocument, tmplContentNodeDocument);
+  assert_equals(tmpl.content.ownerDocument, new_doc);
 
   // Hierarchy checks at various combinations.
   assert_throws_dom('HierarchyRequestError', () => {

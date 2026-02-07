@@ -401,6 +401,8 @@ pub(crate) struct Document {
     current_parser: MutNullableDom<ServoParser>,
     /// The cached first `base` element with an `href` attribute.
     base_element: MutNullableDom<HTMLBaseElement>,
+    /// The cached first `base` element, used for its target (doesn't need a href)
+    target_base_element: MutNullableDom<HTMLBaseElement>,
     /// This field is set to the document itself for inert documents.
     /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
     appropriate_template_contents_owner_document: MutNullableDom<Document>,
@@ -992,8 +994,12 @@ impl Document {
         self.base_element.get()
     }
 
+    /// Returns the first `base` element in the DOM (doesn't need to have an `href` attribute).
+    pub(crate) fn target_base_element(&self) -> Option<DomRoot<HTMLBaseElement>> {
+        self.target_base_element.get()
+    }
+
     /// Refresh the cached first base element in the DOM.
-    /// <https://github.com/w3c/web-platform-tests/issues/2122>
     pub(crate) fn refresh_base_element(&self) {
         if let Some(base_element) = self.base_element.get() {
             base_element.clear_frozen_base_url();
@@ -1011,6 +1017,14 @@ impl Document {
             new_base_element.set_frozen_base_url();
         }
         self.base_element.set(new_base_element.as_deref());
+
+        let new_target_base_element = self
+            .upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::No)
+            .filter_map(DomRoot::downcast::<HTMLBaseElement>)
+            .next();
+        self.target_base_element
+            .set(new_target_base_element.as_deref());
     }
 
     pub(crate) fn dom_count(&self) -> u32 {
@@ -3820,6 +3834,7 @@ impl Document {
             loader: DomRefCell::new(doc_loader),
             current_parser: Default::default(),
             base_element: Default::default(),
+            target_base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
             pending_restyles: DomRefCell::new(FxHashMap::default()),
             needs_restyle: Cell::new(RestyleReason::DOMChanged),
@@ -4400,7 +4415,10 @@ impl Document {
             // TODO: Add checks for whether fullscreen is supported as definition.
 
             // > - This’s relevant global object has transient activation or the algorithm is triggered by a user generated orientation change.
-            // TODO: Implement with user activation.
+            // TODO: implement screen orientation API
+            if !pending.owner_window().has_transient_activation() {
+                error = true;
+            }
         }
 
         if pref!(dom_fullscreen_test) {
@@ -4415,7 +4433,9 @@ impl Document {
 
         // Step 6
         // > If error is false, then consume user activation given pendingDoc’s relevant global object.
-        // TODO: Implement with user activation.
+        if !error {
+            pending.owner_window().consume_user_activation();
+        }
 
         // Step 8.
         // > If error is false, then resize pendingDoc’s node navigable’s top-level traversable’s active document’s viewport’s dimensions,
@@ -6726,5 +6746,76 @@ fn is_named_element_with_id_attribute(elem: &Element) -> bool {
 impl DocumentHelpers for Document {
     fn ensure_safe_to_run_script_or_layout(&self) {
         Document::ensure_safe_to_run_script_or_layout(self)
+    }
+}
+
+/// Iterator for same origin ancestor navigables, returning the active documents of the navigables.
+/// <https://html.spec.whatwg.org/multipage/#ancestor-navigables>
+// TODO: Find a way for something equivalent for cross origin document.
+pub(crate) struct SameoriginAncestorNavigablesIterator {
+    document: DomRoot<Document>,
+}
+
+impl SameoriginAncestorNavigablesIterator {
+    pub(crate) fn new(document: DomRoot<Document>) -> Self {
+        Self { document }
+    }
+}
+
+impl Iterator for SameoriginAncestorNavigablesIterator {
+    type Item = DomRoot<Document>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let window_proxy = self.document.browsing_context()?;
+        self.document = window_proxy.parent()?.document()?;
+        Some(self.document.clone())
+    }
+}
+
+/// Iterator for same origin descendant navigables in a shadow-including tree order, returning the
+/// active documents of the navigables.
+/// <https://html.spec.whatwg.org/multipage/#descendant-navigables>
+// TODO: Find a way for something equivalent for cross origin document.
+pub(crate) struct SameOriginDescendantNavigablesIterator {
+    stack: Vec<Box<dyn Iterator<Item = DomRoot<HTMLIFrameElement>>>>,
+}
+
+impl SameOriginDescendantNavigablesIterator {
+    pub(crate) fn new(document: DomRoot<Document>) -> Self {
+        let iframes: Vec<DomRoot<HTMLIFrameElement>> = document.iframes().iter().collect();
+        Self {
+            stack: vec![Box::new(iframes.into_iter())],
+        }
+    }
+
+    fn get_next_iframe(&mut self) -> Option<DomRoot<HTMLIFrameElement>> {
+        let mut cur_iframe = self.stack.last_mut()?.next();
+        while cur_iframe.is_none() {
+            self.stack.pop();
+            cur_iframe = self.stack.last_mut()?.next();
+        }
+        cur_iframe
+    }
+}
+
+impl Iterator for SameOriginDescendantNavigablesIterator {
+    type Item = DomRoot<Document>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(iframe) = self.get_next_iframe() {
+            let Some(pipeline_id) = iframe.pipeline_id() else {
+                continue;
+            };
+
+            if let Some(document) = ScriptThread::find_document(pipeline_id) {
+                let child_iframes: Vec<DomRoot<HTMLIFrameElement>> =
+                    document.iframes().iter().collect();
+                self.stack.push(Box::new(child_iframes.into_iter()));
+                return Some(document);
+            } else {
+                continue;
+            };
+        }
+        None
     }
 }

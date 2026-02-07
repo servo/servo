@@ -9,6 +9,7 @@ interface HTMLInputElement : HTMLElement {
 
   [CEReactions]
            attribute DOMString accept;
+  [CEReactions] attribute boolean alpha;
   [CEReactions]
            attribute DOMString alt;
   // [CEReactions]
@@ -18,6 +19,7 @@ interface HTMLInputElement : HTMLElement {
   [CEReactions]
            attribute boolean defaultChecked;
            attribute boolean checked;
+  [CEReactions] attribute DOMString colorSpace;
   [CEReactions]
            attribute DOMString dirName;
   [CEReactions]

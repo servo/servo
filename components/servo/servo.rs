@@ -908,10 +908,6 @@ impl Servo {
             .send(EmbedderToConstellationMessage::CreateMemoryReport(snd));
     }
 
-    pub fn constellation_sender(&self) -> Sender<EmbedderToConstellationMessage> {
-        self.0.constellation_proxy.sender()
-    }
-
     pub fn execute_webdriver_command(&self, command: WebDriverCommandMsg) {
         self.0
             .constellation_proxy

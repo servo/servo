@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" href="https://github.com/servo/servo/issues/41231">
+<style>
+    details {
+        display: list-item;
+        list-style-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"></svg>');
+    }
+</style>
+</head>
+<body>
+<!-- This test passes if it does not crash. -->
+
+<details></details>
+<script>
+    window.reload();
+</script>
+</body>
+</html>

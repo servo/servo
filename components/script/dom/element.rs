@@ -3219,7 +3219,6 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let win = self.owner_window();
         let raw_rects = self.upcast::<Node>().border_boxes();
         let rects: Vec<DomRoot<DOMRect>> = raw_rects
-            .iter()
             .map(|rect| {
                 DOMRect::new(
                     win.upcast(),
@@ -5294,6 +5293,10 @@ impl Element {
 
     pub(crate) fn set_placeholder_shown_state(&self, value: bool) {
         self.set_state(ElementState::PLACEHOLDER_SHOWN, value);
+    }
+
+    pub(crate) fn set_modal_state(&self, value: bool) {
+        self.set_state(ElementState::MODAL, value);
     }
 
     pub(crate) fn set_target_state(&self, value: bool) {

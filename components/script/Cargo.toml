@@ -95,9 +95,10 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 markup5ever = { workspace = true }
-media = { path = "../media" }
+media = { path = "../media/media-thread" }
 metrics = { path = "../metrics" }
 mime = { workspace = true }
+mime-multipart-hyper1 = { workspace = true }
 mime_guess = { workspace = true }
 ml-dsa = { workspace = true }
 ml-kem = { workspace = true }

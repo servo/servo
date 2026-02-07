@@ -1,0 +1,21 @@
+[package]
+name = "servo-media-dummy"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "servo_media_dummy"
+path = "lib.rs"
+
+[dependencies]
+ipc-channel = { workspace = true }
+servo-media = { path = "../../servo-media" }
+servo-media-audio = { path = "../../audio" }
+servo-media-player = { path = "../../player" }
+servo-media-streams = { path = "../../streams" }
+servo-media-traits = { path = "../../traits" }
+servo-media-webrtc = { path = "../../webrtc" }

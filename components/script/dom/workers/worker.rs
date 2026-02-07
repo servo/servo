@@ -11,6 +11,7 @@ use constellation_traits::{StructuredSerializedData, WorkerScriptLoadOrigin};
 use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg, WorkerId};
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleObject, HandleValue};
@@ -38,8 +39,8 @@ use crate::dom::messageevent::MessageEvent;
 use crate::dom::trustedscripturl::TrustedScriptURL;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
-use crate::realms::enter_realm;
-use crate::script_runtime::{CanGc, JSContext, ThreadSafeJSContext};
+use crate::realms::enter_auto_realm;
+use crate::script_runtime::{CanGc, ThreadSafeJSContext};
 use crate::task::TaskOnce;
 
 pub(crate) type TrustedWorkerAddress = Trusted<Worker>;
@@ -100,7 +101,7 @@ impl Worker {
     pub(crate) fn handle_message(
         address: TrustedWorkerAddress,
         data: StructuredSerializedData,
-        can_gc: CanGc,
+        cx: &mut JSContext,
     ) {
         let worker = address.root();
 
@@ -110,9 +111,12 @@ impl Worker {
 
         let global = worker.global();
         let target = worker.upcast();
-        let _ac = enter_realm(target);
-        rooted!(in(*GlobalScope::get_cx()) let mut message = UndefinedValue());
-        if let Ok(ports) = structuredclone::read(&global, data, message.handle_mut(), can_gc) {
+        let mut realm = enter_auto_realm(cx, target);
+        let cx = &mut realm.current_realm();
+        rooted!(&in(cx) let mut message = UndefinedValue());
+        if let Ok(ports) =
+            structuredclone::read(&global, data, message.handle_mut(), CanGc::from_cx(cx))
+        {
             MessageEvent::dispatch_jsval(
                 target,
                 &global,
@@ -120,11 +124,11 @@ impl Worker {
                 None,
                 None,
                 ports,
-                can_gc,
+                CanGc::from_cx(cx),
             );
         } else {
             // Step 4 of the "port post message steps" of the implicit messageport, fire messageerror.
-            MessageEvent::dispatch_error(target, &global, can_gc);
+            MessageEvent::dispatch_error(target, &global, CanGc::from_cx(cx));
         }
     }
 
@@ -136,11 +140,11 @@ impl Worker {
     /// <https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage>
     fn post_message_impl(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
-        let data = structuredclone::write(cx, message, Some(transfer))?;
+        let data = structuredclone::write(cx.into(), message, Some(transfer))?;
         let address = Trusted::new(self);
 
         // NOTE: step 9 of https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage
@@ -272,7 +276,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
     /// <https://html.spec.whatwg.org/multipage/#dom-worker-postmessage>
     fn PostMessage(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
@@ -282,7 +286,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
     /// <https://html.spec.whatwg.org/multipage/#dom-worker-postmessage>
     fn PostMessage_(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
     ) -> ErrorResult {
@@ -293,7 +297,8 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
                 .collect(),
         );
-        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        #[expect(unsafe_code)]
+        let guard = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
         self.post_message_impl(cx, message, guard)
     }
 
@@ -325,7 +330,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
 
 impl TaskOnce for SimpleWorkerErrorHandler<Worker> {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn run_once(self, cx: &mut js::context::JSContext) {
+    fn run_once(self, cx: &mut JSContext) {
         Worker::dispatch_simple_error(self.addr, CanGc::from_cx(cx));
     }
 }

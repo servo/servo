@@ -97,7 +97,7 @@ keyboard-types = { workspace = true }
 layout = { path = "../layout" }
 layout_api = { workspace = true }
 log = { workspace = true }
-media = { path = "../media" }
+media = { path = "../media/media-thread" }
 mozangle = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }
@@ -158,6 +158,10 @@ winit = { workspace = true }
 [[test]]
 name = "largest_contentful_paint"
 path = "tests/largest_contentful_paint.rs"
+
+[[test]]
+name = "performance_paint_timing"
+path = "tests/performance_paint_timing.rs"
 
 [[test]]
 name = "network_manager"

@@ -35,6 +35,10 @@ ignore = [
     # The attack complexity of this vulnerability is high,
     # and no exploit is known yet.
     "RUSTSEC-2025-0144",
+    # The crate `time` has vulnerability.
+    # Need to upgrade to 0.3.47 above.
+    # Cannot right now due to MSRV.
+    "RUSTSEC-2026-0009",
 ]
 
 # This section is considered when running `cargo deny check licenses`
@@ -98,6 +102,8 @@ skip = [
     "bitflags",
     "cookie",
     "redox_syscall",
+    # Duplicated by getrandom 0.1 and getrandom 0.2
+    "wasi",
 
     # New versions of these dependencies is pulled in by GStreamer / GLib.
     "itertools",
@@ -152,6 +158,7 @@ skip = [
     "socket2",
 
     # duplicated by winit
+    "block2",
     "objc2-app-kit",
     "objc2-foundation",
     "objc2",

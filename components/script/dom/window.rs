@@ -34,7 +34,7 @@ use crossbeam_channel::{Sender, unbounded};
 use cssparser::SourceLocation;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType};
 use dom_struct::dom_struct;
-use embedder_traits::user_contents::{UserContents, UserScript};
+use embedder_traits::user_contents::UserScript;
 use embedder_traits::{
     AlertResponse, ConfirmResponse, EmbedderMsg, JavaScriptEvaluationError, PromptResponse,
     ScriptToEmbedderChan, SimpleDialogRequest, Theme, UntrustedNodeAddress, ViewportDetails,
@@ -43,6 +43,7 @@ use embedder_traits::{
 use euclid::default::Rect as UntypedRect;
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use fonts::{CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext};
+use js::context::JSContext;
 use js::glue::DumpJSStack;
 use js::jsapi::{
     GCReason, Heap, JS_GC, JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE,
@@ -55,11 +56,11 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    BoxAreaType, ElementsFromPointFlags, ElementsFromPointResult, FragmentType, Layout,
-    LayoutImageDestination, PendingImage, PendingImageState, PendingRasterizationImage,
-    PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle,
-    RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
-    combine_id_with_fragment_type,
+    BoxAreaType, CSSPixelRectIterator, ElementsFromPointFlags, ElementsFromPointResult,
+    FragmentType, Layout, LayoutImageDestination, PendingImage, PendingImageState,
+    PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
+    ReflowRequestRestyle, RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse,
+    TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -145,7 +146,9 @@ use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
 use crate::dom::customelementregistry::CustomElementRegistry;
-use crate::dom::document::{AnimationFrameCallback, Document};
+use crate::dom::document::{
+    AnimationFrameCallback, Document, SameOriginDescendantNavigablesIterator,
+};
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -176,6 +179,7 @@ use crate::dom::storage::Storage;
 use crate::dom::testrunner::TestRunner;
 use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::{ImageBitmap, MouseEvent, UIEvent};
+use crate::dom::useractivation::UserActivationTimestamp;
 use crate::dom::visualviewport::{VisualViewport, VisualViewportChanges};
 use crate::dom::webgl::webglrenderingcontext::WebGLCommandSender;
 #[cfg(feature = "webgpu")]
@@ -188,7 +192,7 @@ use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEvent
 use crate::microtask::{Microtask, UserMicrotask};
 use crate::network_listener::{ResourceTimingListener, submit_timing};
 use crate::realms::{InRealm, enter_realm};
-use crate::script_runtime::{CanGc, JSContext, Runtime};
+use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::task_source::SendableTaskSource;
@@ -430,10 +434,11 @@ pub(crate) struct Window {
     /// Unminify Css.
     unminify_css: bool,
 
-    /// The [`UserContents`] that is potentially shared with other `WebView`s in this `ScriptThread`.
+    /// The [`UserScript`]s added via `UserContentManager`. These are potentially shared with other
+    /// `WebView`s in this `ScriptThread`.
     #[no_trace]
     #[conditional_malloc_size_of]
-    user_contents: Option<Rc<UserContents>>,
+    user_scripts: Rc<Vec<UserScript>>,
 
     /// Window's GL context from application
     #[ignore_malloc_size_of = "defined in script_thread"]
@@ -474,6 +479,10 @@ pub(crate) struct Window {
 
     /// [`VisualViewport`] dimension changed and we need to process it on the next tick.
     has_changed_visual_viewport_dimension: Cell<bool>,
+
+    /// <https://html.spec.whatwg.org/multipage/#last-activation-timestamp>
+    #[no_trace]
+    last_activation_timestamp: Cell<UserActivationTimestamp>,
 }
 
 impl Window {
@@ -546,8 +555,8 @@ impl Window {
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn get_cx(&self) -> JSContext {
-        unsafe { JSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
+    pub(crate) fn get_cx(&self) -> SafeJSContext {
+        unsafe { SafeJSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
     }
 
     pub(crate) fn get_js_runtime(&self) -> Ref<'_, Option<Rc<Runtime>>> {
@@ -641,13 +650,19 @@ impl Window {
         })
     }
 
-    /// Returns the window proxy of the webview, which is the top-level ancestor browsing context.
+    /// Get the active [`Document`] of top-level browsing context, or return [`Window`]'s [`Document`]
+    /// if it's browing context is the top-level browsing context. Returning none if the [`WindowProxy`]
+    /// is discarded or the [`Document`] is in another `ScriptThread`.
     /// <https://html.spec.whatwg.org/multipage/#top-level-browsing-context>
-    pub(crate) fn webview_window_proxy(&self) -> Option<DomRoot<WindowProxy>> {
-        self.undiscarded_window_proxy().and_then(|window_proxy| {
-            self.script_window_proxies
-                .find_window_proxy(window_proxy.webview_id().into())
-        })
+    pub(crate) fn top_level_document_if_local(&self) -> Option<DomRoot<Document>> {
+        if self.is_top_level() {
+            return Some(self.Document());
+        }
+
+        let window_proxy = self.undiscarded_window_proxy()?;
+        self.script_window_proxies
+            .find_window_proxy(window_proxy.webview_id().into())?
+            .document()
     }
 
     #[cfg(feature = "bluetooth")]
@@ -774,10 +789,7 @@ impl Window {
     }
 
     pub(crate) fn userscripts(&self) -> &[UserScript] {
-        self.user_contents
-            .as_ref()
-            .map(|user_contents| user_contents.scripts.as_slice())
-            .unwrap_or(&[])
+        &self.user_scripts
     }
 
     pub(crate) fn get_player_context(&self) -> WindowGLContext {
@@ -1296,7 +1308,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-opener>
     fn GetOpener(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         in_realm_proof: InRealm,
         mut retval: MutableHandleValue,
     ) -> Fallible<()> {
@@ -1324,7 +1336,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#dom-opener>
-    fn SetOpener(&self, cx: JSContext, value: HandleValue) -> ErrorResult {
+    fn SetOpener(&self, cx: SafeJSContext, value: HandleValue) -> ErrorResult {
         // Step 1.
         if value.is_null() {
             if let Some(proxy) = self.window_proxy.get() {
@@ -1471,7 +1483,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-reporterror>
-    fn ReportError(&self, cx: JSContext, error: HandleValue, can_gc: CanGc) {
+    fn ReportError(&self, cx: SafeJSContext, error: HandleValue, can_gc: CanGc) {
         self.as_global_scope()
             .report_an_exception(cx, error, can_gc);
     }
@@ -1490,7 +1502,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-settimeout>
     fn SetTimeout(
         &self,
-        _cx: JSContext,
+        _cx: SafeJSContext,
         callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -1522,7 +1534,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval>
     fn SetInterval(
         &self,
-        _cx: JSContext,
+        _cx: SafeJSContext,
         callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
@@ -1703,7 +1715,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-window-postmessage>
     fn PostMessage(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         target_origin: USVString,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
@@ -1718,7 +1730,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
     fn PostMessage_(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         options: RootedTraceableBox<WindowPostMessageOptions>,
     ) -> ErrorResult {
@@ -1730,7 +1742,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
                 .collect(),
         );
-        let transfer = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        #[expect(unsafe_code)]
+        let transfer = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
 
         let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
         let source = incumbent.as_window();
@@ -1779,7 +1792,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
     }
 
-    fn WebdriverCallback(&self, cx: JSContext, value: HandleValue, realm: InRealm, can_gc: CanGc) {
+    fn WebdriverCallback(
+        &self,
+        cx: SafeJSContext,
+        value: HandleValue,
+        realm: InRealm,
+        can_gc: CanGc,
+    ) {
         let webdriver_script_sender = self.webdriver_script_chan.borrow_mut().take();
         if let Some(webdriver_script_sender) = webdriver_script_sender {
             let result = jsval_to_webdriver(cx, &self.globalscope, value, realm, can_gc);
@@ -1787,7 +1806,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
     }
 
-    fn WebdriverException(&self, cx: JSContext, value: HandleValue, can_gc: CanGc) {
+    fn WebdriverException(&self, cx: SafeJSContext, value: HandleValue, can_gc: CanGc) {
         let webdriver_script_sender = self.webdriver_script_chan.borrow_mut().take();
         if let Some(webdriver_script_sender) = webdriver_script_sender {
             let _ =
@@ -1825,8 +1844,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             .window_proxy
             .get()
             .expect("Should always have a WindowProxy when calling WebdriverWindow");
-        // Window must be top level browsing context.
-        assert!(window_proxy.browsing_context_id() == window_proxy.webview_id());
+        assert!(
+            self.is_top_level(),
+            "Window must be top level browsing context."
+        );
         assert!(self.webview_id().to_string() == webview_id);
         DomRoot::from_ref(window_proxy)
     }
@@ -2164,7 +2185,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-window-event>
-    fn Event(&self, cx: JSContext, rval: MutableHandleValue) {
+    fn Event(&self, cx: SafeJSContext, rval: MutableHandleValue) {
         if let Some(ref event) = *self.current_event.borrow() {
             event
                 .reflector()
@@ -2329,7 +2350,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-structuredclone>
     fn StructuredClone(
         &self,
-        cx: JSContext,
+        cx: SafeJSContext,
         value: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
         can_gc: CanGc,
@@ -2353,7 +2374,7 @@ impl Window {
     // https://heycam.github.io/webidl/#named-properties-object
     // https://html.spec.whatwg.org/multipage/#named-access-on-the-window-object
     pub(crate) fn create_named_properties_object(
-        cx: JSContext,
+        cx: SafeJSContext,
         proto: HandleObject,
         object: MutableHandleObject,
     ) {
@@ -2379,12 +2400,12 @@ impl Window {
         target_origin: &USVString,
         source_origin: ImmutableOrigin,
         source: &Window,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
         // Step 1-2, 6-8.
-        let data = structuredclone::write(cx, message, Some(transfer))?;
+        let data = structuredclone::write(cx.into(), message, Some(transfer))?;
 
         // Step 3-5.
         let target_origin = match target_origin.0[..].as_ref() {
@@ -2838,11 +2859,7 @@ impl Window {
         self.box_area_query_without_reflow(node, area, exclude_transform_and_inline)
     }
 
-    pub(crate) fn box_areas_query(
-        &self,
-        node: &Node,
-        area: BoxAreaType,
-    ) -> Vec<Rect<Au, CSSPixel>> {
+    pub(crate) fn box_areas_query(&self, node: &Node, area: BoxAreaType) -> CSSPixelRectIterator {
         self.layout_reflow(QueryMsg::BoxAreas);
         self.layout
             .borrow()
@@ -3548,6 +3565,10 @@ impl Window {
         self.navigation_start.set(CrossProcessInstant::now());
     }
 
+    pub(crate) fn set_last_activation_timestamp(&self, time: UserActivationTimestamp) {
+        self.last_activation_timestamp.set(time);
+    }
+
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
         self.as_global_scope()
             .script_to_embedder_chan()
@@ -3645,6 +3666,60 @@ impl Window {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#sticky-activation>
+    pub(crate) fn has_sticky_activation(&self) -> bool {
+        // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, W is said to have sticky activation.
+        UserActivationTimestamp::TimeStamp(CrossProcessInstant::now()) >=
+            self.last_activation_timestamp.get()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#transient-activation>
+    pub(crate) fn has_transient_activation(&self) -> bool {
+        // > When the current high resolution time given W is greater than or equal to the last activation timestamp in W, and less than the last activation
+        // > timestamp in W plus the transient activation duration, then W is said to have transient activation.
+        let current_time = CrossProcessInstant::now();
+        UserActivationTimestamp::TimeStamp(current_time) >= self.last_activation_timestamp.get() &&
+            UserActivationTimestamp::TimeStamp(current_time) <
+                self.last_activation_timestamp.get() +
+                    pref!(dom_transient_activation_duration_ms)
+    }
+
+    pub(crate) fn consume_last_activation_timestamp(&self) {
+        if self.last_activation_timestamp.get() != UserActivationTimestamp::PositiveInfinity {
+            self.set_last_activation_timestamp(UserActivationTimestamp::NegativeInfinity);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#consume-user-activation>
+    pub(crate) fn consume_user_activation(&self) {
+        // Step 1.
+        // > If W's navigable is null, then return.
+        if self.undiscarded_window_proxy().is_none() {
+            return;
+        }
+
+        // Step 2.
+        // > Let top be W's navigable's top-level traversable.
+        // TODO: This wouldn't work if top level document is in another ScriptThread.
+        let Some(top_level_document) = self.top_level_document_if_local() else {
+            return;
+        };
+
+        // Step 3.
+        // > Let navigables be the inclusive descendant navigables of top's active document.
+        // Step 4.
+        // > Let windows be the list of Window objects constructed by taking the active window of each item in navigables.
+        // Step 5.
+        // > For each window in windows, if window's last activation timestamp is not positive infinity, then set window's last activation timestamp to negative infinity.
+        // TODO: this would not work for disimilar origin descendant, since we doesn't store the document in this script thread.
+        top_level_document
+            .window()
+            .consume_last_activation_timestamp();
+        for document in SameOriginDescendantNavigablesIterator::new(top_level_document) {
+            document.window().consume_last_activation_timestamp();
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         webview_id: WebViewId,
@@ -3676,7 +3751,7 @@ impl Window {
         unminify_js: bool,
         unminify_css: bool,
         local_script_source: Option<String>,
-        user_contents: Option<Rc<UserContents>>,
+        user_scripts: Rc<Vec<UserScript>>,
         player_context: WindowGLContext,
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
@@ -3759,7 +3834,7 @@ impl Window {
             paint_api,
             has_sent_idle_message: Cell::new(false),
             unminify_css,
-            user_contents,
+            user_scripts,
             player_context,
             throttled: Cell::new(false),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
@@ -3774,6 +3849,7 @@ impl Window {
             visual_viewport: Default::default(),
             weak_script_thread,
             has_changed_visual_viewport_dimension: Default::default(),
+            last_activation_timestamp: Cell::new(UserActivationTimestamp::PositiveInfinity),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)
@@ -3971,7 +4047,7 @@ unsafe extern "C" fn dump_js_stack(cx: *mut RawJSContext) {
 
 impl WindowHelpers for Window {
     fn create_named_properties_object(
-        cx: JSContext,
+        cx: SafeJSContext,
         proto: HandleObject,
         object: MutableHandleObject,
     ) {

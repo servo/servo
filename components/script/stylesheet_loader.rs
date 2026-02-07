@@ -436,30 +436,7 @@ impl<'a> ElementStylesheetLoader<'a> {
 }
 
 impl ElementStylesheetLoader<'_> {
-    pub(crate) fn load(
-        &self,
-        source: StylesheetContextSource,
-        media: Arc<Locked<MediaList>>,
-        url: ServoUrl,
-        cors_setting: Option<CorsSettings>,
-        integrity_metadata: String,
-    ) {
-        match self {
-            ElementStylesheetLoader::Synchronous { element } => Self::load_with_element(
-                element,
-                source,
-                media,
-                url,
-                cors_setting,
-                integrity_metadata,
-            ),
-            ElementStylesheetLoader::Asynchronous { .. } => unreachable!(
-                "Should never call load directly on an asynchronous ElementStylesheetLoader"
-            ),
-        }
-    }
-
-    fn load_with_element(
+    pub(crate) fn load_with_element(
         element: &HTMLElement,
         source: StylesheetContextSource,
         media: Arc<Locked<MediaList>>,
@@ -470,7 +447,7 @@ impl ElementStylesheetLoader<'_> {
         let document = element.owner_document();
         let shadow_root = element
             .containing_shadow_root()
-            .map(|sr| Trusted::new(&*sr));
+            .map(|shadow_root| Trusted::new(&*shadow_root));
         let generation = element
             .downcast::<HTMLLinkElement>()
             .map(HTMLLinkElement::get_request_generation_id);

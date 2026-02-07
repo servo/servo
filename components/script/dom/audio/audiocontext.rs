@@ -159,7 +159,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
         // Steps 4 and 5.
         let trusted_promise = TrustedPromise::new(promise.clone());
         match self.context.audio_context_impl().lock().unwrap().suspend() {
-            Ok(_) => {
+            Some(_) => {
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);
                 self.global().task_manager().dom_manipulation_task_source().queue(
@@ -178,7 +178,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                     })
                 );
             },
-            Err(_) => {
+            None => {
                 // The spec does not define the error case and `suspend` should
                 // never fail, but we handle the case here for completion.
                 self.global()
@@ -215,7 +215,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
         // Steps 4 and 5.
         let trusted_promise = TrustedPromise::new(promise.clone());
         match self.context.audio_context_impl().lock().unwrap().close() {
-            Ok(_) => {
+            Some(_) => {
                 let base_context = Trusted::new(&self.context);
                 let context = Trusted::new(self);
                 self.global().task_manager().dom_manipulation_task_source().queue(
@@ -234,7 +234,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                     })
                 );
             },
-            Err(_) => {
+            None => {
                 // The spec does not define the error case and `suspend` should
                 // never fail, but we handle the case here for completion.
                 self.global()

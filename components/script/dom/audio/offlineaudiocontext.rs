@@ -219,7 +219,7 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
             .lock()
             .unwrap()
             .resume()
-            .is_err()
+            .is_none()
         {
             promise.reject_error(
                 Error::Type("Could not start offline rendering".to_owned()),

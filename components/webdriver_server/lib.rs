@@ -14,7 +14,7 @@ mod timeout;
 mod user_prompt;
 
 use std::borrow::ToOwned;
-use std::cell::{Cell, LazyCell, RefCell};
+use std::cell::LazyCell;
 use std::collections::{BTreeMap, HashMap};
 use std::io::Cursor;
 use std::net::{SocketAddr, SocketAddrV4};
@@ -73,7 +73,9 @@ use webdriver::response::{
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
-use crate::actions::{ELEMENT_CLICK_BUTTON, InputSourceState, PointerInputState};
+use crate::actions::{
+    ELEMENT_CLICK_BUTTON, InputSourceState, PendingPointerMove, PointerInputState,
+};
 use crate::session::{PageLoadStrategy, WebDriverSession};
 use crate::timeout::{DEFAULT_IMPLICIT_WAIT, DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
 
@@ -179,10 +181,10 @@ struct Handler {
     /// Once these receivers receive a response, we know that the event has been handled.
     ///
     /// TODO: Once we upgrade crossbeam-channel this can be replaced with a `WaitGroup`.
-    pending_input_event_receivers: RefCell<Vec<Receiver<()>>>,
+    pending_input_event_receivers: Vec<Receiver<()>>,
 
-    /// Number of pending actions of which WebDriver is waiting for responses.
-    num_pending_actions: Cell<u32>,
+    /// Moves that are currently in-progress and need to be ticked.
+    pending_pointer_moves: Vec<PendingPointerMove>,
 
     /// The base set of preferences to treat as default when resetting.
     default_preferences: Preferences,
@@ -466,7 +468,7 @@ impl Handler {
             event_loop_waker,
             default_preferences,
             pending_input_event_receivers: Default::default(),
-            num_pending_actions: Cell::new(0),
+            pending_pointer_moves: Default::default(),
         }
     }
 
@@ -492,7 +494,7 @@ impl Handler {
         ));
     }
 
-    fn send_blocking_input_event_to_embedder(&self, input_event: InputEvent) {
+    fn send_blocking_input_event_to_embedder(&mut self, input_event: InputEvent) {
         let (result_sender, result_receiver) = unbounded();
         if self
             .send_message_to_embedder(WebDriverCommandMsg::InputEvent(
@@ -502,9 +504,7 @@ impl Handler {
             ))
             .is_ok()
         {
-            self.pending_input_event_receivers
-                .borrow_mut()
-                .push(result_receiver);
+            self.pending_input_event_receivers.push(result_receiver);
         }
     }
 

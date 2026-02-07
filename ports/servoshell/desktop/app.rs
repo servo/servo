@@ -10,6 +10,7 @@ use std::time::Instant;
 use std::{env, fs};
 
 use servo::protocol_handler::ProtocolRegistry;
+use servo::user_contents::UserStyleSheet;
 use servo::{
     EventLoopWaker, Opts, Preferences, ServoBuilder, ServoUrl, UserContentManager, UserScript,
 };
@@ -116,7 +117,13 @@ impl App {
         for script in load_userscripts(self.servoshell_preferences.userscripts_directory.as_deref())
             .expect("Loading userscripts failed")
         {
-            user_content_manager.add_script(script);
+            user_content_manager.add_script(Rc::new(script));
+        }
+
+        for (contents, url) in &self.opts.user_stylesheets {
+            let contents = String::try_from(contents.clone()).unwrap();
+            let user_stylesheet = UserStyleSheet::new(contents, url.clone().into_url());
+            user_content_manager.add_stylesheet(Rc::new(user_stylesheet));
         }
 
         let running_state = Rc::new(RunningAppState::new(
@@ -239,10 +246,8 @@ fn load_userscripts(userscripts_directory: Option<&Path>) -> std::io::Result<Vec
             .collect::<Result<Vec<_>, _>>()?;
         files.sort_unstable();
         for file in files {
-            userscripts.push(UserScript {
-                script: std::fs::read_to_string(&file)?,
-                source_file: Some(file),
-            });
+            let script = std::fs::read_to_string(&file)?;
+            userscripts.push(UserScript::new(script, Some(file)));
         }
     }
     Ok(userscripts)

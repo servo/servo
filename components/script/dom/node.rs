@@ -26,8 +26,9 @@ use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::wrapper_traits::SharedSelection;
 use layout_api::{
-    BoxAreaType, GenericLayoutData, HTMLCanvasData, HTMLMediaData, LayoutElementType,
-    LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData, StyleData, TrustedNodeAddress,
+    BoxAreaType, CSSPixelRectIterator, GenericLayoutData, HTMLCanvasData, HTMLMediaData,
+    LayoutElementType, LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData, StyleData,
+    TrustedNodeAddress,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -259,6 +260,11 @@ bitflags! {
 enum SuppressObserver {
     Suppressed,
     Unsuppressed,
+}
+
+pub(crate) enum ForceSlottableNodeReconciliation {
+    Force,
+    Skip,
 }
 
 impl Node {
@@ -924,11 +930,15 @@ impl Node {
         })
     }
 
+    /// <https://dom.spec.whatwg.org/#concept-tree-inclusive-ancestor>
     pub(crate) fn is_inclusive_ancestor_of(&self, child: &Node) -> bool {
+        // > An inclusive ancestor is an object or one of its ancestors.
         self == child || self.is_ancestor_of(child)
     }
 
+    /// <https://dom.spec.whatwg.org/#concept-tree-ancestor>
     pub(crate) fn is_ancestor_of(&self, possible_descendant: &Node) -> bool {
+        // > An object A is called an ancestor of an object B if and only if B is a descendant of A.
         let mut current = &possible_descendant.parent_node;
         let mut done = false;
 
@@ -944,6 +954,19 @@ impl Node {
         done
     }
 
+    /// <https://dom.spec.whatwg.org/#concept-tree-host-including-inclusive-ancestor>
+    fn is_host_including_inclusive_ancestor(&self, child: &Node) -> bool {
+        // An object A is a host-including inclusive ancestor of an object B, if either A is an inclusive ancestor of B,
+        // or if B’s root has a non-null host and A is a host-including inclusive ancestor of B’s root’s host.
+        self.is_inclusive_ancestor_of(child) ||
+            child
+                .GetRootNode(&GetRootNodeOptions::empty())
+                .downcast::<DocumentFragment>()
+                .and_then(|fragment| fragment.host())
+                .is_some_and(|host| self.is_host_including_inclusive_ancestor(host.upcast()))
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-shadow-including-inclusive-ancestor>
     pub(crate) fn is_shadow_including_inclusive_ancestor_of(&self, node: &Node) -> bool {
         node.inclusive_ancestors(ShadowIncluding::Yes)
             .any(|ancestor| &*ancestor == self)
@@ -1016,7 +1039,7 @@ impl Node {
             .box_area_query(self, BoxAreaType::Padding, false)
     }
 
-    pub(crate) fn border_boxes(&self) -> Vec<Rect<Au, CSSPixel>> {
+    pub(crate) fn border_boxes(&self) -> CSSPixelRectIterator {
         self.owner_window()
             .box_areas_query(self, BoxAreaType::Border)
     }
@@ -1552,14 +1575,20 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#assign-slotables-for-a-tree>
-    pub(crate) fn assign_slottables_for_a_tree(&self) {
+    pub(crate) fn assign_slottables_for_a_tree(&self, force: ForceSlottableNodeReconciliation) {
         // NOTE: This method traverses all descendants of the node and is potentially very
         // expensive. If the node is neither a shadowroot nor a slot then assigning slottables
         // for it won't have any effect, so we take a fast path out.
+        // In the case of node removal, we need to force re-assignment of slottables
+        // even if the node is not a shadow root or slot, this allows us to clear assigned
+        // slots from any slottables that were assigned to slots in the removed subtree.
         let is_shadow_root_with_slots = self
             .downcast::<ShadowRoot>()
             .is_some_and(|shadow_root| shadow_root.has_slot_descendants());
-        if !is_shadow_root_with_slots && !self.is::<HTMLSlotElement>() {
+        if !is_shadow_root_with_slots &&
+            !self.is::<HTMLSlotElement>() &&
+            matches!(force, ForceSlottableNodeReconciliation::Skip)
+        {
             return;
         }
 
@@ -2358,27 +2387,29 @@ impl Node {
         parent: &Node,
         child: Option<&Node>,
     ) -> ErrorResult {
-        // Step 1.
+        // Step 1. If parent is not a Document, DocumentFragment, or Element node, then throw a "HierarchyRequestError" DOMException.
         match parent.type_id() {
             NodeTypeId::Document(_) | NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
             },
             _ => return Err(Error::HierarchyRequest(None)),
         }
 
-        // Step 2.
-        if node.is_inclusive_ancestor_of(parent) {
+        // Step 2. If node is a host-including inclusive ancestor of parent, then throw a "HierarchyRequestError" DOMException.
+        if node.is_host_including_inclusive_ancestor(parent) {
             return Err(Error::HierarchyRequest(None));
         }
 
-        // Step 3.
+        // Step 3. If child is non-null and its parent is not parent, then throw a "NotFoundError" DOMException.
         if let Some(child) = child {
             if !parent.is_parent_of(child) {
                 return Err(Error::NotFound(None));
             }
         }
 
-        // Step 4-5.
+        // Step 4. If node is not a DocumentFragment, DocumentType, Element, or CharacterData node, then throw a "HierarchyRequestError" DOMException.
         match node.type_id() {
+            // Step 5. If either node is a Text node and parent is a document,
+            // or node is a doctype and parent is not a document, then throw a "HierarchyRequestError" DOMException.
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
                 if parent.is::<Document>() {
                     return Err(Error::HierarchyRequest(None));
@@ -2398,18 +2429,19 @@ impl Node {
             },
         }
 
-        // Step 6.
+        // Step 6. If parent is a document, and any of the statements below, switched on the interface node implements,
+        // are true, then throw a "HierarchyRequestError" DOMException.
         if parent.is::<Document>() {
             match node.type_id() {
-                // Step 6.1
                 NodeTypeId::DocumentFragment(_) => {
-                    // Step 6.1.1(b)
+                    // Step 6."DocumentFragment". If node has more than one element child or has a Text node child.
                     if node.children().any(|c| c.is::<Text>()) {
                         return Err(Error::HierarchyRequest(None));
                     }
                     match node.child_elements().count() {
                         0 => (),
-                        // Step 6.1.2
+                        // Step 6."DocumentFragment". Otherwise, if node has one element child and either parent has an element child,
+                        // child is a doctype, or child is non-null and a doctype is following child.
                         1 => {
                             if parent.child_elements().next().is_some() {
                                 return Err(Error::HierarchyRequest(None));
@@ -2423,12 +2455,11 @@ impl Node {
                                 }
                             }
                         },
-                        // Step 6.1.1(a)
                         _ => return Err(Error::HierarchyRequest(None)),
                     }
                 },
-                // Step 6.2
                 NodeTypeId::Element(_) => {
+                    // Step 6."Element". parent has an element child, child is a doctype, or child is non-null and a doctype is following child.
                     if parent.child_elements().next().is_some() {
                         return Err(Error::HierarchyRequest(None));
                     }
@@ -2441,8 +2472,9 @@ impl Node {
                         }
                     }
                 },
-                // Step 6.3
                 NodeTypeId::DocumentType => {
+                    // Step 6."DocumentType". parent has a doctype child, child is non-null and an element is preceding child,
+                    // or child is null and parent has an element child.
                     if parent.children().any(|c| c.is_doctype()) {
                         return Err(Error::HierarchyRequest(None));
                     }
@@ -2479,12 +2511,13 @@ impl Node {
         child: Option<&Node>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<Node>> {
-        // Step 1.
+        // Step 1. Ensure pre-insert validity of node into parent before child.
         Node::ensure_pre_insertion_validity(node, parent, child)?;
 
-        // Steps 2-3.
+        // Step 2. Let referenceChild be child.
         let reference_child_root;
         let reference_child = match child {
+            // Step 3. If referenceChild is node, then set referenceChild to node’s next sibling.
             Some(child) if child == node => {
                 reference_child_root = node.GetNextSibling();
                 reference_child_root.as_deref()
@@ -2492,7 +2525,7 @@ impl Node {
             _ => child,
         };
 
-        // Step 4.
+        // Step 4. Insert node into parent before referenceChild.
         Node::insert(
             node,
             parent,
@@ -2501,7 +2534,7 @@ impl Node {
             can_gc,
         );
 
-        // Step 5.
+        // Step 5. Return node.
         Ok(DomRoot::from_ref(node))
     }
 
@@ -2622,7 +2655,7 @@ impl Node {
 
             // Step 7.6 Run assign slottables for a tree with node’s root.
             kid.GetRootNode(&GetRootNodeOptions::empty())
-                .assign_slottables_for_a_tree();
+                .assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Skip);
 
             // Step 7.7. For each shadow-including inclusive descendant inclusiveDescendant of node,
             // in shadow-including tree order:
@@ -2849,10 +2882,10 @@ impl Node {
             // Step 10.1 Run assign slottables for a tree with parent’s root.
             parent
                 .GetRootNode(&GetRootNodeOptions::empty())
-                .assign_slottables_for_a_tree();
+                .assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Skip);
 
             // Step 10.2 Run assign slottables for a tree with node.
-            node.assign_slottables_for_a_tree();
+            node.assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Force);
         }
 
         // TODO: Step 15. transient registered observers

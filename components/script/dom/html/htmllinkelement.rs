@@ -157,18 +157,31 @@ impl HTMLLinkElement {
         self.request_generation_id.get()
     }
 
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn remove_stylesheet(&self) {
+        if let Some(stylesheet) = self.stylesheet.borrow_mut().take() {
+            let owner = self.stylesheet_list_owner();
+            owner.remove_stylesheet(
+                StylesheetSource::Element(Dom::from_ref(self.upcast())),
+                &stylesheet,
+            );
+            self.clean_stylesheet_ownership();
+            owner.invalidate_stylesheets();
+        }
+    }
+
     // FIXME(emilio): These methods are duplicated with
     // HTMLStyleElement::set_stylesheet.
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn set_stylesheet(&self, s: Arc<Stylesheet>) {
-        let stylesheets_owner = self.stylesheet_list_owner();
-        if let Some(ref s) = *self.stylesheet.borrow() {
-            stylesheets_owner
-                .remove_stylesheet(StylesheetSource::Element(Dom::from_ref(self.upcast())), s)
+    pub(crate) fn set_stylesheet(&self, new_stylesheet: Arc<Stylesheet>) {
+        let owner = self.stylesheet_list_owner();
+        if let Some(old_stylesheet) = self.stylesheet.borrow_mut().replace(new_stylesheet.clone()) {
+            owner.remove_stylesheet(
+                StylesheetSource::Element(Dom::from_ref(self.upcast())),
+                &old_stylesheet,
+            );
         }
-        *self.stylesheet.borrow_mut() = Some(s.clone());
-        self.clean_stylesheet_ownership();
-        stylesheets_owner.add_owned_stylesheet(self.upcast(), s);
+        owner.add_owned_stylesheet(self.upcast(), new_stylesheet);
     }
 
     pub(crate) fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
@@ -248,18 +261,37 @@ impl VirtualMethods for HTMLLinkElement {
         }
         match *local_name {
             local_name!("rel") | local_name!("rev") => {
+                let previous_relations = self.relations.get();
                 self.relations
                     .set(LinkRelations::for_element(self.upcast()));
-            },
-            local_name!("href") => {
-                if is_removal {
+
+                // If relations haven't changed, we shouldn't do anything
+                if previous_relations == self.relations.get() {
                     return;
                 }
-                // https://html.spec.whatwg.org/multipage/#link-type-stylesheet
-                // When the href attribute of the link element of an external resource link
-                // that is already browsing-context connected is changed.
+
+                // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
+                // > When the external resource link is created on a link element that is already browsing-context connected.
                 if self.relations.get().contains(LinkRelations::STYLESHEET) {
-                    self.handle_stylesheet_url(&attr.value());
+                    self.handle_stylesheet_url();
+                } else {
+                    self.remove_stylesheet();
+                }
+            },
+            local_name!("href") => {
+                // https://html.spec.whatwg.org/multipage/#attr-link-href
+                // > If both the href and imagesrcset attributes are absent, then the element does not define a link.
+                if is_removal {
+                    if self.relations.get().contains(LinkRelations::STYLESHEET) {
+                        self.remove_stylesheet();
+                    }
+                    return;
+                }
+                // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
+                // > When the href attribute of the link element of an external resource link
+                // > that is already browsing-context connected is changed.
+                if self.relations.get().contains(LinkRelations::STYLESHEET) {
+                    self.handle_stylesheet_url();
                 }
 
                 if self.relations.get().contains(LinkRelations::ICON) {
@@ -295,7 +327,7 @@ impl VirtualMethods for HTMLLinkElement {
                 // When the crossorigin attribute of the link element of an external resource link
                 // that is already browsing-context connected is set, changed, or removed.
                 if self.relations.get().contains(LinkRelations::STYLESHEET) {
-                    self.handle_stylesheet_url(&attr.value());
+                    self.handle_stylesheet_url();
                 }
             },
             local_name!("as") => {
@@ -309,7 +341,7 @@ impl VirtualMethods for HTMLLinkElement {
                 }
             },
             local_name!("type") => {
-                // https://html.spec.whatwg.org/multipage/#link-type-stylesheet
+                // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
                 // When the type attribute of the link element of an external resource link that
                 // is already browsing-context connected is set or changed to a value that does
                 // not or no longer matches the Content-Type metadata of the previous obtained
@@ -317,7 +349,7 @@ impl VirtualMethods for HTMLLinkElement {
                 //
                 // TODO: Match Content-Type metadata to check if it needs to be updated
                 if self.relations.get().contains(LinkRelations::STYLESHEET) {
-                    self.handle_stylesheet_url(&attr.value());
+                    self.handle_stylesheet_url();
                 }
 
                 // https://html.spec.whatwg.org/multipage/#link-type-preload
@@ -379,8 +411,10 @@ impl VirtualMethods for HTMLLinkElement {
 
             if let Some(href) = get_attr(element, &local_name!("href")) {
                 let relations = self.relations.get();
+                // https://html.spec.whatwg.org/multipage/#link-type-stylesheet:fetch-and-process-the-linked-resource
+                // > When the external resource link's link element becomes browsing-context connected.
                 if relations.contains(LinkRelations::STYLESHEET) {
-                    self.handle_stylesheet_url(&href);
+                    self.handle_stylesheet_url();
                 }
 
                 if relations.contains(LinkRelations::ICON) {
@@ -403,11 +437,7 @@ impl VirtualMethods for HTMLLinkElement {
             s.unbind_from_tree(context, can_gc);
         }
 
-        if let Some(s) = self.stylesheet.borrow_mut().take() {
-            self.clean_stylesheet_ownership();
-            self.stylesheet_list_owner()
-                .remove_stylesheet(StylesheetSource::Element(Dom::from_ref(self.upcast())), &s);
-        }
+        self.remove_stylesheet();
     }
 }
 
@@ -581,27 +611,28 @@ impl HTMLLinkElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-link-obtain>
-    fn handle_stylesheet_url(&self, href: &str) {
+    fn handle_stylesheet_url(&self) {
         let document = self.owner_document();
         if document.browsing_context().is_none() {
             return;
         }
 
+        let element = self.upcast::<Element>();
+
         // Step 1.
+        let href = element.get_string_attribute(&local_name!("href"));
         if href.is_empty() {
             return;
         }
 
         // Step 2.
-        let link_url = match document.base_url().join(href) {
+        let link_url = match document.base_url().join(&href.str()) {
             Ok(url) => url,
             Err(e) => {
                 debug!("Parsing url {} failed: {}", href, e);
                 return;
             },
         };
-
-        let element = self.upcast::<Element>();
 
         // Step 3
         let cors_setting = cors_setting_for_element(element);
@@ -631,8 +662,8 @@ impl HTMLLinkElement {
             .set(self.request_generation_id.get().increment());
         self.pending_loads.set(0);
 
-        let loader = ElementStylesheetLoader::new(self.upcast());
-        loader.load(
+        ElementStylesheetLoader::load_with_element(
+            self.upcast(),
             StylesheetContextSource::LinkElement,
             media,
             link_url,

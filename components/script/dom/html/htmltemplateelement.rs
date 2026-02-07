@@ -99,9 +99,16 @@ impl HTMLTemplateElementMethods<crate::DomTypeHolder> for HTMLTemplateElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-template-content>
     fn Content(&self, can_gc: CanGc) -> DomRoot<DocumentFragment> {
         self.contents.or_init(|| {
+            // https://html.spec.whatwg.org/multipage/#template-contents
+            // Step 1. Let document be the template element's node document's appropriate template contents owner document.
             let doc = self.owner_document();
-            doc.appropriate_template_contents_owner_document(can_gc)
-                .CreateDocumentFragment(can_gc)
+            // Step 2. Create a DocumentFragment object whose node document is document and host is the template element.
+            let document_fragment = doc
+                .appropriate_template_contents_owner_document(can_gc)
+                .CreateDocumentFragment(can_gc);
+            document_fragment.set_host(self.upcast());
+            // Step 3. Set the template element's template contents to the newly created DocumentFragment object.
+            document_fragment
         })
     }
 }

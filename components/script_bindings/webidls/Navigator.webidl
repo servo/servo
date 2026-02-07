@@ -54,6 +54,7 @@ interface mixin NavigatorPlugins {
   [SameObject] readonly attribute PluginArray plugins;
   [SameObject] readonly attribute MimeTypeArray mimeTypes;
   boolean javaEnabled();
+  readonly attribute boolean pdfViewerEnabled;
 };
 
 // https://html.spec.whatwg.org/multipage/#navigatorcookies

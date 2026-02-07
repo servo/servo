@@ -12,6 +12,7 @@ mod layout_damage;
 pub mod wrapper_traits;
 
 use std::any::Any;
+use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
 use std::thread::JoinHandle;
@@ -54,7 +55,7 @@ use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::str::char_is_whitespace;
-use style::stylesheets::{Stylesheet, UrlExtraData};
+use style::stylesheets::{DocumentStyleSheet, Stylesheet, UrlExtraData};
 use style::values::computed::Overflow;
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
@@ -234,6 +235,7 @@ pub struct LayoutConfig {
     pub time_profiler_chan: time::ProfilerChan,
     pub paint_api: CrossProcessPaintApi,
     pub viewport_details: ViewportDetails,
+    pub user_stylesheets: Rc<Vec<DocumentStyleSheet>>,
     pub theme: Theme,
 }
 
@@ -346,11 +348,7 @@ pub trait Layout {
         area: BoxAreaType,
         exclude_transform_and_inline: bool,
     ) -> Option<Rect<Au, CSSPixel>>;
-    fn query_box_areas(
-        &self,
-        node: TrustedNodeAddress,
-        area: BoxAreaType,
-    ) -> Vec<Rect<Au, CSSPixel>>;
+    fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> CSSPixelRectIterator;
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32, CSSPixel>;
     fn query_current_css_zoom(&self, node: TrustedNodeAddress) -> f32;
     fn query_element_inner_outer_text(&self, node: TrustedNodeAddress) -> String;
@@ -416,6 +414,8 @@ pub enum BoxAreaType {
     Padding,
     Border,
 }
+
+pub type CSSPixelRectIterator = Box<dyn Iterator<Item = Rect<Au, CSSPixel>>>;
 
 #[derive(Default)]
 pub struct PhysicalSides {

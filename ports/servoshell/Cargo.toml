@@ -1,7 +1,7 @@
 [package]
 name = "servoshell"
 build = "build.rs"
-version = "0.0.4"
+version = "0.0.5"
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
@@ -17,6 +17,10 @@ bench = false
 name = "servo"
 path = "main.rs"
 bench = false
+
+[lints.rust]
+# These are not official flags but still used for testing and pgo.
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage)', 'cfg(llvm_pgo)'] }
 
 # Some of these dependencies are only needed for a specific target OS, but
 # since build-scripts can't detect the Cargo target OS at build-time, we
@@ -57,7 +61,7 @@ webxr = ["libservo/webxr"]
 
 [dependencies]
 accesskit = { workspace = true }
-bpaf = { version = "0.9.21", features = ["derive"] }
+bpaf = { version = "0.9.23", features = ["derive"] }
 cfg-if = { workspace = true }
 crossbeam-channel = { workspace = true }
 dpi = { workspace = true }

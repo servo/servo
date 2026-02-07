@@ -1,0 +1,23 @@
+[package]
+name = "servo-media-player"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+name = "servo_media_player"
+path = "lib.rs"
+
+[dependencies]
+serde = "1.0.66"
+serde_derive = "1.0.66"
+ipc-channel = { workspace = true }
+
+[dependencies.servo-media-streams]
+path = "../streams"
+
+[dependencies.servo-media-traits]
+path = "../traits"

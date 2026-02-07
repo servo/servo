@@ -24,8 +24,8 @@ pub(crate) fn load_script(head: &HTMLHeadElement) {
         let global_scope = win.as_global_scope();
         for user_script in userscripts {
             _ = global_scope.evaluate_js_on_global(
-                user_script.script.into(),
-                &user_script.source_file.map(|path| path.to_string_lossy().to_string()).unwrap_or_default(),
+                user_script.script().into(),
+                &user_script.source_file().map(|path| path.to_string_lossy().to_string()).unwrap_or_default(),
                 None,
                 rval.handle_mut(),
                 CanGc::note(),

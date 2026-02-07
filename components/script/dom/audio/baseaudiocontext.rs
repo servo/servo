@@ -16,7 +16,7 @@ use servo_media::audio::context::{
     AudioContext, AudioContextOptions, OfflineAudioContextOptions, ProcessingState,
     RealTimeAudioContextOptions,
 };
-use servo_media::audio::decoder::AudioDecoderCallbacks;
+use servo_media::audio::decoder::AudioDecoderCallbacksBuilder;
 use servo_media::audio::graph::NodeId;
 use servo_media::{ClientContextId, ServoMedia};
 use uuid::Uuid;
@@ -231,7 +231,7 @@ impl BaseAudioContext {
         // Set the rendering thread state to 'running' and start
         // rendering the audio graph.
         match self.audio_context_impl.lock().unwrap().resume() {
-            Ok(()) => {
+            Some(()) => {
                 self.take_pending_resume_promises(Ok(()));
                 self.global().task_manager().dom_manipulation_task_source().queue(
                     task!(resume_success: move || {
@@ -248,7 +248,7 @@ impl BaseAudioContext {
                     })
                 );
             },
-            Err(()) => {
+            None => {
                 self.take_pending_resume_promises(Err(Error::Type(
                     "Something went wrong".to_owned(),
                 )));
@@ -507,7 +507,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 .dom_manipulation_task_source()
                 .to_sendable();
             let task_source_clone = task_source.clone();
-            let callbacks = AudioDecoderCallbacks::new()
+            let callbacks = AudioDecoderCallbacksBuilder::default()
                 .ready(move |channel_count| {
                     decoded_audio
                         .lock()

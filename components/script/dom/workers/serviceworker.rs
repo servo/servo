@@ -7,6 +7,7 @@ use std::cell::Cell;
 use base::id::ServiceWorkerId;
 use constellation_traits::{DOMMessage, ScriptToConstellationMessage};
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
 use servo_url::ServoUrl;
@@ -27,7 +28,7 @@ use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 use crate::task::TaskOnce;
 
 pub(crate) type TrustedServiceWorkerAddress = Trusted<ServiceWorker>;
@@ -94,7 +95,7 @@ impl ServiceWorker {
     /// <https://w3c.github.io/ServiceWorker/#service-worker-postmessage>
     fn post_message_impl(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
@@ -103,7 +104,7 @@ impl ServiceWorker {
             return Err(Error::InvalidState(None));
         }
         // Step 7
-        let data = structuredclone::write(cx, message, Some(transfer))?;
+        let data = structuredclone::write(cx.into(), message, Some(transfer))?;
         let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
         let msg_vec = DOMMessage {
             origin: incumbent.origin().immutable().clone(),
@@ -130,7 +131,7 @@ impl ServiceWorkerMethods<crate::DomTypeHolder> for ServiceWorker {
     /// <https://w3c.github.io/ServiceWorker/#service-worker-postmessage>
     fn PostMessage(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
@@ -140,7 +141,7 @@ impl ServiceWorkerMethods<crate::DomTypeHolder> for ServiceWorker {
     /// <https://w3c.github.io/ServiceWorker/#service-worker-postmessage>
     fn PostMessage_(
         &self,
-        cx: JSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
     ) -> ErrorResult {
@@ -151,7 +152,8 @@ impl ServiceWorkerMethods<crate::DomTypeHolder> for ServiceWorker {
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
                 .collect(),
         );
-        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
+        #[expect(unsafe_code)]
+        let guard = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
         self.post_message_impl(cx, message, guard)
     }
 
@@ -164,7 +166,7 @@ impl ServiceWorkerMethods<crate::DomTypeHolder> for ServiceWorker {
 
 impl TaskOnce for SimpleWorkerErrorHandler<ServiceWorker> {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn run_once(self, cx: &mut js::context::JSContext) {
+    fn run_once(self, cx: &mut JSContext) {
         ServiceWorker::dispatch_simple_error(self.addr, CanGc::from_cx(cx));
     }
 }

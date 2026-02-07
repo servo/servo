@@ -197,6 +197,9 @@ def containsDomInterface(t: IDLObject, logging: bool = False) -> bool:
     if t.isSequence():
         assert isinstance(t, IDLSequenceType)
         return containsDomInterface(t.inner)
+    if t.isRecord():
+        assert isinstance(t, IDLRecordType)
+        return containsDomInterface(t.inner)
     return False
 
 
