@@ -559,8 +559,8 @@ impl Window {
         unsafe { SafeJSContext::from_ptr(js::rust::Runtime::get().unwrap().as_ptr()) }
     }
 
-    pub(crate) fn get_js_runtime(&self) -> Ref<'_, Option<Rc<Runtime>>> {
-        self.js_runtime.borrow()
+    pub(crate) fn get_js_runtime(&self) -> Option<Rc<Runtime>> {
+        self.js_runtime.borrow().clone()
     }
 
     pub(crate) fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {

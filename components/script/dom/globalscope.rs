@@ -3034,6 +3034,16 @@ impl GlobalScope {
         unreachable!();
     }
 
+    pub(crate) fn current_runtime(&self) -> Option<Rc<crate::script_runtime::Runtime>> {
+        if let Some(window) = self.downcast::<Window>() {
+            window.get_js_runtime()
+        } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            worker.current_runtime()
+        } else {
+            unreachable!()
+        }
+    }
+
     pub(crate) fn runtime_handle(&self) -> ParentRuntime {
         if self.is::<Window>() {
             ScriptThread::runtime_handle()
