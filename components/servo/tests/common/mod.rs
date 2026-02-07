@@ -24,6 +24,7 @@ pub struct ServoTest {
 impl ServoTest {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     #[expect(dead_code)] // Used by some tests and not others
     pub(crate) fn new() -> Self {
         Self::new_with_builder(|builder| builder)
@@ -33,8 +34,11 @@ impl ServoTest {
 >>>>>>> 153be7749bf (tests: improves servo test)
 =======
     #[expect(dead_code)] // Used by some tests and not others
+=======
+    #[allow(dead_code)] // Used by some tests and not others
+>>>>>>> 155da4d5084 (tests: fix incorrect dead_code lint expectations)
     pub(crate) fn new() -> Self {
-        Self::new_with_builder(|b| b)
+        Self::new_with_builder(|builder| builder)
     }
 
 >>>>>>> 49705552e84 (Add zero-argument ServoTest::new() with #[expect(dead_code)] to fix compile errors in tests)
@@ -211,5 +215,3 @@ pub(crate) fn show_webview_and_wait_for_rendering_to_be_ready(
     let captured_delegate = delegate.clone();
     servo_test.spin(move || !captured_delegate.new_frame_ready.get());
 }
-
-
