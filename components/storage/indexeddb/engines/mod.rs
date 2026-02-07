@@ -14,7 +14,6 @@ pub use self::sqlite::SqliteEngine;
 mod sqlite;
 
 pub struct KvsOperation {
-    pub request_id: u64,
     pub store_name: String,
     pub operation: AsyncOperation,
 }
@@ -24,10 +23,6 @@ pub struct KvsTransaction {
     // that has different allocated threadpools for reading and writing
     pub mode: IndexedDBTxnMode,
     pub requests: VecDeque<KvsOperation>,
-    pub db_name: String,
-    pub txn_id: u64,
-    pub waiting_for_handled: Option<u64>,
-    pub inflight: bool,
 }
 
 pub trait KvsEngine {

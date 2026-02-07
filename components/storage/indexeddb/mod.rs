@@ -42,7 +42,6 @@ impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
             idb_base_dir.push(p);
         }
         idb_base_dir.push("IndexedDB");
-        println!("[IDBDBG_STORAGE_INIT] base_dir={}", idb_base_dir.display());
 
         let manager_sender = chan.clone();
 
@@ -133,7 +132,6 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         &mut self,
         store_name: &str,
         serial_number: u64,
-        request_id: u64,
         mode: IndexedDBTxnMode,
         operation: AsyncOperation,
     ) {
@@ -144,7 +142,6 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
                 let transaction_mode = transaction.mode.clone();
                 let was_empty = transaction.requests.is_empty();
                 transaction.requests.push_back(KvsOperation {
-                    request_id,
                     operation,
                     store_name: String::from(store_name),
                 });
@@ -160,14 +157,9 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
                     .insert(KvsTransaction {
                         requests: VecDeque::new(),
                         mode: mode.clone(),
-                        db_name: String::new(),
-                        txn_id: serial_number,
-                        waiting_for_handled: None,
-                        inflight: false,
                     })
                     .requests
                     .push_back(KvsOperation {
-                        request_id,
                         operation,
                         store_name: String::from(store_name),
                     });
@@ -180,25 +172,12 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     }
 
     fn schedule_transactions(&mut self, origin: ImmutableOrigin, db_name: &str) {
-        let debug_backend = db_name.contains("event-dispatch-active-flag.any.html");
         // when a request comes in and the transaction can be started you can immediately run it;
         // otherwise run it when the transaction starts. Also re-check queued txns whenever another finishes.
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
         // “Read-only transactions can run concurrently.”
         // “Read/write transactions are exclusive.”
         if self.running_readwrite.is_some() {
-            if debug_backend {
-                let running = self.running_readwrite.unwrap();
-                let queued_len = self.queued_readonly.len() + self.queued_readwrite.len();
-                let waiting_for = self
-                    .handled_next_unhandled_request_id
-                    .get(&running)
-                    .copied();
-                println!(
-                    "[IDBDBG_BACKEND_BLOCKED] txn={} reason=running_readwrite queued_len={} inflight=true waiting_for={:?}",
-                    running, queued_len, waiting_for
-                );
-            }
             return;
         }
 
@@ -212,28 +191,12 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
                 continue;
             };
             if self.running_readonly.contains(&txn) {
-                if debug_backend {
-                    let queued_len = self.queued_readonly.len();
-                    let waiting_for = self.handled_next_unhandled_request_id.get(&txn).copied();
-                    println!(
-                        "[IDBDBG_BACKEND_BLOCKED] txn={} reason=readonly_already_running queued_len={} inflight=true waiting_for={:?}",
-                        txn, queued_len, waiting_for
-                    );
-                }
                 if !transaction.requests.is_empty() {
                     self.queued_readonly.push_back(txn);
                 }
                 continue;
             }
             if transaction.requests.is_empty() {
-                if debug_backend {
-                    let queued_len = self.queued_readonly.len();
-                    let waiting_for = self.handled_next_unhandled_request_id.get(&txn).copied();
-                    println!(
-                        "[IDBDBG_BACKEND_BLOCKED] txn={} reason=readonly_no_requests queued_len={} inflight=false waiting_for={:?}",
-                        txn, queued_len, waiting_for
-                    );
-                }
                 continue;
             }
 
@@ -244,15 +207,6 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         }
 
         if !self.running_readonly.is_empty() {
-            if debug_backend {
-                let queued_len = self.queued_readwrite.len();
-                let txn = self.queued_readwrite.front().copied().unwrap_or(0);
-                let waiting_for = self.handled_next_unhandled_request_id.get(&txn).copied();
-                println!(
-                    "[IDBDBG_BACKEND_BLOCKED] txn={} reason=readonly_running queued_len={} inflight=true waiting_for={:?}",
-                    txn, queued_len, waiting_for
-                );
-            }
             return;
         }
 
@@ -267,14 +221,6 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             };
 
             if self.running_readwrite == Some(txn) {
-                if debug_backend {
-                    let queued_len = self.queued_readwrite.len();
-                    let waiting_for = self.handled_next_unhandled_request_id.get(&txn).copied();
-                    println!(
-                        "[IDBDBG_BACKEND_BLOCKED] txn={} reason=readwrite_already_running queued_len={} inflight=true waiting_for={:?}",
-                        txn, queued_len, waiting_for
-                    );
-                }
                 if !transaction.requests.is_empty() {
                     self.queued_readwrite.push_back(txn);
                 }
@@ -282,14 +228,6 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             }
 
             if transaction.requests.is_empty() {
-                if debug_backend {
-                    let queued_len = self.queued_readwrite.len();
-                    let waiting_for = self.handled_next_unhandled_request_id.get(&txn).copied();
-                    println!(
-                        "[IDBDBG_BACKEND_BLOCKED] txn={} reason=readwrite_no_requests queued_len={} inflight=false waiting_for={:?}",
-                        txn, queued_len, waiting_for
-                    );
-                }
                 continue;
             }
 
@@ -340,15 +278,9 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             return;
         }
 
-        let waiting_for_handled = self.handled_next_unhandled_request_id.get(&txn).copied();
-        let rx = self.engine.process_transaction(KvsTransaction {
-            mode,
-            requests,
-            db_name: db_name.clone(),
-            txn_id: txn,
-            waiting_for_handled,
-            inflight: true,
-        });
+        let rx = self
+            .engine
+            .process_transaction(KvsTransaction { mode, requests });
 
         // We must notify the manager thread when the engine finishes so it can:
         // - clear running_readonly / running_readwrite
@@ -738,17 +670,13 @@ impl IndexedDBManager {
                     db_name,
                     store_name,
                     txn,
-                    request_id,
+                    _request_id,
                     mode,
                     operation,
                 ) => {
-                    println!(
-                        "[IDBDBG_STORAGE_ASYNC] db={} txn={} req={} store={} mode={:?}",
-                        db_name, txn, request_id, store_name, mode
-                    );
                     if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
                         // Queues an operation for a transaction without starting it
-                        db.queue_operation(&store_name, txn, request_id, mode, operation);
+                        db.queue_operation(&store_name, txn, mode, operation);
                         db.schedule_transactions(origin, &db_name);
                     }
                 },
@@ -1689,7 +1617,6 @@ impl IndexedDBManager {
                 }
             },
             SyncOperation::Commit(callback, origin, db_name, txn) => {
-                println!("[IDBDBG_STORAGE_COMMIT] db={} txn={}", db_name, txn);
                 // https://w3c.github.io/IndexedDB/#commit-a-transaction
                 // TODO: implement the commit algorithm and only reply after the backend has
                 // transitioned the transaction to committed/aborted (should be atomic).
@@ -1727,7 +1654,6 @@ impl IndexedDBManager {
                 }
             },
             SyncOperation::Abort(callback, origin, db_name, txn) => {
-                println!("[IDBDBG_STORAGE_ABORT] db={} txn={}", db_name, txn);
                 // https://w3c.github.io/IndexedDB/#abort-a-transaction
                 // “When a transaction is aborted the implementation must undo (roll back) any changes that were made to the database during that transaction.”
                 // TODO: implement the abort algorithm and rollback for the engine.
@@ -1750,30 +1676,13 @@ impl IndexedDBManager {
                 txn,
                 request_id,
             } => {
-                println!(
-                    "[IDBDBG_STORAGE_REQ_HANDLED] db={} txn={} req={}",
-                    db_name, txn, request_id
-                );
                 // https://w3c.github.io/IndexedDB/#transaction-lifecycl
                 // The implementation must attempt to commit an inactive transaction
                 // when all requests placed against the transaction have completed
                 // and their returned results handled, no new requests have been
                 // placed against the transaction, and the transaction has not been aborted
 
-                if let Some(db) = self.get_database_mut(origin, db_name.clone()) {
-                    if db_name.contains("event-dispatch-active-flag.any.html") {
-                        let waiting_for = db.handled_next_unhandled_request_id.get(&txn).copied();
-                        let expected = waiting_for.unwrap_or(0);
-                        let unblocked = request_id == expected;
-                        let next_ready = db
-                            .handled_pending
-                            .get(&txn)
-                            .map_or(false, |pending| pending.contains(&(expected + 1)));
-                        println!(
-                            "[IDBDBG_BACKEND_HANDLED_RECV] txn={} req={} waiting_for={:?} unblocked={} next_ready={}",
-                            txn, request_id, waiting_for, unblocked, next_ready
-                        );
-                    }
+                if let Some(db) = self.get_database_mut(origin, db_name) {
                     db.mark_request_handled(txn, request_id);
                 }
             },
@@ -1824,7 +1733,6 @@ impl IndexedDBManager {
                 // lifecycle.
                 let transaction_id = self.serial_number_counter;
                 self.serial_number_counter += 1;
-                println!("[IDBDBG_STORAGE_REGISTER_TXN] txn={}", transaction_id);
                 let _ = sender.send(transaction_id);
             },
             SyncOperation::NotifyEndOfVersionChange {

@@ -5,7 +5,6 @@
 use std::cell::Cell;
 
 use base::generic_channel::GenericSend;
-use base::id::ScriptEventLoopId;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
@@ -15,9 +14,8 @@ use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
 use serde::{Deserialize, Serialize};
 use storage_traits::indexeddb::{
-    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError, BackendResult,
-    IndexedDBKeyType, IndexedDBRecord, IndexedDBThreadMsg, IndexedDBTxnMode, PutItemResult,
-    SyncOperation,
+    AsyncOperation, AsyncReadOnlyOperation, BackendError, BackendResult, IndexedDBKeyType,
+    IndexedDBRecord, IndexedDBThreadMsg, IndexedDBTxnMode, PutItemResult, SyncOperation,
 };
 use stylo_atoms::Atom;
 
@@ -125,14 +123,8 @@ impl From<u64> for IdbResult {
 }
 
 impl RequestListener {
-    fn send_request_handled(transaction: &IDBTransaction, request_id: u64, result: &'static str) {
+    fn send_request_handled(transaction: &IDBTransaction, request_id: u64) {
         let global = transaction.global();
-        let txn_id = transaction.get_serial_number();
-        let db_name = transaction.get_db_name().to_string();
-        println!(
-            "[IDBDBG_REQ_HANDLED_SEND] txn={} req={} db={} result={}",
-            txn_id, request_id, db_name, result
-        );
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
         // Step 5:
         // The implementation must attempt to commit an inactive transaction when
@@ -156,16 +148,7 @@ impl RequestListener {
             },
         ));
         if send_result.is_err() {
-            eprintln!(
-                "[IDBDBG_REQ_HANDLED_RESULT] txn={} req={} db={} result=error",
-                txn_id, request_id, db_name
-            );
             error!("Failed to send SyncOperation::RequestHandled");
-        } else {
-            println!(
-                "[IDBDBG_REQ_HANDLED_RESULT] txn={} req={} db={} result=success",
-                txn_id, request_id, db_name
-            );
         }
         transaction.mark_request_handled(request_id);
 
@@ -184,34 +167,6 @@ impl RequestListener {
             .transaction
             .get()
             .expect("Request unexpectedly has no transaction");
-        let txn_id = transaction.get_serial_number();
-        let db_name = transaction.get_db_name().to_string();
-        let result_label = if result.is_ok() { "success" } else { "error" };
-        let is_event_dispatch_test = db_name.contains("event-dispatch-active-flag");
-        if is_event_dispatch_test {
-            let event_loop_id = ScriptEventLoopId::installed();
-            println!(
-                "[IDBDBG_DELIVER_RECV] txn={} req={} db={} result={} event_loop={:?} active={} finished={} committing={}",
-                txn_id,
-                self.request_id,
-                db_name,
-                result_label,
-                event_loop_id,
-                transaction.is_active(),
-                transaction.is_finished(),
-                transaction.is_committing()
-            );
-            let found_req = transaction.has_request(&request);
-            println!(
-                "[IDBDBG_ROUTE_LOOKUP] txn={} req={} found_txn=true found_req={}",
-                txn_id, self.request_id, found_req
-            );
-        }
-        println!(
-            "[IDBDBG_FINISH_ENTER] txn={} req={} db={} result={}",
-            txn_id, self.request_id, db_name, result_label
-        );
-
         // Substep 1: Set the result of request to result.
         request.set_ready_state_done();
 
@@ -242,12 +197,6 @@ impl RequestListener {
                         });
                     if let Err(e) = result {
                         warn!("Error reading structuredclone data");
-                        if is_event_dispatch_test {
-                            println!(
-                                "[IDBDBG_DELIVER_DROP] txn={} req={} db={} reason=structuredclone_error",
-                                txn_id, self.request_id, db_name
-                            );
-                        }
                         Self::handle_async_request_error(&global, cx, request, e, self.request_id);
                         return;
                     };
@@ -267,12 +216,6 @@ impl RequestListener {
                             });
                         if let Err(e) = result {
                             warn!("Error reading structuredclone data");
-                            if is_event_dispatch_test {
-                                println!(
-                                    "[IDBDBG_DELIVER_DROP] txn={} req={} db={} reason=structuredclone_error",
-                                    txn_id, self.request_id, db_name
-                                );
-                            }
                             Self::handle_async_request_error(
                                 &global,
                                 cx,
@@ -296,12 +239,6 @@ impl RequestListener {
                         Ok(cursor) => cursor,
                         Err(e) => {
                             warn!("Error reading structuredclone data");
-                            if is_event_dispatch_test {
-                                println!(
-                                    "[IDBDBG_DELIVER_DROP] txn={} req={} db={} reason=iterate_cursor_error",
-                                    txn_id, self.request_id, db_name
-                                );
-                            }
                             Self::handle_async_request_error(
                                 &global,
                                 cx,
@@ -332,12 +269,6 @@ impl RequestListener {
                 },
                 IdbResult::Error(error) => {
                     // Substep 2
-                    if is_event_dispatch_test {
-                        println!(
-                            "[IDBDBG_DELIVER_DROP] txn={} req={} db={} reason=backend_error",
-                            txn_id, self.request_id, db_name
-                        );
-                    }
                     Self::handle_async_request_error(&global, cx, request, error, self.request_id);
                     return;
                 },
@@ -366,52 +297,24 @@ impl RequestListener {
             // requests to be made against the transaction. Once the event dispatch is
             // complete, the transaction’s state is set to inactive again.
             transaction.set_active_flag(true);
-            println!(
-                "[IDBDBG_FINISH_BEFORE_FIRE] txn={} req={} db={} result=success",
-                txn_id, self.request_id, db_name
-            );
             event
                 .upcast::<Event>()
                 .fire(request.upcast(), CanGc::from_cx(cx));
-            println!(
-                "[IDBDBG_FINISH_AFTER_FIRE] txn={} req={} db={} result=success",
-                txn_id, self.request_id, db_name
-            );
             // https://w3c.github.io/IndexedDB/#transaction-lifecycle
             // Once the event dispatch is complete, the transaction’s state is set to inactive again.
             transaction.set_active_flag(false);
-            println!(
-                "[IDBDBG_FINISH_BEFORE_FINISHED] txn={} req={} db={} result=success",
-                txn_id, self.request_id, db_name
-            );
-            if is_event_dispatch_test {
-                println!(
-                    "[IDBDBG_REQ_FINISH] txn={} req={} db={} result=success call_request_finished=true call_mark_handled=true",
-                    txn_id, self.request_id, db_name
-                );
-            }
             // Notify the transaction that this request has finished.
             transaction.request_finished();
-            println!(
-                "[IDBDBG_FINISH_BEFORE_HANDLED] txn={} req={} db={} result=success",
-                txn_id, self.request_id, db_name
-            );
             // https://w3c.github.io/IndexedDB/#transaction-lifecycle
             // The implementation must attempt to commit an inactive transaction
             // when all requests placed against the transaction have completed and
             // their returned results handled, no new requests have been placed
             // against the transaction, and the transaction has not been aborted
 
-            Self::send_request_handled(&transaction, self.request_id, "success");
+            Self::send_request_handled(&transaction, self.request_id);
         } else {
             // FIXME:(arihant2math) dispatch correct error
             // Substep 2
-            if is_event_dispatch_test {
-                println!(
-                    "[IDBDBG_DELIVER_DROP] txn={} req={} db={} reason=backend_result_err",
-                    txn_id, self.request_id, db_name
-                );
-            }
             Self::handle_async_request_error(
                 &global,
                 cx,
@@ -435,13 +338,6 @@ impl RequestListener {
             .transaction
             .get()
             .expect("Request has no transaction");
-        let txn_id = transaction.get_serial_number();
-        let db_name = transaction.get_db_name().to_string();
-        let is_event_dispatch_test = db_name.contains("event-dispatch-active-flag");
-        println!(
-            "[IDBDBG_ERROR_ENTER] txn={} req={} db={} result=error",
-            txn_id, request_id, db_name
-        );
         // Substep 1: Set the result of request to undefined.
         rooted!(&in(cx) let undefined = UndefinedValue());
         request.set_result(undefined.handle());
@@ -466,26 +362,14 @@ impl RequestListener {
         // requests to be made against the transaction. Once the event dispatch is
         // complete, the transaction’s state is set to inactive again.
         transaction.set_active_flag(true);
-        println!(
-            "[IDBDBG_ERROR_BEFORE_FIRE] txn={} req={} db={} result=error",
-            txn_id, request_id, db_name
-        );
         // https://w3c.github.io/IndexedDB/#events
         // Set event’s bubbles and cancelable attributes to false.
         let default_not_prevented = event
             .upcast::<Event>()
             .fire(request.upcast(), CanGc::from_cx(cx));
-        println!(
-            "[IDBDBG_ERROR_AFTER_FIRE] txn={} req={} db={} result=error",
-            txn_id, request_id, db_name
-        );
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
         // Once the event dispatch is complete, the transaction’s state is set to inactive again.
         transaction.set_active_flag(false);
-        println!(
-            "[IDBDBG_ERROR_BEFORE_ABORT] txn={} req={} db={} result=error default_not_prevented={}",
-            txn_id, request_id, db_name, default_not_prevented
-        );
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
         // An explicit call to abort() will initiate an abort. An abort will also be initiated following a failed request that is not handled by script.
         if default_not_prevented {
@@ -495,28 +379,14 @@ impl RequestListener {
             transaction.initiate_abort(error.clone(), CanGc::from_cx(cx));
             transaction.request_backend_abort();
         }
-        println!(
-            "[IDBDBG_ERROR_BEFORE_FINISHED] txn={} req={} db={} result=error",
-            txn_id, request_id, db_name
-        );
-        if is_event_dispatch_test {
-            println!(
-                "[IDBDBG_REQ_FINISH] txn={} req={} db={} result=error call_request_finished=true call_mark_handled=true",
-                txn_id, request_id, db_name
-            );
-        }
         // Notify the transaction that this request has finished.
         transaction.request_finished();
-        println!(
-            "[IDBDBG_ERROR_BEFORE_HANDLED] txn={} req={} db={} result=error",
-            txn_id, request_id, db_name
-        );
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
         // The implementation must attempt to commit an inactive transaction
         // when all requests placed against the transaction have completed and
         // their returned results handled, no new requests have been placed against
         // the transaction, and the transaction has not been aborted
-        Self::send_request_handled(&transaction, request_id, "error");
+        Self::send_request_handled(&transaction, request_id);
     }
 }
 
@@ -589,19 +459,12 @@ impl IDBRequest {
         // Step 1: Let transaction be the transaction associated with source.
         let transaction = source.transaction();
         let global = transaction.global();
-        let txn_id = transaction.get_serial_number();
-        let db_name = transaction.get_db_name().to_string();
-
         // Step 2: Assert: transaction is active.
         if !transaction.is_active() || !transaction.is_usable() {
             return Err(Error::TransactionInactive(None));
         }
 
         let request_id = transaction.allocate_request_id();
-        println!(
-            "[IDBDBG_EXEC_ALLOC] txn={} req={} db={} result=pending",
-            txn_id, request_id, db_name
-        );
 
         // Step 3: If request was not given, let request be a new request with source as source.
         let request = request.unwrap_or_else(|| {
@@ -613,10 +476,6 @@ impl IDBRequest {
 
         // Step 4: Add request to the end of transaction’s request list.
         transaction.add_request(&request);
-        println!(
-            "[IDBDBG_EXEC_ADD] txn={} req={} db={} result=pending",
-            txn_id, request_id, db_name
-        );
 
         // Step 5: Run the operation, and queue a returning task in parallel
         // the result will be put into `receiver`
@@ -637,27 +496,7 @@ impl IDBRequest {
             .dom_manipulation_task_source()
             .to_sendable();
 
-        let cb_db_name = db_name.clone();
         let closure = move |message: Result<BackendResult<T>, ipc_channel::Error>| {
-            println!(
-                "[IDBDBG_ASYNC_CB_ENTER] txn={} req={} db={} result=pending",
-                txn_id, request_id, cb_db_name
-            );
-            match &message {
-                Ok(inner) => {
-                    let result_label = if inner.is_ok() { "success" } else { "error" };
-                    println!(
-                        "[IDBDBG_ASYNC_CB_STATUS] txn={} req={} db={} result={}",
-                        txn_id, request_id, cb_db_name, result_label
-                    );
-                },
-                Err(err) => {
-                    eprintln!(
-                        "[IDBDBG_ASYNC_CB_STATUS] txn={} req={} db={} result=error err={:?}",
-                        txn_id, request_id, cb_db_name, err
-                    );
-                },
-            }
             let response_listener = response_listener.clone();
             task_source.queue(task!(request_callback: move |cx| {
                 response_listener.handle_async_request_finished(
@@ -689,35 +528,8 @@ impl IDBRequest {
             );
         }
 
-        if db_name.contains("event-dispatch-active-flag") {
-            let op_label = match &operation {
-                AsyncOperation::ReadOnly(op) => match op {
-                    AsyncReadOnlyOperation::GetKey { .. } => "ReadOnly::GetKey",
-                    AsyncReadOnlyOperation::GetItem { .. } => "ReadOnly::GetItem",
-                    AsyncReadOnlyOperation::GetAllKeys { .. } => "ReadOnly::GetAllKeys",
-                    AsyncReadOnlyOperation::GetAllItems { .. } => "ReadOnly::GetAllItems",
-                    AsyncReadOnlyOperation::Count { .. } => "ReadOnly::Count",
-                    AsyncReadOnlyOperation::Iterate { .. } => "ReadOnly::Iterate",
-                },
-                AsyncOperation::ReadWrite(op) => match op {
-                    AsyncReadWriteOperation::PutItem { .. } => "ReadWrite::PutItem",
-                    AsyncReadWriteOperation::RemoveItem { .. } => "ReadWrite::RemoveItem",
-                    AsyncReadWriteOperation::Clear(_) => "ReadWrite::Clear",
-                },
-            };
-            let js_req_ptr = (&*request) as *const IDBRequest;
-            println!(
-                "[IDBDBG_ROUTE_INSERT] txn={} req={} db={} op={} js_req_ptr={:p}",
-                txn_id, request_id, db_name, op_label, js_req_ptr
-            );
-        }
-
         // Start is a backend database task (spec). Script does not model it with a
         // separate queued task, backend scheduling decides when requests begin.
-        println!(
-            "[IDBDBG_EXEC_SEND] txn={} req={} db={} result=pending",
-            txn_id, request_id, db_name
-        );
         transaction
             .global()
             .storage_threads()
