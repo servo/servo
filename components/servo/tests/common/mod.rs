@@ -20,9 +20,8 @@ pub struct ServoTest {
     pub servo: Servo,
     pub rendering_context: Rc<dyn RenderingContext>,
 }
-
 impl ServoTest {
-    #[expect(dead_code)] // Used by some tests and not others
+    #[allow(dead_code)] // Used by some tests and not others
     pub(crate) fn new() -> Self {
         Self::new_with_builder(|builder| builder)
     }
