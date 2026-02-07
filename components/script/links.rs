@@ -288,7 +288,7 @@ impl LinkRelations {
         }
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#get-an-element's-noopener>
+    /// <https://html.spec.whatwg.org/multipage/#get-an-element%27s-noopener>
     pub(crate) fn get_element_noopener(&self, target_attribute_value: Option<&DOMString>) -> bool {
         // Step 1. If element's link types include the noopener or noreferrer keyword, then return true.
         if self.contains(Self::NO_OPENER) || self.contains(Self::NO_REFERRER) {
@@ -310,30 +310,78 @@ impl LinkRelations {
 
 malloc_size_of_is_0!(LinkRelations);
 
-/// <https://html.spec.whatwg.org/multipage/#get-an-element's-target>
-pub(crate) fn get_element_target(subject: &Element) -> Option<DOMString> {
-    if !(subject.is::<HTMLAreaElement>() ||
-        subject.is::<HTMLAnchorElement>() ||
-        subject.is::<HTMLFormElement>())
-    {
-        return None;
+/// <https://html.spec.whatwg.org/multipage/#valid-navigable-target-name>
+fn valid_navigable_target_name(target: &DOMString) -> bool {
+    // > A valid navigable target name is any string with at least one character that does not contain both
+    // > an ASCII tab or newline and a U+003C (<), and it does not start with a U+005F (_).
+    // > (Names starting with a U+005F (_) are reserved for special keywords.)
+    if target.is_empty() {
+        return false;
     }
-    if subject.has_attribute(&local_name!("target")) {
-        return Some(subject.get_string_attribute(&local_name!("target")));
+    if target.contains_tab_or_newline() && target.contains("\u{003C}") {
+        return false;
     }
+    if target.starts_with('\u{005F}') {
+        return false;
+    }
+    true
+}
 
-    let doc = subject.owner_document().base_element();
-    match doc {
-        Some(doc) => {
-            let element = doc.upcast::<Element>();
-            if element.has_attribute(&local_name!("target")) {
-                Some(element.get_string_attribute(&local_name!("target")))
-            } else {
-                None
-            }
-        },
-        None => None,
+/// <https://html.spec.whatwg.org/multipage/#valid-navigable-target-name-or-keyword>
+pub(crate) fn valid_navigable_target_name_or_keyword(target: &DOMString) -> bool {
+    // > A valid navigable target name or keyword is any string that is either a valid navigable target name
+    // > or that is an ASCII case-insensitive match for one of: _blank, _self, _parent, or _top.
+    if valid_navigable_target_name(target) {
+        return true;
     }
+    let target = target.to_ascii_lowercase();
+    target == "_blank" || target == "_self" || target == "_parent" || target == "_top"
+}
+
+/// <https://html.spec.whatwg.org/multipage/#get-an-element%27s-target>
+pub(crate) fn get_element_target(
+    subject: &Element,
+    target: Option<DOMString>,
+) -> Option<DOMString> {
+    assert!(
+        subject.is::<HTMLAreaElement>() ||
+            subject.is::<HTMLAnchorElement>() ||
+            subject.is::<HTMLFormElement>()
+    );
+
+    // Step 1. If target is null, then:
+    let target = target.or_else(|| {
+        // Step 1.1. If element has a target attribute, then set target to that attribute's value.
+        //
+        // Note that for a target attribute to be valid, it must be a valid navigable target name
+        // or keyword
+        let element_target = subject.get_string_attribute(&local_name!("target"));
+        if valid_navigable_target_name_or_keyword(&element_target) {
+            Some(element_target)
+        } else {
+            // Step 1.2. Otherwise, if element's node document contains a base element with a target attribute,
+            // set target to the value of the target attribute of the first such base element.
+            subject
+                .owner_document()
+                .target_base_element()
+                .and_then(|base_element| {
+                    let element = base_element.upcast::<Element>();
+                    if element.has_attribute(&local_name!("target")) {
+                        Some(element.get_string_attribute(&local_name!("target")))
+                    } else {
+                        None
+                    }
+                })
+        }
+    });
+    // Step 2. If target is not null, and contains an ASCII tab or newline and a U+003C (<), then set target to "_blank".
+    if let Some(ref target) = target {
+        if target.contains_tab_or_newline() && target.contains("\u{003C}") {
+            return Some("_blank".into());
+        }
+    }
+    // Step 3. Return target.
+    target
 }
 
 /// <https://html.spec.whatwg.org/multipage/#following-hyperlinks-2>
@@ -364,7 +412,7 @@ pub(crate) fn follow_hyperlink(
             {
                 Some("_blank".into())
             } else {
-                get_element_target(subject)
+                get_element_target(subject, None)
             }
         } else {
             None
