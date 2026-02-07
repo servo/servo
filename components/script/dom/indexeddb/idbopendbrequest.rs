@@ -196,6 +196,12 @@ impl IDBOpenDBRequest {
         // Step 10.4: Set transaction’s state to active.
         // TODO: message to set state of backend transaction.
         transaction.set_active_flag(true);
+        println!(
+            "IndexedDB upgrade txn set active: request_id={} txn={} db={}",
+            self.get_id(),
+            transaction.get_serial_number(),
+            connection.get_name().to_string()
+        );
 
         // Step 10.5: Let didThrow be the result of
         // firing a version change event named upgradeneeded
@@ -210,32 +216,49 @@ impl IDBOpenDBRequest {
             CanGc::note(),
         );
 
+        println!(
+            "IndexedDB firing upgradeneeded: request_id={} txn={} old_version={} new_version={}",
+            self.get_id(),
+            transaction.get_serial_number(),
+            old_version,
+            version
+        );
         // TODO: use as part of step 10.6.2
         let _did_throw = event.upcast::<Event>().fire(self.upcast(), can_gc);
+        println!(
+            "IndexedDB fired upgradeneeded: request_id={} txn={}",
+            self.get_id(),
+            transaction.get_serial_number()
+        );
 
         // Step 10.6: If transaction’s state is active, then:
         if transaction.is_active() {
             // Step 10.6.1: Set transaction’s state to inactive.
             transaction.set_active_flag(false);
+            println!(
+                "IndexedDB upgrade txn set inactive: request_id={} txn={}",
+                self.get_id(),
+                transaction.get_serial_number()
+            );
+
+            // The upgrade transaction auto-commits once inactive and quiescent.
+            println!(
+                "IndexedDB calling maybe_commit for upgrade txn: request_id={} txn={}",
+                self.get_id(),
+                transaction.get_serial_number()
+            );
+            transaction.maybe_commit();
 
             // Step 10.6.2: If didThrow is true,
             // run abort a transaction with transaction
             // and a newly created "AbortError" DOMException.
             // TODO: implement.
-
-            // Note: only sending this if active,
-            // because if the transaction was aborted
-            // we don't want to create a connection.
-            if global
-                .storage_threads()
-                .send(IndexedDBThreadMsg::OpenTransactionInactive {
-                    name: connection.get_name().to_string(),
-                    origin: global.origin().immutable().clone(),
-                })
-                .is_err()
-            {
-                error!("Failed to send OpenTransactionInactive.");
-            }
+        } else {
+            println!(
+                "IndexedDB upgrade txn already inactive after upgradeneeded: request_id={} txn={}",
+                self.get_id(),
+                transaction.get_serial_number()
+            );
         }
     }
 

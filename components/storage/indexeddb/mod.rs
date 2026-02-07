@@ -680,9 +680,6 @@ impl IndexedDBManager {
                         db.schedule_transactions(origin, &db_name);
                     }
                 },
-                IndexedDBThreadMsg::OpenTransactionInactive { name, origin } => {
-                    self.handle_open_transaction_inactive(name, origin);
-                },
                 IndexedDBThreadMsg::EngineTxnBatchComplete {
                     origin,
                     db_name,
@@ -715,48 +712,103 @@ impl IndexedDBManager {
         }
     }
 
-    /// Handle when an open transaction becomes inactive.
-    fn handle_open_transaction_inactive(&mut self, name: String, origin: ImmutableOrigin) {
-        let key = IndexedDBDescription { name, origin };
-        let Some(queue) = self.connection_queues.get_mut(&key) else {
-            return debug_assert!(false, "A connection queue should exist.");
-        };
-        let Some(open_request) = queue.pop_front() else {
-            return debug_assert!(false, "A pending open request should exist.");
-        };
-        let OpenRequest::Open {
-            sender,
-            db_name,
-            version: _,
-            pending_upgrade,
-            pending_close: _,
-            pending_versionchange: _,
-            id,
-        } = open_request
-        else {
-            return;
-        };
-        let Some(VersionUpgrade {
-            old: _,
-            new,
-            txn: _,
-        }) = pending_upgrade
-        else {
-            return debug_assert!(false, "A pending version upgrade should exist.");
-        };
-        if sender
-            .send(ConnectionMsg::Connection {
-                id,
-                name: db_name,
-                version: new,
-                upgraded: true,
-            })
-            .is_err()
-        {
-            error!("Failed to send ConnectionMsg::Connection to script.");
+    /// Handle when an upgrade transaction finishes in script.
+    fn handle_upgrade_transaction_finished(
+        &mut self,
+        name: String,
+        origin: ImmutableOrigin,
+        txn: u64,
+        committed: bool,
+    ) {
+        println!(
+            "IndexedDB backend handle_upgrade_transaction_finished: db={} txn={} committed={}",
+            name, txn, committed
+        );
+        let key = IndexedDBDescription {
+            name: name.clone(),
+            origin: origin.clone(),
         };
 
-        self.advance_connection_queue(key);
+        if committed {
+            let Some(queue) = self.connection_queues.get_mut(&key) else {
+                return debug_assert!(false, "A connection queue should exist.");
+            };
+            let Some(front) = queue.front() else {
+                return debug_assert!(false, "A pending open request should exist.");
+            };
+            let OpenRequest::Open {
+                pending_upgrade: Some(pending_upgrade),
+                ..
+            } = front
+            else {
+                return;
+            };
+            if pending_upgrade.txn != txn {
+                return;
+            }
+
+            let Some(open_request) = queue.pop_front() else {
+                return;
+            };
+            let OpenRequest::Open {
+                sender,
+                db_name,
+                version: _,
+                pending_upgrade: Some(pending_upgrade),
+                pending_close: _,
+                pending_versionchange: _,
+                id,
+            } = open_request
+            else {
+                return;
+            };
+            let VersionUpgrade { new, .. } = pending_upgrade;
+            println!(
+                "IndexedDB backend sending upgraded Connection success: db={} txn={} id={} version={}",
+                db_name, txn, id, new
+            );
+            if sender
+                .send(ConnectionMsg::Connection {
+                    id,
+                    name: db_name,
+                    version: new,
+                    upgraded: true,
+                })
+                .is_err()
+            {
+                error!("Failed to send ConnectionMsg::Connection to script.");
+            };
+
+            self.advance_connection_queue(key);
+            return;
+        }
+
+        let request_id = {
+            let Some(queue) = self.connection_queues.get_mut(&key) else {
+                return debug_assert!(false, "A connection queue should exist.");
+            };
+            let Some(front) = queue.front() else {
+                return debug_assert!(false, "A pending open request should exist.");
+            };
+            let OpenRequest::Open {
+                pending_upgrade: Some(pending_upgrade),
+                id,
+                ..
+            } = front
+            else {
+                return;
+            };
+            if pending_upgrade.txn != txn {
+                return;
+            }
+            *id
+        };
+
+        println!(
+            "IndexedDB backend upgrade txn aborted; aborting pending open request: db={} txn={} id={}",
+            name, txn, request_id
+        );
+        self.abort_pending_upgrade(name, request_id, origin);
     }
 
     /// Run the next open request in the queue.
@@ -1160,7 +1212,7 @@ impl IndexedDBManager {
             db_name,
             version,
             id,
-            pending_upgrade: _,
+            pending_upgrade: _pending_upgrade,
             pending_close,
             pending_versionchange,
         } = open_request
@@ -1620,6 +1672,10 @@ impl IndexedDBManager {
                 // https://w3c.github.io/IndexedDB/#commit-a-transaction
                 // TODO: implement the commit algorithm and only reply after the backend has
                 // transitioned the transaction to committed/aborted (should be atomic).
+                println!(
+                    "IndexedDB backend handling SyncOperation::Commit: db={} txn={}",
+                    db_name, txn
+                );
                 let _ = callback.send(TxnCompleteMsg {
                     origin: origin.clone(),
                     db_name: db_name.clone(),
@@ -1628,29 +1684,6 @@ impl IndexedDBManager {
                 });
                 if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
                     db.schedule_transactions(origin.clone(), &db_name);
-                }
-
-                // If this commit corresponds to the currently-pending upgrade transaction,
-                // finish the open request and advance the connection queue.
-                let key = IndexedDBDescription {
-                    origin: origin.clone(),
-                    name: db_name.clone(),
-                };
-                let is_upgrade_txn = self
-                    .connection_queues
-                    .get(&key)
-                    .and_then(|q| q.front())
-                    .and_then(|front| match front {
-                        OpenRequest::Open {
-                            pending_upgrade: Some(up),
-                            ..
-                        } => Some(up.txn == txn),
-                        _ => None,
-                    })
-                    .unwrap_or(false);
-
-                if is_upgrade_txn {
-                    self.handle_open_transaction_inactive(db_name, origin);
                 }
             },
             SyncOperation::Abort(callback, origin, db_name, txn) => {
@@ -1670,6 +1703,14 @@ impl IndexedDBManager {
                     db.schedule_transactions(origin, &db_name);
                 }
             },
+            SyncOperation::UpgradeTransactionFinished {
+                origin,
+                db_name,
+                txn,
+                committed,
+            } => {
+                self.handle_upgrade_transaction_finished(db_name, origin, txn, committed);
+            },
             SyncOperation::RequestHandled {
                 origin,
                 db_name,
@@ -1682,7 +1723,7 @@ impl IndexedDBManager {
                 // and their returned results handled, no new requests have been
                 // placed against the transaction, and the transaction has not been aborted
 
-                if let Some(db) = self.get_database_mut(origin, db_name) {
+                if let Some(db) = self.get_database_mut(origin, db_name.clone()) {
                     db.mark_request_handled(txn, request_id);
                 }
             },

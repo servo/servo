@@ -443,6 +443,13 @@ pub enum SyncOperation {
         String, // Database
         u64,    // Transaction serial number
     ),
+    /// Upgrade transaction finished after its event was fired in script.
+    UpgradeTransactionFinished {
+        origin: ImmutableOrigin,
+        db_name: String,
+        txn: u64,
+        committed: bool,
+    },
     // When each request associated with a transaction is processed,
     // a success or error event will be fired. While the event is being
     // dispatched, the transaction state is set to active, allowing
@@ -571,10 +578,6 @@ pub enum IndexedDBThreadMsg {
         IndexedDBTxnMode,
         AsyncOperation,
     ),
-    OpenTransactionInactive {
-        name: String,
-        origin: ImmutableOrigin,
-    },
     EngineTxnBatchComplete {
         origin: ImmutableOrigin,
         db_name: String,

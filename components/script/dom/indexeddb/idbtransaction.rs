@@ -78,7 +78,7 @@ pub struct IDBTransaction {
 
     /// The id of the associated open request, if any.
     #[no_trace]
-    open_request_id: Option<Uuid>,
+    _open_request_id: Option<Uuid>,
 }
 
 impl IDBTransaction {
@@ -110,7 +110,7 @@ impl IDBTransaction {
             handled_next_unhandled_id: Cell::new(0),
             handled_pending: Default::default(),
             serial_number,
-            open_request_id,
+            _open_request_id: open_request_id,
         }
     }
 
@@ -187,6 +187,14 @@ impl IDBTransaction {
         // “inactive … No requests can be made against the transaction when it is in this state.”
         // “finished … Once a transaction has committed or aborted, it enters this state.”
         // “When a transaction is committed or aborted, its state is set to finished.”
+        if self.mode == IDBTransactionMode::Versionchange {
+            println!(
+                "IndexedDB versionchange set_active_flag: db={} txn={} active={}",
+                self.db.get_name().to_string(),
+                self.serial_number,
+                status
+            );
+        }
         self.active.set(status);
     }
 
@@ -234,6 +242,18 @@ impl IDBTransaction {
     }
 
     fn attempt_commit(&self) -> bool {
+        println!(
+            "IndexedDB attempt_commit called: db={} txn={} active={} committing={} finished={} abort_initiated={} pending_request_count={} handled_next_unhandled_id={} issued_count={}",
+            self.db.get_name().to_string(),
+            self.serial_number,
+            self.active.get(),
+            self.committing.get(),
+            self.finished.get(),
+            self.abort_initiated.get(),
+            self.pending_request_count.get(),
+            self.handled_next_unhandled_id.get(),
+            self.issued_count()
+        );
         let this = Trusted::new(self);
         let global = self.global();
         let task_source = global
@@ -251,9 +271,19 @@ impl IDBTransaction {
                     let message = message.expect("Could not unwrap message");
                     match message.result {
                         Ok(()) => {
+                            println!(
+                                "IndexedDB commit callback success: db={} txn={}",
+                                this.db.get_name().to_string(),
+                                this.serial_number
+                            );
                             this.finalize_commit();
                         }
                         Err(_err) => {
+                            println!(
+                                "IndexedDB commit callback error; aborting txn: db={} txn={}",
+                                this.db.get_name().to_string(),
+                                this.serial_number
+                            );
                             // TODO: Map backend commit error to appropriate DOMException.
                             this.initiate_abort(
                                 Error::QuotaExceeded {
@@ -285,14 +315,29 @@ impl IDBTransaction {
         // placed against the transaction. That is, either all of the changes must be written,
         // or if an error occurs, such as a disk write error, the implementation must not write
         // any of the changes to the database, and the steps to abort a transaction will be followed.
+        println!(
+            "IndexedDB sending SyncOperation::Commit: db={} txn={}",
+            self.db.get_name().to_string(),
+            self.serial_number
+        );
         let send_result = self
             .get_idb_thread()
             .send(IndexedDBThreadMsg::Sync(commit_operation));
         if send_result.is_err() {
+            println!(
+                "IndexedDB failed to send SyncOperation::Commit: db={} txn={}",
+                self.db.get_name().to_string(),
+                self.serial_number
+            );
             return false;
         }
 
         self.committing.set(true);
+        println!(
+            "IndexedDB marked transaction committing=true: db={} txn={}",
+            self.db.get_name().to_string(),
+            self.serial_number
+        );
         true
     }
 
@@ -302,16 +347,62 @@ impl IDBTransaction {
         //  placed against the transaction have completed and their returned results handled,
         //  no new requests have been placed against the transaction, and the transaction has
         //  not been aborted.”
-        if self.finished.get() || self.abort_initiated.get() || self.committing.get() {
+        let finished = self.finished.get();
+        let abort_initiated = self.abort_initiated.get();
+        let committing = self.committing.get();
+        let active = self.active.get();
+        let pending_request_count = self.pending_request_count.get();
+        let handled_next_unhandled_id = self.handled_next_unhandled_id.get();
+        let issued_count = self.issued_count();
+        println!(
+            "IndexedDB maybe_commit called: db={} txn={} finished={} abort_initiated={} committing={} active={} pending_request_count={} handled_next_unhandled_id={} issued_count={}",
+            self.db.get_name().to_string(),
+            self.serial_number,
+            finished,
+            abort_initiated,
+            committing,
+            active,
+            pending_request_count,
+            handled_next_unhandled_id,
+            issued_count
+        );
+        if finished || abort_initiated || committing {
+            println!(
+                "IndexedDB maybe_commit early return (state gate): db={} txn={} finished={} abort_initiated={} committing={}",
+                self.db.get_name().to_string(),
+                self.serial_number,
+                finished,
+                abort_initiated,
+                committing
+            );
             return;
         }
-        if self.active.get() || self.pending_request_count.get() != 0 {
+        if active || pending_request_count != 0 {
+            println!(
+                "IndexedDB maybe_commit early return (active/pending gate): db={} txn={} active={} pending_request_count={}",
+                self.db.get_name().to_string(),
+                self.serial_number,
+                active,
+                pending_request_count
+            );
             return;
         }
-        if self.handled_next_unhandled_id.get() != self.issued_count() {
+        if handled_next_unhandled_id != issued_count {
+            println!(
+                "IndexedDB maybe_commit early return (handled gate): db={} txn={} handled_next_unhandled_id={} issued_count={}",
+                self.db.get_name().to_string(),
+                self.serial_number,
+                handled_next_unhandled_id,
+                issued_count
+            );
             return;
         }
 
+        println!(
+            "IndexedDB maybe_commit proceeding to attempt_commit: db={} txn={}",
+            self.db.get_name().to_string(),
+            self.serial_number
+        );
         if !self.attempt_commit() {
             // We failed to initiate the commit algorithm (backend task could not be queued),
             // so the transaction cannot progress to a successful "complete".
@@ -460,6 +551,11 @@ impl IDBTransaction {
         if self.finished.get() {
             return;
         }
+        println!(
+            "IndexedDB finalize_abort: db={} txn={}",
+            self.db.get_name().to_string(),
+            self.serial_number
+        );
         self.committing.set(false);
         let this = Trusted::new(self);
         self.global()
@@ -468,6 +564,9 @@ impl IDBTransaction {
             .queue(task!(send_abort_notification: move || {
                 let this = this.root();
                 this.active.set(false);
+                if this.mode == IDBTransactionMode::Versionchange {
+                    this.db.clear_upgrade_transaction(&this);
+                }
                 let global = this.global();
                 let event = Event::new(
                     &global,
@@ -477,6 +576,29 @@ impl IDBTransaction {
                     CanGc::note(),
                 );
                 event.fire(this.upcast(), CanGc::note());
+                println!(
+                    "IndexedDB abort event fired: db={} txn={}",
+                    this.db.get_name().to_string(),
+                    this.serial_number
+                );
+                if this.mode == IDBTransactionMode::Versionchange {
+                    let origin = this.global().origin().immutable().clone();
+                    let db_name = this.db.get_name().to_string();
+                    let txn = this.serial_number;
+                    println!(
+                        "IndexedDB sending UpgradeTransactionFinished committed=false: db={} txn={}",
+                        this.db.get_name().to_string(),
+                        this.serial_number
+                    );
+                    let _ = this.get_idb_thread().send(IndexedDBThreadMsg::Sync(
+                        SyncOperation::UpgradeTransactionFinished {
+                            origin,
+                            db_name,
+                            txn,
+                            committed: false,
+                        },
+                    ));
+                }
                 // https://w3c.github.io/IndexedDB/#transaction-lifecycle
                 // “When a transaction is committed or aborted, its state is set to finished.”
                 this.finished.set(true);
@@ -491,10 +613,18 @@ impl IDBTransaction {
         if self.finished.get() {
             return;
         }
+        println!(
+            "IndexedDB finalize_commit: db={} txn={}",
+            self.db.get_name().to_string(),
+            self.serial_number
+        );
         self.committing.set(false);
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
         // When a transaction is committed or aborted, its state is set to finished.
         self.finished.set(true);
+        if self.mode == IDBTransactionMode::Versionchange {
+            self.db.clear_upgrade_transaction(self);
+        }
         self.dispatch_complete();
         if self.registered_in_global.get() {
             self.global()
@@ -505,11 +635,21 @@ impl IDBTransaction {
     }
 
     fn dispatch_complete(&self) {
+        println!(
+            "IndexedDB dispatch_complete queued: db={} txn={}",
+            self.db.get_name().to_string(),
+            self.serial_number
+        );
         let global = self.global();
         let this = Trusted::new(self);
         global.task_manager().dom_manipulation_task_source().queue(
             task!(send_complete_notification: move || {
                 let this = this.root();
+                println!(
+                    "IndexedDB dispatch_complete running: db={} txn={}",
+                    this.db.get_name().to_string(),
+                    this.serial_number
+                );
                 let global = this.global();
                 let event = Event::new(
                     &global,
@@ -519,6 +659,29 @@ impl IDBTransaction {
                     CanGc::note()
                 );
                 event.fire(this.upcast(), CanGc::note());
+                println!(
+                    "IndexedDB complete event fired: db={} txn={}",
+                    this.db.get_name().to_string(),
+                    this.serial_number
+                );
+                if this.mode == IDBTransactionMode::Versionchange {
+                    let origin = this.global().origin().immutable().clone();
+                    let db_name = this.db.get_name().to_string();
+                    let txn = this.serial_number;
+                    println!(
+                        "IndexedDB sending UpgradeTransactionFinished committed=true: db={} txn={}",
+                        this.db.get_name().to_string(),
+                        this.serial_number
+                    );
+                    let _ = this.get_idb_thread().send(IndexedDBThreadMsg::Sync(
+                        SyncOperation::UpgradeTransactionFinished {
+                            origin,
+                            db_name,
+                            txn,
+                            committed: true,
+                        },
+                    ));
+                }
             }),
         );
     }
@@ -654,32 +817,9 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         if self.finished.get() {
             return Err(Error::InvalidState(None));
         }
-
         self.active.set(false);
         self.initiate_abort(Error::Abort(None), CanGc::note());
         self.request_backend_abort();
-
-        if self.mode == IDBTransactionMode::Versionchange {
-            let name = self.db.get_name().to_string();
-            let global = self.global();
-            let origin = global.origin().immutable().clone();
-            let Some(id) = self.open_request_id else {
-                debug_assert!(
-                    false,
-                    "A Versionchange transaction should have an open request id."
-                );
-                return Err(Error::InvalidState(None));
-            };
-            if global
-                .storage_threads()
-                .send(IndexedDBThreadMsg::Sync(
-                    SyncOperation::AbortPendingUpgrade { name, id, origin },
-                ))
-                .is_err()
-            {
-                error!("Failed to send SyncOperation::AbortPendingUpgrade");
-            }
-        }
 
         Ok(())
     }

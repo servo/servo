@@ -127,6 +127,15 @@ impl IDBDatabase {
         self.upgrade_transaction.set(Some(transaction));
     }
 
+    pub(crate) fn clear_upgrade_transaction(&self, transaction: &IDBTransaction) {
+        let Some(current) = self.upgrade_transaction.get() else {
+            return;
+        };
+        if std::ptr::eq::<IDBTransaction>(&*current, transaction) {
+            self.upgrade_transaction.set(None);
+        }
+    }
+
     /// <https://w3c.github.io/IndexedDB/#eventdef-idbdatabase-versionchange>
     pub fn dispatch_versionchange(
         &self,
