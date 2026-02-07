@@ -346,13 +346,8 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-objectstorenames>
-    fn ObjectStoreNames(&self) -> DomRoot<DOMStringList> {
-        // FIXME: (arihant2math) Sort the list of names, as per spec
-        DOMStringList::new(
-            &self.global(),
-            self.object_store_names.borrow().clone(),
-            CanGc::note(),
-        )
+    fn ObjectStoreNames(&self, can_gc: CanGc) -> DomRoot<DOMStringList> {
+        DOMStringList::new_sorted(&self.global(), &self.object_store_names.borrow(), can_gc)
     }
 
     /// <https://w3c.github.io/IndexedDB/#dom-idbdatabase-close>

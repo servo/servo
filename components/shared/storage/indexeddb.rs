@@ -420,7 +420,6 @@ pub enum SyncOperation {
 
     /// Creates a new index for the database
     CreateIndex(
-        GenericSender<BackendResult<CreateObjectResult>>,
         ImmutableOrigin,
         String,  // Database
         String,  // Store
@@ -431,7 +430,6 @@ pub enum SyncOperation {
     ),
     /// Delete an index
     DeleteIndex(
-        GenericSender<BackendResult<()>>,
         ImmutableOrigin,
         String, // Database
         String, // Store
