@@ -292,6 +292,19 @@ pub enum AsyncReadOnlyOperation {
     },
 }
 
+impl AsyncReadOnlyOperation {
+    fn notify_error(&self, error: BackendError) {
+        let _ = match self {
+            Self::GetKey { callback, .. } => callback.send(Err(error)),
+            Self::GetItem { callback, .. } => callback.send(Err(error)),
+            Self::GetAllKeys { callback, .. } => callback.send(Err(error)),
+            Self::GetAllItems { callback, .. } => callback.send(Err(error)),
+            Self::Count { callback, .. } => callback.send(Err(error)),
+            Self::Iterate { callback, .. } => callback.send(Err(error)),
+        };
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub enum AsyncReadWriteOperation {
     /// Sets the value of the given key in the associated idb data
@@ -311,12 +324,31 @@ pub enum AsyncReadWriteOperation {
     Clear(GenericCallback<BackendResult<()>>),
 }
 
+impl AsyncReadWriteOperation {
+    fn notify_error(&self, error: BackendError) {
+        let _ = match self {
+            Self::PutItem { callback, .. } => callback.send(Err(error)),
+            Self::RemoveItem { callback, .. } => callback.send(Err(error)),
+            Self::Clear(callback) => callback.send(Err(error)),
+        };
+    }
+}
+
 /// Operations that are not executed instantly, but rather added to a
 /// queue that is eventually run.
 #[derive(Debug, Deserialize, Serialize)]
 pub enum AsyncOperation {
     ReadOnly(AsyncReadOnlyOperation),
     ReadWrite(AsyncReadWriteOperation),
+}
+
+impl AsyncOperation {
+    pub fn notify_error(&self, error: BackendError) {
+        match self {
+            Self::ReadOnly(operation) => operation.notify_error(error),
+            Self::ReadWrite(operation) => operation.notify_error(error),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
