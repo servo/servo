@@ -761,6 +761,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             name,
             options.multiEntry,
             options.unique,
+            key_path,
             can_gc,
         ))
     }
