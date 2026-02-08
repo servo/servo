@@ -3281,7 +3281,7 @@ impl GlobalScope {
         );
         let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
 
-        let data = structuredclone::write(cx, value, Some(guard))?;
+        let data = structuredclone::write(self, value, Some(guard))?;
 
         structuredclone::read(self, data, retval, can_gc)?;
 

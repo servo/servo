@@ -190,7 +190,7 @@ pub fn convert_value_to_key(
 
             if IsArrayBufferObject(*object) || JS_IsArrayBufferViewObject(*object) {
                 // FIXME:(arihant2math) implement it the correct way (is this correct?)
-                let key = structuredclone::write(cx.into(), input, None)?;
+                let key = structuredclone::write(self.global(), input, None)?;
                 return Ok(ConversionResult::Valid(IndexedDBKeyType::Binary(
                     key.serialized.clone(),
                 )));

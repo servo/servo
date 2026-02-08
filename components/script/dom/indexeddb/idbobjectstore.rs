@@ -251,7 +251,7 @@ impl IDBObjectStore {
         }
 
         // Step 10. Let clone be a clone of value in targetRealm during transaction. Rethrow any exceptions.
-        let cloned_value = structuredclone::write(cx.into(), value, None)?;
+        let cloned_value = structuredclone::write(self.global(), value, None)?;
         let Ok(serialized_value) = postcard::to_stdvec(&cloned_value) else {
             return Err(Error::InvalidState(None));
         };

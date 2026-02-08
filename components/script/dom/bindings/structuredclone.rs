@@ -659,13 +659,24 @@ pub(crate) struct StructuredDataWriter {
     // A map of serialized image data.
     pub(crate) image_data: Option<FxHashMap<ImageDataId, SerializableImageData>>,
 }
-
-/// Writes a structured clone. Returns a `DataClone` error if that fails.
+/// Writes a structured clone using the current JS context.
+///
+/// This is the safe entry point that callers should use.
 pub(crate) fn write(
+    global: &GlobalScope,
+    message: HandleValue,
+    transfer: Option<CustomAutoRooterGuard<Vec<*mut JSObject>>>,
+) -> Fallible<StructuredSerializedData> {
+   let cx = GlobalScope::get_cx();
+
+   write_inner(cx, message, transfer)
+}
+fn write_inner(
     cx: SafeJSContext,
     message: HandleValue,
     transfer: Option<CustomAutoRooterGuard<Vec<*mut JSObject>>>,
 ) -> Fallible<StructuredSerializedData> {
+
     unsafe {
         rooted!(in(*cx) let mut val = UndefinedValue());
         if let Some(transfer) = transfer {

@@ -104,7 +104,7 @@ impl ServiceWorker {
             return Err(Error::InvalidState(None));
         }
         // Step 7
-        let data = structuredclone::write(cx.into(), message, Some(transfer))?;
+        let data = structuredclone::write(self.global(), message, Some(transfer))?;
         let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
         let msg_vec = DOMMessage {
             origin: incumbent.origin().immutable().clone(),

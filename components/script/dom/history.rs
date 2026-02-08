@@ -202,8 +202,8 @@ impl History {
         // https://github.com/servo/servo/issues/19159
 
         // Step 4. Let serializedData be StructuredSerializeForStorage(data). Rethrow any exceptions.
-        let serialized_data = structuredclone::write(cx, data, None)?;
-
+        let serialized_data = structuredclone::write(self.window.global(), data, None)?;
+        
         // Step 5. Let newURL be document's URL.
         let new_url: ServoUrl = match url {
             // Step 6. If url is not null or the empty string, then:
