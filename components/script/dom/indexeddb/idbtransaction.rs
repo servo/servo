@@ -646,7 +646,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstore>
     fn ObjectStore(&self, name: DOMString, can_gc: CanGc) -> Fallible<DomRoot<IDBObjectStore>> {
         // Step 1: If transaction has finished, throw an "InvalidStateError" DOMException.
-        if self.finished.get() {
+        if self.finished.get() || self.abort_initiated.get() {
             return Err(Error::InvalidState(None));
         }
 
