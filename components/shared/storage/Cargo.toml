@@ -13,6 +13,7 @@ path = "lib.rs"
 
 [dependencies]
 base = { workspace = true }
+chrono = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 profile_traits = { path = "../profile" }
