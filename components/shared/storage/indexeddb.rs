@@ -54,7 +54,7 @@ impl Error for BackendError {}
 
 pub type BackendResult<T> = Result<T, BackendError>;
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, MallocSizeOf, Serialize)]
 pub enum KeyPath {
     String(String),
     Sequence(Vec<String>),
@@ -253,6 +253,22 @@ pub struct IndexedDBRecord {
     pub value: Vec<u8>,
 }
 
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct IndexedDBIndex {
+    pub name: String,
+    pub key_path: KeyPath,
+    pub multi_entry: bool,
+    pub unique: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub struct IndexedDBObjectStore {
+    pub name: String,
+    pub key_path: Option<KeyPath>,
+    pub has_key_generator: bool,
+    pub indexes: Vec<IndexedDBIndex>,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub enum PutItemResult {
     Success,
@@ -394,17 +410,9 @@ pub enum SyncOperation {
         u64,    // Serial number for the transaction
         u64,    // Version to upgrade to
     ),
-    /// Checks if an object store has a key generator, used in e.g. Put
-    HasKeyGenerator(
-        GenericSender<BackendResult<bool>>,
-        ImmutableOrigin,
-        String, // Database
-        String, // Store
-    ),
-    /// Gets an object store's key path
-    KeyPath(
-        /// Object stores can optionally be created with key paths
-        GenericSender<BackendResult<Option<KeyPath>>>,
+    /// Get object store info
+    GetObjectStore(
+        GenericSender<BackendResult<IndexedDBObjectStore>>,
         ImmutableOrigin,
         String, // Database
         String, // Store

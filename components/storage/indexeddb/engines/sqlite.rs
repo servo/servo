@@ -13,8 +13,8 @@ use sea_query_rusqlite::RusqliteBinder;
 use serde::{Deserialize, Serialize};
 use storage_traits::indexeddb::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError, BackendResult,
-    CreateObjectResult, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord, IndexedDBTxnMode,
-    KeyPath, PutItemResult,
+    CreateObjectResult, IndexedDBIndex, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord,
+    IndexedDBTxnMode, KeyPath, PutItemResult,
 };
 use tokio::sync::oneshot;
 
@@ -599,6 +599,30 @@ impl KvsEngine for SqliteEngine {
             .unwrap()
             // TODO: Wrong, same issues as has_key_generator
             .unwrap_or_default()
+    }
+
+    fn indexes(&self, store_name: &str) -> Result<Vec<IndexedDBIndex>, Self::Error> {
+        let object_store = self.connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name.to_string()],
+            |row| object_store_model::Model::try_from(row),
+        )?;
+
+        let mut stmt = self
+            .connection
+            .prepare("SELECT * FROM object_store_index WHERE object_store_id = ?")?;
+        let indexes = stmt
+            .query_map(params![object_store.id], |row| {
+                let model = object_store_index_model::Model::try_from(row)?;
+                Ok(IndexedDBIndex {
+                    name: model.name,
+                    key_path: postcard::from_bytes(&model.key_path).unwrap(),
+                    unique: model.unique_index,
+                    multi_entry: model.multi_entry_index,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(indexes)
     }
 
     fn create_index(
