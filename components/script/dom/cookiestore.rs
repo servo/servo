@@ -451,6 +451,11 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         let name = CookieStore::normalize(&name);
         let value = CookieStore::normalize(&value);
 
+        if !CookieStore::validate_name_and_value(&name, &value) {
+            p.reject_error(Error::Type("Invalid cookie".to_string()), can_gc);
+            return p;
+        }
+
         // 4. Let url be settings’s creation URL.
         // 5. Let domain be null.
         // 6. Let path be "/".
@@ -509,6 +514,11 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
         // We do this here so we don't have to modify the cookie name/value again
         let name = CookieStore::normalize(&options.name);
         let value = CookieStore::normalize(&options.value);
+
+        if !CookieStore::validate_name_and_value(&name, &value) {
+            p.reject_error(Error::Type("Invalid cookie".to_string()), can_gc);
+            return p;
+        }
 
         // 6.1. Let r be the result of running set a cookie with url, options["name"], options["value"],
         // options["expires"], options["domain"], options["path"], options["sameSite"], and options["partitioned"].
@@ -629,5 +639,52 @@ impl CookieStore {
     /// <https://cookiestore.spec.whatwg.org/#normalize-a-cookie-name-or-value>
     fn normalize(value: &USVString) -> String {
         value.trim_matches([' ', '\t']).into()
+    }
+
+    /// <https://cookiestore.spec.whatwg.org/#set-cookie-algorithm>
+    fn validate_name_and_value(name: &str, value: &str) -> bool {
+        // If name or value contain U+003B (;), any C0 control character except U+0009 TAB, or U+007F DELETE, then return failure.
+        if CookieStore::contains_control_characters(name) ||
+            CookieStore::contains_control_characters(value)
+        {
+            return false;
+        }
+
+        // If name contains U+003D (=), then return failure.
+        if name.contains('=') {
+            return false;
+        }
+
+        // If name’s length is 0:
+        if name.is_empty() {
+            // If value contains U+003D (=), then return failure.
+            // If value’s length is 0, then return failure.
+            if value.contains('=') || value.is_empty() {
+                return false;
+            }
+            // If value, byte-lowercased, starts with `__host-`, `__host-http-`, `__http-`, or `__secure-`, then return failure.
+            let lowercased_value = value.to_ascii_lowercase();
+            if ["__host-", "__host-http-", "__http-", "__secure-"]
+                .iter()
+                .any(|prefix| lowercased_value.starts_with(prefix))
+            {
+                return false;
+            }
+        }
+
+        // If name, byte-lowercased, starts with `__host-http-` or `__http-`, then return failure.
+        let lowercased_name = name.to_ascii_lowercase();
+        if lowercased_name.starts_with("__host-http-") || lowercased_name.starts_with("__http-") {
+            return false;
+        }
+
+        true
+    }
+
+    /// If name or value contain U+003B (;), any C0 control character except U+0009 TAB, or U+007F DELETE, then return failure.
+    fn contains_control_characters(val: &str) -> bool {
+        val.contains(
+            |v| matches!(v, '\u{0000}'..='\u{0008}' | '\u{000a}'..='\u{001f}' | '\u{007f}' | ';'),
+        )
     }
 }
