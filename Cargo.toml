@@ -94,7 +94,7 @@ gstreamer-video = "0.24"
 gstreamer-webrtc = { version = "0.24", features = ["v1_18"] }
 harfbuzz-sys = "0.6.1"
 headers = "0.4"
-hitrace = "0.1.6"
+hitrace = { version = "0.1.6", features = ["api-19", "tracing-rs"] }
 hkdf = "0.12"
 html5ever = "0.38"
 http = "1.4"

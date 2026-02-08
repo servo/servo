@@ -3966,6 +3966,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f08b27f2170156e182b2c3e340d68d087b34b2479366986c4e2e5339d73fe18"
 dependencies = [
  "hitrace-sys",
+ "tracing-core",
 ]
 
 [[package]]

@@ -184,10 +184,22 @@ cfg_if! {
             }
 
             fn on_event(&self, event: &tracing::Event<'_>, _ctx: tracing_subscriber::layer::Context<'_, S>) {
-                hitrace::start_trace(
+                let mut key_value_string: String = String::new();
+
+                event.record(&mut |field: &tracing::field::Field, value: &dyn std::fmt::Debug| {
+                    if field.name() != "servo_profiling" {
+                        key_value_string.push_str(&format!("{}={:?},",field.name(),value));
+                    }
+                });
+
+                hitrace::start_trace_ex(
+                    (*event.metadata().level()).into(),
                     &std::ffi::CString::new(event.metadata().name())
                         .expect("Failed to convert str to CString"),
+                    &std::ffi::CString::new(key_value_string.trim_end_matches(","))
+                        .expect("Failed to convert str to CString"),
                 );
+
                 hitrace::finish_trace();
             }
 
