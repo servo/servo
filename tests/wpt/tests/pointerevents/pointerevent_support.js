@@ -44,7 +44,8 @@ const ButtonsBitfield = {
 
 // Check for conformance to PointerEvent interface
 // https://w3c.github.io/pointerevents/#pointerevent-interface
-function check_PointerEvent(event, testNamePrefix, standardAttrs = true) {
+function check_PointerEvent(event, testNamePrefix,
+    optionalAtributesOnly = false) {
   if (testNamePrefix === undefined)
     testNamePrefix = "";
 
@@ -52,7 +53,7 @@ function check_PointerEvent(event, testNamePrefix, standardAttrs = true) {
   var pointerTestName = (testNamePrefix ? testNamePrefix + ' ' : '')
     + (expectedPointerType == null ? event.pointerType : expectedPointerType) + ' ' + event.type;
 
-  if (standardAttrs) {
+  if (!optionalAtributesOnly) {
     if (expectedPointerType != null) {
       test(function () {
         assert_equals(event.pointerType, expectedPointerType);
@@ -75,7 +76,7 @@ function check_PointerEvent(event, testNamePrefix, standardAttrs = true) {
 
   // Check values for inherited attributes.
   // https://w3c.github.io/pointerevents/#attributes-and-default-actions
-  if (!standardAttrs) {
+  if (optionalAtributesOnly) {
     test(function () {
       assert_implements_optional("fromElement" in event);
       assert_equals(event.fromElement, null);

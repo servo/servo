@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<style>
+body {
+  margin: 0;
+}
+.container {
+  padding: 20px;
+}
+.target {
+  width: 100px;
+  height: 100px;
+  position: relative;
+}
+</style>
+<div class="container">
+  <!-- Circle with 4px red outline around 50px radius circle -->
+  <div class="target">
+    <svg width="120" height="120" style="position: absolute; left: -10px; top: -10px;">
+      <!-- Background fill: circle at center with 50px radius -->
+      <circle cx="60" cy="60" r="50" fill="lightblue"/>
+      <!-- Outline stroke: centered at radius 52px (50 + 2) with stroke-width 4 -->
+      <circle cx="60" cy="60" r="52" fill="none" stroke="red" stroke-width="4"/>
+    </svg>
+  </div>
+</div>

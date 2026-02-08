@@ -105,3 +105,23 @@ async def test_capture_with_different_dpr(bidi_session, new_tab, inline, dpr):
     assert floor(expected_width) <= actual_width <= ceil(expected_width)
     assert floor(expected_height) <= actual_height <= ceil(expected_height)
 
+
+@pytest.mark.asyncio
+async def test_clip_huge_element_to_viewport(bidi_session, top_context, inline):
+    width = "32768px"
+    height = "32768px"
+
+    url = inline(f"<div style='width: {width}; height: {height}; background-color: black;'></div>")
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"], url=url, wait="complete"
+    )
+
+    data = await bidi_session.browsing_context.capture_screenshot(
+        context=top_context["context"]
+    )
+
+    viewport = await get_viewport_dimensions(bidi_session, top_context)
+    (actual_width, actual_height) = png_dimensions(data)
+
+    assert actual_width == viewport["width"]
+    assert actual_height == viewport["height"]

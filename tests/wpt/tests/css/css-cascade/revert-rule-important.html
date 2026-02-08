@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>The revert-rule keyword: interaction with !important</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-rule-keyword">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #test1 {
+    color: revert-rule !important;
+  }
+  #test1 {
+    color: green;
+  }
+</style>
+<div id="test1"></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(test1).color, 'rgb(0, 128, 0)');
+  }, 'revert-rule in !important declaration reverts to later normal rule if the !important rule comes first');
+</script>
+
+<style>
+  @layer {
+    #test2 {
+      color: revert-rule !important;
+    }
+  }
+  #test2 {
+    color: green;
+  }
+</style>
+<div id='test2'></div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(test2).color, 'rgb(0, 128, 0)');
+  }, 'revert-rule in !important declaration reverts across layers');
+</script>
+
+<style>
+  #test3 {
+    color: green;
+  }
+  #test3 {
+    color: revert-rule !important;
+  }
+</style>
+<div id='test3'></div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(test3).color, 'rgb(0, 128, 0)');
+  }, 'revert-rule in !important declaration reverts to earlier normal rule if the !important rule comes later');
+</script>

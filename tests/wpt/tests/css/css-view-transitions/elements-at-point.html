@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" href="https://www.w3.org/TR/css-transitions-1/">
+</head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div>
+    <ul style="view-transition-name: list1">
+      <li id="target">One</li>
+      <li>Two</li>
+    </ul>
+  </div>
+</body>
+<script>
+  promise_test(async t => {
+    const rect = target.getBoundingClientRect();
+    const point = {
+      x: rect.x + rect.width / 2,
+      y: rect.y + rect.height / 2
+    };
+    const elements =
+      new Promise(resolve => {
+        const transition = document.startViewTransition(() => {
+          resolve(document.elementsFromPoint(point.x, point.y));
+        });
+      });
+    let list = await elements;
+    // Detect any pseudo elements present in the list.
+    list = list.map(e => e.tagName).filter(n => n.startsWith('::'));
+    assert_array_equals(list, []);
+  }, `elementsFromPoint resolves pseudos to owning element`);
+</script>
+</html>

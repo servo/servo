@@ -108,27 +108,27 @@
     ]);
     test_interpolation({
       property: 'column-rule-interior-inset-start',
-      from: 'initial', // initial is -50%.
+      from: 'initial', // initial is 0.
       to: '-40%',
     }, [
-      { at: -0.3, expect: '-53%' },
-      { at: 0, expect: '-50%' },
-      { at: 0.3, expect: '-47%' },
-      { at: 0.6, expect: '-44%' },
+      { at: -0.3, expect: '12%' },
+      { at: 0, expect: '0%' },
+      { at: 0.3, expect: '-12%' },
+      { at: 0.6, expect: '-24%' },
       { at: 1, expect: '-40%' },
-      { at: 1.5, expect: '-35%' },
+      { at: 1.5, expect: '-60%' },
     ]);
     test_interpolation({
       property: 'column-rule-interior-inset-end',
-      from: 'initial', // initial is -50%.
+      from: 'initial', // initial is 0.
       to: '-40%',
     }, [
-      { at: -0.3, expect: '-53%' },
-      { at: 0, expect: '-50%' },
-      { at: 0.3, expect: '-47%' },
-      { at: 0.6, expect: '-44%' },
+      { at: -0.3, expect: '12%' },
+      { at: 0, expect: '0%' },
+      { at: 0.3, expect: '-12%' },
+      { at: 0.6, expect: '-24%' },
       { at: 1, expect: '-40%' },
-      { at: 1.5, expect: '-35%' },
+      { at: 1.5, expect: '-60%' },
     ]);
 
     test_interpolation({
@@ -209,24 +209,24 @@
       from: 'unset',
       to: '-40%',
     }, [
-      { at: -0.3, expect: '-53%' },
-      { at: 0, expect: '-50%' },
-      { at: 0.3, expect: '-47%' },
-      { at: 0.6, expect: '-44%' },
+      { at: -0.3, expect: '12%' },
+      { at: 0, expect: '0%' },
+      { at: 0.3, expect: '-12%' },
+      { at: 0.6, expect: '-24%' },
       { at: 1, expect: '-40%' },
-      { at: 1.5, expect: '-35%' },
+      { at: 1.5, expect: '-60%' },
     ]);
     test_interpolation({
       property: 'column-rule-interior-inset-end',
       from: 'unset',
       to: '-40%',
     }, [
-      { at: -0.3, expect: '-53%' },
-      { at: 0, expect: '-50%' },
-      { at: 0.3, expect: '-47%' },
-      { at: 0.6, expect: '-44%' },
+      { at: -0.3, expect: '12%' },
+      { at: 0, expect: '0%' },
+      { at: 0.3, expect: '-12%' },
+      { at: 0.6, expect: '-24%' },
       { at: 1, expect: '-40%' },
-      { at: 1.5, expect: '-35%' },
+      { at: 1.5, expect: '-60%' },
     ]);
 
     test_interpolation({

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="reftest-wait">
 <head>
   <meta charset="utf-8">
   <title>CSS Grid Lanes Layout Test: Grid Lanes positioned item dynamic change.</title>
@@ -35,6 +35,7 @@
 <script>
   document.body.offsetLeft;
   document.getElementById('target').style.gridRow = '2 / 3';
+  document.documentElement.classList.remove('reftest-wait');
 </script>
 </body>
 </html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSS Gap Decorations: repaint when grid item span changes (reference)</title>
+  <link rel="author" title="Kevin Babbitt" href="mailto:kbabbitt@microsoft.com">
+  <style>
+    .grid-container {
+      display: grid;
+      grid-template: repeat(2, 50px) / repeat(2, 50px);
+      gap: 20px;
+      column-rule: 20px solid green;
+      row-rule: 20px solid green;
+      rule-break: intersection;
+      rule-interior-inset: -20px;
+      rule-visibility-items: around;
+    }
+
+    .grid-item {
+      background: green;
+    }
+  </style>
+</head>
+<body>
+  <p>Test passes if there is a filled green square.</p>
+  <div class="grid-container">
+    <!-- Spanning item: final state spans 1 column -->
+    <div class="grid-item" style="grid-column: span 1;"></div>
+  </div>
+</body>
+</html>

@@ -67,15 +67,15 @@ subgrid.extent {
 <!-- auto-placed subgrid inhibits subgridding when parent is doing grid-lanes layout ... -->
 
 <grid class="rows">
-  <item>1</item>
-  <item>2</item>
-  <item>3</item>
-  <subgrid>
-    <item>4a</item>
-    <item>4b</item>
-    <item>4c</item>
+  <item style="height: 24px;">1</item>
+  <item style="height: 40px;">2</item>
+  <item style="height: 40px;">3</item>
+  <subgrid style="height: calc(30px + 4px + 20px);">
+    <item style="height: 13px;">4a</item>
+    <item style="height: 29px;">4b</item>
+    <item style="height: 19px;">4c</item>
   </subgrid>
-  <item>5</item>
+  <item style="height: 30px;">5</item>
 </grid>
 
 </body></html>
