@@ -389,7 +389,7 @@ impl KvsEngine for SqliteEngine {
         spawning_pool.spawn(move || {
             let connection = match Connection::open(path) {
                 Ok(connection) => connection,
-                Err(e) => {
+                Err(error) => {
                     for request in transaction.requests {
                         request
                             .operation
