@@ -346,10 +346,6 @@ pub struct ScriptThread {
     /// The worklet thread pool
     worklet_thread_pool: DomRefCell<Option<Rc<WorkletThreadPool>>>,
 
-    /// A list of pipelines containing documents that finished loading all their blocking
-    /// resources during a turn of the event loop.
-    docs_with_no_blocking_loads: DomRefCell<FxHashSet<Dom<Document>>>,
-
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
     custom_element_reaction_stack: Rc<CustomElementReactionStack>,
 
@@ -537,15 +533,6 @@ impl ScriptThread {
 
     pub(crate) fn microtask_queue() -> Rc<MicrotaskQueue> {
         with_script_thread(|script_thread| script_thread.microtask_queue.clone())
-    }
-
-    pub(crate) fn mark_document_with_no_blocked_loads(doc: &Document) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .docs_with_no_blocking_loads
-                .borrow_mut()
-                .insert(Dom::from_ref(doc));
-        })
     }
 
     pub(crate) fn page_headers_available(
@@ -1026,7 +1013,6 @@ impl ScriptThread {
                 #[cfg(feature = "webxr")]
                 webxr_registry: state.webxr_registry,
                 worklet_thread_pool: Default::default(),
-                docs_with_no_blocking_loads: Default::default(),
                 custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
                 paint_api: state.cross_process_paint_api,
                 profile_script_events: opts.debug.profile_script_events,
@@ -1507,16 +1493,6 @@ impl ScriptThread {
             window
                 .upcast::<GlobalScope>()
                 .perform_a_dom_garbage_collection_checkpoint();
-        }
-
-        {
-            // https://html.spec.whatwg.org/multipage/#the-end step 6
-            let mut docs = self.docs_with_no_blocking_loads.borrow_mut();
-            for document in docs.iter() {
-                let _realm = enter_auto_realm(cx, &**document);
-                document.maybe_queue_document_completion();
-            }
-            docs.clear();
         }
 
         let built_any_display_lists = self.needs_rendering_update.load(Ordering::Relaxed) &&

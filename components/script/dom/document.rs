@@ -259,6 +259,16 @@ pub(crate) enum IsHTMLDocument {
     NonHTMLDocument,
 }
 
+#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
+pub(crate) enum TheEndLoadingPhase {
+    #[default]
+    Initial,
+    ProcessingDeferredScripts,
+    ProcessingAsSoonAsPossibleScripts,
+    WaitingForLoadEventBlockers,
+    Done,
+}
+
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct FocusTransaction {
@@ -356,8 +366,6 @@ pub(crate) struct Document {
     stylesheets: DomRefCell<DocumentStylesheetSet<ServoStylesheetInDocument>>,
     stylesheet_list: MutNullableDom<StyleSheetList>,
     ready_state: Cell<DocumentReadyState>,
-    /// Whether the DOMContentLoaded event has already been dispatched.
-    domcontentloaded_dispatched: Cell<bool>,
     /// The state of this document's focus transaction.
     focus_transaction: DomRefCell<Option<FocusTransaction>>,
     /// The element that currently has the document focus context.
@@ -371,6 +379,8 @@ pub(crate) struct Document {
     has_focus: Cell<bool>,
     /// The script element that is currently executing.
     current_script: MutNullableDom<HTMLScriptElement>,
+    #[no_trace]
+    current_the_end_loading_phase: Cell<TheEndLoadingPhase>,
     /// <https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script>
     pending_parsing_blocking_script: DomRefCell<Option<PendingScript>>,
     /// Number of stylesheets that block executing the next parser-inserted script
@@ -2201,25 +2211,7 @@ impl Document {
             _ => {},
         }
 
-        // Step 4 is in another castle, namely at the end of
-        // process_deferred_scripts.
-
-        // Step 5 can be found in asap_script_loaded and
-        // asap_in_order_script_loaded.
-
-        let loader = self.loader.borrow();
-
-        // Servo measures when the top-level content (not iframes) is loaded.
-        if self.top_level_dom_complete.get().is_none() && loader.is_only_blocked_by_iframes() {
-            update_with_current_instant(&self.top_level_dom_complete);
-        }
-
-        if loader.is_blocked() || loader.events_inhibited() {
-            // Step 6.
-            return;
-        }
-
-        ScriptThread::mark_document_with_no_blocked_loads(self);
+        self.wait_until_load_blockers_have_resolved();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#checking-if-unloading-is-canceled>
@@ -2400,30 +2392,8 @@ impl Document {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-end
-    pub(crate) fn maybe_queue_document_completion(&self) {
-        // https://html.spec.whatwg.org/multipage/#delaying-load-events-mode
-        let is_in_delaying_load_events_mode = match self.window.undiscarded_window_proxy() {
-            Some(window_proxy) => window_proxy.is_delaying_load_events_mode(),
-            None => false,
-        };
-
-        // Note: if the document is not fully active, layout will have exited already,
-        // and this method will panic.
-        // The underlying problem might actually be that layout exits while it should be kept alive.
-        // See https://github.com/servo/servo/issues/22507
-        let not_ready_for_load = self.loader.borrow().is_blocked() ||
-            !self.is_fully_active() ||
-            is_in_delaying_load_events_mode ||
-            // In case we have already aborted this document and receive a
-            // a subsequent message to load the document
-            self.loader.borrow().events_inhibited();
-
-        if not_ready_for_load {
-            // Step 6.
-            return;
-        }
-
+    /// Step 9 of <https://html.spec.whatwg.org/multipage/#the-end>
+    fn queue_document_completion(&self) {
         self.loader.borrow_mut().inhibit_events();
 
         // The rest will ever run only once per document.
@@ -2531,6 +2501,11 @@ impl Document {
         self.completely_loaded.get()
     }
 
+    pub(crate) fn start_the_end_loading_phase(&self) {
+        self.current_the_end_loading_phase
+            .set(TheEndLoadingPhase::ProcessingDeferredScripts);
+    }
+
     // https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
     pub(crate) fn set_pending_parsing_blocking_script(
         &self,
@@ -2604,6 +2579,7 @@ impl Document {
             scripts.swap_remove(idx);
         }
         element.execute(result, can_gc);
+        self.wait_until_asap_scripts_have_executed();
     }
 
     // https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
@@ -2626,9 +2602,11 @@ impl Document {
         {
             element.execute(result, can_gc);
         }
+
+        self.wait_until_asap_scripts_have_executed();
     }
 
-    // https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing
+    /// <https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-when-the-document-has-finished-parsing>
     pub(crate) fn add_deferred_script(&self, script: &HTMLScriptElement) {
         self.deferred_scripts.push(script);
     }
@@ -2645,53 +2623,71 @@ impl Document {
         self.process_deferred_scripts(can_gc);
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#the-end> step 3.
+    /// Step 5 of <https://html.spec.whatwg.org/multipage/#the-end>
     fn process_deferred_scripts(&self, can_gc: CanGc) {
-        if self.ready_state.get() != DocumentReadyState::Interactive {
+        if self.current_the_end_loading_phase.get() != TheEndLoadingPhase::ProcessingDeferredScripts
+        {
             return;
         }
-        // Part of substep 1.
+
+        // Step 5.1. Spin the event loop until the first script in the list of scripts that will execute when the
+        // document has finished parsing has its ready to be parser-executed set to true and the parser's Document
+        // has no style sheet that is blocking scripts.
         loop {
             if self.script_blocking_stylesheets_count.get() > 0 {
                 return;
             }
+            // Step 5.3. Remove the first script element from the list of scripts that will execute when the
+            // document has finished parsing (i.e. shift out the first entry in the list).
             if let Some((element, result)) = self.deferred_scripts.take_next_ready_to_be_executed()
             {
+                // Step 5.2. Execute the script element given by the first script in the list of scripts that will execute when the document has finished parsing.
                 element.execute(result, can_gc);
             } else {
                 break;
             }
         }
+        // Step 5. While the list of scripts that will execute when the document has finished parsing is not empty:
         if self.deferred_scripts.is_empty() {
-            // https://html.spec.whatwg.org/multipage/#the-end step 4.
-            self.maybe_dispatch_dom_content_loaded();
+            self.current_the_end_loading_phase
+                .set(TheEndLoadingPhase::ProcessingAsSoonAsPossibleScripts);
+            self.dispatch_dom_content_loaded();
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-end step 4.
-    pub(crate) fn maybe_dispatch_dom_content_loaded(&self) {
-        if self.domcontentloaded_dispatched.get() {
-            return;
-        }
-        self.domcontentloaded_dispatched.set(true);
+    /// Step 6 of <https://html.spec.whatwg.org/multipage/#the-end>
+    fn dispatch_dom_content_loaded(&self) {
         assert_ne!(
             self.ReadyState(),
             DocumentReadyState::Complete,
             "Complete before DOMContentLoaded?"
         );
 
-        update_with_current_instant(&self.dom_content_loaded_event_start);
-
-        // Step 4.1.
+        // Step 6. Queue a global task on the DOM manipulation task source given the Document's
+        // relevant global object to run the following substeps:
         let document = Trusted::new(self);
         self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
             .queue(
                 task!(fire_dom_content_loaded_event: move || {
-                let document = document.root();
-                document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"), CanGc::note());
-                update_with_current_instant(&document.dom_content_loaded_event_end);
+                    // Step 6.1. Set the Document's load timing info's DOM content loaded event start time to
+                    // the current high resolution time given the Document's relevant global object.
+                    let document = document.root();
+                    update_with_current_instant(&document.dom_content_loaded_event_start);
+                    // Step 6.2. Fire an event named DOMContentLoaded at the Document object, with its bubbles attribute initialized to true.
+                    document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"), CanGc::note());
+                    // Step 6.3. Set the Document's load timing info's DOM content loaded event end time to
+                    // the current high resolution time given the Document's relevant global object.
+                    update_with_current_instant(&document.dom_content_loaded_event_end);
+                    // Step 6.4. Enable the client message queue of the ServiceWorkerContainer object
+                    // whose associated service worker client is the Document object's relevant settings object.
+                    // TODO
+
+                    // Step 6.5. Invoke WebDriver BiDi DOM content loaded with the Document's browsing context,
+                    // and a new WebDriver BiDi navigation status whose id is the Document object's during-loading
+                    // navigation ID for WebDriver BiDi, status is "pending", and url is the Document object's URL.
+                    // TODO
                 })
             );
 
@@ -2700,8 +2696,51 @@ impl Document {
             .borrow()
             .maybe_set_tti(InteractiveFlag::DOMContentLoaded);
 
-        // Step 4.2.
-        // TODO: client message queue.
+        self.wait_until_asap_scripts_have_executed();
+    }
+
+    /// Step 7 of <https://html.spec.whatwg.org/multipage/#the-end>
+    fn wait_until_asap_scripts_have_executed(&self) {
+        if self.current_the_end_loading_phase.get() !=
+            TheEndLoadingPhase::ProcessingAsSoonAsPossibleScripts
+        {
+            return;
+        }
+        // Step 7. Spin the event loop until the set of scripts that will execute as soon as possible
+        // and the list of scripts that will execute in order as soon as possible are empty.
+        if self.asap_in_order_scripts_list.is_empty() && self.asap_in_order_scripts_list.is_empty()
+        {
+            self.current_the_end_loading_phase
+                .set(TheEndLoadingPhase::WaitingForLoadEventBlockers);
+            self.wait_until_load_blockers_have_resolved();
+        }
+    }
+
+    /// Step 8 of <https://html.spec.whatwg.org/multipage/#the-end>
+    pub(crate) fn wait_until_load_blockers_have_resolved(&self) {
+        if self.current_the_end_loading_phase.get() !=
+            TheEndLoadingPhase::WaitingForLoadEventBlockers
+        {
+            return;
+        }
+        // Step 8. Spin the event loop until there is nothing that delays the load event in the Document.
+        {
+            let loader = self.loader.borrow();
+
+            // Servo measures when the top-level content (not iframes) is loaded.
+            if self.top_level_dom_complete.get().is_none() && loader.is_only_blocked_by_iframes() {
+                update_with_current_instant(&self.top_level_dom_complete);
+            }
+
+            let not_ready_for_load = loader.is_blocked() || loader.events_inhibited();
+            if not_ready_for_load {
+                return;
+            }
+        }
+
+        self.current_the_end_loading_phase
+            .set(TheEndLoadingPhase::Done);
+        self.queue_document_completion();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-document-and-its-descendants>
@@ -3733,10 +3772,10 @@ impl Document {
     ) -> Document {
         let url = url.unwrap_or_else(|| ServoUrl::parse("about:blank").unwrap());
 
-        let (ready_state, domcontentloaded_dispatched) = if source == DocumentSource::FromParser {
-            (DocumentReadyState::Loading, false)
+        let ready_state = if source == DocumentSource::FromParser {
+            DocumentReadyState::Loading
         } else {
-            (DocumentReadyState::Complete, true)
+            DocumentReadyState::Complete
         };
 
         let frame_type = match window.is_top_level() {
@@ -3816,12 +3855,12 @@ impl Document {
             stylesheets: DomRefCell::new(DocumentStylesheetSet::new()),
             stylesheet_list: MutNullableDom::new(None),
             ready_state: Cell::new(ready_state),
-            domcontentloaded_dispatched: Cell::new(domcontentloaded_dispatched),
             focus_transaction: DomRefCell::new(None),
             focused: Default::default(),
             focus_sequence: Cell::new(FocusSequenceNumber::default()),
             has_focus: Cell::new(has_focus),
             current_script: Default::default(),
+            current_the_end_loading_phase: Default::default(),
             pending_parsing_blocking_script: Default::default(),
             script_blocking_stylesheets_count: Default::default(),
             render_blocking_element_count: Default::default(),
