@@ -305,15 +305,15 @@ codegen-units = 1
 #
 # Or for Stylo:
 #
-# [patch."https://github.com/servo/stylo"]
-# selectors = { path = "../stylo/selectors" }
-# servo_arc = { path = "../stylo/servo_arc" }
-# stylo = { path = "../stylo/style" }
-# stylo_atoms = { path = "../stylo/stylo_atoms" }
-# stylo_config = { path = "../stylo/stylo_config" }
-# stylo_dom = { path = "../stylo/stylo_dom" }
-# stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
-# stylo_traits = { path = "../stylo/style_traits" }
+[patch."https://github.com/servo/stylo"]
+selectors = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "text-overflow" }
+servo_arc = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "text-overflow" }
+stylo = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "text-overflow" }
+stylo_atoms = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "text-overflow" }
+stylo_config = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "text-overflow" }
+stylo_dom = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "text-overflow" }
+stylo_malloc_size_of = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "text-overflow" }
+stylo_traits = { git = "https://github.com/RichardTjokroutomo/stylo.git", branch = "text-overflow" }
 #
 # Or for WebRender:
 #
