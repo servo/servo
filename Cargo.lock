@@ -8534,6 +8534,7 @@ dependencies = [
  "atomic_refcell",
  "content-security-policy",
  "crossbeam-channel",
+ "encoding_rs",
  "euclid",
  "http 1.4.0",
  "indexmap",
