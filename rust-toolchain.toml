@@ -7,12 +7,12 @@
 channel = "1.91.0"
 
 components = [
-    "clippy",
+    "clippy", # Rust code checker
     # For support/crown
-    "llvm-tools",
+    "llvm-tools", # Low level compiler tool
     # For support/crown
-    "rustc-dev",
-    "rustfmt",
+    "rustc-dev", #Rust compiler internal
+    "rustfmt", # code formater
     # For rust-analyzer
-    "rust-src",
+    "rust-src", #Source code
 ]
