@@ -97,17 +97,17 @@ use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::computed_values::line_break::T as LineBreak;
 use style::computed_values::text_wrap_mode::T as TextWrapMode;
-use style::computed_values::vertical_align::T as VerticalAlign;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::context::{QuirksMode, SharedStyleContext};
 use style::properties::ComputedValues;
 use style::properties::style_structs::InheritedText;
-use style::values::generics::box_::VerticalAlignKeyword;
+use style::values::computed::BaselineShift;
+use style::values::generics::box_::BaselineShiftKeyword;
 use style::values::generics::font::LineHeight;
 use style::values::specified::box_::BaselineSource;
 use style::values::specified::text::TextAlignKeyword;
-use style::values::specified::{TextAlignLast, TextJustify};
+use style::values::specified::{AlignmentBaseline, TextAlignLast, TextJustify};
 use text_run::{
     TextRun, XI_LINE_BREAKING_CLASS_GL, XI_LINE_BREAKING_CLASS_WJ, XI_LINE_BREAKING_CLASS_ZWJ,
     get_font_for_first_font_for_style,
@@ -1583,12 +1583,12 @@ impl InlineFormattingContextLayout<'_> {
         let strut_size = if using_fallback_font {
             // TODO(mrobinson): This value should probably be cached somewhere.
             let container_state = self.current_inline_container_state();
-            let vertical_align = effective_vertical_align(
+            let baseline_shift = effective_baseline_shift(
                 &container_state.style,
                 self.inline_box_state_stack.last().map(|c| &c.base),
             );
             let mut block_size = container_state.get_block_size_contribution(
-                vertical_align,
+                baseline_shift,
                 font_metrics,
                 &container_state.font_metrics,
             );
@@ -2146,7 +2146,7 @@ impl InlineContainerState {
         let font_metrics = font_metrics.unwrap_or_else(FontMetrics::empty);
         let mut baseline_offset = Au::zero();
         let mut strut_block_sizes = Self::get_block_sizes_with_style(
-            effective_vertical_align(&style, parent_container),
+            effective_baseline_shift(&style, parent_container),
             &style,
             &font_metrics,
             &font_metrics,
@@ -2156,7 +2156,8 @@ impl InlineContainerState {
             // The baseline offset from `vertical-align` might adjust where our block size contribution is
             // within the line.
             baseline_offset = parent_container.get_cumulative_baseline_offset_for_child(
-                style.clone_vertical_align(),
+                style.clone_alignment_baseline(),
+                style.clone_baseline_shift(),
                 &strut_block_sizes,
             );
             strut_block_sizes.adjust_for_baseline_offset(baseline_offset);
@@ -2181,7 +2182,7 @@ impl InlineContainerState {
     }
 
     fn get_block_sizes_with_style(
-        vertical_align: VerticalAlign,
+        baseline_shift: BaselineShift,
         style: &ComputedValues,
         font_metrics: &FontMetrics,
         font_metrics_of_first_font: &FontMetrics,
@@ -2189,7 +2190,7 @@ impl InlineContainerState {
     ) -> LineBlockSizes {
         let line_height = line_height(style, font_metrics, flags);
 
-        if !is_baseline_relative(vertical_align) {
+        if !is_baseline_relative(baseline_shift) {
             return LineBlockSizes {
                 line_height,
                 baseline_relative_size_for_line_height: None,
@@ -2255,12 +2256,12 @@ impl InlineContainerState {
 
     fn get_block_size_contribution(
         &self,
-        vertical_align: VerticalAlign,
+        baseline_shift: BaselineShift,
         font_metrics: &FontMetrics,
         font_metrics_of_first_font: &FontMetrics,
     ) -> LineBlockSizes {
         Self::get_block_sizes_with_style(
-            vertical_align,
+            baseline_shift,
             &self.style,
             font_metrics,
             font_metrics_of_first_font,
@@ -2270,33 +2271,22 @@ impl InlineContainerState {
 
     fn get_cumulative_baseline_offset_for_child(
         &self,
-        child_vertical_align: VerticalAlign,
+        child_alignment_baseline: AlignmentBaseline,
+        child_baseline_shift: BaselineShift,
         child_block_size: &LineBlockSizes,
     ) -> Au {
         let block_size = self.get_block_size_contribution(
-            child_vertical_align.clone(),
+            child_baseline_shift.clone(),
             &self.font_metrics,
             &self.font_metrics,
         );
         self.baseline_offset +
-            match child_vertical_align {
-                // `top` and `bottom are not actually relative to the baseline, but this value is unused
-                // in those cases.
-                // TODO: We should distinguish these from `baseline` in order to implement "aligned subtrees" properly.
-                // See https://drafts.csswg.org/css2/#aligned-subtree.
-                VerticalAlign::Keyword(VerticalAlignKeyword::Baseline) |
-                VerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-                VerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => Au::zero(),
-                VerticalAlign::Keyword(VerticalAlignKeyword::Sub) => {
-                    block_size.resolve().scale_by(FONT_SUBSCRIPT_OFFSET_RATIO)
-                },
-                VerticalAlign::Keyword(VerticalAlignKeyword::Super) => {
-                    -block_size.resolve().scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO)
-                },
-                VerticalAlign::Keyword(VerticalAlignKeyword::TextTop) => {
+            match child_alignment_baseline {
+                AlignmentBaseline::Baseline => Au::zero(),
+                AlignmentBaseline::TextTop => {
                     child_block_size.size_for_baseline_positioning.ascent - self.font_metrics.ascent
                 },
-                VerticalAlign::Keyword(VerticalAlignKeyword::Middle) => {
+                AlignmentBaseline::Middle => {
                     // "Align the vertical midpoint of the box with the baseline of the parent
                     // box plus half the x-height of the parent."
                     (child_block_size.size_for_baseline_positioning.ascent -
@@ -2304,11 +2294,28 @@ impl InlineContainerState {
                         self.font_metrics.x_height)
                         .scale_by(0.5)
                 },
-                VerticalAlign::Keyword(VerticalAlignKeyword::TextBottom) => {
+                AlignmentBaseline::TextBottom => {
                     self.font_metrics.descent -
                         child_block_size.size_for_baseline_positioning.descent
                 },
-                VerticalAlign::Length(length_percentage) => {
+            } +
+            match child_baseline_shift {
+                // `top` and `bottom are not actually relative to the baseline, but this value is unused
+                // in those cases.
+                // TODO: We should distinguish these from `baseline` in order to implement "aligned subtrees" properly.
+                // See https://drafts.csswg.org/css2/#aligned-subtree.
+                BaselineShift::Keyword(
+                    BaselineShiftKeyword::Top |
+                    BaselineShiftKeyword::Bottom |
+                    BaselineShiftKeyword::Center,
+                ) => Au::zero(),
+                BaselineShift::Keyword(BaselineShiftKeyword::Sub) => {
+                    block_size.resolve().scale_by(FONT_SUBSCRIPT_OFFSET_RATIO)
+                },
+                BaselineShift::Keyword(BaselineShiftKeyword::Super) => {
+                    -block_size.resolve().scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO)
+                },
+                BaselineShift::Length(length_percentage) => {
                     -length_percentage.to_used_value(child_block_size.line_height)
                 },
             }
@@ -2430,7 +2437,7 @@ impl IndependentFormattingContext {
         block_size: Au,
         baseline_offset_in_content_area: Au,
     ) -> (LineBlockSizes, Au) {
-        let mut contribution = if !is_baseline_relative(self.style().clone_vertical_align()) {
+        let mut contribution = if !is_baseline_relative(self.style().clone_baseline_shift()) {
             LineBlockSizes {
                 line_height: block_size,
                 baseline_relative_size_for_line_height: None,
@@ -2448,10 +2455,12 @@ impl IndependentFormattingContext {
             }
         };
 
+        let style = self.style();
         let baseline_offset = ifc
             .current_inline_container_state()
             .get_cumulative_baseline_offset_for_child(
-                self.style().clone_vertical_align(),
+                style.clone_alignment_baseline(),
+                style.clone_baseline_shift(),
                 &contribution,
             );
         contribution.adjust_for_baseline_offset(baseline_offset);
@@ -2514,25 +2523,26 @@ fn line_height(
     line_height
 }
 
-fn effective_vertical_align(
+fn effective_baseline_shift(
     style: &ComputedValues,
     container: Option<&InlineContainerState>,
-) -> VerticalAlign {
+) -> BaselineShift {
     if container.is_none() {
         // If we are at the root of the inline formatting context, we shouldn't use the
-        // computed `vertical-align`, since it has no effect on the contents of this IFC
+        // computed `baseline-shift`, since it has no effect on the contents of this IFC
         // (it can just affect how the block container is aligned within the parent IFC).
-        VerticalAlign::Keyword(VerticalAlignKeyword::Baseline)
+        BaselineShift::zero()
     } else {
-        style.clone_vertical_align()
+        style.clone_baseline_shift()
     }
 }
 
-fn is_baseline_relative(vertical_align: VerticalAlign) -> bool {
+fn is_baseline_relative(baseline_shift: BaselineShift) -> bool {
     !matches!(
-        vertical_align,
-        VerticalAlign::Keyword(VerticalAlignKeyword::Top) |
-            VerticalAlign::Keyword(VerticalAlignKeyword::Bottom)
+        baseline_shift,
+        BaselineShift::Keyword(
+            BaselineShiftKeyword::Top | BaselineShiftKeyword::Bottom | BaselineShiftKeyword::Center
+        )
     )
 }
 

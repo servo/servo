@@ -22,9 +22,10 @@ use style::computed_values::table_layout::T as TableLayoutMode;
 use style::computed_values::visibility::T as Visibility;
 use style::properties::ComputedValues;
 use style::values::computed::{
-    BorderStyle, LengthPercentage as ComputedLengthPercentage, Percentage,
+    AlignmentBaseline, BaselineShift, BorderStyle, LengthPercentage as ComputedLengthPercentage,
+    Percentage,
 };
-use style::values::generics::box_::{GenericVerticalAlign as VerticalAlign, VerticalAlignKeyword};
+use style::values::generics::box_::BaselineShiftKeyword;
 
 use super::{
     ArcRefCell, CollapsedBorder, CollapsedBorderLine, SpecificTableGridInfo, Table, TableCaption,
@@ -53,6 +54,14 @@ use crate::table::WeakTableLevelBox;
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock, WritingMode,
 };
+
+#[derive(PartialEq)]
+enum CellContentAlignment {
+    Top,
+    Bottom,
+    Middle,
+    Baseline,
+}
 
 /// A result of a final or speculative layout of a single cell in
 /// the table. Note that this is only done for slots that are not
@@ -1200,7 +1209,7 @@ impl<'a> TableLayout<'a> {
                         max_row_height.max_assign(outer_block_size);
                     }
 
-                    if cell.effective_vertical_align() == VerticalAlignKeyword::Baseline {
+                    if cell.content_alignment() == CellContentAlignment::Baseline {
                         let ascent = layout.ascent();
                         let border_padding_start =
                             layout.border.block_start + layout.padding.block_start;
@@ -1979,7 +1988,7 @@ impl<'a> TableLayout<'a> {
         // If this cell has baseline alignment, it can adjust the table's overall baseline.
         let row_block_offset = row_fragment_layout.rect.start_corner.block;
         let row_baseline = self.row_baselines[row_index];
-        if cell.effective_vertical_align() == VerticalAlignKeyword::Baseline && !layout.is_empty() {
+        if cell.content_alignment() == CellContentAlignment::Baseline && !layout.is_empty() {
             let baseline = row_block_offset + row_baseline;
             if row_index == 0 {
                 baselines.first = Some(baseline);
@@ -2819,12 +2828,18 @@ impl TableSlotCell {
         self.contents.layout_style(&self.base)
     }
 
-    fn effective_vertical_align(&self) -> VerticalAlignKeyword {
-        match self.base.style.clone_vertical_align() {
-            VerticalAlign::Keyword(VerticalAlignKeyword::Top) => VerticalAlignKeyword::Top,
-            VerticalAlign::Keyword(VerticalAlignKeyword::Bottom) => VerticalAlignKeyword::Bottom,
-            VerticalAlign::Keyword(VerticalAlignKeyword::Middle) => VerticalAlignKeyword::Middle,
-            _ => VerticalAlignKeyword::Baseline,
+    fn content_alignment(&self) -> CellContentAlignment {
+        // The spec still assumes that `vertical-align` is a longhand, so it's not very clear
+        // if this logic is completely correct, but it seems to match Firefox.
+        // <https://github.com/w3c/csswg-drafts/issues/13458>
+        let style_box = self.base.style.get_box();
+        match style_box.baseline_shift {
+            BaselineShift::Keyword(BaselineShiftKeyword::Top) => CellContentAlignment::Top,
+            BaselineShift::Keyword(BaselineShiftKeyword::Bottom) => CellContentAlignment::Bottom,
+            _ => match style_box.alignment_baseline {
+                AlignmentBaseline::Middle => CellContentAlignment::Middle,
+                _ => CellContentAlignment::Baseline,
+            },
         }
     }
 
@@ -2855,11 +2870,11 @@ impl TableSlotCell {
         let cell_content_rect = cell_rect.deflate(&(layout.padding + layout.border));
         let content_block_size = layout.layout.content_block_size;
         let free_space = || Au::zero().max(cell_content_rect.size.block - content_block_size);
-        let vertical_align_offset = match self.effective_vertical_align() {
-            VerticalAlignKeyword::Top => Au::zero(),
-            VerticalAlignKeyword::Bottom => free_space(),
-            VerticalAlignKeyword::Middle => free_space().scale_by(0.5),
-            _ => {
+        let vertical_align_offset = match self.content_alignment() {
+            CellContentAlignment::Top => Au::zero(),
+            CellContentAlignment::Bottom => free_space(),
+            CellContentAlignment::Middle => free_space().scale_by(0.5),
+            CellContentAlignment::Baseline => {
                 cell_baseline -
                     (layout.padding.block_start + layout.border.block_start) -
                     layout.ascent()
