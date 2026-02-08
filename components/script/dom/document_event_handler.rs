@@ -4,6 +4,7 @@
 
 use std::array::from_ref;
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::f64::consts::PI;
 use std::mem;
 use std::rc::Rc;
@@ -55,12 +56,11 @@ use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::node::{self, Node, NodeTraits, ShadowIncluding};
-use crate::dom::pointerevent::PointerId;
+use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::scrolling_box::ScrollingBoxAxis;
 use crate::dom::types::{
     ClipboardEvent, CompositionEvent, DataTransfer, Element, Event, EventTarget, GlobalScope,
-    HTMLAnchorElement, KeyboardEvent, MouseEvent, PointerEvent, Touch, TouchEvent, TouchList,
-    WheelEvent, Window,
+    HTMLAnchorElement, KeyboardEvent, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
 };
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::realms::enter_realm;
@@ -145,6 +145,9 @@ pub(crate) struct DocumentEventHandler {
     click_counting_info: DomRefCell<ClickCountingInfo>,
     #[no_trace]
     last_mouse_button_down_point: Cell<Option<Point2D<f32, CSSPixel>>>,
+    /// The number of currently down buttons, used to decide which kind
+    /// of pointer event to dispatch on MouseDown/MouseUp.
+    down_button_count: Cell<u32>,
     /// The element that is currently hovered by the cursor.
     current_hover_target: MutNullableDom<Element>,
     /// The element that was most recently clicked.
@@ -161,6 +164,10 @@ pub(crate) struct DocumentEventHandler {
     /// The active keyboard modifiers for the WebView. This is updated when receiving any input event.
     #[no_trace]
     active_keyboard_modifiers: Cell<Modifiers>,
+    /// Map from touch identifier to pointer ID for active touch points
+    active_pointer_ids: DomRefCell<HashMap<i32, i32>>,
+    /// Counter for generating unique pointer IDs for touch inputs
+    next_touch_pointer_id: Cell<i32>,
 }
 
 impl DocumentEventHandler {
@@ -171,12 +178,15 @@ impl DocumentEventHandler {
             mouse_move_event_index: Default::default(),
             click_counting_info: Default::default(),
             last_mouse_button_down_point: Default::default(),
+            down_button_count: Cell::new(0),
             current_hover_target: Default::default(),
             most_recently_clicked_element: Default::default(),
             most_recent_mousemove_point: Default::default(),
             current_cursor: Default::default(),
             active_touch_points: Default::default(),
             active_keyboard_modifiers: Default::default(),
+            active_pointer_ids: Default::default(),
+            next_touch_pointer_id: Cell::new(1),
         }
     }
 
@@ -533,15 +543,25 @@ impl DocumentEventHandler {
 
         // Send mousemove event to topmost target, unless it's an iframe, in which case
         // `Paint` should have also sent an event to the inner document.
-        MouseEvent::new_for_platform_motion_event(
+        let mouse_event = MouseEvent::new_for_platform_motion_event(
             &self.window,
             FireMouseEventType::Move,
             &hit_test_result,
             input_event,
             can_gc,
-        )
-        .upcast::<Event>()
-        .fire(new_target.upcast(), can_gc);
+        );
+
+        // Send pointermove event before mousemove.
+        let pointer_event = mouse_event.to_pointer_event("pointermove", can_gc);
+        pointer_event
+            .upcast::<Event>()
+            .fire(new_target.upcast(), can_gc);
+
+        // Send mousemove event to topmost target, unless it's an iframe, in which case
+        // `Paint` should have also sent an event to the inner document.
+        mouse_event
+            .upcast::<Event>()
+            .fire(new_target.upcast(), can_gc);
 
         self.update_current_hover_target_and_status(Some(new_target));
     }
@@ -676,7 +696,22 @@ impl DocumentEventHandler {
                     a.enter_formal_activation_state();
                 }
 
-                // (TODO) Step 6. Maybe send pointerdown event with `dom_event`.
+                // Step 6. Dispatch pointerdown event.
+                let down_button_count = self.down_button_count.get();
+
+                let event_type = if down_button_count == 0 {
+                    "pointerdown"
+                } else {
+                    "pointermove"
+                };
+                let pointer_event = dom_event
+                    .downcast::<MouseEvent>()
+                    .unwrap()
+                    .to_pointer_event(event_type, can_gc);
+
+                pointer_event.upcast::<Event>().fire(node.upcast(), can_gc);
+
+                self.down_button_count.set(down_button_count + 1);
 
                 // For a node within a text input UA shadow DOM,
                 // delegate the focus target into its shadow host.
@@ -717,7 +752,24 @@ impl DocumentEventHandler {
                     a.exit_formal_activation_state();
                 }
 
-                // (TODO) Step 6. Maybe send pointerup event with `dom_event``.
+                // Step 6. Dispatch pointerup event.
+                let down_button_count = self.down_button_count.get();
+
+                if down_button_count > 0 {
+                    self.down_button_count.set(down_button_count - 1);
+                }
+
+                let event_type = if down_button_count == 0 {
+                    "pointerup"
+                } else {
+                    "pointermove"
+                };
+                let pointer_event = dom_event
+                    .downcast::<MouseEvent>()
+                    .unwrap()
+                    .to_pointer_event(event_type, can_gc);
+
+                pointer_event.upcast::<Event>().fire(node.upcast(), can_gc);
 
                 // Step 7. dispatch event at target.
                 dom_event.dispatch(node.upcast(), false, can_gc);
@@ -912,6 +964,30 @@ impl DocumentEventHandler {
             client_x, client_y, page_x, page_y, can_gc,
         );
 
+        // Dispatch pointer event before updating active touch points and before touch event.
+        let pointer_event_type = match event.event_type {
+            TouchEventType::Down => "pointerdown",
+            TouchEventType::Move => "pointermove",
+            TouchEventType::Up => "pointerup",
+            TouchEventType::Cancel => "pointercancel",
+        };
+
+        // Get or create pointer ID for this touch
+        let pointer_id = self.get_or_create_pointer_id_for_touch(identifier);
+        let is_primary = self.is_primary_pointer(pointer_id);
+
+        let pointer_event = touch.to_pointer_event(
+            window,
+            pointer_event_type,
+            pointer_id,
+            is_primary,
+            input_event.active_keyboard_modifiers,
+            event.is_cancelable(),
+            Some(hit_test_result.point_in_node),
+            can_gc,
+        );
+        pointer_event.upcast::<Event>().fire(&target, can_gc);
+
         match event.event_type {
             TouchEventType::Down => {
                 // Add a new touch point
@@ -939,6 +1015,8 @@ impl DocumentEventHandler {
                 {
                     Some(i) => {
                         active_touch_points.swap_remove(i);
+                        // Remove the pointer ID mapping when touch ends
+                        self.remove_pointer_id_for_touch(identifier);
                     },
                     None => warn!("Got a touchend event for a non-active touch point"),
                 }
@@ -997,6 +1075,8 @@ impl DocumentEventHandler {
                 {
                     Some(i) => {
                         active_touch_points.swap_remove(i);
+                        // Also remove pointer ID mapping when touch ends/cancels on early return
+                        self.remove_pointer_id_for_touch(event.id.0);
                     },
                     None => warn!("Got a touchend event for a non-active touch point"),
                 }
@@ -1694,5 +1774,37 @@ impl DocumentEventHandler {
 
         let (current_scroll_offset, delta) = calculate_current_scroll_offset_and_delta();
         scrolling_box.scroll_to(delta + current_scroll_offset, ScrollBehavior::Auto);
+    }
+
+    /// Get or create a pointer ID for the given touch identifier.
+    /// Returns the pointer ID to use for this touch.
+    fn get_or_create_pointer_id_for_touch(&self, touch_id: i32) -> i32 {
+        let mut active_pointer_ids = self.active_pointer_ids.borrow_mut();
+
+        if let Some(&pointer_id) = active_pointer_ids.get(&touch_id) {
+            return pointer_id;
+        }
+
+        let pointer_id = self.next_touch_pointer_id.get();
+        active_pointer_ids.insert(touch_id, pointer_id);
+        self.next_touch_pointer_id.set(pointer_id + 1);
+        pointer_id
+    }
+
+    /// Remove the pointer ID mapping for the given touch identifier.
+    fn remove_pointer_id_for_touch(&self, touch_id: i32) {
+        self.active_pointer_ids.borrow_mut().remove(&touch_id);
+    }
+
+    /// Check if this is the primary pointer (for touch events).
+    /// The first touch to make contact is the primary pointer.
+    fn is_primary_pointer(&self, pointer_id: i32) -> bool {
+        // For touch, the primary pointer is the one with the smallest pointer ID
+        // that is still active.
+        self.active_pointer_ids
+            .borrow()
+            .values()
+            .min()
+            .is_some_and(|primary_pointer| *primary_pointer == pointer_id)
     }
 }

@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 use std::default::Default;
+use std::f64::consts::PI;
 
 use dom_struct::dom_struct;
 use euclid::Point2D;
@@ -28,6 +29,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::node::Node;
+use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
@@ -310,6 +312,59 @@ impl MouseEvent {
 
     pub(crate) fn point_in_viewport(&self) -> Option<Point2D<f32, CSSPixel>> {
         Some(self.client_point.get().to_f32())
+    }
+
+    /// Create a PointerEvent from this MouseEvent.
+    /// <https://w3c.github.io/pointerevents/#the-primary-pointer>
+    /// For mouse, the pointer ID is always -1, and is_primary is always true.
+    pub(crate) fn to_pointer_event(
+        &self,
+        event_type: &str,
+        can_gc: CanGc,
+    ) -> DomRoot<crate::dom::pointerevent::PointerEvent> {
+        // Pressure is 0.5 when button is down, 0.0 when up
+        let pressure = if event_type == "pointerdown" ||
+            (event_type == "pointermove" && self.Buttons() != 0)
+        {
+            0.5
+        } else {
+            0.0
+        };
+
+        let window = self.global();
+        let window = window.as_window();
+
+        PointerEvent::new(
+            window,
+            DOMString::from(event_type),
+            EventBubbles::from(self.upcast::<Event>().Bubbles()),
+            EventCancelable::from(self.upcast::<Event>().Cancelable()),
+            self.uievent.GetView().as_deref(),
+            self.uievent.Detail(),
+            Point2D::new(self.ScreenX(), self.ScreenY()),
+            Point2D::new(self.ClientX(), self.ClientY()),
+            Point2D::new(self.PageX(), self.PageY()),
+            self.modifiers.get(),
+            self.Button(),
+            self.Buttons(),
+            self.GetRelatedTarget().as_deref(),
+            self.point_in_target.get(),
+            PointerId::Mouse as i32, // Mouse pointer ID is always -1
+            1,                       // width
+            1,                       // height
+            pressure,
+            0.0,      // tangential_pressure
+            0,        // tilt_x
+            0,        // tilt_y
+            0,        // twist
+            PI / 2.0, // altitude_angle (perpendicular to surface)
+            0.0,      // azimuth_angle
+            DOMString::from("mouse"),
+            true,   // is_primary (mouse is always primary)
+            vec![], // coalesced_events
+            vec![], // predicted_events
+            can_gc,
+        )
     }
 }
 
