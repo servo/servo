@@ -106,8 +106,8 @@ function setupAnimationAndTrigger(target, subject, duration) {
 
   let trigger = new TimelineTrigger([{
     timeline: new ViewTimeline({ subject: subject, axis: "y" }),
-    entryRangeStart: "contain 0%",
-    entryRangeEnd: "contain 100%"
+    activationRangeStart: "contain 0%",
+    activationRangeEnd: "contain 100%"
   }]);
 
   trigger.addAnimation(animation, "play-forwards", "play-backwards");

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    #flexbox {
+        display: flex;
+        width: 150px;
+        flex-wrap: wrap;
+    }
+    .items {
+        background-color: rgb(96 139 168 / 0.2);
+        width: 50px;
+        height: 50px;
+    }
+    #four {
+        width: 100px;
+    }
+    .row-gap {
+        margin: 0px;
+        padding: 0px;
+        height: 10px;
+        background: blue;
+        width: 150px;
+        position: absolute;
+        z-index: -1;
+    }
+    .column-gap {
+        display: flex;
+        flex-direction: column;
+        row-gap: 50px;
+        height: 150px;
+        top: 0px;
+        width: 10px;
+        left: 45px;
+        position: absolute;
+        z-index: -1;
+    }
+    .column {
+        background: red;
+        width: 10px;
+        height: 50px;
+    }
+</style>
+<div id="flexbox">
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items" id="four"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+    <div class="items"></div>
+</div>
+
+<div id="columns1" class="column-gap">
+    <div id="c1" class="column"></div>
+    <div id="c2" class="column"></div>
+</div>
+
+<div id="columns2" style="left: 95px; row-gap: 0px;" class="column-gap">
+    <div id="c1" class="column"></div>
+    <div id="c2" class="column"></div>
+    <div id="c3" class="column"></div>
+</div>
+
+<div id="row1" class="row-gap" style="top: 45px; left: 0px;"></div>
+<div id="row2" class="row-gap" style="top: 95px; left: 0px;"></div>

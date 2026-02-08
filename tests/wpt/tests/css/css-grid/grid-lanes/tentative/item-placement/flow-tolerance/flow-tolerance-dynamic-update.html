@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: flow-tolerance dynamic update triggers relayout</title>
+  <link rel="author" title="Apple Inc.">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#placement-tolerance">
+  <link rel="match" href="flow-tolerance-dynamic-update-ref.html">
+  <style>
+    html, body {
+      color: black;
+      background-color: white;
+      padding: 0;
+      margin: 0;
+    }
+
+    .grid-lanes {
+      display: inline-grid-lanes;
+      grid-template-rows: repeat(2, 100px);
+      gap: 10px;
+      flow-tolerance: normal;
+      border: 1px solid;
+      padding: 2px;
+    }
+
+    .item {
+      background-color: #444;
+      color: #fff;
+      padding: 10px;
+      margin: 3px;
+      border: 2px solid blue;
+    }
+  </style>
+</head>
+<body>
+
+<p>Test passes if the grid items are arranged in round-robin order (blue/green in first row, orange/red in second row).</p>
+
+<div class="grid-lanes" id="grid">
+  <div class="item" style="width: 100px; background: blue;"></div>
+  <div class="item" style="width: 50px; background: orange;"></div>
+  <div class="item" style="width: 50px; background: green;"></div>
+  <div class="item" style="width: 100px; background: red;"></div>
+</div>
+
+<script>
+  window.onload = function() {
+    // Start with normal tolerance, then change to infinite.
+    // With infinite tolerance, items are placed strictly in round-robin order.
+    // If layout is properly invalidated, items will reflow to match the reference.
+    const grid = document.getElementById("grid");
+    grid.style.flowTolerance = "infinite";
+  };
+</script>
+
+</body>
+</html>

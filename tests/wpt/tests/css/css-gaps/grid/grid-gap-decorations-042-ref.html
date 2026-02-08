@@ -1,18 +1,76 @@
 <!DOCTYPE html>
-<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
 <link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
 <style>
+  body {
+    margin: 0px;
+  }
+
   .grid-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    width: 430px;
-    height: 430px;
+    width: 400px;
+    height: 400px;
   }
 
   .grid-item {
     background-color: gray;
     opacity: 0.5;
     border: 1px solid #000;
+  }
+
+  .col-gap {
+    width: 0;
+    border-left: solid 5px blue;
+    z-index: -1;
+  }
+
+  .col-gap1 {
+    position: absolute;
+    top: 100px;
+    left: 97.5px;
+    height: 200px;
+  }
+
+  .col-gap2 {
+    position: absolute;
+    top: 0px;
+    left: 197.5px;
+    height: 200px;
+  }
+
+  .col-gap3 {
+    position: absolute;
+    top: 0px;
+    left: 297.5px;
+    height: 400px;
+  }
+
+  .row-gap {
+    height: 0px;
+    border-bottom: solid 5px red;
+    z-index: -1;
+  }
+
+  .row-gap1 {
+    position: absolute;
+    top: 97.5px;
+    left: 0px;
+    width: 200px;
+  }
+
+  .row-gap2 {
+    position: absolute;
+    top: 197.5px;
+    left: 100px;
+    width: 200px;
+  }
+
+  .row-gap3 {
+    position: absolute;
+    top: 297.5px;
+    left: 0px;
+    width: 400px;
   }
 </style>
 
@@ -26,3 +84,11 @@
   <div class="grid-item" style="grid-column: 1 / 4; grid-row: 4 / 5;"></div>
   <div class="grid-item" style="grid-column: 4 / 5; grid-row: 4 / 5;"></div>
 </div>
+
+<div class="col-gap col-gap1"></div>
+<div class="col-gap col-gap2"></div>
+<div class="col-gap col-gap3"></div>
+
+<div class="row-gap row-gap1"></div>
+<div class="row-gap row-gap2"></div>
+<div class="row-gap row-gap3"></div>

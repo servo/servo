@@ -1,0 +1,31 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", async () => {
+  const main1 = document.createElement("main");
+  const main2 = document.createElement("main");
+  const video = document.createElement("video");
+  const track = document.createElement("track");
+  video.appendChild(track);
+  video.appendChild(main2);
+  main1.appendChild(video);
+  document.documentElement.appendChild(main1);
+  const selection = getSelection();
+  selection.selectAllChildren(main1);
+  let count = 10;
+  let id = setInterval(async () => {
+    selection.collapseToStart();
+    selection.modify("extend", "forward", "line");
+    if (count-- == 0) {
+      clearInterval(id);
+      document.documentElement.removeAttribute("class");
+    }
+  }, 0);
+});
+</script>
+</head>
+</html>

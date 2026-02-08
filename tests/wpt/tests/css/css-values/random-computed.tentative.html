@@ -762,6 +762,34 @@ test(() => {
   document.body.appendChild(holder);
 
   try {
+    var allHaveSameMarginTopAndMargin = true;
+    for (i = 0; i < iterations; ++i) {
+      const el1 = document.createElement('div');
+      el1.style['margin'] = 'random(element-shared, 10px, 30px)';
+      holder.appendChild(el1);
+      const el2 = document.createElement('div');
+      el2.style['margin-top'] = 'random(element-shared, 10px, 30px)';
+      holder.appendChild(el2);
+
+      const el1ComputedMargin = getComputedStyle(el1)['margin'];
+      const el2ComputedMarginTop = getComputedStyle(el2)['margin-top'];
+      if (el1ComputedMargin != el2ComputedMarginTop) {
+        allHaveSameMarginTopAndMargin = false;
+      }
+    }
+
+    assert_false(allHaveSameMarginTopAndMargin,
+                 "random() should not be shared between longhand and shorthand");
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Shared by property - shorthand and longhand: random(element-shared, a, b)`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
     for (i = 0; i < iterations; ++i) {
       const t1 = document.createElement('div');
       t1.className = 'randomFixed';

@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Parser insertion via innerHTML with selected attribute</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.com">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2014604">
+<link rel="match" href="select-innerHTML-selected-ref.html">
+<div id="target"></div>
+<script>
+onload = () => {
+  target.innerHTML = `
+    <select><option selected>ABC</option></select>
+    <select><option>ABC</option></select>
+  `;
+};
+</script>

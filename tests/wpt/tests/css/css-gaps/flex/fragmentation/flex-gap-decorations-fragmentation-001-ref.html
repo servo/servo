@@ -42,11 +42,16 @@
 
     .row-rule {
         position: absolute;
-        background: blue;
+        display: flex;
+        column-gap: 10px;
         width: 167px;
         height: 10px;
         top: 5px;
         left: 267px;
+    }
+    .row-rule-segment {
+        background: blue;
+        width: 50px;
     }
 </style>
 
@@ -54,9 +59,13 @@
 <div class="column-rule" style="top: 3px; height: 45px; left: 112px;"></div>
 
 <div class="column-rule" style="top: 1px; height: 4px; left: 315px;"></div>
-<div class="column-rule" style="top: 1px; height: 4px; height: 5px; left: 375px;"></div>
+<div class="column-rule" style="top: 1px; height: 4px; left: 375px;"></div>
 <div class="column-rule" style="top: 17px; height: 31px; left: 365px;"></div>
-<div class=row-rule></div>
+<div class="row-rule">
+    <div class="row-rule-segment" style="width: 48px;"></div>
+    <div class="row-rule-segment" style="width: 40px; margin-right: 10px;"></div>
+    <div class="row-rule-segment" style="width: 49px;"></div>
+</div>
 
 <div class="column-rule" style="top: 1px; height: 18px; left: 628px;"></div>
 

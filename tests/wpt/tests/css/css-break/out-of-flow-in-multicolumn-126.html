@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>CSS Break Test: Fragmentation of abspos frame with inset-defined sizes</title>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-breaking">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+<style>
+.flex {
+  display: flex;
+}
+
+.multicol {
+  width: 50px;
+  height: 100px;
+  column-count: 2;
+  column-fill: auto;
+  column-gap: 0;
+}
+
+.container {
+  position: relative;
+  width: 25px;
+  height: 200px;
+  padding: 3px 5px 7px 9px;
+  box-sizing: border-box;
+}
+
+.abspos {
+  position: absolute;
+  inset: 0;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="flex">
+  <div class="multicol">
+    <div class="container">
+      <div class="abspos"></div>
+    </div>
+  </div>
+  <div class="multicol">
+    <div class="container">
+      <div class="abspos" style="box-sizing: border-box;"></div>
+    </div>
+  </div>
+</div>

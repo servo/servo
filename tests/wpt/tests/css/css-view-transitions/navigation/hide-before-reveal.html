@@ -10,6 +10,10 @@
 <script>
 const params = new URLSearchParams(location.search);
 
+// This is required to prevent the test harness from failing the test
+// when the unhandled promise rejection occurs.
+setup({ allow_uncaught_exception: true });
+
 switch (params.get("mode") || "test") {
 case "test":
   promise_test(async t => {

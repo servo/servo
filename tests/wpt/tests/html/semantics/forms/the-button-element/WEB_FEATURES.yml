@@ -18,3 +18,7 @@ features:
   - button-validity.html
   - button-willvalidate-readonly-attribute.html
   - button-willvalidate.html
+- name: invoker-commands
+  files:
+  - button-click-resets-with-commandfor.tentative.html
+  - button-click-submits-with-commandfor.tentative.html

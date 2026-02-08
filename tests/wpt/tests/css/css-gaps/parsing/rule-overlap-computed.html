@@ -2,9 +2,9 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>CSS Gaps: gap-rule-overlap getComputedStyle()</title>
+  <title>CSS Gaps: rule-overlap getComputedStyle()</title>
   <link rel="author" title="Javier Contreras Tenorio" href="mailto:javiercon@microsoft.com">
-  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#paint-order">
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#overlap">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/css/support/computed-testcommon.js"></script>
@@ -13,8 +13,8 @@
 <body>
   <div id="target"></div>
   <script>
-    test_computed_value("gap-rule-overlap", "row-over-column");
-    test_computed_value("gap-rule-overlap", "column-over-row");
+    test_computed_value("rule-overlap", "row-over-column");
+    test_computed_value("rule-overlap", "column-over-row");
   </script>
 </body>
 </html>
