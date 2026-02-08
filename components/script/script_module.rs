@@ -450,7 +450,7 @@ impl ModuleTree {
             let throw_result = ThrowOnModuleEvaluationFailure(
                 *cx,
                 evaluation_promise.handle().into(),
-                ModuleErrorBehaviour::ThrowModuleErrorsSync,
+                ModuleErrorBehaviour::ReportModuleErrorsAsync,
             );
             if !throw_result {
                 warn!("fail to evaluate module");
