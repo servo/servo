@@ -582,9 +582,11 @@ pub(crate) fn extract_key(
     // multiEntry flag is unset, and the result of running the steps to convert a value to a
     // multiEntry key with r otherwise. Rethrow any exceptions.
     let key = match multi_entry {
-        Some(true) => {
-            // TODO: implement convert_value_to_multientry_key
-            unimplemented!("multiEntry keys are not yet supported");
+        // TODO(arihant2math): implement multiEntry key conversion
+        Some(true) => match convert_value_to_key(cx, r.handle(), None)? {
+            ConversionResult::Valid(key) => key,
+            // Step 4. If key is invalid, return invalid.
+            ConversionResult::Invalid => return Ok(ExtractionResult::Invalid),
         },
         _ => match convert_value_to_key(cx, r.handle(), None)? {
             ConversionResult::Valid(key) => key,
