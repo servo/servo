@@ -21,3 +21,7 @@ partial interface mixin DocumentOrShadowRoot {
   [Pref="dom_adoptedstylesheet_enabled", SetterThrows]
   attribute /* ObservableArray<CSSStyleSheet> */ any adoptedStyleSheets;
 };
+
+partial interface mixin DocumentOrShadowRoot {
+  [LegacyLenientSetter] readonly attribute Element? fullscreenElement;
+};

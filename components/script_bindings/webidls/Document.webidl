@@ -200,7 +200,6 @@ partial interface Document {
 // https://fullscreen.spec.whatwg.org/#api
 partial interface Document {
   [LegacyLenientSetter] readonly attribute boolean fullscreenEnabled;
-  [LegacyLenientSetter] readonly attribute Element? fullscreenElement;
   [LegacyLenientSetter] readonly attribute boolean fullscreen; // historical
 
   Promise<undefined> exitFullscreen();

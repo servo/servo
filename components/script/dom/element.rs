@@ -113,6 +113,7 @@ use crate::dom::domrect::DOMRect;
 use crate::dom::domrectlist::DOMRectList;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::elementinternals::ElementInternals;
+use crate::dom::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
@@ -5484,6 +5485,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
         let element = self.element.root();
         let promise = self.promise.root();
         let document = element.owner_document();
+        let shadow_root = element.containing_shadow_root();
 
         // Step 9
         // > If any of the following conditions are false, then set error to true:
@@ -5512,9 +5514,16 @@ impl TaskOnce for ElementPerformFullscreenEnter {
         // The following operations is based on the old version of the specs.
         element.set_fullscreen_state(true);
         document.set_fullscreen_element(Some(&element));
-        document
-            .upcast::<EventTarget>()
-            .fire_event(atom!("fullscreenchange"), CanGc::from_cx(cx));
+        if let Some(shadow_root) = shadow_root {
+            shadow_root.set_fullscreen_element(Some(&element));
+        }
+        document.upcast::<EventTarget>().fire_event_with_params(
+            atom!("fullscreenchange"),
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable,
+            EventComposed::Composed,
+            CanGc::from_cx(cx),
+        );
 
         // Step 14.
         // > Resolve promise with undefined.
@@ -5541,6 +5550,7 @@ impl TaskOnce for ElementPerformFullscreenExit {
     fn run_once(self, cx: &mut js::context::JSContext) {
         let element = self.element.root();
         let document = element.owner_document();
+        let shadow_root = element.containing_shadow_root();
         // Step 9.
         // > Run the fully unlock the screen orientation steps with doc.
         // TODO: Need to implement ScreenOrientation API first
@@ -5549,9 +5559,16 @@ impl TaskOnce for ElementPerformFullscreenExit {
         // The following operations is based on the old version of the specs.
         element.set_fullscreen_state(false);
         document.set_fullscreen_element(None);
-        document
-            .upcast::<EventTarget>()
-            .fire_event(atom!("fullscreenchange"), CanGc::from_cx(cx));
+        if let Some(shadow_root) = shadow_root {
+            shadow_root.set_fullscreen_element(None);
+        }
+        document.upcast::<EventTarget>().fire_event_with_params(
+            atom!("fullscreenchange"),
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable,
+            EventComposed::Composed,
+            CanGc::from_cx(cx),
+        );
 
         // Step 16
         // > Resolve promise with undefined.

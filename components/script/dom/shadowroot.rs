@@ -111,6 +111,9 @@ pub(crate) struct ShadowRoot {
     adopted_stylesheets_frozen_types: CachedFrozenArray,
 
     details_name_groups: DomRefCell<Option<DetailsNameGroups>>,
+
+    /// Entry node for fullscreen.
+    fullscreen_element: MutNullableDom<Element>,
 }
 
 impl ShadowRoot {
@@ -150,6 +153,7 @@ impl ShadowRoot {
             adopted_stylesheets: Default::default(),
             adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
             details_name_groups: Default::default(),
+            fullscreen_element: MutNullableDom::new(None),
         }
     }
 
@@ -383,6 +387,10 @@ impl ShadowRoot {
             |details_name_groups| details_name_groups.get_or_insert_default(),
         )
     }
+
+    pub(crate) fn set_fullscreen_element(&self, element: Option<&Element>) {
+        self.fullscreen_element.set(element);
+    }
 }
 
 impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
@@ -578,6 +586,14 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         }
 
         result
+    }
+
+    /// <https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement>
+    fn GetFullscreenElement(&self) -> Option<DomRoot<Element>> {
+        DocumentOrShadowRoot::get_fullscreen_element(
+            self.upcast::<Node>(),
+            self.fullscreen_element.get(),
+        )
     }
 }
 
