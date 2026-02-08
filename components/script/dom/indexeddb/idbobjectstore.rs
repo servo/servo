@@ -180,7 +180,11 @@ impl IDBObjectStore {
         self.key_path.is_some()
     }
 
-    fn verify_not_deleted(&self) -> ErrorResult {
+    pub(crate) fn index_exists(&self, name: &DOMString) -> bool {
+        self.index_set.borrow().contains_key(name)
+    }
+
+    pub(crate) fn verify_not_deleted(&self) -> ErrorResult {
         let db = self.transaction.Db();
         if !db.object_store_exists(&self.name.borrow()) {
             return Err(Error::InvalidState(None));
@@ -189,7 +193,7 @@ impl IDBObjectStore {
     }
 
     /// Checks if the transaction is active, throwing a "TransactionInactiveError" DOMException if not.
-    fn check_transaction_active(&self) -> Fallible<()> {
+    pub(crate) fn check_transaction_active(&self) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
         let transaction = &self.transaction;
 
@@ -206,7 +210,7 @@ impl IDBObjectStore {
 
     /// Checks if the transaction is active, throwing a "TransactionInactiveError" DOMException if not.
     /// it then checks if the transaction is a read-only transaction, throwing a "ReadOnlyError" DOMException if so.
-    fn check_readwrite_transaction_active(&self) -> Fallible<()> {
+    pub(crate) fn check_readwrite_transaction_active(&self) -> Fallible<()> {
         // Let transaction be this object store handle's transaction.
         let transaction = &self.transaction;
 

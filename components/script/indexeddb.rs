@@ -18,11 +18,14 @@ use js::rust::wrappers2::{
     JS_HasOwnPropertyById, JS_IndexToId, JS_IsIdentifier, JS_NewObject, NewDateObject,
 };
 use js::rust::{HandleValue, MutableHandleValue};
+use script_bindings::root::DomRoot;
 use storage_traits::indexeddb::{BackendError, IndexedDBKeyRange, IndexedDBKeyType};
 
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
-use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
+use crate::dom::bindings::codegen::UnionTypes::{
+    IDBObjectStoreOrIDBIndexOrIDBCursor, StringOrStringSequence as StrOrStringSequence,
+};
 use crate::dom::bindings::conversions::{
     get_property_jsval, root_from_handlevalue, root_from_object,
 };
@@ -32,8 +35,44 @@ use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::blob::Blob;
 use crate::dom::file::File;
+use crate::dom::idbindex::IDBIndex;
 use crate::dom::idbkeyrange::IDBKeyRange;
-use crate::dom::idbobjectstore::KeyPath;
+use crate::dom::idbobjectstore::{IDBObjectStore, KeyPath};
+use crate::dom::idbtransaction::IDBTransaction;
+
+pub(crate) trait IDBSource {
+    fn transaction(&self) -> DomRoot<IDBTransaction>;
+    fn object_store_name(&self) -> DOMString;
+    fn as_source(&self) -> IDBObjectStoreOrIDBIndexOrIDBCursor;
+}
+
+impl IDBSource for IDBObjectStore {
+    fn transaction(&self) -> DomRoot<IDBTransaction> {
+        self.transaction()
+    }
+
+    fn object_store_name(&self) -> DOMString {
+        self.get_name()
+    }
+
+    fn as_source(&self) -> IDBObjectStoreOrIDBIndexOrIDBCursor {
+        IDBObjectStoreOrIDBIndexOrIDBCursor::IDBObjectStore(DomRoot::from_ref(self))
+    }
+}
+
+impl IDBSource for IDBIndex {
+    fn transaction(&self) -> DomRoot<IDBTransaction> {
+        self.object_store().transaction()
+    }
+
+    fn object_store_name(&self) -> DOMString {
+        self.object_store().get_name()
+    }
+
+    fn as_source(&self) -> IDBObjectStoreOrIDBIndexOrIDBCursor {
+        IDBObjectStoreOrIDBIndexOrIDBCursor::IDBIndex(DomRoot::from_ref(self))
+    }
+}
 
 // https://www.w3.org/TR/IndexedDB-2/#convert-key-to-value
 #[expect(unsafe_code)]

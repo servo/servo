@@ -310,6 +310,36 @@ pub enum AsyncReadOnlyOperation {
         callback: GenericCallback<BackendResult<Vec<IndexedDBRecord>>>,
         key_range: IndexedDBKeyRange,
     },
+
+    IndexGetKey {
+        callback: GenericCallback<BackendResult<Option<IndexedDBKeyType>>>,
+        index_name: String,
+        key_range: IndexedDBKeyRange,
+    },
+    IndexGetItem {
+        callback: GenericCallback<BackendResult<Option<Vec<u8>>>>,
+        index_name: String,
+        key_range: IndexedDBKeyRange,
+    },
+
+    IndexGetAllKeys {
+        callback: GenericCallback<BackendResult<Vec<IndexedDBKeyType>>>,
+        index_name: String,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    },
+    IndexGetAllItems {
+        callback: GenericCallback<BackendResult<Vec<Vec<u8>>>>,
+        index_name: String,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    },
+
+    IndexCount {
+        callback: GenericCallback<BackendResult<u64>>,
+        index_name: String,
+        key_range: IndexedDBKeyRange,
+    },
 }
 
 impl AsyncReadOnlyOperation {

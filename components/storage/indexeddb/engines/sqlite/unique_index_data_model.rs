@@ -5,7 +5,6 @@
 use sea_query::Iden;
 
 #[derive(Clone, Copy, Iden)]
-#[expect(unused)]
 pub enum Column {
     #[iden = "unique_index_data"]
     Table,
