@@ -38,6 +38,10 @@ pub fn set(preferences: Preferences) {
     stylo_config::set_bool("layout.columns.enabled", preferences.layout_columns_enabled);
     stylo_config::set_bool("layout.grid.enabled", preferences.layout_grid_enabled);
     stylo_config::set_bool(
+        "layout.css.attr.enabled",
+        preferences.layout_css_attr_enabled,
+    );
+    stylo_config::set_bool(
         "layout.css.transition-behavior.enabled",
         preferences.layout_css_transition_behavior_enabled,
     );
@@ -263,6 +267,7 @@ pub struct Preferences {
     // feature: CSS Grid | #34479 | Web/CSS/Guides/Grid_layout
     pub layout_grid_enabled: bool,
     pub layout_container_queries_enabled: bool,
+    pub layout_css_attr_enabled: bool,
     pub layout_css_transition_behavior_enabled: bool,
     // feature: CSS Flexbox | #12453 | Web/CSS/Guides/Flexible_box_layout
     pub layout_flexbox_enabled: bool,
@@ -468,6 +473,7 @@ impl Preferences {
             layout_animations_test_enabled: false,
             layout_columns_enabled: false,
             layout_container_queries_enabled: false,
+            layout_css_attr_enabled: false,
             layout_css_transition_behavior_enabled: true,
             layout_flexbox_enabled: true,
             layout_grid_enabled: false,
