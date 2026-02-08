@@ -26,7 +26,7 @@ use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::script_module::{ModuleScript, ModuleSource, RethrowError, ScriptFetchOptions};
+use crate::script_module::{ModuleScript, ModuleSource, ModuleTree, RethrowError, ScriptFetchOptions};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::unminify::unminify_js;
 
@@ -225,7 +225,43 @@ impl GlobalScope {
             requested: None,
         })
     }
+    pub(crate) fn run_a_module_script(
+        &self,
+        module_tree: Rc<ModuleTree>,
+        _rethrow_errors: bool,
+        can_gc: CanGc,
+    ) {
+        // TODO Step 1. Let settings be the settings object of script.
 
+        // Step 2
+        if !self.can_run_script() {
+            return;
+        }
+
+        // Step 4
+        let _aes = AutoEntryScript::new(self);
+
+        // Step 6.
+        {
+            let module_error = module_tree.get_rethrow_error().borrow();
+            if module_error.is_some() {
+                module_tree.report_error(self, can_gc);
+                return;
+            }
+        }
+
+        let record = module_tree.get_record().map(|record| record.handle());
+
+        if let Some(record) = record {
+            rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
+            let evaluated = module_tree.execute_module(self, record, rval.handle_mut(), can_gc);
+
+            if let Err(exception) = evaluated {
+                module_tree.set_rethrow_error(exception);
+                module_tree.report_error(self, can_gc);
+            }
+        }
+    }
     /// <https://html.spec.whatwg.org/multipage/#check-if-we-can-run-script>
     fn can_run_script(&self) -> bool {
         // Step 1 If the global object specified by settings is a Window object

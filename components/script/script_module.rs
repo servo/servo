@@ -43,6 +43,7 @@ use js::rust::{
 use mime::Mime;
 use net_traits::http_status::HttpStatus;
 use net_traits::mime_classifier::MimeClassifier;
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId, RequestMode,
 };
@@ -76,7 +77,8 @@ use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
-use crate::dom::types::Console;
+use crate::dom::reportingendpoint::ReportingEndpoint;
+use crate::dom::types::{Console, DedicatedWorkerGlobalScope, WorkerGlobalScope};
 use crate::dom::window::Window;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::fetch::RequestWithGlobalScope;
@@ -636,8 +638,7 @@ impl Callback for ModuleHandler {
 /// It can be `worker` or `script` element
 #[derive(Clone, JSTraceable)]
 pub(crate) enum ModuleOwner {
-    #[expect(dead_code)]
-    Worker(TrustedWorkerAddress),
+    Worker(TrustedWorkerAddress, Trusted<WorkerGlobalScope>),
     Window(Trusted<HTMLScriptElement>),
     DynamicModule(Trusted<GlobalScope>),
 }
@@ -645,7 +646,7 @@ pub(crate) enum ModuleOwner {
 impl ModuleOwner {
     pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
         match &self {
-            ModuleOwner::Worker(worker) => (*worker.root().clone()).global(),
+            ModuleOwner::Worker(_, scope) => scope.root().global(),
             ModuleOwner::Window(script) => (*script.root()).global(),
             ModuleOwner::DynamicModule(dynamic_module) => (*dynamic_module.root()).global(),
         }
@@ -653,7 +654,20 @@ impl ModuleOwner {
 
     fn notify_owner_to_finish(&self, module_tree: Option<Rc<ModuleTree>>, can_gc: CanGc) {
         match &self {
-            ModuleOwner::Worker(_) => unimplemented!(),
+            ModuleOwner::Worker(worker, scope) => {
+                let scope = scope.root();
+
+                // NOTE(pylbrecht): no idea if this is the correct way to get a `cx`; just
+                // copy/pasted from `impl FetchResponseListener for ScriptFetchOptions`.
+                #[expect(unsafe_code)]
+                let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+
+                if let Some(module_tree) = module_tree {
+                    scope.on_complete(Some(Script::Module(module_tree)), worker.clone(), &mut cx);
+                } else {
+                    scope.on_complete(None, worker.clone(), &mut cx);
+                }
+            },
             ModuleOwner::DynamicModule(_) => unimplemented!(),
             ModuleOwner::Window(script) => {
                 let document = script.root().owner_document();
@@ -696,6 +710,10 @@ struct ModuleContext {
     status: Result<(), NetworkError>,
     /// `introductionType` value to set in the `CompileOptionsWrapper`.
     introduction_type: Option<&'static CStr>,
+    /// <https://html.spec.whatwg.org/multipage/webappapis.html#fetching-scripts-is-top-level>
+    is_top_level: bool,
+
+    policy_container: Option<PolicyContainer>,
 }
 
 impl FetchResponseListener for ModuleContext {
@@ -777,6 +795,34 @@ impl FetchResponseListener for ModuleContext {
         }
 
         let metadata = self.metadata.take().unwrap();
+
+        // The processResponseConsumeBody steps defined inside
+        // [run a worker](https://html.spec.whatwg.org/multipage/#run-a-worker)
+        if self.is_top_level {
+            let global = self.owner.global();
+
+            if let Some(scope) = global.downcast::<WorkerGlobalScope>() {
+                // Step 1. Set worker global scope's url to response's url.
+                scope.set_url(metadata.final_url.clone());
+
+                // Step 2. Set inside settings's creation URL to response's url.
+                global.set_creation_url(metadata.final_url.clone());
+
+                // Step 3. Initialize worker global scope's policy container given worker global scope, response, and inside settings.
+                scope.initialize_policy_container_for_worker_global_scope(
+                    &metadata,
+                    &self
+                        .policy_container
+                        .expect("top level worker fetch must have a policy container"),
+                );
+                scope.set_endpoints_list(ReportingEndpoint::parse_reporting_endpoints_header(
+                    &metadata.final_url.clone(),
+                    &metadata.headers,
+                ));
+                global.set_https_state(metadata.https_state);
+            }
+        }
+
         let final_url = metadata.final_url;
 
         // Step 2. Let mimeType be the result of extracting a MIME type from response's header list.
@@ -846,8 +892,17 @@ impl FetchResponseListener for ModuleContext {
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
-        let global = &self.resource_timing_global();
-        global.report_csp_violations(violations, None, None);
+        match &self.owner {
+            ModuleOwner::Worker(_, scope) => {
+                if let Some(scope) = scope.root().downcast::<DedicatedWorkerGlobalScope>() {
+                    scope.report_csp_violations(violations);
+                }
+            },
+            _ => {
+                let global = &self.resource_timing_global();
+                global.report_csp_violations(violations, None, None);
+            },
+        };
     }
 }
 
@@ -924,6 +979,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
         module_type,
         None,
         payload,
+        None,
     );
 
     true
@@ -1080,6 +1136,70 @@ unsafe extern "C" fn HostPopulateImportMeta(
     }
 }
 
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-module-worker-script-tree>
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-worklet/module-worker-script-graph>
+pub(crate) fn fetch_a_module_worker_script_graph(
+    worker: TrustedWorkerAddress,
+    url: ServoUrl,
+    owner: ModuleOwner,
+    referrer: Referrer,
+    credentials_mode: CredentialsMode,
+    policy_container: PolicyContainer,
+    can_gc: CanGc,
+) {
+    // Step 1. Let options be a script fetch options whose cryptographic nonce
+    // is the empty string, integrity metadata is the empty string, parser
+    // metadata is "not-parser-inserted", credentials mode is credentialsMode,
+    // referrer policy is the empty string, and fetch priority is "auto".
+    let options = ScriptFetchOptions {
+        referrer: referrer.clone(),
+        integrity_metadata: "".into(),
+        credentials_mode,
+        cryptographic_nonce: "".into(),
+        parser_metadata: ParserMetadata::NotParserInserted,
+        referrer_policy: ReferrerPolicy::EmptyString,
+    };
+    // Step 2. Fetch a single module script given url, fetchClient, destination, options,
+    // settingsObject, "client", true, and onSingleFetchComplete as defined below.
+    fetch_a_single_module_script(
+        url,
+        owner.clone(),
+        Destination::Worker,
+        options,
+        referrer,
+        None,
+        true,
+        Some(IntroductionType::WORKER),
+        Some(policy_container.clone()),
+        move |module_tree| {
+            let Some(module) = module_tree else {
+                // Step 1.1. If result is null, run onComplete given null, and abort these steps.
+                // TODO(pylbrecht): make `worker` part of ModuleOwner, so we can call on_complete()
+                // in ModuleOwner::notify_owner_to_finish()
+                let global = owner.global();
+                let global = global.downcast::<WorkerGlobalScope>().unwrap();
+
+                // NOTE(pylbrecht): no idea if this is the correct way to get a `cx`; just
+                // copy/pasted from `impl FetchResponseListener for ScriptFetchOptions`.
+                #[expect(unsafe_code)]
+                let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+                global.on_complete(None, worker, &mut cx);
+
+                return owner.notify_owner_to_finish(None, can_gc);
+            };
+
+            // Step 1.2. Fetch the descendants of and link result given fetchClient, destination,
+            // and onComplete.
+            fetch_the_descendants_and_link_module_script(
+                module,
+                Destination::Worker,
+                owner,
+                Some(policy_container),
+            );
+        },
+    );
+}
+
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-module-script-tree>
 pub(crate) fn fetch_an_external_module_script(
     url: ServoUrl,
@@ -1100,6 +1220,7 @@ pub(crate) fn fetch_an_external_module_script(
         None,
         true,
         Some(IntroductionType::SRC_SCRIPT),
+        None,
         move |module_tree| {
             let Some(module) = module_tree else {
                 // Step 1.1. If result is null, run onComplete given null, and abort these steps.
@@ -1107,7 +1228,7 @@ pub(crate) fn fetch_an_external_module_script(
             };
 
             // Step 1.2. Fetch the descendants of and link result given settingsObject, "script", and onComplete.
-            fetch_the_descendants_and_link_module_script(module, Destination::Script, owner);
+            fetch_the_descendants_and_link_module_script(module, Destination::Script, owner, None);
         },
     );
 }
@@ -1134,7 +1255,7 @@ pub(crate) fn fetch_inline_module_script(
     ));
 
     // Step 2. Fetch the descendants of and link script, given settingsObject, "script", and onComplete.
-    fetch_the_descendants_and_link_module_script(module_tree, Destination::Script, owner);
+    fetch_the_descendants_and_link_module_script(module_tree, Destination::Script, owner, None);
 }
 
 #[expect(unsafe_code)]
@@ -1143,6 +1264,7 @@ fn fetch_the_descendants_and_link_module_script(
     module_script: Rc<ModuleTree>,
     destination: Destination,
     owner: ModuleOwner,
+    policy_container: Option<PolicyContainer>,
 ) {
     let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
     let mut realm = CurrentRealm::assert(&mut cx);
@@ -1177,7 +1299,7 @@ fn fetch_the_descendants_and_link_module_script(
 
     // Step 5. Let loadingPromise be record.LoadRequestedModules(state).
     let loading_promise =
-        load_requested_modules(cx, module_script.clone(), Some(Rc::clone(&state)));
+        load_requested_modules(cx, module_script.clone(), Some(Rc::clone(&state)), policy_container);
 
     let fulfillment_owner = owner.clone();
     let fulfilled_module = module_script.clone();
@@ -1251,6 +1373,7 @@ pub(crate) fn fetch_a_single_module_script(
     module_type: Option<ModuleType>,
     is_top_level: bool,
     introduction_type: Option<&'static CStr>,
+    policy_container: Option<PolicyContainer>,
     on_complete: impl FnOnce(Option<Rc<ModuleTree>>) + 'static,
 ) {
     let global = owner.global();
@@ -1312,7 +1435,7 @@ pub(crate) fn fetch_a_single_module_script(
     global.set_module_map(module_request.clone(), ModuleStatus::Fetching(pending));
 
     let document: Option<DomRoot<Document>> = match &owner {
-        ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
+        ModuleOwner::Worker(_, _) | ModuleOwner::DynamicModule(_) => None,
         ModuleOwner::Window(script) => Some(script.root().owner_document()),
     };
     let webview_id = document.as_ref().map(|document| document.webview_id());
@@ -1335,7 +1458,7 @@ pub(crate) fn fetch_a_single_module_script(
     // TODO Step 11. Set request's initiator type to "script".
 
     // Step 12. Set up the module script request given request and options.
-    let request = RequestBuilder::new(webview_id, url.clone(), referrer)
+    let mut request = RequestBuilder::new(webview_id, url.clone(), referrer)
         .destination(destination)
         .parser_metadata(options.parser_metadata)
         .integrity_metadata(options.integrity_metadata.clone())
@@ -1345,6 +1468,10 @@ pub(crate) fn fetch_a_single_module_script(
         .with_global_scope(&global)
         .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
 
+    if let Some(container) = policy_container.clone() {
+        request = request.policy_container(container);
+    }
+
     let context = ModuleContext {
         owner,
         data: vec![],
@@ -1353,6 +1480,8 @@ pub(crate) fn fetch_a_single_module_script(
         options,
         status: Ok(()),
         introduction_type,
+        is_top_level,
+        policy_container,
     };
 
     let network_listener = NetworkListener::new(
