@@ -88,7 +88,7 @@ pub struct IDBObjectStore {
     reflector_: Reflector,
     name: DomRefCell<DOMString>,
     key_path: Option<KeyPath>,
-    index_set: DomRefCell<HashMap<DOMString, Dom<IDBIndex>>>,
+    index_set: DomRefCell<HashMap<DOMString, DomRoot<IDBIndex>>>,
     transaction: Dom<IDBTransaction>,
 
     // We store the db name in the object store to be able to find the correct
@@ -299,7 +299,8 @@ impl IDBObjectStore {
         // Step 12. Let operation be an algorithm to run store a record into an object store with store, clone, key, and no-overwrite flag.
         // Step 13. Return the result (an IDBRequest) of running asynchronously execute a request with handle and operation.
         let mut index_keys = Vec::new();
-        for index in self.index_set.borrow().values() {
+        let index_set = self.index_set.borrow();
+        for index in index_set.values() {
             // https://www.w3.org/TR/IndexedDB/#store-a-record-into-an-object-store: Step 5.1
             // Let index key be the result of extracting a key from a value using a key path with value, index’s key path, and index’s multiEntry flag.
             let index_key = extract_key(cx, value, index.key_path(), Some(index.multi_entry()))?;
@@ -426,7 +427,7 @@ impl IDBObjectStore {
         );
         self.index_set
             .borrow_mut()
-            .insert(name, Dom::from_ref(&index));
+            .insert(name, DomRoot::from_ref(&index));
         index
     }
 }
@@ -848,6 +849,6 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         let index = index_set.get(&name).ok_or(Error::NotFound(None))?;
 
         // Step 6. Return an index handle associated with index and this.
-        Ok(index.as_rooted())
+        Ok(index.clone())
     }
 }
