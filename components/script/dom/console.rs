@@ -7,8 +7,8 @@ use std::ptr::{self, NonNull};
 use std::slice;
 
 use devtools_traits::{
-    ConsoleArgument, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,
-    ScriptToDevtoolsControlMsg, StackFrame, get_time_stamp,
+    ConsoleArgument, ConsoleArgumentObject, ConsoleArgumentPropertyValue, ConsoleLogLevel,
+    ConsoleMessage, ConsoleMessageFields, ScriptToDevtoolsControlMsg, StackFrame, get_time_stamp,
 };
 use embedder_traits::EmbedderMsg;
 use js::conversions::jsstr_to_string;
@@ -154,9 +154,88 @@ fn console_argument_from_handle_value(cx: JSContext, handle_value: HandleValue) 
         return ConsoleArgument::Number(number);
     }
 
+    if handle_value.is_object() {
+        if let Some(console_argument_object) = console_object_from_handle_value(cx, handle_value) {
+            return ConsoleArgument::Object(console_argument_object);
+        }
+    }
+
     // FIXME: Handle more complex argument types here
     let stringified_value = stringify_handle_value(handle_value);
     ConsoleArgument::String(stringified_value.into())
+}
+
+#[expect(unsafe_code)]
+fn console_object_from_handle_value(
+    cx: JSContext,
+    handle_value: HandleValue,
+) -> Option<ConsoleArgumentObject> {
+    rooted!(in(*cx) let object = handle_value.to_object());
+
+    let mut own_properties = Vec::new();
+    let mut ids = unsafe { IdVector::new(*cx) };
+    if !unsafe {
+        GetPropertyKeys(
+            *cx,
+            object.handle(),
+            jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS | jsapi::JSITER_HIDDEN,
+            ids.handle_mut(),
+        )
+    } {
+        return None;
+    }
+
+    for id in ids.iter() {
+        rooted!(in(*cx) let id = *id);
+        rooted!(in(*cx) let mut descriptor = PropertyDescriptor::default());
+
+        let mut is_none = false;
+        if !unsafe {
+            JS_GetOwnPropertyDescriptorById(
+                *cx,
+                object.handle(),
+                id.handle(),
+                descriptor.handle_mut(),
+                &mut is_none,
+            )
+        } {
+            return None;
+        }
+
+        rooted!(in(*cx) let mut property = UndefinedValue());
+        if !unsafe { JS_GetPropertyById(*cx, object.handle(), id.handle(), property.handle_mut()) }
+        {
+            return None;
+        }
+
+        let key = if id.is_string() || id.is_symbol() || id.is_int() {
+            rooted!(in(*cx) let mut key_value = UndefinedValue());
+            let raw_id: jsapi::HandleId = id.handle().into();
+            if !unsafe { JS_IdToValue(*cx, *raw_id.ptr, key_value.handle_mut()) } {
+                continue;
+            }
+            rooted!(in(*cx) let js_string = key_value.to_string());
+            let Some(js_string) = NonNull::new(js_string.get()) else {
+                continue;
+            };
+            unsafe { jsstr_to_string(*cx, js_string) }
+        } else {
+            continue;
+        };
+
+        own_properties.push(ConsoleArgumentPropertyValue {
+            key,
+            configurable: descriptor.hasConfigurable_() && descriptor.configurable_(),
+            enumerable: descriptor.hasEnumerable_() && descriptor.enumerable_(),
+            writable: descriptor.hasWritable_() && descriptor.writable_(),
+            value: console_argument_from_handle_value(cx, property.handle()),
+        });
+    }
+
+    Some(ConsoleArgumentObject {
+        class: "Object".to_owned(),
+        own_properties,
+    })
 }
 
 #[expect(unsafe_code)]

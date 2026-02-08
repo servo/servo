@@ -35,7 +35,7 @@ use serde::Serialize;
 
 use crate::actor::{Actor, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
-use crate::actors::console::{ConsoleActor, ConsoleResource, Root};
+use crate::actors::console::{ConsoleActor, ConsoleResource, DevtoolsConsoleMessage, Root};
 use crate::actors::framerate::FramerateActor;
 use crate::actors::network_event::NetworkEventActor;
 use crate::actors::root::RootActor;
@@ -237,11 +237,15 @@ impl DevtoolsInstance {
                     pipeline_id,
                     console_message,
                     worker_id,
-                )) => self.handle_console_resource(
-                    pipeline_id,
-                    worker_id,
-                    ConsoleResource::ConsoleMessage(console_message.into()),
-                ),
+                )) => {
+                    let console_message =
+                        DevtoolsConsoleMessage::new(console_message, &self.registry);
+                    self.handle_console_resource(
+                        pipeline_id,
+                        worker_id,
+                        ConsoleResource::ConsoleMessage(console_message),
+                    );
+                },
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ClearConsole(
                     pipeline_id,
                     worker_id,
@@ -277,11 +281,13 @@ impl DevtoolsInstance {
                         arguments: vec![css_error.msg.into()],
                         stacktrace: None,
                     };
+                    let console_message =
+                        DevtoolsConsoleMessage::new(console_message, &self.registry);
 
                     self.handle_console_resource(
                         pipeline_id,
                         None,
-                        ConsoleResource::ConsoleMessage(console_message.into()),
+                        ConsoleResource::ConsoleMessage(console_message),
                     )
                 },
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(

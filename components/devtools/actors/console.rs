@@ -45,26 +45,97 @@ pub(crate) struct DevtoolsConsoleMessage {
     // source_id
 }
 
-impl From<ConsoleMessage> for DevtoolsConsoleMessage {
-    fn from(console_message: ConsoleMessage) -> Self {
+impl DevtoolsConsoleMessage {
+    pub(crate) fn new(message: ConsoleMessage, registry: &ActorRegistry) -> Self {
         Self {
-            fields: console_message.fields,
-            arguments: console_message
+            fields: message.fields,
+            arguments: message
                 .arguments
                 .into_iter()
-                .map(console_argument_to_value)
+                .map(|argument| console_argument_to_value(argument, registry))
                 .collect(),
-            stacktrace: console_message.stacktrace,
+            stacktrace: message.stacktrace,
         }
     }
 }
 
-fn console_argument_to_value(argument: ConsoleArgument) -> Value {
+fn console_argument_to_value(argument: ConsoleArgument, registry: &ActorRegistry) -> Value {
     match argument {
         ConsoleArgument::String(value) => Value::String(value),
         ConsoleArgument::Integer(value) => Value::Number(value.into()),
         ConsoleArgument::Number(value) => {
             Number::from_f64(value).map(Value::from).unwrap_or_default()
+        },
+        ConsoleArgument::Object(object) => {
+            // Create a new actor for the object.
+            // These are currently never cleaned up, and we make no attempt at re-using the same actor
+            // if the same object is logged repeatedly.
+            let actor = ObjectActor::register(registry, None);
+
+            #[derive(Serialize)]
+            struct PropertyDescriptor {
+                configurable: bool,
+                enumerable: bool,
+                writable: bool,
+                value: Value,
+            }
+
+            #[derive(Serialize)]
+            #[serde(rename_all = "camelCase")]
+            struct DevtoolsConsoleObjectArgument {
+                r#type: String,
+                actor: String,
+                class: String,
+                own_property_length: usize,
+                extensible: bool,
+                frozen: bool,
+                sealed: bool,
+                is_error: bool,
+                preview: DevtoolsConsoleObjectArgumentPreview,
+            }
+
+            #[derive(Serialize)]
+            #[serde(rename_all = "camelCase")]
+            struct DevtoolsConsoleObjectArgumentPreview {
+                kind: String,
+                own_properties: HashMap<String, PropertyDescriptor>,
+                own_properties_length: usize,
+            }
+
+            let own_properties: HashMap<String, PropertyDescriptor> = object
+                .own_properties
+                .into_iter()
+                .map(|property| {
+                    let property_descriptor = PropertyDescriptor {
+                        configurable: property.configurable,
+                        enumerable: property.enumerable,
+                        writable: property.writable,
+                        value: console_argument_to_value(property.value, registry),
+                    };
+
+                    (property.key, property_descriptor)
+                })
+                .collect();
+
+            let argument = DevtoolsConsoleObjectArgument {
+                r#type: "object".to_owned(),
+                actor,
+                class: object.class,
+                own_property_length: own_properties.len(),
+                extensible: true,
+                frozen: false,
+                sealed: false,
+                is_error: false,
+                preview: DevtoolsConsoleObjectArgumentPreview {
+                    kind: "Object".to_string(),
+                    own_properties_length: own_properties.len(),
+                    own_properties,
+                },
+            };
+
+            // to_value can fail if the implementation of Serialize fails or there are non-string map keys.
+            // Neither should be possible here
+            serde_json::to_value(argument).unwrap()
         },
     }
 }
