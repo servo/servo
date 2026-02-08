@@ -416,7 +416,7 @@ impl FromJSValConvertibleRc for Promise {
         value: HandleValue,
     ) -> Result<ConversionResult<Rc<Promise>>, ()> {
         if value.get().is_null() {
-            return Ok(ConversionResult::Failure("null not allowed".into()));
+            return Ok(ConversionResult::Failure(c"null not allowed".into()));
         }
 
         let cx = unsafe { SafeJSContext::from_ptr(cx) };

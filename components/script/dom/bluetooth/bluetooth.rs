@@ -636,7 +636,9 @@ impl PermissionAlgorithm for Bluetooth {
             .set(ObjectValue(permission_descriptor_obj));
         match BluetoothPermissionDescriptor::new(cx, property.handle(), can_gc) {
             Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(
+                String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
+            )),
             Err(_) => Err(Error::Type(String::from(BT_DESC_CONVERSION_ERROR))),
         }
     }

@@ -17,6 +17,7 @@ use js::rust::wrappers::{
     JS_ExecuteScript, JS_GetPendingException, JS_GetScriptPrivate, JS_SetPendingException,
 };
 use js::rust::{CompileOptionsWrapper, MutableHandleValue, transform_str_to_source_text};
+use script_bindings::cformat;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -258,6 +259,9 @@ pub(crate) fn compile_script(
     line_number: u32,
     introduction_type: Option<&'static CStr>,
 ) -> *mut JSScript {
+    // TODO: pass filename as CString to avoid allocation
+    // See https://github.com/servo/servo/issues/42126
+    let filename = cformat!("{filename}");
     let mut options = unsafe { CompileOptionsWrapper::new_raw(*cx, filename, line_number) };
     if let Some(introduction_type) = introduction_type {
         options.set_introduction_type(introduction_type);

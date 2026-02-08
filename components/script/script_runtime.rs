@@ -23,9 +23,9 @@ use js::conversions::jsstr_to_string;
 use js::gc::StackGCVector;
 use js::glue::{
     CollectServoSizes, CreateJobQueue, DeleteJobQueue, DispatchablePointer, DispatchableRun,
-    JS_GetReservedSlot, JobQueueTraps, RUST_js_GetErrorMessage, SetBuildId,
-    StreamConsumerConsumeChunk, StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd,
-    StreamConsumerStreamError,
+    JS_GetReservedSlot, JobQueueTraps, RUST_js_GetErrorMessage, RegisterScriptEnvironmentPreparer,
+    RunScriptEnvironmentPreparerClosure, SetBuildId, StreamConsumerConsumeChunk,
+    StreamConsumerNoteResponseURLs, StreamConsumerStreamEnd, StreamConsumerStreamError,
 };
 use js::jsapi::{
     AsmJSOption, BuildIdCharVector, CompilationType, Dispatchable_MaybeShuttingDown, GCDescription,
@@ -35,8 +35,8 @@ use js::jsapi::{
     JSCLASS_RESERVED_SLOTS_SHIFT, JSClass, JSClassOps, JSContext as RawJSContext, JSGCParamKey,
     JSGCStatus, JSJitCompilerOption, JSObject, JSSecurityCallbacks, JSString, JSTracer, JobQueue,
     MimeType, MutableHandleObject, MutableHandleString, PromiseRejectionHandlingState,
-    PromiseUserInputEventHandlingState, RuntimeCode, SetProcessBuildIdOp,
-    StreamConsumer as JSStreamConsumer,
+    PromiseUserInputEventHandlingState, RuntimeCode, ScriptEnvironmentPreparer_Closure,
+    SetProcessBuildIdOp, StreamConsumer as JSStreamConsumer,
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::panic::wrap_panic;
@@ -76,6 +76,7 @@ use crate::dom::bindings::refcounted::{
 };
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::trace_roots;
+use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::bindings::{principals, settings_stack};
@@ -827,6 +828,11 @@ impl Runtime {
                 ptr::null_mut(),
             );
 
+            RegisterScriptEnvironmentPreparer(
+                cx.raw_cx(),
+                Some(invoke_script_environment_preparer),
+            );
+
             EnsureModuleHooksInitialized(runtime.rt());
 
             let cx = runtime.cx();
@@ -1370,6 +1376,18 @@ unsafe extern "C" fn report_stream_error(_cx: *mut RawJSContext, error_code: usi
     error!("Error initializing StreamConsumer: {:?}", unsafe {
         RUST_js_GetErrorMessage(ptr::null_mut(), error_code as u32)
     });
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C" fn invoke_script_environment_preparer(
+    global: HandleObject,
+    closure: *mut ScriptEnvironmentPreparer_Closure,
+) {
+    let cx = GlobalScope::get_cx();
+    let global = unsafe { GlobalScope::from_object(global.get()) };
+    let _aes = AutoEntryScript::new(&global);
+
+    RunScriptEnvironmentPreparerClosure(*cx, closure);
 }
 
 pub(crate) struct Runnable(*mut DispatchablePointer);

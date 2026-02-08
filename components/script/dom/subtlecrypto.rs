@@ -3004,7 +3004,9 @@ where
     let conversion = T::safe_from_jsval(cx, value, (), can_gc).map_err(|_| Error::JSFailed)?;
     match conversion {
         ConversionResult::Success(dictionary) => Ok(dictionary),
-        ConversionResult::Failure(error) => Err(Error::Type(error.into())),
+        ConversionResult::Failure(error) => Err(Error::Type(
+            String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
+        )),
     }
 }
 
@@ -3147,7 +3149,9 @@ impl JsonWebKeyExt for JsonWebKey {
         let key = match JsonWebKey::new(cx, result.handle(), CanGc::note()) {
             Ok(ConversionResult::Success(key)) => key,
             Ok(ConversionResult::Failure(error)) => {
-                return Err(Error::Type(error.to_string()));
+                return Err(Error::Type(
+                    String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
+                ));
             },
             Err(()) => {
                 return Err(Error::JSFailed);

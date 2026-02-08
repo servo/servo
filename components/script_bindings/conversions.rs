@@ -192,7 +192,7 @@ impl FromJSValConvertible for ByteString {
         let char_vec = slice::from_raw_parts(chars, length);
 
         if char_vec.iter().any(|&c| c > 0xFF) {
-            throw_type_error(cx, "Invalid ByteString");
+            throw_type_error(cx, c"Invalid ByteString");
             Err(())
         } else {
             Ok(ConversionResult::Success(ByteString::new(
@@ -222,7 +222,7 @@ impl<T: DomObject + IDLInterface> FromJSValConvertible for DomRoot<T> {
         Ok(
             match root_from_handlevalue(value, SafeJSContext::from_ptr(cx)) {
                 Ok(result) => ConversionResult::Success(result),
-                Err(()) => ConversionResult::Failure("value is not an object".into()),
+                Err(()) => ConversionResult::Failure(c"value is not an object".into()),
             },
         )
     }
@@ -451,7 +451,7 @@ impl<T: Float + FromJSValConvertible<Config = ()>> FromJSValConvertible for Fini
         match Finite::new(result) {
             Some(v) => Ok(ConversionResult::Success(v)),
             None => {
-                throw_type_error(cx, "this argument is not a finite floating-point value");
+                throw_type_error(cx, c"this argument is not a finite floating-point value");
                 Err(())
             },
         }
