@@ -738,7 +738,8 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             return Err(Error::InvalidState(None));
         }
 
-        // TODO: Step 4. If store has been deleted, throw an "InvalidStateError" DOMException.
+        // Step 4. If store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
         // Step 5. If transaction is not active, throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
 
@@ -788,7 +789,8 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         if self.transaction.Mode() != IDBTransactionMode::Versionchange {
             return Err(Error::InvalidState(None));
         }
-        // TODO: Step 4. If store has been deleted, throw an "InvalidStateError" DOMException.
+        // Step 4. If store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
         // Step 5. If transaction is not active, throw a "TransactionInactiveError" DOMException.
         self.check_transaction_active()?;
         // Step 6. Let index be the index named name in store if one exists,
