@@ -66,6 +66,14 @@ enum ProcessingMode {
     NotFirstTime,
 }
 
+/// <https://html.spec.whatwg.org/multipage/#lazy-load-resumption-steps>
+#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
+enum LazyLoadResumptionSteps {
+    #[default]
+    None,
+    SrcDoc,
+}
+
 #[dom_struct]
 pub(crate) struct HTMLIFrameElement {
     htmlelement: HTMLElement,
@@ -86,6 +94,11 @@ pub(crate) struct HTMLIFrameElement {
     throttled: Cell<bool>,
     #[conditional_malloc_size_of]
     script_window_proxies: Rc<ScriptWindowProxies>,
+    /// <https://html.spec.whatwg.org/multipage/#current-navigation-was-lazy-loaded>
+    current_navigation_was_lazy_loaded: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#lazy-load-resumption-steps>
+    #[no_trace]
+    lazy_load_resumption_steps: Cell<LazyLoadResumptionSteps>,
     /// Keeping track of whether the iframe will be navigated
     /// outside of the processing of it's attribute(for example: form navigation).
     /// This is necessary to prevent the iframe load event steps
@@ -290,6 +303,78 @@ impl HTMLIFrameElement {
         self.pending_pipeline_id.get() == self.about_blank_pipeline_id.get()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#navigate-an-iframe-or-frame>
+    fn navigate_an_iframe_or_frame(&self, load_data: LoadData, can_gc: CanGc) {
+        // Step 2. If element's content navigable's active document is not completely loaded,
+        // then set historyHandling to "replace".
+        let history_handling = if !self
+            .GetContentDocument()
+            .is_some_and(|doc| doc.completely_loaded())
+        {
+            NavigationHistoryBehavior::Replace
+        } else {
+            // Step 1. Let historyHandling be "auto".
+            NavigationHistoryBehavior::Auto
+        };
+        // Step 3. If element is an iframe, then set element's pending resource-timing start time
+        // to the current high resolution time given element's node document's relevant global object.
+        // TODO
+
+        // Step 4. Navigate element's content navigable to url using element's node document,
+        // with historyHandling set to historyHandling, referrerPolicy set to referrerPolicy,
+        // documentResource set to srcdocString, and initialInsertion set to initialInsertion.
+        self.navigate_or_reload_child_browsing_context(load_data, history_handling, can_gc);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#will-lazy-load-element-steps>
+    fn will_lazy_load_element_steps(&self) -> bool {
+        // Step 1. If scripting is disabled for element, then return false.
+        if !self.owner_document().scripting_enabled() {
+            return false;
+        }
+        // Step 2. If element's lazy loading attribute is in the Lazy state, then return true.
+        // Step 3. Return false.
+        self.Loading() == "lazy"
+    }
+
+    /// Step 1.3. of <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
+    fn navigate_to_the_srcdoc_resource(&self) {
+        // Step 1.3. Navigate to the srcdoc resource: Navigate an iframe or frame given element,
+        // about:srcdoc, the empty string, and the value of element's srcdoc attribute.
+        let url = ServoUrl::parse("about:srcdoc").unwrap();
+        let document = self.owner_document();
+        let window = self.owner_window();
+        let pipeline_id = Some(window.pipeline_id());
+        let mut load_data = LoadData::new(
+            LoadOrigin::Script(document.origin().snapshot()),
+            url,
+            Some(document.base_url()),
+            pipeline_id,
+            window.as_global_scope().get_referrer(),
+            document.get_referrer_policy(),
+            Some(window.as_global_scope().is_secure_context()),
+            Some(document.insecure_requests_policy()),
+            document.has_trustworthy_ancestor_or_current_origin(),
+            self.sandboxing_flag_set(),
+        );
+        load_data.destination = Destination::IFrame;
+        load_data.policy_container = Some(window.as_global_scope().policy_container());
+        load_data.srcdoc = String::from(
+            self.upcast::<Element>()
+                .get_string_attribute(&local_name!("srcdoc")),
+        );
+
+        self.navigate_an_iframe_or_frame(load_data, CanGc::note());
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#the-iframe-element:potentially-delays-the-load-event>
+    fn mark_navigation_as_lazy_loaded(&self, can_gc: CanGc) {
+        // > An iframe element whose current navigation was lazy loaded boolean is false potentially delays the load event.
+        self.current_navigation_was_lazy_loaded.set(true);
+        let blocker = &self.load_blocker;
+        LoadBlocker::terminate(blocker, can_gc);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
     fn process_the_iframe_attributes(&self, mode: ProcessingMode, can_gc: CanGc) {
         let element = self.upcast::<Element>();
@@ -297,30 +382,24 @@ impl HTMLIFrameElement {
         //
         // Note that this also includes the empty string
         if element.has_attribute(&local_name!("srcdoc")) {
-            let url = ServoUrl::parse("about:srcdoc").unwrap();
-            let document = self.owner_document();
-            let window = self.owner_window();
-            let pipeline_id = Some(window.pipeline_id());
-            let mut load_data = LoadData::new(
-                LoadOrigin::Script(document.origin().snapshot()),
-                url,
-                Some(document.base_url()),
-                pipeline_id,
-                window.as_global_scope().get_referrer(),
-                document.get_referrer_policy(),
-                Some(window.as_global_scope().is_secure_context()),
-                Some(document.insecure_requests_policy()),
-                document.has_trustworthy_ancestor_or_current_origin(),
-                self.sandboxing_flag_set(),
-            );
-            load_data.destination = Destination::IFrame;
-            load_data.policy_container = Some(window.as_global_scope().policy_container());
-            load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
-            self.navigate_or_reload_child_browsing_context(
-                load_data,
-                NavigationHistoryBehavior::Push,
-                can_gc,
-            );
+            // Step 1.1. Set element's current navigation was lazy loaded boolean to false.
+            self.current_navigation_was_lazy_loaded.set(false);
+            // Step 1.2. If the will lazy load element steps given element return true, then:
+            if self.will_lazy_load_element_steps() {
+                // Step 1.2.1. Set element's lazy load resumption steps to the rest of this algorithm
+                // starting with the step labeled navigate to the srcdoc resource.
+                self.lazy_load_resumption_steps
+                    .set(LazyLoadResumptionSteps::SrcDoc);
+                // Step 1.2.2. Set element's current navigation was lazy loaded boolean to true.
+                self.mark_navigation_as_lazy_loaded(can_gc);
+                // Step 1.2.3. Start intersection-observing a lazy loading element for element.
+                // TODO
+                // Step 1.2.4. Return.
+                return;
+            }
+            // Step 1.3. Navigate to the srcdoc resource: Navigate an iframe or frame given element,
+            // about:srcdoc, the empty string, and the value of element's srcdoc attribute.
+            self.navigate_to_the_srcdoc_resource();
             return;
         }
 
@@ -542,6 +621,8 @@ impl HTMLIFrameElement {
             load_blocker: DomRefCell::new(None),
             throttled: Cell::new(false),
             script_window_proxies: ScriptThread::window_proxies(),
+            current_navigation_was_lazy_loaded: Default::default(),
+            lazy_load_resumption_steps: Default::default(),
             pending_navigation: Default::default(),
             already_fired_synchronous_load_event: Default::default(),
         }
@@ -917,6 +998,21 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     // This is specified as reflecting the name content attribute of the
     // element, not the name of the child browsing context.
     make_getter!(Name, "name");
+
+    // https://html.spec.whatwg.org/multipage/#attr-iframe-loading
+    // > The loading attribute is a lazy loading attribute. Its purpose is to indicate the policy for loading iframe elements that are outside the viewport.
+    make_enumerated_getter!(
+        Loading,
+        "loading",
+        "lazy" | "eager",
+        // https://html.spec.whatwg.org/multipage/#lazy-loading-attribute
+        // > The attribute's missing value default and invalid value default are both the Eager state.
+        missing => "eager",
+        invalid => "eager"
+    );
+
+    // https://html.spec.whatwg.org/multipage/#attr-iframe-loading
+    make_setter!(SetLoading, "loading");
 }
 
 impl VirtualMethods for HTMLIFrameElement {
@@ -970,6 +1066,27 @@ impl VirtualMethods for HTMLIFrameElement {
                 if self.upcast::<Node>().is_connected_with_browsing_context() {
                     debug!("iframe src set while in browsing context.");
                     self.process_the_iframe_attributes(ProcessingMode::NotFirstTime, can_gc);
+                }
+            },
+            local_name!("loading") => {
+                // https://html.spec.whatwg.org/multipage/#attr-iframe-loading
+                // > When the loading attribute's state is changed to the Eager state, the user agent must run these steps:
+                if &**attr.value() == "lazy" {
+                    return;
+                }
+
+                // Step 1. Let resumptionSteps be the iframe element's lazy load resumption steps.
+                // Step 3. Set the iframe's lazy load resumption steps to null.
+                let previous_resumption_steps = self
+                    .lazy_load_resumption_steps
+                    .replace(LazyLoadResumptionSteps::None);
+                match previous_resumption_steps {
+                    // Step 2. If resumptionSteps is null, then return.
+                    LazyLoadResumptionSteps::None => (),
+                    LazyLoadResumptionSteps::SrcDoc => {
+                        // Step 4. Invoke resumptionSteps.
+                        self.navigate_to_the_srcdoc_resource();
+                    },
                 }
             },
             _ => {},
