@@ -72,9 +72,9 @@ jobs:
         run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest
       - name: Setup OpenHarmony SDK
         id: setup_sdk
-        uses: openharmony-rs/setup-ohos-sdk@v0.2.3
+        uses: openharmony-rs/setup-ohos-sdk@v0.2.4
         with:
-          version: "5.0.2"
+          version: "6.0.0.1" # api 20 in openharmony
           fixup-path: true
       - name: Install node for hvigor
         uses: actions/setup-node@v4
