@@ -1093,6 +1093,7 @@ malloc_size_of_is_0!(resvg::usvg::fontdb::Weight);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Stretch);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Language);
 malloc_size_of_is_0!(std::num::NonZeroU16);
+malloc_size_of_is_0!(std::num::NonZeroU32);
 malloc_size_of_is_0!(std::num::NonZeroU64);
 malloc_size_of_is_0!(std::num::NonZeroUsize);
 malloc_size_of_is_0!(std::sync::atomic::AtomicBool);

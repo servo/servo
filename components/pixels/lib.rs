@@ -6,6 +6,7 @@ mod snapshot;
 
 use std::borrow::Cow;
 use std::io::Cursor;
+use std::num::NonZeroU32;
 use std::ops::Range;
 use std::sync::Arc;
 use std::time::Duration;
@@ -281,6 +282,11 @@ pub enum CorsStatus {
     Unsafe,
 }
 
+#[derive(Clone, MallocSizeOf, PartialEq)]
+pub enum Repeat {
+    Infinite,
+    Finite(NonZeroU32),
+}
 /// A version of [`RasterImage`] that can be sent across IPC channels.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct SharedRasterImage {
@@ -306,6 +312,8 @@ pub struct RasterImage {
     pub frames: Vec<ImageFrame>,
     /// Whether or not all of the frames of this image are opaque.
     pub is_opaque: bool,
+    pub loop_count: Option<Repeat>, // For non-looptable, this would be None,
+                                    // For animated image, there would be default value of Infinite type.
 }
 
 fn sensible_delay(delay: Duration) -> Duration {
@@ -760,6 +768,7 @@ fn decode_static_image(
         id: None,
         cors_status,
         is_opaque,
+        loop_count: None,
     })
 }
 
@@ -836,6 +845,7 @@ where
         format: PixelFormat::RGBA8,
         bytes: Arc::new(bytes),
         is_opaque,
+        loop_count: Some(Repeat::Infinite), // TODO(Ray): wait for image-rs 0.26 release for exposing repeat count, default to Infinite for now.
     })
 }
 
