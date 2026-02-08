@@ -6,13 +6,11 @@ use std::sync::Arc;
 
 use base::threadpool::ThreadPool;
 use log::{error, info};
-use profile_traits::generic_callback::GenericCallback;
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
-use serde::{Deserialize, Serialize};
 use storage_traits::indexeddb::{
-    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError, BackendResult,
+    AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError,
     CreateObjectResult, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord, IndexedDBTxnMode,
     KeyPath, PutItemResult,
 };
@@ -389,7 +387,18 @@ impl KvsEngine for SqliteEngine {
         };
         let path = self.db_path.clone();
         spawning_pool.spawn(move || {
-            let connection = Connection::open(path).unwrap();
+            let connection = match Connection::open(path) {
+                Ok(connection) => connection,
+                Err(e) => {
+                    for request in transaction.requests {
+                        request
+                            .operation
+                            .notify_error(BackendError::DbErr(format!("{e:?}")));
+                    }
+                    let _ = tx.send(None);
+                    return;
+                },
+            };
             for request in transaction.requests {
                 let object_store = connection
                     .prepare("SELECT * FROM object_store WHERE name = ?")
@@ -399,22 +408,19 @@ impl KvsEngine for SqliteEngine {
                         })
                         .optional()
                     });
-                fn process_object_store<T: Send + Serialize + for<'de> Deserialize<'de>>(
-                    object_store: Result<Option<object_store_model::Model>, Error>,
-                    callback: &GenericCallback<BackendResult<T>>,
-                ) -> Result<object_store_model::Model, ()> {
-                    match object_store {
-                        Ok(Some(store)) => Ok(store),
-                        Ok(None) => {
-                            let _ = callback.send(Err(BackendError::StoreNotFound));
-                            Err(())
-                        },
-                        Err(e) => {
-                            let _ = callback.send(Err(BackendError::DbErr(format!("{:?}", e))));
-                            Err(())
-                        },
-                    }
-                }
+                let object_store = match object_store {
+                    Ok(Some(store)) => store,
+                    Ok(None) => {
+                        request.operation.notify_error(BackendError::StoreNotFound);
+                        continue;
+                    },
+                    Err(error) => {
+                        request
+                            .operation
+                            .notify_error(BackendError::DbErr(format!("{error:?}")));
+                        continue;
+                    },
+                };
 
                 match request.operation {
                     AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
@@ -423,9 +429,6 @@ impl KvsEngine for SqliteEngine {
                         value,
                         should_overwrite,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let key = match key
                             .map(Ok)
                             .unwrap_or_else(|| Self::generate_key(&connection, &object_store))
@@ -452,9 +455,6 @@ impl KvsEngine for SqliteEngine {
                         callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::get_item(&connection, object_store, key_range)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -465,9 +465,6 @@ impl KvsEngine for SqliteEngine {
                         key_range,
                         count,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::get_all_keys(&connection, object_store, key_range, count)
                                 .map(|keys| {
@@ -483,9 +480,6 @@ impl KvsEngine for SqliteEngine {
                         key_range,
                         count,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::get_all_items(&connection, object_store, key_range, count)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -495,9 +489,6 @@ impl KvsEngine for SqliteEngine {
                         callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::delete_item(&connection, object_store, key_range)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -507,9 +498,6 @@ impl KvsEngine for SqliteEngine {
                         callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::count(&connection, object_store, key_range)
                                 .map(|r| r as u64)
@@ -520,9 +508,6 @@ impl KvsEngine for SqliteEngine {
                         callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::get_all_records(&connection, object_store, key_range)
                                 .map(|records| {
@@ -539,9 +524,6 @@ impl KvsEngine for SqliteEngine {
                         );
                     },
                     AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(sender)) => {
-                        let Ok(object_store) = process_object_store(object_store, &sender) else {
-                            continue;
-                        };
                         let _ = sender.send(
                             Self::clear(&connection, object_store)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -551,9 +533,6 @@ impl KvsEngine for SqliteEngine {
                         callback,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::get_key(&connection, object_store, key_range)
                                 .map(|key| key.map(|k| postcard::from_bytes(&k).unwrap()))
