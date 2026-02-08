@@ -384,22 +384,22 @@ impl WindowProxy {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
-    pub(crate) fn is_delaying_load_events_mode(&self) -> bool {
-        self.delaying_load_events_mode.get()
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     pub(crate) fn start_delaying_load_events_mode(&self) {
         self.delaying_load_events_mode.set(true);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
     pub(crate) fn stop_delaying_load_events_mode(&self) {
-        self.delaying_load_events_mode.set(false);
-        if let Some(document) = self.document() {
-            if !document.loader().events_inhibited() {
-                ScriptThread::mark_document_with_no_blocked_loads(&document);
-            }
+        // Make sure we also started delaying the load event, otherwise we might
+        // end up unblocking the parent when we shouldn't have.
+        if !self.delaying_load_events_mode.replace(false) {
+            return;
+        }
+        let Some(parent) = self.parent() else {
+            unreachable!("Can only delay load event for a parent");
+        };
+        if let Some(document) = parent.document() {
+            document.wait_until_load_blockers_have_resolved();
         }
     }
 
