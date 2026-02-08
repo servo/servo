@@ -7,7 +7,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::gc::MutableHandleValue;
-use js::jsval::{NullValue};
+use js::jsval::NullValue;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue;
 use profile_traits::generic_channel::channel;
@@ -42,7 +42,8 @@ use crate::dom::indexeddb::idbindex::IDBIndex;
 use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::indexeddb::{
-    ExtractionResult, convert_value_to_key, convert_value_to_key_range, extract_key, is_valid_key_path,
+    ExtractionResult, convert_value_to_key, convert_value_to_key_range, extract_key,
+    is_valid_key_path,
 };
 use crate::script_runtime::CanGc;
 
@@ -736,7 +737,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
         // Step 7. If keyPath is not a valid key path, throw a "SyntaxError" DOMException.
         if !is_valid_key_path(cx, &key_path_actual)? {
-            return Err(Error::Syntax(None))
+            return Err(Error::Syntax(None));
         }
         // Step 8. Let unique be set if options’s unique member is true, and unset otherwise.
         // Step 9. Let multiEntry be set if options’s multiEntry member is true, and unset otherwise.
