@@ -803,7 +803,7 @@ impl FetchResponseListener for ModuleContext {
 
         if let Some(mime) = mime_type {
             // Step 7.1 Let sourceText be the result of UTF-8 decoding bodyBytes.
-            let (mut source_text, _, _) = UTF_8.decode(&self.data);
+            let (mut source_text, _, _) = UTF_8.decode_with_bom_removal(&self.data);
 
             // Step 7.2 If mimeType is a JavaScript MIME type and moduleType is "javascript-or-wasm", then set moduleScript
             // to the result of creating a JavaScript module script given sourceText, settingsObject, response's URL, and options.
