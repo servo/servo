@@ -32,6 +32,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbopendbrequest::IDBOpenDBRequest;
 use crate::dom::promise::Promise;
+use crate::dom::types::IDBTransaction;
 use crate::indexeddb::{convert_value_to_key, map_backend_error_to_dom_error};
 use crate::script_runtime::CanGc;
 
@@ -49,6 +50,10 @@ pub struct IDBFactory {
     connections:
         DomRefCell<HashMapTracedValues<DBName, HashMapTracedValues<Uuid, Dom<IDBOpenDBRequest>>>>,
 
+    /// <https://www.w3.org/TR/IndexedDB-2/#transaction>
+    /// Active transactions associated with this factory's global.
+    indexeddb_transactions: DomRefCell<Vec<Dom<IDBTransaction>>>,
+
     #[no_trace]
     callback: DomRefCell<Option<GenericCallback<ConnectionMsg>>>,
 }
@@ -58,8 +63,67 @@ impl IDBFactory {
         IDBFactory {
             reflector_: Reflector::new(),
             connections: Default::default(),
+            indexeddb_transactions: Default::default(),
             callback: Default::default(),
         }
+    }
+
+    pub(crate) fn register_indexeddb_transaction(&self, txn: &IDBTransaction) {
+        let mut v = self.indexeddb_transactions.borrow_mut();
+        if v.iter()
+            .any(|entry| std::ptr::eq::<IDBTransaction>(&**entry, txn))
+        {
+            return;
+        }
+        v.push(Dom::from_ref(txn));
+    }
+
+    pub(crate) fn unregister_indexeddb_transaction(&self, txn: &IDBTransaction) {
+        self.indexeddb_transactions
+            .borrow_mut()
+            .retain(|entry| !std::ptr::eq::<IDBTransaction>(&**entry, txn));
+    }
+
+    pub(crate) fn cleanup_indexeddb_transactions(&self) -> bool {
+        // We implement the HTML-triggered deactivation effect by tracking script-created
+        // transactions on the global and deactivating them at the microtask checkpoint.
+        let snapshot: Vec<DomRoot<IDBTransaction>> = {
+            let mut transactions = self.indexeddb_transactions.borrow_mut();
+            transactions.retain(|txn| !txn.is_finished());
+
+            transactions
+                .iter()
+                .map(|txn| DomRoot::from_ref(&**txn))
+                .collect()
+        };
+        // https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint
+        // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+        // To cleanup Indexed Database transactions, run the following steps.
+        // They will return true if any transactions were cleaned up, or false otherwise.
+        // If there are no transactions with cleanup event loop matching the current event loop, return false.
+        // For each transaction transaction with cleanup event loop matching the current event loop:
+        // Set transaction’s state to inactive.
+        // Clear transaction’s cleanup event loop.
+        // Return true.
+        let any_matching = snapshot
+            .iter()
+            .any(|txn| txn.cleanup_event_loop_matches_current());
+        if !any_matching {
+            return false;
+        }
+        for txn in snapshot {
+            if txn.cleanup_event_loop_matches_current() {
+                txn.set_active_flag(false);
+                txn.clear_cleanup_event_loop();
+                if txn.is_usable() {
+                    txn.maybe_commit();
+                }
+            }
+        }
+        self.indexeddb_transactions
+            .borrow_mut()
+            .retain(|txn| !txn.is_finished());
+        true
     }
 
     pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<IDBFactory> {
@@ -253,6 +317,12 @@ impl IDBFactory {
 
         // Step 5.3.1.2: Set request’s error to result.
         request.set_error(Some(dom_exception), can_gc);
+        // Open requests expose a transaction only while `upgradeneeded` is being dispatched;
+        // otherwise `IDBOpenDBRequest.transaction` must be null.
+        // https://w3c.github.io/IndexedDB/#dom-idbrequest-transaction
+        // https://w3c.github.io/IndexedDB/#open-a-database-connection
+        // Open requests that have completed with an error must not retain an upgrade transaction.
+        request.clear_transaction();
 
         // Step 5.3.1.3: Set request’s done flag to true.
         // TODO.

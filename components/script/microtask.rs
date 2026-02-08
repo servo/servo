@@ -171,11 +171,18 @@ impl MicrotaskQueue {
         // Step 4. For each environment settings object settingsObject whose responsible
         // event loop is this event loop, notify about rejected promises given
         // settingsObject's global object.
-        for global in globalscopes.into_iter() {
+        for global in globalscopes.clone().into_iter() {
             notify_about_rejected_promises(&global);
         }
 
-        // TODO: Step 5. Cleanup Indexed Database transactions.
+        // https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint
+        // Step 5. Cleanup Indexed Database transactions.
+        // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+        // “These steps are invoked by [HTML]. They ensure that transactions created by a script call
+        // to transaction() are deactivated once the task that invoked the script has completed.”
+        for global in globalscopes.iter() {
+            let _ = global.get_indexeddb().cleanup_indexeddb_transactions();
+        }
 
         // TODO: Step 6. Perform ClearKeptObjects().
 

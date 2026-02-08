@@ -381,7 +381,6 @@ impl KvsEngine for SqliteEngine {
         transaction: KvsTransaction,
     ) -> oneshot::Receiver<Option<Vec<u8>>> {
         let (tx, rx) = oneshot::channel();
-
         let spawning_pool = if transaction.mode == IndexedDBTxnMode::Readonly {
             self.read_pool.clone()
         } else {

@@ -179,6 +179,7 @@ impl IDBOpenDBRequest {
             Some(self.get_id()),
             can_gc,
         );
+        transaction.set_versionchange_old_version(old_version);
         connection.set_transaction(&transaction);
 
         rooted!(in(*cx) let mut connection_val = UndefinedValue());
@@ -218,24 +219,13 @@ impl IDBOpenDBRequest {
             // Step 10.6.1: Set transaction’s state to inactive.
             transaction.set_active_flag(false);
 
+            // The upgrade transaction auto-commits once inactive and quiescent.
+            transaction.maybe_commit();
+
             // Step 10.6.2: If didThrow is true,
             // run abort a transaction with transaction
             // and a newly created "AbortError" DOMException.
             // TODO: implement.
-
-            // Note: only sending this if active,
-            // because if the transaction was aborted
-            // we don't want to create a connection.
-            if global
-                .storage_threads()
-                .send(IndexedDBThreadMsg::OpenTransactionInactive {
-                    name: connection.get_name().to_string(),
-                    origin: global.origin().immutable().clone(),
-                })
-                .is_err()
-            {
-                error!("Failed to send OpenTransactionInactive.");
-            }
         }
     }
 
@@ -280,6 +270,10 @@ impl IDBOpenDBRequest {
 
     pub fn set_error(&self, error: Option<Error>, can_gc: CanGc) {
         self.idbrequest.set_error(error, can_gc);
+    }
+
+    pub fn clear_transaction(&self) {
+        self.idbrequest.clear_transaction();
     }
 
     pub fn dispatch_success(&self, name: String, version: u64, upgraded: bool, can_gc: CanGc) {

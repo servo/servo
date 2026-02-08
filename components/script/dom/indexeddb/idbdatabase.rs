@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::collections::VecDeque;
 
 use base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
@@ -21,7 +22,7 @@ use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::domstringlist::DOMStringList;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -44,6 +45,7 @@ pub struct IDBDatabase {
     object_store_names: DomRefCell<Vec<DOMString>>,
     /// <https://w3c.github.io/IndexedDB/#database-upgrade-transaction>
     upgrade_transaction: MutNullableDom<IDBTransaction>,
+    transaction_queue: DomRefCell<VecDeque<Dom<IDBTransaction>>>,
 
     #[no_trace]
     #[ignore_malloc_size_of = "Uuid"]
@@ -64,6 +66,7 @@ impl IDBDatabase {
             object_store_names: Default::default(),
 
             upgrade_transaction: Default::default(),
+            transaction_queue: Default::default(),
             closing: Cell::new(false),
         }
     }
@@ -105,26 +108,67 @@ impl IDBDatabase {
             .any(|store_name| store_name == name)
     }
 
-    pub fn version(&self) -> u64 {
-        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
-        let operation = SyncOperation::Version(
-            sender,
-            self.global().origin().immutable().clone(),
-            self.name.to_string(),
-        );
+    pub(crate) fn version(&self) -> u64 {
+        // `IDBDatabase.version` is synchronously observable on the connection, and
+        // IndexedDB §5.8 notes that aborting an upgrade reverts this returned value.
+        // https://w3c.github.io/IndexedDB/#dom-idbdatabase-version
+        // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
+        self.version.get()
+    }
 
-        let _ = self
-            .get_idb_thread()
-            .send(IndexedDBThreadMsg::Sync(operation));
-
-        receiver.recv().unwrap().unwrap_or_else(|e| {
-            error!("{e:?}");
-            u64::MAX
-        })
+    pub(crate) fn set_version(&self, version: u64) {
+        self.version.set(version);
     }
 
     pub fn set_transaction(&self, transaction: &IDBTransaction) {
         self.upgrade_transaction.set(Some(transaction));
+        self.enqueue_transaction(transaction);
+    }
+
+    pub(crate) fn clear_upgrade_transaction(&self, transaction: &IDBTransaction) {
+        let Some(current) = self.upgrade_transaction.get() else {
+            return;
+        };
+        if std::ptr::eq::<IDBTransaction>(&*current, transaction) {
+            self.upgrade_transaction.set(None);
+        }
+    }
+
+    pub(crate) fn enqueue_transaction(&self, transaction: &IDBTransaction) {
+        let mut queue = self.transaction_queue.borrow_mut();
+        if queue
+            .iter()
+            .any(|entry| std::ptr::eq::<IDBTransaction>(&**entry, transaction))
+        {
+            return;
+        }
+        queue.push_back(Dom::from_ref(transaction));
+    }
+
+    pub(crate) fn is_transaction_commit_eligible(&self, transaction: &IDBTransaction) -> bool {
+        let queue = self.transaction_queue.borrow();
+        let at_head = queue
+            .front()
+            .is_some_and(|front| std::ptr::eq::<IDBTransaction>(&**front, transaction));
+        queue.is_empty() || at_head
+    }
+
+    pub(crate) fn dequeue_transaction_and_maybe_advance(&self, transaction: &IDBTransaction) {
+        let next = {
+            let mut queue = self.transaction_queue.borrow_mut();
+            if let Some(front) = queue.front() {
+                if std::ptr::eq::<IDBTransaction>(&**front, transaction) {
+                    queue.pop_front();
+                } else {
+                    queue.retain(|entry| !std::ptr::eq::<IDBTransaction>(&**entry, transaction));
+                }
+            }
+            queue.front().map(|entry| DomRoot::from_ref(&**entry))
+        };
+
+        if let Some(next) = next {
+            next.maybe_commit();
+        }
     }
 
     /// <https://w3c.github.io/IndexedDB/#eventdef-idbdatabase-versionchange>
@@ -166,7 +210,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         }
 
         // Step 3
-        Ok(match store_names {
+        let transaction = match store_names {
             StringOrStringSequence::String(name) => IDBTransaction::new(
                 &self.global(),
                 self,
@@ -185,7 +229,24 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
                     CanGc::note(),
                 )
             },
-        })
+        };
+        self.enqueue_transaction(&transaction);
+        if mode != IDBTransactionMode::Versionchange {
+            // https://w3c.github.io/IndexedDB/#dom-idbdatabase-transaction
+            // Step 8: Set transaction’s cleanup event loop to the current event loop.
+            // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+            // “transactions created by a script call to transaction() are deactivated once the task that invoked the script has completed.”
+            // https://w3c.github.io/IndexedDB/#transaction-concept
+            // “A transaction optionally has a cleanup event loop which is an event loop.”
+            // Versionchange transactions can’t be manually created; only script-created transactions()
+            // are subject to HTML cleanup deactivation.
+            transaction.set_cleanup_event_loop();
+            self.global()
+                .get_indexeddb()
+                .register_indexeddb_transaction(&transaction);
+            transaction.set_registered_in_global();
+        }
+        Ok(transaction)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-createobjectstore>
