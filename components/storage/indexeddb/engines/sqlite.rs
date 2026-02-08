@@ -442,7 +442,7 @@ impl SqliteEngine {
                     // Step 5.
                     let serialized_index_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
                     connection.execute(
-                        "INSERT INTO index_data (index_id, key, value, object_store_id) VALUES (?, ?, ?, ?)",
+                        "INSERT INTO unique_index_data (index_id, object_data_key, value, object_store_id) VALUES (?, ?, ?, ?)",
                         params![index_id, serialized_index_key, serialized_key, store.id],
                     )?;
                 } else if let IndexedDBKeyType::Array(array) = key_type {
@@ -451,7 +451,7 @@ impl SqliteEngine {
                     for key in array {
                         let serialized_index_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
                         connection.execute(
-                                "INSERT INTO index_data (index_id, key, value, object_store_id) VALUES (?, ?, ?, ?)",
+                                "INSERT INTO index_data (index_id, object_data_key, value, object_store_id) VALUES (?, ?, ?, ?)",
                                 params![index_id, serialized_index_key, serialized_key, store.id],
                             )?;
                     }
@@ -460,7 +460,7 @@ impl SqliteEngine {
                     // Step 5.
                     let serialized_index_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
                     connection.execute(
-                        "INSERT INTO index_data (index_id, key, value, object_store_id) VALUES (?, ?, ?, ?)",
+                        "INSERT INTO index_data (index_id, object_data_key, value, object_store_id) VALUES (?, ?, ?, ?)",
                         params![index_id, serialized_index_key, serialized_key, store.id],
                     )?;
                 }
