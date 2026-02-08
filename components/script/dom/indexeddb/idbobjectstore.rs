@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use std::collections::HashMap;
 
 use base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
@@ -87,7 +88,7 @@ pub struct IDBObjectStore {
     reflector_: Reflector,
     name: DomRefCell<DOMString>,
     key_path: Option<KeyPath>,
-    index_names: DomRefCell<Vec<DOMString>>,
+    index_set: DomRefCell<HashMap<DOMString, Dom<IDBIndex>>>,
     transaction: Dom<IDBTransaction>,
 
     // We store the db name in the object store to be able to find the correct
@@ -116,7 +117,7 @@ impl IDBObjectStore {
             reflector_: Reflector::new(),
             name: DomRefCell::new(name),
             key_path,
-            index_names: DomRefCell::new(vec![]),
+            index_set: DomRefCell::new(HashMap::new()),
             transaction: Dom::from_ref(transaction),
             db_name,
         }
@@ -155,9 +156,10 @@ impl IDBObjectStore {
     }
 
     fn has_key_generator(&self) -> bool {
+        // FIXME: blocking IPC call
         let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
 
-        let operation = SyncOperation::HasKeyGenerator(
+        let operation = SyncOperation::GetObjectStore(
             sender,
             self.global().origin().immutable().clone(),
             self.db_name.to_string(),
@@ -170,7 +172,7 @@ impl IDBObjectStore {
 
         // First unwrap for ipc
         // Second unwrap will never happen unless this db gets manually deleted somehow
-        receiver.recv().unwrap().unwrap()
+        receiver.recv().unwrap().unwrap().has_key_generator
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#object-store-in-line-keys>
@@ -384,6 +386,28 @@ impl IDBObjectStore {
             CanGc::from_cx(cx),
         )
         .inspect(|request| cursor.set_request(request))
+    }
+
+    pub(crate) fn add_index(
+        &self,
+        name: DOMString,
+        options: &IDBIndexParameters,
+        key_path: KeyPath,
+        can_gc: CanGc,
+    ) -> DomRoot<IDBIndex> {
+        let index = IDBIndex::new(
+            &self.global(),
+            DomRoot::from_ref(self),
+            name.clone(),
+            options.multiEntry,
+            options.unique,
+            key_path,
+            can_gc,
+        );
+        self.index_set
+            .borrow_mut()
+            .insert(name, Dom::from_ref(&index));
+        index
     }
 }
 
@@ -687,7 +711,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-indexnames>
     fn IndexNames(&self, can_gc: CanGc) -> DomRoot<DOMStringList> {
-        DOMStringList::new_sorted(&self.global(), &self.index_names.borrow(), can_gc)
+        DOMStringList::new_sorted(&self.global(), self.index_set.borrow().keys(), can_gc)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-transaction>
@@ -719,7 +743,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.check_transaction_active()?;
 
         // Step 6. If an index named name already exists in store, throw a "ConstraintError" DOMException.
-        if self.index_names.borrow().contains(&name) {
+        if self.index_set.borrow().contains_key(&name) {
             return Err(Error::Constraint(None));
         }
 
@@ -752,18 +776,10 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         }
 
         // Step 12. Add index to this object store handle's index set.
-        self.index_names.borrow_mut().push(name.clone());
+        let index = self.add_index(name, options, key_path, can_gc);
 
         // Step 13. Return a new index handle associated with index and this object store handle.
-        Ok(IDBIndex::new(
-            &self.global(),
-            DomRoot::from_ref(self),
-            name,
-            options.multiEntry,
-            options.unique,
-            key_path,
-            can_gc,
-        ))
+        Ok(index)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-deleteindex>
@@ -777,11 +793,11 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.check_transaction_active()?;
         // Step 6. Let index be the index named name in store if one exists,
         // or throw a "NotFoundError" DOMException otherwise.
-        if !self.index_names.borrow().contains(&name) {
+        if !self.index_set.borrow().contains_key(&name) {
             return Err(Error::NotFound(None));
         }
         // Step 7. Remove index from this object store handle's index set.
-        self.index_names.borrow_mut().retain(|n| n != &name);
+        self.index_set.borrow_mut().retain(|n, _| n != &name);
         // Step 8. Destroy index.
         let delete_index_operation = SyncOperation::DeleteIndex(
             self.global().origin().immutable().clone(),
@@ -793,5 +809,23 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             .send(IndexedDBThreadMsg::Sync(delete_index_operation))
             .unwrap();
         Ok(())
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#dom-idbobjectstore-index>
+    fn Index(&self, name: DOMString) -> Fallible<DomRoot<IDBIndex>> {
+        // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
+        self.verify_not_deleted()?;
+
+        // Step 4. If the transaction's state is finished, then throw an "InvalidStateError" DOMException.
+        if self.transaction.is_finished() {
+            return Err(Error::InvalidState(None));
+        }
+
+        // Step 5. Let index be the index named name in this’s index set if one exists, or throw a "NotFoundError" DOMException otherwise.
+        let index_set = self.index_set.borrow();
+        let index = index_set.get(&name).ok_or(Error::NotFound(None))?;
+
+        // Step 6. Return an index handle associated with index and this.
+        Ok(index.as_rooted())
     }
 }
