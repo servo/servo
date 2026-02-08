@@ -80,6 +80,14 @@
       "requirements_tc.txt"
     ]
   },
+  "tc-run": {
+    "path": "run_tc.py",
+    "script": "run_tc",
+    "parser": "get_parser",
+    "parse_known": true,
+    "help": "Run command in Taskcluster CI environment (for use in Docker image)",
+    "virtualenv": false
+  },
   "update-codeowners": {
     "path": "update_codeowners.py",
     "parser": "get_parser",

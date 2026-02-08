@@ -552,6 +552,15 @@ test(() => {
     elements: [{name: "p", attributes: undefined, removeAttributes: []}]
   });
 }, "sanitizer.allowElement() with global elements and removeAttributes");
+
+test(() => {
+  assert_throws_js(TypeError,
+    _ => new Sanitizer({replaceWithChildrenElements: ["html"]}));
+
+  let s = new Sanitizer();
+  assert_false(s.replaceElementWithChildren("html"));
+  assert_config(s.get(), {});
+}, "sanitizer.replaceElementWithChildren does not allow 'html' element.");
 </script>
 </body>
 </html>

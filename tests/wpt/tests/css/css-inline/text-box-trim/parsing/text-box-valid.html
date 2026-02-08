@@ -22,7 +22,7 @@ test_valid_value('text-box', 'trim-both');
 test_valid_value('text-box', 'text');
 test_valid_value('text-box', 'ideographic');
 test_valid_value('text-box', 'cap alphabetic');
-test_valid_value('text-box', 'text alphabetic');
+test_valid_value('text-box', 'text alphabetic', 'alphabetic');
 
 // Mix initial and non-initial values
 test_valid_value('text-box', 'trim-start auto', 'trim-start');
@@ -30,7 +30,7 @@ test_valid_value('text-box', 'trim-both auto', 'trim-both');
 test_valid_value('text-box', 'auto trim-both', 'trim-both');
 test_valid_value('text-box', 'none text', 'none text');
 test_valid_value('text-box', 'text text none', 'none text');
-test_valid_value('text-box', 'none cap text');
+test_valid_value('text-box', 'none cap text', 'none cap');
 test_valid_value('text-box', 'cap alphabetic none', 'none cap alphabetic');
 test_valid_value('text-box', 'ideographic none', 'none ideographic');
 
@@ -44,10 +44,13 @@ test_valid_value('text-box', 'trim-start cap alphabetic');
 test_valid_value('text-box', 'trim-both cap alphabetic', 'cap alphabetic');
 test_valid_value('text-box', 'trim-start ideographic ideographic', 'trim-start ideographic');
 test_valid_value('text-box', 'trim-start ideographic-ink ideographic-ink', 'trim-start ideographic-ink');
-test_valid_value('text-box', 'trim-end cap text');
-test_valid_value('text-box', 'trim-end ex text');
-test_valid_value('text-box', 'cap text trim-end', 'trim-end cap text');
-test_valid_value('text-box', 'ex text trim-end', 'trim-end ex text');
-test_valid_value('text-box', 'cap text trim-both', 'cap text');
-test_valid_value('text-box', 'ex text trim-both', 'ex text');
+test_valid_value('text-box', 'trim-end cap text', 'trim-end cap');
+test_valid_value('text-box', 'trim-end ex text', 'trim-end ex');
+test_valid_value('text-box', 'trim-end text alphabetic', 'trim-end alphabetic');
+test_valid_value('text-box', 'cap text trim-end', 'trim-end cap');
+test_valid_value('text-box', 'ex text trim-end', 'trim-end ex');
+test_valid_value('text-box', 'text alphabetic trim-end', 'trim-end alphabetic');
+test_valid_value('text-box', 'cap text trim-both', 'cap');
+test_valid_value('text-box', 'ex text trim-both', 'ex');
+test_valid_value('text-box', 'text alphabetic trim-both', 'alphabetic');
 </script>

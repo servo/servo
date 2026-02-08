@@ -252,7 +252,7 @@
      */
     addTick: function(duration) {
       this.tickIdx += 1;
-      if (duration !== undefined && duration !== null) {
+      if (duration) {
         this.pause(duration);
       }
       return this;
@@ -544,7 +544,7 @@
         tick = actions.addTick().tickIdx;
       }
       let moveAction = {type: "pointerMove", x, y, origin};
-      if (duration !== undefined && duration !== null) {
+      if (duration) {
         moveAction.duration = duration;
       }
       let actionProperties = setPointerProperties(moveAction, width, height, pressure,
@@ -589,7 +589,7 @@
         tick = actions.addTick().tickIdx;
       }
       this.actions.set(tick, {type: "scroll", x, y, deltaX, deltaY, origin});
-      if (duration !== undefined && duration !== null) {
+      if (duration) {
         this.actions.get(tick).duration = duration;
       }
     },

@@ -227,7 +227,7 @@ def build_full_command(event, task):
   %(fetch_ref)s;
 %(install_str)s
 cd web-platform-tests;
-./tools/ci/run_tc.py %(options_str)s -- %(task_cmd)s;
+./wpt tc-run %(options_str)s -- %(task_cmd)s;
 """ % cmd_args]
 
 

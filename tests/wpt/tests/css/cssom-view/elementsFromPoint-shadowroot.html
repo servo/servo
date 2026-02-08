@@ -63,6 +63,15 @@ var y12 = centerY(box12);
 var x22 = centerX(box22);
 var y22 = centerY(box22);
 
+test(function() {
+    assert_throws_js(TypeError, function() {
+        shadowRoot.elementsFromPoint();
+    });
+    assert_throws_js(TypeError, function() {
+        shadowRoot.elementsFromPoint(0);
+    });
+}, 'elementsFromPoint() should throw TypeError with invalid arguments');
+
 var root3 = blockHost.attachShadow({mode: 'closed'});
 root3.appendChild(document.createTextNode('text1'));
 var root4 = inlineBlockHost.attachShadow({mode: 'closed'});

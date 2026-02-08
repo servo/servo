@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: text-overflow with bidi string ellipsis (RTL paragraph, LTR ellipsis)</title>
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12617">
+<link rel="match" href="reference/text-overflow-string-007-ref.html">
+<meta name="assert" content="Test checks text-overflow ellipsis takes their bidi direction from the paragraph">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  div {
+    font-family: monospace;
+    font-size: 10px;
+    overflow: hidden;
+    /* This custom ellipsis string has mixed LTR/RTL characters
+     * ("A" and "ום"), but its base direction (determined by the first strong
+     * char 'A') is LTR. */
+    text-overflow: "A ום";
+    width: 130px;
+  }
+  span {
+    font-family: Ahem;
+    font-size: 30px;
+  }
+</style>
+<body>
+  <p>Test passes if there is a "<strong dir="rtl">A ום</strong>" before a black rectangle below.</p>
+  <div dir="rtl">
+    <span>TestChecksThatTheBrokenContentRepalcedByBidiText</span>
+  </div>
+</body>
+</html>

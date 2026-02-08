@@ -3,18 +3,18 @@ const text_box_edge_values = [
   "text",
   "ideographic",
   "ideographic-ink",
+  "cap",
+  "ex",
+  "alphabetic",
 
   ["text text", "text"],
-  "text alphabetic",
   "text ideographic",
   "text ideographic-ink",
 
-  "cap text",
   "cap alphabetic",
   "cap ideographic",
   "cap ideographic-ink",
 
-  "ex text",
   "ex alphabetic",
   "ex ideographic",
   "ex ideographic-ink",
@@ -28,4 +28,8 @@ const text_box_edge_values = [
   "ideographic-ink alphabetic",
   "ideographic-ink ideographic",
   ["ideographic-ink ideographic-ink", "ideographic-ink"],
+
+  ["cap text", "cap"],
+  ["ex text", "ex"],
+  ["text alphabetic", "alphabetic"],
 ];

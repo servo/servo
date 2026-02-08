@@ -4,8 +4,9 @@
 <style>
 #grid {
   border: 3px solid black;
-  display: grid-lanes;
+  display: grid;
   grid-template-rows: 1fr 2fr;
+  grid-template-columns: repeat(2, min-content);
   contain-intrinsic-size: 80px 90px;
   contain: size;
   width: max-content;
@@ -14,7 +15,7 @@
 }
 .item {
   background: lightgreen;
-  height: 100%;
+  width: 20px;
 }
 </style>
 

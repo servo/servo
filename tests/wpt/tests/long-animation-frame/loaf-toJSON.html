@@ -33,7 +33,8 @@
         'renderStart',
         'styleAndLayoutStart',
         'blockingTime',
-        'firstUIEventTimestamp'
+        'firstUIEventTimestamp',
+        'styleDuration'
     ];
     for (const key of performanceEntryKeys) {
         assert_equals(entryJSON[key], entry[key],

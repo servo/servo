@@ -1,6 +1,4 @@
 <!DOCTYPE html>
-<html>
-<head>
 <meta charset="utf-8">
 <title>Test CSS Color Module 5 contrast-color() computed value</title>
 <link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
@@ -8,18 +6,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
-<style>
-  #container {
-    container-type: inline-size;
-    width: 10px;
-    color: pink;
-  }
-</style>
-</head>
-<body>
-<div id="container">
-  <div id="target"></div>
-</div>
+<div id="target"></div>
 <script>
 
 // NOTE: As the algorithm for determining constrast is not defined, all computed values can validly be either `rgb(0, 0, 0)` or `rgb(255, 255, 255)`.
@@ -44,8 +31,5 @@ test_computed_value("background-color", "contrast-color(contrast-color(pink))", 
 test_computed_value("background-color", "contrast-color(currentcolor)", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
 
 // Test color using calc().
-test_computed_value("background-color", "contrast-color(color(srgb calc(1 + (sign(20cqw - 10px) * 1)) calc(1 + (sign(20cqw - 10px) * 1)) calc(1 + (sign(20cqw - 10px) * 1))))", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
-
+test_computed_value("background-color", "contrast-color(color(srgb calc(1 + 1 / 1) calc(1 + 1 / 1) calc(1 + 1 / 1)))", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
 </script>
-</body>
-</html>

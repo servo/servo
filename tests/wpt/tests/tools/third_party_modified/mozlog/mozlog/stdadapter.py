@@ -17,7 +17,7 @@ class UnstructuredHandler(logging.Handler):
             log_func = getattr(self.structured, record.levelname.lower())
         else:
             log_func = self.logger.debug
-        log_func(record.msg)
+        log_func(record.getMessage())
 
     def handle(self, record):
         self.emit(record)
