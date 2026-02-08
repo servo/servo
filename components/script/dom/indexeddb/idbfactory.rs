@@ -317,6 +317,12 @@ impl IDBFactory {
 
         // Step 5.3.1.2: Set request’s error to result.
         request.set_error(Some(dom_exception), can_gc);
+        // Open requests expose a transaction only while `upgradeneeded` is being dispatched;
+        // otherwise `IDBOpenDBRequest.transaction` must be null.
+        // https://w3c.github.io/IndexedDB/#dom-idbrequest-transaction
+        // https://w3c.github.io/IndexedDB/#open-a-database-connection
+        // Open requests that have completed with an error must not retain an upgrade transaction.
+        request.clear_transaction();
 
         // Step 5.3.1.3: Set request’s done flag to true.
         // TODO.

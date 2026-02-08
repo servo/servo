@@ -720,10 +720,6 @@ impl IndexedDBManager {
         txn: u64,
         committed: bool,
     ) {
-        println!(
-            "IndexedDB backend handle_upgrade_transaction_finished: db={} txn={} committed={}",
-            name, txn, committed
-        );
         let key = IndexedDBDescription {
             name: name.clone(),
             origin: origin.clone(),
@@ -763,10 +759,6 @@ impl IndexedDBManager {
                 return;
             };
             let VersionUpgrade { new, .. } = pending_upgrade;
-            println!(
-                "IndexedDB backend sending upgraded Connection success: db={} txn={} id={} version={}",
-                db_name, txn, id, new
-            );
             if sender
                 .send(ConnectionMsg::Connection {
                     id,
@@ -804,10 +796,6 @@ impl IndexedDBManager {
             *id
         };
 
-        println!(
-            "IndexedDB backend upgrade txn aborted; aborting pending open request: db={} txn={} id={}",
-            name, txn, request_id
-        );
         self.abort_pending_upgrade(name, request_id, origin);
     }
 
@@ -906,13 +894,22 @@ impl IndexedDBManager {
             open_request.abort()
         };
         if let Some(old_version) = old {
-            let Some(db) = self.databases.get_mut(&key) else {
-                return debug_assert!(false, "Db should have been created");
-            };
-            // Step 3: Set connection’s version to database’s version if database previously existed
-            //  or 0 (zero) if database was newly created.
-            let res = db.set_version(old_version);
-            debug_assert!(res.is_ok(), "Setting a db version should not fail.");
+            if old_version == 0 {
+                // IndexedDB §5.8 "Aborting an upgrade transaction" sets connection version to 0
+                // for newly created databases; Servo also drops the just-created backend entry
+                // so it is not observable via `indexedDB.databases()` after the abort.
+                // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
+                // Invariant: aborting initial creation leaves no database entry behind.
+                self.databases.remove(&key);
+            } else {
+                let Some(db) = self.databases.get_mut(&key) else {
+                    return debug_assert!(false, "Db should have been created");
+                };
+                // Step 3: Set connection’s version to database’s version if database previously existed
+                //  or 0 (zero) if database was newly created.
+                let res = db.set_version(old_version);
+                debug_assert!(res.is_ok(), "Setting a db version should not fail.");
+            }
         }
 
         self.remove_connection(&key, &id);
@@ -962,13 +959,22 @@ impl IndexedDBManager {
                 }
             }
             if let Some(version) = version_to_revert {
-                let Some(db) = self.databases.get_mut(&key) else {
-                    return debug_assert!(false, "Db should have been created");
-                };
-                // Step 3: Set connection’s version to database’s version if database previously existed
-                //  or 0 (zero) if database was newly created.
-                let res = db.set_version(version);
-                debug_assert!(res.is_ok(), "Setting a db version should not fail.");
+                if version == 0 {
+                    // IndexedDB §5.8 "Aborting an upgrade transaction" sets connection version to 0
+                    // for newly created databases; Servo also drops the just-created backend entry
+                    // so it is not observable via `indexedDB.databases()` after the abort.
+                    // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
+                    // Invariant: aborted initial upgrades must not remain as version-0 databases.
+                    self.databases.remove(&key);
+                } else {
+                    let Some(db) = self.databases.get_mut(&key) else {
+                        return debug_assert!(false, "Db should have been created");
+                    };
+                    // Step 3: Set connection’s version to database’s version if database previously existed
+                    //  or 0 (zero) if database was newly created.
+                    let res = db.set_version(version);
+                    debug_assert!(res.is_ok(), "Setting a db version should not fail.");
+                }
             }
         }
     }
@@ -1602,14 +1608,10 @@ impl IndexedDBManager {
                     })
                     .collect();
 
-                // Note: if anything went wrong, we reply with an error.
-                let result = if info_list.len() == self.databases.len() {
-                    Ok(info_list)
-                } else {
-                    Err(BackendError::DbErr(
-                        "Unknown error getting database info.".to_string(),
-                    ))
-                };
+                // IndexedDB `databases()` / "get a list of databases" returns the visible list;
+                // filtering out non-user-visible entries must not turn success into an internal error.
+                // https://w3c.github.io/IndexedDB/#dom-idbfactory-databases
+                let result = Ok(info_list);
 
                 // Step 4.4: Queue a database task to resolve p with result.
                 if sender.send(result).is_err() {
@@ -1672,10 +1674,6 @@ impl IndexedDBManager {
                 // https://w3c.github.io/IndexedDB/#commit-a-transaction
                 // TODO: implement the commit algorithm and only reply after the backend has
                 // transitioned the transaction to committed/aborted (should be atomic).
-                println!(
-                    "IndexedDB backend handling SyncOperation::Commit: db={} txn={}",
-                    db_name, txn
-                );
                 let _ = callback.send(TxnCompleteMsg {
                     origin: origin.clone(),
                     db_name: db_name.clone(),

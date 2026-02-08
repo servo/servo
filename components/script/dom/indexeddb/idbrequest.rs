@@ -444,6 +444,10 @@ impl IDBRequest {
         self.transaction.set(Some(transaction));
     }
 
+    pub fn clear_transaction(&self) {
+        self.transaction.set(None);
+    }
+
     // https://www.w3.org/TR/IndexedDB-2/#asynchronously-execute-a-request
     pub fn execute_async<T, F>(
         source: &IDBObjectStore,
