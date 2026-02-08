@@ -40,6 +40,11 @@ impl<T: Deref<Target = ComputedValues>> taffy::CoreStyle for TaffyStyloStyle<T> 
     }
 
     #[inline]
+    fn direction(&self) -> taffy::Direction {
+        convert::direction(self.style.clone_direction())
+    }
+
+    #[inline]
     fn is_block(&self) -> bool {
         convert::is_block(self.style.get_box().display)
     }
