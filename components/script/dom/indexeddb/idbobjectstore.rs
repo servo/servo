@@ -703,7 +703,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-createindex>
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     fn CreateIndex(
         &self,
         name: DOMString,
@@ -730,13 +730,13 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         let mut realm = CurrentRealm::assert(&mut cx);
         let cx = &mut realm;
 
-        let key_path_actual = match key_path.clone() {
+        let js_key_path = match key_path.clone() {
             KeyPath::String(s) => StringOrStringSequence::String(s),
             KeyPath::StringSequence(s) => StringOrStringSequence::StringSequence(s),
         };
 
         // Step 7. If keyPath is not a valid key path, throw a "SyntaxError" DOMException.
-        if !is_valid_key_path(cx, &key_path_actual)? {
+        if !is_valid_key_path(cx, &js_key_path)? {
             return Err(Error::Syntax(None));
         }
         // Step 8. Let unique be set if options’s unique member is true, and unset otherwise.
