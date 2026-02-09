@@ -170,8 +170,10 @@ impl PlatformWindow for EmbeddedPlatformWindow {
         let control_id = embedder_control.id();
         match embedder_control {
             EmbedderControl::InputMethod(input_method_control) => {
-                self.visible_input_methods.borrow_mut().push(control_id);
-                self.host.on_ime_show(input_method_control);
+                if input_method_control.allow_virtual_keyboard() {
+                    self.visible_input_methods.borrow_mut().push(control_id);
+                    self.host.on_ime_show(input_method_control);
+                }
             },
             EmbedderControl::SimpleDialog(simple_dialog) => match simple_dialog {
                 SimpleDialog::Alert(alert_dialog) => {

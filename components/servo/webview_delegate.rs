@@ -560,6 +560,7 @@ pub struct InputMethodControl {
     pub(crate) insertion_point: Option<u32>,
     pub(crate) position: DeviceIntRect,
     pub(crate) multiline: bool,
+    pub(crate) allow_virtual_keyboard: bool,
 }
 
 impl InputMethodControl {
@@ -590,6 +591,12 @@ impl InputMethodControl {
     /// Whether or not this field is a multiline field.
     pub fn multiline(&self) -> bool {
         self.multiline
+    }
+
+    /// Whether the UAs allows virtual keyboard to be shown, we currently allow keyboard to be shown
+    /// onlu if user has interacted with the document.
+    pub fn allow_virtual_keyboard(&self) -> bool {
+        self.allow_virtual_keyboard
     }
 }
 

@@ -3003,6 +3003,7 @@ impl HTMLInputElement {
                         text: self.Value().to_string(),
                         insertion_point: self.GetSelectionEnd(),
                         multiline: false,
+                        has_sticky_activation: self.owner_window().has_sticky_activation(),
                     }),
                     None,
                 );
