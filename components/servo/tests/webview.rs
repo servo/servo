@@ -19,9 +19,9 @@ use servo::user_contents::UserStyleSheet;
 use servo::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
     ContextMenuItem, CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType,
-    JSValue, JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, RenderingContext, Servo,
-    SimpleDialog, Theme, UserContentManager, UserScript, WebView, WebViewBuilder, WebViewDelegate,
+    JSValue, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
+    MouseMoveEvent, RenderingContext, Servo, SimpleDialog, Theme, UserContentManager, UserScript,
+    WebView, WebViewBuilder, WebViewDelegate,
 };
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
@@ -162,91 +162,6 @@ fn test_create_webview_http_custom_host() {
     let url = webview.url();
     assert!(url.is_some());
     assert_eq!(url.unwrap(), custom_url.into_url());
-}
-
-#[test]
-fn test_evaluate_javascript_basic() {
-    let servo_test = ServoTest::new();
-    let delegate = Rc::new(WebViewDelegateImpl::default());
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .delegate(delegate.clone())
-        .build();
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "undefined");
-    assert_eq!(result, Ok(JSValue::Undefined));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "null");
-    assert_eq!(result, Ok(JSValue::Null));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "42");
-    assert_eq!(result, Ok(JSValue::Number(42.0)));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "3 + 4");
-    assert_eq!(result, Ok(JSValue::Number(7.0)));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "'abc' + 'def'");
-    assert_eq!(result, Ok(JSValue::String("abcdef".into())));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "let foo = {blah: 123}; foo");
-    assert!(matches!(result, Ok(JSValue::Object(_))));
-    if let Ok(JSValue::Object(values)) = result {
-        assert_eq!(values.len(), 1);
-        assert_eq!(values.get("blah"), Some(&JSValue::Number(123.0)));
-    }
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "[1, 2, 3, 4]");
-    let expected = JSValue::Array(vec![
-        JSValue::Number(1.0),
-        JSValue::Number(2.0),
-        JSValue::Number(3.0),
-        JSValue::Number(4.0),
-    ]);
-    assert_eq!(result, Ok(expected));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "window");
-    assert!(matches!(result, Ok(JSValue::Window(..))));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "document.body");
-    assert!(matches!(result, Ok(JSValue::Element(..))));
-
-    let result = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "document.body.attachShadow({mode: 'open'})",
-    );
-    assert!(matches!(result, Ok(JSValue::ShadowRoot(..))));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "document.body.shadowRoot");
-    assert!(matches!(result, Ok(JSValue::ShadowRoot(..))));
-
-    let result = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "document.body.innerHTML += '<iframe>'; frames[0]",
-    );
-    assert!(matches!(result, Ok(JSValue::Frame(..))));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "lettt badsyntax = 123");
-    assert_eq!(result, Err(JavaScriptEvaluationError::CompilationFailure));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "throw new Error()");
-    assert!(matches!(
-        result,
-        Err(JavaScriptEvaluationError::EvaluationFailure(_))
-    ));
-}
-
-#[test]
-fn test_evaluate_javascript_panic() {
-    let servo_test = ServoTest::new();
-    let delegate = Rc::new(WebViewDelegateImpl::default());
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .delegate(delegate.clone())
-        .build();
-
-    let input = "location";
-    let result = evaluate_javascript(&servo_test, webview.clone(), input);
-    assert!(matches!(result, Ok(JSValue::Object(..))));
 }
 
 #[test]
