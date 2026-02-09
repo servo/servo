@@ -8,7 +8,6 @@ use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::gc::MutableHandleValue;
 use js::jsval::NullValue;
-use js::realm::CurrentRealm;
 use js::rust::HandleValue;
 use profile_traits::generic_channel::channel;
 use script_bindings::codegen::GenericBindings::IDBObjectStoreBinding::IDBIndexParameters;
@@ -703,13 +702,12 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-createindex>
-    #[expect(unsafe_code)]
     fn CreateIndex(
         &self,
+        cx: &mut JSContext,
         name: DOMString,
         key_path: StringOrStringSequence,
         options: &IDBIndexParameters,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBIndex>> {
         let key_path: KeyPath = key_path.into();
         // Step 3. If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
@@ -725,10 +723,6 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         if self.index_names.borrow().contains(&name) {
             return Err(Error::Constraint(None));
         }
-
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let mut realm = CurrentRealm::assert(&mut cx);
-        let cx = &mut realm;
 
         let js_key_path = match key_path.clone() {
             KeyPath::String(s) => StringOrStringSequence::String(s),
@@ -777,7 +771,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
             options.multiEntry,
             options.unique,
             key_path,
-            can_gc,
+            CanGc::from_cx(cx),
         ))
     }
 
