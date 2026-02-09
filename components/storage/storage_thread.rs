@@ -19,7 +19,8 @@ pub fn new_storage_threads(
 ) -> (StorageThreads, StorageThreads) {
     let client_storage: GenericSender<ClientStorageThreadMessage> =
         ClientStorageThreadFactory::new(config_dir.clone());
-    let idb: GenericSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir.clone());
+    let idb: GenericSender<IndexedDBThreadMsg> =
+        IndexedDBThreadFactory::new(config_dir.clone(), mem_profiler_chan.clone());
     let web_storage: GenericSender<WebStorageThreadMsg> =
         WebStorageThreadFactory::new(config_dir, mem_profiler_chan);
     (

@@ -10,6 +10,7 @@ use std::fmt::{Debug, Display, Formatter};
 use base::generic_channel::GenericSender;
 use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::generic_callback::GenericCallback;
+use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
 use servo_url::origin::ImmutableOrigin;
 use uuid::Uuid;
@@ -64,7 +65,7 @@ pub enum KeyPath {
 }
 
 // https://www.w3.org/TR/IndexedDB-2/#enumdef-idbtransactionmode
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum IndexedDBTxnMode {
     Readonly,
     Readwrite,
@@ -272,13 +273,13 @@ pub struct IndexedDBObjectStore {
     pub indexes: Vec<IndexedDBIndex>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum PutItemResult {
     Success,
     CannotOverwrite,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum AsyncReadOnlyOperation {
     /// Gets the value associated with the given key in the associated idb data
     GetKey {
@@ -324,7 +325,7 @@ impl AsyncReadOnlyOperation {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum AsyncReadWriteOperation {
     /// Sets the value of the given key in the associated idb data
     PutItem {
@@ -355,7 +356,7 @@ impl AsyncReadWriteOperation {
 
 /// Operations that are not executed instantly, but rather added to a
 /// queue that is eventually run.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum AsyncOperation {
     ReadOnly(AsyncReadOnlyOperation),
     ReadWrite(AsyncReadWriteOperation),
@@ -370,7 +371,7 @@ impl AsyncOperation {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum CreateObjectResult {
     Created,
     AlreadyExists,
@@ -424,7 +425,7 @@ pub enum ConnectionMsg {
     TxnMaybeCommit { db_name: String, txn: u64 },
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct TxnCompleteMsg {
     pub origin: ImmutableOrigin,
     pub db_name: String,
@@ -625,6 +626,9 @@ pub enum IndexedDBThreadMsg {
         db_name: String,
         txn: u64,
     },
+
+    /// Measure memory used by this thread and send the report over the provided channel.
+    CollectMemoryReport(ReportsChan),
 }
 
 #[cfg(test)]

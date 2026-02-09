@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use base::threadpool::ThreadPool;
 use log::{error, info};
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
@@ -669,6 +670,33 @@ impl KvsEngine for SqliteEngine {
             return Err(Error::QueryReturnedNoRows);
         }
         Ok(())
+    }
+}
+
+fn get_db_status(connection: &Connection, op: i32) -> Result<i32, i32> {
+    let mut p_curr = 0;
+    let mut p_hiwater = 0;
+    let res = unsafe {
+        rusqlite::ffi::sqlite3_db_status(connection.handle(), op, &mut p_curr, &mut p_hiwater, 0)
+    };
+    if res != 0 { Err(res) } else { Ok(p_curr) }
+}
+
+impl MallocSizeOf for SqliteEngine {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // 48 KB (3.3.1 at https://sqlite.org/malloc.html)
+        const DEFAULT_LOOKASIDE_SIZE: usize = 48 * 1024;
+        self.created_db_path.size_of(ops) +
+            DEFAULT_LOOKASIDE_SIZE +
+            get_db_status(
+                &self.connection,
+                rusqlite::ffi::SQLITE_DBSTATUS_CACHE_USED_SHARED,
+            )
+            .unwrap_or_default() as usize +
+            get_db_status(&self.connection, rusqlite::ffi::SQLITE_DBSTATUS_SCHEMA_USED)
+                .unwrap_or_default() as usize +
+            get_db_status(&self.connection, rusqlite::ffi::SQLITE_DBSTATUS_STMT_USED)
+                .unwrap_or_default() as usize
     }
 }
 

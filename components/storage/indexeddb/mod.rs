@@ -14,7 +14,13 @@ use std::thread;
 use base::generic_channel::{self, GenericReceiver, GenericSender, ReceiveError};
 use base::threadpool::ThreadPool;
 use log::{debug, error, warn};
+use malloc_size_of::MallocSizeOf;
+use malloc_size_of_derive::MallocSizeOf;
 use profile_traits::generic_callback::GenericCallback;
+use profile_traits::mem::{
+    ProcessReports, ProfilerChan as MemProfilerChan, Report, ReportKind, perform_memory_report,
+};
+use profile_traits::path;
 use rusqlite::Error as RusqliteError;
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_config::pref;
@@ -30,12 +36,16 @@ use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteE
 use crate::shared::is_sqlite_disk_full_error;
 
 pub trait IndexedDBThreadFactory {
-    fn new(config_dir: Option<PathBuf>) -> Self;
+    fn new(config_dir: Option<PathBuf>, mem_profiler_chan: MemProfilerChan) -> Self;
 }
 
 impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
-    fn new(config_dir: Option<PathBuf>) -> GenericSender<IndexedDBThreadMsg> {
+    fn new(
+        config_dir: Option<PathBuf>,
+        mem_profiler_chan: MemProfilerChan,
+    ) -> GenericSender<IndexedDBThreadMsg> {
         let (chan, port) = generic_channel::channel().unwrap();
+        let chan2 = chan.clone();
 
         let mut idb_base_dir = PathBuf::new();
         if let Some(p) = config_dir {
@@ -48,7 +58,12 @@ impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
         thread::Builder::new()
             .name("IndexedDBManager".to_owned())
             .spawn(move || {
-                IndexedDBManager::new(port, manager_sender, idb_base_dir).start();
+                mem_profiler_chan.run_with_memory_reporting(
+                    || IndexedDBManager::new(port, manager_sender, idb_base_dir).start(),
+                    String::from("indexedDB-reporter"),
+                    chan2,
+                    IndexedDBThreadMsg::CollectMemoryReport,
+                );
             })
             .expect("Thread spawning failed");
 
@@ -58,7 +73,7 @@ impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
 
 /// A key used to track databases.
 /// TODO: use a storage key.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 pub struct IndexedDBDescription {
     pub origin: ImmutableOrigin,
     pub name: String,
@@ -88,6 +103,7 @@ impl IndexedDBDescription {
     }
 }
 
+#[derive(MallocSizeOf)]
 struct TxnInfo {
     created_seq: u64,
     mode: IndexedDBTxnMode,
@@ -95,6 +111,7 @@ struct TxnInfo {
     live: bool,
 }
 
+#[derive(MallocSizeOf)]
 struct IndexedDBEnvironment<E: KvsEngine> {
     engine: E,
     manager_sender: GenericSender<IndexedDBThreadMsg>,
@@ -581,6 +598,7 @@ fn backend_error_from_sqlite_error(err: RusqliteError) -> BackendError {
 /// <https://w3c.github.io/IndexedDB/#request-open-request>
 /// Used here to implement the
 /// <https://w3c.github.io/IndexedDB/#connection-queue>
+#[derive(MallocSizeOf)]
 enum OpenRequest {
     Open {
         /// The callback used to send a result to script.
@@ -739,12 +757,14 @@ impl OpenRequest {
     }
 }
 
+#[derive(MallocSizeOf)]
 struct VersionUpgrade {
     old: u64,
     new: u64,
 }
 
 /// <https://w3c.github.io/IndexedDB/#connection>
+#[derive(MallocSizeOf)]
 struct Connection {
     /// <https://w3c.github.io/IndexedDB/#connection-close-pending-flag>
     close_pending: bool,
@@ -878,6 +898,10 @@ impl IndexedDBManager {
                             txn,
                         });
                     }
+                },
+                IndexedDBThreadMsg::CollectMemoryReport(sender) => {
+                    let reports = self.collect_memory_reports();
+                    sender.send(ProcessReports::new(reports));
                 },
             }
         }
@@ -2111,5 +2135,19 @@ impl IndexedDBManager {
                 unreachable!("We must've already broken out of event loop.");
             },
         }
+    }
+
+    fn collect_memory_reports(&self) -> Vec<Report> {
+        let mut reports = vec![];
+        perform_memory_report(|ops| {
+            reports.push(Report {
+                path: path!["indexeddb"],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size: self.connections.size_of(ops) +
+                    self.databases.size_of(ops) +
+                    self.connection_queues.size_of(ops),
+            });
+        });
+        reports
     }
 }
