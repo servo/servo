@@ -21,6 +21,7 @@ pub(crate) enum LoadType {
     Image(#[no_trace] ServoUrl),
     Script(#[no_trace] ServoUrl),
     Subframe(#[no_trace] ServoUrl),
+    DelayingLoadEventsMode(#[no_trace] ServoUrl),
     Stylesheet(#[no_trace] ServoUrl),
     PageSource(#[no_trace] ServoUrl),
     Media,
@@ -150,16 +151,12 @@ impl DocumentLoader {
             load,
             self.blocking_loads.len()
         );
-        let idx = self
+        let index = self
             .blocking_loads
             .iter()
-            .position(|unfinished| *unfinished == *load);
-        match idx {
-            Some(i) => {
-                self.blocking_loads.remove(i);
-            },
-            None => warn!("unknown completed load {:?}", load),
-        }
+            .position(|unfinished| *unfinished == *load)
+            .expect(&format!("unknown completed load {:?}", load));
+        self.blocking_loads.remove(index);
     }
 
     pub(crate) fn is_blocked(&self) -> bool {
@@ -168,9 +165,12 @@ impl DocumentLoader {
     }
 
     pub(crate) fn is_only_blocked_by_iframes(&self) -> bool {
-        self.blocking_loads
-            .iter()
-            .all(|load| matches!(*load, LoadType::Subframe(_)))
+        self.blocking_loads.iter().all(|load| {
+            matches!(
+                *load,
+                LoadType::Subframe(_) | LoadType::DelayingLoadEventsMode(_)
+            )
+        })
     }
 
     pub(crate) fn inhibit_events(&mut self) {

@@ -198,11 +198,15 @@ impl HTMLIFrameElement {
         match load_data.js_eval_result {
             Some(JsEvalResult::NoContent) => (),
             _ => {
-                let mut load_blocker = self.load_blocker.borrow_mut();
-                *load_blocker = Some(LoadBlocker::new(
-                    &document,
-                    LoadType::Subframe(load_data.url.clone()),
-                ));
+                // For the initial blank load, we already have the
+                // DelayingLoadEventsMode in the windowproxy
+                if matches!(pipeline_type, PipelineType::Navigation) {
+                    let mut load_blocker = self.load_blocker.borrow_mut();
+                    *load_blocker = Some(LoadBlocker::new(
+                        &document,
+                        LoadType::Subframe(load_data.url.clone()),
+                    ));
+                }
             },
         };
 

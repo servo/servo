@@ -2515,8 +2515,16 @@ impl Document {
     }
 
     pub(crate) fn start_the_end_loading_phase(&self) {
+        assert!(self.current_the_end_loading_phase.get() == TheEndLoadingPhase::Initial);
         self.current_the_end_loading_phase
             .set(TheEndLoadingPhase::ProcessingDeferredScripts);
+        let document = Trusted::new(self);
+        self.owner_global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(process_deferred_scripts: move || {
+                document.root().process_deferred_scripts(CanGc::note());
+            }));
     }
 
     // https://html.spec.whatwg.org/multipage/#pending-parsing-blocking-script
