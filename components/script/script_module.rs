@@ -22,22 +22,23 @@ use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::gc::MutableHandleValue;
 use js::jsapi::{
-    CompileJsonModule1, CompileModule1, ExceptionStackBehavior, GetModuleResolveHook,
-    Handle as RawHandle, HandleValue as RawHandleValue, Heap, JS_ClearPendingException,
+    CallArgs, CompileJsonModule1, CompileModule1, ExceptionStackBehavior,
+    GetFunctionNativeReserved, GetModuleResolveHook, Handle as RawHandle,
+    HandleValue as RawHandleValue, Heap, JS_ClearPendingException, JS_GetFunctionObject,
     JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JSRuntime,
-    ModuleErrorBehaviour, ModuleType, SetModuleDynamicImportHook, SetModuleMetadataHook,
-    SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks,
+    ModuleErrorBehaviour, ModuleType, SetFunctionNativeReserved, SetModuleDynamicImportHook,
+    SetModuleMetadataHook, SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks,
     ThrowOnModuleEvaluationFailure, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{JS_GetPendingException, JS_SetPendingException, ModuleEvaluate};
 use js::rust::wrappers2::{
-    GetModuleRequestSpecifier, GetModuleRequestType, JS_DefineProperty4, JS_NewStringCopyN,
-    ModuleLink,
+    DefineFunctionWithReserved, GetModuleRequestSpecifier, GetModuleRequestType,
+    JS_DefineProperty4, JS_NewStringCopyN, ModuleLink,
 };
 use js::rust::{
-    CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue,
+    CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue, ToString,
     transform_str_to_source_text,
 };
 use mime::Mime;
@@ -56,6 +57,7 @@ use servo_url::ServoUrl;
 use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
+use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{
     Error, ErrorToJsval, report_pending_exception, throw_dom_exception,
 };
@@ -1039,6 +1041,9 @@ unsafe extern "C" fn HostResolveImportedModule(
     unreachable!()
 }
 
+// https://searchfox.org/firefox-esr140/rev/3fccb0ec900b931a1a752b02eafab1fb9652d9b9/js/loader/ModuleLoaderBase.h#560
+const SLOT_MODULEPRIVATE: usize = 0;
+
 #[expect(unsafe_code)]
 #[expect(non_snake_case)]
 /// <https://tc39.es/ecma262/#sec-hostgetimportmetaproperties>
@@ -1059,25 +1064,94 @@ unsafe extern "C" fn HostPopulateImportMeta(
         None => global_scope.api_base_url(),
     };
 
-    let url_string = unsafe {
-        JS_NewStringCopyN(
+    unsafe {
+        let url_string = JS_NewStringCopyN(
             &mut cx,
             base_url.as_str().as_ptr() as *const _,
             base_url.as_str().len(),
-        )
-    };
-    rooted!(&in(cx) let url_string = url_string);
+        );
+        rooted!(&in(cx) let url_string = url_string);
 
-    // Step 3.
-    unsafe {
-        JS_DefineProperty4(
+        // Step 3.
+        if !JS_DefineProperty4(
             &mut cx,
             Handle::from_raw(meta_object),
             c"url".as_ptr(),
             url_string.handle(),
             JSPROP_ENUMERATE.into(),
-        )
+        ) {
+            return false;
+        }
+
+        // Step 5. Let resolveFunction be ! CreateBuiltinFunction(steps, 1, "resolve", « »).
+        let resolve_function = DefineFunctionWithReserved(
+            &mut cx,
+            meta_object.get(),
+            c"resolve".as_ptr(),
+            Some(import_meta_resolve),
+            1,
+            JSPROP_ENUMERATE.into(),
+        );
+
+        rooted!(&in(cx) let obj = JS_GetFunctionObject(resolve_function));
+        assert!(!obj.is_null());
+        SetFunctionNativeReserved(
+            obj.get(),
+            SLOT_MODULEPRIVATE,
+            &reference_private.get() as *const _,
+        );
     }
+
+    true
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *mut JSVal) -> bool {
+    // Safety: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
+    let mut realm = CurrentRealm::assert(&mut cx);
+    let global_scope = GlobalScope::from_current_realm(&realm);
+
+    let cx = &mut realm;
+
+    let args = unsafe { CallArgs::from_vp(vp, argc) };
+
+    rooted!(&in(cx) let module_private = unsafe { *GetFunctionNativeReserved(args.callee(), SLOT_MODULEPRIVATE) });
+    let reference_private = module_private.handle().into();
+    let module_data = unsafe { module_script_from_reference_private(&reference_private) };
+
+    // https://html.spec.whatwg.org/multipage/#hostgetimportmetaproperties
+
+    // Step 4.1. Set specifier to ? ToString(specifier).
+    let specifier = unsafe {
+        let value = HandleValue::from_raw(args.get(0));
+
+        match NonNull::new(ToString(cx.raw_cx(), value)) {
+            Some(jsstr) => DOMString::from_string(jsstr_to_string(cx.raw_cx(), jsstr)),
+            None => return false,
+        }
+    };
+
+    // Step 4.2. Let url be the result of resolving a module specifier given moduleScript and specifier.
+    let url = ModuleTree::resolve_module_specifier(
+        &global_scope,
+        module_data,
+        specifier,
+        CanGc::from_cx(cx),
+    );
+
+    let Ok(url) = url else {
+        return false;
+    };
+
+    // Step 4.3. Return the serialization of url.
+    url.as_str().safe_to_jsval(
+        cx.into(),
+        unsafe { MutableHandleValue::from_raw(args.rval()) },
+        CanGc::from_cx(cx),
+    );
+
+    true
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-module-script-tree>
