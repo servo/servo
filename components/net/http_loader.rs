@@ -706,11 +706,10 @@ async fn obtain_response(
                     // Request the first chunk, corresponding to Step 3 and 4.
                     let _ = chunk_requester.send(BodyChunkRequest::Chunk);
                 } else {
-                    /*
                     error!(
                         "Could not send BodyChunkRequests as chunk requester got already neutered."
-                    )
-                    */
+                    );
+                    return Err(NetworkError::Crash("Chunk requester wrong".into()));
                 }
             }
 

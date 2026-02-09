@@ -354,6 +354,7 @@ impl RequestBody {
         }
     }
 
+    /// This is a shared optional sender to request BodyChunks.
     pub fn clone_stream(&self) -> Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>> {
         self.body_chunk_request_channel.clone()
     }
