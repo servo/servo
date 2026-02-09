@@ -8,6 +8,7 @@
 use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
@@ -16,6 +17,7 @@ use crate::actors::inspector::InspectorActor;
 use crate::protocol::ClientRequest;
 use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 
+#[derive(MallocSizeOf)]
 pub(crate) struct HighlighterActor {
     pub name: String,
     pub script_sender: GenericSender<DevtoolScriptControlMsg>,

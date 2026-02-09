@@ -14,6 +14,7 @@ use chrono::{Local, LocalResult, TimeZone};
 use devtools_traits::{HttpRequest, HttpResponse};
 use headers::{ContentLength, HeaderMapExt};
 use http::HeaderMap;
+use malloc_size_of_derive::MallocSizeOf;
 use net::cookie::ServoCookie;
 use net_traits::fetch::headers::extract_mime_type_as_dataurl_mime;
 use net_traits::{CookieSource, TlsSecurityInfo};
@@ -29,7 +30,7 @@ use crate::actors::watcher::WatcherActor;
 use crate::network_handler::Cause;
 use crate::protocol::ClientRequest;
 
-#[derive(Default)]
+#[derive(Default, MallocSizeOf)]
 pub(crate) struct NetworkEventActor {
     name: String,
     request: AtomicRefCell<Option<NetworkEventRequest>>,
@@ -188,14 +189,14 @@ struct ResponseContent {
     transferred_size: Option<u64>,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct CacheDetails {
     from_cache: bool,
     from_service_worker: bool,
 }
 
-#[derive(Clone, Default, Serialize)]
+#[derive(Clone, Default, Serialize, MallocSizeOf)]
 pub(crate) struct Timings {
     blocked: usize,
     dns: usize,
@@ -312,6 +313,7 @@ impl From<&TlsSecurityInfo> for SecurityInfo {
     }
 }
 
+#[derive(MallocSizeOf)]
 struct NetworkEventRequest {
     offsets: Timings,
     timings: Timings,
@@ -319,6 +321,7 @@ struct NetworkEventRequest {
     total_time: Duration,
 }
 
+#[derive(MallocSizeOf)]
 struct NetworkEventResponse {
     cache_details: CacheDetails,
     response: HttpResponse,

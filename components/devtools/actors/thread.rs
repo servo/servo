@@ -7,6 +7,7 @@ use std::collections::HashSet;
 use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{GenericSender, channel};
 use devtools_traits::DevtoolScriptControlMsg;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -73,6 +74,7 @@ struct FramesReply {
     frames: Vec<FrameActorMsg>,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct ThreadActor {
     name: String,
     pub source_manager: SourceManager,

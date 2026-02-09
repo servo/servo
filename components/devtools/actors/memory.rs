@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 
 use crate::actor::{Actor, ActorRegistry};
@@ -21,6 +22,7 @@ pub(crate) struct TimelineMemoryReply {
     non_js_milliseconds: f64,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct MemoryActor {
     name: String,
 }

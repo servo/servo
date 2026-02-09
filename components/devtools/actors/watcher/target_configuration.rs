@@ -9,6 +9,7 @@ use std::collections::HashMap;
 
 use embedder_traits::Theme;
 use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -31,6 +32,7 @@ pub(crate) struct TargetConfigurationActorMsg {
     traits: TargetConfigurationTraits,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct TargetConfigurationActor {
     name: String,
     configuration: HashMap<&'static str, bool>,

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::DevtoolScriptControlMsg;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Deserialize;
 use serde_json::Map;
 
@@ -26,6 +27,7 @@ struct BreakpointRequest {
     location: BreakpointRequestLocation,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct BreakpointListActor {
     name: String,
     browsing_context: String,

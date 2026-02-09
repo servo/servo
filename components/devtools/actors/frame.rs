@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use devtools_traits::PauseFrameResult;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -52,6 +53,7 @@ pub(crate) struct FrameActorMsg {
 
 /// Represents an stack frame. Used by `ThreadActor` when replying to interrupt messages.
 /// <https://searchfox.org/firefox-main/source/devtools/server/actors/frame.js>
+#[derive(MallocSizeOf)]
 pub(crate) struct FrameActor {
     name: String,
     object_actor: String,

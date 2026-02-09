@@ -12,6 +12,7 @@ use base::generic_channel;
 use devtools_traits::DevtoolScriptControlMsg::{
     GetAttributeStyle, GetComputedStyle, GetDocumentElement, GetStylesheetStyle, ModifyRule,
 };
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -78,6 +79,7 @@ pub(crate) struct StyleRuleActorMsg {
     rule: Option<AppliedRule>,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct StyleRuleActor {
     name: String,
     node: String,

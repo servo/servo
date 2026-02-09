@@ -250,7 +250,7 @@ pub enum FetchResponseMsg {
     ProcessCspViolations(RequestId, Vec<csp::Violation>),
 }
 
-#[derive(Deserialize, PartialEq, Serialize)]
+#[derive(Deserialize, PartialEq, Serialize, MallocSizeOf)]
 pub struct DebugVec(pub Vec<u8>);
 
 impl From<Vec<u8>> for DebugVec {

@@ -28,6 +28,7 @@ use devtools_traits::{
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use log::{trace, warn};
+use malloc_size_of_derive::MallocSizeOf;
 use rand::{RngCore, rng};
 use resource::{ResourceArrayType, ResourceAvailable};
 use rustc_hash::FxHashMap;
@@ -81,7 +82,7 @@ mod network_handler;
 mod protocol;
 mod resource;
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq, MallocSizeOf)]
 enum UniqueId {
     Pipeline(PipelineId),
     Worker(WorkerId),
@@ -114,11 +115,14 @@ pub fn start_server(port: u16, embedder: EmbedderProxy) -> Sender<DevtoolsContro
     sender
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, MallocSizeOf)]
 pub(crate) struct StreamId(u32);
 
+#[derive(MallocSizeOf)]
 struct DevtoolsInstance {
+    #[conditional_malloc_size_of]
     registry: Arc<ActorRegistry>,
+    #[conditional_malloc_size_of]
     id_map: Arc<Mutex<IdMap>>,
     browsing_contexts: FxHashMap<BrowsingContextId, String>,
     receiver: Receiver<DevtoolsControlMsg>,

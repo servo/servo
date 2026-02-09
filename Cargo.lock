@@ -2071,6 +2071,7 @@ dependencies = [
  "headers 0.4.1",
  "http 1.4.0",
  "log",
+ "malloc_size_of_derive",
  "net",
  "net_traits",
  "rand 0.9.2",
@@ -2078,6 +2079,7 @@ dependencies = [
  "serde",
  "serde_json",
  "servo_config",
+ "servo_malloc_size_of",
  "servo_url",
  "uuid",
 ]
