@@ -278,31 +278,26 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             return;
         }
 
-        let rx = self
-            .engine
-            .process_transaction(KvsTransaction { mode, requests });
-
-        // We must notify the manager thread when the engine finishes so it can:
-        // - clear running_readonly / running_readwrite
-        // - re-run scheduling (maybe start next queued txn or next batch)
         let manager_sender = self.manager_sender.clone();
+        self.engine.process_transaction(
+            KvsTransaction { mode, requests },
+            Box::new(move || {
+                // Notify the manager thread when the engine finishes so it can:
+                // - clear running_readonly / running_readwrite
+                // - re-run scheduling (maybe start next queued txn or next batch)
+                let _ = manager_sender.send(IndexedDBThreadMsg::EngineTxnBatchComplete {
+                    origin,
+                    db_name,
+                    txn,
+                });
 
-        // NOTE: This is the “database task” that runs asynchronously.
-        thread::spawn(move || {
-            let _ = rx.blocking_recv();
-
-            let _ = manager_sender.send(IndexedDBThreadMsg::EngineTxnBatchComplete {
-                origin,
-                db_name,
-                txn,
-            });
-
-            // We have a sender if the transaction is started manually, and they
-            // probably want to know when it is finished.
-            if let Some(sender) = sender {
-                let _ = sender.send(Ok(()));
-            }
-        });
+                // We have a sender if the transaction is started manually, and they
+                // probably want to know when it is finished.
+                if let Some(sender) = sender {
+                    let _ = sender.send(Ok(()));
+                }
+            }),
+        );
     }
 
     fn mark_request_handled(&mut self, txn: u64, request_id: u64) {

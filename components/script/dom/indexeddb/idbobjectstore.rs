@@ -195,7 +195,6 @@ impl IDBObjectStore {
 
         // If transaction is not active, throw a "TransactionInactiveError" DOMException.
         // https://w3c.github.io/IndexedDB/#transaction-inactive
-        // inactive
         // A transaction is in this state after control returns to the event loop after its creation, and when events are not being dispatched.
         // No requests can be made against the transaction when it is in this state.
         if !transaction.is_active() || !transaction.is_usable() {

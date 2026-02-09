@@ -126,19 +126,9 @@ impl RequestListener {
     fn send_request_handled(transaction: &IDBTransaction, request_id: u64) {
         let global = transaction.global();
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-        // Step 5:
-        // The implementation must attempt to commit an inactive transaction when
-        // all requests placed against the transaction have completed and their
-        // returned results handled, no new requests have been placed against the
-        // transaction, and the transaction has not been aborted
-        // An explicit call to commit() will initiate a commit without waiting
-        // for request results to be handled by script.
-        // When committing, the transaction state is set to committing.
-        // The implementation must atomically write any changes to the
-        // database made by requests placed against the transaction.
-        // That is, either all of the changes must be written, or if an error occurs,
-        // such as a disk write error, the implementation must not write any of the changes
-        // to the database, and the steps to abort a transaction will be followed.
+        // A transaction is inactive after control returns to the event loop and
+        // when events are not being dispatched. We call this after dispatching
+        // the request event, so the backend can reevaluate commit eligibility.
         let send_result = global.storage_threads().send(IndexedDBThreadMsg::Sync(
             SyncOperation::RequestHandled {
                 origin: global.origin().immutable().clone(),
@@ -152,8 +142,8 @@ impl RequestListener {
         }
         transaction.mark_request_handled(request_id);
 
-        // Commit eligibility now that "handled" advanced.
-        // This is the edge that was missing in your trace.
+        // This request's result has been handled by script, the
+        // transaction might finally be ready to auto-commit.
         transaction.maybe_commit();
     }
 
@@ -290,26 +280,15 @@ impl RequestListener {
                 CanGc::from_cx(cx),
             );
 
-            // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-            // When each request associated with a transaction is processed,
-            // a success or error event will be fired. While the event is being
-            // dispatched, the transaction state is set to active, allowing additional
-            // requests to be made against the transaction. Once the event dispatch is
-            // complete, the transaction’s state is set to inactive again.
             transaction.set_active_flag(true);
             event
                 .upcast::<Event>()
                 .fire(request.upcast(), CanGc::from_cx(cx));
             // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-            // Once the event dispatch is complete, the transaction’s state is set to inactive again.
+            // Once the event dispatch is complete, the transaction's state is set to inactive again.
             transaction.set_active_flag(false);
             // Notify the transaction that this request has finished.
             transaction.request_finished();
-            // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-            // The implementation must attempt to commit an inactive transaction
-            // when all requests placed against the transaction have completed and
-            // their returned results handled, no new requests have been placed
-            // against the transaction, and the transaction has not been aborted
 
             Self::send_request_handled(&transaction, self.request_id);
         } else {
@@ -355,12 +334,6 @@ impl RequestListener {
             CanGc::from_cx(cx),
         );
 
-        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-        // When each request associated with a transaction is processed,
-        // a success or error event will be fired. While the event is being
-        // dispatched, the transaction state is set to active, allowing additional
-        // requests to be made against the transaction. Once the event dispatch is
-        // complete, the transaction’s state is set to inactive again.
         transaction.set_active_flag(true);
         // https://w3c.github.io/IndexedDB/#events
         // Set event’s bubbles and cancelable attributes to false.
@@ -368,7 +341,7 @@ impl RequestListener {
             .upcast::<Event>()
             .fire(request.upcast(), CanGc::from_cx(cx));
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-        // Once the event dispatch is complete, the transaction’s state is set to inactive again.
+        // Once the event dispatch is complete, the transaction's state is set to inactive again.
         transaction.set_active_flag(false);
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
         // An explicit call to abort() will initiate an abort. An abort will also be initiated following a failed request that is not handled by script.
@@ -381,11 +354,6 @@ impl RequestListener {
         }
         // Notify the transaction that this request has finished.
         transaction.request_finished();
-        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-        // The implementation must attempt to commit an inactive transaction
-        // when all requests placed against the transaction have completed and
-        // their returned results handled, no new requests have been placed against
-        // the transaction, and the transaction has not been aborted
         Self::send_request_handled(&transaction, request_id);
     }
 }

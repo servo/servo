@@ -16,7 +16,6 @@ use storage_traits::indexeddb::{
     CreateObjectResult, IndexedDBIndex, IndexedDBKeyRange, IndexedDBKeyType, IndexedDBRecord,
     IndexedDBTxnMode, KeyPath, PutItemResult,
 };
-use tokio::sync::oneshot;
 
 use crate::indexeddb::IndexedDBDescription;
 use crate::indexeddb::engines::{KvsEngine, KvsTransaction};
@@ -379,8 +378,8 @@ impl KvsEngine for SqliteEngine {
     fn process_transaction(
         &self,
         transaction: KvsTransaction,
-    ) -> oneshot::Receiver<Option<Vec<u8>>> {
-        let (tx, rx) = oneshot::channel();
+        on_complete: Box<dyn FnOnce() + Send + 'static>,
+    ) {
         let spawning_pool = if transaction.mode == IndexedDBTxnMode::Readonly {
             self.read_pool.clone()
         } else {
@@ -561,9 +560,8 @@ impl KvsEngine for SqliteEngine {
                     },
                 }
             }
-            let _ = tx.send(None);
+            on_complete();
         });
-        rx
     }
 
     // TODO: we should be able to error out here, maybe change the trait definition?
@@ -925,97 +923,103 @@ mod tests {
         let count = get_channel();
         let remove = get_channel();
         let clear = get_channel();
-        let rx = db.process_transaction(KvsTransaction {
-            mode: IndexedDBTxnMode::Readwrite,
-            requests: VecDeque::from(vec![
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        callback: get_callback(put.0),
-                        key: Some(IndexedDBKeyType::Number(1.0)),
-                        value: vec![1, 2, 3],
-                        should_overwrite: false,
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        callback: get_callback(put2.0),
-                        key: Some(IndexedDBKeyType::String("2.0".to_string())),
-                        value: vec![4, 5, 6],
-                        should_overwrite: false,
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        callback: get_callback(put3.0),
-                        key: Some(IndexedDBKeyType::Array(vec![
-                            IndexedDBKeyType::String("3".to_string()),
-                            IndexedDBKeyType::Number(0.0),
-                        ])),
-                        value: vec![7, 8, 9],
-                        should_overwrite: false,
-                    }),
-                },
-                // Try to put a duplicate key without overwrite
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
-                        callback: get_callback(put_dup.0),
-                        key: Some(IndexedDBKeyType::Number(1.0)),
-                        value: vec![10, 11, 12],
-                        should_overwrite: false,
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
-                        callback: get_callback(get_item_some.0),
-                        key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
-                        callback: get_callback(get_item_none.0),
-                        key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(5.0)),
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
-                        callback: get_callback(get_all_items.0),
-                        key_range: IndexedDBKeyRange::lower_bound(
-                            IndexedDBKeyType::Number(0.0),
-                            false,
-                        ),
-                        count: None,
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
-                        callback: get_callback(count.0),
-                        key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
-                        callback: get_callback(remove.0),
-                        key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
-                    }),
-                },
-                KvsOperation {
-                    store_name: store_name.to_owned(),
-                    operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(
-                        get_callback(clear.0),
-                    )),
-                },
-            ]),
-        });
-        let _ = rx.blocking_recv().unwrap();
+        let (done_tx, done_rx) = std::sync::mpsc::channel();
+        db.process_transaction(
+            KvsTransaction {
+                mode: IndexedDBTxnMode::Readwrite,
+                requests: VecDeque::from(vec![
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put.0),
+                            key: Some(IndexedDBKeyType::Number(1.0)),
+                            value: vec![1, 2, 3],
+                            should_overwrite: false,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put2.0),
+                            key: Some(IndexedDBKeyType::String("2.0".to_string())),
+                            value: vec![4, 5, 6],
+                            should_overwrite: false,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put3.0),
+                            key: Some(IndexedDBKeyType::Array(vec![
+                                IndexedDBKeyType::String("3".to_string()),
+                                IndexedDBKeyType::Number(0.0),
+                            ])),
+                            value: vec![7, 8, 9],
+                            should_overwrite: false,
+                        }),
+                    },
+                    // Try to put a duplicate key without overwrite
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
+                            callback: get_callback(put_dup.0),
+                            key: Some(IndexedDBKeyType::Number(1.0)),
+                            value: vec![10, 11, 12],
+                            should_overwrite: false,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
+                            callback: get_callback(get_item_some.0),
+                            key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
+                            callback: get_callback(get_item_none.0),
+                            key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(5.0)),
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetAllItems {
+                            callback: get_callback(get_all_items.0),
+                            key_range: IndexedDBKeyRange::lower_bound(
+                                IndexedDBKeyType::Number(0.0),
+                                false,
+                            ),
+                            count: None,
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadOnly(AsyncReadOnlyOperation::Count {
+                            callback: get_callback(count.0),
+                            key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::RemoveItem {
+                            callback: get_callback(remove.0),
+                            key_range: IndexedDBKeyRange::only(IndexedDBKeyType::Number(1.0)),
+                        }),
+                    },
+                    KvsOperation {
+                        store_name: store_name.to_owned(),
+                        operation: AsyncOperation::ReadWrite(AsyncReadWriteOperation::Clear(
+                            get_callback(clear.0),
+                        )),
+                    },
+                ]),
+            },
+            Box::new(move || {
+                let _ = done_tx.send(());
+            }),
+        );
+        let _ = done_rx.recv().unwrap();
         put.1.recv().unwrap().unwrap();
         put2.1.recv().unwrap().unwrap();
         put3.1.recv().unwrap().unwrap();

@@ -7,7 +7,6 @@ use std::collections::VecDeque;
 use storage_traits::indexeddb::{
     AsyncOperation, CreateObjectResult, IndexedDBIndex, IndexedDBTxnMode, KeyPath,
 };
-use tokio::sync::oneshot;
 
 pub use self::sqlite::SqliteEngine;
 
@@ -45,7 +44,8 @@ pub trait KvsEngine {
     fn process_transaction(
         &self,
         transaction: KvsTransaction,
-    ) -> oneshot::Receiver<Option<Vec<u8>>>;
+        on_complete: Box<dyn FnOnce() + Send + 'static>,
+    );
 
     fn has_key_generator(&self, store_name: &str) -> bool;
     fn key_path(&self, store_name: &str) -> Option<KeyPath>;
