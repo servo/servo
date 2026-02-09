@@ -771,6 +771,7 @@ impl Servo {
             Some(devtools::start_server(
                 pref!(devtools_server_port) as u16,
                 embedder_proxy.clone(),
+                mem_profiler_chan.clone(),
             ))
         } else {
             None

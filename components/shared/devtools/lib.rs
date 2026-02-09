@@ -33,6 +33,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Destination;
 use net_traits::{DebugVec, TlsSecurityInfo};
+use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use uuid::Uuid;
@@ -76,6 +77,8 @@ pub enum ChromeToDevtoolsControlMsg {
     /// A network event occurred (request, reply, etc.). The actor with the
     /// provided name should be notified.
     NetworkEvent(String, NetworkEvent),
+    /// Perform a memory report.
+    CollectMemoryReport(ReportsChan),
 }
 
 /// The state of a page navigation.

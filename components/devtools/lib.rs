@@ -28,7 +28,9 @@ use devtools_traits::{
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use log::{trace, warn};
+use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
+use profile_traits::path;
 use rand::{RngCore, rng};
 use resource::{ResourceArrayType, ResourceAvailable};
 use rustc_hash::FxHashMap;
@@ -81,6 +83,9 @@ mod id;
 mod network_handler;
 mod protocol;
 mod resource;
+use profile_traits::mem::{
+    ProcessReports, ProfilerChan, Report, ReportKind, perform_memory_report,
+};
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq, MallocSizeOf)]
 enum UniqueId {
@@ -99,16 +104,34 @@ pub(crate) struct ActorMsg {
 }
 
 /// Spin up a devtools server that listens for connections on the specified port.
-pub fn start_server(port: u16, embedder: EmbedderProxy) -> Sender<DevtoolsControlMsg> {
+pub fn start_server(
+    port: u16,
+    embedder: EmbedderProxy,
+    mem_profiler_chan: ProfilerChan,
+) -> Sender<DevtoolsControlMsg> {
     let (sender, receiver) = unbounded();
     {
         let sender = sender.clone();
+        let sender2 = sender.clone();
         thread::Builder::new()
             .name("Devtools".to_owned())
             .spawn(move || {
-                if let Some(instance) = DevtoolsInstance::create(sender, receiver, port, embedder) {
-                    instance.run()
-                }
+                mem_profiler_chan.run_with_memory_reporting(
+                    || {
+                        if let Some(instance) =
+                            DevtoolsInstance::create(sender, receiver, port, embedder)
+                        {
+                            instance.run()
+                        }
+                    },
+                    String::from("devtools-reporter"),
+                    sender2,
+                    |chan| {
+                        DevtoolsControlMsg::FromChrome(
+                            ChromeToDevtoolsControlMsg::CollectMemoryReport(chan),
+                        )
+                    },
+                )
             })
             .expect("Thread spawning failed");
     }
@@ -307,6 +330,18 @@ impl DevtoolsInstance {
                     self.handle_network_event(connections, request_id, network_event);
                 },
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg) => break,
+                DevtoolsControlMsg::FromChrome(
+                    ChromeToDevtoolsControlMsg::CollectMemoryReport(chan),
+                ) => {
+                    perform_memory_report(|ops| {
+                        let reports = vec![Report {
+                            path: path!["devtools"],
+                            kind: ReportKind::ExplicitSystemHeapSize,
+                            size: self.size_of(ops),
+                        }];
+                        chan.send(ProcessReports::new(reports));
+                    });
+                },
             }
         }
 
