@@ -481,14 +481,17 @@ impl WebViewRenderer {
         // When the event is touchmove, if the script thread is processing the touch
         // move event, we skip sending the event to the script thread.
         // This prevents the script thread from stacking up for a large amount of time.
-        if !self
-            .touch_handler
-            .is_handling_touch_move(self.touch_handler.current_sequence_id) &&
-            self.send_touch_event(render_api, event, id) &&
+        if !self.touch_handler.is_handling_touch_move_for_touch_id(
+            self.touch_handler.current_sequence_id,
+            event.touch_id,
+        ) && self.send_touch_event(render_api, event, id) &&
             event.is_cancelable()
         {
-            self.touch_handler
-                .set_handling_touch_move(self.touch_handler.current_sequence_id, true);
+            self.touch_handler.set_handling_touch_move_for_touch_id(
+                self.touch_handler.current_sequence_id,
+                event.touch_id,
+                true,
+            );
         }
     }
 
@@ -514,11 +517,10 @@ impl WebViewRenderer {
         pending_touch_input_event: PendingTouchInputEvent,
         result: InputEventResult,
     ) {
-        // TODO: This is gonna be used very soon, for tracking move per touch_id.
         let PendingTouchInputEvent {
             sequence_id,
             event_type,
-            touch_id: _,
+            touch_id,
         } = pending_touch_input_event;
 
         if result.contains(InputEventResult::DefaultPrevented) {
@@ -541,8 +543,11 @@ impl WebViewRenderer {
                         if let TouchSequenceState::PendingFling { .. } = info.state {
                             info.state = TouchSequenceState::Finished;
                         }
-                        self.touch_handler
-                            .set_handling_touch_move(self.touch_handler.current_sequence_id, false);
+                        self.touch_handler.set_handling_touch_move_for_touch_id(
+                            self.touch_handler.current_sequence_id,
+                            touch_id,
+                            false,
+                        );
                         self.touch_handler
                             .remove_pending_touch_move_actions(sequence_id);
                     }
@@ -602,8 +607,11 @@ impl WebViewRenderer {
                         self.touch_handler
                             .take_pending_touch_move_actions(sequence_id),
                     );
-                    self.touch_handler
-                        .set_handling_touch_move(self.touch_handler.current_sequence_id, false);
+                    self.touch_handler.set_handling_touch_move_for_touch_id(
+                        self.touch_handler.current_sequence_id,
+                        touch_id,
+                        false,
+                    );
                     if let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id) {
                         if info.prevent_move == TouchMoveAllowed::Pending {
                             info.prevent_move = TouchMoveAllowed::Allowed;

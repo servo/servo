@@ -9,7 +9,7 @@ use base::id::WebViewId;
 use embedder_traits::{InputEventId, PaintHitTestResult, Scroll, TouchEventType, TouchId};
 use euclid::{Point2D, Scale, Vector2D};
 use log::{debug, error, warn};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use style_traits::CSSPixel;
 use webrender_api::units::{DevicePixel, DevicePoint, DeviceVector2D};
 
@@ -90,7 +90,7 @@ pub struct TouchSequenceInfo {
     ///
     /// We use this to skip sending the event to the script thread,
     /// to prevent overloading script.
-    handling_touch_move: bool,
+    touch_ids_in_move: FxHashSet<TouchId>,
     /// Do not perform a click action.
     ///
     /// This happens when
@@ -209,7 +209,7 @@ impl TouchHandler {
         let finished_info = TouchSequenceInfo {
             state: TouchSequenceState::Finished,
             active_touch_points: vec![],
-            handling_touch_move: false,
+            touch_ids_in_move: FxHashSet::default(),
             prevent_click: false,
             prevent_move: TouchMoveAllowed::Pending,
             pending_touch_move_actions: vec![],
@@ -229,16 +229,29 @@ impl TouchHandler {
         }
     }
 
-    pub(crate) fn set_handling_touch_move(&mut self, sequence_id: TouchSequenceId, flag: bool) {
+    pub(crate) fn set_handling_touch_move_for_touch_id(
+        &mut self,
+        sequence_id: TouchSequenceId,
+        touch_id: TouchId,
+        flag: bool,
+    ) {
         if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
-            sequence.handling_touch_move = flag;
+            if flag {
+                sequence.touch_ids_in_move.insert(touch_id);
+            } else {
+                sequence.touch_ids_in_move.remove(&touch_id);
+            }
         }
     }
 
-    pub(crate) fn is_handling_touch_move(&self, sequence_id: TouchSequenceId) -> bool {
+    pub(crate) fn is_handling_touch_move_for_touch_id(
+        &self,
+        sequence_id: TouchSequenceId,
+        touch_id: TouchId,
+    ) -> bool {
         self.touch_sequence_map
             .get(&sequence_id)
-            .is_some_and(|seq| seq.handling_touch_move)
+            .is_some_and(|seq| seq.touch_ids_in_move.contains(&touch_id))
     }
 
     pub(crate) fn prevent_click(&mut self, sequence_id: TouchSequenceId) {
@@ -338,7 +351,7 @@ impl TouchHandler {
                 TouchSequenceInfo {
                     state: Touching,
                     active_touch_points,
-                    handling_touch_move: false,
+                    touch_ids_in_move: FxHashSet::default(),
                     prevent_click: false,
                     prevent_move: TouchMoveAllowed::Pending,
                     pending_touch_move_actions: vec![],
@@ -710,7 +723,6 @@ impl TouchHandler {
 pub(crate) struct PendingTouchInputEvent {
     pub event_type: TouchEventType,
     pub sequence_id: TouchSequenceId,
-    #[expect(unused)]
     pub touch_id: TouchId,
 }
 
