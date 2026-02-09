@@ -331,7 +331,7 @@ def close_usb_popup(hdc: HarmonyDeviceConnector):
 
 # We always load "about:blank" first, and then use
 # WebDriver to load target url so that it is blocked until fully loaded.
-def run_test(test_fn, test_name: str, use_mitmproxy: MitmProxyRunType = MitmProxyRunType.FORWARD):
+def run_test(test_fn, test_name: str, use_mitmproxy: MitmProxyRunType = MitmProxyRunType.REPLAY):
     # if os.environ.get("CI") and use_mitmproxy == MitmProxyRunType.NOPROXY:
     # if we are in CI and nobody overrode our mitmproxy type we want to replay.
     #    print("Setting mitmproxy replay")
