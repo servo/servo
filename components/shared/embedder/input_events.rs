@@ -247,17 +247,17 @@ pub struct TouchId(pub i32);
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct TouchEvent {
     pub event_type: TouchEventType,
-    pub id: TouchId,
+    pub touch_id: TouchId,
     pub point: WebViewPoint,
     /// cancelable default value is true, once the first move has been processed by script disable it.
     cancelable: bool,
 }
 
 impl TouchEvent {
-    pub fn new(event_type: TouchEventType, id: TouchId, point: WebViewPoint) -> Self {
+    pub fn new(event_type: TouchEventType, touch_id: TouchId, point: WebViewPoint) -> Self {
         TouchEvent {
             event_type,
-            id,
+            touch_id,
             point,
             cancelable: true,
         }

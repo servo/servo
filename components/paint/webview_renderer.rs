@@ -443,7 +443,7 @@ impl WebViewRenderer {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
-        self.touch_handler.on_touch_down(event.id, point);
+        self.touch_handler.on_touch_down(event.touch_id, point);
         self.send_touch_event(render_api, event, id);
     }
 
@@ -452,7 +452,7 @@ impl WebViewRenderer {
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
         let action = self.touch_handler.on_touch_move(
-            event.id,
+            event.touch_id,
             point,
             self.device_pixels_per_page_pixel_not_including_pinch_zoom()
                 .get(),
@@ -487,7 +487,7 @@ impl WebViewRenderer {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
-        self.touch_handler.on_touch_up(event.id, point);
+        self.touch_handler.on_touch_up(event.touch_id, point);
         self.send_touch_event(render_api, event, id);
     }
 
@@ -495,7 +495,7 @@ impl WebViewRenderer {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
-        self.touch_handler.on_touch_cancel(event.id, point);
+        self.touch_handler.on_touch_cancel(event.touch_id, point);
         self.send_touch_event(render_api, event, id);
     }
 

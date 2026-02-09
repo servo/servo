@@ -879,7 +879,7 @@ impl DocumentEventHandler {
             return Default::default();
         };
 
-        let TouchId(identifier) = event.id;
+        let TouchId(identifier) = event.touch_id;
         let event_name = match event.event_type {
             TouchEventType::Down => "touchstart",
             TouchEventType::Move => "touchmove",
@@ -993,7 +993,7 @@ impl DocumentEventHandler {
                 let mut active_touch_points = self.active_touch_points.borrow_mut();
                 match active_touch_points
                     .iter()
-                    .position(|t| t.Identifier() == event.id.0)
+                    .position(|t| t.Identifier() == event.touch_id.0)
                 {
                     Some(i) => {
                         active_touch_points.swap_remove(i);
