@@ -254,22 +254,18 @@ pub(crate) struct GlobalScope {
     devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
 
     /// For sending messages to the memory profiler.
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// For sending messages to the time profiler.
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     time_profiler_chan: profile_time::ProfilerChan,
 
     /// A handle for communicating messages to the constellation thread.
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     script_to_constellation_chan: ScriptToConstellationChan,
 
     /// A handle for communicating messages to the Embedder.
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     script_to_embedder_chan: ScriptToEmbedderChan,
 

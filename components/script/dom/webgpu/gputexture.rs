@@ -31,7 +31,6 @@ pub(crate) struct GPUTexture {
     texture: WebGPUTexture,
     label: DomRefCell<USVString>,
     device: Dom<GPUDevice>,
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
     #[ignore_malloc_size_of = "defined in wgpu"]

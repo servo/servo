@@ -171,7 +171,6 @@ pub(crate) struct ServiceWorkerGlobalScope {
 
     /// A receiver of control messages,
     /// currently only used to signal shutdown.
-    #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
     control_receiver: Receiver<ServiceWorkerControlMsg>,
 }

@@ -101,7 +101,6 @@ pub struct ProgressiveWebMetrics {
     ///
     /// See <https://www.w3.org/TR/largest-contentful-paint/>
     largest_contentful_paint: Cell<Option<CrossProcessInstant>>,
-    #[ignore_malloc_size_of = "can't measure channels"]
     time_profiler_chan: ProfilerChan,
     url: ServoUrl,
 }

@@ -610,7 +610,6 @@ pub(crate) struct Document {
     creation_sandboxing_flag_set: Cell<SandboxingFlagSet>,
     /// The cached favicon for that document.
     #[no_trace]
-    #[ignore_malloc_size_of = "TODO: unimplemented on Image"]
     favicon: RefCell<Option<Image>>,
 
     /// All websockets created that are associated with this document.

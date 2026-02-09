@@ -23,7 +23,6 @@ pub(crate) struct Client {
     #[no_trace]
     url: ServoUrl,
     frame_type: FrameType,
-    #[ignore_malloc_size_of = "Defined in uuid"]
     #[no_trace]
     id: Uuid,
 }

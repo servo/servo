@@ -42,7 +42,6 @@ struct DroppableCookieStore {
     // Store an id so that we can send it with requests and the resource thread knows who to respond to
     #[no_trace]
     store_id: CookieStoreId,
-    #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
     unregister_channel: GenericSender<CoreResourceMsg>,
 }
