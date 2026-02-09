@@ -157,13 +157,13 @@ impl TouchSequenceInfo {
 #[derive(Clone, Copy, Debug, PartialEq)]
 
 pub struct TouchPoint {
-    pub id: TouchId,
+    pub touch_id: TouchId,
     pub point: Point2D<f32, DevicePixel>,
 }
 
 impl TouchPoint {
-    fn new(id: TouchId, point: Point2D<f32, DevicePixel>) -> Self {
-        TouchPoint { id, point }
+    fn new(touch_id: TouchId, point: Point2D<f32, DevicePixel>) -> Self {
+        TouchPoint { touch_id, point }
     }
 }
 
@@ -322,7 +322,7 @@ impl TouchHandler {
         self.touch_sequence_map.get_mut(&sequence_id)
     }
 
-    pub(crate) fn on_touch_down(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) {
+    pub(crate) fn on_touch_down(&mut self, touch_id: TouchId, point: Point2D<f32, DevicePixel>) {
         // if the current sequence ID does not exist in the map, then it was already handled
         if !self
             .touch_sequence_map
@@ -332,7 +332,7 @@ impl TouchHandler {
         {
             self.current_sequence_id.next();
             debug!("Entered new touch sequence: {:?}", self.current_sequence_id);
-            let active_touch_points = vec![TouchPoint::new(id, point)];
+            let active_touch_points = vec![TouchPoint::new(touch_id, point)];
             self.touch_sequence_map.insert(
                 self.current_sequence_id,
                 TouchSequenceInfo {
@@ -350,7 +350,7 @@ impl TouchHandler {
             let touch_sequence = self.get_current_touch_sequence_mut();
             touch_sequence
                 .active_touch_points
-                .push(TouchPoint::new(id, point));
+                .push(TouchPoint::new(touch_id, point));
             match touch_sequence.active_touch_points.len() {
                 2.. => {
                     touch_sequence.state = MultiTouch;
@@ -418,7 +418,7 @@ impl TouchHandler {
 
     pub(crate) fn on_touch_move(
         &mut self,
-        id: TouchId,
+        touch_id: TouchId,
         point: Point2D<f32, DevicePixel>,
         scale: f32,
     ) -> Option<ScrollZoomEvent> {
@@ -429,7 +429,7 @@ impl TouchHandler {
         let idx = match touch_sequence
             .active_touch_points
             .iter_mut()
-            .position(|t| t.id == id)
+            .position(|t| t.touch_id == touch_id)
         {
             Some(i) => i,
             None => {
@@ -520,7 +520,7 @@ impl TouchHandler {
         action
     }
 
-    pub(crate) fn on_touch_up(&mut self, id: TouchId, point: Point2D<f32, DevicePixel>) {
+    pub(crate) fn on_touch_up(&mut self, touch_id: TouchId, point: Point2D<f32, DevicePixel>) {
         let Some(touch_sequence) = self.try_get_current_touch_sequence_mut() else {
             warn!("Current touch sequence not found");
             return;
@@ -528,7 +528,7 @@ impl TouchHandler {
         let old = match touch_sequence
             .active_touch_points
             .iter()
-            .position(|t| t.id == id)
+            .position(|t| t.touch_id == touch_id)
         {
             Some(i) => Some(touch_sequence.active_touch_points.swap_remove(i).point),
             None => {
@@ -604,7 +604,7 @@ impl TouchHandler {
         );
     }
 
-    pub(crate) fn on_touch_cancel(&mut self, id: TouchId, _point: Point2D<f32, DevicePixel>) {
+    pub(crate) fn on_touch_cancel(&mut self, touch_id: TouchId, _point: Point2D<f32, DevicePixel>) {
         // A similar thing with touch move can happen here where the event is coming from a different webview.
         let Some(touch_sequence) = self.try_get_current_touch_sequence_mut() else {
             return;
@@ -612,7 +612,7 @@ impl TouchHandler {
         match touch_sequence
             .active_touch_points
             .iter()
-            .position(|t| t.id == id)
+            .position(|t| t.touch_id == touch_id)
         {
             Some(i) => {
                 touch_sequence.active_touch_points.swap_remove(i);
