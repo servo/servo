@@ -747,6 +747,33 @@ fn test_simple_context_menu() {
 }
 
 #[test]
+fn test_open_context_menu_closes_existing() {
+    let servo_test = ServoTest::new();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,<!DOCTYPE html>").unwrap())
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    open_context_menu_at_point(&webview, DevicePoint::new(50.0, 50.0));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() == 0);
+
+    assert_eq!(delegate.number_of_controls_hidden.get(), 0);
+
+    open_context_menu_at_point(&webview, DevicePoint::new(25.0, 25.0));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_hidden.get() != 1);
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() != 2);
+}
+
+#[test]
 fn test_contextual_context_menu_items() {
     let servo_test = ServoTest::new();
 
