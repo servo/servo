@@ -39,13 +39,13 @@ impl DOMStringList {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#sorted-name-list>
-    pub(crate) fn new_sorted(
+    pub(crate) fn new_sorted<'a>(
         global: &GlobalScope,
-        strings: &[DOMString],
+        strings: impl IntoIterator<Item = &'a DOMString>,
         can_gc: CanGc,
     ) -> DomRoot<DOMStringList> {
         let sorted = strings
-            .iter()
+            .into_iter()
             .map(|dom_string| dom_string.str().encode_utf16().collect::<Vec<u16>>())
             .sorted_unstable()
             .map(|utf16_str| {

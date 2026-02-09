@@ -451,7 +451,12 @@ impl WebViewRenderer {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
-        let action = self.touch_handler.on_touch_move(event.id, point);
+        let action = self.touch_handler.on_touch_move(
+            event.id,
+            point,
+            self.device_pixels_per_page_pixel_not_including_pinch_zoom()
+                .get(),
+        );
         if let Some(action) = action {
             // if first move processed and allowed, we directly process the move event,
             // without waiting for the script handler.
