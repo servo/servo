@@ -15,7 +15,7 @@ pub enum WebStorageType {
     Local,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct OriginDescriptor {
     pub name: String,
 }
