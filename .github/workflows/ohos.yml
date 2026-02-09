@@ -40,6 +40,7 @@ env:
   CARGO_INCREMENTAL: 0
   BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
   HITRACE_BENCH_VERSION: 0.10.0
+  MITMDUMP_CACHE_KEY: mitmdump-cache-0.1
 
 jobs:
   build:
@@ -283,7 +284,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: /tmp/mitmproxy-dump
-          key: mitmproxy-dump
+          key: {{ env.MITMDUMP_CACHE_KEY }}
       - name: Generate mitmproxy dump
         if: steps.mitmproxy-cache.outputs.cache-hit != 'true'
         run: uv run etc/ci/scenario/update_mitmproxy_dump.py /tmp/mitmproxy-dump
@@ -293,7 +294,7 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: /tmp/mitmproxy-dump
-          key: mitmproxy-dump
+          key: {{ env.MITMDUMP_CACHE_KEY }}
       - name: "Run benchmark"
         id: hitrace_bench
         run: hitrace-bench -r support/hitrace-bencher/runs.json --bencher -p ${{ inputs.profile }}
@@ -383,7 +384,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: /tmp/mitmproxy-dump
-          key: mitmproxy-dump
+          key: {{ env.MITMDUMP_CACHE_KEY }}
       - name: Generate mitmproxy dump
         if: steps.mitmproxy-cache.outputs.cache-hit != 'true'
         run: uv run etc/ci/scenario/update_mitmproxy_dump.py /tmp/mitmproxy-dump
@@ -393,7 +394,7 @@ jobs:
         uses: actions/cache/save@v5
         with:
           path: /tmp/mitmproxy-dump
-          key: mitmproxy-dump
+          key: {{ env.MITMDUMP_CACHE_KEY }}
       - name: Test loading servo.org
         run: uv run ./etc/ci/scenario/servo_test_open_page_servo.py
       - name: Test loading Mossel homepage
