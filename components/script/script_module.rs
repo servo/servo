@@ -1140,18 +1140,29 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
         CanGc::from_cx(cx),
     );
 
-    let Ok(url) = url else {
-        return false;
-    };
+    match url {
+        Ok(url) => {
+            // Step 4.3. Return the serialization of url.
+            url.as_str().safe_to_jsval(
+                cx.into(),
+                unsafe { MutableHandleValue::from_raw(args.rval()) },
+                CanGc::from_cx(cx),
+            );
+            true
+        },
+        Err(error) => {
+            let resolution_error = gen_type_error(&global_scope, error, CanGc::from_cx(cx));
 
-    // Step 4.3. Return the serialization of url.
-    url.as_str().safe_to_jsval(
-        cx.into(),
-        unsafe { MutableHandleValue::from_raw(args.rval()) },
-        CanGc::from_cx(cx),
-    );
-
-    true
+            unsafe {
+                JS_SetPendingException(
+                    cx.raw_cx(),
+                    resolution_error.handle(),
+                    ExceptionStackBehavior::Capture,
+                );
+            }
+            false
+        },
+    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-module-script-tree>
