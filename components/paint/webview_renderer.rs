@@ -412,7 +412,7 @@ impl WebViewRenderer {
         // Constellation.
         if cancelable && result {
             self.touch_handler
-                .add_pending_touch_input_event(id, event_type);
+                .add_pending_touch_input_event(id, event.touch_id, event_type);
         }
 
         result
@@ -505,9 +505,11 @@ impl WebViewRenderer {
         pending_touch_input_event: PendingTouchInputEvent,
         result: InputEventResult,
     ) {
+        // TODO: This is gonna be used very soon, for tracking move per touch_id.
         let PendingTouchInputEvent {
             sequence_id,
             event_type,
+            touch_id: _,
         } = pending_touch_input_event;
 
         if result.contains(InputEventResult::DefaultPrevented) {

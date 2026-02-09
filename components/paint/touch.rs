@@ -656,6 +656,7 @@ impl TouchHandler {
     pub(crate) fn add_pending_touch_input_event(
         &self,
         id: InputEventId,
+        touch_id: TouchId,
         event_type: TouchEventType,
     ) {
         self.pending_touch_input_events.borrow_mut().insert(
@@ -663,6 +664,7 @@ impl TouchHandler {
             PendingTouchInputEvent {
                 event_type,
                 sequence_id: self.current_sequence_id,
+                touch_id,
             },
         );
     }
@@ -708,6 +710,8 @@ impl TouchHandler {
 pub(crate) struct PendingTouchInputEvent {
     pub event_type: TouchEventType,
     pub sequence_id: TouchSequenceId,
+    #[expect(unused)]
+    pub touch_id: TouchId,
 }
 
 pub(crate) struct FlingRefreshDriverObserver {
