@@ -652,7 +652,7 @@ async fn obtain_response(
     url: &ServoUrl,
     method: &Method,
     request_headers: &mut HeaderMap,
-    body: Option<StdArc<Mutex<IpcSender<BodyChunkRequest>>>>,
+    body: Option<StdArc<Mutex<Option<IpcSender<BodyChunkRequest>>>>>,
     source_is_null: bool,
     pipeline_id: &Option<PipelineId>,
     request_id: Option<&str>,
@@ -698,12 +698,20 @@ async fn obtain_response(
             let (body_chan, body_port) = ipc::channel().unwrap();
 
             {
-                let requester = chunk_requester.lock();
-                let _ = requester.send(BodyChunkRequest::Connect(body_chan));
+                let mut lock = chunk_requester.lock();
+                if let Some(chunk_requester) = lock.as_mut() {
+                    let _ = chunk_requester.send(BodyChunkRequest::Connect(body_chan));
 
-                // https://fetch.spec.whatwg.org/#concept-request-transmit-body
-                // Request the first chunk, corresponding to Step 3 and 4.
-                let _ = requester.send(BodyChunkRequest::Chunk);
+                    // https://fetch.spec.whatwg.org/#concept-request-transmit-body
+                    // Request the first chunk, corresponding to Step 3 and 4.
+                    let _ = chunk_requester.send(BodyChunkRequest::Chunk);
+                } else {
+                    /*
+                    error!(
+                        "Could not send BodyChunkRequests as chunk requester got already neutered."
+                    )
+                    */
+                }
             }
 
             let devtools_bytes = devtools_bytes.clone();
@@ -741,7 +749,12 @@ async fn obtain_response(
 
                     // Step 5.1.2.3
                     // Request the next chunk.
-                    let _ = chunk_requester2.lock().send(BodyChunkRequest::Chunk);
+                    let mut chunk_requester2 = chunk_requester2.lock();
+                    if let Some(chunk_requester2) = chunk_requester2.as_mut() {
+                        let _ = chunk_requester2.send(BodyChunkRequest::Chunk);
+                    } else {
+                        error!("Could not send chunk request to neutered ChunkRequester.");
+                    }
                 }),
             );
 
@@ -1042,6 +1055,10 @@ pub async fn http_fetch(
                 .await
             },
         };
+    }
+
+    if let Some(ref body) = fetch_params.request.body {
+        body.neuter_stream();
     }
 
     // set back to default
@@ -2044,7 +2061,7 @@ async fn http_network_fetch(
     // The receiver will receive true if there has been an error streaming the request body.
     let (fetch_terminated_sender, mut fetch_terminated_receiver) = unbounded_channel();
 
-    let body = request.body.as_ref().map(|body| body.take_stream());
+    let body = request.body.as_ref().map(|body| body.clone_stream());
 
     if body.is_none() {
         // There cannot be an error streaming a non-existent body.
@@ -2090,6 +2107,9 @@ async fn http_network_fetch(
             {
                 Ok(response) => response,
                 Err(error) => {
+                    if let Some(body_chunk_request_stream) = request.body.as_ref() {
+                        body_chunk_request_stream.neuter_stream();
+                    }
                     return Response::network_error(NetworkError::WebsocketConnectionFailure(
                         format!("{error:?}"),
                     ));
@@ -2127,7 +2147,12 @@ async fn http_network_fetch(
             // This will only get the headers, the body is read later
             let (res, msg) = match response_future.await {
                 Ok(wrapped_response) => wrapped_response,
-                Err(error) => return Response::network_error(error),
+                Err(error) => {
+                    if let Some(body_chunk_request_stream) = request.body.as_ref() {
+                        body_chunk_request_stream.neuter_stream();
+                    }
+                    return Response::network_error(error);
+                },
             };
             (res, msg)
         },
@@ -2144,6 +2169,9 @@ async fn http_network_fetch(
     //
     match fetch_terminated_receiver.recv().await {
         Some(true) => {
+            if let Some(body_chunk_request_stream) = request.body.as_ref() {
+                body_chunk_request_stream.neuter_stream();
+            }
             return Response::network_error(NetworkError::ConnectionFailure);
         },
         Some(false) => {},
@@ -2218,6 +2246,9 @@ async fn http_network_fetch(
     let devtools_sender = context.devtools_chan.clone();
     let cancellation_listener = context.cancellation_listener.clone();
     if cancellation_listener.cancelled() {
+        if let Some(body_chunk_request_stream) = request.body.as_ref() {
+            body_chunk_request_stream.neuter_stream();
+        }
         return Response::network_error(NetworkError::LoadCancelled);
     }
 
@@ -2350,7 +2381,6 @@ async fn http_network_fetch(
 
     // Ensure we don't override "responseEnd" on successful return of this function
     response_end_timer.neuter();
-
     response
 }
 
