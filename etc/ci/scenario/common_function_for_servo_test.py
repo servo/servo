@@ -337,7 +337,7 @@ def run_test(test_fn, test_name: str, use_mitmproxy: MitmProxyRunType = MitmProx
     #    print("Setting mitmproxy replay")
     #    use_mitmproxy = MitmProxyRunType.REPLAY
 
-    dump_file = pathlib.Path("/tmp/mitmdump-current")
+    dump_file = pathlib.Path("/tmp/mitmproxy-dump")
     if use_mitmproxy == MitmProxyRunType.REPLAY and not dump_file.is_file():
         print(f"Dump file {dump_file} did not exist. We will abort")
         return
