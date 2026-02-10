@@ -12,7 +12,7 @@ use devtools_traits::{
 };
 use embedder_traits::EmbedderMsg;
 use js::conversions::jsstr_to_string;
-use js::jsapi::{self, ESClass, PropertyDescriptor};
+use js::jsapi::{self, ESClass, JS_IsTypedArrayObject, PropertyDescriptor};
 use js::jsval::{Int32Value, UndefinedValue};
 use js::rust::wrappers::{
     GetBuiltinClass, GetPropertyKeys, IsArray, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
@@ -172,8 +172,12 @@ fn console_object_from_handle_value(
 ) -> Option<ConsoleArgumentObject> {
     rooted!(in(*cx) let object = handle_value.to_object());
 
+    // We should not generate object previews for arrays, although they are objects
     let mut is_array = false;
-    if unsafe { IsArray(*cx, object.handle(), &mut is_array) } || is_array {
+    if !unsafe { IsArray(*cx, object.handle(), &mut is_array) } || is_array {
+        return None;
+    }
+    if unsafe { JS_IsTypedArrayObject(object.get()) } {
         return None;
     }
 
@@ -213,7 +217,7 @@ fn console_object_from_handle_value(
             return None;
         }
 
-        let key = if id.is_string() || id.is_symbol() || id.is_int() {
+        let key = if id.is_string() {
             rooted!(in(*cx) let mut key_value = UndefinedValue());
             let raw_id: jsapi::HandleId = id.handle().into();
             if !unsafe { JS_IdToValue(*cx, *raw_id.ptr, key_value.handle_mut()) } {
