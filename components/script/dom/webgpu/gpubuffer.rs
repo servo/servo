@@ -67,7 +67,6 @@ impl ActiveBufferMapping {
 #[dom_struct]
 pub(crate) struct GPUBuffer {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
     label: DomRefCell<USVString>,

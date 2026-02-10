@@ -14,7 +14,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUCommandBuffer {
-    #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
     #[no_trace]

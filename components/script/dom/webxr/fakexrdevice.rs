@@ -40,7 +40,6 @@ pub(crate) struct FakeXRDevice {
     reflector: Reflector,
     #[no_trace]
     sender: GenericSender<MockDeviceMsg>,
-    #[ignore_malloc_size_of = "defined in webxr-api"]
     #[no_trace]
     next_input_id: Cell<InputId>,
 }

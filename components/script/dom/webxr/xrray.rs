@@ -23,7 +23,6 @@ use crate::script_runtime::{CanGc, JSContext};
 #[dom_struct]
 pub(crate) struct XRRay {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
     ray: Ray<ApiSpace>,
     #[ignore_malloc_size_of = "defined in mozjs"]

@@ -28,7 +28,6 @@ use crate::script_runtime::{CanGc, JSContext};
 pub(crate) struct XRInputSource {
     reflector: Reflector,
     session: Dom<XRSession>,
-    #[ignore_malloc_size_of = "Defined in rust-webxr"]
     #[no_trace]
     info: InputSource,
     target_ray_space: MutNullableDom<XRSpace>,

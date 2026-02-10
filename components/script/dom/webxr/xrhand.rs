@@ -107,9 +107,7 @@ const JOINT_SPACE_MAP: [(XRHandJoint, Joint); 25] = [
 #[dom_struct]
 pub(crate) struct XRHand {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webxr"]
     source: Dom<XRInputSource>,
-    #[ignore_malloc_size_of = "partially defind in webxr"]
     #[custom_trace]
     spaces: Hand<Dom<XRJointSpace>>,
 }

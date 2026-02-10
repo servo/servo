@@ -33,8 +33,8 @@ pub(crate) struct GPUTexture {
     device: Dom<GPUDevice>,
     #[no_trace]
     channel: WebGPU,
-    #[ignore_malloc_size_of = "defined in wgpu"]
     #[no_trace]
+    #[ignore_malloc_size_of = "External type"]
     texture_size: wgpu_types::Extent3d,
     mip_level_count: u32,
     sample_count: u32,

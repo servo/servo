@@ -764,6 +764,12 @@ impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Box2D<T, U> {
     }
 }
 
+impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Vector3D<T, U> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.x.size_of(ops) + self.y.size_of(ops) + self.z.size_of(ops)
+    }
+}
+
 impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Rect<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.origin.size_of(ops) + self.size.size_of(ops)
@@ -814,6 +820,18 @@ impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::Transform3D<T, Src, Dst
             self.m42.size_of(ops) +
             self.m43.size_of(ops) +
             self.m44.size_of(ops)
+    }
+}
+
+impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::RigidTransform3D<T, Src, Dst> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.rotation.i.size_of(ops) +
+            self.rotation.j.size_of(ops) +
+            self.rotation.k.size_of(ops) +
+            self.rotation.r.size_of(ops) +
+            self.translation.x.size_of(ops) +
+            self.translation.y.size_of(ops) +
+            self.translation.z.size_of(ops)
     }
 }
 

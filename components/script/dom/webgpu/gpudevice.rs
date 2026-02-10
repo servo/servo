@@ -69,7 +69,6 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct GPUDevice {
     eventtarget: EventTarget,
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
     adapter: Dom<GPUAdapter>,

@@ -18,11 +18,10 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct XRJointSpace {
     xrspace: XRSpace,
-    #[ignore_malloc_size_of = "defined in rust-webxr"]
     #[no_trace]
     input: InputId,
-    #[ignore_malloc_size_of = "defined in rust-webxr"]
     #[no_trace]
+    #[ignore_malloc_size_of = "Complicated"]
     joint: Joint,
     hand_joint: XRHandJoint,
 }

@@ -7,6 +7,7 @@ use std::num::NonZeroU32;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use euclid::{Rect, Size2D};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
 use crate::{Error, Viewport, Viewports};
@@ -195,7 +196,7 @@ impl<GL: GLTypes> LayerManagerFactory<GL> {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Deserialize, Serialize, MallocSizeOf)]
 pub struct LayerId(usize);
 
 static NEXT_LAYER_ID: AtomicUsize = AtomicUsize::new(0);
@@ -261,7 +262,7 @@ pub enum LayerLayout {
     StereoTopBottom,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct SubImages {
     pub layer_id: LayerId,
     pub sub_image: Option<SubImage>,
@@ -269,7 +270,7 @@ pub struct SubImages {
 }
 
 /// <https://immersive-web.github.io/layers/#xrsubimagetype>
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct SubImage {
     pub color_texture: Option<NonZeroU32>,
     pub depth_stencil_texture: Option<NonZeroU32>,
