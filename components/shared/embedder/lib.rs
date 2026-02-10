@@ -339,7 +339,7 @@ impl TraversalId {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize, MallocSizeOf)]
 pub enum PixelFormat {
     /// Luminance channel only
     K8,
@@ -354,12 +354,13 @@ pub enum PixelFormat {
 }
 
 /// A raster image buffer.
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, MallocSizeOf)]
 pub struct Image {
     pub width: u32,
     pub height: u32,
     pub format: PixelFormat,
     /// A shared memory block containing the data of one or more image frames.
+    #[conditional_malloc_size_of]
     data: Arc<GenericSharedMemory>,
     range: Range<usize>,
 }

@@ -28,7 +28,7 @@ use crate::script_thread::ScriptThread;
 #[dom_struct]
 pub(crate) struct MutationObserver {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "can't measure Rc values"]
+    #[conditional_malloc_size_of]
     callback: Rc<MutationCallback>,
     record_queue: DomRefCell<Vec<Dom<MutationRecord>>>,
     node_list: DomRefCell<Vec<Dom<Node>>>,

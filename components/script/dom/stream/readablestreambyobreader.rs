@@ -144,13 +144,13 @@ impl ReadIntoRequest {
 struct ByteTeeClosedPromiseRejectionHandler {
     branch_1_controller: Dom<ReadableByteStreamController>,
     branch_2_controller: Dom<ReadableByteStreamController>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     canceled_1: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     canceled_2: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     cancel_promise: Rc<Promise>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     reader_version: Rc<Cell<u64>>,
     expected_version: u64,
 }

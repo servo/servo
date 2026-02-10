@@ -21,7 +21,8 @@ use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
     AsyncOperation, BackendError, BackendResult, ConnectionMsg, CreateObjectResult, DatabaseInfo,
-    DbResult, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, SyncOperation,
+    DbResult, IndexedDBIndex, IndexedDBObjectStore, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath,
+    SyncOperation,
 };
 use uuid::Uuid;
 
@@ -141,6 +142,12 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
     fn key_path(&self, store_name: &str) -> Option<KeyPath> {
         self.engine.key_path(store_name)
+    }
+
+    fn indexes(&self, store_name: &str) -> DbResult<Vec<IndexedDBIndex>> {
+        self.engine
+            .indexes(store_name)
+            .map_err(|err| format!("{err:?}"))
     }
 
     fn create_index(
@@ -1328,16 +1335,16 @@ impl IndexedDBManager {
                 };
                 self.start_delete_database(idb_description, id, callback);
             },
-            SyncOperation::HasKeyGenerator(sender, origin, db_name, store_name) => {
+            SyncOperation::GetObjectStore(sender, origin, db_name, store_name) => {
+                // FIXME:(arihant2math) Should we error out more aggressively here?
                 let result = self
                     .get_database(origin, db_name)
-                    .map(|db| db.has_key_generator(&store_name));
-                let _ = sender.send(result.ok_or(BackendError::DbNotFound));
-            },
-            SyncOperation::KeyPath(sender, origin, db_name, store_name) => {
-                let result = self
-                    .get_database(origin, db_name)
-                    .map(|db| db.key_path(&store_name));
+                    .map(|db| IndexedDBObjectStore {
+                        key_path: db.key_path(&store_name),
+                        has_key_generator: db.has_key_generator(&store_name),
+                        indexes: db.indexes(&store_name).unwrap_or_default(),
+                        name: store_name,
+                    });
                 let _ = sender.send(result.ok_or(BackendError::DbNotFound));
             },
             SyncOperation::CreateIndex(

@@ -412,7 +412,7 @@ impl WebViewRenderer {
         // Constellation.
         if cancelable && result {
             self.touch_handler
-                .add_pending_touch_input_event(id, event_type);
+                .add_pending_touch_input_event(id, event.touch_id, event_type);
         }
 
         result
@@ -443,7 +443,7 @@ impl WebViewRenderer {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
-        self.touch_handler.on_touch_down(event.id, point);
+        self.touch_handler.on_touch_down(event.touch_id, point);
         self.send_touch_event(render_api, event, id);
     }
 
@@ -451,7 +451,12 @@ impl WebViewRenderer {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
-        let action = self.touch_handler.on_touch_move(event.id, point);
+        let action = self.touch_handler.on_touch_move(
+            event.touch_id,
+            point,
+            self.device_pixels_per_page_pixel_not_including_pinch_zoom()
+                .get(),
+        );
         if let Some(action) = action {
             // if first move processed and allowed, we directly process the move event,
             // without waiting for the script handler.
@@ -482,7 +487,7 @@ impl WebViewRenderer {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
-        self.touch_handler.on_touch_up(event.id, point);
+        self.touch_handler.on_touch_up(event.touch_id, point);
         self.send_touch_event(render_api, event, id);
     }
 
@@ -490,7 +495,7 @@ impl WebViewRenderer {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
-        self.touch_handler.on_touch_cancel(event.id, point);
+        self.touch_handler.on_touch_cancel(event.touch_id, point);
         self.send_touch_event(render_api, event, id);
     }
 
@@ -500,9 +505,11 @@ impl WebViewRenderer {
         pending_touch_input_event: PendingTouchInputEvent,
         result: InputEventResult,
     ) {
+        // TODO: This is gonna be used very soon, for tracking move per touch_id.
         let PendingTouchInputEvent {
             sequence_id,
             event_type,
+            touch_id: _,
         } = pending_touch_input_event;
 
         if result.contains(InputEventResult::DefaultPrevented) {

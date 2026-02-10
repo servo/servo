@@ -54,6 +54,7 @@ use style::dom::{OpaqueNode, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::font_metrics::FontMetrics;
 use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::invalidation::element::restyle_hints::RestyleHint;
+use style::invalidation::stylesheets::StylesheetInvalidationSet;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
@@ -955,11 +956,9 @@ impl LayoutThread {
         &mut self,
         reflow_request: &ReflowRequest,
         document: ServoLayoutDocument<'dom>,
-        root_element: ServoLayoutElement<'dom>,
         guards: &StylesheetGuards,
         ua_stylesheets: &UserAgentStylesheets,
-        snapshot_map: &SnapshotMap,
-    ) {
+    ) -> StylesheetInvalidationSet {
         if !self.have_added_user_agent_stylesheets {
             // TODO: The field `user_or_user_agent_stylesheets` should only contain the user agent
             // stylesheets as user stylesheets are specified separately. Potentially the struct in
@@ -1007,8 +1006,7 @@ impl LayoutThread {
         // Flush shadow roots stylesheets if dirty.
         document.flush_shadow_roots_stylesheets(&mut self.stylist, guards.author);
 
-        self.stylist
-            .flush(guards, Some(root_element), Some(snapshot_map));
+        self.stylist.flush(guards)
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1051,14 +1049,8 @@ impl LayoutThread {
             }
         }
 
-        self.prepare_stylist_for_reflow(
-            reflow_request,
-            document,
-            root_element,
-            &guards,
-            ua_stylesheets,
-            &snapshot_map,
-        );
+        self.prepare_stylist_for_reflow(reflow_request, document, &guards, ua_stylesheets)
+            .process_style(root_element, Some(&snapshot_map));
 
         if self.previously_highlighted_dom_node.get() != reflow_request.highlighted_dom_node {
             // Need to manually force layout to build a new display list regardless of whether the box tree

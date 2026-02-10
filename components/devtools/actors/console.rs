@@ -251,11 +251,7 @@ impl ConsoleActor {
             UniqueId::Worker(_) => TEST_PIPELINE_ID,
         };
         self.script_chan(registry)
-            .send(DevtoolScriptControlMsg::EvaluateJS(
-                pipeline,
-                input.clone(),
-                chan,
-            ))
+            .send(DevtoolScriptControlMsg::Eval(input.clone(), pipeline, chan))
             .unwrap();
 
         // TODO: Extract conversion into protocol module or some other useful place

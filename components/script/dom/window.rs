@@ -423,7 +423,6 @@ pub(crate) struct Window {
     exists_mut_observer: Cell<bool>,
 
     /// Cross-process access to `Paint`.
-    #[ignore_malloc_size_of = "Wraps an IpcSender"]
     #[no_trace]
     paint_api: CrossProcessPaintApi,
 

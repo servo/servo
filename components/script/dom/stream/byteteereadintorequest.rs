@@ -44,17 +44,17 @@ pub(crate) struct ByteTeeReadIntoRequest {
     byob_branch: Dom<ReadableStream>,
     other_branch: Dom<ReadableStream>,
     stream: Dom<ReadableStream>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     read_again_for_branch_1: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     read_again_for_branch_2: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     reading: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     canceled_1: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     canceled_2: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     cancel_promise: Rc<Promise>,
     tee_underlying_source: Dom<ByteTeeUnderlyingSource>,
 }

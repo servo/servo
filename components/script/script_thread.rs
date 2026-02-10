@@ -2211,6 +2211,10 @@ impl ScriptThread {
             DevtoolScriptControlMsg::HighlightDomNode(id, node_id) => {
                 devtools::handle_highlight_dom_node(&documents, id, node_id)
             },
+            DevtoolScriptControlMsg::Eval(code, id, reply) => {
+                self.debugger_global
+                    .fire_eval(CanGc::from_cx(cx), code.into(), id, None, reply);
+            },
             DevtoolScriptControlMsg::GetPossibleBreakpoints(spidermonkey_id, result_sender) => {
                 self.debugger_global.fire_get_possible_breakpoints(
                     CanGc::from_cx(cx),

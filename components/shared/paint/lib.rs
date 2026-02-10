@@ -53,7 +53,7 @@ use crate::viewport_description::ViewportDescription;
 /// Sends messages to `Paint`.
 #[derive(Clone)]
 pub struct PaintProxy {
-    pub sender: Sender<Result<PaintMessage, ipc_channel::Error>>,
+    pub sender: Sender<Result<PaintMessage, ipc_channel::IpcError>>,
     /// Access to [`Self::sender`] that is possible to send across an IPC
     /// channel. These messages are routed via the router thread to
     /// [`Self::sender`].
@@ -76,7 +76,7 @@ impl PaintProxy {
     ///
     /// This method is a temporary solution, and will be removed when migrating
     /// to `GenericChannel`.
-    pub fn route_msg(&self, msg: Result<PaintMessage, ipc_channel::Error>) {
+    pub fn route_msg(&self, msg: Result<PaintMessage, ipc_channel::IpcError>) {
         if let Err(err) = self.sender.send(msg) {
             warn!("Failed to send response ({:?}).", err);
         }

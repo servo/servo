@@ -95,10 +95,10 @@ pub(crate) enum ReadRequest {
     /// Spec read loop variant, driven by read-request steps (no Promise).
     /// <https://streams.spec.whatwg.org/#read-loop>
     ReadLoop {
-        #[ignore_malloc_size_of = "Rc is hard"]
+        #[ignore_malloc_size_of = "dyn Fn"]
         #[no_trace]
         success_steps: Rc<ReadAllBytesSuccessSteps>,
-        #[ignore_malloc_size_of = "Rc is hard"]
+        #[ignore_malloc_size_of = "dyn Fn"]
         #[no_trace]
         failure_steps: Rc<ReadAllBytesFailureSteps>,
         reader: Dom<ReadableStreamDefaultReader>,

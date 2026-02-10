@@ -173,7 +173,7 @@ pub struct PreloadEntry {
     /// <https://html.spec.whatwg.org/multipage/#preload-response>
     pub response: Option<Response>,
     /// <https://html.spec.whatwg.org/multipage/#preload-on-response-available>
-    #[ignore_malloc_size_of = "channels are hard"]
+    #[ignore_malloc_size_of = "Channels are hard"]
     pub on_response_available: Option<TokioSender<Response>>,
 }
 
@@ -313,7 +313,7 @@ pub enum BodyChunkRequest {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBody {
     /// Net's channel to communicate with script re this body.
-    #[ignore_malloc_size_of = "Channels are hard"]
+    #[conditional_malloc_size_of]
     chan: Arc<Mutex<IpcSender<BodyChunkRequest>>>,
     /// <https://fetch.spec.whatwg.org/#concept-body-source>
     source: BodySource,
