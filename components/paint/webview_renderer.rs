@@ -468,18 +468,18 @@ impl WebViewRenderer {
                 event.disable_cancelable();
                 self.pending_scroll_zoom_events.push(action);
             }
-            // When the event is touchmove, if the script thread is processing the touch
-            // move event, we skip sending the event to the script thread.
-            // This prevents the script thread from stacking up for a large amount of time.
-            if !self
-                .touch_handler
-                .is_handling_touch_move(self.touch_handler.current_sequence_id) &&
-                self.send_touch_event(render_api, event, id) &&
-                event.is_cancelable()
-            {
-                self.touch_handler
-                    .set_handling_touch_move(self.touch_handler.current_sequence_id, true);
-            }
+        }
+        // When the event is touchmove, if the script thread is processing the touch
+        // move event, we skip sending the event to the script thread.
+        // This prevents the script thread from stacking up for a large amount of time.
+        if !self
+            .touch_handler
+            .is_handling_touch_move(self.touch_handler.current_sequence_id) &&
+            self.send_touch_event(render_api, event, id) &&
+            event.is_cancelable()
+        {
+            self.touch_handler
+                .set_handling_touch_move(self.touch_handler.current_sequence_id, true);
         }
     }
 
