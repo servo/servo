@@ -4,8 +4,8 @@
 
 //! # Lazy Callbacks
 //!
-//! When constructing callbacks we sometimes have a large distance between where the callback is setup and where
-//! the initial callback will be called. Refactoring of this code is sometimes not possible.
+//! When constructing callbacks we sometimes have a large distance between where the channel for the callback
+//! is created and where the initial callback will be created. Refactoring of this code is sometimes not possible.
 //! Here we provide [LazyCallback]. We use 'lazy_callback()' to generate a [LazyCallback] and a [CallbackSetter].
 //! The [LazyCallback] works like a [GenericCallback] and can be used to execute callbacks in the receiver process.
 //! The [CallbackSetter] has a single consuming method of 'set_callback' which will set the callback that the [LazyCallback]
