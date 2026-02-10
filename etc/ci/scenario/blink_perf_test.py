@@ -1,3 +1,17 @@
+#!/usr/bin/env -S uv run --script
+
+# Copyright 2025 The Servo Project Developers. See the COPYRIGHT
+# file at the top-level directory of this distribution.
+#
+# Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+# http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+# <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+# option. This file may not be copied, modified, or distributed
+# except according to those terms.
+# /// script
+# requires-python = ">=3.12"
+# dependencies = ["selenium"]
+
 import random
 import subprocess
 from enum import Enum
@@ -6,18 +20,16 @@ import time
 import sys
 import re
 import json
-from pathlib import PurePath
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.options import ArgOptions
-from selenium.webdriver.remote.webelement import WebElement
 from selenium.common.exceptions import NoSuchElementException
 from urllib3.exceptions import ProtocolError
 from dataclasses import dataclass
-from functools import partial
 import threading
+
 
 class PortMapResult(Enum):
     SUCCESSFUL = (1,)
@@ -34,6 +46,7 @@ SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
 ABOUT_BLANK = "about:blank"
 DIRECTORY = "../../../tests/blink_perf_tests/perf_tests"
 
+
 class LocalFileServe:
     def __init__(self, port: int, *args, **kwargs):
         self.local_server = None
@@ -45,7 +58,7 @@ class LocalFileServe:
         class StaticHandler(SimpleHTTPRequestHandler):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, directory=DIRECTORY, **kwargs)
-            
+
         # handler = partial(SimpleHTTPRequestHandler, directory = DIRECTORY)
         self.local_server = ThreadingHTTPServer(
             ("0.0.0.0", self.port),
@@ -53,16 +66,14 @@ class LocalFileServe:
         )
 
         # self.local_server.serve_forever()
-        thread = threading.Thread(
-            target=self.local_server.serve_forever,
-            daemon=True
-        )
+        thread = threading.Thread(target=self.local_server.serve_forever, daemon=True)
         thread.start()
 
     def __exit__(self, *args):
         print(f">>> *args: {args}")
         print(f">>> Closing local test file server on port {self.port}")
         self.local_server.server_close()
+
 
 def create_driver(timeout: int = 10) -> webdriver.Remote:
     print("Trying to create driver")
@@ -107,6 +118,7 @@ def port_forward(port: int | str, reverse: bool) -> PortMapResult:
     print("Port forward successful")
     return PortMapResult.SUCCESSFUL
 
+
 def setup_hdc_forward(timeout: int = 5):
     """
     set hdc forward
@@ -118,7 +130,10 @@ def setup_hdc_forward(timeout: int = 5):
     start_time = time.time()
     while time.time() - start_time < timeout:
         try:
-            if port_forward(WEBDRIVER_PORT, False).is_success() and port_forward(BLINK_PERF_FILES_SERVE_PORT, True).is_success():
+            if (
+                port_forward(WEBDRIVER_PORT, False).is_success()
+                and port_forward(BLINK_PERF_FILES_SERVE_PORT, True).is_success()
+            ):
                 return
             time.sleep(0.2)
         except FileNotFoundError:
@@ -132,12 +147,14 @@ def setup_hdc_forward(timeout: int = 5):
             raise
     raise TimeoutError("HDC port forwarding timed out")
 
+
 def stop_servo():
     """stop servo application"""
     print("Prepare to stop Test Application...")
     cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     print("Stop Test Application successful!")
+
 
 def close_usb_popup(hdc: HarmonyDeviceConnector):
     """
@@ -154,6 +171,7 @@ def close_usb_popup(hdc: HarmonyDeviceConnector):
             print("The focused window still isn't servo. Giving up.")
     except Exception as e:
         print(f"Internal error trying to close the USB pop-up overlay: {e}. Ignoring...")
+
 
 def is_servo_window_focused(hdc: HarmonyDeviceConnector) -> bool:
     completed_process = hdc.cmd("hidumper -s WindowManagerService -a '-a'", capture_output=True, encoding="utf-8")
@@ -178,6 +196,7 @@ def is_servo_window_focused(hdc: HarmonyDeviceConnector) -> bool:
         raise RuntimeError("Could not find focused window or servo window id.")
     return focused_window == servo_window_id
 
+
 @dataclass(frozen=True)
 class TestResult:
     value: float
@@ -185,9 +204,11 @@ class TestResult:
     upper_value: float
     unit: str
 
+
 class AbortReason(Enum):
     NotFound = 1
     Panic = 2
+
 
 MAX_WAIT_TIME = 60
 
@@ -204,8 +225,10 @@ max\s+(?P<max>[0-9.]+)\s+(?P=unit)
     re.VERBOSE,
 )
 
+
 def get_parent_dir_name_of_test_html(s: str) -> str:
     return "layout"
+
 
 def test(s: str, driver: webdriver.Remote, port: int) -> TestResult | AbortReason:
     """Run a test by loading a website, and returning (avg, min, max).
@@ -236,15 +259,19 @@ def test(s: str, driver: webdriver.Remote, port: int) -> TestResult | AbortReaso
         return AbortReason.Panic
     return AbortReason.NotFound
 
+
 PREPEND = "PHONE"
+
 
 def oswalk_error(error: OSError):
     print(error)
     sys.exit(1)
 
+
 def write_file(results):
     with open("../../../results.json", "w") as f:
         json.dump(results, f)
+
 
 def run_tests(webdriver, port):
     final_result = {}
@@ -271,8 +298,6 @@ def run_tests(webdriver, port):
     write_file(final_result)
 
 
-    
-
 if __name__ == "__main__":
     hdc = HarmonyDeviceConnector()
     try:
@@ -282,10 +307,7 @@ if __name__ == "__main__":
         with LocalFileServe(BLINK_PERF_FILES_SERVE_PORT):
             print("Starting new servo instance...")
             cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver"
-            hdc.cmd(
-                cmd_str,
-                timeout = 10
-            )
+            hdc.cmd(cmd_str, timeout=10)
             with HarmonyDevicePerfMode():
                 close_usb_popup(hdc)
                 print(">>> Creating webdriver")
@@ -294,7 +316,7 @@ if __name__ == "__main__":
                 run_tests(wd, BLINK_PERF_FILES_SERVE_PORT)
     except Exception as e:
         print(f"Test failed with error: {e} (exception: {type(e)})")
-        hdc.screenshot(f"Blink_perf_test_error.jpg")
+        hdc.screenshot("Blink_perf_test_error.jpg")
         stop_servo()
         sys.exit(1)
     print("\033[32mTest Succeeded.\033[0m")
