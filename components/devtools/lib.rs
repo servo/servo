@@ -170,7 +170,7 @@ impl DevtoolsInstance {
         port: u16,
         embedder: EmbedderProxy,
     ) -> Option<Self> {
-        let bound = TcpListener::bind(("0.0.0.0", port)).ok().and_then(|l| {
+        let bound = TcpListener::bind(("127.0.0.1", port)).ok().and_then(|l| {
             l.local_addr()
                 .map(|addr| addr.port())
                 .ok()
