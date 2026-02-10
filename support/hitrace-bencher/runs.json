@@ -5,7 +5,8 @@
     {
         "run_args": {
             "url": "https://www.google.com", // the url to test
-            "tries": 5 // How many repeated tries we should have, we show the min,max,avg in the output
+            "tries": 5, // How many repeated tries we should have, we show the min,max,avg in the output
+            "mitmproxy": true   // Use mitmproxy in forwarding mode
             //"trace_buffer": 524288,   // trace_buffer size of hitrace
             //"sleep": 10,  // how long should we wait for servo to load the page
             //"commands": ["--ps=--tracing-filter", "info"] // arbitrary additional arguments
@@ -64,7 +65,8 @@
     {
         "run_args": {
             "url": "https://www.servo.org",
-            "tries": 5
+            "tries": 5,
+            "mitmproxy": true
         },
         "filters": [
             {
