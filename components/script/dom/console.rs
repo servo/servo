@@ -15,7 +15,7 @@ use js::conversions::jsstr_to_string;
 use js::jsapi::{self, ESClass, PropertyDescriptor};
 use js::jsval::{Int32Value, UndefinedValue};
 use js::rust::wrappers::{
-    GetBuiltinClass, GetPropertyKeys, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
+    GetBuiltinClass, GetPropertyKeys, IsArray, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
     JS_IdToValue, JS_Stringify, JS_ValueToSource,
 };
 use js::rust::{
@@ -171,6 +171,11 @@ fn console_object_from_handle_value(
     handle_value: HandleValue,
 ) -> Option<ConsoleArgumentObject> {
     rooted!(in(*cx) let object = handle_value.to_object());
+
+    let mut is_array = false;
+    if unsafe { IsArray(*cx, object.handle(), &mut is_array) } || is_array {
+        return None;
+    }
 
     let mut own_properties = Vec::new();
     let mut ids = unsafe { IdVector::new(*cx) };
