@@ -69,7 +69,6 @@ use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
     CustomMediaMap, DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument,
-    UserAgentStylesheets,
 };
 use style::stylist::Stylist;
 use style::traversal::DomTraversal;
@@ -434,7 +433,7 @@ impl Layout for LayoutThread {
         let document_shared_lock = document.style_shared_lock();
         let guards = StylesheetGuards {
             author: &document_shared_lock.read(),
-            ua_or_user: &UA_STYLESHEETS.shared_lock.read(),
+            ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
         };
         let snapshot_map = SnapshotMap::new();
 
@@ -462,7 +461,7 @@ impl Layout for LayoutThread {
         let document_shared_lock = document.style_shared_lock();
         let guards = StylesheetGuards {
             author: &document_shared_lock.read(),
-            ua_or_user: &UA_STYLESHEETS.shared_lock.read(),
+            ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
         };
         let snapshot_map = SnapshotMap::new();
         let shared_style_context = self.build_shared_style_context(
@@ -960,11 +959,7 @@ impl LayoutThread {
         ua_stylesheets: &UserAgentStylesheets,
     ) -> StylesheetInvalidationSet {
         if !self.have_added_user_agent_stylesheets {
-            // TODO: The field `user_or_user_agent_stylesheets` should only contain the user agent
-            // stylesheets as user stylesheets are specified separately. Potentially the struct in
-            // stylo should be renamed so that the field is no longer implies user stylesheets are
-            // set here.
-            for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
+            for stylesheet in &ua_stylesheets.user_agent_stylesheets {
                 self.stylist
                     .append_stylesheet(stylesheet.clone(), guards.ua_or_user);
                 self.load_all_web_fonts_from_stylesheet_with_guard(
@@ -1026,10 +1021,9 @@ impl LayoutThread {
         let document_shared_lock = document.style_shared_lock();
         let author_guard = document_shared_lock.read();
         let ua_stylesheets = &*UA_STYLESHEETS;
-        let ua_or_user_guard = ua_stylesheets.shared_lock.read();
         let guards = StylesheetGuards {
             author: &author_guard,
-            ua_or_user: &ua_or_user_guard,
+            ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
         };
 
         let rayon_pool = STYLE_THREAD_POOL.lock();
@@ -1452,10 +1446,17 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         parse_ua_stylesheet(shared_lock, "quirks-mode.css", QUIRKS_MODE_CSS)?;
 
     Ok(UserAgentStylesheets {
-        shared_lock: shared_lock.clone(),
-        user_or_user_agent_stylesheets: user_agent_stylesheets,
+        user_agent_stylesheets,
         quirks_mode_stylesheet,
     })
+}
+
+/// This structure holds the user-agent stylesheets.
+pub struct UserAgentStylesheets {
+    /// The user agent stylesheets.
+    pub user_agent_stylesheets: Vec<DocumentStyleSheet>,
+    /// The quirks mode stylesheet.
+    pub quirks_mode_stylesheet: DocumentStyleSheet,
 }
 
 static UA_STYLESHEETS: LazyLock<UserAgentStylesheets> =
