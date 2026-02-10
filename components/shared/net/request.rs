@@ -311,7 +311,7 @@ pub enum BodyChunkRequest {
 }
 
 /// The net component's view into <https://fetch.spec.whatwg.org/#bodies>
-/// After the last call to `extract_source`, `neuter_stream` must be called
+/// After the last call to `extract_source`, `close_stream` must be called
 /// to not leak resources.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBody {
@@ -345,7 +345,7 @@ impl RequestBody {
                 let (chan, port) = ipc::channel().unwrap();
                 let mut lock = self.body_chunk_request_channel.lock();
                 let Some(selfchan) = lock.as_mut() else {
-                    error!("Could not extract_source because the stream got already neutered.");
+                    error!("Could not extract_source because the stream already got closed.");
                     return;
                 };
                 let _ = selfchan.send(BodyChunkRequest::Extract(port));
@@ -361,7 +361,7 @@ impl RequestBody {
 
     /// This needs to be called the last time the `self.chan` is used to not leak resources.
     /// Can be called multiple times.
-    pub fn neuter_stream(&self) {
+    pub fn close_stream(&self) {
         let _ = self.body_chunk_request_channel.lock().take();
     }
 
