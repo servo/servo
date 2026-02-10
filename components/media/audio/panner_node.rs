@@ -5,6 +5,7 @@
 use std::f32::consts::PI;
 
 use euclid::default::Vector3D;
+use malloc_size_of_derive::MallocSizeOf;
 
 use crate::block::{Block, Chunk, FRAMES_PER_BLOCK, Tick};
 use crate::node::{AudioNodeEngine, AudioNodeMessage, AudioNodeType, BlockInfo, ChannelInfo};
@@ -16,20 +17,20 @@ pub fn normalize_zero(v: Vector3D<f32>) -> Vector3D<f32> {
     if len == 0. { v } else { v / len }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, MallocSizeOf)]
 pub enum PanningModel {
     EqualPower,
     HRTF,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, MallocSizeOf)]
 pub enum DistanceModel {
     Linear,
     Inverse,
     Exponential,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, MallocSizeOf)]
 pub struct PannerNodeOptions {
     pub panning_model: PanningModel,
     pub distance_model: DistanceModel,
@@ -47,6 +48,7 @@ pub struct PannerNodeOptions {
     pub cone_outer_gain: f64,
 }
 
+#[derive(MallocSizeOf)]
 pub enum PannerNodeMessage {
     SetPanningModel(PanningModel),
     SetDistanceModel(DistanceModel),

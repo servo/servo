@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use malloc_size_of_derive::MallocSizeOf;
+
 use crate::block::{Block, Chunk, FRAMES_PER_BLOCK, Tick};
 use crate::node::{
     AudioNodeEngine, AudioNodeType, AudioScheduledSourceNodeMessage, BlockInfo, ChannelInfo,
@@ -10,7 +12,7 @@ use crate::node::{
 use crate::param::{Param, ParamType};
 
 /// Control messages directed to AudioBufferSourceNodes.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MallocSizeOf)]
 pub enum AudioBufferSourceNodeMessage {
     /// Set the data block holding the audio sample data to be played.
     SetBuffer(Option<AudioBuffer>),
@@ -25,7 +27,7 @@ pub enum AudioBufferSourceNodeMessage {
 }
 
 /// This specifies options for constructing an AudioBufferSourceNode.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MallocSizeOf)]
 pub struct AudioBufferSourceNodeOptions {
     /// The audio asset to be played.
     pub buffer: Option<AudioBuffer>,
@@ -360,7 +362,7 @@ impl AudioNodeEngine for AudioBufferSourceNode {
     );
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MallocSizeOf)]
 pub struct AudioBuffer {
     /// Invariant: all buffers must be of the same length
     pub buffers: Vec<Vec<f32>>,

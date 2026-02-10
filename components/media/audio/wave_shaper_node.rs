@@ -2,19 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use malloc_size_of_derive::MallocSizeOf;
 use speexdsp_resampler::State as SpeexResamplerState;
 
 use crate::block::{Chunk, FRAMES_PER_BLOCK_USIZE};
 use crate::node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, MallocSizeOf)]
 pub enum OverSampleType {
     None,
     Double,
     Quadruple,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, MallocSizeOf)]
 enum TailtimeBlocks {
     Zero,
     One,
@@ -35,7 +36,7 @@ impl OverSampleType {
 
 type WaveShaperCurve = Option<Vec<f32>>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct WaveShaperNodeOptions {
     pub curve: WaveShaperCurve,
     pub oversample: OverSampleType,
@@ -50,19 +51,21 @@ impl Default for WaveShaperNodeOptions {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub enum WaveShaperNodeMessage {
     SetCurve(WaveShaperCurve),
 }
 
-#[derive(AudioNodeCommon)]
+#[derive(AudioNodeCommon, MallocSizeOf)]
 pub(crate) struct WaveShaperNode {
     curve_set: bool,
     curve: WaveShaperCurve,
     #[allow(dead_code)]
     oversample: OverSampleType,
     channel_info: ChannelInfo,
+    #[ignore_malloc_size_of = "External Type"]
     upsampler: Option<SpeexResamplerState>,
+    #[ignore_malloc_size_of = "External Type"]
     downsampler: Option<SpeexResamplerState>,
     tailtime_blocks_left: TailtimeBlocks,
 }

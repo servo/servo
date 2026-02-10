@@ -7,6 +7,7 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread::Builder;
 
+use malloc_size_of_derive::MallocSizeOf;
 use servo_media_traits::{BackendMsg, ClientContextId, MediaInstance, MediaInstanceError};
 
 use crate::AudioBackend;
@@ -17,7 +18,7 @@ use crate::render_thread::{AudioRenderThread, AudioRenderThreadMsg, SinkEosCallb
 use crate::sink::AudioSinkError;
 
 /// Describes the state of the audio context on the control thread.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, MallocSizeOf)]
 pub enum ProcessingState {
     /// The audio context is suspended (context time is not proceeding,
     /// audio hardware may be powered down/released).
@@ -109,12 +110,14 @@ impl Default for AudioContextOptions {
 }
 
 /// Representation of an audio context on the control thread.
+#[derive(MallocSizeOf)]
 pub struct AudioContext {
     /// Media instance ID.
     id: usize,
     /// Client context ID.
     client_context_id: ClientContextId,
     /// Owner backend communication channel.
+    #[conditional_malloc_size_of]
     backend_chan: Arc<Mutex<Sender<BackendMsg>>>,
     /// Rendering thread communication channel.
     sender: Sender<AudioRenderThreadMsg>,
@@ -126,6 +129,7 @@ pub struct AudioContext {
     /// representing the final destination for all audio.
     dest_node: NodeId,
     listener: NodeId,
+    #[ignore_malloc_size_of = "Fn"]
     make_decoder: Arc<dyn Fn() -> Box<dyn AudioDecoder> + Sync + Send>,
 }
 

@@ -4,6 +4,7 @@
 
 use std::sync::mpsc::{Receiver, Sender};
 
+use malloc_size_of_derive::MallocSizeOf;
 use servo_media_streams::{MediaSocket, MediaStreamId};
 
 use crate::analyser_node::AnalyserNode;
@@ -30,6 +31,7 @@ use crate::{AudioBackend, AudioStreamReader};
 
 pub type SinkEosCallback = Box<dyn Fn(Box<dyn AsRef<[f32]>>) + Send + Sync + 'static>;
 
+#[derive(MallocSizeOf)]
 pub enum AudioRenderThreadMsg {
     CreateNode(AudioNodeInit, Sender<NodeId>, ChannelInfo),
     ConnectPorts(PortId<OutputPort>, PortId<InputPort>),
@@ -47,7 +49,7 @@ pub enum AudioRenderThreadMsg {
     DisconnectOutputBetween(PortId<OutputPort>, NodeId),
     DisconnectOutputBetweenTo(PortId<OutputPort>, PortId<InputPort>),
 
-    SetSinkEosCallback(SinkEosCallback),
+    SetSinkEosCallback(#[ignore_malloc_size_of = "Fn"] SinkEosCallback),
 
     SetMute(bool),
 }

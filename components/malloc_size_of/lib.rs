@@ -1060,6 +1060,12 @@ impl MallocSizeOf for ipc_channel::ipc::IpcSharedMemory {
     }
 }
 
+impl<T> MallocSizeOf for std::sync::mpsc::Sender<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
 impl<T: MallocSizeOf> MallocSizeOf for accountable_refcell::RefCell<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.borrow().size_of(ops)
@@ -1093,6 +1099,7 @@ malloc_size_of_is_0!(resvg::usvg::fontdb::Weight);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Stretch);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Language);
 malloc_size_of_is_0!(std::num::NonZeroU16);
+malloc_size_of_is_0!(std::num::NonZeroU32);
 malloc_size_of_is_0!(std::num::NonZeroU64);
 malloc_size_of_is_0!(std::num::NonZeroUsize);
 malloc_size_of_is_0!(std::sync::atomic::AtomicBool);

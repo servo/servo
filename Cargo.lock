@@ -5392,11 +5392,13 @@ dependencies = [
  "euclid",
  "ipc-channel",
  "log",
+ "malloc_size_of_derive",
  "paint_api",
  "rustc-hash 2.1.1",
  "serde",
  "servo-media",
  "servo_config",
+ "servo_malloc_size_of",
  "webrender_api",
 ]
 
@@ -8318,6 +8320,7 @@ dependencies = [
  "byte-slice-cast",
  "euclid",
  "log",
+ "malloc_size_of_derive",
  "num-complex",
  "num-traits",
  "petgraph",
@@ -8327,6 +8330,7 @@ dependencies = [
  "servo-media-player",
  "servo-media-streams",
  "servo-media-traits",
+ "servo_malloc_size_of",
  "smallvec",
  "speexdsp-resampler",
 ]
@@ -8435,22 +8439,30 @@ name = "servo-media-player"
 version = "0.0.1"
 dependencies = [
  "ipc-channel",
+ "malloc_size_of_derive",
  "serde",
  "serde_derive",
  "servo-media-streams",
  "servo-media-traits",
+ "servo_malloc_size_of",
 ]
 
 [[package]]
 name = "servo-media-streams"
 version = "0.0.1"
 dependencies = [
+ "malloc_size_of_derive",
+ "servo_malloc_size_of",
  "uuid",
 ]
 
 [[package]]
 name = "servo-media-traits"
 version = "0.0.1"
+dependencies = [
+ "malloc_size_of_derive",
+ "servo_malloc_size_of",
+]
 
 [[package]]
 name = "servo-media-webrtc"

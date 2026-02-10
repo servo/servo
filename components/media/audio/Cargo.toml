@@ -22,6 +22,8 @@ servo-media-traits = { path = "../traits" }
 servo-media-streams = { path = "../streams" }
 smallvec = "1"
 speexdsp-resampler = "0.1.0"
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
 num-complex = "0.2.4"
 
 [dependencies.petgraph]

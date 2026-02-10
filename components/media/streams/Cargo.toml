@@ -12,4 +12,6 @@ name = "servo_media_streams"
 path = "lib.rs"
 
 [dependencies]
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
 uuid = { version = "1.4", features = ["v4"] }

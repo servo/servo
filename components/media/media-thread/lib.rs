@@ -12,6 +12,7 @@ use std::sync::Mutex;
 use euclid::default::Size2D;
 use ipc_channel::ipc::{IpcReceiver, IpcSender, channel};
 use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use paint_api::{
     ExternalImageSource, WebRenderExternalImageApi, WebRenderExternalImageHandlers,
     WebRenderImageHandlerType,
@@ -78,7 +79,7 @@ pub enum GLPlayerMsg {
 /// A [`PlayerGLContext`] that renders to a window. Note that if the background
 /// thread is not started for this context, then it is inactive (returning
 /// `Unknown` values in the trait implementation).
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct WindowGLContext {
     /// Application's GL Context
     pub context: GlContext,
