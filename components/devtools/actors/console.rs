@@ -68,6 +68,7 @@ fn console_argument_to_value(argument: ConsoleArgument, registry: &ActorRegistry
         ConsoleArgument::Number(value) => {
             Number::from_f64(value).map(Value::from).unwrap_or_default()
         },
+        ConsoleArgument::Boolean(value) => Value::Bool(value),
         ConsoleArgument::Object(object) => {
             // Create a new actor for the object.
             // These are currently never cleaned up, and we make no attempt at re-using the same actor

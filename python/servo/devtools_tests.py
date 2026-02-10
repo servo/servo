@@ -745,18 +745,18 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             result = evaluation_result.result(1)["arguments"][0]
 
             # Run assertions on the result
-            self.assertEquals(result["ownPropertyLength"], 3)
+            self.assertEquals(result["ownPropertyLength"], 4)
 
             preview = result["preview"]
             self.assertEquals(preview["kind"], "Object")
-            self.assertEquals(preview["ownPropertiesLength"], 3)
+            self.assertEquals(preview["ownPropertiesLength"], 4)
 
             def assert_property_descriptor_equals(actual_descriptor, expected_descriptor):
                 for key, value in expected_descriptor.items():
                     self.assertEquals(
                         actual_descriptor[key],
                         value,
-                        f"Incorrect value for {key}, expected {value} got {actual_descriptor[key]}",
+                        f"Incorrect value for {key}, expected {value}, got {actual_descriptor[key]}",
                     )
 
             assert_property_descriptor_equals(
@@ -769,9 +769,11 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             )
             assert_property_descriptor_equals(
                 preview["ownProperties"]["baz"],
-                # TODO: The boolean value here should not be a string! That's a bug in our
-                # devtools implementation.
-                {"configurable": False, "enumerable": True, "value": "true", "writable": True},
+                {"configurable": False, "enumerable": True, "value": True, "writable": True},
+            )
+            assert_property_descriptor_equals(
+                preview["ownProperties"]["quux"],
+                {"configurable": False, "enumerable": True, "value": False, "writable": True},
             )
 
     # Sets `base_url` and `web_server` and `web_server_thread`.

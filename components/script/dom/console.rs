@@ -154,6 +154,11 @@ fn console_argument_from_handle_value(cx: JSContext, handle_value: HandleValue) 
         return ConsoleArgument::Number(number);
     }
 
+    if handle_value.is_boolean() {
+        let boolean = handle_value.to_boolean();
+        return ConsoleArgument::Boolean(boolean);
+    }
+
     if handle_value.is_object() {
         if let Some(console_argument_object) = console_object_from_handle_value(cx, handle_value) {
             return ConsoleArgument::Object(console_argument_object);

@@ -365,6 +365,7 @@ pub enum ConsoleArgument {
     String(String),
     Integer(i32),
     Number(f64),
+    Boolean(bool),
     Object(ConsoleArgumentObject),
 }
 
