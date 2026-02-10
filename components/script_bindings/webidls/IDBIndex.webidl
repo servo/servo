@@ -11,7 +11,7 @@
 interface IDBIndex {
   // attribute DOMString name;
   [SameObject] readonly attribute IDBObjectStore objectStore;
-  // readonly attribute any keyPath;
+  readonly attribute any keyPath;
   readonly attribute boolean multiEntry;
   readonly attribute boolean unique;
 

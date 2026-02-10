@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: flow-tolerance dynamic update triggers relayout (reference)</title>
+  <style>
+    html, body {
+      color: black;
+      background-color: white;
+      padding: 0;
+      margin: 0;
+    }
+
+    .grid {
+      display: inline-grid-lanes;
+      grid-template-rows: repeat(2, 100px);
+      gap: 10px;
+      border: 1px solid;
+      padding: 2px;
+    }
+
+    .item {
+      background-color: #444;
+      color: #fff;
+      padding: 10px;
+      margin: 3px;
+      border: 2px solid blue;
+    }
+  </style>
+</head>
+<body>
+
+<p>Test passes if the grid items are arranged in round-robin order (blue/green in first row, orange/red in second row).</p>
+
+<!--
+  With flow-tolerance: infinite, items are placed in strict round-robin
+  order across rows:
+  Item 1 (blue) -> Row 1 Col 1
+  Item 2 (orange) -> Row 2 Col 1
+  Item 3 (green) -> Row 1 Col 2
+  Item 4 (red) -> Row 2 Col 2
+-->
+<div class="grid">
+  <div class="item" style="width: 100px; background: blue; grid-row: 1; grid-column: 1;"></div>
+  <div class="item" style="width: 50px; background: orange; grid-row: 2; grid-column: 1;"></div>
+  <div class="item" style="width: 50px; background: green; grid-row: 1; grid-column: 2;"></div>
+  <div class="item" style="width: 100px; background: red; grid-row: 2; grid-column: 2;"></div>
+</div>
+
+</body>
+</html>

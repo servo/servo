@@ -1,0 +1,28 @@
+[package]
+name = "servo-media-gstreamer-render-unix"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[features]
+gl-egl = ["gstreamer-gl-egl"]
+gl-x11 = ["gstreamer-gl-x11"]
+gl-wayland = ["gstreamer-gl-wayland"]
+
+[lib]
+name = "servo_media_gstreamer_render_unix"
+path = "lib.rs"
+
+[dependencies]
+glib = { workspace = true }
+gstreamer = { workspace = true }
+gstreamer-gl = { workspace = true }
+gstreamer-gl-egl = { workspace = true, optional = true }
+gstreamer-gl-x11 = { workspace = true, optional = true }
+gstreamer-gl-wayland = { workspace = true, optional = true }
+gstreamer-video = { workspace = true }
+sm-player = { package = "servo-media-player", path = "../../../player" }
+sm-gst-render = { package = "servo-media-gstreamer-render", path = "../render" }

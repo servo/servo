@@ -62,9 +62,9 @@ new Python features that aren't be supported by that minimal version.
 approach described above, to pin the `html/canvas/tools` folder to that exact
 Python version, without impacting the rest of the system. For instance:
 ```shell
-pyenv install 3.8
+pyenv install 3.9
 cd html/canvas/tools
-pyenv local 3.8
+pyenv local 3.9
 python3 -m pip install -r $WPT_CHECKOUT/tools/ci/requirements_build.txt
 python3 gentest.py
 ```

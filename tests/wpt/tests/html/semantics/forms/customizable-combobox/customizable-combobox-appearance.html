@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://open-ui.org/components/combobox.explainer/">
+<link rel=match href="customizable-combobox-appearance-ref.html">
+
+<style>
+input, datalist {
+  appearance: base;
+}
+input {
+  width: 150px;
+}
+</style>
+
+<input list=datalist>
+<datalist id=datalist>
+  <option>one</option>
+  <option>two</option>
+</datalist>
+
+<script>
+document.querySelector('input').focus();
+</script>

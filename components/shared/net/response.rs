@@ -112,7 +112,7 @@ pub struct Response {
     )]
     #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
-    #[ignore_malloc_size_of = "Mutex heap size undefined"]
+    #[conditional_malloc_size_of]
     pub body: Arc<Mutex<ResponseBody>>,
     pub cache_state: CacheState,
     pub https_state: HttpsState,
@@ -131,10 +131,10 @@ pub struct Response {
     /// whether or not to try to return the internal_response when asked for actual_response
     pub return_internal: bool,
     /// <https://fetch.spec.whatwg.org/#concept-response-aborted>
-    #[ignore_malloc_size_of = "AtomicBool heap size undefined"]
+    #[conditional_malloc_size_of]
     pub aborted: Arc<AtomicBool>,
     /// track network metrics
-    #[ignore_malloc_size_of = "Mutex heap size undefined"]
+    #[conditional_malloc_size_of]
     pub resource_timing: Arc<Mutex<ResourceFetchTiming>>,
 
     /// <https://fetch.spec.whatwg.org/#concept-response-range-requested-flag>

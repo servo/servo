@@ -35,7 +35,7 @@ enum ObserverType {
 #[dom_struct]
 pub(crate) struct PerformanceObserver {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "can't measure Rc values"]
+    #[conditional_malloc_size_of]
     callback: Rc<PerformanceObserverCallback>,
     entries: DomRefCell<DOMPerformanceEntryList>,
     observer_type: Cell<ObserverType>,

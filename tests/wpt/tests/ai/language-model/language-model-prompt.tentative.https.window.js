@@ -39,7 +39,7 @@ promise_test(async () => {
   const session = await LanguageModel.create(options);
   const tokenLength = await session.measureInputUsage(options.initialPrompts);
   assert_greater_than(tokenLength, 0);
-  assert_equals(session.inputUsage, tokenLength);
+  assert_greater_than_equal(tokenLength, session.inputUsage);
   assert_regexp_match(
       await session.prompt([{role: 'user', content: 'What is the word of the day?'}]),
       /regurgitation/i);

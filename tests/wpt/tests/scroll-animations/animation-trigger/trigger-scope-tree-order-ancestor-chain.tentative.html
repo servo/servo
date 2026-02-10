@@ -37,7 +37,7 @@
         height: 100px;
         width: 100px;
         animation: expand linear 1s both;
-        animation-trigger: --trigger play-forwards play-backwards;
+        animation-trigger: --trigger play-forwards;
         position: sticky;
         top: 0%;
         left: 50%;
@@ -49,13 +49,18 @@
       }
     </style>
     <div id="scroller">
-      <div id="target" class="target">Target</div>
+      <!-- This target does not have a trigger source in its ancestry. It    -->
+      <!-- selects the last one in tree order, i.e. the one from source 5    -->
+      <div id="tree_order_target" class="target">Target</div>
       <div class="long"></div>
       <div id="source1" class="source">SOURCE 1
         <div class="long"></div>
         <div id="source2" class="source">SOURCE 2
           <div class="long"></div>
           <div id="source3" class="source">SOURCE 3
+            <!-- This target is a descendant of source3, so it selects the   -->
+            <!-- trigger from source 3                                       -->
+            <div id="ancestor_chain_target" class="target">Target</div>
             <div class="long"></div>
             <div id="source4" class="source">SOURCE 4
               <div class="long"></div>
@@ -68,39 +73,65 @@
     </div>
     <script>
 
-      promise_test(async() => {
-        await assert_playstate_and_current_time(target.id,
-                                          target.getAnimations()[0],
-                                          "paused");
-        let scrollend_promise;
+      function resetAnimations() {
+        tree_order_target.getAnimations()[0].pause();
+        ancestor_chain_target.getAnimations()[0].pause();
+        tree_order_target.getAnimations()[0].currentTime = 0;
+        ancestor_chain_target.getAnimations()[0].currentTime = 0;
+      }
 
-        // Sources 1 through 4 come earlier than source5 in tree-order so they
-        // should have no effect.
-        for (const source of [source1, source2, source3, source4]) {
-          scrollend_promise =
-              waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+      async function test_source(source,
+                                  affects_tree_order_target,
+                                  affects_ancestor_chain_target) {
+        resetAnimations();
+
+        assert_element_animation_state(tree_order_target, "paused");
+        assert_element_animation_state(ancestor_chain_target, "paused");
+
+        // Scroll the trigger sources into view.
+        await runAndWaitForFrameUpdate(() => {
           source.scrollIntoView({block: "center"});
-          await scrollend_promise;
-          await waitForCompositorReady();
-          await assert_playstate_and_current_time(target.id,
-                                            target.getAnimations()[0],
-                                            "paused");
-        }
+        });
 
-        scrollend_promise =
-              waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
-        source5.scrollIntoView({block: "center"});
-        await scrollend_promise;
-        await waitForCompositorReady();
+        assert_element_animation_state(tree_order_target,
+            affects_tree_order_target ? "running" : "paused");
 
-        await assert_greater_than(scroller.scrollTop, 0, "did scroll");
-        // The target should now be playing as its trigger condition has been
-        // met.
-        await assert_playstate_and_current_time(target.id,
-                                          target.getAnimations()[0],
-                                          "running");
+        assert_element_animation_state(ancestor_chain_target,
+            affects_ancestor_chain_target ? "running" : "paused");
+      }
+
+      promise_test(async() => {
+        // Sources 1 through 4 come earlier than source5 in tree-order so they
+        // should have no effect on tree_order_target.
+        // Source3 is an ancestor of ancesor_chain_target, so it should trigger
+        // ancestor_chain_target.
+
+        // 1 and 2 should affect neither.
+        await test_source(source1,
+          /*affects_tree_order_target=*/false,
+          /*affects_ancestor_chain_target=*/false);
+
+        await test_source(source2,
+          /*affects_tree_order_target=*/false,
+          /*affects_ancestor_chain_target=*/false);
+
+        // 3 should affect ancestor_chain_target.
+        await test_source(source3,
+          /*affects_tree_order_target=*/false,
+          /*affects_ancestor_chain_target=*/true);
+
+        // 4 should affect neither.
+        await test_source(source4,
+          /*affects_tree_order_target=*/false,
+          /*affects_ancestor_chain_target=*/false);
+
+        // 5 should affect tree_order_target.
+        await test_source(source5,
+          /*affects_tree_order_target=*/true,
+          /*affects_ancestor_chain_target=*/false);
+
       }, "Among in-scope triggers with same name, last in tree-order is "+
-         "selected.");
+         "selected, unless name occurs in ancestry before scope is reached.");
     </script>
   </body>
 </html>

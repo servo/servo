@@ -1,10 +1,11 @@
 features:
-- name: ruby
+- name: display-ruby
   files:
+  - "*"
+  # Keep exclusions synced with mappings below
   - "!ruby-align-*"
   - "!ruby-position*"
   - "!ruby-overhang*"
-  - "*"
 - name: ruby-align
   files:
   - ruby-align-*
@@ -14,4 +15,3 @@ features:
 - name: ruby-overhang
   files:
   - ruby-overhang*
-# Make sure to add an exclusion to the "ruby" match when adding a new feature

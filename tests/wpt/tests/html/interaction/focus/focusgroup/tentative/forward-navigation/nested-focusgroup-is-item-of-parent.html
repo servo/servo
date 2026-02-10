@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Nested focusgroup participates as item of parent focusgroup</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<meta name="assert" content="A nested focusgroup with tabindex should participate as an item in its parent focusgroup. Arrow navigation should reach the nested focusgroup element itself.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<button id=before tabindex=0>before</button>
+
+<div id=outer focusgroup="toolbar no-memory">
+  <button id=btn1>btn1</button>
+  <button id=btn2>btn2</button>
+  <button id=btn3>btn3</button>
+  <div id=inner focusgroup="toolbar no-memory" tabindex=0>
+    <button id=inner_btn1>inner btn1</button>
+    <button id=inner_btn2>inner btn2</button>
+    <button id=inner_btn3>inner btn3</button>
+  </div>
+  <button id=btn4>btn4</button>
+</div>
+
+<button id=after tabindex=0>after</button>
+
+<script>
+  // The nested focusgroup (id="inner") should be navigable as an item in
+  // the outer focusgroup. Arrow navigation within the outer focusgroup
+  // should reach the nested focusgroup element.
+  promise_test(async t => {
+    const btn3 = document.getElementById("btn3");
+    const inner = document.getElementById("inner");
+
+    await focusAndKeyPress(btn3, kArrowRight);
+    assert_equals(document.activeElement, inner,
+                  "Arrow right from btn3 should move focus to nested focusgroup (inner)");
+  }, "Arrow right navigates TO nested focusgroup element");
+
+  promise_test(async t => {
+    const btn4 = document.getElementById("btn4");
+    const inner = document.getElementById("inner");
+
+    await focusAndKeyPress(btn4, kArrowLeft);
+    assert_equals(document.activeElement, inner,
+                  "Arrow left from btn4 should move focus to nested focusgroup (inner)");
+  }, "Arrow left navigates TO nested focusgroup element");
+
+  // Once focus is on the nested focusgroup element, arrow navigation should
+  // remain within the outer focusgroup (i.e., move to the next/prev item
+  // in the outer focusgroup), NOT enter the nested focusgroup's items.
+  promise_test(async t => {
+    const inner = document.getElementById("inner");
+    const btn4 = document.getElementById("btn4");
+
+    await focusAndKeyPress(inner, kArrowRight);
+    assert_equals(document.activeElement, btn4,
+                  "Arrow right from inner should move focus to btn4 (next item in outer), not enter nested focusgroup");
+  }, "Arrow right from nested focusgroup navigates to next sibling in parent focusgroup");
+
+  promise_test(async t => {
+    const inner = document.getElementById("inner");
+    const btn3 = document.getElementById("btn3");
+
+    await focusAndKeyPress(inner, kArrowLeft);
+    assert_equals(document.activeElement, btn3,
+                  "Arrow left from inner should move focus to btn3 (prev item in outer), not enter nested focusgroup");
+  }, "Arrow left from nested focusgroup navigates to previous sibling in parent focusgroup");
+
+  // Test that arrow navigation skips the inner items (doesn't enter the nested focusgroup).
+  promise_test(async t => {
+    const elements = [
+      document.getElementById("btn1"),
+      document.getElementById("btn2"),
+      document.getElementById("btn3"),
+      document.getElementById("inner"),
+      document.getElementById("btn4"),
+    ];
+    await assert_arrow_navigation_bidirectional(elements);
+  }, "Full bidirectional navigation through outer focusgroup includes nested focusgroup element but skips its contents");
+
+  // Inner focusgroup should still work independently.
+  promise_test(async t => {
+    const inner_btn1 = document.getElementById("inner_btn1");
+    const inner_btn2 = document.getElementById("inner_btn2");
+
+    await focusAndKeyPress(inner_btn1, kArrowRight);
+    assert_equals(document.activeElement, inner_btn2,
+                  "Arrow navigation inside nested focusgroup should work independently");
+  }, "Inner focusgroup navigation works independently");
+</script>

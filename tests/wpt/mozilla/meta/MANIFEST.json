@@ -136,6 +136,19 @@
   },
   "reftest": {
    "appearance": {
+    "input-text-caret-mixed-language.html": [
+     "9fd52d39a076d9d03876efd93af30402e17e5ee0",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/input-text-caret-mixed-language-ref.html",
+        "!="
+       ]
+      ],
+      {}
+     ]
+    ],
     "input-textual-definite-width.html": [
      "59f1797fab3d1889bbcb7863178c6c5ef9e54f19",
      [
@@ -234,6 +247,19 @@
       [
        [
         "/_mozilla/appearance/input-textual-vertical-align-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "text-advance-less-than-ink-clipping.html": [
+     "a726bd2881ff7cb29a9e68f8e7f1fae728b9382e",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/text-advance-less-than-ink-clipping-ref.html",
         "=="
        ]
       ],
@@ -8269,6 +8295,10 @@
     []
    ],
    "appearance": {
+    "input-text-caret-mixed-language-ref.html": [
+     "ff0b91f2a8857fdefa4a8a3d7d75e06e53e699cf",
+     []
+    ],
     "input-textual-definite-width-ref.html": [
      "7a256be23b3c084bb8477d7380a8b1801ec07f05",
      []
@@ -8307,6 +8337,10 @@
       []
      ]
     },
+    "text-advance-less-than-ink-clipping-ref.html": [
+     "af9ec609b175040a66756fb6ce00d81a2e5707ec",
+     []
+    ],
     "textarea-caret-following-linebreak-ref.html": [
      "f424853f243ff0fe4c43506db800b51afc294113",
      []
@@ -12829,7 +12863,7 @@
      ]
     ],
     "css-property-listing.html": [
-     "fe8f4ab1515d0a5627ff23c66c60609d8085c650",
+     "80c1153135371a28e2f0cba60df6645045454581",
      [
       null,
       {}
@@ -12962,7 +12996,7 @@
      ]
     ],
     "test_variable_serialization_specified.html": [
-     "5a0e7997ba4470039730f56e9174ed50713aca5e",
+     "5449777e14907dc41e168cf81e13dfa71d6db5ef",
      [
       null,
       {}
@@ -13258,7 +13292,7 @@
      ]
     ],
     "calc.html": [
-     "80aa06e2ae7cd5db585873f147a21382b279b86e",
+     "2408f196c000a5d0f05cb35db4c8607486810351",
      [
       null,
       {}
@@ -14042,7 +14076,7 @@
      ]
     ],
     "interfaces.worker.js": [
-     "c6cc6b49c4903d1d1b436efcd5426bf682a6b21d",
+     "f528745591b56d96f016bd9402874a22eec80323",
      [
       "mozilla/interfaces.worker.html",
       {}

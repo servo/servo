@@ -23,8 +23,8 @@
     const trigger = new TimelineTrigger([{}]);
     assert_equals(trigger.ranges[0].timeline, document.timeline,
       "default timeline is document.timeline.");
-    assert_equals(trigger.ranges[0].entryRangeStart, "normal", "default rangeStart is normal");
-    assert_equals(trigger.ranges[0].entryRangeEnd, "normal", "default rangeEnd is normal");
+    assert_equals(trigger.ranges[0].activationRangeStart, "normal", "default rangeStart is normal");
+    assert_equals(trigger.ranges[0].activationRangeEnd, "normal", "default rangeEnd is normal");
     assert_equals(trigger.ranges[0].activeRangeStart, "auto",
       "default exitRangeStart is normal");
     assert_equals(trigger.ranges[0].activeRangeEnd, "auto",
@@ -35,16 +35,16 @@
     const scroll_timeline = new ScrollTimeline();
     const trigger = new TimelineTrigger([{
       timeline: scroll_timeline,
-      entryRangeStart: "contain 10%",
-      entryRangeEnd: "contain 90%",
+      activationRangeStart: "contain 10%",
+      activationRangeEnd: "contain 90%",
       activeRangeStart: "cover 10%",
       activeRangeEnd: "cover 90%"
     }]);
     assert_equals(trigger.ranges[0].timeline, scroll_timeline,
       "timeline is supplied scroll timeline.");
-    assert_equals(trigger.ranges[0].entryRangeStart, "contain 10%",
+    assert_equals(trigger.ranges[0].activationRangeStart, "contain 10%",
       "rangeStart is supplied value");
-    assert_equals(trigger.ranges[0].entryRangeEnd, "contain 90%",
+    assert_equals(trigger.ranges[0].activationRangeEnd, "contain 90%",
       "rangeEnd is supplied value");
     assert_equals(trigger.ranges[0].activeRangeStart, "cover 10%",
       "exitRangeStart is supplied value");
@@ -56,17 +56,17 @@
     const view_timeline = new ViewTimeline();
     const trigger = new TimelineTrigger([{
       timeline: view_timeline,
-      entryRangeStart: "contain 10%",
-      entryRangeEnd: "contain 90%",
+      activationRangeStart: "contain 10%",
+      activationRangeEnd: "contain 90%",
       activeRangeStart: "cover 10%",
       activeRangeEnd: "cover 90%"
     }]);
     assert_equals(trigger.ranges[0].timeline, view_timeline,
       "timeline is supplied scroll timeline.");
-    assert_equals(trigger.ranges[0].entryRangeStart, "contain 10%",
-      "entryRangeStart is supplied value");
-    assert_equals(trigger.ranges[0].entryRangeEnd, "contain 90%",
-      "entryRangeEnd is supplied value");
+    assert_equals(trigger.ranges[0].activationRangeStart, "contain 10%",
+      "activationRangeStart is supplied value");
+    assert_equals(trigger.ranges[0].activationRangeEnd, "contain 90%",
+      "activationRangeEnd is supplied value");
     assert_equals(trigger.ranges[0].activeRangeStart, "cover 10%",
       "activeRangeStart is supplied value");
     assert_equals(trigger.ranges[0].activeRangeEnd, "cover 90%",
@@ -77,19 +77,19 @@
     const view_timeline = new ViewTimeline();
     const trigger = new TimelineTrigger([{
       timeline: view_timeline,
-      entryRangeStart: "contain 10%",
-      entryRangeEnd: "contain 90%",
+      activationRangeStart: "contain 10%",
+      activationRangeEnd: "contain 90%",
     }]);
     assert_equals(trigger.ranges[0].timeline, view_timeline,
       "timeline is supplied scroll timeline.");
-    assert_equals(trigger.ranges[0].entryRangeStart, "contain 10%",
-      "entryRangeStart is supplied value");
-    assert_equals(trigger.ranges[0].entryRangeEnd, "contain 90%",
-      "entryRangeEnd is supplied value");
+    assert_equals(trigger.ranges[0].activationRangeStart, "contain 10%",
+      "activationRangeStart is supplied value");
+    assert_equals(trigger.ranges[0].activationRangeEnd, "contain 90%",
+      "activationRangeEnd is supplied value");
     assert_equals(trigger.ranges[0].activeRangeStart, "contain 10%",
-      "activeRangeStart is copied from entryRangeStart");
+      "activeRangeStart is copied from activationRangeStart");
     assert_equals(trigger.ranges[0].activeRangeEnd, "contain 90%",
-      "activeRangeEnd is is copied from entryRangeEnd");
+      "activeRangeEnd is is copied from activationRangeEnd");
   }, "Entry range supplied; active copied from entry");
 
   test(t => {
@@ -101,9 +101,9 @@
     }]);
     assert_equals(trigger.ranges[0].timeline, view_timeline,
       "timeline is supplied scroll timeline.");
-    assert_equals(trigger.ranges[0].entryRangeStart, "contain 10%",
+    assert_equals(trigger.ranges[0].activationRangeStart, "contain 10%",
       "rangeStart is supplied value");
-    assert_equals(trigger.ranges[0].entryRangeEnd, "contain 90%",
+    assert_equals(trigger.ranges[0].activationRangeEnd, "contain 90%",
       "rangeEnd is supplied value");
     assert_equals(trigger.ranges[0].activeRangeStart, "contain 10%",
       "exitRangeStart is supplied value");
@@ -121,8 +121,8 @@
     const view_timeline = new ViewTimeline();
     const range = {
       timeline: view_timeline,
-      entryRangeStart: "contain 10%",
-      entryRangeEnd: "contain 90%",
+      activationRangeStart: "contain 10%",
+      activationRangeEnd: "contain 90%",
       activeRangeStart: "cover 10%",
       activeRangeEnd: "cover 90%"
     };

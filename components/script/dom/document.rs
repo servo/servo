@@ -401,6 +401,8 @@ pub(crate) struct Document {
     current_parser: MutNullableDom<ServoParser>,
     /// The cached first `base` element with an `href` attribute.
     base_element: MutNullableDom<HTMLBaseElement>,
+    /// The cached first `base` element, used for its target (doesn't need a href)
+    target_base_element: MutNullableDom<HTMLBaseElement>,
     /// This field is set to the document itself for inert documents.
     /// <https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document>
     appropriate_template_contents_owner_document: MutNullableDom<Document>,
@@ -608,7 +610,6 @@ pub(crate) struct Document {
     creation_sandboxing_flag_set: Cell<SandboxingFlagSet>,
     /// The cached favicon for that document.
     #[no_trace]
-    #[ignore_malloc_size_of = "TODO: unimplemented on Image"]
     favicon: RefCell<Option<Image>>,
 
     /// All websockets created that are associated with this document.
@@ -992,8 +993,12 @@ impl Document {
         self.base_element.get()
     }
 
+    /// Returns the first `base` element in the DOM (doesn't need to have an `href` attribute).
+    pub(crate) fn target_base_element(&self) -> Option<DomRoot<HTMLBaseElement>> {
+        self.target_base_element.get()
+    }
+
     /// Refresh the cached first base element in the DOM.
-    /// <https://github.com/w3c/web-platform-tests/issues/2122>
     pub(crate) fn refresh_base_element(&self) {
         if let Some(base_element) = self.base_element.get() {
             base_element.clear_frozen_base_url();
@@ -1011,6 +1016,14 @@ impl Document {
             new_base_element.set_frozen_base_url();
         }
         self.base_element.set(new_base_element.as_deref());
+
+        let new_target_base_element = self
+            .upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::No)
+            .filter_map(DomRoot::downcast::<HTMLBaseElement>)
+            .next();
+        self.target_base_element
+            .set(new_target_base_element.as_deref());
     }
 
     pub(crate) fn dom_count(&self) -> u32 {
@@ -3634,8 +3647,8 @@ impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
 // https://html.spec.whatwg.org/multipage/#is-a-registrable-domain-suffix-of-or-is-equal-to
 // The spec says to return a bool, we actually return an Option<Host> containing
 // the parsed host in the successful case, to avoid having to re-parse the host.
-fn get_registrable_domain_suffix_of_or_is_equal_to(
-    host_suffix_string: &DOMString,
+pub(crate) fn get_registrable_domain_suffix_of_or_is_equal_to(
+    host_suffix_string: &str,
     original_host: Host,
 ) -> Option<Host> {
     // Step 1
@@ -3644,7 +3657,7 @@ fn get_registrable_domain_suffix_of_or_is_equal_to(
     }
 
     // Step 2-3.
-    let host = match Host::parse(&host_suffix_string.str()) {
+    let host = match Host::parse(host_suffix_string) {
         Ok(host) => host,
         Err(_) => return None,
     };
@@ -3820,6 +3833,7 @@ impl Document {
             loader: DomRefCell::new(doc_loader),
             current_parser: Default::default(),
             base_element: Default::default(),
+            target_base_element: Default::default(),
             appropriate_template_contents_owner_document: Default::default(),
             pending_restyles: DomRefCell::new(FxHashMap::default()),
             needs_restyle: Cell::new(RestyleReason::DOMChanged),
@@ -5196,10 +5210,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         };
 
         // Step 5. If the given value is not a registrable domain suffix of and is not equal to effectiveDomain, then throw a "SecurityError" DOMException.
-        let host = match get_registrable_domain_suffix_of_or_is_equal_to(&value, effective_domain) {
-            None => return Err(Error::Security(None)),
-            Some(host) => host,
-        };
+        let host =
+            match get_registrable_domain_suffix_of_or_is_equal_to(&value.str(), effective_domain) {
+                None => return Err(Error::Security(None)),
+                Some(host) => host,
+            };
 
         // Step 6. If the surrounding agent's agent cluster's is origin-keyed is true, then return.
         // TODO

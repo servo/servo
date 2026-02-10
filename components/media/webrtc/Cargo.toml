@@ -1,0 +1,18 @@
+[package]
+name = "servo-media-webrtc"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+log = "0.4"
+uuid = { version = "1.4", features = ["v4"] }
+
+[dependencies.servo-media-streams]
+path = "../streams"

@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.execCommand("selectAll");
+  document.scrollingElement.attachShadow({mode: "open"});
+  getSelection().extend(document.querySelector("area"), 0);
+})
+</script>
+</head>
+<body>
+<q style="user-select:none">
+<area></area>
+</body></html>

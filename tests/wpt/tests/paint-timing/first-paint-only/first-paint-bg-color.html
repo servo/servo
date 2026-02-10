@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<head>
+<title>Performance Paint Timing Test: FP due to background color</title>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<div id="main"></div>
+</body>
+
+<footer>
+<script>
+setup({"hide_test_state": true});
+async_test(function (t) {
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    document.body.style.backgroundColor = "#AA0000";
+
+    assertFirstPaint(t, 20);
+}, "First paint fires due to background color. No FCP");
+</script>
+<footer>
+</html>

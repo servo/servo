@@ -1,0 +1,45 @@
+.customizable-combobox-input {
+  anchor-name: --input;
+  border: 1px solid;
+  width: 150px;
+  height: 1lh;
+}
+
+.customizable-combobox-datalist {
+  position-anchor: --input;
+  position: fixed;
+  width: fit-content;
+  height: fit-content;
+  box-sizing: border-box;
+  border: 1px solid;
+  padding: 0;
+  color: CanvasText;
+  background-color: Canvas;
+  margin: 0;
+  inset: auto;
+  min-inline-size: anchor-size(self-inline);
+  min-block-size: 1lh;
+  max-block-size: stretch;
+  overflow: auto;
+  position-area: block-end span-inline-end;
+  position-try-order: most-block-size;
+  position-try-fallbacks:
+    block-start span-inline-end,
+    block-end span-inline-start,
+    block-start span-inline-start;
+}
+
+.customizable-combobox-option {
+  min-inline-size: 24px;
+  min-block-size: max(24px, 1lh);
+  padding-inline: 0.5em;
+  padding-block-end: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  white-space: nowrap;
+}
+
+.active-option {
+  outline: black auto 1px;
+}

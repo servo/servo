@@ -176,44 +176,55 @@ class ProfileCreator(FirefoxProfileCreator):
         # overridden with --setpref).
         return {"fission.disableSessionHistoryInParent": False}
 
-    def _set_required_prefs(self, profile):
-        profile.set_preferences({
+    def _get_required_prefs(self):
+        return {
+            "fission.autostart": not self.disable_fission,
             "network.dns.localDomains": ",".join(self.config.domains_set),
-            "dom.disable_open_during_load": False,
-            "places.history.enabled": False,
-            "dom.send_after_paint_to_content": True,
-        })
+        }
+
+    def _get_default_prefs(self):
+        prefs = self.default_prefs()
+        prefs.update(
+            {
+                "dom.disable_open_during_load": False,
+                "dom.send_after_paint_to_content": True,
+                "places.history.enabled": False,
+            }
+        )
 
         if self.package_name == "org.mozilla.geckoview.test_runner":
             # Bug 1879324: The TestRunner doesn't support "beforeunload" prompts yet
-            profile.set_preferences({"dom.disable_beforeunload": True})
+            prefs.update({"dom.disable_beforeunload": True})
 
         if self.test_type == "reftest":
             self.logger.info("Setting android reftest preferences")
-            profile.set_preferences({
-                "browser.viewport.desktopWidth": 800,
-                # Disable high DPI
-                "layout.css.devPixelsPerPx": "1.0",
-                # Ensure that the full browser element
-                # appears in the screenshot
-                "apz.allow_zooming": False,
-                "android.widget_paints_background": False,
-                # Ensure that scrollbars are always painted
-                "layout.testing.overlay-scrollbars.always-visible": True,
-            })
+            prefs.update(
+                {
+                    "android.widget_paints_background": False,
+                    # Ensure that the full browser element
+                    # appears in the screenshot
+                    "apz.allow_zooming": False,
+                    "browser.viewport.desktopWidth": 800,
+                    # Disable high DPI
+                    "layout.css.devPixelsPerPx": "1.0",
+                    # Ensure that scrollbars are always painted
+                    "layout.testing.overlay-scrollbars.always-visible": True,
+                }
+            )
 
         if self.test_type == "wdspec":
-            profile.set_preferences({"remote.prefs.recommended": True})
-            profile.set_preferences({
-                "geo.provider.network.url": "https://web-platform.test:8444/webdriver/tests/support/http_handlers/geolocation_override.py"
-            })
+            prefs.update(
+                {
+                    "remote.prefs.recommended": True,
+                    "geo.provider.network.url":
+                        "https://web-platform.test:8444/webdriver/tests/support/http_handlers/geolocation_override.py",
+                }
+            )
         else:
             # Except for wdspec dispatch wheel scroll as widget event by default.
-            profile.set_preferences({"remote.events.async.wheel.enabled": True})
+            prefs["remote.events.async.wheel.enabled"] = True
 
-        profile.set_preferences({"fission.autostart": True})
-        if self.disable_fission:
-            profile.set_preferences({"fission.autostart": False})
+        return prefs
 
 
 class FirefoxAndroidBrowser(Browser):

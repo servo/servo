@@ -32,7 +32,6 @@ use crate::script_runtime::CanGc;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUAdapter {
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
     #[no_trace]

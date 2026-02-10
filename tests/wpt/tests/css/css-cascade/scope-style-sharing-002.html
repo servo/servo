@@ -314,3 +314,29 @@ test((t) => {
 }, '@scope with cousin style sharing, second sibling enters scope ID selector');
 </script>
 
+<template id=test_13>
+  <style>
+    @scope (.root) {
+      > div:nth-of-type(2) > div {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div class=root>
+    <div class=parent>
+      <div id="first"></div>
+    </div>
+    <div class=parent>
+      <div id="second"></div>
+    </div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_13.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, 'auto');
+  assert_equals(getComputedStyle(second).zIndex, '1');
+}, '@scope with cousin style sharing, with child relative implicit scope selector');
+</script>

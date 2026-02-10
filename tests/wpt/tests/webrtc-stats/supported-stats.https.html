@@ -95,6 +95,12 @@ async function getAllStats(t, pc) {
     const [remoteOutboundAudio, remoteOutboundVideo] =
         ["audio", "video"].map(kind =>
             values.find(s => s.type == "remote-outbound-rtp" && s.kind == kind));
+
+    // Check that outbound video has at least 60 framesEncoded, so that we know that partially
+    // sampled stats are available.
+    const outboundVideo = values.find(s => s.type == "outbound-rtp" && s.kind == "video");
+    const hasEnoughOutboundVideo = outboundVideo && outboundVideo.framesEncoded >= 60;
+
     // We expect both audio and video remote-inbound-rtp RTT.
     const hasRemoteInbound =
         remoteInboundAudio && "roundTripTime" in remoteInboundAudio &&
@@ -107,7 +113,7 @@ async function getAllStats(t, pc) {
     // remote-outbound-rtp avoids flaky failures.
     const hasRemoteOutbound = remoteOutboundAudio || remoteOutboundVideo;
     const hasMediaPlayout = values.find(({type}) => type == "media-playout") != undefined;
-    if (hasRemoteInbound && hasRemoteOutbound && hasMediaPlayout) {
+    if (hasRemoteInbound && hasRemoteOutbound && hasMediaPlayout && hasEnoughOutboundVideo) {
       return stats;
     }
     await new Promise(r => t.step_timeout(r, 1000));

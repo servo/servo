@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::borrow::Borrow;
-use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
 use script_bindings::error::{Error, ErrorResult};
+use stylo_dom::ElementState;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
@@ -28,7 +28,6 @@ use crate::script_runtime::CanGc;
 pub(crate) struct HTMLDialogElement {
     htmlelement: HTMLElement,
     return_value: DomRefCell<DOMString>,
-    is_modal: Cell<bool>,
 }
 
 impl HTMLDialogElement {
@@ -40,7 +39,6 @@ impl HTMLDialogElement {
         HTMLDialogElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             return_value: DomRefCell::new(DOMString::new()),
-            is_modal: Cell::new(false),
         }
     }
 
@@ -65,7 +63,9 @@ impl HTMLDialogElement {
     pub fn show_a_modal(&self, source: Option<DomRoot<Element>>, can_gc: CanGc) -> ErrorResult {
         let subject = self.upcast::<Element>();
         // Step 1. If subject has an open attribute and is modal of subject is true, then return.
-        if subject.has_attribute(&local_name!("open")) && self.is_modal.get() {
+        if subject.has_attribute(&local_name!("open")) &&
+            subject.state().contains(ElementState::MODAL)
+        {
             return Ok(());
         }
 
@@ -128,7 +128,6 @@ impl HTMLDialogElement {
         // TODO: Step 12. Assert: subject's close watcher is not null.
 
         // Step 13. Set is modal of subject to true.
-        self.is_modal.set(true);
         self.upcast::<Element>().set_modal_state(true);
 
         // TODO: Step 14. Set subject's node document to be blocked by the modal dialog subject.
@@ -199,7 +198,6 @@ impl HTMLDialogElement {
         // TODO: Step 7. Let wasModal be the value of subject's is modal flag.
 
         // Step 8. Set is modal of subject to false.
-        self.is_modal.set(false);
         self.upcast::<Element>().set_modal_state(false);
 
         // Step 9. If result is not null, then set subject's returnValue attribute to result.
@@ -296,7 +294,9 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     fn Show(&self, can_gc: CanGc) -> ErrorResult {
         let element = self.upcast::<Element>();
         // Step 1. If this has an open attribute and is modal of this is false, then return.
-        if element.has_attribute(&local_name!("open")) && !self.is_modal.get() {
+        if element.has_attribute(&local_name!("open")) &&
+            !element.state().contains(ElementState::MODAL)
+        {
             return Ok(());
         }
 

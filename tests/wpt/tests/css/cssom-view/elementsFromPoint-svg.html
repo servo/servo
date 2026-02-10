@@ -14,6 +14,9 @@ html, body {
 rect {
     fill: rgba(180,0,0,0.2);
 }
+#topRightSvg, #middleG1, #middleG2, #bottomLeftG, #bottomRightG1, #bottomRightG2 {
+    pointer-events: bounding-box;
+}
 #topLeftRect2NoHitTest {
     pointer-events: none;
 }
@@ -23,6 +26,15 @@ rect {
         <rect id='topLeftRect1' x='5' y='5' width='90' height='90'/>
         <rect id='topLeftRect2NoHitTest' x='10' y='10' width='80' height='80'/>
         <rect id='topLeftRect3' x='15' y='15' width='70' height='70'/>
+
+        <foreignObject id="fo" x="210" y="110" width="80" height="80">
+            <div id="foDiv" style="width: 80px; height: 80px; background-color: rgba(180,0,0,0.2)"></div>
+        </foreignObject>
+
+        <svg id='topRightSvg' x='205' y='5' width='90' height='90'>
+            <rect id='topRightRect1' x='5' y='5' width='80' height='80'/>
+            <rect id='topRightRect2' x='10' y='10' width='70' height='70'/>
+        </svg>
 
         <g id='middleG1'>
             <g id='middleG2'>
@@ -51,17 +63,27 @@ test(function() {
 }, 'elementsFromPoint for a point inside two rects');
 
 test(function() {
+    assertElementsFromPoint('document', 325, 125,
+        [topRightRect2, topRightRect1, topRightSvg, svg, sandbox, document.body, document.documentElement]);
+}, 'elementsFromPoint for a point inside two rects that are inside an svg element with pointer-events: bounding-box');
+
+test(function() {
     assertElementsFromPoint('document', 225, 225,
-        [middleRect2, middleRect1, svg, sandbox, document.body, document.documentElement]);
+        [middleRect2, middleRect1, middleG2, middleG1, svg, sandbox, document.body, document.documentElement]);
 }, 'elementsFromPoint for a point inside two rects that are inside a <g>');
 
 test(function() {
     assertElementsFromPoint('document', 125, 325,
-        [bottomLeftImage2, bottomLeftImage1, svg, sandbox, document.body, document.documentElement]);
+        [bottomLeftImage2, bottomLeftImage1, bottomLeftG, svg, sandbox, document.body, document.documentElement]);
 }, 'elementsFromPoint for a point inside two images');
 
 test(function() {
     assertElementsFromPoint('document', 325, 325,
-        [bottomRightRect2, bottomRightRect1, svg, sandbox, document.body, document.documentElement]);
+        [bottomRightRect2, bottomRightRect1, bottomRightG2, bottomRightG1, svg, sandbox, document.body, document.documentElement]);
 }, 'elementsFromPoint for a point inside transformed rects and <g>');
+
+test(function() {
+    assertElementsFromPoint('document', 350, 250,
+        [foDiv, fo, svg, sandbox, document.body, document.documentElement]);
+}, 'elementsFromPoint for a point inside a foreignObject');
 </script>

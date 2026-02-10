@@ -6,6 +6,7 @@
  * https://w3c.github.io/paint-timing/#sec-PerformancePaintTiming
  */
 
-[Exposed=(Window,Worker)]
+[Exposed=Window]
 interface PerformancePaintTiming : PerformanceEntry {
+    [Default] object toJSON();
 };

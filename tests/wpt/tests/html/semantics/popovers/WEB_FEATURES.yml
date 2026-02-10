@@ -2,6 +2,8 @@ features:
 - name: popover
   files:
   - "*"
+  - "!popover-close-request.html"
+  - "!popovertarget-disabled-fieldset.html"
   - "!popover-hint-crash.html"
   - "!popover-light-dismiss-hint.html"
   - "!popover-top-layer-nesting-hints.html"
@@ -9,6 +11,9 @@ features:
 - name: closewatcher
   files:
   - "popover-close-request.html"
+- name: invoker-commands
+  files:
+  - popovertarget-disabled-fieldset.html
 - name: popover-hint
   files:
   - popover-hint-crash.html

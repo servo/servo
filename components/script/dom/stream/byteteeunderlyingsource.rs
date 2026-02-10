@@ -41,30 +41,30 @@ pub(crate) enum ByteTeePullAlgorithm {
 /// <https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee>
 pub(crate) struct ByteTeeUnderlyingSource {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     reader: Rc<RefCell<ReaderType>>,
     stream: Dom<ReadableStream>,
     branch_1: MutNullableDom<ReadableStream>,
     branch_2: MutNullableDom<ReadableStream>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     read_again_for_branch_1: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     read_again_for_branch_2: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     reading: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     canceled_1: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     canceled_2: Rc<Cell<bool>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[ignore_malloc_size_of = "Mozjs"]
     #[allow(clippy::redundant_allocation)]
     reason_1: Rc<Box<Heap<Value>>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[ignore_malloc_size_of = "Mozjs"]
     #[allow(clippy::redundant_allocation)]
     reason_2: Rc<Box<Heap<Value>>>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     cancel_promise: Rc<Promise>,
-    #[ignore_malloc_size_of = "Rc"]
+    #[conditional_malloc_size_of]
     reader_version: Rc<Cell<u64>>,
     tee_cancel_algorithm: ByteTeeCancelAlgorithm,
     byte_tee_pull_algorithm: ByteTeePullAlgorithm,

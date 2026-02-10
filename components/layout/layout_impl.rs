@@ -54,6 +54,7 @@ use style::dom::{OpaqueNode, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::font_metrics::FontMetrics;
 use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::invalidation::element::restyle_hints::RestyleHint;
+use style::invalidation::stylesheets::StylesheetInvalidationSet;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
@@ -68,7 +69,6 @@ use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
     CustomMediaMap, DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument,
-    UserAgentStylesheets,
 };
 use style::stylist::Stylist;
 use style::traversal::DomTraversal;
@@ -433,7 +433,7 @@ impl Layout for LayoutThread {
         let document_shared_lock = document.style_shared_lock();
         let guards = StylesheetGuards {
             author: &document_shared_lock.read(),
-            ua_or_user: &UA_STYLESHEETS.shared_lock.read(),
+            ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
         };
         let snapshot_map = SnapshotMap::new();
 
@@ -461,7 +461,7 @@ impl Layout for LayoutThread {
         let document_shared_lock = document.style_shared_lock();
         let guards = StylesheetGuards {
             author: &document_shared_lock.read(),
-            ua_or_user: &UA_STYLESHEETS.shared_lock.read(),
+            ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
         };
         let snapshot_map = SnapshotMap::new();
         let shared_style_context = self.build_shared_style_context(
@@ -955,17 +955,11 @@ impl LayoutThread {
         &mut self,
         reflow_request: &ReflowRequest,
         document: ServoLayoutDocument<'dom>,
-        root_element: ServoLayoutElement<'dom>,
         guards: &StylesheetGuards,
         ua_stylesheets: &UserAgentStylesheets,
-        snapshot_map: &SnapshotMap,
-    ) {
+    ) -> StylesheetInvalidationSet {
         if !self.have_added_user_agent_stylesheets {
-            // TODO: The field `user_or_user_agent_stylesheets` should only contain the user agent
-            // stylesheets as user stylesheets are specified separately. Potentially the struct in
-            // stylo should be renamed so that the field is no longer implies user stylesheets are
-            // set here.
-            for stylesheet in &ua_stylesheets.user_or_user_agent_stylesheets {
+            for stylesheet in &ua_stylesheets.user_agent_stylesheets {
                 self.stylist
                     .append_stylesheet(stylesheet.clone(), guards.ua_or_user);
                 self.load_all_web_fonts_from_stylesheet_with_guard(
@@ -1007,8 +1001,7 @@ impl LayoutThread {
         // Flush shadow roots stylesheets if dirty.
         document.flush_shadow_roots_stylesheets(&mut self.stylist, guards.author);
 
-        self.stylist
-            .flush(guards, Some(root_element), Some(snapshot_map));
+        self.stylist.flush(guards)
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1028,10 +1021,9 @@ impl LayoutThread {
         let document_shared_lock = document.style_shared_lock();
         let author_guard = document_shared_lock.read();
         let ua_stylesheets = &*UA_STYLESHEETS;
-        let ua_or_user_guard = ua_stylesheets.shared_lock.read();
         let guards = StylesheetGuards {
             author: &author_guard,
-            ua_or_user: &ua_or_user_guard,
+            ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
         };
 
         let rayon_pool = STYLE_THREAD_POOL.lock();
@@ -1051,14 +1043,8 @@ impl LayoutThread {
             }
         }
 
-        self.prepare_stylist_for_reflow(
-            reflow_request,
-            document,
-            root_element,
-            &guards,
-            ua_stylesheets,
-            &snapshot_map,
-        );
+        self.prepare_stylist_for_reflow(reflow_request, document, &guards, ua_stylesheets)
+            .process_style(root_element, Some(&snapshot_map));
 
         if self.previously_highlighted_dom_node.get() != reflow_request.highlighted_dom_node {
             // Need to manually force layout to build a new display list regardless of whether the box tree
@@ -1460,10 +1446,17 @@ fn get_ua_stylesheets() -> Result<UserAgentStylesheets, &'static str> {
         parse_ua_stylesheet(shared_lock, "quirks-mode.css", QUIRKS_MODE_CSS)?;
 
     Ok(UserAgentStylesheets {
-        shared_lock: shared_lock.clone(),
-        user_or_user_agent_stylesheets: user_agent_stylesheets,
+        user_agent_stylesheets,
         quirks_mode_stylesheet,
     })
+}
+
+/// This structure holds the user-agent stylesheets.
+pub struct UserAgentStylesheets {
+    /// The user agent stylesheets.
+    pub user_agent_stylesheets: Vec<DocumentStyleSheet>,
+    /// The quirks mode stylesheet.
+    pub quirks_mode_stylesheet: DocumentStyleSheet,
 }
 
 static UA_STYLESHEETS: LazyLock<UserAgentStylesheets> =

@@ -65,21 +65,19 @@ impl AudioNode {
             interpretation: options.interpretation.convert(),
             context_channel_count: context.channel_count() as u8,
         };
-        let node_id = match context
+        let node_id = context
             .audio_context_impl()
             .lock()
             .unwrap()
-            .create_node(node_type, ch)
-        {
-            Ok(node_id) => Some(node_id),
-            Err(_) => {
-                // Follow Chromuim and Gecko, we just warn and create an inert AudioNode.
-                const MESSAGE: &str = "Failed to create an AudioNode backend. The constructed AudioNode will be inert.";
-                warn!("{MESSAGE}");
-                Console::internal_warn(&context.global(), DOMString::from(MESSAGE));
-                None
-            },
-        };
+            .create_node(node_type, ch);
+
+        if node_id.is_none() {
+            // Follow Chromuim and Gecko, we just warn and create an inert AudioNode.
+            const MESSAGE: &str =
+                "Failed to create an AudioNode backend. The constructed AudioNode will be inert.";
+            warn!("{MESSAGE}");
+            Console::internal_warn(&context.global(), DOMString::from(MESSAGE));
+        }
 
         Ok(AudioNode::new_inherited_for_id(
             node_id,

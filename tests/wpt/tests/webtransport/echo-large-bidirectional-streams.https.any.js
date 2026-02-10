@@ -1,6 +1,7 @@
 // META: global=window,worker
 // META: script=/common/get-host-info.sub.js
 // META: script=resources/webtransport-test-helpers.sub.js
+// META: timeout=long
 
 // A test that aims to reproduce https://crbug.com/1369030 -- note that since
 // the bug in question is a race condition, this test will probably be flaky if

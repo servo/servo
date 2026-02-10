@@ -97,7 +97,7 @@ keyboard-types = { workspace = true }
 layout = { path = "../layout" }
 layout_api = { workspace = true }
 log = { workspace = true }
-media = { path = "../media" }
+media = { path = "../media/media-thread" }
 mozangle = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }
@@ -154,22 +154,6 @@ net = { path = "../net", features = ["test-util"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
 tracing = { workspace = true }
 winit = { workspace = true }
-
-[[test]]
-name = "largest_contentful_paint"
-path = "tests/largest_contentful_paint.rs"
-
-[[test]]
-name = "network_manager"
-
-[[test]]
-name = "webview"
-
-[[test]]
-name = "servo"
-
-[[test]]
-name = "site_data_manager"
 
 [[test]]
 name = "multiprocess"

@@ -46,9 +46,14 @@ test_invalid_value("margin-trim", "inline inline");
 test_invalid_value("margin-trim", "block inline-start inline-end");
 test_invalid_value("margin-trim", "block block-start block-end");
 test_invalid_value("margin-trim", "block-start block-end block");
+test_invalid_value("margin-trim", "block-start block-start");
 test_invalid_value("margin-trim", "block 10px");
 test_invalid_value("margin-trim", "auto");
 test_invalid_value("margin-trim", "left");
+test_invalid_value("margin-trim", "none block");
+test_invalid_value("margin-trim", "none block-start");
+test_invalid_value("margin-trim", "inline none");
+test_invalid_value("margin-trim", "inline-end none");
 </script>
 </body>
 </html>

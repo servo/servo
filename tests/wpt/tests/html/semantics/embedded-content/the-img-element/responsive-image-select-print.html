@@ -4,6 +4,15 @@
 <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1803094">
 <link rel="author" href="https://mozilla.org" title="Mozilla">
 <link rel="match" href="responsive-image-select-print-ref.html">
+<style>
+  :root {
+    print-color-adjust: exact;
+  }
+  @page {
+    size: 300px;
+    margin: 0;
+  }
+</style>
 <body>
   <picture>
     <source width="200" srcset="./resources/red.png 1w, ./resources/green.png 200w">

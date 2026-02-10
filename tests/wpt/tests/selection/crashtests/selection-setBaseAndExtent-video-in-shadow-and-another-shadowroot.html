@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use script";
+
+document.addEventListener("DOMContentLoaded", () => {
+  const shadowRoot = document.querySelector("div").attachShadow({mode: "open"});
+  const video = document.getElementById("host").shadowRoot.querySelector("video");
+  getSelection().setBaseAndExtent(video, 1, shadowRoot, 0);
+})
+</script>
+</head>
+<body>
+<div>A</div>
+<div id="host">
+<template shadowrootmode="open">
+<video id="b">
+</body></html>

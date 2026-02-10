@@ -195,7 +195,6 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     browsing_context: Option<BrowsingContextId>,
     /// A receiver of control messages,
     /// currently only used to signal shutdown.
-    #[ignore_malloc_size_of = "Channels are hard"]
     #[no_trace]
     control_receiver: Receiver<DedicatedWorkerControlMsg>,
     #[no_trace]

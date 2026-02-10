@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<style>
+body {
+  margin: 0;
+}
+.container {
+  padding: 40px;
+}
+.target {
+  width: 100px;
+  height: 100px;
+  position: relative;
+}
+</style>
+<div class="container">
+  <!-- Double-path border-shape: outer 50px circle, inner 30px circle -->
+  <!-- Background fills the inner circle, border fills the ring between them -->
+  <!-- Outline follows the outer 50px circle path -->
+  <div class="target">
+    <svg width="120" height="120" style="position: absolute; left: -10px; top: -10px;">
+      <!-- Border ring: area between 50px and 30px circles -->
+      <circle cx="60" cy="60" r="50" fill="rgba(255,0,0,0.5)"/>
+      <!-- Background fill: inner circle at 30px radius -->
+      <circle cx="60" cy="60" r="30" fill="lightblue"/>
+      <!-- Outline stroke: green at radius 52 (50 + 2) with stroke-width 4 -->
+      <circle cx="60" cy="60" r="52" fill="none" stroke="green" stroke-width="4"/>
+    </svg>
+  </div>
+</div>

@@ -52,6 +52,7 @@ features:
   - '!selector-required.html'
   - '!selector-required-type-change-*'
   - '!pseudo-enabled-disabled.html'
+  - '!selectors-namespace-001.xml'
   # Exclude placeholder-shown tests (placeholder-shown feature), remove comment when #56691 is merged
   - '!placeholder-shown.html'
   - '!selector-placeholder-shown-*'
@@ -159,6 +160,9 @@ features:
   - valid-invalid-form-fieldset.html
   - selector-required.html
   - selector-required-type-change-*
+- name: namespace
+  files:
+  - selectors-namespace-001.xml
 - name: input-selectors
   files:
   - pseudo-enabled-disabled.html

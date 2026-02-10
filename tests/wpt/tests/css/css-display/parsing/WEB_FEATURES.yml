@@ -1,3 +1,8 @@
 features:
 - name: two-value-display
   files: "**"
+- name: display
+  files:
+  - display-computed.html
+  - display-invalid.html
+  - display-valid.html

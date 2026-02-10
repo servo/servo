@@ -48,7 +48,6 @@ fn supported_context_format(format: GPUTextureFormat) -> bool {
 struct DroppableGPUCanvasContext {
     #[no_trace]
     context_id: WebGPUContextId,
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
 }

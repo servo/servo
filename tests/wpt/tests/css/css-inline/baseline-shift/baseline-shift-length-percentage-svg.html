@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" href="https://drafts.csswg.org/css-inline-3/#baseline-shift-property">
+  <link rel="match" href="baseline-shift-length-percentage-ref.html">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+  <meta name="flags" content="ahem image" />
+  <meta charset="utf-8">
+</head>
+<body>
+  <svg>
+    <image href="/css/support/60x60-green.png" />
+    <text x="80" y="56" style="font: 20px/2 'Ahem';">
+      <tspan baseline-shift="0" fill="black">X</tspan>
+      <tspan baseline-shift="1em" fill="black">X</tspan>
+      <tspan baseline-shift="-100%" fill="black">X</tspan>
+    </text>
+  </svg>
+</body>
+</html>

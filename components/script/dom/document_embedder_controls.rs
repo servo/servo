@@ -236,6 +236,24 @@ impl DocumentEmbedderControls {
     }
 
     pub(crate) fn show_context_menu(&self, hit_test_result: &HitTestResult) {
+        {
+            let mut visible_elements = self.visible_elements.borrow_mut();
+            visible_elements.retain(|index, control_element| {
+                if matches!(control_element, ControlElement::ContextMenu(..)) {
+                    let id = EmbedderControlId {
+                        webview_id: self.window.webview_id(),
+                        pipeline_id: self.window.pipeline_id(),
+                        index: index.0,
+                    };
+                    self.window
+                        .send_to_embedder(EmbedderMsg::HideEmbedderControl(id));
+                    false
+                } else {
+                    true
+                }
+            });
+        }
+
         let mut anchor_element = None;
         let mut image_element = None;
         let mut text_input_element = None;

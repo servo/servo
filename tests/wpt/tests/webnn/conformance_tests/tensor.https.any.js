@@ -252,7 +252,7 @@ const testCreateConstantTensorFails = (testName, descriptor) => {
 promise_test(async t => {
   const tensorDescriptor = {
     dataType: 'int32',
-    shape: [(context.opSupportLimits().maxTensorByteLength + 1) / 4],
+    shape: [context.opSupportLimits().maxTensorByteLength / 4 + 1],
     writable: true,
   };
   await promise_rejects_js(

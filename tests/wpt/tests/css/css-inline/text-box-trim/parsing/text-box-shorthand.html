@@ -22,6 +22,16 @@ test_shorthand_value('text-box', 'trim-start', {
 
 test_shorthand_value('text-box', 'ex text', {
   'text-box-trim': 'trim-both',
-  'text-box-edge': 'ex text',
+  'text-box-edge': 'ex',
+});
+
+test_shorthand_value('text-box', 'cap', {
+  'text-box-trim': 'trim-both',
+  'text-box-edge': 'cap',
+});
+
+test_shorthand_value('text-box', 'trim-end alphabetic', {
+  'text-box-trim': 'trim-end',
+  'text-box-edge': 'alphabetic',
 });
 </script>

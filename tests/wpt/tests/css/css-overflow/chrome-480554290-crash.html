@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Chrome crash 480554290</title>
+<style id="style">
+  #scroller {
+    overflow: auto;
+    scroll-marker-group: after;
+
+    .item {
+      &::scroll-marker {
+        content: "";
+      }
+    }
+  }
+</style>
+<div id="scroller">
+  <div id="e1" class="item">
+  </div>
+</div>
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      e1.style.contentVisibility = "hidden";
+      requestAnimationFrame(() => {
+        style["innerText"] = null;
+        style["computedRole"];
+      });
+    });
+  });
+</script>

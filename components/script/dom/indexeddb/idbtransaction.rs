@@ -9,13 +9,14 @@ use base::generic_channel::{GenericSend, GenericSender};
 use dom_struct::dom_struct;
 use profile_traits::generic_channel::channel;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
-use storage_traits::indexeddb::{IndexedDBThreadMsg, KeyPath, SyncOperation};
+use storage_traits::indexeddb::{IndexedDBIndex, IndexedDBThreadMsg, KeyPath, SyncOperation};
 use stylo_atoms::Atom;
 use uuid::Uuid;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListMethods;
 use crate::dom::bindings::codegen::Bindings::IDBDatabaseBinding::IDBObjectStoreParameters;
+use crate::dom::bindings::codegen::Bindings::IDBObjectStoreBinding::IDBIndexParameters;
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::{
     IDBTransactionMethods, IDBTransactionMode,
 };
@@ -172,6 +173,10 @@ impl IDBTransaction {
         self.active.get()
     }
 
+    pub fn is_finished(&self) -> bool {
+        self.finished.get()
+    }
+
     pub fn get_mode(&self) -> IDBTransactionMode {
         self.mode
     }
@@ -235,7 +240,7 @@ impl IDBTransaction {
     fn object_store_parameters(
         &self,
         object_store_name: &DOMString,
-    ) -> Option<IDBObjectStoreParameters> {
+    ) -> Option<(IDBObjectStoreParameters, Vec<IndexedDBIndex>)> {
         let global = self.global();
         let idb_sender = global.storage_threads().sender();
         let (sender, receiver) =
@@ -245,7 +250,7 @@ impl IDBTransaction {
         let db_name = self.db.get_name().to_string();
         let object_store_name = object_store_name.to_string();
 
-        let operation = SyncOperation::HasKeyGenerator(
+        let operation = SyncOperation::GetObjectStore(
             sender,
             origin.clone(),
             db_name.clone(),
@@ -256,26 +261,23 @@ impl IDBTransaction {
 
         // First unwrap for ipc
         // Second unwrap will never happen unless this db gets manually deleted somehow
-        let auto_increment = receiver.recv().ok()?.ok()?;
-
-        let (sender, receiver) = channel(self.global().time_profiler_chan().clone())?;
-        let operation = SyncOperation::KeyPath(sender, origin, db_name, object_store_name);
-
-        let _ = idb_sender.send(IndexedDBThreadMsg::Sync(operation));
+        let object_store = receiver.recv().ok()?.ok()?;
 
         // First unwrap for ipc
         // Second unwrap will never happen unless this db gets manually deleted somehow
-        let key_path = receiver.recv().unwrap().ok()?;
-        let key_path = key_path.map(|key_path| match key_path {
+        let key_path = object_store.key_path.map(|key_path| match key_path {
             KeyPath::String(s) => StringOrStringSequence::String(DOMString::from_string(s)),
             KeyPath::Sequence(seq) => StringOrStringSequence::StringSequence(
                 seq.into_iter().map(DOMString::from_string).collect(),
             ),
         });
-        Some(IDBObjectStoreParameters {
-            autoIncrement: auto_increment,
-            keyPath: key_path,
-        })
+        Some((
+            IDBObjectStoreParameters {
+                autoIncrement: object_store.has_key_generator,
+                keyPath: key_path,
+            },
+            object_store.indexes,
+        ))
     }
 }
 
@@ -309,10 +311,23 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
             &self.global(),
             self.db.get_name(),
             name.clone(),
-            parameters.as_ref(),
+            parameters.as_ref().map(|(params, _)| params),
             can_gc,
             self,
         );
+        if let Some(indexes) = parameters.map(|(_, indexes)| indexes) {
+            for index in indexes {
+                store.add_index(
+                    DOMString::from_string(index.name),
+                    &IDBIndexParameters {
+                        multiEntry: index.multi_entry,
+                        unique: index.unique,
+                    },
+                    index.key_path.into(),
+                    can_gc,
+                );
+            }
+        }
         self.store_handles
             .borrow_mut()
             .insert(name.to_string(), Dom::from_ref(&*store));

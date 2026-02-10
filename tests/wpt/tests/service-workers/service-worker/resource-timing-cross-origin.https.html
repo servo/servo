@@ -30,10 +30,12 @@ function test_sw_resource_timing({ mode }) {
       assert_equals(entry.connectStart, 0, 'connectStart should be 0 in cross-origin request.');
       assert_equals(entry.connectEnd, 0, 'connectEnd should be 0 in cross-origin request.');
       assert_equals(entry.responseStart, 0, 'responseStart should be 0 in cross-origin request.');
+      assert_greater_than(entry.responseStart, entry.fetchStart, 'responseStart is specific to service-workers.');
       assert_equals(entry.secureConnectionStart, 0, 'secureConnectionStart should be 0 in cross-origin request.');
       assert_equals(entry.decodedBodySize, 0, 'decodedBodySize should be 0 in cross-origin request.');
-      assert_equals(entry.ecodedBodySize, 0, 'encodedBodySize should be 0 in cross-origin request.');
+      assert_equals(entry.encodedBodySize, 0, 'encodedBodySize should be 0 in cross-origin request.');
       assert_equals(entry.transferSize, 0, 'transferSize should be 0 in cross-origin request.');
+      assert_equals(entry.nextHopProtocol, "", 'nextHopProtocol should be 0 in cross-origin request.');
       frame.remove();
       await registration.unregister();
   }, `Test that timing allow check fails when service worker changes origin from same to cross origin (${mode}).`);

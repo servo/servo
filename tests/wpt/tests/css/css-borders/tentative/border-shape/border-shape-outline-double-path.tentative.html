@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>CSS Borders Test: outline follows double-path border-shape (outer path)</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#outline">
+<link rel="match" href="border-shape-outline-double-path-ref.tentative.html">
+<meta name="fuzzy" content="maxDifference=0-170;totalPixels=0-5000">
+<style>
+body {
+  margin: 0;
+}
+.container {
+  padding: 40px;
+}
+.target {
+  width: 100px;
+  height: 100px;
+  background: lightblue;
+  /* Double path: outer circle, inner smaller circle */
+  /* This creates a ring/donut shape for the border */
+  border-shape: circle(50px at 50px 50px) circle(30px at 50px 50px);
+  border-color: rgba(255, 0, 0, 0.5);
+  outline: 4px solid green;
+}
+</style>
+<div class="container">
+  <div class="target"></div>
+</div>

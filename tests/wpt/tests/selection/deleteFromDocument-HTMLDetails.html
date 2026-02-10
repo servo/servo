@@ -1,0 +1,155 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Selection.deleteFromDocument() around details-summary</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/editing/include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  // Although EditorTestUtils is designed for editable content, but we can use
+  // it to simplifying the selection initialization in innerHTML value.
+  const div = document.getElementById("container");
+  const utils = new EditorTestUtils(div);
+  for (const data of [
+    {
+      innerHTML: "abc{<details><summary>def</summary>ghi</details>}jkl",
+      expectedResult: "abcjkl",
+    },
+    {
+      innerHTML: "abc<details>{<summary>def</summary>ghi</details>}jkl",
+      expectedResult: "abc<details></details>jkl",
+    },
+    {
+      innerHTML: "abc<details><summary>{def</summary>ghi</details>}jkl",
+      expectedResult: "abc<details><summary></summary></details>jkl",
+    },
+    {
+      innerHTML: "abc<details><summary>[def</summary>ghi</details>}jkl",
+      expectedResult: "abc<details><summary></summary></details>jkl",
+    },
+    {
+      innerHTML: "abc{<details><summary>def</summary>ghi}</details>jkl",
+      expectedResult: "abc<details></details>jkl",
+    },
+    {
+      innerHTML: "abc{<details><summary>def</summary>]ghi</details>jkl",
+      expectedResult: "abc<details>ghi</details>jkl",
+    },
+    {
+      innerHTML: "abc{<details><summary>def</summary>}ghi</details>jkl",
+      expectedResult: "abc<details>ghi</details>jkl",
+    },
+    {
+      innerHTML: "abc{<details><summary>def}</summary>ghi</details>jkl",
+      expectedResult: "abc<details><summary></summary>ghi</details>jkl",
+    },
+    {
+      innerHTML: "abc{<details><summary>def]</summary>ghi</details>jkl",
+      expectedResult: "abc<details><summary></summary>ghi</details>jkl",
+    },
+    {
+      innerHTML: "abc<details><summary>[def]</summary>ghi</details>jkl",
+      expectedResult: "abc<details><summary></summary>ghi</details>jkl",
+    },
+    {
+      innerHTML: "abc<details><summary>{def}</summary>ghi</details>jkl",
+      expectedResult: "abc<details><summary></summary>ghi</details>jkl",
+    },
+    {
+      innerHTML: "abc<details><summary>d[e]f</summary>ghi</details>jkl",
+      expectedResult: "abc<details><summary>df</summary>ghi</details>jkl",
+    },
+    {
+      innerHTML: "abc<details>{<summary>def</summary>}ghi</details>jkl",
+      expectedResult: "abc<details>ghi</details>jkl",
+    },
+    {
+      innerHTML: "abc<details>{<summary>def</summary>ghi}</details>jkl",
+      expectedResult: "abc<details></details>jkl",
+    },
+    {
+      innerHTML: "abc{<details><summary>def</summary><summary>}ghi</summary>jkl</details>mno",
+      expectedResult: "abc<details><summary>ghi</summary>jkl</details>mno",
+    },
+    {
+      innerHTML: "abc<details><summary>{def</summary><summary>}ghi</summary>jkl</details>mno",
+      expectedResult: "abc<details><summary></summary><summary>ghi</summary>jkl</details>mno",
+    },
+    {
+      innerHTML: "abc<details><summary>{def</summary><summary>ghi}</summary>jkl</details>mno",
+      expectedResult: "abc<details><summary></summary><summary></summary>jkl</details>mno",
+    },
+    {
+      innerHTML: "abc<details><summary>def{</summary><summary>ghi</summary>}jkl</details>mno",
+      expectedResult: "abc<details><summary>def</summary>jkl</details>mno",
+    },
+    {
+      innerHTML: "abc<details><summary>def</summary>{<summary>ghi</summary>}jkl</details>mno",
+      expectedResult: "abc<details><summary>def</summary>jkl</details>mno",
+    },
+    {
+      innerHTML: "abc<details><summary>{def</summary><p>}ghi</p></details>jkl",
+      expectedResult: "abc<details><summary></summary><p>ghi</p></details>jkl",
+    },
+    {
+      innerHTML: "abc<details><summary>def{</summary><p>ghi}</p></details>jkl",
+      expectedResult: "abc<details><summary>def</summary><p></p></details>jkl",
+    },
+    {
+      innerHTML: "abc<details><summary>def{</summary><p>ghi</p>}</details>jkl",
+      expectedResult: "abc<details><summary>def</summary></details>jkl",
+    },
+    {
+      innerHTML: "abc<details><summary>def</summary>{<p>ghi</p>}</details>jkl",
+      expectedResult: "abc<details><summary>def</summary></details>jkl",
+    },
+    {
+      innerHTML: "abc<details>{<p>def</p><p>ghi</p>}</details>jkl",
+      expectedResult: "abc<details></details>jkl",
+    },
+    {
+      innerHTML: "abc<details><p>{def</p><p>ghi</p>}</details>jkl",
+      expectedResult: "abc<details><p></p></details>jkl",
+    },
+    {
+      innerHTML: "abc<details>{<p>def</p><p>ghi}</p></details>jkl",
+      expectedResult: "abc<details><p></p></details>jkl",
+    },
+    {
+      innerHTML: "abc<details><p>def</p>{<summary>ghi</summary>}<p>jkl</p></details>mno",
+      expectedResult: "abc<details><p>def</p><p>jkl</p></details>mno",
+    },
+    {
+      innerHTML: "abc<details><p>def</p><summary>{ghi}</summary><p>jkl</p></details>mno",
+      expectedResult: "abc<details><p>def</p><summary></summary><p>jkl</p></details>mno",
+    },
+    {
+      innerHTML: "abc<details>{<p>def</p><summary>ghi}</summary><p>jkl</p></details>mno",
+      expectedResult: "abc<details><summary></summary><p>jkl</p></details>mno",
+    },
+    {
+      innerHTML: "abc<details><p>{def</p><summary>ghi}</summary><p>jkl</p></details>mno",
+      expectedResult: "abc<details><p></p><summary></summary><p>jkl</p></details>mno",
+    },
+  ]) {
+    test(() => {
+      utils.setupEditingHost(data.innerHTML);
+      div.getBoundingClientRect();
+      getSelection().deleteFromDocument();
+      assert_equals(
+        div.innerHTML,
+        data.expectedResult
+      );
+    }, `deleteFromDocument() when "${data.innerHTML}"`);
+  }
+}, {once: true});
+</script>
+</head>
+<body>
+  <div id="container"></div>
+</body>
+</html>

@@ -37,13 +37,13 @@ use style::values::generics::rect::Rect as StyleRect;
 use style::values::specified::text::TextDecorationLine;
 use style_traits::{CSSPixel as StyloCSSPixel, DevicePixel as StyloDevicePixel};
 use webrender_api::units::{
-    DeviceIntSize, DevicePixel, LayoutPixel, LayoutRect, LayoutSideOffsets, LayoutSize,
+    DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint, LayoutRect, LayoutSideOffsets, LayoutSize,
 };
 use webrender_api::{
     self as wr, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, BuiltDisplayList,
-    ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, NinePatchBorder,
-    NinePatchBorderSource, NormalBorder, PrimitiveFlags, PropertyBinding, SpatialId,
-    SpatialTreeItemKey, units,
+    ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, GlyphInstance,
+    NinePatchBorder, NinePatchBorderSource, NormalBorder, PrimitiveFlags, PropertyBinding,
+    SpatialId, SpatialTreeItemKey, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -744,7 +744,7 @@ impl Fragment {
         let include_whitespace =
             fragment.offsets.is_some() || text_decorations.iter().any(|item| !item.line.is_empty());
 
-        let glyphs = glyphs(
+        let (glyphs, largest_advance) = glyphs(
             &fragment.glyphs,
             baseline_origin,
             fragment.justification_adjustment,
@@ -759,7 +759,17 @@ impl Fragment {
         let color = parent_style.clone_color();
         let font_metrics = &fragment.font_metrics;
         let dppx = builder.device_pixel_ratio.get();
-        let common = builder.common_properties(rect.to_webrender(), &parent_style);
+
+        // Gecko gets the text bounding box based on the ink overflow bounds. Since
+        // we don't need to calculate this yet (as we do not implement `contain:
+        // paint`), we just need to make sure these boundaries are big enough to
+        // contain the inked portion of the glyphs. We assume that the descent and
+        // ascent are big enough and then just expand the advance-based boundaries by
+        // twice the size of the biggest advance in the advance dimention.
+        let glyph_bounds = rect
+            .inflate(largest_advance.scale_by(2.0), Au::zero())
+            .to_webrender();
+        let common = builder.common_properties(glyph_bounds, &parent_style);
 
         // Shadows. According to CSS-BACKGROUNDS, text shadows render in *reverse* order (front to
         // back).
@@ -821,7 +831,7 @@ impl Fragment {
 
         builder.wr().push_text(
             &common,
-            rect.to_webrender(),
+            glyph_bounds,
             &glyphs,
             fragment.font_key,
             rgba(color),
@@ -1706,17 +1716,19 @@ fn glyphs(
     mut baseline_origin: PhysicalPoint<Au>,
     justification_adjustment: Au,
     include_whitespace: bool,
-) -> Vec<wr::GlyphInstance> {
+) -> (Vec<GlyphInstance>, Au) {
     let mut glyphs = vec![];
+    let mut largest_advance = Au::zero();
+
     for run in glyph_runs {
         for glyph in run.glyphs() {
             if !run.is_whitespace() || include_whitespace {
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
-                let point = units::LayoutPoint::new(
+                let point = LayoutPoint::new(
                     baseline_origin.x.to_f32_px() + glyph_offset.x.to_f32_px(),
                     baseline_origin.y.to_f32_px() + glyph_offset.y.to_f32_px(),
                 );
-                let glyph_instance = wr::GlyphInstance {
+                let glyph_instance = GlyphInstance {
                     index: glyph.id(),
                     point,
                 };
@@ -1726,10 +1738,13 @@ fn glyphs(
             if glyph.char_is_word_separator() {
                 baseline_origin.x += justification_adjustment;
             }
-            baseline_origin.x += glyph.advance();
+
+            let advance = glyph.advance();
+            baseline_origin.x += advance;
+            largest_advance.max_assign(advance);
         }
     }
-    glyphs
+    (glyphs, largest_advance)
 }
 
 /// Given a set of corner radii for a rectangle, this function returns the corresponding radii

@@ -101,6 +101,9 @@ jobs:
           sudo apt install -qy --no-install-recommends mesa-vulkan-drivers fonts-noto-cjk fonts-dejavu-extra
           # FIXME #35029
           sudo apt purge -y fonts-droid-fallback
+          sudo apt install -y jackd2 libjack-jackd2-0
+      - name: Start Dummy Audio Device
+        run: jackd -d dummy &
       - name: Sync from upstream WPT
         if: ${{ inputs.wpt-sync-from-upstream }}
         run: |

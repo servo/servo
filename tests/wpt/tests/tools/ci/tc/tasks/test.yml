@@ -117,15 +117,15 @@ components:
     chunks-override:
       testharness: 30
 
-  tox-python3_8:
+  tox-python3_9:
     env:
-      TOXENV: py38
+      TOXENV: py39
       PY_COLORS: "0"
     install:
-      - python3.8
-      - python3.8-distutils
-      - python3.8-dev
-      - python3.8-venv
+      - python3.9
+      - python3.9-distutils
+      - python3.9-dev
+      - python3.9-venv
 
   tox-python3_14:
     env:
@@ -574,13 +574,13 @@ tasks:
           - update_built
       command: "./tools/ci/ci_built_diff.sh"
 
-  - tools/ unittests (Python 3.8):
+  - tools/ unittests (Python 3.9):
       description: >-
-        Unit tests for tools running under Python 3.8, excluding wptrunner
+        Unit tests for tools running under Python 3.9, excluding wptrunner
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_8
+        - tox-python3_9
       command: ./tools/ci/ci_tools_unittest.sh
       env:
         HYPOTHESIS_PROFILE: ci
@@ -602,13 +602,13 @@ tasks:
         run-job:
           - tools_unittest
 
-  - tools/ integration tests (Python 3.8):
+  - tools/ integration tests (Python 3.9):
       description: >-
-        Integration tests for tools running under Python 3.8
+        Integration tests for tools running under Python 3.9
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_8
+        - tox-python3_9
       command: ./tools/ci/ci_tools_integration_test.sh
       install:
         - libnss3-tools
@@ -646,13 +646,13 @@ tasks:
         run-job:
           - wpt_integration
 
-  - resources/ tests (Python 3.8):
+  - resources/ tests (Python 3.9):
       description: >-
-        Tests for testharness.js and other files in resources/ under Python 3.8
+        Tests for testharness.js and other files in resources/ under Python 3.9
       use:
         - wpt-base
         - trigger-pr
-        - tox-python3_8
+        - tox-python3_9
       command: ./tools/ci/ci_resources_unittest.sh
       install:
         - libnss3-tools

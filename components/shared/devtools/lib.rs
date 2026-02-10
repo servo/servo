@@ -307,6 +307,7 @@ pub enum DevtoolScriptControlMsg {
     /// Highlight the given DOM node
     HighlightDomNode(PipelineId, Option<String>),
 
+    Eval(String, PipelineId, GenericSender<EvaluateJSReply>),
     GetPossibleBreakpoints(u32, GenericSender<Vec<RecommendedBreakpointLocation>>),
     SetBreakpoint(u32, u32, u32),
     ClearBreakpoint(u32, u32, u32),
@@ -364,6 +365,23 @@ pub enum ConsoleArgument {
     String(String),
     Integer(i32),
     Number(f64),
+    Object(ConsoleArgumentObject),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ConsoleArgumentObject {
+    pub class: String,
+    pub own_properties: Vec<ConsoleArgumentPropertyValue>,
+}
+
+/// A property on a JS object passed as a console argument.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ConsoleArgumentPropertyValue {
+    pub key: String,
+    pub configurable: bool,
+    pub enumerable: bool,
+    pub writable: bool,
+    pub value: ConsoleArgument,
 }
 
 impl From<String> for ConsoleArgument {

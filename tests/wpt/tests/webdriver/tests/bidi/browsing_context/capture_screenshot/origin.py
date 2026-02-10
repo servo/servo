@@ -4,6 +4,8 @@ from tests.support.image import png_dimensions
 
 from . import get_physical_document_dimensions, get_physical_viewport_dimensions
 
+import webdriver.bidi.error as error
+
 
 @pytest.mark.asyncio
 async def test_origin(bidi_session, top_context, inline):
@@ -54,3 +56,20 @@ async def test_origin_consistency(bidi_session, top_context, inline, origin):
     )
 
     assert screenshot_a == screenshot_b
+
+
+@pytest.mark.asyncio
+async def test_capture_huge_document_origin(bidi_session, top_context, inline):
+    width = "32768px"
+    height = "32768px"
+
+    url = inline(f"<div style='width: {width}; height: {height}; background-color: black;'></div>")
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"], url=url, wait="complete"
+    )
+
+    with pytest.raises(error.UnsupportedOperationException):
+        await bidi_session.browsing_context.capture_screenshot(
+            context=top_context["context"],
+            origin="document"
+        )

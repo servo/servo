@@ -2,18 +2,18 @@ features:
 - name: autonomous-custom-elements
   files:
   - "*"
-  # Exclude customized built-in elements. Keep in sync with below list.
+  # Exclude newer and more specific features. Keep in sync with below lists.
   - "!builtin-coverage.html"
   - "!customized-built-in-constructor-exceptions.html"
   - "!Document-createElement-customized-builtins.html"
   - "!Document-createElementNS-customized-builtins.html"
   - "!HTMLElement-constructor-customized-builtins.html"
   - "!pseudo-class-defined-customized-builtins.html"
-  # Exclude CustomElementRegistry. Keep in sync with below list.
   - "!CustomElementRegistry*"
+  - "!behaves-like-button-with-command.tentative.html"
 - name: customized-built-in-elements
   files:
-  # Keep in sync with above list.
+  # Keep in sync with main list.
   - builtin-coverage.html
   - customized-built-in-constructor-exceptions.html
   - Document-createElement-customized-builtins.html
@@ -24,3 +24,7 @@ features:
   files:
   # Keep in sync with main list.
   - "CustomElementRegistry*"
+- name: invoker-commands
+  files:
+  # Keep in sync with main list.
+  - behaves-like-button-with-command.tentative.html

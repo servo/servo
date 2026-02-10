@@ -2491,7 +2491,7 @@ class MockXRPresentationProvider {
     // wait for these notifications on the next frame, but waiting
     // within the current frame would never finish since the incoming
     // calls would be queued until the current execution context finishes.
-    this.submitFrameClient_.onSubmitFrameTransferred(true);
+    this.submitFrameClient_.onSubmitFrameTransferred(true, []);
     this.submitFrameClient_.onSubmitFrameRendered();
   }
 

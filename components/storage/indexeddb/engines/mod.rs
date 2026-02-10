@@ -4,7 +4,9 @@
 
 use std::collections::VecDeque;
 
-use storage_traits::indexeddb::{AsyncOperation, CreateObjectResult, IndexedDBTxnMode, KeyPath};
+use storage_traits::indexeddb::{
+    AsyncOperation, CreateObjectResult, IndexedDBIndex, IndexedDBTxnMode, KeyPath,
+};
 use tokio::sync::oneshot;
 
 pub use self::sqlite::SqliteEngine;
@@ -47,6 +49,7 @@ pub trait KvsEngine {
 
     fn has_key_generator(&self, store_name: &str) -> bool;
     fn key_path(&self, store_name: &str) -> Option<KeyPath>;
+    fn indexes(&self, store_name: &str) -> Result<Vec<IndexedDBIndex>, Self::Error>;
 
     fn create_index(
         &self,

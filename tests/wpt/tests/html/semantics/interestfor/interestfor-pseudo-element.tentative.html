@@ -15,7 +15,7 @@
 </div>
 
 <div id=target popover>Target</div>
-<button id=unrelated>Unrelated</div>
+<button id=unrelated>Unrelated</button>
 
 <style>
   [interestfor] {
@@ -76,13 +76,13 @@ function test(invoker) {
     assert_equals(interestFired, 1, 'Clicking/tapping the pseudo button should show interest immediately');
     await new test_driver.Actions()
       .addPointer("touchPointer", "touch")
-      .pointerMove(0,0,{unrelated})
+      .pointerMove(0,0,{origin: unrelated})
       .send();
     assert_equals(interestFired, 1, 'No extra events');
     assert_equals(loseInterestFired, 0, 'No "hover" with touch pointers, so we should\'t lose interest yet');
     await new test_driver.Actions()
       .addPointer("touchPointer", "touch")
-      .pointerMove(0,0,{unrelated})
+      .pointerMove(0,0,{origin: unrelated})
       .pointerDown()
       .pointerUp()
       .send();

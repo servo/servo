@@ -86,11 +86,14 @@ impl ServoCookie {
 
             // The user agent MUST limit the maximum value of the Max-Age attribute.
             // The limit SHOULD NOT be greater than 400 days (34560000 seconds) in the future.
-            let clamped_max_age = max_age.min(Duration::seconds(34560000));
+            let clamped_max_age = max_age.min(Duration::seconds(34_560_000));
 
             // 2. Set the cookie's expiry-time to attribute-value of the last
             // attribute in the cookie-attribute-list with an attribute-name of "Max-Age".
             expiry_time = Some(SystemTime::now() + clamped_max_age);
+            cookie.set_max_age(clamped_max_age);
+            // cookie-rs doesn't seem to mirror the max-age value to expiry and vice versa so we do explicitly
+            cookie.set_expires(Some(OffsetDateTime::now_utc() + clamped_max_age));
         }
         // Otherwise, if the cookie-attribute-list contains an attribute with an attribute-name of "Expires":
         else if let Some(date_time) = cookie.expires_datetime() {
@@ -100,11 +103,14 @@ impl ServoCookie {
             // The user agent MUST limit the maximum value of the Expires attribute.
             // The limit SHOULD NOT be greater than 400 days (34560000 seconds) in the future.
             let clamped_date_time =
-                date_time.min(OffsetDateTime::now_utc() + Duration::seconds(34560000));
+                date_time.min(OffsetDateTime::now_utc() + Duration::seconds(34_560_000));
 
             // 2. Set the cookie's expiry-time to attribute-value of the last attribute in the
             // cookie-attribute-list with an attribute-name of "Expires".
             expiry_time = Some(clamped_date_time.into());
+            cookie.set_expires(Some(clamped_date_time));
+            // cookie-rs doesn't seem to mirror the max-age value to expiry and vice versa so we do explicitly
+            cookie.set_max_age(Some(clamped_date_time - OffsetDateTime::now_utc()));
         }
         //  Otherwise:
         else {

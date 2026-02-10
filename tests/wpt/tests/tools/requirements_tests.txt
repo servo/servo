@@ -4,5 +4,5 @@ jsonschema==4.25.1; python_version >= '3.9'
 jsonschema==4.23.0; python_version < '3.9'
 pyyaml==6.0.1
 types-pyyaml==6.0.12.20241230
-taskcluster==91.0.1
+taskcluster==96.2.1
 mozterm==1.0.0

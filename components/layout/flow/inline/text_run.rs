@@ -487,13 +487,15 @@ impl TextRun {
 
         let text_run_text = &formatting_context_text[self.text_range.clone()];
         let char_iterator = TwoCharsAtATimeIterator::new(text_run_text.chars());
+
+        // The next current character index within the entire inline formatting context's text.
+        let mut next_character_index = self.character_range.start;
+        // The next bytes index of the charcter within the entire inline formatting context's text.
         let mut next_byte_index = self.text_range.start;
 
-        // This represents the current character index as we iterate relative to the entire inline formatting
-        // context.
-        let mut current_character_index = self.character_range.start;
         for (character, next_character) in char_iterator {
-            current_character_index += 1;
+            let current_character_index = next_character_index;
+            next_character_index += 1;
 
             let current_byte_index = next_byte_index;
             next_byte_index += character.len_utf8();

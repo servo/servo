@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::{env, fs};
 
 fn main() {
@@ -25,20 +25,30 @@ fn main() {
     }
 }
 
-fn try_python_command(mut command: Command) -> Result<Command, String> {
+fn try_python_command(program: &str, args: &[&str]) -> Result<(), String> {
+    let mut command = Command::new(program);
+    command.args(args);
+    command.arg("--version");
+    command.stdin(Stdio::null());
+
     let command_result = command.output();
 
     if let Ok(output) = command_result {
         return if output.status.success() {
-            Ok(command)
+            Ok(())
         } else {
             Err(format!(
-                "`{command:?}` failed with {}",
+                "`{} {:?}` failed with {}",
+                program,
+                args,
                 String::from_utf8_lossy(&output.stderr)
             ))
         };
     }
-    Err(format!("`{command:?}` failed to run (is it installed?)"))
+    Err(format!(
+        "`{} {:?}` failed to run (is it installed?)",
+        program, args
+    ))
 }
 
 /// Tries to find a suitable python, which in Servo is always `uv run python`.
@@ -48,12 +58,13 @@ fn try_python_command(mut command: Command) -> Result<Command, String> {
 ///
 /// Note: This function should be kept in sync with the version in `components/script_bindings/build.rs`
 fn find_python() -> Command {
-    let mut command = Command::new("uv");
-    command.args(["run", "--frozen", "python"]);
-
-    let command_result = try_python_command(command).inspect_err(|e| println!("cargo:warning={e}"));
-    if let Ok(command) = command_result {
-        return command;
+    // Test uv first - if it works, create a FRESH command to return
+    let uv_result =
+        try_python_command("uv", &["run", "python"]).inspect_err(|e| println!("cargo:warning={e}"));
+    if uv_result.is_ok() {
+        let mut cmd = Command::new("uv");
+        cmd.args(["run", "python"]);
+        return cmd;
     }
 
     println!(
@@ -62,16 +73,14 @@ fn find_python() -> Command {
         to provision a python environment >= python 3.11."
     );
 
-    let python3 = Command::new("python3");
-    let python3_result = try_python_command(python3);
-    if let Ok(command) = python3_result {
-        return command;
+    let python3_result = try_python_command("python3", &[]);
+    if python3_result.is_ok() {
+        return Command::new("python3");
     }
 
-    let python = Command::new("python");
-    let python_result = try_python_command(python);
-    if let Ok(command) = python_result {
-        return command;
+    let python_result = try_python_command("python", &[]);
+    if python_result.is_ok() {
+        return Command::new("python");
     }
 
     // We first try `python` before printing an error for `python3`, since python3 is often missing

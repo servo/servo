@@ -31,13 +31,11 @@
 
       await func(pageA1, pageA2);
 
-      await Promise.all([
-        navigateAndThenBack(pageA1, pageB1, urlB1),
-        navigateAndThenBack(pageA2, pageB2, urlB2),
-      ]);
+      await navigateAndThenBack(pageA1, pageB1, urlB1);
+      await navigateAndThenBack(pageA2, pageB2, urlB2);
 
-      await assert_not_bfcached(pageA1);
-      await assert_not_bfcached(pageA2);
+      await assert_bfcached(pageA1);
+      await assert_bfcached(pageA2);
     }, description);
   }
 
@@ -53,7 +51,7 @@
       await new Promise(resolve => script.onload = resolve);
       await postToWorkerAndWait(worker.port, { op: "request", name: uniqueNameByQuery() });
     });
-  }, "A new held lock must prevent bfcache on all connected documents");
+  }, "A new held lock does not prevent bfcache on all connected documents");
 
   double_docs_test(async (pageA1, pageA2) => {
     await pageA1.execute_script(connectToSharedWorker);
@@ -65,5 +63,5 @@
       await postToWorkerAndWait(worker.port, { op: "request", name: uniqueNameByQuery() });
     });
     await pageA2.execute_script(connectToSharedWorker);
-  }, "An existing held lock must prevent bfcache on all connected documents");
+  }, "An existing held lock does not prevent bfcache on all connected documents");
 </script>

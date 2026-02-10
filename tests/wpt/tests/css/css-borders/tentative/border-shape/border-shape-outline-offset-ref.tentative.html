@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>CSS Borders Test: outline with outline-offset follows border-shape - reference</title>
+<style>
+body {
+  margin: 0;
+}
+.container {
+  padding: 30px;
+}
+.target {
+  width: 100px;
+  height: 100px;
+  position: relative;
+}
+</style>
+<div class="container">
+  <!-- Circle at 50px radius -->
+  <!-- Outline: 4px green stroke with 6px offset -->
+  <!-- Center of outline at: 50 + 6 + 2 = 58px -->
+  <div class="target">
+    <svg width="130" height="130" style="position: absolute; left: -15px; top: -15px;">
+      <!-- Background fill: circle at 50px radius -->
+      <circle cx="65" cy="65" r="50" fill="lightblue"/>
+      <!-- Outline stroke: 4px green centered at 58px (50 + 6 + 2) -->
+      <circle cx="65" cy="65" r="58" fill="none" stroke="green" stroke-width="4"/>
+    </svg>
+  </div>
+</div>
