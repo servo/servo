@@ -339,7 +339,9 @@ impl HeadedWindow {
         let mut handled = true;
         ShortcutMatcher::from_event(key_event.event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || active_webview.reload())
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::F5), || active_webview.reload())
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::F5), || {
+                active_webview.reload()
+            })
             .shortcut(CMD_OR_CONTROL, 'W', || {
                 window.close_webview(active_webview.id());
             })
