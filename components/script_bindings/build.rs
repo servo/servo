@@ -5,7 +5,7 @@
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::Instant;
 use std::{env, fmt};
 
@@ -84,6 +84,7 @@ fn try_python_command(program: &str, args: &[&str]) -> Result<(), String> {
     let mut command = Command::new(program);
     command.args(args);
     command.arg("--version");
+    command.stdin(Stdio::null());
 
     let command_result = command.output();
 
