@@ -24,7 +24,6 @@ pub(crate) struct XRRigidTransform {
     reflector_: Reflector,
     position: MutNullableDom<DOMPointReadOnly>,
     orientation: MutNullableDom<DOMPointReadOnly>,
-    #[ignore_malloc_size_of = "defined in euclid"]
     #[no_trace]
     transform: ApiRigidTransform,
     inverse: MutNullableDom<XRRigidTransform>,

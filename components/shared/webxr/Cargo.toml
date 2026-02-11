@@ -23,3 +23,5 @@ profile_traits = { workspace = true }
 euclid = { workspace = true }
 serde = { workspace = true }
 log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }

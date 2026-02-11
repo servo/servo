@@ -10810,8 +10810,10 @@ dependencies = [
  "euclid",
  "ipc-channel",
  "log",
+ "malloc_size_of_derive",
  "profile_traits",
  "serde",
+ "servo_malloc_size_of",
 ]
 
 [[package]]

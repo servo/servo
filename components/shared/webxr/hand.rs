@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::RigidTransform3D;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
 use crate::Native;
@@ -10,7 +11,7 @@ use crate::Native;
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
 pub struct HandSpace;
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, MallocSizeOf)]
 pub struct Hand<J> {
     pub wrist: Option<J>,
     pub thumb_metacarpal: Option<J>,
@@ -23,7 +24,7 @@ pub struct Hand<J> {
     pub little: Finger<J>,
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, MallocSizeOf)]
 pub struct Finger<J> {
     pub metacarpal: Option<J>,
     pub phalanx_proximal: Option<J>,
@@ -32,7 +33,7 @@ pub struct Finger<J> {
     pub phalanx_tip: Option<J>,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, MallocSizeOf)]
 pub struct JointFrame {
     pub pose: RigidTransform3D<f32, HandSpace, Native>,
     pub radius: f32,

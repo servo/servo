@@ -15,7 +15,6 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct XRHitTestSource {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
     id: HitTestId,
     session: Dom<XRSession>,

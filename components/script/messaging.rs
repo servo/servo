@@ -302,18 +302,28 @@ impl QueuedTaskConversion for MainThreadScriptMsg {
             MainThreadScriptMsg::Common(script_msg) => script_msg,
             _ => return None,
         };
-        let (category, boxed, pipeline_id, task_source) = match script_msg {
+        let (event_category, task, pipeline_id, task_source) = match script_msg {
             CommonScriptMsg::Task(category, boxed, pipeline_id, task_source) => {
                 (category, boxed, pipeline_id, task_source)
             },
             _ => return None,
         };
-        Some((None, category, boxed, pipeline_id, task_source))
+        Some(QueuedTask {
+            worker: None,
+            event_category,
+            task,
+            pipeline_id,
+            task_source,
+        })
     }
 
     fn from_queued_task(queued_task: QueuedTask) -> Self {
-        let (_worker, category, boxed, pipeline_id, task_source) = queued_task;
-        let script_msg = CommonScriptMsg::Task(category, boxed, pipeline_id, task_source);
+        let script_msg = CommonScriptMsg::Task(
+            queued_task.event_category,
+            queued_task.task,
+            queued_task.pipeline_id,
+            queued_task.task_source,
+        );
         MainThreadScriptMsg::Common(script_msg)
     }
 

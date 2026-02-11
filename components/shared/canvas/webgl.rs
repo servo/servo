@@ -730,7 +730,7 @@ impl From<WebGLContextId> for WebXRContextId {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, MallocSizeOf)]
 pub enum WebGLError {
     InvalidEnum,
     InvalidFramebufferOperation,

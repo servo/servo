@@ -80,7 +80,6 @@ pub(crate) struct XRSession {
     mode: XRSessionMode,
     visibility_state: Cell<XRVisibilityState>,
     viewer_space: MutNullableDom<XRSpace>,
-    #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
     session: DomRefCell<Session>,
     frame_requested: Cell<bool>,
@@ -101,16 +100,14 @@ pub(crate) struct XRSession {
     end_promises: DomRefCell<Vec<Rc<Promise>>>,
     /// <https://immersive-web.github.io/webxr/#ended>
     ended: Cell<bool>,
-    #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
     next_hit_test_id: Cell<HitTestId>,
-    #[ignore_malloc_size_of = "defined in webxr"]
+    #[ignore_malloc_size_of = "Promise"]
     pending_hit_test_promises:
         DomRefCell<HashMapTracedValues<HitTestId, Rc<Promise>, FxBuildHasher>>,
     /// Opaque framebuffers need to know the session is "outside of a requestAnimationFrame"
     /// <https://immersive-web.github.io/webxr/#opaque-framebuffer>
     outside_raf: Cell<bool>,
-    #[ignore_malloc_size_of = "defined in webxr"]
     #[no_trace]
     input_frames: DomRefCell<HashMap<InputId, InputFrame>>,
     framerate: Cell<f32>,
