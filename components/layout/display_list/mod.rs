@@ -13,7 +13,7 @@ use fonts::GlyphStore;
 use gradient::WebRenderGradient;
 use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
-use paint_api::largest_contentful_paint_candidate::{LCPCandidateID, LargestContentfulPaintType};
+use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DiagnosticsLogging;
 use servo_geometry::MaxRect;
@@ -523,7 +523,6 @@ impl DisplayListBuilder<'_> {
     #[inline]
     fn collect_lcp_candidate(
         &mut self,
-        lcp_type: LargestContentfulPaintType,
         lcp_candidate_id: LCPCandidateID,
         clip_rect: LayoutRect,
         bounds: LayoutRect,
@@ -533,13 +532,7 @@ impl DisplayListBuilder<'_> {
                 .paint_info
                 .scroll_tree
                 .cumulative_node_to_root_transform(self.current_scroll_node_id);
-            lcp_collector.add_or_update_candidate(
-                lcp_type,
-                lcp_candidate_id,
-                clip_rect,
-                bounds,
-                transform,
-            );
+            lcp_collector.add_or_update_candidate(lcp_candidate_id, clip_rect, bounds, transform);
         }
     }
 }
@@ -669,12 +662,7 @@ impl Fragment {
                             .tag
                             .map(|tag| LCPCandidateID(tag.node.id()))
                             .unwrap_or(LCPCandidateID(0));
-                        builder.collect_lcp_candidate(
-                            LargestContentfulPaintType::Image,
-                            lcp_candidate_id,
-                            common.clip_rect,
-                            rect,
-                        );
+                        builder.collect_lcp_candidate(lcp_candidate_id, common.clip_rect, rect);
                     },
                     Visibility::Hidden => (),
                     Visibility::Collapse => (),
@@ -1406,7 +1394,6 @@ impl<'a> BuilderForBoxFragment<'a> {
                             .map(|tag| LCPCandidateID(tag.node.id()))
                             .unwrap_or(LCPCandidateID(0));
                         builder.collect_lcp_candidate(
-                            LargestContentfulPaintType::BackgroundImage,
                             lcp_candidate_id,
                             layer.common.clip_rect,
                             layer.bounds,

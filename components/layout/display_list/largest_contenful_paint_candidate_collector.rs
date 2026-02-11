@@ -3,9 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::Rect;
-use paint_api::largest_contentful_paint_candidate::{
-    LCPCandidate, LCPCandidateID, LargestContentfulPaintType,
-};
+use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
 use webrender_api::units::{LayoutRect, LayoutSize};
 
@@ -32,7 +30,6 @@ impl LargestContentfulPaintCandidateCollector {
 
     pub fn add_or_update_candidate(
         &mut self,
-        lcp_type: LargestContentfulPaintType,
         lcp_candidate_id: LCPCandidateID,
         clip_rect: LayoutRect,
         bounds: LayoutRect,
@@ -55,7 +52,7 @@ impl LargestContentfulPaintCandidateCollector {
             return;
         }
 
-        self.update_candidate(LCPCandidate::new(lcp_candidate_id, lcp_type, area as usize));
+        self.update_candidate(LCPCandidate::new(lcp_candidate_id, area as usize));
     }
 
     fn update_candidate(&mut self, candidate: LCPCandidate) {

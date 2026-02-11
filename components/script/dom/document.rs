@@ -3475,14 +3475,14 @@ impl Document {
                 let entry = binding.upcast::<PerformanceEntry>();
                 self.window.Performance().queue_entry(entry);
             },
-            ProgressiveWebMetricType::LargestContentfulPaint { area, lcp_type } => {
+            ProgressiveWebMetricType::LargestContentfulPaint { area } => {
                 let binding = LargestContentfulPaint::new(
                     self.window.as_global_scope(),
                     metric_type,
                     metric_value,
                     can_gc,
                 );
-                metrics.set_largest_contentful_paint(metric_value, area, lcp_type);
+                metrics.set_largest_contentful_paint(metric_value, area);
                 let entry = binding.upcast::<PerformanceEntry>();
                 self.window.Performance().queue_entry(entry);
             },

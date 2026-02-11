@@ -508,7 +508,6 @@ impl Painter {
                                 servo_profiling = true,
                                 paint_time = ?paint_time,
                                 area = ?lcp.area,
-                                lcp_type = ?lcp.lcp_type,
                                 pipeline_id = ?pipeline_id,
                             );
                             self.send_to_constellation(
@@ -517,7 +516,6 @@ impl Painter {
                                     PaintMetricEvent::LargestContentfulPaint(
                                         lcp.paint_time,
                                         lcp.area,
-                                        lcp.lcp_type,
                                     ),
                                 ),
                             );
