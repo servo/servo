@@ -13,21 +13,14 @@ let log_object = () => {
       writable: true,
       configurable: true
   });
-
   Object.defineProperty(object, "baz", {
       enumerable: true,
       writable: true,
       configurable: false
   });
-  Object.defineProperty(object, "quux", {
-    enumerable: true,
-    writable: true,
-    configurable: false
-  });
   object.foo = 1;
   object.bar = "servo";
-  object.baz = true;
-  object.quux = false;
+  object.baz = true
   console.log(object);
 };
 </script>

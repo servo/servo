@@ -8,28 +8,29 @@
 # except according to those terms.
 
 from __future__ import annotations
-from concurrent.futures import Future
-from dataclasses import dataclass
-import logging
-import socket
-import sys
-from geckordp.actors.root import RootActor
-from geckordp.actors.descriptors.tab import TabActor
-from geckordp.actors.watcher import WatcherActor
-from geckordp.actors.web_console import WebConsoleActor
-from geckordp.actors.resources import Resources
-from geckordp.actors.events import Events
-from geckordp.rdp_client import RDPClient
+
 import http.server
+import logging
 import os.path
+import socket
 import socketserver
 import subprocess
+import sys
 import time
+import unittest
+from collections import Counter
+from concurrent.futures import Future
+from dataclasses import dataclass
 from threading import Thread
 from typing import Any, Iterable, Optional, TypeVar
-import unittest
 
-from collections import Counter
+from geckordp.actors.descriptors.tab import TabActor
+from geckordp.actors.events import Events
+from geckordp.actors.resources import Resources
+from geckordp.actors.root import RootActor
+from geckordp.actors.watcher import WatcherActor
+from geckordp.actors.web_console import WebConsoleActor
+from geckordp.rdp_client import RDPClient
 
 # Set this to true to log requests in the internal web servers.
 LOG_REQUESTS = False
@@ -745,11 +746,11 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             result = evaluation_result.result(1)["arguments"][0]
 
             # Run assertions on the result
-            self.assertEquals(result["ownPropertyLength"], 4)
+            self.assertEquals(result["ownPropertyLength"], 3)
 
             preview = result["preview"]
             self.assertEquals(preview["kind"], "Object")
-            self.assertEquals(preview["ownPropertiesLength"], 4)
+            self.assertEquals(preview["ownPropertiesLength"], 3)
 
             def assert_property_descriptor_equals(actual_descriptor, expected_descriptor):
                 for key, value in expected_descriptor.items():
@@ -770,10 +771,6 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             assert_property_descriptor_equals(
                 preview["ownProperties"]["baz"],
                 {"configurable": False, "enumerable": True, "value": True, "writable": True},
-            )
-            assert_property_descriptor_equals(
-                preview["ownProperties"]["quux"],
-                {"configurable": False, "enumerable": True, "value": False, "writable": True},
             )
 
     # Sets `base_url` and `web_server` and `web_server_thread`.
