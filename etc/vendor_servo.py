@@ -44,17 +44,20 @@ def vendor():
             dirs_exist_ok=True,
         )
         os.chdir(tmpdirname)
-        # shutil.rmtree('.git/')
         # vendoring crates
         print("Vendoring Crates")
-        vendor_process = subprocess.run(["cargo", "vendor", "vendor/"], capture_output=True, encoding="Utf8")
+        vendor_process = subprocess.run(
+            ["cargo", "vendor", "vendor/"], capture_output=True, encoding="Utf8", check=True
+        )
         out = vendor_process.stdout
         print("Modifying cargo")
         with open("Cargo.toml", "a") as toml:
             toml.write("\n")
             toml.writelines(out)
-        print("Making archive in /tmp/servo.tar.gz. This might take a while.")
-        shutil.make_archive("/tmp/servo", format="gztar", base_dir="./")
+
+        file = tempfile.gettempdir() + "/servo"
+        print(f"Making archive in {file}.tar.gz")
+        shutil.make_archive(file, format="gztar", base_dir="./")
     return 0
 
 
