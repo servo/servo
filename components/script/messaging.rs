@@ -106,7 +106,7 @@ impl MixedMessage {
                 ScriptThreadMessage::DestroyUserContentManager(..) => None,
                 ScriptThreadMessage::AccessibilityTreeUpdate(..) => None,
                 ScriptThreadMessage::UpdatePinchZoomInfos(id, _) => Some(*id),
-                ScriptThreadMessage::SetAccessibilityActive(_webview_id, id, ..) => Some(*id),
+                ScriptThreadMessage::SetAccessibilityActive(..) => None,
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {

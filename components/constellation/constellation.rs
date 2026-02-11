@@ -1197,11 +1197,7 @@ where
         {
             let _ = pipeline
                 .event_loop
-                .send(ScriptThreadMessage::SetAccessibilityActive(
-                    webview_id,
-                    pipeline.id,
-                    true,
-                ));
+                .send(ScriptThreadMessage::SetAccessibilityActive(true));
         }
 
         // If this context is a nested container, attach it to parent pipeline.
@@ -3046,16 +3042,8 @@ where
 
     fn set_accessibility_active(&mut self, active: bool) {
         self.accessibility_active = active;
-        for browsing_context in self.browsing_contexts.values_mut() {
-            if let Some(pipeline) = self.pipelines.get(&browsing_context.pipeline_id) {
-                let _ = pipeline
-                    .event_loop
-                    .send(ScriptThreadMessage::SetAccessibilityActive(
-                        browsing_context.webview_id,
-                        pipeline.id,
-                        active,
-                    ));
-            }
+        for event_loop in self.event_loops() {
+            let _ = event_loop.send(ScriptThreadMessage::SetAccessibilityActive(active));
         }
     }
 

@@ -307,7 +307,7 @@ pub enum ScriptThreadMessage {
     /// instance that gets updated according to the changes from the `Compositor``.
     UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
     /// Activate or deactivate accessibility features.
-    SetAccessibilityActive(WebViewId, PipelineId, bool),
+    SetAccessibilityActive(bool),
 }
 
 impl fmt::Debug for ScriptThreadMessage {
