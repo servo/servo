@@ -25,6 +25,10 @@ pub struct CookieStorage {
     version: u32,
     cookies_map: HashMap<String, Vec<ServoCookie>>,
     max_per_host: usize,
+    // cookie changes are callbacks for "script visible" changes to the cookies for a given url
+    // because we may have many webviews with the same url we also key on
+    #[serde(skip_serializing)]
+    cookie_change_listeners: HashMap<ServoUrl, Vec<Box<dyn Fn>>>,
 }
 
 #[derive(Debug)]
@@ -39,6 +43,7 @@ impl CookieStorage {
             version: 1,
             cookies_map: HashMap::new(),
             max_per_host: max_cookies,
+            cookie_change_listeners: HashMap::new(),
         }
     }
 
@@ -289,6 +294,15 @@ impl CookieStorage {
             .map(SiteDescriptor::new)
             .collect()
     }
+
+    pub fn register_listener_for_url(&self, url: &ServoUrl, callback: Box<dyn Fn>) {
+        self.cookie_change_listeners
+            .entry(*url)
+            .and_modify(|v| v.push(callback))
+            .or_insert(vec![callback]);
+    }
+
+    pub fn remove_listener_for_url(url: &ServoUrl) {}
 }
 
 fn reg_host(url: &str) -> String {

@@ -105,9 +105,13 @@ impl CookieListener {
                         .collect_vec(),
                     CanGc::note());
                 },
-                CookieData::Delete(_) | CookieData::Change(_) | CookieData::Set(_) => {
+                CookieData::Delete(_) | CookieData::Set(_) => {
                     promise.resolve_native(&(), CanGc::note());
-                }
+                },
+                CookieData::Change(_) => {
+                    // TODO: we actually want to create and fire a CookieChangeEvent
+                    promise.resolve_native(&(), CanGc::note());
+                },
             }
         }));
     }

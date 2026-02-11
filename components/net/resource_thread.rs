@@ -505,9 +505,12 @@ impl ResourceChannelManager {
             CoreResourceMsg::NewCookieListener(cookie_store_id, sender, _url) => {
                 // TODO: Use the URL for setting up the actual monitoring
                 self.cookie_listeners.insert(cookie_store_id, sender);
+                // cookie_jar.register_cookie_change_callback(url, self.send_cookie_response(cookie_store_id, ))
             },
             CoreResourceMsg::RemoveCookieListener(cookie_store_id) => {
                 self.cookie_listeners.remove(&cookie_store_id);
+                // Not technically correct, we may have multiple webviews that are all the same url
+                // cookie_jar.remove_cookie_listener(url, )
             },
             CoreResourceMsg::NetworkMediator(mediator_chan, origin) => {
                 self.resource_manager
