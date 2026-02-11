@@ -388,7 +388,7 @@ impl Image {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "lowercase")]
 pub enum ConsoleLogLevel {
     Log,

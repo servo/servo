@@ -432,6 +432,12 @@ impl<T: MallocSizeOf> MallocSizeOf for BinaryHeap<T> {
     }
 }
 
+impl<T: MallocSizeOf> MallocSizeOf for std::collections::BTreeSet<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.iter().map(|element| element.size_of(ops)).sum()
+    }
+}
+
 impl<T: MallocSizeOf> MallocSizeOf for Range<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.start.size_of(ops) + self.end.size_of(ops)
@@ -1060,6 +1066,12 @@ impl MallocSizeOf for ipc_channel::ipc::IpcSharedMemory {
     }
 }
 
+impl<T> MallocSizeOf for std::sync::mpsc::Sender<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
 impl<T: MallocSizeOf> MallocSizeOf for accountable_refcell::RefCell<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.borrow().size_of(ops)
@@ -1093,11 +1105,13 @@ malloc_size_of_is_0!(resvg::usvg::fontdb::Weight);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Stretch);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Language);
 malloc_size_of_is_0!(std::num::NonZeroU16);
+malloc_size_of_is_0!(std::num::NonZeroU32);
 malloc_size_of_is_0!(std::num::NonZeroU64);
 malloc_size_of_is_0!(std::num::NonZeroUsize);
 malloc_size_of_is_0!(std::sync::atomic::AtomicBool);
 malloc_size_of_is_0!(std::sync::atomic::AtomicIsize);
 malloc_size_of_is_0!(std::sync::atomic::AtomicUsize);
+malloc_size_of_is_0!(std::sync::atomic::AtomicU32);
 malloc_size_of_is_0!(std::time::Duration);
 malloc_size_of_is_0!(std::time::Instant);
 malloc_size_of_is_0!(std::time::SystemTime);
@@ -1114,6 +1128,7 @@ malloc_size_of_is_0!(unicode_bidi::Level);
 malloc_size_of_is_0!(unicode_script::Script);
 malloc_size_of_is_0!(urlpattern::UrlPattern);
 malloc_size_of_is_0!(utf8::Incomplete);
+malloc_size_of_is_0!(std::net::TcpStream);
 
 impl<S: tendril::TendrilSink<tendril::fmt::UTF8, A>, A: tendril::Atomicity> MallocSizeOf
     for tendril::stream::LossyDecoder<S, A>

@@ -13,6 +13,7 @@ use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, GetSelectors};
 use devtools_traits::{AutoMargins, ComputedNodeLayout, DevtoolScriptControlMsg};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
@@ -90,6 +91,7 @@ pub(crate) struct PageStyleMsg {
     pub traits: HashMap<String, bool>,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct PageStyleActor {
     pub name: String,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,

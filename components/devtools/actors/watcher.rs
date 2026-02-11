@@ -16,6 +16,7 @@ use std::net::TcpStream;
 use base::id::BrowsingContextId;
 use devtools_traits::get_time_stamp;
 use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
@@ -42,7 +43,7 @@ pub mod thread_configuration;
 
 /// Describes the debugged context. It informs the server of which objects can be debugged.
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors/watcher/session-context.js>
-#[derive(Serialize)]
+#[derive(Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SessionContext {
     is_server_target_switching_enabled: bool,
@@ -97,7 +98,7 @@ impl SessionContext {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, MallocSizeOf)]
 pub enum SessionContextType {
     BrowserElement,
     _ContextProcess,
@@ -179,6 +180,7 @@ pub(crate) struct WatcherActorMsg {
     traits: WatcherTraits,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct WatcherActor {
     name: String,
     pub browsing_context_actor: String,

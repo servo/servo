@@ -10,6 +10,7 @@
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/tab.js
 
 use devtools_traits::DevtoolScriptControlMsg;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -67,6 +68,7 @@ struct GetWatcherReply {
     watcher: WatcherActorMsg,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct TabDescriptorActor {
     name: String,
     browsing_context_actor: String,

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use malloc_size_of_derive::MallocSizeOf;
 use num_traits::cast::NumCast;
 
 use crate::block::{Chunk, Tick};
@@ -11,11 +12,11 @@ use crate::node::{
 };
 use crate::param::{Param, ParamType};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct PeriodicWaveOptions {
     // XXX https://webaudio.github.io/web-audio-api/#dictdef-periodicwaveoptions
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub enum OscillatorType {
     Sine,
     Square,
@@ -24,7 +25,7 @@ pub enum OscillatorType {
     Custom,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct OscillatorNodeOptions {
     pub oscillator_type: OscillatorType,
     pub freq: f32,
@@ -43,7 +44,7 @@ impl Default for OscillatorNodeOptions {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub enum OscillatorNodeMessage {
     SetOscillatorType(OscillatorType),
 }

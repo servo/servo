@@ -17,6 +17,7 @@ use devtools_traits::DevtoolScriptControlMsg::{
 };
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
 use embedder_traits::Theme;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -131,6 +132,7 @@ pub(crate) struct BrowsingContextActorMsg {
 /// The browsing context actor encompasses all of the other supporting actors when debugging a web
 /// view. To this extent, it contains a watcher actor that helps when communicating with the host,
 /// as well as resource actors that each perform one debugging function.
+#[derive(MallocSizeOf)]
 pub(crate) struct BrowsingContextActor {
     name: String,
     pub title: AtomicRefCell<String>,

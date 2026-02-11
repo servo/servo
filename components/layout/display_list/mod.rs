@@ -630,8 +630,6 @@ impl Fragment {
                 let style = image.base.style();
                 match style.get_inherited_box().visibility {
                     Visibility::Visible => {
-                        builder.mark_is_contentful();
-
                         let image_rendering =
                             style.get_inherited_box().image_rendering.to_webrender();
                         let rect = image
@@ -646,6 +644,8 @@ impl Fragment {
                         let common = builder.common_properties(clip, &style);
 
                         if let Some(image_key) = image.image_key {
+                            builder.mark_is_contentful();
+
                             builder.wr().push_image(
                                 &common,
                                 rect,

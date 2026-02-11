@@ -1160,6 +1160,7 @@ impl ParserContext {
                 CanGc::note(),
             );
             let audio = DomRoot::downcast::<HTMLMediaElement>(audio).unwrap();
+            audio.SetControls(true);
             audio.SetSrc(USVString(self.url.to_string()));
             DomRoot::upcast::<Node>(audio)
         } else {
@@ -1173,6 +1174,7 @@ impl ParserContext {
                 CanGc::note(),
             );
             let video = DomRoot::downcast::<HTMLMediaElement>(video).unwrap();
+            video.SetControls(true);
             video.SetSrc(USVString(self.url.to_string()));
             DomRoot::upcast::<Node>(video)
         };

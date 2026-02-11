@@ -9,6 +9,7 @@ use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
 use devtools_traits::{AttrModification, DevtoolScriptControlMsg};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
@@ -24,6 +25,7 @@ pub(crate) struct WalkerMsg {
     root: NodeActorMsg,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct WalkerActor {
     pub name: String,
     pub mutations: AtomicRefCell<Vec<(AttrModification, String)>>,

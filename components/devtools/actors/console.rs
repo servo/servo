@@ -20,6 +20,7 @@ use devtools_traits::{
     ConsoleArgument, ConsoleMessage, ConsoleMessageFields, DevtoolScriptControlMsg, PageError,
     StackFrame, get_time_stamp,
 };
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Number, Value};
 use uuid::Uuid;
@@ -32,11 +33,12 @@ use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 use crate::{EmptyReplyMsg, StreamId, UniqueId};
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct DevtoolsConsoleMessage {
     #[serde(flatten)]
     fields: ConsoleMessageFields,
+    #[ignore_malloc_size_of = "Currently no way to have serde_json::Value"]
     arguments: Vec<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     stacktrace: Option<Vec<StackFrame>>,
@@ -140,7 +142,7 @@ fn console_argument_to_value(argument: ConsoleArgument, registry: &ActorRegistry
     }
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 struct DevtoolsPageError {
     #[serde(flatten)]
@@ -172,7 +174,7 @@ impl From<PageError> for DevtoolsPageError {
         }
     }
 }
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct PageErrorWrapper {
     page_error: DevtoolsPageError,
@@ -186,7 +188,7 @@ impl From<PageError> for PageErrorWrapper {
     }
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, MallocSizeOf)]
 #[serde(untagged)]
 pub(crate) enum ConsoleResource {
     ConsoleMessage(DevtoolsConsoleMessage),
@@ -256,11 +258,13 @@ struct SetPreferencesReply {
     updated: Vec<String>,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) enum Root {
     BrowsingContext(String),
     DedicatedWorker(String),
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct ConsoleActor {
     name: String,
     root: Root,

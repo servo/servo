@@ -5,6 +5,7 @@
 //! The Accessibility actor is responsible for the Accessibility tab in the DevTools page. Right
 //! now it is a placeholder for future functionality.
 
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -52,6 +53,7 @@ struct GetWalkerReply {
     walker: ActorMsg,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct AccessibilityActor {
     name: String,
 }
@@ -132,6 +134,7 @@ impl AccessibilityActor {
     }
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct SimulatorActor {
     name: String,
 }
@@ -142,6 +145,7 @@ impl Actor for SimulatorActor {
     }
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct AccessibleWalkerActor {
     name: String,
 }

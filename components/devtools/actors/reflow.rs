@@ -4,12 +4,14 @@
 
 //! This actor is used for protocol purposes, it forwards the reflow events to clients.
 
+use malloc_size_of_derive::MallocSizeOf;
 use serde_json::{Map, Value};
 
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::protocol::ClientRequest;
 use crate::{EmptyReplyMsg, StreamId};
 
+#[derive(MallocSizeOf)]
 pub(crate) struct ReflowActor {
     name: String,
 }

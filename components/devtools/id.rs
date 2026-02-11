@@ -3,9 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
+use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, MallocSizeOf)]
 pub(crate) struct IdMap {
     browser_ids: FxHashMap<WebViewId, u32>,
     browsing_context_ids: FxHashMap<BrowsingContextId, u32>,
@@ -53,13 +54,13 @@ impl IdMap {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, MallocSizeOf)]
 pub(crate) struct DevtoolsBrowserId(u32);
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, MallocSizeOf)]
 pub(crate) struct DevtoolsBrowsingContextId(u32);
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, MallocSizeOf)]
 pub(crate) struct DevtoolsOuterWindowId(u32);
 
 impl DevtoolsBrowserId {

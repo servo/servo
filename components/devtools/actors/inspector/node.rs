@@ -11,6 +11,7 @@ use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
 use devtools_traits::{DevtoolScriptControlMsg, NodeInfo, ShadowRootMode};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
@@ -99,6 +100,7 @@ pub(crate) struct NodeActorMsg {
     system_id: Option<String>,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct NodeActor {
     name: String,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,

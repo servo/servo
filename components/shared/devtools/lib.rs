@@ -314,7 +314,7 @@ pub enum DevtoolScriptControlMsg {
     Pause(GenericSender<PauseFrameResult>),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct AttrModification {
     pub attribute_name: String,
@@ -332,7 +332,7 @@ pub struct RuleModification {
     pub priority: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct StackFrame {
     pub filename: String,
@@ -350,7 +350,7 @@ pub fn get_time_stamp() -> u64 {
         .as_millis() as u64
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct ConsoleMessageFields {
     pub level: ConsoleLogLevel,
@@ -397,7 +397,7 @@ pub struct ConsoleMessage {
     pub stacktrace: Option<Vec<StackFrame>>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct PageError {
     pub error_message: String,
@@ -407,10 +407,12 @@ pub struct PageError {
     pub time_stamp: u64,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, MallocSizeOf)]
 pub struct HttpRequest {
     pub url: ServoUrl,
+    #[ignore_malloc_size_of = "http type"]
     pub method: Method,
+    #[ignore_malloc_size_of = "http type"]
     pub headers: HeaderMap,
     pub body: Option<DebugVec>,
     pub pipeline_id: PipelineId,
@@ -423,8 +425,9 @@ pub struct HttpRequest {
     pub browsing_context_id: BrowsingContextId,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, MallocSizeOf)]
 pub struct HttpResponse {
+    #[ignore_malloc_size_of = "Http type"]
     pub headers: Option<HeaderMap>,
     pub status: HttpStatus,
     pub body: Option<DebugVec>,
@@ -494,7 +497,7 @@ impl FromStr for WorkerId {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct CssDatabaseProperty {
     pub is_inherited: bool,
@@ -539,7 +542,7 @@ pub struct RecommendedBreakpointLocation {
     pub is_step_start: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct PauseFrameResult {
     pub column: u32,
