@@ -685,7 +685,10 @@ impl Fragment {
                 let style = iframe.base.style();
                 match style.get_inherited_box().visibility {
                     Visibility::Visible => {
-                        builder.mark_is_contentful();
+                        // From <https://www.w3.org/TR/paint-timing/#mark-paint-timing>:
+                        // > A parent frame should not be aware of the paint events from its child iframes, and
+                        // > vice versa. This means that a frame that contains just iframes will have first paint
+                        // > (due to the enclosing boxes of the iframes) but no first contentful paint.
                         let rect = iframe
                             .base
                             .rect
