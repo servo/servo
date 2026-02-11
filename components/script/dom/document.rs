@@ -2222,7 +2222,7 @@ impl Document {
         self.owner_global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(fire_load_event: move || {
+            .queue(task!(check_load_blockers: move || {
                 document.root().wait_until_load_blockers_have_resolved();
             }));
     }
@@ -2730,7 +2730,7 @@ impl Document {
             self.owner_global()
                 .task_manager()
                 .dom_manipulation_task_source()
-                .queue(task!(fire_load_event: move || {
+                .queue(task!(progress_to_load_blocking_phase: move || {
                     let document = document.root();
                     // Ensure that if this task is fired multiple times, we only progress the
                     // end of loading phase once.
