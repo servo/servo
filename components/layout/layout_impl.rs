@@ -85,9 +85,7 @@ use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutVector2D};
 
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
-use crate::display_list::{
-    DisplayListBuilder, HitTest, LargestContentfulPaintCandidateCollector, StackingContextTree,
-};
+use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::query::{
     find_character_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
     process_box_areas_request, process_client_rect_request, process_current_css_zoom_query,
@@ -208,8 +206,8 @@ pub struct LayoutThread {
     /// If this changed, then we need to create a new display list.
     previously_highlighted_dom_node: Cell<Option<OpaqueNode>>,
 
-    /// The collector for calculating Largest Contentful Paint
-    lcp_candidate_collector: RefCell<Option<LargestContentfulPaintCandidateCollector>>,
+    /// Handler for all Paint Timings
+    paint_timing_handler: RefCell<Option<PaintTimingHandler>>,
 }
 
 pub struct LayoutFactoryImpl();
@@ -764,7 +762,7 @@ impl LayoutThread {
             resolved_images_cache: Default::default(),
             debug: opts::get().debug.clone(),
             previously_highlighted_dom_node: Cell::new(None),
-            lcp_candidate_collector: Default::default(),
+            paint_timing_handler: Default::default(),
             user_stylesheets: config.user_stylesheets,
         }
     }
@@ -1300,20 +1298,20 @@ impl LayoutThread {
         // ensuring that the Epoch is passed to any method that can creates `StackingContextTree`.
         stacking_context_tree.paint_info.epoch = reflow_request.epoch;
 
-        let mut lcp_candidate_collector = self.lcp_candidate_collector.borrow_mut();
-        if pref!(largest_contentful_paint_enabled) {
-            // This ensures that we only create the LCP collector once per layout thread.
-            if lcp_candidate_collector.is_none() {
-                *lcp_candidate_collector = Some(LargestContentfulPaintCandidateCollector::new(
+        let mut paint_timing_handler = self.paint_timing_handler.borrow_mut();
+        // This ensures that we only create the PaintTimingHandler once per layout thread.
+        let paint_timing_handler = match paint_timing_handler.as_mut() {
+            Some(paint_timing_handler) => paint_timing_handler,
+            None => {
+                *paint_timing_handler = Some(PaintTimingHandler::new(
                     stacking_context_tree
                         .paint_info
                         .viewport_details
                         .layout_size(),
                 ));
-            }
-        } else {
-            *lcp_candidate_collector = None;
-        }
+                paint_timing_handler.as_mut().unwrap()
+            },
+        };
 
         let built_display_list = DisplayListBuilder::build(
             stacking_context_tree,
@@ -1322,24 +1320,23 @@ impl LayoutThread {
             self.device().device_pixel_ratio(),
             reflow_request.highlighted_dom_node,
             &self.debug,
-            lcp_candidate_collector.as_mut(),
+            paint_timing_handler,
         );
         self.paint_api.send_display_list(
             self.webview_id,
             &stacking_context_tree.paint_info,
             built_display_list,
         );
-        if let Some(lcp_candidate_collector) = lcp_candidate_collector.as_mut() {
-            if lcp_candidate_collector.did_lcp_candidate_update {
-                if let Some(lcp_candidate) = lcp_candidate_collector.largest_contentful_paint() {
-                    self.paint_api.send_lcp_candidate(
-                        lcp_candidate,
-                        self.webview_id,
-                        self.id,
-                        stacking_context_tree.paint_info.epoch,
-                    );
-                    lcp_candidate_collector.did_lcp_candidate_update = false;
-                }
+
+        if paint_timing_handler.did_lcp_candidate_update() {
+            if let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate() {
+                self.paint_api.send_lcp_candidate(
+                    lcp_candidate,
+                    self.webview_id,
+                    self.id,
+                    stacking_context_tree.paint_info.epoch,
+                );
+                paint_timing_handler.unset_lcp_candidate_updated();
             }
         }
 
