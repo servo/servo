@@ -339,9 +339,6 @@ impl HeadedWindow {
         let mut handled = true;
         ShortcutMatcher::from_event(key_event.event.clone())
             .shortcut(CMD_OR_CONTROL, 'R', || active_webview.reload())
-            .shortcut(Modifiers::empty(), Key::Named(NamedKey::F5), || {
-                active_webview.reload()
-            })
             .shortcut(CMD_OR_CONTROL, 'W', || {
                 window.close_webview(active_webview.id());
             })
@@ -1041,6 +1038,9 @@ impl PlatformWindow for HeadedWindow {
             })
             .shortcut(CMD_OR_CONTROL, '0', || {
                 webview.set_page_zoom(1.0);
+            })
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::F5), || {
+                webview.reload()
             });
     }
 
