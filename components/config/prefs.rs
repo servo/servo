@@ -90,6 +90,8 @@ pub struct Preferences {
     /// Port number to start a server to listen to remote Firefox devtools connections.
     /// 0 for random port.
     pub devtools_server_port: i64,
+    /// Wether or not we listen to connections on 0.0.0.0
+    pub devtools_server_listen_global: bool,
     // feature: WebGPU | #24706 | Web/API/WebGPU_API
     pub dom_webgpu_enabled: bool,
     /// List of comma-separated backends to be used by wgpu.
@@ -341,6 +343,7 @@ impl Preferences {
             css_animations_testing_enabled: false,
             devtools_server_enabled: false,
             devtools_server_port: 0,
+            devtools_server_listen_global: false,
             dom_abort_controller_enabled: true,
             dom_adoptedstylesheet_enabled: false,
             dom_allow_scripts_to_close_windows: false,

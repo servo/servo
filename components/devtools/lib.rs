@@ -35,6 +35,7 @@ use rand::{RngCore, rng};
 use resource::{ResourceArrayType, ResourceAvailable};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
+use servo_config::pref;
 
 use crate::actor::{Actor, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
@@ -170,7 +171,12 @@ impl DevtoolsInstance {
         port: u16,
         embedder: EmbedderProxy,
     ) -> Option<Self> {
-        let bound = TcpListener::bind(("127.0.0.1", port)).ok().and_then(|l| {
+        let address = if pref!(devtools_server_listen_global) {
+            ("0.0.0.0", port)
+        } else {
+            ("127.0.0.1", port)
+        };
+        let bound = TcpListener::bind(address).ok().and_then(|l| {
             l.local_addr()
                 .map(|addr| addr.port())
                 .ok()
