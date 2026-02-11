@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::net::TcpStream;
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::{self, GenericSender};
+use base::generic_channel::{self, GenericSender, SendError};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{
     self, GetCssDatabase, SimulateColorScheme, WantsLiveNotifications,
@@ -196,10 +196,15 @@ impl Actor for BrowsingContextActor {
 
     fn cleanup(&self, id: StreamId) {
         self.streams.borrow_mut().remove(&id);
+
         if self.streams.borrow().is_empty() {
-            self.script_chan
-                .send(WantsLiveNotifications(self.pipeline_id(), false))
-                .unwrap();
+            let result = self
+                .script_chan
+                .send(WantsLiveNotifications(self.pipeline_id(), false));
+
+            // Notifying the script thread may fail with a "Disconnected" error if servo
+            // as a whole is being shut down.
+            debug_assert!(matches!(result, Ok(_) | Err(SendError::Disconnected)));
         }
     }
 }
