@@ -8,29 +8,28 @@
 # except according to those terms.
 
 from __future__ import annotations
-
-import http.server
-import logging
-import os.path
-import socket
-import socketserver
-import subprocess
-import sys
-import time
-import unittest
-from collections import Counter
 from concurrent.futures import Future
 from dataclasses import dataclass
-from threading import Thread
-from typing import Any, Iterable, Optional, TypeVar
-
-from geckordp.actors.descriptors.tab import TabActor
-from geckordp.actors.events import Events
-from geckordp.actors.resources import Resources
+import logging
+import socket
+import sys
 from geckordp.actors.root import RootActor
+from geckordp.actors.descriptors.tab import TabActor
 from geckordp.actors.watcher import WatcherActor
 from geckordp.actors.web_console import WebConsoleActor
+from geckordp.actors.resources import Resources
+from geckordp.actors.events import Events
 from geckordp.rdp_client import RDPClient
+import http.server
+import os.path
+import socketserver
+import subprocess
+import time
+from threading import Thread
+from typing import Any, Iterable, Optional, TypeVar
+import unittest
+
+from collections import Counter
 
 # Set this to true to log requests in the internal web servers.
 LOG_REQUESTS = False
