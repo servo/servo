@@ -719,59 +719,43 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
     def test_console_log_object_with_object_preview(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/console/log_object.html")
-        with Devtools.connect() as devtools:
-            devtools.watcher.watch_resources([Resources.CONSOLE_MESSAGE])
 
-            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
-            evaluation_result = Future()
+        result = self.evaluate_and_capture_console_log_output("log_object();")["arguments"][0]
 
-            async def on_resource_available(data: dict):
-                for resource in data["array"]:
-                    if resource[0] != "console-message":
-                        continue
-                    evaluation_result.set_result(resource[1][0])
-                    return
+        # Run assertions on the result
+        self.assertEquals(result["ownPropertyLength"], 3)
 
-            # Listen for console messages
-            devtools.client.add_event_listener(
-                devtools.watcher.actor_id, Events.Watcher.RESOURCES_AVAILABLE_ARRAY, on_resource_available
-            )
+        preview = result["preview"]
+        self.assertEquals(preview["kind"], "Object")
+        self.assertEquals(preview["ownPropertiesLength"], 3)
 
-            devtools.client.add_event_listener(
-                devtools.targets[0]["actor"], Events.Watcher.RESOURCES_AVAILABLE_ARRAY, on_resource_available
-            )
+        def assert_property_descriptor_equals(actual_descriptor, expected_descriptor):
+            for key, value in expected_descriptor.items():
+                self.assertEquals(
+                    actual_descriptor[key],
+                    value,
+                    f"Incorrect value for {key}, expected {value}, got {actual_descriptor[key]}",
+                )
 
-            # Run the console.log statements
-            console.evaluate_js_async("log_object();")
-            result = evaluation_result.result(1)["arguments"][0]
+        assert_property_descriptor_equals(
+            preview["ownProperties"]["foo"],
+            {"configurable": True, "enumerable": True, "value": 1, "writable": True},
+        )
+        assert_property_descriptor_equals(
+            preview["ownProperties"]["bar"],
+            {"configurable": True, "enumerable": False, "value": "servo", "writable": True},
+        )
+        assert_property_descriptor_equals(
+            preview["ownProperties"]["baz"],
+            {"configurable": False, "enumerable": True, "value": True, "writable": True},
+        )
 
-            # Run assertions on the result
-            self.assertEquals(result["ownPropertyLength"], 3)
+    def test_console_log_booleans(self):
+        script_tag = "<script>let log_booleans = () => console.log(true, false, !false, !true);</script>"
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
 
-            preview = result["preview"]
-            self.assertEquals(preview["kind"], "Object")
-            self.assertEquals(preview["ownPropertiesLength"], 3)
-
-            def assert_property_descriptor_equals(actual_descriptor, expected_descriptor):
-                for key, value in expected_descriptor.items():
-                    self.assertEquals(
-                        actual_descriptor[key],
-                        value,
-                        f"Incorrect value for {key}, expected {value}, got {actual_descriptor[key]}",
-                    )
-
-            assert_property_descriptor_equals(
-                preview["ownProperties"]["foo"],
-                {"configurable": True, "enumerable": True, "value": 1, "writable": True},
-            )
-            assert_property_descriptor_equals(
-                preview["ownProperties"]["bar"],
-                {"configurable": True, "enumerable": False, "value": "servo", "writable": True},
-            )
-            assert_property_descriptor_equals(
-                preview["ownProperties"]["baz"],
-                {"configurable": False, "enumerable": True, "value": True, "writable": True},
-            )
+        result = self.evaluate_and_capture_console_log_output("log_booleans();")
+        self.assertEquals(result["arguments"], [True, False, True, False])
 
     # Sets `base_url` and `web_server` and `web_server_thread`.
     @classmethod
@@ -989,6 +973,27 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
     def get_test_path(self, path: str) -> str:
         return os.path.join(DevtoolsTests.script_path, os.path.join("devtools_tests", path))
+
+    def evaluate_and_capture_console_log_output(self, js: str, timeout: float = 1) -> dict:
+        with Devtools.connect() as devtools:
+            devtools.watcher.watch_resources([Resources.CONSOLE_MESSAGE])
+
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+            evaluation_result = Future()
+
+            async def on_resource_available(data):
+                for resource in data["array"]:
+                    if resource[0] != "console-message":
+                        continue
+                    evaluation_result.set_result(resource[1][0])
+                    return
+
+            devtools.client.add_event_listener(
+                devtools.targets[0]["actor"], Events.Watcher.RESOURCES_AVAILABLE_ARRAY, on_resource_available
+            )
+
+            console.evaluate_js_async(js)
+            return evaluation_result.result(timeout)
 
 
 def run_tests(script_path, servo_binary: str, test_names: list[str]):
