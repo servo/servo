@@ -118,7 +118,7 @@ fn find_python() -> Command {
         .inspect_err(|e| println!("cargo:warning={e}"));
     if uv_result.is_ok() {
         let mut cmd = Command::new("uv");
-        cmd.args(["run", "python"]);
+        cmd.args(["run", "--frozen", "python"]);
         return cmd;
     }
 
