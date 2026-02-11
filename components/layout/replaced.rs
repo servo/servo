@@ -247,14 +247,11 @@ impl ReplacedContents {
         let width = svg_data.width.and_then(attr_to_computed);
         let height = svg_data.height.and_then(attr_to_computed);
 
-        let ratio = if let (Some(width), Some(height)) = (width, height) {
-            if !width.is_zero() && !height.is_zero() {
+        let ratio = match (width, height) {
+            (Some(width), Some(height)) if !width.is_zero() && !height.is_zero() => {
                 Some(width.px() / height.px())
-            } else {
-                None
-            }
-        } else {
-            svg_data.ratio_from_view_box()
+            },
+            _ => svg_data.ratio_from_view_box(),
         };
 
         let natural_size = NaturalSizes {
