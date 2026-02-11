@@ -80,15 +80,15 @@ pub(crate) struct TextFragment {
 }
 
 /// [`ElidedTextFragment`] is a superset of [`TextFragment`].
-/// An [`ElidedTextFragment`] can be one of the following two:
-/// 1. It is a fragment for an elided text item.
-/// 2. It is a fragment for the overflow indicator.
+/// An [`ElidedTextFragment`] is essentially a [`TextFragment`] whose text is either partially or fully elided.
+/// For this, in addition to [`TextFragment`], [`ElidedTextFragment`] also contains information needed
+/// to elide a text, such as the [`TextFragment`] for the overflow indicator.
 #[derive(MallocSizeOf, Clone)]
 pub(crate) struct ElidedTextFragment {
     pub text_fragment: TextFragment,
-    pub is_overflow_indicator: bool,
+    pub overflow_indicator_fragment: TextFragment,
     pub original_advance: Au,
-    pub boundary: Au, // TODO: In the future, make the signature (Au, Au) once two sided `text-overflow: ellipsis` has been supported
+    pub containing_block_size: Au,
 }
 
 #[derive(MallocSizeOf)]
@@ -158,6 +158,17 @@ impl Fragment {
                 })
             },
         })
+    }
+
+    pub fn overflow_base_mut<'a>(&'a self) -> Option<AtomicRefMut<'a, BaseFragment>> {
+        match self {
+            Fragment::ElidedText(fragment) => {
+                Some(AtomicRefMut::map(fragment.borrow_mut(), |fragment| {
+                    &mut fragment.overflow_indicator_fragment.base
+                }))
+            },
+            _ => None,
+        }
     }
 
     pub(crate) fn set_containing_block(&self, containing_block: &PhysicalRect<Au>) {

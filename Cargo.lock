@@ -330,7 +330,7 @@ version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "40c48f72fd53cd289104fc64099abca73db4166ad86ea0b4341abe65af83dadc"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -341,7 +341,7 @@ checksum = "291e6a250ff86cd4a820112fb8898808a366d8f9f58ce16d1f538353ad55747d"
 dependencies = [
  "anstyle",
  "once_cell_polyfill",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2173,7 +2173,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -5919,7 +5919,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -8220,7 +8220,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.35.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#18765f54e78fb989fc6a2cc5a26a0be5629809d0"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#f075d494d537d9749bac644a185ae01095171d7f"
 dependencies = [
  "bitflags 2.10.0",
  "cssparser",
@@ -8535,7 +8535,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.3"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#18765f54e78fb989fc6a2cc5a26a0be5629809d0"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#f075d494d537d9749bac644a185ae01095171d7f"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -9084,7 +9084,7 @@ dependencies = [
 [[package]]
 name = "stylo"
 version = "0.12.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#18765f54e78fb989fc6a2cc5a26a0be5629809d0"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#f075d494d537d9749bac644a185ae01095171d7f"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -9141,7 +9141,7 @@ dependencies = [
 [[package]]
 name = "stylo_atoms"
 version = "0.12.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#18765f54e78fb989fc6a2cc5a26a0be5629809d0"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#f075d494d537d9749bac644a185ae01095171d7f"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -9150,12 +9150,12 @@ dependencies = [
 [[package]]
 name = "stylo_config"
 version = "0.12.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#18765f54e78fb989fc6a2cc5a26a0be5629809d0"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#f075d494d537d9749bac644a185ae01095171d7f"
 
 [[package]]
 name = "stylo_derive"
 version = "0.12.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#18765f54e78fb989fc6a2cc5a26a0be5629809d0"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#f075d494d537d9749bac644a185ae01095171d7f"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -9167,7 +9167,7 @@ dependencies = [
 [[package]]
 name = "stylo_dom"
 version = "0.12.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#18765f54e78fb989fc6a2cc5a26a0be5629809d0"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#f075d494d537d9749bac644a185ae01095171d7f"
 dependencies = [
  "bitflags 2.10.0",
  "stylo_malloc_size_of",
@@ -9176,7 +9176,7 @@ dependencies = [
 [[package]]
 name = "stylo_malloc_size_of"
 version = "0.12.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#18765f54e78fb989fc6a2cc5a26a0be5629809d0"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#f075d494d537d9749bac644a185ae01095171d7f"
 dependencies = [
  "app_units",
  "cssparser",
@@ -9193,7 +9193,7 @@ dependencies = [
 [[package]]
 name = "stylo_static_prefs"
 version = "0.12.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#18765f54e78fb989fc6a2cc5a26a0be5629809d0"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#f075d494d537d9749bac644a185ae01095171d7f"
 dependencies = [
  "stylo_config",
 ]
@@ -9201,7 +9201,7 @@ dependencies = [
 [[package]]
 name = "stylo_traits"
 version = "0.12.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#18765f54e78fb989fc6a2cc5a26a0be5629809d0"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#f075d494d537d9749bac644a185ae01095171d7f"
 dependencies = [
  "app_units",
  "bitflags 2.10.0",
@@ -9623,7 +9623,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.3.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#18765f54e78fb989fc6a2cc5a26a0be5629809d0"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#f075d494d537d9749bac644a185ae01095171d7f"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -9636,7 +9636,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#18765f54e78fb989fc6a2cc5a26a0be5629809d0"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=txt-overflow#f075d494d537d9749bac644a185ae01095171d7f"
 dependencies = [
  "darling",
  "proc-macro2",

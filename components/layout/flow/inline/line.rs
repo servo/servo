@@ -78,7 +78,7 @@ pub(super) struct LineItemLayoutInlineContainerState {
     /// line). These logical rectangles will be converted into physical ones and the Fragment's
     /// `content_rect` will be updated once the inline box's final size is known in
     /// [`LineItemLayout::end_inline_box`].
-    pub fragments: Vec<(Fragment, LogicalRect<Au>)>,
+    pub fragments: Vec<(Fragment, Vec<LogicalRect<Au>>)>,
 
     /// The current inline advance of the layout in the coordinates of this inline box.
     pub inline_advance: Au,
@@ -314,11 +314,11 @@ impl LineItemLayout<'_, '_> {
                         total_line_advance,
                         total_line_advance,
                     ) {
-                        cumulative_advance += text_run
-                            .text
-                            .iter()
-                            .map(|glyph_store| glyph_store.total_advance())
-                            .sum();
+                    cumulative_advance += text_run
+                        .text
+                        .iter()
+                        .map(|glyph_store| glyph_store.total_advance())
+                        .sum();
                     }
 
                     self.layout_text_run(
@@ -346,17 +346,28 @@ impl LineItemLayout<'_, '_> {
         fragments_and_rectangles
             .into_iter()
             .map(|(fragment, logical_rect)| {
-                if matches!(fragment, Fragment::Float(_)) {
-                    return fragment;
+                match fragment {
+                    Fragment::Float(_) => fragment,
+                    Fragment::ElidedText(_) => {
+                        if let Some(mut base) = fragment.base_mut() {
+                            base.rect = logical_rect[0].as_physical(Some(containing_block));
+                        }
+                        if let Some(mut overflow_base) = fragment.overflow_base_mut() {
+                            overflow_base.rect =
+                                logical_rect[1].as_physical(Some(containing_block));
+                        }
+                        fragment
+                    },
+                    _ => {
+                        // We do not know the actual physical position of a logically laid out inline element, until
+                        // we know the width of the containing inline block. This step converts the logical rectangle
+                        // into a physical one based on the inline formatting context width.
+                        if let Some(mut base) = fragment.base_mut() {
+                            base.rect = logical_rect[0].as_physical(Some(containing_block));
+                        }
+                        fragment
+                    },
                 }
-
-                // We do not know the actual physical position of a logically laid out inline element, until
-                // we know the width of the containing inline block. This step converts the logical rectangle
-                // into a physical one based on the inline formatting context width.
-                if let Some(mut base) = fragment.base_mut() {
-                    base.rect = logical_rect.as_physical(Some(containing_block));
-                }
-                fragment
             })
             .collect()
     }
@@ -509,7 +520,16 @@ impl LineItemLayout<'_, '_> {
                         // We do not know the actual physical position of a logically laid out inline element, until
                         // we know the width of the containing inline block. This step converts the logical rectangle
                         // into a physical one now that we've computed inline size of the containing inline block above.
-                        base.rect = logical_rect.as_physical(Some(&inline_box_containing_block))
+                        base.rect = logical_rect[0].as_physical(Some(&inline_box_containing_block))
+                    }
+                }
+
+                // TODO(richardtjokroutomo): marker
+                let is_elided_text = matches!(fragment, Fragment::ElidedText(_));
+                if is_elided_text {
+                    if let Some(mut overflow_base) = fragment.overflow_base_mut() {
+                        overflow_base.rect =
+                            logical_rect[1].as_physical(Some(&inline_box_containing_block))
                     }
                 }
                 fragment
@@ -561,7 +581,9 @@ impl LineItemLayout<'_, '_> {
         let fragment = Fragment::Box(ArcRefCell::new(fragment));
         inline_box.base.add_fragment(fragment.clone());
 
-        self.current_state.fragments.push((fragment, content_rect));
+        self.current_state
+            .fragments
+            .push((fragment, vec![content_rect]));
     }
 
     fn calculate_inline_box_block_start(
@@ -659,7 +681,7 @@ impl LineItemLayout<'_, '_> {
                     justification_adjustment: self.justification_adjustment,
                     offsets: text_item.offsets,
                 })),
-                content_rect,
+                vec![content_rect],
             ));
         } else {
             // 1. Unpack overflow indicator data & create some local variables
@@ -752,21 +774,11 @@ impl LineItemLayout<'_, '_> {
             self.current_state.fragments.push((
                 Fragment::ElidedText(ArcRefCell::new(ElidedTextFragment {
                     text_fragment,
-                    is_overflow_indicator: false,
+                    overflow_indicator_fragment,
                     original_advance: original_inline_advance,
-                    boundary: inline_target,
+                    containing_block_size: self.containing_block().size.inline,
                 })),
-                content_rect,
-            ));
-
-            self.current_state.fragments.push((
-                Fragment::ElidedText(ArcRefCell::new(ElidedTextFragment {
-                    text_fragment: overflow_indicator_fragment,
-                    is_overflow_indicator: true,
-                    original_advance: inline_target,
-                    boundary: self.containing_block().size.inline,
-                })),
-                overflow_indicator_content_rect,
+                vec![content_rect, overflow_indicator_content_rect],
             ));
         }
     }
@@ -907,7 +919,7 @@ impl LineItemLayout<'_, '_> {
 
         self.current_state
             .fragments
-            .push((Fragment::Box(atomic.fragment), content_rect));
+            .push((Fragment::Box(atomic.fragment), vec![content_rect]));
     }
 
     fn layout_absolute(&mut self, absolute: AbsolutelyPositionedLineItem) {
@@ -966,7 +978,7 @@ impl LineItemLayout<'_, '_> {
         self.current_positioning_context_mut().push(hoisted_box);
         self.current_state.fragments.push((
             Fragment::AbsoluteOrFixedPositioned(hoisted_fragment),
-            LogicalRect::zero(),
+            vec![LogicalRect::zero()],
         ));
     }
 
@@ -989,7 +1001,7 @@ impl LineItemLayout<'_, '_> {
 
         self.current_state
             .fragments
-            .push((Fragment::Float(float.fragment), LogicalRect::zero()));
+            .push((Fragment::Float(float.fragment), vec![LogicalRect::zero()]));
     }
 
     fn layout_block(&mut self, block: ArcRefCell<BoxFragment>) {
@@ -998,7 +1010,7 @@ impl LineItemLayout<'_, '_> {
         // Anonymous blocks are always placed at the logical origin of the line.
         content_rect.start_corner.inline -= self.current_state.parent_offset.inline;
         content_rect.start_corner.block -= self.line_metrics.block_offset;
-        let fragment_and_rect = (Fragment::Box(block), content_rect);
+        let fragment_and_rect = (Fragment::Box(block), vec![content_rect]);
         self.current_state.fragments.push(fragment_and_rect);
     }
 

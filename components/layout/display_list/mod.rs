@@ -736,7 +736,11 @@ impl Fragment {
                             builder,
                             containing_block,
                             text_decorations,
-                            Some((elided_text.original_advance, elided_text.boundary)),
+                            Some((
+                                elided_text.original_advance,
+                                elided_text.containing_block_size,
+                                &elided_text.overflow_indicator_fragment,
+                            )),
                         );
                     },
                     Visibility::Hidden => (),
@@ -752,7 +756,7 @@ impl Fragment {
         builder: &mut DisplayListBuilder,
         containing_block: &PhysicalRect<Au>,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
-        overflow_indicator_data: Option<(Au, Au)>, // TODO: Make the signature Option<(Au, (Au, Au))> once two sided `text-overflow: ellipsis` has been supported
+        overflow_indicator_data: Option<(Au, Au, &TextFragment)>, // (original inline advance, containing block width, overflow indicator fragment)
     ) {
         // NB: The order of painting text components (CSS Text Decoration Module Level 3) is:
         // shadows, underline, overline, text, text-emphasis, and then line-through.
@@ -767,15 +771,33 @@ impl Fragment {
         let include_whitespace =
             fragment.offsets.is_some() || text_decorations.iter().any(|item| !item.line.is_empty());
 
-        let (glyphs, largest_advance) = glyphs(
-            &fragment.glyphs,
-            baseline_origin,
-            fragment.justification_adjustment,
-            include_whitespace,
-            overflow_indicator_data,
-        );
+        let glyphs_vec: Vec<GlyphInstance>;
+        let largest_advance: Au;
+        match overflow_indicator_data {
+            Some(data) => {
+                // process elided text
+                (glyphs_vec, largest_advance) = glyphs(
+                    &fragment.glyphs,
+                    baseline_origin,
+                    fragment.justification_adjustment,
+                    include_whitespace,
+                    // TODO(richardtjokroutomo): At present, the second tuple is simply the width of the containing block minus total advance
+                    // of overflow indicator. In the future, consider things such as margins.
+                    Some((data.0, data.1 - data.2.glyphs[0].total_advance())),
+                );
+            },
+            _ => {
+                (glyphs_vec, largest_advance) = glyphs(
+                    &fragment.glyphs,
+                    baseline_origin,
+                    fragment.justification_adjustment,
+                    include_whitespace,
+                    None,
+                );
+            },
+        };
 
-        if glyphs.is_empty() {
+        if glyphs_vec.is_empty() {
             return;
         }
 
@@ -856,7 +878,7 @@ impl Fragment {
         builder.wr().push_text(
             &common,
             glyph_bounds,
-            &glyphs,
+            &glyphs_vec,
             fragment.font_key,
             rgba(color),
             None,

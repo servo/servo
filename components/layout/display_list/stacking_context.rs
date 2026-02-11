@@ -986,6 +986,31 @@ impl Fragment {
                     });
             },
         }
+
+        // If [`Fragment::ElidedText`], we need to append the [`overflow_indicator_fragment`] as well.
+        if let Fragment::ElidedText(elided_text_fragment) = self {
+            let overflow_fragment_clone = Fragment::Text(ArcRefCell::new(
+                elided_text_fragment
+                    .borrow()
+                    .overflow_indicator_fragment
+                    .clone(),
+            ));
+            stacking_context
+                .contents
+                .push(StackingContextContent::Fragment {
+                    section: StackingContextSection::Foreground,
+                    scroll_node_id: containing_block.scroll_node_id,
+                    reference_frame_scroll_node_id: containing_block_info
+                        .for_absolute_and_fixed_descendants
+                        .scroll_node_id,
+                    clip_id: containing_block.clip_id,
+                    containing_block: containing_block.rect,
+                    fragment: overflow_fragment_clone,
+                    is_hit_test_for_scrollable_overflow: false,
+                    is_collapsed_table_borders: false,
+                    text_decorations: text_decorations.clone(),
+                });
+        }
     }
 }
 
