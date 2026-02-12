@@ -754,20 +754,15 @@ impl ServoParser {
         assert!(self.network_input.is_empty());
         assert!(self.network_decoder.borrow().is_finished());
 
-        // Step 1. If the active speculative HTML parser is not null, then stop the speculative HTML parser and return.
-        // TODO
-
-        // Step 3. Update the current document readiness to "interactive".
+        // Step 1.
         self.document
             .set_ready_state(DocumentReadyState::Interactive, can_gc);
 
-        // Step 2. Set the insertion point to undefined.
+        // Step 2.
         self.tokenizer.end(can_gc);
-        // Step 4. Pop all the nodes off the stack of open elements.
         self.document.set_current_parser(None);
 
-        // Step 5. While the list of scripts that will execute when the document has finished parsing is not empty:
-        self.document.start_the_end_loading_phase();
+        // Steps 3-12 are in another castle, namely finish_load.
         let url = self.tokenizer.url().clone();
         self.document.finish_load(LoadType::PageSource(url), can_gc);
 
