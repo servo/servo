@@ -203,7 +203,7 @@ pub fn instrument(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-/// Instruments a whole impl blog with the default servo tracing.
+/// Instruments a whole impl block with the default servo tracing.
 /// See the documentation for `#[servo_tracing::instrument]`
 /// ```
 /// struct Foo {}
