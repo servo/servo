@@ -137,7 +137,10 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
         let value = value.str();
         let Ok(mut selector) = ({
             let guard = self.css_grouping_rule.shared_lock().read();
-            let sheet = self.css_grouping_rule.parent_stylesheet().style_stylesheet();
+            let sheet = self
+                .css_grouping_rule
+                .parent_stylesheet()
+                .style_stylesheet();
             let contents = sheet.contents(&guard);
             // It's not clear from the spec if we should use the stylesheet's namespaces.
             // https://github.com/w3c/csswg-drafts/issues/1511

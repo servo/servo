@@ -156,7 +156,14 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
     fn Name(&self) -> DOMString {
         let guard = self.css_rule.shared_lock().read();
-        DOMString::from(&**self.keyframes_rule.borrow().read_with(&guard).name.as_atom())
+        DOMString::from(
+            &**self
+                .keyframes_rule
+                .borrow()
+                .read_with(&guard)
+                .name
+                .as_atom(),
+        )
     }
 
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
