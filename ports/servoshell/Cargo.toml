@@ -90,7 +90,7 @@ jni = "0.21.1"
 backtrace = { workspace = true }
 
 [target.'cfg(target_env = "ohos")'.dependencies]
-env_filter = "0.1.4"
+env_filter = "1.0.0"
 euclid = { workspace = true }
 hilog = "0.2.2"
 # force inprocess until we add multi-process support for ohos
