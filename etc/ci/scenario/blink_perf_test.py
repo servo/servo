@@ -8,9 +8,6 @@
 # <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
-# /// script
-# requires-python = ">=3.12"
-# dependencies = ["selenium"]
 
 import random
 import subprocess
@@ -46,6 +43,10 @@ SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
 ABOUT_BLANK = "about:blank"
 DIRECTORY = "../../../tests/blink_perf_tests/perf_tests"
 
+skipped_tests = [
+    "large-table-with-collapsed-borders-and-no-colspans.html",
+    "large-table-with-collapsed-borders-and-colspans-wider-than-table.html"
+]
 
 class LocalFileServe:
     def __init__(self, port: int, *args, **kwargs):
@@ -226,15 +227,17 @@ max\s+(?P<max>[0-9.]+)\s+(?P=unit)
 )
 
 
-def get_parent_dir_name_of_test_html(s: str) -> str:
-    return "layout"
+def get_serve_path_for_file(root: str, file: str) -> str:
+    return root.split("tests/blink_perf_tests/perf_tests/")[1]
 
 
-def test(s: str, driver: webdriver.Remote, port: int) -> TestResult | AbortReason:
+def test(s: str, driver: webdriver.Remote, port: int, serve_path) -> TestResult | AbortReason:
     """Run a test by loading a website, and returning (avg, min, max).
     This will run for MAX_WAIT_TIME seconds and return as soon as the avg line exists in the log element"""
 
-    s = f"http://127.0.0.1:{port}/layout/{s}"
+    # s = f"http://127.0.0.1:{port}/layout/{s}"
+    s = f"http://127.0.0.1:{port}/{serve_path}/{s}"
+    print(f">>> testing url: {s}")
     text = None
     try:
         driver.get(s)
@@ -272,29 +275,41 @@ def write_file(results):
     with open("../../../results.json", "w") as f:
         json.dump(results, f)
 
-
+import csv
 def run_tests(webdriver, port):
-    final_result = {}
-    time.sleep(2)
-    for root, dir, files in os.walk("../../../tests/blink_perf_tests/perf_tests/layout", onerror=oswalk_error):
-        for file in files:
-            filePath = file
+    skip_until = "nested-percent-height-tables.html"
 
-            result = test(filePath, webdriver, port)
-            print(f">>> result: {result}")
-            if result == AbortReason.NotFound or result == AbortReason.Panic:
-                pass
-            else:
-                combined_result = {}
-                combined_result["value"] = result.value
-                combined_result["lower_value"] = result.lower_value
-                combined_result["upper_value"] = result.upper_value
-                parent_dir = get_parent_dir_name_of_test_html(filePath)
-                if result.unit == "ms":
-                    final_result[f"perf_tests/{parent_dir}/{filePath}"] = {"ms": combined_result}
-                else:
-                    final_result[f"perf_tests/{parent_dir}/{filePath}"] = {"throughput": combined_result}
-    print(f">>> final_result {final_result}")
+    final_result = {}
+    with open("../../../output.csv", "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["name", "return"])
+
+        for root, dir, files in os.walk("../../../tests/blink_perf_tests/perf_tests/layout", onerror=oswalk_error):
+            for file in files:
+                filePath = file
+                if skip_until is None or skip_until in filePath:
+                    skip_until = None
+                    if filePath in skipped_tests:
+                        continue
+                    # print(f">>> ROOT: {root}\n>>> dir: {dir}\n>>> files: {files}\n<<<")
+                    result = test(filePath, webdriver, port, get_serve_path_for_file(root, filePath))
+                    print(f">>> result: {result}")
+                    if result == AbortReason.NotFound or result == AbortReason.Panic:
+                        writer.writerow([filePath, "error"])
+                        pass
+                    else:
+                        combined_result = {}
+                        combined_result["value"] = result.value
+                        combined_result["lower_value"] = result.lower_value
+                        combined_result["upper_value"] = result.upper_value
+                        parent_dir = get_serve_path_for_file(root, filePath)
+                        if result.unit == "ms":
+                            final_result[f"perf_tests/{parent_dir}/{filePath}"] = {"ms": combined_result}
+                        else:
+                            final_result[f"perf_tests/{parent_dir}/{filePath}"] = {"throughput": combined_result}
+                        writer.writerow([filePath, result.value])
+                    f.flush()
+        print(f">>> final_result {final_result}")
     write_file(final_result)
 
 
@@ -308,7 +323,7 @@ if __name__ == "__main__":
             print("Starting new servo instance...")
             cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver"
             hdc.cmd(cmd_str, timeout=10)
-            with HarmonyDevicePerfMode():
+            with HarmonyDevicePerfMode(screen_timeout_seconds = 1 * 60 * 60):
                 close_usb_popup(hdc)
                 print(">>> Creating webdriver")
                 wd = create_driver()
