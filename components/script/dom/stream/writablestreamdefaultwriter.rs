@@ -70,7 +70,7 @@ impl WritableStreamDefaultWriter {
     ) -> Result<(), Error> {
         // If ! IsWritableStreamLocked(stream) is true, throw a TypeError exception.
         if stream.is_locked() {
-            return Err(Error::Type("Stream is locked".to_string()));
+            return Err(Error::Type(c"Stream is locked".to_owned()));
         }
 
         // Set writer.[[stream]] to stream.
@@ -294,7 +294,7 @@ impl WritableStreamDefaultWriter {
         {
             let promise = Promise::new(global, can_gc);
             promise.reject_error(
-                Error::Type("Stream is not equal to writer stream".to_string()),
+                Error::Type(c"Stream is not equal to writer stream".to_owned()),
                 can_gc,
             );
             return promise;
@@ -318,7 +318,7 @@ impl WritableStreamDefaultWriter {
             // indicating that the stream is closing or closed
             let promise = Promise::new(global, can_gc);
             promise.reject_error(
-                Error::Type("Stream has been closed, or has close queued or in-flight".to_string()),
+                Error::Type(c"Stream has been closed, or has close queued or in-flight".to_owned()),
                 can_gc,
             );
             return promise;
@@ -359,7 +359,7 @@ impl WritableStreamDefaultWriter {
         assert!(stream.get_writer().is_some_and(|writer| &*writer == self));
 
         // Let releasedError be a new TypeError.
-        let released_error = Error::Type("Writer has been released".to_string());
+        let released_error = Error::Type(c"Writer has been released".to_owned());
 
         // Root the js val of the error.
         rooted!(in(*cx) let mut error = UndefinedValue());
@@ -436,7 +436,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
     fn GetDesiredSize(&self) -> Result<Option<f64>, Error> {
         // If this.[[stream]] is undefined, throw a TypeError exception.
         let Some(stream) = self.stream.get() else {
-            return Err(Error::Type("Stream is undefined".to_string()));
+            return Err(Error::Type(c"Stream is undefined".to_owned()));
         };
 
         // Return ! WritableStreamDefaultWriterGetDesiredSize(this).
@@ -463,7 +463,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         if self.stream.get().is_none() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type("Stream is undefined".to_string()), can_gc);
+            promise.reject_error(Error::Type(c"Stream is undefined".to_owned()), can_gc);
             return promise;
         }
 
@@ -481,7 +481,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         let Some(stream) = self.stream.get() else {
             // If stream is undefined,
             // return a promise rejected with a TypeError exception.
-            promise.reject_error(Error::Type("Stream is undefined".to_string()), can_gc);
+            promise.reject_error(Error::Type(c"Stream is undefined".to_owned()), can_gc);
             return promise;
         };
 
@@ -489,7 +489,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         if stream.close_queued_or_in_flight() {
             // return a promise rejected with a TypeError exception.
             promise.reject_error(
-                Error::Type("Stream has closed queued or in-flight".to_string()),
+                Error::Type(c"Stream has closed queued or in-flight".to_owned()),
                 can_gc,
             );
             return promise;
@@ -531,7 +531,7 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
             // return a promise rejected with a TypeError exception.
             let global = GlobalScope::from_safe_context(cx, realm);
             let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type("Stream is undefined".to_string()), can_gc);
+            promise.reject_error(Error::Type(c"Stream is undefined".to_owned()), can_gc);
             return promise;
         }
 

@@ -19,6 +19,7 @@ use net_traits::request::{
     Referrer as NetTraitsRequestReferrer, Request as NetTraitsRequest, RequestBuilder,
     RequestMode as NetTraitsRequestMode, TraversableForUserPrompts,
 };
+use script_bindings::cformat;
 use servo_url::ServoUrl;
 
 use crate::body::{BodyMixin, BodyType, Extractable, clone_body_stream_for_dom_body, consume_body};
@@ -122,12 +123,12 @@ impl Request {
                 let parsed_url = base_url.join(usv_string);
                 // Step 5.2. If parsedURL is failure, then throw a TypeError.
                 if parsed_url.is_err() {
-                    return Err(Error::Type("Url could not be parsed".to_string()));
+                    return Err(Error::Type(c"Url could not be parsed".to_owned()));
                 }
                 // Step 5.3. If parsedURL includes credentials, then throw a TypeError.
                 let url = parsed_url.unwrap();
                 if includes_credentials(&url) {
-                    return Err(Error::Type("Url includes credentials".to_string()));
+                    return Err(Error::Type(c"Url includes credentials".to_owned()));
                 }
                 // Step 5.4. Set request to a new request whose URL is parsedURL.
                 temporary_request = net_request_from_global(global, url);
@@ -159,7 +160,7 @@ impl Request {
 
         // Step 10. If init["window"] exists and is non-null, then throw a TypeError.
         if !init.window.handle().is_null_or_undefined() {
-            return Err(Error::Type("Window is present and is not null".to_string()));
+            return Err(Error::Type(c"Window is present and is not null".to_owned()));
         }
 
         // Step 11. If init["window"] exists, then set traversableForUserPrompts to "no-traversable".
@@ -231,7 +232,7 @@ impl Request {
                 let parsed_referrer = base_url.join(referrer);
                 // Step 14.3.2. If parsedReferrer is failure, then throw a TypeError.
                 if parsed_referrer.is_err() {
-                    return Err(Error::Type("Failed to parse referrer url".to_string()));
+                    return Err(Error::Type(c"Failed to parse referrer url".to_owned()));
                 }
                 // Step 14.3.3. If one of the following is true
                 // parsedReferrer’s scheme is "about" and path is the string "client"
@@ -263,7 +264,7 @@ impl Request {
 
         // Step 17. If mode is "navigate", then throw a TypeError.
         if let Some(NetTraitsRequestMode::Navigate) = mode {
-            return Err(Error::Type("Request mode is Navigate".to_string()));
+            return Err(Error::Type(c"Request mode is Navigate".to_owned()));
         }
 
         // Step 18. If mode is non-null, set request’s mode to mode.
@@ -289,7 +290,7 @@ impl Request {
             request.mode != NetTraitsRequestMode::SameOrigin
         {
             return Err(Error::Type(
-                "Cache is 'only-if-cached' and mode is not 'same-origin'".to_string(),
+                c"Cache is 'only-if-cached' and mode is not 'same-origin'".to_owned(),
             ));
         }
 
@@ -315,16 +316,16 @@ impl Request {
         if let Some(init_method) = init.method.as_ref() {
             // Step 25.2. If method is not a method or method is a forbidden method, then throw a TypeError.
             if !is_method(init_method) {
-                return Err(Error::Type("Method is not a method".to_string()));
+                return Err(Error::Type(c"Method is not a method".to_owned()));
             }
             if is_forbidden_method(init_method) {
-                return Err(Error::Type("Method is forbidden".to_string()));
+                return Err(Error::Type(c"Method is forbidden".to_owned()));
             }
             // Step 25.3. Normalize method.
             let method = match init_method.as_str() {
                 Some(s) => normalize_method(s)
-                    .map_err(|e| Error::Type(format!("Method is not valid: {:?}", e)))?,
-                None => return Err(Error::Type("Method is not a valid UTF8".to_string())),
+                    .map_err(|e| Error::Type(cformat!("Method is not valid: {:?}", e)))?,
+                None => return Err(Error::Type(c"Method is not a valid UTF8".to_owned())),
             };
             // Step 25.4. Set request’s method to method.
             request.method = method;
@@ -392,8 +393,8 @@ impl Request {
             // Step 32.1. If this’s request’s method is not a CORS-safelisted method, then throw a TypeError.
             if !is_cors_safelisted_method(&borrowed_request.method) {
                 return Err(Error::Type(
-                    "The mode is 'no-cors' but the method is not a cors-safelisted method"
-                        .to_string(),
+                    c"The mode is 'no-cors' but the method is not a cors-safelisted method"
+                        .to_owned(),
                 ));
             }
             // Step 32.2. Set this’s headers’s guard to "request-no-cors".
@@ -438,12 +439,12 @@ impl Request {
             match *req_method {
                 HttpMethod::GET => {
                     return Err(Error::Type(
-                        "Init's body is non-null, and request method is GET".to_string(),
+                        c"Init's body is non-null, and request method is GET".to_owned(),
                     ));
                 },
                 HttpMethod::HEAD => {
                     return Err(Error::Type(
-                        "Init's body is non-null, and request method is HEAD".to_string(),
+                        c"Init's body is non-null, and request method is HEAD".to_owned(),
                     ));
                 },
                 _ => {},
@@ -513,7 +514,7 @@ impl Request {
                 *request_mode != NetTraitsRequestMode::SameOrigin
             {
                 return Err(Error::Type(
-                    "Request mode must be Cors or SameOrigin".to_string(),
+                    c"Request mode must be Cors or SameOrigin".to_owned(),
                 ));
             }
             // Step 39.3. Set this’s request’s use-CORS-preflight flag.
@@ -527,7 +528,7 @@ impl Request {
         // processed the input body. Therefore, we check it all the way
         // above and throw the error at the last possible moment
         if input_body_is_unusable {
-            return Err(Error::Type("Input body is unusable".to_string()));
+            return Err(Error::Type(c"Input body is unusable".to_owned()));
         }
 
         // Step 42. Set this’s request’s body to finalBody.
@@ -715,7 +716,7 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
     fn Clone(&self, can_gc: CanGc) -> Fallible<DomRoot<Request>> {
         // Step 1. If this is unusable, then throw a TypeError.
         if self.is_unusable() {
-            return Err(Error::Type("Request is unusable".to_string()));
+            return Err(Error::Type(c"Request is unusable".to_owned()));
         }
 
         // Step 2. Let clonedRequest be the result of cloning this’s request.

@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{HandleObject, Heap, JSObject};
+use script_bindings::cformat;
 use webgpu_traits::{
     RequestDeviceError, WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest,
 };
@@ -206,7 +207,7 @@ impl GPUAdapterMethods<crate::DomTypeHolder> for GPUAdapter {
                 required_features.insert(feature);
             } else {
                 promise.reject_error(
-                    Error::Type(format!("{} is not supported feature", ext.as_str())),
+                    Error::Type(cformat!("{} is not supported feature", ext.as_str())),
                     can_gc,
                 );
                 return promise;
@@ -298,9 +299,10 @@ impl RoutedPromiseListener<WebGPUDeviceResponse> for GPUAdapter {
             },
             // 1. If features are not supported reject promise with a TypeError.
             (_, _, Err(RequestDeviceError::UnsupportedFeature(f))) => promise.reject_error(
-                Error::Type(
-                    wgpu_core::instance::RequestDeviceError::UnsupportedFeature(f).to_string(),
-                ),
+                Error::Type(cformat!(
+                    "{}",
+                    wgpu_core::instance::RequestDeviceError::UnsupportedFeature(f)
+                )),
                 can_gc,
             ),
             // 2. If limits are not supported reject promise with an OperationError.

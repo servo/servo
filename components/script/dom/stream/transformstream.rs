@@ -789,7 +789,7 @@ impl TransformStream {
         let controller = self
             .controller
             .get()
-            .ok_or(Error::Type("controller is not set".to_string()))?;
+            .ok_or(Error::Type(c"controller is not set".to_owned()))?;
 
         // If controller.[[finishPromise]] is not undefined, return controller.[[finishPromise]].
         if let Some(finish_promise) = controller.get_finish_promise() {
@@ -800,7 +800,7 @@ impl TransformStream {
         let readable = self
             .readable
             .get()
-            .ok_or(Error::Type("readable stream is not set".to_string()))?;
+            .ok_or(Error::Type(c"readable stream is not set".to_owned()))?;
 
         // Let controller.[[finishPromise]] be a new promise.
         controller.set_finish_promise(Promise::new(global, can_gc));
@@ -847,7 +847,7 @@ impl TransformStream {
         let controller = self
             .controller
             .get()
-            .ok_or(Error::Type("controller is not set".to_string()))?;
+            .ok_or(Error::Type(c"controller is not set".to_owned()))?;
 
         // If controller.[[finishPromise]] is not undefined, return controller.[[finishPromise]].
         if let Some(finish_promise) = controller.get_finish_promise() {
@@ -858,7 +858,7 @@ impl TransformStream {
         let writable = self
             .writable
             .get()
-            .ok_or(Error::Type("writable stream is not set".to_string()))?;
+            .ok_or(Error::Type(c"writable stream is not set".to_owned()))?;
 
         // Let controller.[[finishPromise]] be a new promise.
         controller.set_finish_promise(Promise::new(global, can_gc));
@@ -987,9 +987,7 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
             match Transformer::new(cx, obj_val.handle(), can_gc) {
                 Ok(ConversionResult::Success(val)) => val,
                 Ok(ConversionResult::Failure(error)) => {
-                    return Err(Error::Type(
-                        String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
-                    ));
+                    return Err(Error::Type(error.into_owned()));
                 },
                 _ => {
                     return Err(Error::JSFailed);
@@ -1001,12 +999,12 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
 
         // If transformerDict["readableType"] exists, throw a RangeError exception.
         if !transformer_dict.readableType.handle().is_undefined() {
-            return Err(Error::Range("readableType is set".to_string()));
+            return Err(Error::Range(c"readableType is set".to_owned()));
         }
 
         // If transformerDict["writableType"] exists, throw a RangeError exception.
         if !transformer_dict.writableType.handle().is_undefined() {
-            return Err(Error::Range("writableType is set".to_string()));
+            return Err(Error::Range(c"writableType is set".to_owned()));
         }
 
         // Let readableHighWaterMark be ? ExtractHighWaterMark(readableStrategy, 0).

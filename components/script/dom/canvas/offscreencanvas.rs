@@ -311,9 +311,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         "webgl2" | "experimental-webgl2" => self
             .get_or_init_webgl2_context(cx, options)
             .map(OffscreenRenderingContext::WebGL2RenderingContext),*/
-            _ => Err(Error::Type(String::from(
-                "Unrecognized OffscreenCanvas context type",
-            ))),
+            _ => Err(Error::Type(c"Unrecognized OffscreenCanvas context type".to_owned())),
         )
     }
 

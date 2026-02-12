@@ -8,6 +8,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsapi::{HandleObject, Heap, JSObject};
+use script_bindings::cformat;
 use webgpu_traits::{
     PopError, WebGPU, WebGPUComputePipeline, WebGPUComputePipelineResponse, WebGPUDevice,
     WebGPUPoppedErrorScopeResponse, WebGPUQueue, WebGPURenderPipeline,
@@ -242,7 +243,7 @@ impl GPUDevice {
         {
             Ok(texture_format)
         } else {
-            Err(Error::Type(format!(
+            Err(Error::Type(cformat!(
                 "{texture_format:?} is not supported by this GPUDevice"
             )))
         }

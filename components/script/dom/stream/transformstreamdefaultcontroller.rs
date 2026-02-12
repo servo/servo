@@ -590,7 +590,7 @@ impl TransformStreamDefaultController {
         // is false, throw a TypeError exception.
         if !readable_controller.can_close_or_enqueue() {
             return Err(Error::Type(
-                "ReadableStreamDefaultControllerCanCloseOrEnqueue is false".to_owned(),
+                c"ReadableStreamDefaultControllerCanCloseOrEnqueue is false".to_owned(),
             ));
         }
 
@@ -682,7 +682,7 @@ impl TransformStreamDefaultController {
         readable_controller.close(can_gc);
 
         // Let error be a TypeError exception indicating that the stream has been terminated.
-        let error = Error::Type("stream has been terminated".to_owned());
+        let error = Error::Type(c"stream has been terminated".to_owned());
 
         // Perform ! TransformStreamErrorWritableAndUnblockWrite(stream, error).
         rooted!(in(*cx) let mut rooted_error = UndefinedValue());

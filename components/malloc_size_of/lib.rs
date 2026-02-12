@@ -48,6 +48,7 @@
 
 use std::cell::OnceCell;
 use std::collections::BinaryHeap;
+use std::ffi::CString;
 use std::hash::{BuildHasher, Hash};
 use std::ops::Range;
 use std::rc::Rc;
@@ -169,6 +170,12 @@ impl MallocSizeOf for markup5ever::QualName {
 }
 
 impl MallocSizeOf for String {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        unsafe { ops.malloc_size_of(self.as_ptr()) }
+    }
+}
+
+impl MallocSizeOf for CString {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         unsafe { ops.malloc_size_of(self.as_ptr()) }
     }

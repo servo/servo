@@ -527,13 +527,13 @@ impl Extractable for BodyInit {
                 // If keepalive is true, then throw a TypeError.
                 if keep_alive {
                     return Err(Error::Type(
-                        "The body's stream is for a keepalive request".to_string(),
+                        c"The body's stream is for a keepalive request".to_owned(),
                     ));
                 }
                 // If object is disturbed or locked, then throw a TypeError.
                 if stream.is_locked() || stream.is_disturbed() {
                     return Err(Error::Type(
-                        "The body's stream is disturbed or locked".to_string(),
+                        c"The body's stream is disturbed or locked".to_owned(),
                     ));
                 }
 
@@ -702,7 +702,7 @@ pub(crate) fn consume_body<T: BodyMixin + DomObject>(
     // If object is unusable, then return a promise rejected with a TypeError.
     if object.is_unusable() {
         promise.reject_error(
-            Error::Type("The body's stream is disturbed or locked".to_string()),
+            Error::Type(c"The body's stream is disturbed or locked".to_owned()),
             can_gc,
         );
         return promise;
@@ -947,7 +947,7 @@ fn content_type_from_headers(headers: &HeaderMap) -> Result<String, Error> {
     match headers.get(CONTENT_TYPE) {
         Some(value) => Ok(value
             .to_str()
-            .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?
+            .map_err(|_| Error::Type(c"Inappropriate MIME-type for Body".to_owned()))?
             .to_string()),
         None => Ok("text/plain".to_string()),
     }
@@ -1003,7 +1003,7 @@ fn append_multipart_nodes(
             },
             Node::File(file_part) => {
                 let body = fs::read(&file_part.path)
-                    .map_err(|_| Error::Type("file part could not be read".to_string()))?;
+                    .map_err(|_| Error::Type(c"file part could not be read".to_owned()))?;
                 append_form_data_entry_from_part(root, formdata, &file_part.headers, body, can_gc)?;
             },
             Node::Multipart((_, inner)) => {
@@ -1026,7 +1026,7 @@ fn run_form_data_algorithm(
     let mime_str = str::from_utf8(mime).unwrap_or_default();
     let mime: Mime = mime_str
         .parse()
-        .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
+        .map_err(|_| Error::Type(c"Inappropriate MIME-type for Body".to_owned()))?;
 
     // Let mimeType be the result of get the MIME type with this.
     //
@@ -1040,7 +1040,7 @@ fn run_form_data_algorithm(
             CONTENT_TYPE,
             mime_str
                 .parse()
-                .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?,
+                .map_err(|_| Error::Type(c"Inappropriate MIME-type for Body".to_owned()))?,
         );
 
         if let Some(boundary) = mime.get_param(mime::BOUNDARY) {
@@ -1055,7 +1055,7 @@ fn run_form_data_algorithm(
         let mut cursor = Cursor::new(bytes);
         // If that fails for some reason, then throw a TypeError.
         let nodes = read_multipart_body(&mut cursor, &headers, false)
-            .map_err(|_| Error::Type("Inappropriate MIME-type for Body".to_string()))?;
+            .map_err(|_| Error::Type(c"Inappropriate MIME-type for Body".to_owned()))?;
         // The above is a rough approximation of what is needed for `multipart/form-data`,
         // a more detailed parsing specification is to be written. Volunteers welcome.
 
@@ -1081,7 +1081,7 @@ fn run_form_data_algorithm(
     }
 
     // Throw a TypeError.
-    Err(Error::Type("Inappropriate MIME-type for Body".to_string()))
+    Err(Error::Type(c"Inappropriate MIME-type for Body".to_owned()))
 }
 
 /// <https://fetch.spec.whatwg.org/#ref-for-concept-body-consume-body%E2%91%A1>

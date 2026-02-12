@@ -86,7 +86,7 @@ impl TrustedTypePolicy {
     fn check_callback_if_missing(throw_if_missing: bool) -> Fallible<Option<DOMString>> {
         // Step 3.1: If throwIfMissing throw a TypeError.
         if throw_if_missing {
-            Err(Type("Cannot find type".to_owned()))
+            Err(Type(c"Cannot find type".to_owned()))
         } else {
             // Step 3.2: Else return null.
             Ok(None)

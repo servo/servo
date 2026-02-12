@@ -236,14 +236,16 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
     ) -> Fallible<()> {
         if let Some(offset) = offset {
             if *offset < 0. {
-                return Err(Error::Range("'offset' must be a positive value".to_owned()));
+                return Err(Error::Range(
+                    c"'offset' must be a positive value".to_owned(),
+                ));
             }
         }
 
         if let Some(duration) = duration {
             if *duration < 0. {
                 return Err(Error::Range(
-                    "'duration' must be a positive value".to_owned(),
+                    c"'duration' must be a positive value".to_owned(),
                 ));
             }
         }

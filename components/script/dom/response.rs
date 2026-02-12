@@ -11,6 +11,7 @@ use http::header::HeaderMap as HyperHeaders;
 use hyper_serde::Serde;
 use js::rust::{HandleObject, HandleValue};
 use net_traits::http_status::HttpStatus;
+use script_bindings::cformat;
 use servo_url::ServoUrl;
 use url::Position;
 
@@ -215,12 +216,12 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         // Step 2
         let url = match parsed_url {
             Ok(url) => url,
-            Err(_) => return Err(Error::Type("ServoUrl could not be parsed".to_string())),
+            Err(_) => return Err(Error::Type(c"ServoUrl could not be parsed".to_owned())),
         };
 
         // Step 3
         if !is_redirect_status(status) {
-            return Err(Error::Range("status is not a redirect status".to_string()));
+            return Err(Error::Range(c"status is not a redirect status".to_owned()));
         }
 
         // Step 4
@@ -317,7 +318,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
     fn Clone(&self, can_gc: CanGc) -> Fallible<DomRoot<Response>> {
         // Step 1. If this is unusable, then throw a TypeError.
         if self.is_unusable() {
-            return Err(Error::Type("cannot clone a disturbed response".to_string()));
+            return Err(Error::Type(c"cannot clone a disturbed response".to_owned()));
         }
 
         // Step 2. Let clonedResponse be the result of cloning this’s response.
@@ -401,7 +402,7 @@ fn initialize_response(
 ) -> Result<DomRoot<Response>, Error> {
     // 1. If init["status"] is not in the range 200 to 599, inclusive, then throw a RangeError.
     if init.status < 200 || init.status > 599 {
-        return Err(Error::Range(format!(
+        return Err(Error::Range(cformat!(
             "init's status member should be in the range 200 to 599, inclusive, but is {}",
             init.status
         )));
@@ -411,8 +412,8 @@ fn initialize_response(
     // then throw a TypeError.
     if !is_valid_status_text(&init.statusText) {
         return Err(Error::Type(
-            "init's statusText member does not match the reason-phrase token production"
-                .to_string(),
+            c"init's statusText member does not match the reason-phrase token production"
+                .to_owned(),
         ));
     }
 
@@ -433,7 +434,7 @@ fn initialize_response(
         // 6.1 If response’s status is a null body status, then throw a TypeError.
         if is_null_body_status(init.status) {
             return Err(Error::Type(
-                "Body is non-null but init's status member is a null body status".to_string(),
+                c"Body is non-null but init's status member is a null body status".to_owned(),
             ));
         };
 

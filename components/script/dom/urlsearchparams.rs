@@ -81,7 +81,7 @@ impl URLSearchParamsMethods<crate::DomTypeHolder> for URLSearchParams {
 
                 // Step 2-1.
                 if init.iter().any(|pair| pair.len() != 2) {
-                    return Err(Error::Type("Sequence initializer must only contain pair elements.".to_string()));
+                    return Err(Error::Type(c"Sequence initializer must only contain pair elements.".to_owned()));
                 }
 
                 // Step 2-2.

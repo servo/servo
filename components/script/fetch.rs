@@ -21,6 +21,7 @@ use net_traits::{
     FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, cancel_async_fetch,
 };
 use rustc_hash::FxHashMap;
+use script_bindings::cformat;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use timers::TimerEventRequest;
@@ -380,25 +381,25 @@ pub(crate) fn FetchLater(
     }
     // Step 6. If activateAfter is less than 0, then throw a RangeError.
     if *activate_after < 0.0 {
-        return Err(Error::Range("activateAfter must be at least 0".to_owned()));
+        return Err(Error::Range(c"activateAfter must be at least 0".to_owned()));
     }
     // Step 7. If this’s relevant global object’s associated document is not fully active, then throw a TypeError.
     if !document.is_fully_active() {
-        return Err(Error::Type("Document is not fully active".to_owned()));
+        return Err(Error::Type(c"Document is not fully active".to_owned()));
     }
     let url = request.url();
     // Step 8. If request’s URL’s scheme is not an HTTP(S) scheme, then throw a TypeError.
     if !matches!(url.scheme(), "http" | "https") {
-        return Err(Error::Type("URL is not http(s)".to_owned()));
+        return Err(Error::Type(c"URL is not http(s)".to_owned()));
     }
     // Step 9. If request’s URL is not a potentially trustworthy URL, then throw a SecurityError.
     if !url.is_potentially_trustworthy() {
-        return Err(Error::Type("URL is not trustworthy".to_owned()));
+        return Err(Error::Type(c"URL is not trustworthy".to_owned()));
     }
     // Step 10. If request’s body is not null, and request’s body length is null or zero, then throw a TypeError.
     if let Some(body) = request.body.as_ref() {
         if body.len().is_none_or(|len| len == 0) {
-            return Err(Error::Type("Body is empty".to_owned()));
+            return Err(Error::Type(c"Body is empty".to_owned()));
         }
     }
     // Step 11. If the available deferred-fetch quota given request’s client and request’s URL’s
@@ -560,14 +561,14 @@ impl FetchResponseListener for FetchContext {
             // p with a TypeError and abort these steps.
             Err(error) => {
                 promise.reject_error(
-                    Error::Type(format!("Network error: {:?}", error)),
+                    Error::Type(cformat!("Network error: {:?}", error)),
                     CanGc::note(),
                 );
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
                 response.set_type(DOMResponseType::Error, CanGc::note());
                 response.error_stream(
-                    Error::Type("Network error occurred".to_string()),
+                    Error::Type(c"Network error occurred".to_owned()),
                     CanGc::note(),
                 );
                 return;
@@ -629,7 +630,7 @@ impl FetchResponseListener for FetchContext {
         if let Err(ref error) = response {
             if *error == NetworkError::DecompressionError {
                 response_object.error_stream(
-                    Error::Type("Network error occurred".to_string()),
+                    Error::Type(c"Network error occurred".to_owned()),
                     CanGc::note(),
                 );
             }

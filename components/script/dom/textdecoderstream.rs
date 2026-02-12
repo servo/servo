@@ -37,11 +37,11 @@ pub(crate) fn decode_and_enqueue_a_chunk(
     // Step 1. Let bufferSource be the result of converting chunk to an AllowSharedBufferSource.
     let conversion_result = unsafe {
         ArrayBufferViewOrArrayBuffer::from_jsval(*cx, chunk, ()).map_err(|_| {
-            Error::Type("Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_string())
+            Error::Type(c"Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_owned())
         })?
     };
     let buffer_source = conversion_result.get_success_value().ok_or_else(|| {
-        Error::Type("Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_string())
+        Error::Type(c"Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_owned())
     })?;
 
     // Step 2. Push a copy of bufferSource to decoder’s I/O queue.
@@ -160,7 +160,7 @@ impl TextDecoderStreamMethods<crate::DomTypeHolder> for TextDecoderStream {
             Some(enc) => enc,
             None => {
                 return Err(Error::Range(
-                    "The given encoding is not supported".to_owned(),
+                    c"The given encoding is not supported".to_owned(),
                 ));
             },
         };

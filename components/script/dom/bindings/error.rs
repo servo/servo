@@ -4,6 +4,7 @@
 
 //! Utilities to throw exceptions from Rust bindings.
 
+use std::ffi::CString;
 use std::ptr::NonNull;
 use std::slice::from_raw_parts;
 
@@ -21,7 +22,6 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_ErrorFromException, JS_GetPendingException, JS_SetPendingException};
 use js::rust::{HandleObject, HandleValue, MutableHandleValue, describe_scripted_caller};
 use libc::c_uint;
-use script_bindings::cformat;
 use script_bindings::conversions::SafeToJSValConvertible;
 pub(crate) use script_bindings::error::*;
 use script_bindings::root::DomRoot;
@@ -49,9 +49,9 @@ thread_local! {
 /// Error values that have no equivalent DOMException representation.
 pub(crate) enum JsEngineError {
     /// An EMCAScript TypeError.
-    Type(String),
+    Type(CString),
     /// An ECMAScript RangeError.
-    Range(String),
+    Range(CString),
     /// The JS engine reported a thrown exception.
     JSFailed,
 }
@@ -83,13 +83,11 @@ pub(crate) fn throw_dom_exception(
 
         Err(JsEngineError::Type(message)) => unsafe {
             assert!(!JS_IsExceptionPending(*cx));
-            let message = cformat!("{message}");
             throw_type_error(*cx, &message);
         },
 
         Err(JsEngineError::Range(message)) => unsafe {
             assert!(!JS_IsExceptionPending(*cx));
-            let message = cformat!("{message}");
             throw_range_error(*cx, &message);
         },
 

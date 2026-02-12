@@ -416,7 +416,7 @@ impl ReadableByteStreamController {
                     if self.close_requested.get() {
                         // Let e be a new TypeError exception.
                         rooted!(in(*cx) let mut error = UndefinedValue());
-                        Error::Type("close requested".to_owned()).to_jsval(
+                        Error::Type(c"close requested".to_owned()).to_jsval(
                             cx,
                             &self.global(),
                             error.handle_mut(),
@@ -484,7 +484,7 @@ impl ReadableByteStreamController {
                 // If bytesWritten is not 0, throw a TypeError exception.
                 if bytes_written != 0 {
                     return Err(Error::Type(
-                        "bytesWritten not zero on closed stream".to_owned(),
+                        c"bytesWritten not zero on closed stream".to_owned(),
                     ));
                 }
             } else {
@@ -493,7 +493,7 @@ impl ReadableByteStreamController {
 
                 // If bytesWritten is 0, throw a TypeError exception.
                 if bytes_written == 0 {
-                    return Err(Error::Type("bytesWritten is 0".to_owned()));
+                    return Err(Error::Type(c"bytesWritten is 0".to_owned()));
                 }
 
                 // If firstDescriptor’s bytes filled + bytesWritten > firstDescriptor’s byte length,
@@ -502,7 +502,7 @@ impl ReadableByteStreamController {
                     first_descriptor.byte_length
                 {
                     return Err(Error::Range(
-                        "bytes filled + bytesWritten > byte length".to_owned(),
+                        c"bytes filled + bytesWritten > byte length".to_owned(),
                     ));
                 }
             }
@@ -740,7 +740,7 @@ impl ReadableByteStreamController {
             if stream.is_closed() {
                 // If view.[[ByteLength]] is not 0, throw a TypeError exception.
                 if view.byte_length() != 0 {
-                    return Err(Error::Type("view byte length is not 0".to_owned()));
+                    return Err(Error::Type(c"view byte length is not 0".to_owned()));
                 }
             } else {
                 // Assert: state is "readable".
@@ -748,7 +748,7 @@ impl ReadableByteStreamController {
 
                 // If view.[[ByteLength]] is 0, throw a TypeError exception.
                 if view.byte_length() == 0 {
-                    return Err(Error::Type("view byte length is 0".to_owned()));
+                    return Err(Error::Type(c"view byte length is 0".to_owned()));
                 }
             }
 
@@ -758,7 +758,7 @@ impl ReadableByteStreamController {
                 (view.get_byte_offset() as u64)
             {
                 return Err(Error::Range(
-                    "firstDescriptor's byte offset + bytes filled is not view byte offset"
+                    c"firstDescriptor's byte offset + bytes filled is not view byte offset"
                         .to_owned(),
                 ));
             }
@@ -769,7 +769,7 @@ impl ReadableByteStreamController {
                 (view.viewed_buffer_array_byte_length(cx) as u64)
             {
                 return Err(Error::Range(
-                "firstDescriptor's buffer byte length is not view viewed buffer array byte length"
+                c"firstDescriptor's buffer byte length is not view viewed buffer array byte length"
                     .to_owned(),
             ));
             }
@@ -780,7 +780,7 @@ impl ReadableByteStreamController {
                 first_descriptor.byte_length
             {
                 return Err(Error::Range(
-                    "bytes filled + view byte length > byte length".to_owned(),
+                    c"bytes filled + view byte length > byte length".to_owned(),
                 ));
             }
 
@@ -894,7 +894,7 @@ impl ReadableByteStreamController {
 
                 // Let e be a new TypeError exception.
                 let e = Error::Type(
-                    "remainder after dividing firstPendingPullInto's bytes
+                    c"remainder after dividing firstPendingPullInto's bytes
                     filled by firstPendingPullInto's element size is not 0"
                         .to_owned(),
                 );
@@ -1009,7 +1009,7 @@ impl ReadableByteStreamController {
 
         // If ! IsDetachedBuffer(buffer) is true, throw a TypeError exception.
         if buffer.is_detached_buffer(cx) {
-            return Err(Error::Type("buffer is detached".to_owned()));
+            return Err(Error::Type(c"buffer is detached".to_owned()));
         }
 
         // Let transferredBuffer be ? TransferArrayBuffer(buffer).
@@ -1023,7 +1023,7 @@ impl ReadableByteStreamController {
                 let first_descriptor = pending_pull_intos.first_mut().unwrap();
                 // If ! IsDetachedBuffer(firstPendingPullInto’s buffer) is true, throw a TypeError exception.
                 if first_descriptor.buffer.is_detached_buffer(cx) {
-                    return Err(Error::Type("buffer is detached".to_owned()));
+                    return Err(Error::Type(c"buffer is detached".to_owned()));
                 }
 
                 // Perform ! ReadableByteStreamControllerInvalidateBYOBRequest(controller).
@@ -1474,7 +1474,7 @@ impl ReadableByteStreamController {
 
             // Perform ! ReadableByteStreamControllerError(controller, cloneResult.[[Value]]).
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            let error = Error::Type("can not clone array buffer".to_owned());
+            let error = Error::Type(c"can not clone array buffer".to_owned());
             error
                 .clone()
                 .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
@@ -1976,12 +1976,12 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
         let cx = GlobalScope::get_cx();
         // If this.[[closeRequested]] is true, throw a TypeError exception.
         if self.close_requested.get() {
-            return Err(Error::Type("closeRequested is true".to_owned()));
+            return Err(Error::Type(c"closeRequested is true".to_owned()));
         }
 
         // If this.[[stream]].[[state]] is not "readable", throw a TypeError exception.
         if !self.stream.get().unwrap().is_readable() {
-            return Err(Error::Type("stream is not readable".to_owned()));
+            return Err(Error::Type(c"stream is not readable".to_owned()));
         }
 
         // Perform ? ReadableByteStreamControllerClose(this).
@@ -2000,24 +2000,24 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
 
         // If chunk.[[ByteLength]] is 0, throw a TypeError exception.
         if chunk.byte_length() == 0 {
-            return Err(Error::Type("chunk.ByteLength is 0".to_owned()));
+            return Err(Error::Type(c"chunk.ByteLength is 0".to_owned()));
         }
 
         // If chunk.[[ViewedArrayBuffer]].[[ByteLength]] is 0, throw a TypeError exception.
         if chunk.viewed_buffer_array_byte_length(cx) == 0 {
             return Err(Error::Type(
-                "chunk.ViewedArrayBuffer.ByteLength is 0".to_owned(),
+                c"chunk.ViewedArrayBuffer.ByteLength is 0".to_owned(),
             ));
         }
 
         // If this.[[closeRequested]] is true, throw a TypeError exception.
         if self.close_requested.get() {
-            return Err(Error::Type("closeRequested is true".to_owned()));
+            return Err(Error::Type(c"closeRequested is true".to_owned()));
         }
 
         // If this.[[stream]].[[state]] is not "readable", throw a TypeError exception.
         if !self.stream.get().unwrap().is_readable() {
-            return Err(Error::Type("stream is not readable".to_owned()));
+            return Err(Error::Type(c"stream is not readable".to_owned()));
         }
 
         // Return ? ReadableByteStreamControllerEnqueue(this, chunk).

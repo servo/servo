@@ -236,14 +236,14 @@ impl QueueWithSizes {
         // If ! IsNonNegativeNumber(size) is false, throw a RangeError exception.
         if !is_non_negative_number(&value) {
             return Err(Error::Range(
-                "The size of the enqueued chunk is not a non-negative number.".to_string(),
+                c"The size of the enqueued chunk is not a non-negative number.".to_owned(),
             ));
         }
 
         // If size is +∞, throw a RangeError exception.
         if value.size().is_infinite() {
             return Err(Error::Range(
-                "The size of the enqueued chunk is infinite.".to_string(),
+                c"The size of the enqueued chunk is infinite.".to_owned(),
             ));
         }
 
@@ -891,7 +891,7 @@ impl ReadableStreamDefaultControllerMethods<crate::DomTypeHolder>
         if !self.can_close_or_enqueue() {
             // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(this) is false,
             // throw a TypeError exception.
-            return Err(Error::Type("Stream cannot be closed.".to_string()));
+            return Err(Error::Type(c"Stream cannot be closed.".to_owned()));
         }
 
         // Perform ! ReadableStreamDefaultControllerClose(this).
@@ -904,7 +904,7 @@ impl ReadableStreamDefaultControllerMethods<crate::DomTypeHolder>
     fn Enqueue(&self, cx: SafeJSContext, chunk: SafeHandleValue, can_gc: CanGc) -> Fallible<()> {
         // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(this) is false, throw a TypeError exception.
         if !self.can_close_or_enqueue() {
-            return Err(Error::Type("Stream cannot be enqueued to.".to_string()));
+            return Err(Error::Type(c"Stream cannot be enqueued to.".to_owned()));
         }
 
         // Perform ? ReadableStreamDefaultControllerEnqueue(this, chunk).

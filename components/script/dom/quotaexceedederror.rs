@@ -77,7 +77,7 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
             // If options["quota"] is less than 0, then throw a RangeError.
             if *quota < 0.0 {
                 return Err(Error::Range(
-                    "quota must be at least zero if present".to_string(),
+                    c"quota must be at least zero if present".to_owned(),
                 ));
             }
         }
@@ -86,7 +86,7 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
             // If options["requested"] is less than 0, then throw a RangeError.
             if *requested < 0.0 {
                 return Err(Error::Range(
-                    "requested must be at least zero if present".to_string(),
+                    c"requested must be at least zero if present".to_owned(),
                 ));
             }
         }
@@ -94,7 +94,7 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
         // is less than this’s quota, then throw a RangeError.
         if let (Some(quota), Some(requested)) = (options.quota, options.requested) {
             if *requested < *quota {
-                return Err(Error::Range("requested is less than quota".to_string()));
+                return Err(Error::Range(c"requested is less than quota".to_owned()));
             }
         }
         Ok(reflect_dom_object_with_proto(

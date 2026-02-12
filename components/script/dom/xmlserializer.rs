@@ -65,9 +65,9 @@ impl XMLSerializerMethods<crate::DomTypeHolder> for XMLSerializer {
             },
         ) {
             Ok(_) => Ok(DOMString::from(String::from_utf8(writer).unwrap())),
-            Err(_) => Err(Error::Type(String::from(
-                "root must be a Node or an Attr object",
-            ))),
+            Err(_) => Err(Error::Type(
+                c"root must be a Node or an Attr object".to_owned(),
+            )),
         }
     }
 }

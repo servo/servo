@@ -303,7 +303,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
             Some(submitter_element) => {
                 // Step 1.1
                 let error_not_a_submit_button =
-                    Err(Error::Type("submitter must be a submit button".to_string()));
+                    Err(Error::Type(c"submitter must be a submit button".to_owned()));
 
                 let element = match submitter_element.upcast::<Node>().type_id() {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(element)) => element,

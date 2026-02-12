@@ -387,7 +387,7 @@ impl ReadableStreamDefaultReader {
     ) -> Fallible<()> {
         // If ! IsReadableStreamLocked(stream) is true, throw a TypeError exception.
         if stream.is_locked() {
-            return Err(Error::Type("stream is locked".to_owned()));
+            return Err(Error::Type(c"stream is locked".to_owned()));
         }
         // Perform ! ReadableStreamReaderGenericInitialize(reader, stream).
 
@@ -454,7 +454,7 @@ impl ReadableStreamDefaultReader {
         // Let e be a new TypeError exception.
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut error = UndefinedValue());
-        Error::Type("Reader is released".to_owned()).to_jsval(
+        Error::Type(c"Reader is released".to_owned()).to_jsval(
             cx,
             &self.global(),
             error.handle_mut(),
@@ -653,7 +653,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
         // If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
         if self.stream.get().is_none() {
             rooted!(in(*cx) let mut error = UndefinedValue());
-            Error::Type("stream is undefined".to_owned()).to_jsval(
+            Error::Type(c"stream is undefined".to_owned()).to_jsval(
                 cx,
                 &self.global(),
                 error.handle_mut(),

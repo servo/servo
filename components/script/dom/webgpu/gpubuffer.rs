@@ -51,11 +51,11 @@ impl ActiveBufferMapping {
         let size = range.end - range.start;
         // Step 2
         if size > (1 << 53) - 1 {
-            return Err(Error::Range("Over MAX_SAFE_INTEGER".to_string()));
+            return Err(Error::Range(c"Over MAX_SAFE_INTEGER".to_owned()));
         }
         let size: usize = size
             .try_into()
-            .map_err(|_| Error::Range("Over usize".to_string()))?;
+            .map_err(|_| Error::Range(c"Over usize".to_owned()))?;
         Ok(Self {
             data: DataBlock::new_zeroed(size),
             mode,

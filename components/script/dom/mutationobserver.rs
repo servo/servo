@@ -288,28 +288,28 @@ impl MutationObserverMethods<crate::DomTypeHolder> for MutationObserver {
         // Step 3
         if !child_list && !attributes && !character_data {
             return Err(Error::Type(
-                "One of childList, attributes, or characterData must be true".into(),
+                c"One of childList, attributes, or characterData must be true".into(),
             ));
         }
 
         // Step 4
         if attribute_old_value && !attributes {
             return Err(Error::Type(
-                "attributeOldValue is true but attributes is false".into(),
+                c"attributeOldValue is true but attributes is false".into(),
             ));
         }
 
         // Step 5
         if options.attributeFilter.is_some() && !attributes {
             return Err(Error::Type(
-                "attributeFilter is present but attributes is false".into(),
+                c"attributeFilter is present but attributes is false".into(),
             ));
         }
 
         // Step 6
         if character_data_old_value && !character_data {
             return Err(Error::Type(
-                "characterDataOldValue is true but characterData is false".into(),
+                c"characterDataOldValue is true but characterData is false".into(),
             ));
         }
 

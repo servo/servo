@@ -521,7 +521,7 @@ pub(crate) fn host_load_imported_module(
             // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
             None => Err(gen_type_error(
                 &global_scope,
-                Error::Type("Module fetching failed".to_string()),
+                Error::Type(c"Module fetching failed".to_owned()),
                 CanGc::from_cx(cx),
             )),
             Some(module_tree) => {

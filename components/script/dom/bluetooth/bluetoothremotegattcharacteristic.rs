@@ -359,7 +359,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTCharacteristic {
                 // (StopNotification)  Step 5.
                 promise.resolve_native(self, can_gc);
             },
-            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned()), can_gc),
+            _ => promise.reject_error(Error::Type(c"Something went wrong...".to_owned()), can_gc),
         }
     }
 }

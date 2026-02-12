@@ -9,6 +9,7 @@ use arrayvec::ArrayVec;
 use base::{Epoch, generic_channel};
 use dom_struct::dom_struct;
 use pixels::Snapshot;
+use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::GPUTextureFormat;
 use webgpu_traits::{
     ContextConfiguration, PRESENTATION_BUFFER_COUNT, PendingTexture, WebGPU, WebGPUContextId,
@@ -343,7 +344,7 @@ impl GPUCanvasContextMethods<crate::DomTypeHolder> for GPUCanvasContext {
 
         // 4. If Supported context formats does not contain configuration.format, throw a TypeError
         if !supported_context_format(configuration.format) {
-            return Err(Error::Type(format!(
+            return Err(Error::Type(cformat!(
                 "Unsupported context format: {:?}",
                 configuration.format
             )));

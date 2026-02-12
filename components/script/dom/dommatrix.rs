@@ -93,7 +93,7 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
             StringOrUnrestrictedDoubleSequence::String(ref s) => {
                 if !global.is::<Window>() {
                     return Err(error::Error::Type(
-                        "String constructor is only supported in the main thread.".to_owned(),
+                        c"String constructor is only supported in the main thread.".to_owned(),
                     ));
                 }
                 if s.is_empty() {

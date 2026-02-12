@@ -72,7 +72,7 @@ impl FakeXRDevice {
 
 pub(crate) fn view<Eye>(view: &FakeXRViewInit) -> Fallible<MockViewInit<Eye>> {
     if view.projectionMatrix.len() != 16 || view.viewOffset.position.len() != 3 {
-        return Err(Error::Type("Incorrectly sized array".into()));
+        return Err(Error::Type(c"Incorrectly sized array".into()));
     }
 
     let mut proj = [0.; 16];
@@ -126,7 +126,7 @@ pub(crate) fn get_origin<T, U>(
     origin: &FakeXRRigidTransformInit,
 ) -> Fallible<RigidTransform3D<f32, T, U>> {
     if origin.position.len() != 3 || origin.orientation.len() != 4 {
-        return Err(Error::Type("Incorrectly sized array".into()));
+        return Err(Error::Type(c"Incorrectly sized array".into()));
     }
     let p = Vector3D::new(
         *origin.position[0],
@@ -159,7 +159,7 @@ pub(crate) fn get_world(world: &FakeXRWorldInit) -> Fallible<MockWorld> {
                 .map(|face| {
                     if face.vertices.len() != 3 {
                         return Err(Error::Type(
-                            "Incorrectly sized array for triangle list".into(),
+                            c"Incorrectly sized array for triangle list".into(),
                         ));
                     }
 
@@ -329,7 +329,7 @@ impl FakeXRDeviceMethods<crate::DomTypeHolder> for FakeXRDevice {
     fn SetBoundsGeometry(&self, bounds_coodinates: Vec<FakeXRBoundsPoint>) -> Fallible<()> {
         if bounds_coodinates.len() < 3 {
             return Err(Error::Type(
-                "Bounds geometry must contain at least 3 points".into(),
+                c"Bounds geometry must contain at least 3 points".into(),
             ));
         }
         let coords = bounds_coodinates

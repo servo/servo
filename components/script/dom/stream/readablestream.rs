@@ -617,7 +617,7 @@ impl PipeTo {
             // Let destClosed be a new TypeError.
             rooted!(in(*cx) let mut dest_closed = UndefinedValue());
             let error =
-                Error::Type("Destination is closed or has closed queued or in flight".to_string());
+                Error::Type(c"Destination is closed or has closed queued or in flight".to_owned());
             error.to_jsval(cx, global, dest_closed.handle_mut(), can_gc);
             self.set_shutdown_error(dest_closed.handle());
 
@@ -1066,16 +1066,16 @@ impl ReadableStream {
             Some(ControllerType::Default(controller)) => {
                 let controller = controller
                     .get()
-                    .ok_or_else(|| Error::Type("Stream should have controller.".to_string()))?;
+                    .ok_or_else(|| Error::Type(c"Stream should have controller.".to_owned()))?;
                 controller.perform_release_steps()
             },
             Some(ControllerType::Byte(controller)) => {
                 let controller = controller
                     .get()
-                    .ok_or_else(|| Error::Type("Stream should have controller.".to_string()))?;
+                    .ok_or_else(|| Error::Type(c"Stream should have controller.".to_owned()))?;
                 controller.perform_release_steps()
             },
-            None => Err(Error::Type("Stream should have controller.".to_string())),
+            None => Err(Error::Type(c"Stream should have controller.".to_owned())),
         }
     }
 
@@ -2048,7 +2048,7 @@ impl ReadableStream {
         // if it exists, or undefined otherwise.
         // If autoAllocateChunkSize is 0, then throw a TypeError exception.
         if let Some(0) = underlying_source_dict.autoAllocateChunkSize {
-            return Err(Error::Type("autoAllocateChunkSize cannot be 0".to_owned()));
+            return Err(Error::Type(c"autoAllocateChunkSize cannot be 0".to_owned()));
         }
 
         let controller = ReadableByteStreamController::new(
@@ -2130,9 +2130,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             match JsUnderlyingSource::new(cx, obj_val.handle(), can_gc) {
                 Ok(ConversionResult::Success(val)) => val,
                 Ok(ConversionResult::Failure(error)) => {
-                    return Err(Error::Type(
-                        String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
-                    ));
+                    return Err(Error::Type(error.into_owned()));
                 },
                 _ => {
                     return Err(Error::JSFailed);
@@ -2149,7 +2147,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             // If strategy["size"] exists, throw a RangeError exception.
             if strategy.size.is_some() {
                 return Err(Error::Range(
-                    "size is not supported for byte streams".to_owned(),
+                    c"size is not supported for byte streams".to_owned(),
                 ));
             }
 
@@ -2204,7 +2202,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             // If ! IsReadableStreamLocked(this) is true,
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type("stream is locked".to_owned()), can_gc);
+            promise.reject_error(Error::Type(c"stream is locked".to_owned()), can_gc);
             promise
         } else {
             // Return ! ReadableStreamCancel(this, reason).
@@ -2254,7 +2252,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type("Source stream is locked".to_owned()), can_gc);
+            promise.reject_error(Error::Type(c"Source stream is locked".to_owned()), can_gc);
             return promise;
         }
 
@@ -2263,7 +2261,7 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new(&global, can_gc);
             promise.reject_error(
-                Error::Type("Destination stream is locked".to_owned()),
+                Error::Type(c"Destination stream is locked".to_owned()),
                 can_gc,
             );
             return promise;
@@ -2299,12 +2297,12 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
 
         // If ! IsReadableStreamLocked(this) is true, throw a TypeError exception.
         if self.is_locked() {
-            return Err(Error::Type("Source stream is locked".to_owned()));
+            return Err(Error::Type(c"Source stream is locked".to_owned()));
         }
 
         // If ! IsWritableStreamLocked(transform["writable"]) is true, throw a TypeError exception.
         if transform.writable.is_locked() {
-            return Err(Error::Type("Destination stream is locked".to_owned()));
+            return Err(Error::Type(c"Destination stream is locked".to_owned()));
         }
 
         // Let signal be options["signal"] if it exists, or undefined otherwise.
@@ -2468,7 +2466,7 @@ pub(crate) fn get_read_promise_done(
     can_gc: CanGc,
 ) -> Result<bool, Error> {
     if !v.is_object() {
-        return Err(Error::Type("Unknown format for done property.".to_string()));
+        return Err(Error::Type(c"Unknown format for done property.".to_owned()));
     }
     unsafe {
         rooted!(in(*cx) let object = v.to_object());
@@ -2476,12 +2474,10 @@ pub(crate) fn get_read_promise_done(
         match get_dictionary_property(*cx, object.handle(), c"done", done.handle_mut(), can_gc) {
             Ok(true) => match bool::safe_from_jsval(cx, done.handle(), (), can_gc) {
                 Ok(ConversionResult::Success(val)) => Ok(val),
-                Ok(ConversionResult::Failure(error)) => Err(Error::Type(
-                    String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
-                )),
-                _ => Err(Error::Type("Unknown format for done property.".to_string())),
+                Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
+                _ => Err(Error::Type(c"Unknown format for done property.".to_owned())),
             },
-            Ok(false) => Err(Error::Type("Promise has no done property.".to_string())),
+            Ok(false) => Err(Error::Type(c"Promise has no done property.".to_owned())),
             Err(()) => Err(Error::JSFailed),
         }
     }
@@ -2496,7 +2492,7 @@ pub(crate) fn get_read_promise_bytes(
 ) -> Result<Vec<u8>, Error> {
     if !v.is_object() {
         return Err(Error::Type(
-            "Unknown format for for bytes read.".to_string(),
+            c"Unknown format for for bytes read.".to_owned(),
         ));
     }
     unsafe {
@@ -2511,13 +2507,11 @@ pub(crate) fn get_read_promise_bytes(
                     can_gc,
                 ) {
                     Ok(ConversionResult::Success(val)) => Ok(val),
-                    Ok(ConversionResult::Failure(error)) => Err(Error::Type(
-                        String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
-                    )),
-                    _ => Err(Error::Type("Unknown format for bytes read.".to_string())),
+                    Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
+                    _ => Err(Error::Type(c"Unknown format for bytes read.".to_owned())),
                 }
             },
-            Ok(false) => Err(Error::Type("Promise has no value property.".to_string())),
+            Ok(false) => Err(Error::Type(c"Promise has no value property.".to_owned())),
             Err(()) => Err(Error::JSFailed),
         }
     }
@@ -2533,10 +2527,8 @@ pub(crate) fn bytes_from_chunk_jsval(
 ) -> Result<Vec<u8>, Error> {
     match Vec::<u8>::safe_from_jsval(cx, chunk.handle(), ConversionBehavior::EnforceRange, can_gc) {
         Ok(ConversionResult::Success(vec)) => Ok(vec),
-        Ok(ConversionResult::Failure(error)) => Err(Error::Type(
-            String::from_utf8_lossy(error.as_ref().to_bytes()).into_owned(),
-        )),
-        _ => Err(Error::Type("Unknown format for bytes read.".to_string())),
+        Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
+        _ => Err(Error::Type(c"Unknown format for bytes read.".to_owned())),
     }
 }
 

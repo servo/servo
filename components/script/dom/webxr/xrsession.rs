@@ -694,16 +694,16 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
                     .filter(|other| other.layer_id() == layer.layer_id())
                     .count();
                 if count > 1 {
-                    return Err(Error::Type(String::from("Duplicate entry in WebXR layers")));
+                    return Err(Error::Type(c"Duplicate entry in WebXR layers".to_owned()));
                 }
             }
 
             // Step 3
             for layer in layers {
                 if layer.session() != self {
-                    return Err(Error::Type(String::from(
-                        "Layer from different session in WebXR layers",
-                    )));
+                    return Err(Error::Type(
+                        c"Layer from different session in WebXR layers".to_owned(),
+                    ));
                 }
             }
         }
@@ -1050,7 +1050,7 @@ impl XRSessionMethods<crate::DomTypeHolder> for XRSession {
 
             if !supported_frame_rates.contains(&*rate) {
                 promise.reject_error(
-                    Error::Type("Provided framerate not supported".into()),
+                    Error::Type(c"Provided framerate not supported".into()),
                     can_gc,
                 );
                 return promise;

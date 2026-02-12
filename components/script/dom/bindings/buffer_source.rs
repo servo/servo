@@ -380,7 +380,7 @@ where
                 }
             }
 
-            Err(Error::Type("can't clone array buffer".to_owned()))
+            Err(Error::Type(c"can't clone array buffer".to_owned()))
         } else {
             Ok(HeapBufferSource::<ArrayBufferU8>::new(
                 BufferSource::ArrayBuffer(RootedTraceableBox::from_box(Heap::boxed(result))),
@@ -668,7 +668,7 @@ where
                 JS_ClearPendingException(*cx)
             };
 
-            Err(Error::Type("can't transfer array buffer".to_owned()))
+            Err(Error::Type(c"can't transfer array buffer".to_owned()))
         } else {
             // Return a new ArrayBuffer object, created in the current Realm,
             // whose [[ArrayBufferData]] internal slot value is arrayBufferData and
@@ -895,7 +895,7 @@ pub(crate) fn create_array_buffer_with_size(
             JS_ClearPendingException(*cx)
         };
 
-        Err(Error::Type("can't create array buffer".to_owned()))
+        Err(Error::Type(c"can't create array buffer".to_owned()))
     } else {
         Ok(HeapBufferSource::<ArrayBufferU8>::new(
             BufferSource::ArrayBuffer(RootedTraceableBox::from_box(Heap::boxed(result))),

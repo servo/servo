@@ -155,10 +155,10 @@ impl FakeXRInputControllerMethods<crate::DomTypeHolder> for FakeXRInputControlle
     fn UpdateButtonState(&self, button_state: &FakeXRButtonStateInit) -> Fallible<()> {
         // https://immersive-web.github.io/webxr-test-api/#validate-a-button-state
         if (button_state.pressed || *button_state.pressedValue > 0.0) && !button_state.touched {
-            return Err(Error::Type("Pressed button must also be touched".into()));
+            return Err(Error::Type(c"Pressed button must also be touched".into()));
         }
         if *button_state.pressedValue < 0.0 {
-            return Err(Error::Type("Pressed value must be non-negative".into()));
+            return Err(Error::Type(c"Pressed value must be non-negative".into()));
         }
 
         // TODO: Steps 3-5 of updateButtonState

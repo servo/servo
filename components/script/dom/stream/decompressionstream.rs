@@ -223,12 +223,12 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     while offset < chunk.len() && written > 0 {
         written = decompressor
             .write(&chunk[offset..])
-            .map_err(|_| Error::Type("DecompressionStream: write() failed".to_string()))?;
+            .map_err(|_| Error::Type(c"DecompressionStream: write() failed".to_owned()))?;
         offset += written;
     }
     decompressor
         .flush()
-        .map_err(|_| Error::Type("DecompressionStream: flush() failed".to_string()))?;
+        .map_err(|_| Error::Type(c"DecompressionStream: flush() failed".to_owned()))?;
     let buffer = decompressor.get_ref();
 
     // Step 3. If buffer is empty, return.
@@ -242,7 +242,7 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     // NOTE: We process the result in a single Uint8Array.
     rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
     let array = create_buffer_source::<Uint8>(cx, buffer, js_object.handle_mut(), can_gc)
-        .map_err(|_| Error::Type("Cannot convert byte sequence to Uint8Array".to_owned()))?;
+        .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(in(*cx) let mut rval = UndefinedValue());
     array.safe_to_jsval(cx, rval.handle_mut(), can_gc);
     controller.enqueue(cx, global, rval.handle(), can_gc)?;
@@ -255,7 +255,7 @@ pub(crate) fn decompress_and_enqueue_a_chunk(
     // consumed chunk, then throw a TypeError.
     if offset < chunk.len() {
         return Err(Error::Type(
-            "The end of the compressed input has been reached".to_string(),
+            c"The end of the compressed input has been reached".to_owned(),
         ));
     }
 
@@ -277,11 +277,11 @@ pub(crate) fn decompress_flush_and_enqueue(
     let offset = decompressor.get_ref().len();
     let is_ended = decompressor
         .write(&[0])
-        .map_err(|_| Error::Type("DecompressionStream: write() failed".to_string()))? ==
+        .map_err(|_| Error::Type(c"DecompressionStream: write() failed".to_owned()))? ==
         0;
     decompressor
         .try_finish()
-        .map_err(|_| Error::Type("DecompressionStream: try_finish() failed".to_string()))?;
+        .map_err(|_| Error::Type(c"DecompressionStream: try_finish() failed".to_owned()))?;
     let buffer = &decompressor.get_ref()[offset..];
 
     // Step 2. If buffer is empty, return.
@@ -292,7 +292,7 @@ pub(crate) fn decompress_flush_and_enqueue(
         // NOTE: We process the result in a single Uint8Array.
         rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
         let array = create_buffer_source::<Uint8>(cx, buffer, js_object.handle_mut(), can_gc)
-            .map_err(|_| Error::Type("Cannot convert byte sequence to Uint8Array".to_owned()))?;
+            .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
         rooted!(in(*cx) let mut rval = UndefinedValue());
         array.safe_to_jsval(cx, rval.handle_mut(), can_gc);
         controller.enqueue(cx, global, rval.handle(), can_gc)?;
@@ -314,7 +314,7 @@ pub(crate) fn decompress_flush_and_enqueue(
     // in `is_ended`.
     if !is_ended {
         return Err(Error::Type(
-            "The end of the compressed input has not been reached".to_string(),
+            c"The end of the compressed input has not been reached".to_owned(),
         ));
     }
 

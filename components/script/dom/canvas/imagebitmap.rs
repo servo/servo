@@ -292,7 +292,7 @@ impl ImageBitmap {
         // Step 1. If either sw or sh is given and is 0, then return a promise rejected with a RangeError.
         if sw.is_some_and(|w| w == 0) {
             p.reject_error(
-                Error::Range("'sw' must be a non-zero value".to_owned()),
+                Error::Range(c"'sw' must be a non-zero value".to_owned()),
                 can_gc,
             );
             return p;
@@ -300,7 +300,7 @@ impl ImageBitmap {
 
         if sh.is_some_and(|h| h == 0) {
             p.reject_error(
-                Error::Range("'sh' must be a non-zero value".to_owned()),
+                Error::Range(c"'sh' must be a non-zero value".to_owned()),
                 can_gc,
             );
             return p;

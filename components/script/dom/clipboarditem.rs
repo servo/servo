@@ -149,7 +149,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
     ) -> Fallible<DomRoot<ClipboardItem>> {
         // Step 1 If items is empty, then throw a TypeError.
         if items.is_empty() {
-            return Err(Error::Type(String::from("No item provided")));
+            return Err(Error::Type(c"No item provided".to_owned()));
         }
 
         // Step 2 If options is empty, then set options["presentationStyle"] = "unspecified".
@@ -177,7 +177,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
             // Step 6.5 Let mimeType be the result of parsing a MIME type given key.
             // Step 6.6 If mimeType is failure, then throw a TypeError.
             let mime_type =
-                Mime::from_str(key).map_err(|_| Error::Type(String::from("Invalid mime type")))?;
+                Mime::from_str(key).map_err(|_| Error::Type(c"Invalid mime type".to_owned()))?;
 
             // Step 6.7 If this's clipboard item's list of representations contains a representation
             // whose MIME type is mimeType and whose [representation/isCustom] is isCustom, then throw a TypeError.
@@ -189,7 +189,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
                     representation.mime_type == mime_type && representation.is_custom == is_custom
                 })
             {
-                return Err(Error::Type(String::from("Tried to add a duplicate mime")));
+                return Err(Error::Type(c"Tried to add a duplicate mime".to_owned()));
             }
 
             // Step 6.1 Let representation be a new representation.
@@ -270,7 +270,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         // Step 4 Let mimeType be the result of parsing a MIME type given type.
         // Step 5 If mimeType is failure, then throw a TypeError.
         let mime_type =
-            Mime::from_str(type_).map_err(|_| Error::Type(String::from("Invalid mime type")))?;
+            Mime::from_str(type_).map_err(|_| Error::Type(c"Invalid mime type".to_owned()))?;
 
         // Step 6 Let itemTypeList be this’s clipboard item’s list of representations.
         let item_type_list = self.representations.borrow();

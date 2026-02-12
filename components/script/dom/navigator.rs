@@ -484,10 +484,10 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         // If the algorithm returns an error, or if parsedUrl's scheme is not "http" or "https",
         // throw a "TypeError" exception and terminate these steps.
         let Ok(url) = ServoUrl::parse_with_base(Some(&base), &url) else {
-            return Err(Error::Type("Cannot parse URL".to_owned()));
+            return Err(Error::Type(c"Cannot parse URL".to_owned()));
         };
         if !matches!(url.scheme(), "http" | "https") {
-            return Err(Error::Type("URL is not http(s)".to_owned()));
+            return Err(Error::Type(c"URL is not http(s)".to_owned()));
         }
         let mut request_body = None;
         // Step 4. Let headerList be an empty list.

@@ -214,19 +214,19 @@ impl MediaSessionMethods<crate::DomTypeHolder> for MediaSession {
         let duration = if let Some(state_duration) = state.duration {
             // If state’s duration is negative or NaN, throw a TypeError.
             if state_duration < 0.0 || state_duration.is_nan() {
-                return Err(Error::Type("Duration is negative or NaN".to_owned()));
+                return Err(Error::Type(c"Duration is negative or NaN".to_owned()));
             }
             state_duration
         } else {
             // If state’s duration is not present, throw a TypeError.
-            return Err(Error::Type("Duration is not present".to_owned()));
+            return Err(Error::Type(c"Duration is not present".to_owned()));
         };
 
         let position = if let Some(state_position) = state.position {
             // If state’s position is negative or greater than duration, throw a TypeError.
             if *state_position < 0.0 || *state_position > duration {
                 return Err(Error::Type(
-                    "Position is negative or greater than duration".to_owned(),
+                    c"Position is negative or greater than duration".to_owned(),
                 ));
             }
             *state_position
@@ -238,7 +238,7 @@ impl MediaSessionMethods<crate::DomTypeHolder> for MediaSession {
         let playback_rate = if let Some(state_playback_rate) = state.playbackRate {
             // If state’s playbackRate is zero, throw a TypeError.
             if *state_playback_rate == 0.0 {
-                return Err(Error::Type("Playback rate is zero".to_owned()));
+                return Err(Error::Type(c"Playback rate is zero".to_owned()));
             }
             *state_playback_rate
         } else {

@@ -405,7 +405,7 @@ pub(crate) fn get_key_length(
         // Otherwise:
         _ => {
             // throw a TypeError.
-            return Err(Error::Type("[[length]] must not be zero".to_string()));
+            return Err(Error::Type(c"[[length]] must not be zero".to_owned()));
         },
     };
 

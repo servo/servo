@@ -1826,7 +1826,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 return Err(Error::JSFailed);
             }
             if !isDate {
-                return Err(Error::Type("Value was not a date".to_string()));
+                return Err(Error::Type(c"Value was not a date".to_owned()));
             }
             if !DateGetMsecSinceEpoch(*cx, Handle::from(value.handle()), &mut msecs) {
                 return Err(Error::JSFailed);
@@ -1851,7 +1851,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-input-valueasnumber>
     fn SetValueAsNumber(&self, value: f64, can_gc: CanGc) -> ErrorResult {
         if value.is_infinite() {
-            Err(Error::Type("value is not finite".to_string()))
+            Err(Error::Type(c"value is not finite".to_owned()))
         } else if !self.does_value_as_number_apply() {
             Err(Error::InvalidState(None))
         } else if value.is_nan() {

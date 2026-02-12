@@ -11,6 +11,7 @@ use net_traits::CoreResourceMsg;
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use profile_traits::ipc;
+use script_bindings::cformat;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 
@@ -126,7 +127,7 @@ impl URLMethods<crate::DomTypeHolder> for URL {
                     Ok(base) => Some(base),
                     Err(error) => {
                         // Step 2. Throw a TypeError if URL parsing fails.
-                        return Err(Error::Type(format!("could not parse base: {}", error)));
+                        return Err(Error::Type(cformat!("could not parse base: {}", error)));
                     },
                 }
             },
@@ -135,7 +136,7 @@ impl URLMethods<crate::DomTypeHolder> for URL {
             Ok(url) => url,
             Err(error) => {
                 // Step 2. Throw a TypeError if URL parsing fails.
-                return Err(Error::Type(format!("could not parse URL: {}", error)));
+                return Err(Error::Type(cformat!("could not parse URL: {}", error)));
             },
         };
 
@@ -267,7 +268,7 @@ impl URLMethods<crate::DomTypeHolder> for URL {
                 self.search_params.set(None); // To be re-initialized in the SearchParams getter.
                 Ok(())
             },
-            Err(error) => Err(Error::Type(format!("could not parse URL: {}", error))),
+            Err(error) => Err(Error::Type(cformat!("could not parse URL: {}", error))),
         }
     }
 

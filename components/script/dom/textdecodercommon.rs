@@ -135,7 +135,7 @@ impl TextDecoderCommon {
                 decoder
                     .max_utf8_buffer_length_without_replacement(input.len())
                     .ok_or_else(|| {
-                        Error::Type("Expected UTF8 buffer length would overflow".to_owned())
+                        Error::Type(c"Expected UTF8 buffer length would overflow".to_owned())
                     })?,
             );
 
@@ -171,7 +171,7 @@ impl TextDecoderCommon {
                 // <https://encoding.spec.whatwg.org/#dom-textdecoder-decode>
                 // Step 5.3.3 Otherwise, if result is error, throw a TypeError.
                 DecoderResult::Malformed(_, _) => {
-                    return Err(Error::Type("Decoding failed".to_owned()));
+                    return Err(Error::Type(c"Decoding failed".to_owned()));
                 },
                 DecoderResult::OutputFull => {
                     unreachable!("output is allocated with sufficient capacity")
@@ -182,7 +182,7 @@ impl TextDecoderCommon {
             // Step 4. Let output be the I/O queue of scalar values « end-of-queue ».
             let mut output =
                 String::with_capacity(decoder.max_utf8_buffer_length(input.len()).ok_or_else(
-                    || Error::Type("Expected UTF8 buffer length would overflow".to_owned()),
+                    || Error::Type(c"Expected UTF8 buffer length would overflow".to_owned()),
                 )?);
 
             // Note: The two algorithms below are implemented in

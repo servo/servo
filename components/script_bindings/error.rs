@@ -80,9 +80,9 @@ pub enum Error {
     Constraint(Option<String>),
 
     /// TypeError JavaScript Error
-    Type(String),
+    Type(CString),
     /// RangeError JavaScript Error
-    Range(String),
+    Range(CString),
 
     /// A JavaScript exception is already pending.
     JSFailed,

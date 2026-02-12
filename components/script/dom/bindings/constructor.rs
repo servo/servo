@@ -81,7 +81,7 @@ fn html_constructor(
         throw_dom_exception(
             cx.into(),
             global,
-            Error::Type("new.target is null".to_owned()),
+            Error::Type(c"new.target is null".to_owned()),
             CanGc::from_cx(cx),
         );
         return Err(());
@@ -90,7 +90,7 @@ fn html_constructor(
         throw_dom_exception(
             cx.into(),
             global,
-            Error::Type("new.target must not be the active function object".to_owned()),
+            Error::Type(c"new.target must not be the active function object".to_owned()),
             CanGc::from_cx(cx),
         );
         return Err(());
@@ -105,7 +105,7 @@ fn html_constructor(
             throw_dom_exception(
                 cx.into(),
                 global,
-                Error::Type("No custom element definition found for new.target".to_owned()),
+                Error::Type(c"No custom element definition found for new.target".to_owned()),
                 CanGc::from_cx(cx),
             );
             return Err(());
@@ -154,7 +154,7 @@ fn html_constructor(
             throw_dom_exception(
                 cx.into(),
                 global,
-                Error::Type("Custom element does not extend the proper interface".to_owned()),
+                Error::Type(c"Custom element does not extend the proper interface".to_owned()),
                 CanGc::from_cx(cx),
             );
             return Err(());
@@ -247,9 +247,9 @@ fn html_constructor(
         },
         // Step 10
         Some(ConstructionStackEntry::AlreadyConstructedMarker) => {
-            let s = "Top of construction stack marked AlreadyConstructed due to \
+            let s = c"Top of construction stack marked AlreadyConstructed due to \
                      a custom element constructor constructing itself after super()"
-                .to_string();
+                .to_owned();
             throw_dom_exception(cx.into(), global, Error::Type(s), CanGc::from_cx(cx));
             return Err(());
         },

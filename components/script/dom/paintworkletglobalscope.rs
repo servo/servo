@@ -506,7 +506,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
 
         // Step 1.
         if name.is_empty() {
-            return Err(Error::Type(String::from("Empty paint name.")));
+            return Err(Error::Type(c"Empty paint name.".to_owned()));
         }
 
         // Step 2-3.
@@ -530,14 +530,14 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
 
         // Step 14
         if unsafe { !IsConstructor(paint_obj.get()) } {
-            return Err(Error::Type(String::from("Not a constructor.")));
+            return Err(Error::Type(c"Not a constructor.".to_owned()));
         }
 
         // Steps 15-16
         rooted!(in(*cx) let mut prototype = UndefinedValue());
         get_property_jsval(cx, paint_obj.handle(), c"prototype", prototype.handle_mut())?;
         if !prototype.is_object() {
-            return Err(Error::Type(String::from("Prototype is not an object.")));
+            return Err(Error::Type(c"Prototype is not an object.".to_owned()));
         }
         rooted!(in(*cx) let prototype = prototype.to_object());
 
@@ -550,7 +550,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
             paint_function.handle_mut(),
         )?;
         if !paint_function.is_object() || unsafe { !IsCallable(paint_function.to_object()) } {
-            return Err(Error::Type(String::from("Paint function is not callable.")));
+            return Err(Error::Type(c"Paint function is not callable.".to_owned()));
         }
 
         // Step 19.

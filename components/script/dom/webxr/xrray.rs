@@ -62,14 +62,14 @@ impl XRRayMethods<crate::DomTypeHolder> for XRRay {
         direction: &XRRayDirectionInit,
     ) -> Fallible<DomRoot<Self>> {
         if origin.w != 1.0 {
-            return Err(Error::Type("Origin w coordinate must be 1".into()));
+            return Err(Error::Type(c"Origin w coordinate must be 1".into()));
         }
         if *direction.w != 0.0 {
-            return Err(Error::Type("Direction w coordinate must be 0".into()));
+            return Err(Error::Type(c"Direction w coordinate must be 0".into()));
         }
         if *direction.x == 0.0 && *direction.y == 0.0 && *direction.z == 0.0 {
             return Err(Error::Type(
-                "Direction vector cannot have zero length".into(),
+                c"Direction vector cannot have zero length".into(),
             ));
         }
 

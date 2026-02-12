@@ -7,6 +7,7 @@
 use dom_struct::dom_struct;
 use indexmap::IndexMap;
 use js::rust::HandleObject;
+use script_bindings::cformat;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::TestBindingMaplikeWithPrimitiveBinding::TestBindingMaplikeWithPrimitiveMethods;
@@ -77,7 +78,7 @@ impl TestBindingMaplikeWithPrimitiveMethods<crate::DomTypeHolder>
         self.internal
             .borrow()
             .get(&key)
-            .ok_or_else(|| Error::Type(format!("No entry for key {key}")))
+            .ok_or_else(|| Error::Type(cformat!("No entry for key {key}")))
             .copied()
     }
 

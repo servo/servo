@@ -47,7 +47,7 @@ impl TextDecoder {
 
     fn make_range_error() -> Fallible<DomRoot<TextDecoder>> {
         Err(Error::Range(
-            "The given encoding is not supported.".to_owned(),
+            c"The given encoding is not supported.".to_owned(),
         ))
     }
 

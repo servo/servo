@@ -97,14 +97,14 @@ pub(crate) trait ReadableStreamGenericReader {
             if stream.is_readable() {
                 // If stream.[[state]] is "readable", reject reader.[[closedPromise]] with a TypeError exception.
                 self.get_closed_promise().reject_error(
-                    Error::Type("stream state is not readable".to_owned()),
+                    Error::Type(c"stream state is not readable".to_owned()),
                     can_gc,
                 );
             } else {
                 // Otherwise, set reader.[[closedPromise]] to a promise rejected with a TypeError exception.
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut error = UndefinedValue());
-                Error::Type("Cannot release lock due to stream state.".to_owned()).to_jsval(
+                Error::Type(c"Cannot release lock due to stream state.".to_owned()).to_jsval(
                     cx,
                     &stream.global(),
                     error.handle_mut(),
@@ -151,7 +151,7 @@ pub(crate) trait ReadableStreamGenericReader {
             // If this.[[stream]] is undefined,
             // return a promise rejected with a TypeError exception.
             let promise = Promise::new(global, can_gc);
-            promise.reject_error(Error::Type("stream is undefined".to_owned()), can_gc);
+            promise.reject_error(Error::Type(c"stream is undefined".to_owned()), can_gc);
             promise
         } else {
             // Return ! ReadableStreamReaderGenericCancel(this, reason).

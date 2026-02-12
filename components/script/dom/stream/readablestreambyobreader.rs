@@ -233,13 +233,13 @@ impl ReadableStreamBYOBReader {
     ) -> Fallible<()> {
         // If ! IsReadableStreamLocked(stream) is true, throw a TypeError exception.
         if stream.is_locked() {
-            return Err(Error::Type("stream is locked".to_owned()));
+            return Err(Error::Type(c"stream is locked".to_owned()));
         }
 
         // If stream.[[controller]] does not implement ReadableByteStreamController, throw a TypeError exception.
         if !stream.has_byte_controller() {
             return Err(Error::Type(
-                "stream controller is not a byte stream controller".to_owned(),
+                c"stream controller is not a byte stream controller".to_owned(),
             ));
         }
 
@@ -260,7 +260,7 @@ impl ReadableStreamBYOBReader {
         // Let e be a new TypeError exception.
         let cx = GlobalScope::get_cx();
         rooted!(in(*cx) let mut error = UndefinedValue());
-        Error::Type("Reader is released".to_owned()).to_jsval(
+        Error::Type(c"Reader is released".to_owned()).to_jsval(
             cx,
             &self.global(),
             error.handle_mut(),
@@ -434,14 +434,14 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         let cx = GlobalScope::get_cx();
         // If view.[[ByteLength]] is 0, return a promise rejected with a TypeError exception.
         if view.byte_length() == 0 {
-            promise.reject_error(Error::Type("view byte length is 0".to_owned()), can_gc);
+            promise.reject_error(Error::Type(c"view byte length is 0".to_owned()), can_gc);
             return promise;
         }
         // If view.[[ViewedArrayBuffer]].[[ArrayBufferByteLength]] is 0,
         // return a promise rejected with a TypeError exception.
         if view.viewed_buffer_array_byte_length(cx) == 0 {
             promise.reject_error(
-                Error::Type("viewed buffer byte length is 0".to_owned()),
+                Error::Type(c"viewed buffer byte length is 0".to_owned()),
                 can_gc,
             );
             return promise;
@@ -450,13 +450,13 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         // If ! IsDetachedBuffer(view.[[ViewedArrayBuffer]]) is true,
         // return a promise rejected with a TypeError exception.
         if view.is_detached_buffer(cx) {
-            promise.reject_error(Error::Type("view is detached".to_owned()), can_gc);
+            promise.reject_error(Error::Type(c"view is detached".to_owned()), can_gc);
             return promise;
         }
 
         // If options["min"] is 0, return a promise rejected with a TypeError exception.
         if min == 0 {
-            promise.reject_error(Error::Type("min is 0".to_owned()), can_gc);
+            promise.reject_error(Error::Type(c"min is 0".to_owned()), can_gc);
             return promise;
         }
 
@@ -465,7 +465,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
             // If options["min"] > view.[[ArrayLength]], return a promise rejected with a RangeError exception.
             if min > (view.get_typed_array_length() as u64) {
                 promise.reject_error(
-                    Error::Range("min is greater than array length".to_owned()),
+                    Error::Range(c"min is greater than array length".to_owned()),
                     can_gc,
                 );
                 return promise;
@@ -475,7 +475,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
             // If options["min"] > view.[[ByteLength]], return a promise rejected with a RangeError exception.
             if min > (view.byte_length() as u64) {
                 promise.reject_error(
-                    Error::Range("min is greater than byte length".to_owned()),
+                    Error::Range(c"min is greater than byte length".to_owned()),
                     can_gc,
                 );
                 return promise;
@@ -485,7 +485,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         // If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
         if self.stream.get().is_none() {
             promise.reject_error(
-                Error::Type("min is greater than byte length".to_owned()),
+                Error::Type(c"min is greater than byte length".to_owned()),
                 can_gc,
             );
             return promise;

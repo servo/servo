@@ -339,7 +339,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         // Step 1: If version is 0 (zero), throw a TypeError.
         if version == Some(0) {
             return Err(Error::Type(
-                "The version must be an integer >= 1".to_owned(),
+                c"The version must be an integer >= 1".to_owned(),
             ));
         };
 

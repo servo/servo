@@ -219,7 +219,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
 
         if joint_spaces.len() > radii.len() {
             return Err(Error::Type(
-                "Length of radii does not match length of joint spaces".to_string(),
+                c"Length of radii does not match length of joint spaces".to_owned(),
             ));
         }
 
@@ -268,7 +268,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
 
         if spaces.len() * 16 > transforms.len() {
             return Err(Error::Type(
-                "Transforms array length does not match 16 * spaces length".to_string(),
+                c"Transforms array length does not match 16 * spaces length".to_owned(),
             ));
         }
 

@@ -14,6 +14,7 @@ use net_traits::fetch::headers::{
 };
 use net_traits::request::is_cors_safelisted_request_header;
 use net_traits::trim_http_whitespace;
+use script_bindings::cformat;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HeadersBinding::{HeadersInit, HeadersMethods};
@@ -268,7 +269,7 @@ impl Headers {
                         let name = seq.pop().unwrap();
                         self.Append(name, val)?;
                     } else {
-                        return Err(Error::Type(format!(
+                        return Err(Error::Type(cformat!(
                             "Each header object must be a sequence of length 2 - found one with length {}",
                             seq.len()
                         )));
@@ -354,11 +355,11 @@ impl Headers {
         // 1. If name is not a header name or value is not a header value, then throw a TypeError.
         let valid_name = validate_name(name)?;
         if !is_legal_header_value(&value) {
-            return Err(Error::Type("Header value is not valid".to_string()));
+            return Err(Error::Type(c"Header value is not valid".to_owned()));
         }
         // 2. If headers’s guard is "immutable", then throw a TypeError.
         if self.guard.get() == Guard::Immutable {
-            return Err(Error::Type("Guard is immutable".to_string()));
+            return Err(Error::Type(c"Guard is immutable".to_owned()));
         }
         // 3. If headers’s guard is "request" and (name, value) is a forbidden request-header, then return false.
         if self.guard.get() == Guard::Request && is_forbidden_request_header(&valid_name, &value) {
@@ -480,11 +481,11 @@ fn is_forbidden_response_header(name: &str) -> bool {
 
 fn validate_name(name: ByteString) -> Fallible<String> {
     if !is_field_name(&name) {
-        return Err(Error::Type("Name is not valid".to_string()));
+        return Err(Error::Type(c"Name is not valid".to_owned()));
     }
     match String::from_utf8(name.into()) {
         Ok(ns) => Ok(ns),
-        _ => Err(Error::Type("Non-UTF8 header name found".to_string())),
+        _ => Err(Error::Type(c"Non-UTF8 header name found".to_owned())),
     }
 }
 

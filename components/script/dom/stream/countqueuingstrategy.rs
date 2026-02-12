@@ -111,7 +111,7 @@ pub(crate) fn extract_high_water_mark(
     let high_water_mark = strategy.highWaterMark.unwrap();
     if high_water_mark.is_nan() || high_water_mark < 0.0 {
         return Err(Error::Range(
-            "High water mark must be a non-negative number.".to_string(),
+            c"High water mark must be a non-negative number.".to_owned(),
         ));
     }
 
