@@ -45,6 +45,12 @@ impl From<RestyleDamage> for LayoutDamage {
     }
 }
 
+impl From<LayoutDamage> for RestyleDamage {
+    fn from(layout_damage: LayoutDamage) -> Self {
+        RestyleDamage::from_bits_retain(layout_damage.bits())
+    }
+}
+
 impl std::fmt::Debug for LayoutDamage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.contains(Self::REBUILD_BOX) {

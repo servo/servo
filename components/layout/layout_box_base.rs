@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::fmt::{Debug, Formatter};
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
+use layout_api::LayoutDamage;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
@@ -103,6 +104,43 @@ impl LayoutBoxBase {
     #[expect(unused)]
     pub(crate) fn parent_box(&self) -> Option<LayoutBox> {
         self.parent_box.as_ref().and_then(WeakLayoutBox::upgrade)
+    }
+
+    pub(crate) fn add_damage(
+        &self,
+        element_damage: LayoutDamage,
+        damage_from_children: LayoutDamage,
+    ) -> LayoutDamage {
+        self.clear_fragments();
+        *self.cached_layout_result.borrow_mut() = None;
+
+        if !element_damage.is_empty() ||
+            damage_from_children.contains(LayoutDamage::RECOMPUTE_INLINE_CONTENT_SIZES)
+        {
+            *self.cached_inline_content_size.borrow_mut() = None;
+        }
+
+        let mut damage_for_parent = element_damage | damage_from_children;
+
+        // When a block container has a mix of inline-level and block-level contents, the
+        // inline-level ones are wrapped inside an anonymous block associated with the
+        // block container. The anonymous block has an `auto` size, so its intrinsic
+        // contribution depends on content, but it can't affect the intrinsic size of
+        // ancestors if the block container is sized extrinsically.
+        //
+        // If the intrinsic contributions of this node depend on content, we will need to
+        // clear the cached intrinsic sizes of the parent. But if the contributions are
+        // purely extrinsic, then the intrinsic sizes of the ancestors won't be affected,
+        // and we can keep the cache.
+        damage_for_parent.set(
+            LayoutDamage::RECOMPUTE_INLINE_CONTENT_SIZES,
+            !element_damage.is_empty() ||
+                (!self.base_fragment_info.is_anonymous() &&
+                    self.outer_inline_content_sizes_depend_on_content
+                        .load(Ordering::Relaxed)),
+        );
+
+        damage_for_parent
     }
 }
 
