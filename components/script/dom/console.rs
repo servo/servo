@@ -80,7 +80,6 @@ impl Console {
         messages: Vec<HandleValue>,
         include_stacktrace: IncludeStackTrace,
     ) {
-        println!("CALLED INTO CONSOLE:LOG");
         let cx = GlobalScope::get_cx();
 
         let arguments = messages
