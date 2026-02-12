@@ -55,7 +55,7 @@ use net_traits::request::{
     is_cors_safelisted_request_header,
 };
 use net_traits::response::{
-    CacheState, HttpsState, RedirectTaint, Response, ResponseBody, ResponseType, TerminationReason,
+    CacheState, HttpsState, RedirectTaint, Response, ResponseBody, ResponseType,
 };
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, DebugVec, FetchMetadata, NetworkError,
@@ -2288,7 +2288,6 @@ async fn http_network_fetch(
                     debug!("Content decompression error for {:?}", url2);
                     let _ = done_sender3.send(Data::Error(NetworkError::DecompressionError));
                     let mut body = res_body2.lock();
-                    response.termination_reason = Some(TerminationReason::Fatal);
 
                     *body = ResponseBody::Done(vec![]);
                 }
