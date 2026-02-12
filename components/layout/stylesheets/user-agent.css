@@ -103,7 +103,7 @@ input:focus, textarea:focus, button:focus {
   outline: thin solid black;
 }
 
-mark { background: yellow; color: black; }
+mark { background: Mark; color: MarkText; }
 
 abbr[title], acronym[title] { text-decoration: dotted underline; }
 ins, u { text-decoration: underline; }
