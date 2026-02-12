@@ -169,10 +169,7 @@ fn construct_for_root_element(
     let box_style = info.style.get_box();
 
     let display_inside = match Display::from(box_style.display) {
-        Display::None => {
-            root_element.unset_all_boxes();
-            return Vec::new();
-        },
+        Display::None => return Vec::new(),
         Display::Contents => {
             // Unreachable because the style crate adjusts the computed values:
             // https://drafts.csswg.org/css-display-3/#transformations

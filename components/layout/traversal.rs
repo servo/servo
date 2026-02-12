@@ -13,7 +13,6 @@ use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::traversal::{DomTraversal, PerLevelTraversalData, recalc_style_at};
-use style::values::computed::Display;
 
 use crate::context::LayoutContext;
 use crate::dom::{DOMLayoutData, NodeExt};
@@ -116,17 +115,16 @@ pub(crate) fn compute_damage_and_repair_style_inner(
         .expect("Should not run `compute_damage` before styling.")
         .element_data;
 
-    {
-        let mut element_data = element_data.borrow_mut();
+    let is_display_none = {
+        let element_data = element_data.borrow_mut();
         element_damage = element_data.damage;
         element_and_parent_damage = element_damage | damage_from_parent;
+        element_data.styles.is_display_none()
+    };
 
-        if let Some(ref style) = element_data.styles.primary {
-            if style.get_box().display == Display::None {
-                element_data.damage = element_and_parent_damage;
-                return element_and_parent_damage;
-            }
-        }
+    if is_display_none {
+        node.unset_all_boxes();
+        return element_and_parent_damage;
     }
 
     // If we are reconstructing this node, then all of the children should be reconstructed as well.

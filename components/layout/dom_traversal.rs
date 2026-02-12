@@ -160,7 +160,7 @@ fn traverse_element<'dom>(
     let info = NodeAndStyleInfo::new(element, style, damage);
 
     match Display::from(info.style.get_box().display) {
-        Display::None => element.unset_all_boxes(),
+        Display::None => {},
         Display::Contents => {
             if ReplacedContents::for_element(element, context).is_some() {
                 // `display: content` on a replaced element computes to `display: none`
