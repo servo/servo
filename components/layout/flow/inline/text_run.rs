@@ -81,7 +81,7 @@ pub(crate) struct TextRunSegment {
 }
 
 impl TextRunSegment {
-    fn new(
+    pub(super) fn new(
         font: FontRef,
         script: Script,
         bidi_level: Level,
@@ -183,7 +183,7 @@ impl TextRunSegment {
         }
     }
 
-    fn shape_and_push_range(
+    pub(super) fn shape_and_push_range(
         &mut self,
         range: &Range<usize>,
         formatting_context_text: &str,

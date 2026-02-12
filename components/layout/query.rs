@@ -412,7 +412,7 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
         Fragment::AbsoluteOrFixedPositioned(_) |
         Fragment::Image(_) |
         Fragment::IFrame(_) => true,
-        Fragment::Text(_) => false,
+        Fragment::Text(_) | Fragment::ElidedText(_) => false,
     }
 }
 
@@ -1308,9 +1308,14 @@ pub fn find_character_offset_in_fragment_descendants(
         point_in_fragment: Point2D<Au, CSSPixel>,
         closest_relative_fragment: &mut ClosestFragment,
     ) {
-        let Fragment::Text(text_fragment) = fragment else {
-            return;
+        let text_fragment = match fragment {
+            Fragment::Text(txt_fragment) => txt_fragment.clone(),
+            Fragment::ElidedText(elided_fragment) => {
+                ArcRefCell::new(elided_fragment.borrow().text_fragment.clone())
+            },
+            _ => return,
         };
+
         let Some(new_distance) = text_fragment
             .borrow()
             .distance_to_point_for_glyph_offset(point_in_fragment)
@@ -1321,7 +1326,7 @@ pub fn find_character_offset_in_fragment_descendants(
         {
             return;
         };
-        *closest_relative_fragment = Some((new_distance, point_in_fragment, text_fragment.clone()))
+        *closest_relative_fragment = Some((new_distance, point_in_fragment, text_fragment))
     }
 
     fn collect_relevant_children(
