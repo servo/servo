@@ -23,10 +23,10 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 #[dom_struct]
 pub(crate) struct CSSLayerStatementRule {
-    cssrule: CSSRule,
+    css_rule: CSSRule,
     #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
-    layerstatementrule: RefCell<Arc<LayerStatementRule>>,
+    layer_statement_rule: RefCell<Arc<LayerStatementRule>>,
 }
 
 impl CSSLayerStatementRule {
@@ -35,8 +35,8 @@ impl CSSLayerStatementRule {
         layerstatementrule: Arc<LayerStatementRule>,
     ) -> CSSLayerStatementRule {
         CSSLayerStatementRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
-            layerstatementrule: RefCell::new(layerstatementrule),
+            css_rule: CSSRule::new_inherited(parent_stylesheet),
+            layer_statement_rule: RefCell::new(layerstatementrule),
         }
     }
 
@@ -57,7 +57,7 @@ impl CSSLayerStatementRule {
     }
 
     pub(crate) fn update_rule(&self, layerstatementrule: Arc<LayerStatementRule>) {
-        *self.layerstatementrule.borrow_mut() = layerstatementrule;
+        *self.layer_statement_rule.borrow_mut() = layerstatementrule;
     }
 }
 
@@ -67,8 +67,8 @@ impl SpecificCSSRule for CSSLayerStatementRule {
     }
 
     fn get_css(&self) -> DOMString {
-        let guard = self.cssrule.shared_lock().read();
-        self.layerstatementrule
+        let guard = self.css_rule.shared_lock().read();
+        self.layer_statement_rule
             .borrow()
             .to_css_string(&guard)
             .into()
@@ -79,7 +79,7 @@ impl CSSLayerStatementRuleMethods<crate::DomTypeHolder> for CSSLayerStatementRul
     /// <https://drafts.csswg.org/css-cascade-5/#dom-csslayerstatementrule-namelist>
     fn NameList(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
         let names: Vec<DOMString> = self
-            .layerstatementrule
+            .layer_statement_rule
             .borrow()
             .names
             .iter()

@@ -53,7 +53,7 @@ pub(crate) struct CSSStyleSheet {
     owner_node: MutNullableDom<Element>,
 
     /// <https://drafts.csswg.org/cssom/#ref-for-concept-css-style-sheet-css-rules>
-    rulelist: MutNullableDom<CSSRuleList>,
+    rule_list: MutNullableDom<CSSRuleList>,
 
     /// The inner Stylo's [Stylesheet].
     #[ignore_malloc_size_of = "Stylo"]
@@ -93,7 +93,7 @@ impl CSSStyleSheet {
         CSSStyleSheet {
             stylesheet: StyleSheet::new_inherited(type_, href, title),
             owner_node: MutNullableDom::new(owner),
-            rulelist: MutNullableDom::new(None),
+            rule_list: MutNullableDom::new(None),
             style_shared_lock: stylesheet.shared_lock.clone(),
             style_stylesheet: DomRefCell::new(stylesheet),
             origin_clean: Cell::new(true),
@@ -156,7 +156,7 @@ impl CSSStyleSheet {
     }
 
     fn rulelist(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
-        self.rulelist.or_init(|| {
+        self.rule_list.or_init(|| {
             let sheet = self.style_stylesheet.borrow();
             let guard = sheet.shared_lock.read();
             let rules = sheet.contents(&guard).rules.clone();
@@ -260,7 +260,7 @@ impl CSSStyleSheet {
         // stored in the CSSOMs to ensure that modifications are made only
         // on the new copy.
         *self.style_stylesheet.borrow_mut() = style_stylesheet.clone();
-        if let Some(rulelist) = self.rulelist.get() {
+        if let Some(rulelist) = self.rule_list.get() {
             let rules = style_stylesheet.contents(guard).rules.clone();
             rulelist.update_rules(RulesSource::Rules(rules), guard);
         }
@@ -311,7 +311,7 @@ impl CSSStyleSheet {
         // Step 4. Set sheet’s CSS rules to rules.
         // We reset our rule list, which will be initialized properly
         // at the next getter access.
-        self.rulelist.set(None);
+        self.rule_list.set(None);
 
         // Notify invalidation to update the styles immediately.
         self.notify_invalidations();

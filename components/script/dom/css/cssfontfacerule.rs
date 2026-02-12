@@ -19,10 +19,10 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSFontFaceRule {
-    cssrule: CSSRule,
+    css_rule: CSSRule,
     #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
-    fontfacerule: RefCell<Arc<Locked<FontFaceRule>>>,
+    font_face_rule: RefCell<Arc<Locked<FontFaceRule>>>,
 }
 
 impl CSSFontFaceRule {
@@ -31,8 +31,8 @@ impl CSSFontFaceRule {
         fontfacerule: Arc<Locked<FontFaceRule>>,
     ) -> CSSFontFaceRule {
         CSSFontFaceRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
-            fontfacerule: RefCell::new(fontfacerule),
+            css_rule: CSSRule::new_inherited(parent_stylesheet),
+            font_face_rule: RefCell::new(fontfacerule),
         }
     }
 
@@ -53,7 +53,7 @@ impl CSSFontFaceRule {
     }
 
     pub(crate) fn update_rule(&self, fontfacerule: Arc<Locked<FontFaceRule>>) {
-        *self.fontfacerule.borrow_mut() = fontfacerule;
+        *self.font_face_rule.borrow_mut() = fontfacerule;
     }
 }
 
@@ -63,8 +63,8 @@ impl SpecificCSSRule for CSSFontFaceRule {
     }
 
     fn get_css(&self) -> DOMString {
-        let guard = self.cssrule.shared_lock().read();
-        self.fontfacerule
+        let guard = self.css_rule.shared_lock().read();
+        self.font_face_rule
             .borrow()
             .read_with(&guard)
             .to_css_string(&guard)

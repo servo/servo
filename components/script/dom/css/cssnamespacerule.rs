@@ -20,7 +20,7 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSNamespaceRule {
-    cssrule: CSSRule,
+    css_rule: CSSRule,
     #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     namespacerule: RefCell<Arc<NamespaceRule>>,
@@ -32,7 +32,7 @@ impl CSSNamespaceRule {
         namespacerule: Arc<NamespaceRule>,
     ) -> CSSNamespaceRule {
         CSSNamespaceRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
+            css_rule: CSSRule::new_inherited(parent_stylesheet),
             namespacerule: RefCell::new(namespacerule),
         }
     }
@@ -81,7 +81,7 @@ impl SpecificCSSRule for CSSNamespaceRule {
     }
 
     fn get_css(&self) -> DOMString {
-        let guard = self.cssrule.shared_lock().read();
+        let guard = self.css_rule.shared_lock().read();
         self.namespacerule.borrow().to_css_string(&guard).into()
     }
 }
