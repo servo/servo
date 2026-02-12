@@ -63,7 +63,6 @@ pub enum DevtoolsControlMsg {
     FromChrome(ChromeToDevtoolsControlMsg),
     /// Messages from script threads
     FromScript(ScriptToDevtoolsControlMsg),
-
     /// Sent when a devtools client thread terminates.
     ClientExited,
 }
