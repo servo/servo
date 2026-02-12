@@ -287,10 +287,7 @@ impl BoxSlot<'_> {
         *self.slot.borrow_mut() = Some(layout_box);
     }
 
-    pub(crate) fn take_layout_box_if_undamaged(&self, damage: LayoutDamage) -> Option<LayoutBox> {
-        if damage.has_box_damage() {
-            return None;
-        }
+    pub(crate) fn take_layout_box(&self) -> Option<LayoutBox> {
         self.slot.borrow_mut().take()
     }
 }
@@ -319,9 +316,6 @@ pub(crate) trait NodeExt<'dom> {
 
     /// Remove boxes for the element itself, and all of its pseudo-element boxes.
     fn unset_all_boxes(&self);
-
-    /// Remove all pseudo-element boxes for this element.
-    fn unset_all_pseudo_boxes(&self);
 
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment>;
     fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase));
@@ -466,10 +460,6 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
 
         // Stylo already takes care of removing all layout data
         // for DOM descendants of elements with `display: none`.
-    }
-
-    fn unset_all_pseudo_boxes(&self) {
-        self.ensure_inner_layout_data().pseudo_boxes.clear();
     }
 
     fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase)) {

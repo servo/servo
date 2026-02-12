@@ -807,7 +807,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     box_slot.set(LayoutBox::TableLevelBox(TableLevelBox::Track(row)));
                 },
                 DisplayLayoutInternal::TableColumn => {
-                    let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                    let old_box = box_slot.take_layout_box();
                     let old_column = old_box.and_then(|layout_box| match layout_box {
                         LayoutBox::TableLevelBox(TableLevelBox::Track(column)) => Some(column),
                         _ => None,
@@ -861,7 +861,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                     )));
                 },
                 DisplayLayoutInternal::TableCaption => {
-                    let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                    let old_box = box_slot.take_layout_box();
                     let old_caption = old_box.and_then(|layout_box| match layout_box {
                         LayoutBox::TableLevelBox(TableLevelBox::Caption(caption)) => Some(caption),
                         _ => None,
@@ -1017,7 +1017,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                 DisplayLayoutInternal::TableCell => {
                     self.finish_current_anonymous_cell_if_needed();
 
-                    let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+                    let old_box = box_slot.take_layout_box();
                     let old_cell = old_box.and_then(|layout_box| match layout_box {
                         LayoutBox::TableLevelBox(TableLevelBox::Cell(cell)) => Some(cell),
                         _ => None,
@@ -1112,7 +1112,7 @@ impl<'dom> TraversalHandler<'dom> for TableColumnGroupBuilder {
             ::std::mem::forget(box_slot);
             return;
         }
-        let old_box = box_slot.take_layout_box_if_undamaged(info.damage);
+        let old_box = box_slot.take_layout_box();
         let old_column = old_box.and_then(|layout_box| match layout_box {
             LayoutBox::TableLevelBox(TableLevelBox::Track(column)) => Some(column),
             _ => None,

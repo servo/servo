@@ -152,10 +152,6 @@ fn traverse_element<'dom>(
     handler: &mut impl TraversalHandler<'dom>,
 ) {
     let damage = element.take_restyle_damage();
-    if damage.has_box_damage() {
-        element.unset_all_pseudo_boxes();
-    }
-
     let style = element.style(&context.style_context);
     let info = NodeAndStyleInfo::new(element, style, damage);
 
