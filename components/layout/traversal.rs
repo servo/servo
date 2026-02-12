@@ -129,11 +129,17 @@ pub(crate) fn compute_damage_and_repair_style_inner(
         }
     }
 
-    // If we are reconstructing this node, then all of the children should be reconstructed as well.
-    // Otherwise, do not propagate down its box damage.
+    // Children only receive layout mode damage from their parents, except when an ancestor
+    // needs to be completely rebuilt. In that case, descendants are rebuilt down to the
+    // first independent formatting context, which should isolate that tree from further
+    // box damage.
     let mut damage_for_children = element_and_parent_damage;
-    if !element_and_parent_damage.contains(LayoutDamage::rebuild_box_tree()) {
-        damage_for_children.truncate();
+    damage_for_children.truncate();
+    let rebuild_children = element_damage.contains(LayoutDamage::rebuild_box_tree()) ||
+        (damage_from_parent.contains(LayoutDamage::rebuild_box_tree()) &&
+            !node.isolates_box_tree_rebuild_damage());
+    if rebuild_children {
+        damage_for_children.insert(LayoutDamage::rebuild_box_tree());
     }
 
     let mut damage_from_children = RestyleDamage::empty();
