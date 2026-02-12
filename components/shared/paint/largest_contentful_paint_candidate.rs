@@ -22,7 +22,7 @@ impl LCPCandidate {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, PartialOrd, Serialize)]
 pub struct LCPCandidateID(pub usize);
 
 #[derive(Clone, Copy, Debug)]
