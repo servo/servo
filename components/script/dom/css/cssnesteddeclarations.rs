@@ -22,7 +22,7 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSNestedDeclarations {
-    cssrule: CSSRule,
+    css_rule: CSSRule,
     #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     nesteddeclarationsrule: RefCell<Arc<Locked<NestedDeclarationsRule>>>,
@@ -35,7 +35,7 @@ impl CSSNestedDeclarations {
         nesteddeclarationsrule: Arc<Locked<NestedDeclarationsRule>>,
     ) -> Self {
         Self {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
+            css_rule: CSSRule::new_inherited(parent_stylesheet),
             nesteddeclarationsrule: RefCell::new(nesteddeclarationsrule),
             style_declaration: Default::default(),
         }
@@ -76,7 +76,7 @@ impl SpecificCSSRule for CSSNestedDeclarations {
     }
 
     fn get_css(&self) -> DOMString {
-        let guard = self.cssrule.shared_lock().read();
+        let guard = self.css_rule.shared_lock().read();
         self.nesteddeclarationsrule
             .borrow()
             .read_with(&guard)
@@ -89,7 +89,7 @@ impl CSSNestedDeclarationsMethods<crate::DomTypeHolder> for CSSNestedDeclaration
     /// <https://drafts.csswg.org/css-nesting/#dom-cssnesteddeclarations-style>
     fn Style(&self, can_gc: CanGc) -> DomRoot<CSSStyleDeclaration> {
         self.style_declaration.or_init(|| {
-            let guard = self.cssrule.shared_lock().read();
+            let guard = self.css_rule.shared_lock().read();
             CSSStyleDeclaration::new(
                 self.global().as_window(),
                 CSSStyleOwner::CSSRule(
