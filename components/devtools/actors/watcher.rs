@@ -441,11 +441,11 @@ impl WatcherActor {
         watcher
     }
 
-    pub fn emit_will_navigate(
+    pub fn emit_will_navigate<'a>(
         &self,
         browsing_context_id: BrowsingContextId,
         url: ServoUrl,
-        connections: &mut Vec<TcpStream>,
+        connections: impl Iterator<Item = &'a mut TcpStream>,
         id_map: &mut IdMap,
     ) {
         let msg = WillNavigateMessage {

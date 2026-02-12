@@ -6,15 +6,12 @@
 //! Connection point for remote devtools that wish to investigate a particular Browsing Context's contents.
 //! Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
-use std::collections::HashMap;
 use std::net::TcpStream;
 
 use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{self, GenericSender, SendError};
 use base::id::PipelineId;
-use devtools_traits::DevtoolScriptControlMsg::{
-    self, GetCssDatabase, SimulateColorScheme, WantsLiveNotifications,
-};
+use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, SimulateColorScheme};
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
 use embedder_traits::Theme;
 use malloc_size_of_derive::MallocSizeOf;
@@ -152,8 +149,6 @@ pub(crate) struct BrowsingContextActor {
     pub thread: String,
     _tab: String,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
-
-    pub streams: AtomicRefCell<HashMap<StreamId, TcpStream>>,
     pub watcher: String,
 }
 
@@ -192,20 +187,6 @@ impl Actor for BrowsingContextActor {
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
         Ok(())
-    }
-
-    fn cleanup(&self, id: StreamId) {
-        self.streams.borrow_mut().remove(&id);
-
-        if self.streams.borrow().is_empty() {
-            let result = self
-                .script_chan
-                .send(WantsLiveNotifications(self.pipeline_id(), false));
-
-            // Notifying the script thread may fail with a "Disconnected" error if servo
-            // as a whole is being shut down.
-            debug_assert!(matches!(result, Ok(_) | Err(SendError::Disconnected)));
-        }
     }
 }
 
@@ -269,7 +250,6 @@ impl BrowsingContextActor {
             css_properties: css_properties.name(),
             inspector,
             reflow: reflow.name(),
-            streams: AtomicRefCell::new(HashMap::new()),
             style_sheets: style_sheets.name(),
             _tab: tabdesc.name(),
             thread: thread.name(),
@@ -287,7 +267,12 @@ impl BrowsingContextActor {
         target
     }
 
-    pub(crate) fn navigate(&self, state: NavigationState, id_map: &mut IdMap) {
+    pub(crate) fn navigate<'a>(
+        &self,
+        state: NavigationState,
+        id_map: &mut IdMap,
+        connections: impl Iterator<Item = &'a mut TcpStream>,
+    ) {
         let (pipeline_id, title, url, state) = match state {
             NavigationState::Start(url) => (None, None, url, "start"),
             NavigationState::Stop(pipeline, info) => {
@@ -314,7 +299,7 @@ impl BrowsingContextActor {
             is_frame_switching: false,
         };
 
-        for stream in self.streams.borrow_mut().values_mut() {
+        for stream in connections {
             let _ = stream.write_json_packet(&msg);
         }
     }
@@ -351,6 +336,19 @@ impl BrowsingContextActor {
 
     pub(crate) fn outer_window_id(&self) -> DevtoolsOuterWindowId {
         *self.active_outer_window_id.borrow()
+    }
+
+    pub(crate) fn instruct_script_to_send_live_updates(&self, should_send_updates: bool) {
+        let result = self
+            .script_chan
+            .send(DevtoolScriptControlMsg::WantsLiveNotifications(
+                self.pipeline_id(),
+                should_send_updates,
+            ));
+
+        // Notifying the script thread may fail with a "Disconnected" error if servo
+        // as a whole is being shut down.
+        debug_assert!(matches!(result, Ok(_) | Err(SendError::Disconnected)));
     }
 }
 
