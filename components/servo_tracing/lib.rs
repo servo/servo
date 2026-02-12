@@ -9,7 +9,10 @@ use quote::{ToTokens, TokenStreamExt, quote};
 use syn::parse::{Parse, Parser};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
-use syn::{Expr, ItemFn, Meta, MetaList, Token, parse_quote, parse2};
+use syn::{
+    Attribute, Expr, ImplItem, Item, ItemFn, Meta, MetaList, Token, parse_macro_input, parse_quote,
+    parse2,
+};
 
 struct Fields(MetaList);
 impl From<MetaList> for Fields {
@@ -196,6 +199,40 @@ pub fn instrument(attr: TokenStream, item: TokenStream) -> TokenStream {
     match instrument_internal(attr.into(), item.into()) {
         Ok(stream) => stream.into(),
         Err(err) => err.to_compile_error().into(),
+    }
+}
+
+#[proc_macro_attribute]
+/// Instruments a whole impl blog with the default servo tracing.
+/// See the documentation for `#[servo_tracing::instrument]`
+/// ```
+/// struct Foo {}
+/// #[servo_tracing::instrument_all)]
+/// impl Foo {
+///     fn bar(&self) {}
+///     fn baz(&self) {}
+///     fn bazz(&self) {}
+/// }
+/// ```
+
+pub fn instrument_all(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let parsed_item = parse_macro_input!(item as Item);
+    match parsed_item {
+        Item::Impl(mut impl_block) => {
+            for item in impl_block.items.iter_mut() {
+                if let ImplItem::Fn(method) = item {
+                    let transformed =
+                        instrument_internal(attr.clone().into(), method.to_token_stream())
+                            .unwrap()
+                            .into();
+                    *method = syn::parse_macro_input!(transformed as syn::ImplItemFn)
+                }
+            }
+            TokenStream::from(quote!(#impl_block))
+        },
+        _ => {
+            panic!("can only be applied to impl block");
+        },
     }
 }
 

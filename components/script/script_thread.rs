@@ -514,6 +514,7 @@ impl ScriptThreadFactory for ScriptThread {
     }
 }
 
+#[servo_tracing::instrument_all(skip_all)]
 impl ScriptThread {
     pub(crate) fn runtime_handle() -> ParentRuntime {
         with_optional_script_thread(|script_thread| {
