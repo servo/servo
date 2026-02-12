@@ -645,6 +645,23 @@ impl ReplacedContents {
         }
     }
 
+    pub(crate) fn logical_natural_sizes(
+        &self,
+        writing_mode: WritingMode,
+    ) -> LogicalVec2<Option<Au>> {
+        if writing_mode.is_horizontal() {
+            LogicalVec2 {
+                inline: self.natural_size.width,
+                block: self.natural_size.height,
+            }
+        } else {
+            LogicalVec2 {
+                inline: self.natural_size.height,
+                block: self.natural_size.width,
+            }
+        }
+    }
+
     #[inline]
     pub(crate) fn layout_style<'a>(&self, base: &'a LayoutBoxBase) -> LayoutStyle<'a> {
         LayoutStyle::Default(&base.style)

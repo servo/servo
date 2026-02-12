@@ -220,8 +220,14 @@ impl IndependentFormattingContext {
                 // For replaced elements with no ratio, the returned value doesn't matter.
                 let ratio = preferred_aspect_ratio?;
                 let writing_mode = self.style().writing_mode;
-                let inline_size = contents.fallback_inline_size(writing_mode);
-                let block_size = ratio.compute_dependent_size(Direction::Block, inline_size);
+                let natural_sizes = contents.logical_natural_sizes(writing_mode);
+                let block_size = match (natural_sizes.block, natural_sizes.inline) {
+                    (Some(block_size), None) => block_size,
+                    _ => {
+                        let inline_size = contents.fallback_inline_size(writing_mode);
+                        ratio.compute_dependent_size(Direction::Block, inline_size)
+                    },
+                };
                 Some(block_size.into())
             },
             _ => None,
