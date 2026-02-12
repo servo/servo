@@ -393,7 +393,7 @@ impl KvsEngine for SqliteEngine {
                     for request in transaction.requests {
                         request
                             .operation
-                            .notify_error(BackendError::DbErr(format!("{e:?}")));
+                            .notify_error(BackendError::DbErr(format!("{error:?}")));
                     }
                     let _ = tx.send(None);
                     return;
