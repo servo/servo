@@ -8,7 +8,7 @@ use std::sync::Arc;
 use app_units::{AU_PER_PX, Au};
 use base::id::ScrollTreeNodeId;
 use clip::{Clip, ClipId};
-use euclid::{Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
+use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
 use net_traits::image_cache::Image as CachedImage;
@@ -1592,6 +1592,14 @@ impl<'a> BuilderForBoxFragment<'a> {
                     return false;
                 };
 
+                // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+                // An element target is contentful when one or more of the following apply:
+                // > target has a background-image which is a contentful image,
+                // > and its used background-size has non-zero width and height values.
+                builder.check_for_contentful_paint(
+                    Box2D::from_size(size.cast_unit()),
+                    common.clip_rect,
+                );
                 width = size.width;
                 height = size.height;
                 let image_rendering = style.clone_image_rendering().to_webrender();
