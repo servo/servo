@@ -160,6 +160,68 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             response2 = devtools.watcher.get_breakpoint_list_actor()
             self.assertEqual(response1["breakpointList"]["actor"], response2["breakpointList"]["actor"])
 
+    def test_breakpoint_pause(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/breakpoint/breakpoint_hit.html")
+        with Devtools.connect() as devtools:
+            thread_actor = devtools.targets[0]["threadActor"]
+            devtools.client.send_receive({"to": thread_actor, "type": "attach"})
+
+            # Wait for source
+            source_future = Future()
+
+            def on_source(data):
+                for [resource_type, sources] in data.get("array", []):
+                    if resource_type == "source":
+                        for source in sources:
+                            if "breakpoint/breakpoint_hit.html" in source.get("url", ""):
+                                source_future.set_result(source["actor"])
+
+            devtools.client.add_event_listener(
+                devtools.targets[0]["actor"],
+                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                on_source,
+            )
+            devtools.watcher.watch_resources([Resources.SOURCE])
+            source_actor = source_future.result(2)
+
+            # Get valid breakpoint position
+            positions = devtools.client.send_receive(
+                {"to": source_actor, "type": "getBreakpointPositionsCompressed"}
+            ).get("positions", {})
+            line_str = min(positions.keys(), key=int)
+            line, column = int(line_str), positions[line_str][0]
+
+            # Set breakpoint
+            breakpoint_list = devtools.watcher.get_breakpoint_list_actor()
+            devtools.client.send_receive(
+                {
+                    "to": breakpoint_list["breakpointList"]["actor"],
+                    "type": "setBreakpoint",
+                    "location": {
+                        "sourceUrl": f"{self.base_urls[0]}/breakpoint/breakpoint_hit.html",
+                        "line": line,
+                        "column": column,
+                    },
+                }
+            )
+
+            # Listen for paused event
+            paused_future = Future()
+
+            def on_paused(data):
+                paused_future.set_result(data)
+
+            devtools.client.add_event_listener(thread_actor, "paused", on_paused)
+
+            # Trigger breakpoint
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+            console.evaluate_js_async("testBreakpointHit()")
+
+            # Verify pause
+            paused_data = paused_future.result(3)
+            self.assertEqual(paused_data.get("type"), "paused")
+            self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
+
     # Sources list
     # Classic script vs module script:
     # - <https://html.spec.whatwg.org/multipage/#classic-script>

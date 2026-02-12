@@ -24,7 +24,8 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,
     DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation, NavigationState,
-    NetworkEvent, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId, get_time_stamp,
+    NetworkEvent, PauseFrameResult, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
+    get_time_stamp,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use log::{trace, warn};
@@ -39,13 +40,15 @@ use serde::Serialize;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::console::{ConsoleActor, ConsoleResource, DevtoolsConsoleMessage, Root};
+use crate::actors::frame::FrameActor;
 use crate::actors::framerate::FramerateActor;
 use crate::actors::inspector::InspectorActor;
 use crate::actors::inspector::walker::WalkerActor;
 use crate::actors::network_event::NetworkEventActor;
+use crate::actors::pause::PauseActor;
 use crate::actors::root::RootActor;
 use crate::actors::source::SourceActor;
-use crate::actors::thread::ThreadActor;
+use crate::actors::thread::{ThreadActor, ThreadInterruptedReply, WhyMsg};
 use crate::actors::watcher::WatcherActor;
 use crate::actors::worker::{WorkerActor, WorkerType};
 use crate::id::IdMap;
@@ -347,6 +350,10 @@ impl DevtoolsInstance {
                 )) => {
                     self.handle_dom_mutation(pipeline_id, dom_mutation).unwrap();
                 },
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::BreakpointHit(
+                    pipeline_id,
+                    frame_result,
+                )) => self.handle_breakpoint_hit(pipeline_id, frame_result),
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                     request_id,
                     network_event,
@@ -729,6 +736,59 @@ impl DevtoolsInstance {
         // Store the source content separately for any future source actors that get created *after* we finish parsing
         // the HTML. For example, adding an `import` to an inline module script can delay it until after parsing.
         actors.set_inline_source_content(pipeline_id, source_content);
+    }
+
+    fn handle_breakpoint_hit(&mut self, pipeline_id: PipelineId, frame_result: PauseFrameResult) {
+        let actors = &self.registry;
+
+        let Some(actor_name) = self
+            .pipelines
+            .get(&pipeline_id)
+            .and_then(|id| self.browsing_contexts.get(id))
+        else {
+            return;
+        };
+
+        let browsing_context = actors.find::<BrowsingContextActor>(actor_name);
+        let thread_actor = actors.find::<ThreadActor>(&browsing_context.thread);
+
+        // Find the source actor for this URL
+        let source_actor_name = match thread_actor
+            .source_manager
+            .find_source(actors, &frame_result.url)
+        {
+            Some(source) => source.name(),
+            None => {
+                warn!("No source actor found for URL: {}", frame_result.url);
+                return;
+            },
+        };
+
+        let pause_actor_name = actors.new_name::<PauseActor>();
+        actors.register(PauseActor {
+            name: pause_actor_name.clone(),
+        });
+
+        let frame_actor_name = FrameActor::register(actors, source_actor_name, frame_result);
+        thread_actor
+            .frames
+            .borrow_mut()
+            .insert(frame_actor_name.clone());
+
+        let msg = ThreadInterruptedReply {
+            from: thread_actor.name(),
+            type_: "paused".to_owned(),
+            actor: pause_actor_name,
+            frame: actors.encode::<FrameActor, _>(&frame_actor_name),
+            why: WhyMsg {
+                type_: "breakpoint".to_owned(),
+                on_next: None,
+            },
+        };
+
+        for stream in self.connections.lock().unwrap().values_mut() {
+            let _ = stream.write_json_packet(&msg);
+        }
     }
 }
 

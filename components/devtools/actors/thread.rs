@@ -38,11 +38,11 @@ enum PoppedFrameMsg {}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct WhyMsg {
+pub(crate) struct WhyMsg {
     #[serde(rename = "type")]
-    type_: String,
+    pub type_: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    on_next: Option<bool>,
+    pub on_next: Option<bool>,
 }
 
 #[derive(Serialize)]
@@ -53,13 +53,13 @@ struct ThreadResumedReply {
 }
 
 #[derive(Serialize)]
-struct ThreadInterruptedReply {
-    from: String,
+pub(crate) struct ThreadInterruptedReply {
+    pub from: String,
     #[serde(rename = "type")]
-    type_: String,
-    actor: String,
-    frame: FrameActorMsg,
-    why: WhyMsg,
+    pub type_: String,
+    pub actor: String,
+    pub frame: FrameActorMsg,
+    pub why: WhyMsg,
 }
 
 #[derive(Serialize)]
@@ -79,7 +79,7 @@ pub(crate) struct ThreadActor {
     name: String,
     pub source_manager: SourceManager,
     script_sender: GenericSender<DevtoolScriptControlMsg>,
-    frames: AtomicRefCell<HashSet<String>>,
+    pub frames: AtomicRefCell<HashSet<String>>,
 }
 
 impl ThreadActor {
@@ -131,6 +131,8 @@ impl Actor for ThreadActor {
             },
 
             "resume" => {
+                let _ = self.script_sender.send(DevtoolScriptControlMsg::Resume);
+
                 let msg = ThreadResumedReply {
                     from: self.name(),
                     type_: "resumed".to_owned(),

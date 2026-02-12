@@ -123,10 +123,32 @@ addEventListener("setBreakpoint", event => {
     const target = findScriptById(script, scriptId);
     if (target) {
         target.setBreakpoint(offset, {
-            hit: () => {
+            // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#setbreakpoint-offset-handler>
+            // The hit handler receives a Debugger.Frame instance representing the currently executing stack frame.
+            hit: (frame) => {
+                // Get the pipeline ID for this debuggee
+                const pipelineId = debuggeesToPipelineIds.get(frame.script.global);
+                if (!pipelineId) {
+                    console.error("[debugger] No pipeline ID for frame's global");
+                    return undefined;
+                }
+
+                const result = {
+                    column: frame.script.startColumn,
+                    displayName: frame.script.displayName,
+                    line: frame.script.startLine,
+                    onStack: frame.onStack,
+                    oldest: frame.older == null,
+                    terminated: frame.terminated,
+                    type_: frame.type,
+                    url: frame.script.url,
+                };
+
+                // Notify devtools and enter pause loop. This blocks until Resume.
+                notifyBreakpointHit(pipelineId, result);
                 // <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
-                // TODO: notify script to pause
-                return { throw: "1" };
+                // Return undefined to continue execution normally after resume.
+                return undefined;
             }
         });
     }

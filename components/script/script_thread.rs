@@ -402,6 +402,8 @@ pub struct ScriptThread {
 
     debugger_global: Dom<DebuggerGlobalScope>,
 
+    debugger_paused: Cell<bool>,
+
     /// A list of URLs that can access privileged internal APIs.
     #[no_trace]
     privileged_urls: Vec<ServoUrl>,
@@ -1033,6 +1035,7 @@ impl ScriptThread {
                     scheduled_update_the_rendering: Default::default(),
                     needs_rendering_update: Arc::new(AtomicBool::new(false)),
                     debugger_global: debugger_global.as_traced(),
+                    debugger_paused: Cell::new(false),
                     privileged_urls: state.privileged_urls,
                     this: weak_script_thread.clone(),
                 }
@@ -2229,6 +2232,28 @@ impl ScriptThread {
                 self.debugger_global
                     .fire_pause(CanGc::from_cx(cx), result_sender);
             },
+            DevtoolScriptControlMsg::Resume => {
+                self.debugger_paused.set(false);
+            },
+        }
+    }
+
+    /// Enter a nested event loop for debugger pause.
+    /// TODO: This should also be called when manual pause is triggered.
+    pub(crate) fn enter_debugger_pause_loop(&self) {
+        self.debugger_paused.set(true);
+
+        #[allow(unsafe_code)]
+        let mut cx = unsafe { js::context::JSContext::from_ptr(js::rust::Runtime::get().unwrap()) };
+
+        while self.debugger_paused.get() {
+            match self.receivers.devtools_server_receiver.recv() {
+                Ok(Ok(msg)) => self.handle_msg_from_devtools(msg, &mut cx),
+                _ => {
+                    self.debugger_paused.set(false);
+                    break;
+                },
+            }
         }
     }
 

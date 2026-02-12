@@ -22,7 +22,7 @@ use profile_traits::{mem, time};
 use script_bindings::codegen::GenericBindings::DebuggerEvalEventBinding::EvalResultValue;
 use script_bindings::codegen::GenericBindings::DebuggerGetPossibleBreakpointsEventBinding::RecommendedBreakpointLocation;
 use script_bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::{
-    DebuggerGlobalScopeMethods, NotifyNewSource,
+    DebuggerGlobalScopeMethods, NotifyNewSource, PipelineIdInit,
 };
 use script_bindings::realms::InRealm;
 use script_bindings::reflector::DomObject;
@@ -47,6 +47,7 @@ use crate::dom::types::{
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, IntroductionType};
+use crate::script_thread::with_script_thread;
 
 #[dom_struct]
 /// Global scope for interacting with the devtools Debugger API.
@@ -478,5 +479,31 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         };
 
         let _ = sender.send(reply);
+    }
+
+    fn NotifyBreakpointHit(&self, pipeline_id: &PipelineIdInit, result: &PauseFrameResult) {
+        let pipeline_id = PipelineId {
+            namespace_id: PipelineNamespaceId(pipeline_id.namespaceId),
+            index: Index::new(pipeline_id.index).expect("`pipelineId.index` must not be zero"),
+        };
+
+        if let Some(chan) = self.upcast::<GlobalScope>().devtools_chan() {
+            let frame_result = devtools_traits::PauseFrameResult {
+                column: result.column,
+                display_name: result.displayName.clone().into(),
+                line: result.line,
+                on_stack: result.onStack,
+                oldest: result.oldest,
+                terminated: result.terminated,
+                type_: result.type_.clone().into(),
+                url: result.url.clone().into(),
+            };
+            let msg = ScriptToDevtoolsControlMsg::BreakpointHit(pipeline_id, frame_result);
+            let _ = chan.send(msg);
+        }
+
+        with_script_thread(|script_thread| {
+            script_thread.enter_debugger_pause_loop();
+        });
     }
 }
