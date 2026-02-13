@@ -32,28 +32,28 @@ pub fn set(preferences: Preferences) {
     // Map between Stylo preference names and Servo preference names as the This should be
     // kept in sync with components/script/dom/bindings/codegen/run.py which generates the
     // DOM CSS style accessors.
-    stylo_config::set_bool("layout.unimplemented", preferences.layout_unimplemented);
-    stylo_config::set_i32("layout.threads", preferences.layout_threads as i32);
-    stylo_config::set_bool("layout.flexbox.enabled", preferences.layout_flexbox_enabled);
-    stylo_config::set_bool("layout.columns.enabled", preferences.layout_columns_enabled);
-    stylo_config::set_bool("layout.grid.enabled", preferences.layout_grid_enabled);
-    stylo_config::set_bool(
+    stylo_static_prefs::set_bool("layout.unimplemented", preferences.layout_unimplemented);
+    stylo_static_prefs::set_i32("layout.threads", preferences.layout_threads as i32);
+    stylo_static_prefs::set_bool("layout.flexbox.enabled", preferences.layout_flexbox_enabled);
+    stylo_static_prefs::set_bool("layout.columns.enabled", preferences.layout_columns_enabled);
+    stylo_static_prefs::set_bool("layout.grid.enabled", preferences.layout_grid_enabled);
+    stylo_static_prefs::set_bool(
         "layout.css.attr.enabled",
         preferences.layout_css_attr_enabled,
     );
-    stylo_config::set_bool(
+    stylo_static_prefs::set_bool(
         "layout.css.transition-behavior.enabled",
         preferences.layout_css_transition_behavior_enabled,
     );
-    stylo_config::set_bool(
+    stylo_static_prefs::set_bool(
         "layout.writing-mode.enabled",
         preferences.layout_writing_mode_enabled,
     );
-    stylo_config::set_bool(
+    stylo_static_prefs::set_bool(
         "layout.container-queries.enabled",
         preferences.layout_container_queries_enabled,
     );
-    stylo_config::set_bool(
+    stylo_static_prefs::set_bool(
         "layout.variable_fonts.enabled",
         preferences.layout_variable_fonts_enabled,
     );

@@ -16,4 +16,4 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 servo_config_macro = { path = "macro" }
 servo_url = { path = "../url" }
-stylo_config = { workspace = true }
+stylo_static_prefs = { workspace = true }
