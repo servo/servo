@@ -537,17 +537,17 @@ impl DevtoolsInstance {
             log::warn!("Devtools received notification for unknown pipeline {pipeline_id}");
             return Err(ActorError::Internal);
         };
-        let Some(browsing_context_actor_id) = self.browsing_contexts.get(&browsing_context_id)
+        let Some(browsing_context_actor_id) = self.browsing_contexts.get(browsing_context_id)
         else {
             return Err(ActorError::Internal);
         };
         let browsing_context_actor = self
             .registry
-            .find::<BrowsingContextActor>(&browsing_context_actor_id);
+            .find::<BrowsingContextActor>(browsing_context_actor_id);
         let inspector_actor = self
             .registry
             .find::<InspectorActor>(&browsing_context_actor.inspector);
-        let walker_actor = self.registry.find::<WalkerActor>(inspector_actor.walker());
+        let walker_actor = self.registry.find::<WalkerActor>(&inspector_actor.walker);
 
         for stream in self.connections.lock().unwrap().values_mut() {
             walker_actor.handle_dom_mutation(dom_mutation.clone(), stream)?;

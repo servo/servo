@@ -774,7 +774,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             self.assert_event_listeners(span, [{"type": "hover", "capturing": True}], devtools)
             self.assert_event_listeners(div, None, devtools)
 
-    def test_inspector_modify_attribute(self):
+    def test_inspector_attribute_modifications_affect_dom(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/inspector/demo_dom.html")
         with Devtools.connect() as devtools:
             inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
@@ -783,6 +783,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             body = walker.query_selector(document_element, "body")["node"]["actor"]
 
             mutation_result = Future()
+
             async def on_new_mutations(data):
                 mutation_result.set_result(data)
 
@@ -803,15 +804,52 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             mutation_result.result(1)
 
             # Assert that the notification is correct
-            self.assertEquals(walker.get_mutations(False), [{
-                "attributeName": "foo",
-                "newValue": "baz",
-                "type": "attributes",
-                "target" : first_child["actor"]
-            }])
+            self.assertEquals(
+                walker.get_mutations(False),
+                [{"attributeName": "foo", "newValue": "baz", "type": "attributes", "target": first_child["actor"]}],
+            )
 
             # Assert that the new DOM state is correct
             self.assertEquals(walker.children(body)[0]["attrs"], [{"name": "foo", "value": "baz"}])
+
+    def test_inspector_notices_attribute_mutation_from_javascript(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/inspector/demo_dom.html")
+        with Devtools.connect() as devtools:
+            inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
+            walker = WalkerActor(devtools.client, inspector.get_walker()["actor"])
+            document_element = walker.document_element("")["actor"]
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+            body = walker.query_selector(document_element, "body")["node"]["actor"]
+
+            mutation_result = Future()
+            evaluation_result = Future()
+
+            async def on_new_mutations(data):
+                mutation_result.set_result(data)
+
+            async def on_evaluation_result(data: dict):
+                evaluation_result.set_result(data)
+
+            devtools.client.add_event_listener(
+                inspector.get_walker()["actor"], Events.Walker.NEW_MUTATIONS, on_new_mutations
+            )
+            devtools.client.add_event_listener(
+                console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation_result
+            )
+
+            # Modify the nodes attribute
+            target = walker.children(body)[0]
+            console.evaluate_js_async("document.body.firstElementChild.setAttribute('foo', 'baz');")
+            evaluation_result.result(1)
+
+            # Wait for the mutation notification to arrive
+            mutation_result.result(1)
+
+            # Assert that the notification is correct
+            self.assertEquals(
+                walker.get_mutations(False),
+                [{"attributeName": "foo", "newValue": "baz", "type": "attributes", "target": target["actor"]}],
+            )
 
     # Sets `base_url` and `web_server` and `web_server_thread`.
     @classmethod
