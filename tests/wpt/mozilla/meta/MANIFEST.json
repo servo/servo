@@ -102,6 +102,15 @@
       {}
      ]
     ],
+    "svg": {
+     "svg-replaced-crash.html": [
+      "f1764e4a1bc5e15dedb6a4f2154ff86ae884a5d2",
+      [
+       null,
+       {}
+      ]
+     ]
+    },
     "test-wait-crash.html": [
      "2419da6af0c278a17b9ff974d4418f9e386ef3e0",
      [

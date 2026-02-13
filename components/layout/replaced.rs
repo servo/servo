@@ -182,7 +182,7 @@ impl ReplacedContents {
                         .map_or_else(NaturalSizes::empty, NaturalSizes::from_natural_size_in_dots),
                 )
             } else if let Some(svg_data) = node.as_svg() {
-                Self::svg_kind_size(svg_data, context, node)?
+                Self::svg_kind_size(svg_data, context, node)
             } else if node
                 .as_html_element()
                 .is_some_and(|element| element.has_local_name(&local_name!("audio")))
@@ -217,7 +217,7 @@ impl ReplacedContents {
         svg_data: SVGElementData,
         context: &LayoutContext,
         node: ServoThreadSafeLayoutNode<'_>,
-    ) -> Option<(ReplacedContentKind, NaturalSizes)> {
+    ) -> (ReplacedContentKind, NaturalSizes) {
         let rule_cache_conditions = &mut RuleCacheConditions::default();
 
         let parent_style = node.style(&context.style_context);
@@ -267,25 +267,27 @@ impl ReplacedContents {
                 context
                     .image_resolver
                     .queue_svg_element_for_serialization(node);
-                return None;
+                None
             },
             Some(Err(_)) => {
                 // Don't attempt to serialize if previous attempt had errored.
-                return None;
+                None
             },
-            Some(Ok(svg_source)) => svg_source,
+            Some(Ok(svg_source)) => Some(svg_source),
         };
 
-        let result = context
-            .image_resolver
-            .get_cached_image_for_url(
-                node.opaque(),
-                svg_source,
-                LayoutImageDestination::BoxTreeConstruction,
-            )
-            .ok();
+        let cached_image = svg_source.and_then(|svg_source| {
+            context
+                .image_resolver
+                .get_cached_image_for_url(
+                    node.opaque(),
+                    svg_source,
+                    LayoutImageDestination::BoxTreeConstruction,
+                )
+                .ok()
+        });
 
-        let vector_image = result.map(|result| match result {
+        let vector_image = cached_image.map(|image| match image {
             Image::Vector(mut vector_image) => {
                 vector_image.svg_id = Some(svg_data.svg_id);
                 vector_image
@@ -293,7 +295,7 @@ impl ReplacedContents {
             _ => unreachable!("SVG element can't contain a raster image."),
         });
 
-        Some((ReplacedContentKind::SVGElement(vector_image), natural_size))
+        (ReplacedContentKind::SVGElement(vector_image), natural_size)
     }
 
     fn from_content_property(
