@@ -8,7 +8,7 @@ use html5ever::LocalName;
 use layout_api::wrapper_traits::{
     PseudoElementChain, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
-use layout_api::{LayoutDamage, LayoutElementType, LayoutNodeType};
+use layout_api::{LayoutElementType, LayoutNodeType};
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use selectors::Element as SelectorsElement;
 use servo_arc::Arc as ServoArc;
@@ -31,20 +31,14 @@ use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOuts
 pub(crate) struct NodeAndStyleInfo<'dom> {
     pub node: ServoThreadSafeLayoutNode<'dom>,
     pub style: ServoArc<ComputedValues>,
-    pub damage: LayoutDamage,
 }
 
 impl<'dom> NodeAndStyleInfo<'dom> {
     pub(crate) fn new(
         node: ServoThreadSafeLayoutNode<'dom>,
         style: ServoArc<ComputedValues>,
-        damage: LayoutDamage,
     ) -> Self {
-        Self {
-            node,
-            style,
-            damage,
-        }
+        Self { node, style }
     }
 
     pub(crate) fn pseudo_element_chain(&self) -> PseudoElementChain {
@@ -61,7 +55,6 @@ impl<'dom> NodeAndStyleInfo<'dom> {
         Some(NodeAndStyleInfo {
             node: element.as_node(),
             style,
-            damage: self.damage,
         })
     }
 }
@@ -130,11 +123,7 @@ fn traverse_children_of<'dom>(
 
     for child in parent_element_info.node.children() {
         if child.is_text_node() {
-            let info = NodeAndStyleInfo::new(
-                child,
-                child.style(&context.style_context),
-                child.take_restyle_damage(),
-            );
+            let info = NodeAndStyleInfo::new(child, child.style(&context.style_context));
             handler.handle_text(&info, child.text_content());
         } else if child.is_element() {
             traverse_element(child, context, handler);
@@ -151,9 +140,8 @@ fn traverse_element<'dom>(
     context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom>,
 ) {
-    let damage = element.take_restyle_damage();
     let style = element.style(&context.style_context);
-    let info = NodeAndStyleInfo::new(element, style, damage);
+    let info = NodeAndStyleInfo::new(element, style);
 
     match Display::from(info.style.get_box().display) {
         Display::None => {},

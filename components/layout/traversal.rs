@@ -113,11 +113,14 @@ pub(crate) fn compute_damage_and_repair_style_inner(
         .expect("Should not run `compute_damage` before styling.")
         .element_data;
     let (element_damage, is_display_none) = {
-        let element_data = element_data.borrow();
-        (element_data.damage, element_data.styles.is_display_none())
+        let mut element_data = element_data.borrow_mut();
+        (
+            std::mem::take(&mut element_data.damage),
+            element_data.styles.is_display_none(),
+        )
     };
 
-    let mut element_and_parent_damage = element_damage | damage_from_parent;
+    let element_and_parent_damage = element_damage | damage_from_parent;
     if is_display_none {
         node.unset_all_boxes();
         return element_and_parent_damage;
@@ -182,16 +185,6 @@ pub(crate) fn compute_damage_and_repair_style_inner(
         if !element_damage.is_empty() {
             node.repair_style(context);
         }
-
-        // Since damage is cleared during box tree construction, which will not run for
-        // this node, clear the damage now to avoid it affecting the next reflow.
-        //
-        // TODO: It would be cleaner to clear all damage during the damage traversal.
-        element_and_parent_damage = RestyleDamage::empty();
-    }
-
-    if element_and_parent_damage != element_damage {
-        element_data.borrow_mut().damage = element_and_parent_damage;
     }
 
     layout_damage_for_parent
