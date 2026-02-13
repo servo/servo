@@ -312,8 +312,10 @@ pub struct RasterImage {
     pub frames: Vec<ImageFrame>,
     /// Whether or not all of the frames of this image are opaque.
     pub is_opaque: bool,
-    pub loop_count: Option<Repeat>, // For non-looptable, this would be None,
-                                    // For animated image, there would be default value of Infinite type.
+    /// The loop count for the image animation.
+    /// For non-looptable images, this would be `None`.
+    /// For animated images, there would be a default value of `Repeat::Infinite`.
+    pub loop_count: Option<Repeat>,
 }
 
 fn sensible_delay(delay: Duration) -> Duration {
