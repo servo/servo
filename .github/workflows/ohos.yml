@@ -39,7 +39,7 @@ env:
   SHELL: /bin/bash
   CARGO_INCREMENTAL: 0
   BENCHER_PROJECT: ${{ vars.BENCHER_PROJECT || 'servo' }}
-  HITRACE_BENCH_VERSION: 0.11.0
+  HITRACE_BENCH_VERSION: 0.11.1
   MITMDUMP_CACHE_KEY: mitmdump-ohos-cache-0.1
 
 jobs:
@@ -298,6 +298,12 @@ jobs:
       - name: "Run benchmark"
         id: hitrace_bench
         run: hitrace-bench -r support/hitrace-bencher/runs.json --bencher -p ${{ inputs.profile }}
+      - name: Upload failure screenshots
+        if: ${{ steps.hitrace_bench.success == 'failure' }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: bencher-${{ inputs.profile }}-failure-screenshot
+          path: "/tmp/servo.jpeg"
       - name: Run speedometer
         id: speedometer
         run: uv run ./etc/ci/scenario/servo_speedometer.py ${{ inputs.profile }}
