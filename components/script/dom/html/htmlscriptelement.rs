@@ -756,7 +756,7 @@ impl HTMLScriptElement {
         };
 
         // Step 29. Fetch options.
-        let options = ScriptFetchOptions {
+        let mut options = ScriptFetchOptions {
             cryptographic_nonce,
             integrity_metadata: integrity_metadata.to_owned(),
             parser_metadata,
@@ -842,6 +842,14 @@ impl HTMLScriptElement {
                     }
                 },
                 ScriptType::Module => {
+                    // If el does not have an integrity attribute, then set options's integrity metadata to
+                    // the result of resolving a module integrity metadata with url and settings object.
+                    if integrity_val.is_none() {
+                        options.integrity_metadata = global
+                            .import_map()
+                            .resolve_a_module_integrity_metadata(&url);
+                    }
+
                     // Step 31.11. Fetch an external module script graph.
                     fetch_an_external_module_script(
                         url.clone(),

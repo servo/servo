@@ -963,10 +963,20 @@ impl ScriptFetchOptions {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#descendant-script-fetch-options>
-    pub(crate) fn descendant_fetch_options(&self) -> ScriptFetchOptions {
+    pub(crate) fn descendant_fetch_options(
+        &self,
+        url: &ServoUrl,
+        global: &GlobalScope,
+    ) -> ScriptFetchOptions {
+        // Step 2. Let integrity be the result of resolving a module integrity metadata with url and settingsObject.
+        let integrity = global.import_map().resolve_a_module_integrity_metadata(url);
+
+        // Step 1. Let newOptions be a copy of originalOptions.
+        // TODO Step 4. Set newOptions's fetch priority to "auto".
         Self {
             referrer: self.referrer.clone(),
-            integrity_metadata: String::new(),
+            // Step 3. Set newOptions's integrity metadata to integrity.
+            integrity_metadata: integrity,
             cryptographic_nonce: self.cryptographic_nonce.clone(),
             credentials_mode: self.credentials_mode,
             parser_metadata: self.parser_metadata,
@@ -1497,6 +1507,17 @@ pub(crate) struct ImportMap {
     scopes: IndexMap<ServoUrl, ModuleSpecifierMap>,
     #[no_trace]
     integrity: ModuleIntegrityMap,
+}
+
+impl ImportMap {
+    /// <https://html.spec.whatwg.org/multipage/#resolving-a-module-integrity-metadata>
+    pub(crate) fn resolve_a_module_integrity_metadata(&self, url: &ServoUrl) -> String {
+        // Step 1. Let map be settingsObject's global object's import map.
+
+        // Step 2. If map's integrity[url] does not exist, then return the empty string.
+        // Step 3. Return map's integrity[url].
+        self.integrity.get(url).cloned().unwrap_or_default()
+    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#register-an-import-map>

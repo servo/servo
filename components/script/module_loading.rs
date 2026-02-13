@@ -493,9 +493,11 @@ pub(crate) fn host_load_imported_module(
         return;
     };
 
+    let url = url.unwrap();
+
     // Step 10. Let fetchOptions be the result of getting the descendant script fetch options given
     // originalFetchOptions, url, and settingsObject.
-    let fetch_options = original_fetch_options.descendant_fetch_options();
+    let fetch_options = original_fetch_options.descendant_fetch_options(&url, &global_scope);
 
     // Step 13. If loadState is not undefined, then:
     // Note: loadState is undefined only in dynamic imports
@@ -555,7 +557,7 @@ pub(crate) fn host_load_imported_module(
     // If loadState is not undefined and loadState.[[PerformFetch]] is not null, pass loadState.[[PerformFetch]] along as well.
     // Note: we don't have access to the requested `ModuleObject`, so we pass only its type.
     fetch_a_single_imported_module_script(
-        url.unwrap(),
+        url,
         fetch_client,
         destination,
         fetch_options,
