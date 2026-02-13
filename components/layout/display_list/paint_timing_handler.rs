@@ -32,6 +32,20 @@ impl PaintTimingHandler {
         }
     }
 
+    // Returns true if has non-zero width and height values.
+    pub(crate) fn check_bounding_rect(&self, bounds: LayoutRect, clip_rect: LayoutRect) -> bool {
+        let clipped_rect = bounds
+            .intersection(&clip_rect)
+            .unwrap_or(LayoutRect::zero())
+            .to_rect();
+
+        let bounding_rect = clipped_rect
+            .intersection(&self.viewport_rect.to_rect().cast_unit())
+            .unwrap_or(Rect::zero());
+
+        bounding_rect.size.width > 0.0 && bounding_rect.size.height > 0.0
+    }
+
     fn calculate_intersection_rect(
         &self,
         bounds: LayoutRect,

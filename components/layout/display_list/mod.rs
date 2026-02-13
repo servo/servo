@@ -521,6 +521,15 @@ impl DisplayListBuilder<'_> {
         }
     }
 
+    fn check_for_contentful_paint(&mut self, bounds: LayoutRect, clip_rect: LayoutRect) {
+        if self
+            .paint_timing_handler
+            .check_bounding_rect(bounds, clip_rect)
+        {
+            self.mark_is_contentful();
+        }
+    }
+
     fn check_for_lcp_candidate(
         &mut self,
         lcp_candidate_id: LCPCandidateID,
@@ -645,8 +654,6 @@ impl Fragment {
                         let common = builder.common_properties(clip, &style);
 
                         if let Some(image_key) = image.image_key {
-                            builder.mark_is_contentful();
-
                             builder.wr().push_image(
                                 &common,
                                 rect,
@@ -655,6 +662,11 @@ impl Fragment {
                                 image_key,
                                 wr::ColorF::WHITE,
                             );
+
+                            // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+                            // An element target is contentful when one or more of the following apply:
+                            // > target is a replaced element representing an available image.
+                            builder.check_for_contentful_paint(rect, common.clip_rect);
                         }
 
                         if image.showing_broken_image_icon {
@@ -731,9 +743,6 @@ impl Fragment {
     ) {
         // NB: The order of painting text components (CSS Text Decoration Module Level 3) is:
         // shadows, underline, overline, text, text-emphasis, and then line-through.
-
-        builder.mark_is_contentful();
-
         let rect = fragment
             .base
             .rect
@@ -836,6 +845,12 @@ impl Fragment {
             rgba(color),
             None,
         );
+
+        // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+        // An element target is contentful when one or more of the following apply:
+        // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
+        // TODO(shubhamg13): Consider opacity in separate PR
+        builder.check_for_contentful_paint(glyph_bounds, common.clip_rect);
 
         for text_decoration in text_decorations.iter() {
             if text_decoration
