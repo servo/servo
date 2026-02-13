@@ -2212,14 +2212,6 @@ pub(crate) struct SubtleKeyAlgorithm {
     name: String,
 }
 
-impl From<NormalizedAlgorithm> for SubtleKeyAlgorithm {
-    fn from(value: NormalizedAlgorithm) -> Self {
-        SubtleKeyAlgorithm {
-            name: value.name().to_string(),
-        }
-    }
-}
-
 impl SafeToJSValConvertible for SubtleKeyAlgorithm {
     fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
         let dictionary = KeyAlgorithm {
@@ -3038,14 +3030,6 @@ impl KeyAlgorithmAndDerivatives {
             KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => &algo.name,
             KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => &algo.name,
         }
-    }
-}
-
-impl From<NormalizedAlgorithm> for KeyAlgorithmAndDerivatives {
-    fn from(value: NormalizedAlgorithm) -> Self {
-        KeyAlgorithmAndDerivatives::KeyAlgorithm(SubtleKeyAlgorithm {
-            name: value.name().to_string(),
-        })
     }
 }
 
