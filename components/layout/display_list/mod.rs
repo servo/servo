@@ -1410,6 +1410,12 @@ impl<'a> BuilderForBoxFragment<'a> {
                             )
                         }
 
+                        // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+                        // An element target is contentful when one or more of the following apply:
+                        // > target has a background-image which is a contentful image, and its used
+                        // > background-size has non-zero width and height values.
+                        builder.check_for_contentful_paint(layer.bounds, layer.common.clip_rect);
+
                         let lcp_candidate_id = self
                             .fragment
                             .base
