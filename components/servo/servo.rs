@@ -769,7 +769,6 @@ impl Servo {
 
         let devtools_sender = if pref!(devtools_server_enabled) {
             Some(devtools::start_server(
-                pref!(devtools_server_port) as u16,
                 embedder_proxy.clone(),
                 mem_profiler_chan.clone(),
             ))

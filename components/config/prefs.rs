@@ -87,11 +87,8 @@ pub struct Preferences {
     pub css_animations_testing_enabled: bool,
     /// Start the devtools server at startup
     pub devtools_server_enabled: bool,
-    /// Port number to start a server to listen to remote Firefox devtools connections.
-    /// 0 for random port.
-    pub devtools_server_port: i64,
-    /// Wether or not we listen to connections on 0.0.0.0
-    pub devtools_server_listen_global: bool,
+    /// The address +port the devtools server listens to, default to 127.0.0.1:7000.
+    pub devtools_server_listen_address: String,
     // feature: WebGPU | #24706 | Web/API/WebGPU_API
     pub dom_webgpu_enabled: bool,
     /// List of comma-separated backends to be used by wgpu.
@@ -342,8 +339,7 @@ impl Preferences {
         Self {
             css_animations_testing_enabled: false,
             devtools_server_enabled: false,
-            devtools_server_port: 0,
-            devtools_server_listen_global: false,
+            devtools_server_listen_address: String::new(),
             dom_abort_controller_enabled: true,
             dom_adoptedstylesheet_enabled: false,
             dom_allow_scripts_to_close_windows: false,
