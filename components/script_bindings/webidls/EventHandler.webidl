@@ -148,3 +148,15 @@ interface mixin WindowEventHandlers {
            attribute EventHandler onunhandledrejection;
            attribute EventHandler onunload;
 };
+
+// https://w3c.github.io/pointerevents/#extensions-to-the-globaleventhandlers-mixin
+partial interface mixin GlobalEventHandlers {
+           attribute EventHandler onpointerover;
+           attribute EventHandler onpointerenter;
+           attribute EventHandler onpointerdown;
+           attribute EventHandler onpointermove;
+           attribute EventHandler onpointerup;
+           attribute EventHandler onpointercancel;
+           attribute EventHandler onpointerout;
+           attribute EventHandler onpointerleave;
+};

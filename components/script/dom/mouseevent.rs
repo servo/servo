@@ -372,6 +372,68 @@ impl MouseEvent {
             can_gc,
         )
     }
+
+    /// Create a PointerEvent for hover events (pointerover, pointerenter, pointerout, pointerleave).
+    /// <https://w3c.github.io/pointerevents/#the-primary-pointer>
+    /// For mouse, the pointer ID is always -1, and is_primary is always true.
+    pub(crate) fn to_pointer_hover_event(
+        &self,
+        event_type: &str,
+        can_gc: CanGc,
+    ) -> DomRoot<crate::dom::pointerevent::PointerEvent> {
+        // Determine bubbles and cancelable based on event type
+        // pointerover/pointerout bubble and are cancelable
+        // pointerenter/pointerleave do not bubble and are not cancelable
+        let (bubbles, cancelable) = match event_type {
+            "pointerover" | "pointerout" => (EventBubbles::Bubbles, EventCancelable::Cancelable),
+            "pointerenter" | "pointerleave" => {
+                (EventBubbles::DoesNotBubble, EventCancelable::NotCancelable)
+            },
+            _ => (EventBubbles::Bubbles, EventCancelable::Cancelable),
+        };
+
+        let window = self.global();
+        let window = window.as_window();
+
+        let pointer_event = PointerEvent::new(
+            window,
+            DOMString::from(event_type),
+            bubbles,
+            cancelable,
+            self.uievent.GetView().as_deref(),
+            self.uievent.Detail(),
+            Point2D::new(self.ScreenX(), self.ScreenY()),
+            Point2D::new(self.ClientX(), self.ClientY()),
+            Point2D::new(self.PageX(), self.PageY()),
+            self.modifiers.get(),
+            -1, // button: -1 for hover events (no button pressed)
+            self.Buttons(),
+            self.GetRelatedTarget().as_deref(),
+            self.point_in_target.get(),
+            PointerId::Mouse as i32, // Mouse pointer ID is always -1
+            1,                       // width
+            1,                       // height
+            0.0,                     // pressure: 0.0 for hover events
+            0.0,                     // tangential_pressure
+            0,                       // tilt_x
+            0,                       // tilt_y
+            0,                       // twist
+            PI / 2.0,                // altitude_angle (perpendicular to surface)
+            0.0,                     // azimuth_angle
+            DOMString::from("mouse"),
+            true,   // is_primary (mouse is always primary)
+            vec![], // coalesced_events
+            vec![], // predicted_events
+            can_gc,
+        );
+
+        // Set trusted to match the source mouse event
+        pointer_event
+            .upcast::<Event>()
+            .set_trusted(self.IsTrusted());
+
+        pointer_event
+    }
 }
 
 impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {

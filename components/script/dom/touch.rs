@@ -92,15 +92,35 @@ impl Touch {
         point_in_node: Option<euclid::Point2D<f32, style_traits::CSSPixel>>,
         can_gc: CanGc,
     ) -> DomRoot<PointerEvent> {
-        // Pressure is 0.5 for active touches, 0.0 for up/cancel
-        let pressure = if event_type == "pointerup" || event_type == "pointercancel" {
+        // Pressure is 0.5 for active touches, 0.0 for up/cancel/out/leave
+        // <https://w3c.github.io/pointerevents/#dom-pointerevent-pressure>
+        // TODO: add proper force support.
+        let pressure = if event_type == "pointerup" ||
+            event_type == "pointercancel" ||
+            event_type == "pointerout" ||
+            event_type == "pointerleave"
+        {
             0.0
         } else {
             0.5
         };
 
-        let button = if event_type == "pointermove" { -1 } else { 0 };
+        // <https://w3c.github.io/pointerevents/#the-button-property>
+        // For pointermove, pointerover, pointerenter, pointerout, pointerleave: button is -1
+        // For pointerdown, pointerup, pointercancel: button is 0 (primary button)
+        let button = if event_type == "pointermove" ||
+            event_type == "pointerover" ||
+            event_type == "pointerenter" ||
+            event_type == "pointerout" ||
+            event_type == "pointerleave"
+        {
+            -1
+        } else {
+            0
+        };
 
+        // Buttons: 1 if a button is pressed during the event, 0 otherwise
+        // For touch: button is pressed during over/enter/down/move, not during up/cancel/out/leave
         let buttons = if event_type == "pointermove" ||
             event_type == "pointerover" ||
             event_type == "pointerenter" ||
@@ -111,11 +131,19 @@ impl Touch {
             0
         };
 
+        // For enter/leave events, they don't bubble and are not cancelable
+        let (bubbles, cancelable) = match event_type {
+            "pointerenter" | "pointerleave" => {
+                (EventBubbles::DoesNotBubble, EventCancelable::NotCancelable)
+            },
+            _ => (EventBubbles::Bubbles, EventCancelable::from(is_cancelable)),
+        };
+
         PointerEvent::new(
             window,
             DOMString::from(event_type),
-            EventBubbles::Bubbles,
-            EventCancelable::from(is_cancelable),
+            bubbles,
+            cancelable,
             Some(window),
             0, // detail
             Point2D::new(*self.ScreenX() as i32, *self.ScreenY() as i32),

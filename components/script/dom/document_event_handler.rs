@@ -341,15 +341,24 @@ impl DocumentEventHandler {
                 .get()
                 .and_then(|point| self.window.hit_test_from_point_in_viewport(point))
             {
-                MouseEvent::new_for_platform_motion_event(
+                let mouse_out_event = MouseEvent::new_for_platform_motion_event(
                     &self.window,
                     FireMouseEventType::Out,
                     &hit_test_result,
                     input_event,
                     can_gc,
-                )
-                .upcast::<Event>()
-                .fire(current_hover_target.upcast(), can_gc);
+                );
+
+                // Fire pointerout before mouseout
+                mouse_out_event
+                    .to_pointer_hover_event("pointerout", can_gc)
+                    .upcast::<Event>()
+                    .fire(current_hover_target.upcast(), can_gc);
+
+                mouse_out_event
+                    .upcast::<Event>()
+                    .fire(current_hover_target.upcast(), can_gc);
+
                 self.handle_mouse_enter_leave_event(
                     DomRoot::from_ref(current_hover_target),
                     None,
@@ -413,22 +422,35 @@ impl DocumentEventHandler {
             targets.push(node);
         }
 
-        // The order for dispatching mouseenter events starts from the topmost
+        // The order for dispatching mouseenter/pointerenter events starts from the topmost
         // common ancestor of the event target and the related target.
         if event_type == FireMouseEventType::Enter {
             targets = targets.into_iter().rev().collect();
         }
 
+        let pointer_event_name = match event_type {
+            FireMouseEventType::Enter => "pointerenter",
+            FireMouseEventType::Leave => "pointerleave",
+            _ => unreachable!(),
+        };
+
         for target in targets {
-            MouseEvent::new_for_platform_motion_event(
+            let mouse_event = MouseEvent::new_for_platform_motion_event(
                 &self.window,
                 event_type,
                 hit_test_result,
                 input_event,
                 can_gc,
-            )
-            .upcast::<Event>()
-            .fire(target.upcast(), can_gc);
+            );
+
+            // Fire pointer event before mouse event
+            mouse_event
+                .to_pointer_hover_event(pointer_event_name, can_gc)
+                .upcast::<Event>()
+                .fire(target.upcast(), can_gc);
+
+            // Fire mouse event
+            mouse_event.upcast::<Event>().fire(target.upcast(), can_gc);
         }
     }
 
@@ -465,7 +487,7 @@ impl DocumentEventHandler {
         // Here we know the target has changed, so we must update the state,
         // dispatch mouseout to the previous one, mouseover to the new one.
         if target_has_changed {
-            // Dispatch mouseout and mouseleave to previous target.
+            // Dispatch pointerout/mouseout and pointerleave/mouseleave to previous target.
             if let Some(old_target) = self.current_hover_target.get() {
                 let old_target_is_ancestor_of_new_target = old_target
                     .upcast::<Node>()
@@ -484,15 +506,23 @@ impl DocumentEventHandler {
                     }
                 }
 
-                MouseEvent::new_for_platform_motion_event(
+                let mouse_out_event = MouseEvent::new_for_platform_motion_event(
                     &self.window,
                     FireMouseEventType::Out,
                     &hit_test_result,
                     input_event,
                     can_gc,
-                )
-                .upcast::<Event>()
-                .fire(old_target.upcast(), can_gc);
+                );
+
+                // Fire pointerout before mouseout
+                mouse_out_event
+                    .to_pointer_hover_event("pointerout", can_gc)
+                    .upcast::<Event>()
+                    .fire(old_target.upcast(), can_gc);
+
+                mouse_out_event
+                    .upcast::<Event>()
+                    .fire(old_target.upcast(), can_gc);
 
                 if !old_target_is_ancestor_of_new_target {
                     let event_target = DomRoot::from_ref(old_target.upcast::<Node>());
@@ -508,7 +538,7 @@ impl DocumentEventHandler {
                 }
             }
 
-            // Dispatch mouseover and mouseenter to new target.
+            // Dispatch pointerover/mouseover and pointerenter/mouseenter to new target.
             for element in new_target
                 .upcast::<Node>()
                 .inclusive_ancestors(ShadowIncluding::Yes)
@@ -517,15 +547,23 @@ impl DocumentEventHandler {
                 element.set_hover_state(true);
             }
 
-            MouseEvent::new_for_platform_motion_event(
+            let mouse_over_event = MouseEvent::new_for_platform_motion_event(
                 &self.window,
                 FireMouseEventType::Over,
                 &hit_test_result,
                 input_event,
                 can_gc,
-            )
-            .upcast::<Event>()
-            .dispatch(new_target.upcast(), false, can_gc);
+            );
+
+            // Fire pointerover before mouseover
+            mouse_over_event
+                .to_pointer_hover_event("pointerover", can_gc)
+                .upcast::<Event>()
+                .dispatch(new_target.upcast(), false, can_gc);
+
+            mouse_over_event
+                .upcast::<Event>()
+                .dispatch(new_target.upcast(), false, can_gc);
 
             let moving_from = self
                 .current_hover_target
@@ -986,7 +1024,7 @@ impl DocumentEventHandler {
         );
 
         // Dispatch pointer event before updating active touch points and before touch event.
-        let pointer_event_type = match event.event_type {
+        let pointer_event_name = match event.event_type {
             TouchEventType::Down => "pointerdown",
             TouchEventType::Move => "pointermove",
             TouchEventType::Up => "pointerup",
@@ -997,9 +1035,38 @@ impl DocumentEventHandler {
         let pointer_id = self.get_or_create_pointer_id_for_touch(identifier);
         let is_primary = self.is_primary_pointer(pointer_id);
 
+        // For touch devices (which don't support hover), fire pointerover/pointerenter
+        // <https://w3c.github.io/pointerevents/#mapping-for-devices-that-do-not-support-hover>
+        if matches!(event.event_type, TouchEventType::Down) {
+            // Fire pointerover
+            let pointer_over = pointer_touch.to_pointer_event(
+                window,
+                "pointerover",
+                pointer_id,
+                is_primary,
+                input_event.active_keyboard_modifiers,
+                true, // cancelable
+                Some(hit_test_result.point_in_node),
+                can_gc,
+            );
+            pointer_over.upcast::<Event>().fire(&current_target, can_gc);
+
+            // Fire pointerenter hierarchically (from topmost ancestor to target)
+            self.fire_pointer_event_for_touch(
+                &element,
+                &pointer_touch,
+                pointer_id,
+                "pointerenter",
+                is_primary,
+                input_event,
+                &hit_test_result,
+                can_gc,
+            );
+        }
+
         let pointer_event = pointer_touch.to_pointer_event(
             window,
-            pointer_event_type,
+            pointer_event_name,
             pointer_id,
             is_primary,
             input_event.active_keyboard_modifiers,
@@ -1010,6 +1077,38 @@ impl DocumentEventHandler {
         pointer_event
             .upcast::<Event>()
             .fire(&current_target, can_gc);
+
+        // For touch devices, fire pointerout/pointerleave after pointerup/pointercancel
+        // <https://w3c.github.io/pointerevents/#mapping-for-devices-that-do-not-support-hover>
+        if matches!(
+            event.event_type,
+            TouchEventType::Up | TouchEventType::Cancel
+        ) {
+            // Fire pointerout
+            let pointer_out = pointer_touch.to_pointer_event(
+                window,
+                "pointerout",
+                pointer_id,
+                is_primary,
+                input_event.active_keyboard_modifiers,
+                true, // cancelable
+                Some(hit_test_result.point_in_node),
+                can_gc,
+            );
+            pointer_out.upcast::<Event>().fire(&current_target, can_gc);
+
+            // Fire pointerleave hierarchically (from target to topmost ancestor)
+            self.fire_pointer_event_for_touch(
+                &element,
+                &pointer_touch,
+                pointer_id,
+                "pointerleave",
+                is_primary,
+                input_event,
+                &hit_test_result,
+                can_gc,
+            );
+        }
 
         let (touch_dispatch_target, changed_touch) = match event.event_type {
             TouchEventType::Down => {
@@ -2044,6 +2143,51 @@ impl DocumentEventHandler {
             .values()
             .min()
             .is_some_and(|primary_pointer| *primary_pointer == pointer_id)
+    }
+
+    /// Fire pointerenter events hierarchically from topmost ancestor to target element.
+    /// Fire pointerleave events hierarchically from target element to topmost ancestor.
+    /// Used for touch devices that don't support hover.
+    #[allow(clippy::too_many_arguments)]
+    fn fire_pointer_event_for_touch(
+        &self,
+        target_element: &Element,
+        touch: &Touch,
+        pointer_id: i32,
+        event_name: &str,
+        is_primary: bool,
+        input_event: &ConstellationInputEvent,
+        hit_test_result: &HitTestResult,
+        can_gc: CanGc,
+    ) {
+        // Collect ancestors from target to root
+        let mut targets: Vec<DomRoot<Node>> = vec![];
+        let mut current: Option<DomRoot<Node>> = Some(DomRoot::from_ref(target_element.upcast()));
+        while let Some(node) = current {
+            targets.push(DomRoot::from_ref(&*node));
+            current = node.GetParentNode();
+        }
+
+        // Reverse to dispatch from topmost ancestor to target
+        if event_name == "pointerenter" {
+            targets.reverse();
+        }
+
+        for target in targets {
+            let pointer_event = touch.to_pointer_event(
+                &self.window,
+                event_name,
+                pointer_id,
+                is_primary,
+                input_event.active_keyboard_modifiers,
+                false,
+                Some(hit_test_result.point_in_node),
+                can_gc,
+            );
+            pointer_event
+                .upcast::<Event>()
+                .fire(target.upcast(), can_gc);
+        }
     }
 }
 
