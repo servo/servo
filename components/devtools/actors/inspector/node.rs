@@ -10,13 +10,14 @@ use std::collections::HashMap;
 use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
-use devtools_traits::{DevtoolScriptControlMsg, EventListenerInfo, NodeInfo, ShadowRootMode};
+use devtools_traits::{
+    AttrModification, DevtoolScriptControlMsg, EventListenerInfo, NodeInfo, ShadowRootMode,
+};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorError, ActorRegistry};
-use crate::actors::inspector::walker::WalkerActor;
 use crate::protocol::ClientRequest;
 use crate::{EmptyReplyMsg, StreamId};
 
@@ -147,7 +148,7 @@ impl Actor for NodeActor {
     /// - `getUniqueSelector`: Returns the display name of this node
     fn handle_message(
         &self,
-        mut request: ClientRequest,
+        request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
@@ -160,15 +161,12 @@ impl Actor for NodeActor {
                     .ok_or(ActorError::MissingParameter)?
                     .as_array()
                     .ok_or(ActorError::BadParameterType)?;
-                let modifications: Vec<_> = mods
+                let modifications: Vec<AttrModification> = mods
                     .iter()
                     .filter_map(|json_mod| {
                         serde_json::from_str(&serde_json::to_string(json_mod).ok()?).ok()
                     })
                     .collect();
-
-                let walker = registry.find::<WalkerActor>(&self.walker);
-                walker.new_mutations(&mut request, &self.name, &modifications);
 
                 self.script_chan
                     .send(DevtoolScriptControlMsg::ModifyAttribute(

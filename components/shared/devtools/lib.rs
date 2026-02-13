@@ -129,6 +129,17 @@ pub enum ScriptToDevtoolsControlMsg {
     ),
 
     UpdateSourceContent(PipelineId, String),
+
+    DomMutation(PipelineId, DomMutation),
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum DomMutation {
+    AttributeModified {
+        node: String,
+        attribute_name: String,
+        new_value: Option<String>,
+    },
 }
 
 /// Serialized JS return values

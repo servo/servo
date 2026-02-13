@@ -155,4 +155,8 @@ impl InspectorActor {
 
         name
     }
+
+    pub(crate) fn walker(&self) -> &str {
+        &self.walker
+    }
 }

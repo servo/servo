@@ -23,8 +23,8 @@ use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,
-    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState, NetworkEvent,
-    ScriptToDevtoolsControlMsg, SourceInfo, WorkerId, get_time_stamp,
+    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation, NavigationState,
+    NetworkEvent, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId, get_time_stamp,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use log::{trace, warn};
@@ -36,10 +36,12 @@ use resource::{ResourceArrayType, ResourceAvailable};
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 
-use crate::actor::{Actor, ActorRegistry};
+use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::console::{ConsoleActor, ConsoleResource, DevtoolsConsoleMessage, Root};
 use crate::actors::framerate::FramerateActor;
+use crate::actors::inspector::InspectorActor;
+use crate::actors::inspector::walker::WalkerActor;
 use crate::actors::network_event::NetworkEventActor;
 use crate::actors::root::RootActor;
 use crate::actors::source::SourceActor;
@@ -339,6 +341,12 @@ impl DevtoolsInstance {
                         ConsoleResource::ConsoleMessage(console_message),
                     )
                 },
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::DomMutation(
+                    pipeline_id,
+                    dom_mutation,
+                )) => {
+                    self.handle_dom_mutation(pipeline_id, dom_mutation).unwrap();
+                },
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                     request_id,
                     network_event,
@@ -518,6 +526,34 @@ impl DevtoolsInstance {
         for stream in self.connections.lock().unwrap().values_mut() {
             console_actor.handle_console_resource(resource.clone(), id.clone(), actors, stream);
         }
+    }
+
+    fn handle_dom_mutation(
+        &mut self,
+        pipeline_id: PipelineId,
+        dom_mutation: DomMutation,
+    ) -> Result<(), ActorError> {
+        let Some(browsing_context_id) = self.pipelines.get(&pipeline_id) else {
+            log::warn!("Devtools received notification for unknown pipeline {pipeline_id}");
+            return Err(ActorError::Internal);
+        };
+        let Some(browsing_context_actor_id) = self.browsing_contexts.get(&browsing_context_id)
+        else {
+            return Err(ActorError::Internal);
+        };
+        let browsing_context_actor = self
+            .registry
+            .find::<BrowsingContextActor>(&browsing_context_actor_id);
+        let inspector_actor = self
+            .registry
+            .find::<InspectorActor>(&browsing_context_actor.inspector);
+        let walker_actor = self.registry.find::<WalkerActor>(inspector_actor.walker());
+
+        for stream in self.connections.lock().unwrap().values_mut() {
+            walker_actor.handle_dom_mutation(dom_mutation.clone(), stream)?;
+        }
+
+        Ok(())
     }
 
     fn handle_clear_console(&mut self, pipeline_id: PipelineId, worker_id: Option<WorkerId>) {
