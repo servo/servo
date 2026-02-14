@@ -1664,6 +1664,12 @@ fn merge_existing_and_new_import_maps(
         can_gc,
     );
     old_import_map.imports = merged_module_specifier_map;
+
+    // https://html.spec.whatwg.org/multipage/#the-resolution-algorithm
+    // Sort scopes to ensure entries are visited from most-specific to least-specific.
+    old_import_map
+        .scopes
+        .sort_by(|a_key, _, b_key, _| b_key.cmp(a_key));
 }
 
 /// <https://html.spec.whatwg.org/multipage/#merge-module-specifier-maps>
