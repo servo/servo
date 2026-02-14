@@ -53,8 +53,8 @@ def vendor():
             ["cargo", "vendor", "vendor/"], capture_output=True, encoding="utf-8", check=True
         )
         out = vendor_process.stdout
-        print("Modifying cargo")
-        with open("Cargo.toml", "a") as toml:
+        print("Modifying .cargo/config.toml")
+        with open(".cargo/config.toml", "a") as toml:
             toml.write("\n")
             toml.writelines(out)
 
