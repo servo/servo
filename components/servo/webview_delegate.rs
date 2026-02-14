@@ -19,6 +19,7 @@ use embedder_traits::{
     SimpleDialogRequest, TraversalId, WebResourceRequest, WebResourceResponse,
     WebResourceResponseMsg,
 };
+use ipc_channel::ipc::IpcSender;
 use paint_api::rendering_context::RenderingContext;
 use tokio::sync::mpsc::UnboundedSender as TokioSender;
 use tokio::sync::oneshot::Sender;
@@ -935,7 +936,7 @@ pub trait WebViewDelegate {
         &self,
         _webview: WebView,
         _: Vec<String>,
-        response_sender: GenericSender<Option<String>>,
+        response_sender: IpcSender<Option<String>>,
     ) {
         let _ = response_sender.send(None);
     }

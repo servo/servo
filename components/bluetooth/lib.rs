@@ -4,6 +4,7 @@
 
 pub mod adapter;
 pub mod bluetooth;
+pub mod embedder;
 #[cfg(not(any(
     all(target_os = "linux", feature = "native-bluetooth"),
     all(target_os = "android", feature = "native-bluetooth"),
@@ -31,7 +32,8 @@ use bluetooth_traits::{
     BluetoothRequest, BluetoothResponse, BluetoothResponseResult, BluetoothResult,
     BluetoothServiceMsg, GATTType,
 };
-use embedder_traits::{EmbedderMsg, EmbedderProxy};
+use embedder_traits::GenericEmbedderProxy;
+use ipc_channel::ipc;
 use log::warn;
 use rand::{self, Rng};
 use servo_config::pref;
@@ -40,6 +42,7 @@ use crate::bluetooth::{
     BluetoothAdapter, BluetoothDevice, BluetoothGATTCharacteristic, BluetoothGATTDescriptor,
     BluetoothGATTService,
 };
+use crate::embedder::BluetoothToEmbedderMsg;
 
 // A transaction not completed within 30 seconds shall time out. Such a transaction shall be considered to have failed.
 // https://www.bluetooth.org/DocMan/handlers/DownloadDoc.ashx?doc_id=286439 (Vol. 3, page 480)
@@ -71,11 +74,13 @@ macro_rules! return_if_cached(
 );
 
 pub trait BluetoothThreadFactory {
-    fn new(embedder_proxy: EmbedderProxy) -> Self;
+    fn new(embedder_proxy: GenericEmbedderProxy<BluetoothToEmbedderMsg>) -> Self;
 }
 
 impl BluetoothThreadFactory for GenericSender<BluetoothRequest> {
-    fn new(embedder_proxy: EmbedderProxy) -> GenericSender<BluetoothRequest> {
+    fn new(
+        embedder_proxy: GenericEmbedderProxy<BluetoothToEmbedderMsg>,
+    ) -> GenericSender<BluetoothRequest> {
         let (sender, receiver) = generic_channel::channel().unwrap();
         let adapter = if pref!(dom_bluetooth_enabled) {
             BluetoothAdapter::new()
@@ -209,14 +214,14 @@ pub struct BluetoothManager {
     cached_characteristics: HashMap<String, BluetoothGATTCharacteristic>,
     cached_descriptors: HashMap<String, BluetoothGATTDescriptor>,
     allowed_services: HashMap<String, HashSet<String>>,
-    embedder_proxy: EmbedderProxy,
+    embedder_proxy: GenericEmbedderProxy<BluetoothToEmbedderMsg>,
 }
 
 impl BluetoothManager {
     pub fn new(
         receiver: GenericReceiver<BluetoothRequest>,
         adapter: Option<BluetoothAdapter>,
-        embedder_proxy: EmbedderProxy,
+        embedder_proxy: GenericEmbedderProxy<BluetoothToEmbedderMsg>,
     ) -> BluetoothManager {
         BluetoothManager {
             receiver,
@@ -409,10 +414,9 @@ impl BluetoothManager {
             ]);
         }
 
-        let (ipc_sender, ipc_receiver) =
-            generic_channel::channel().expect("Failed to create IPC channel!");
+        let (ipc_sender, ipc_receiver) = ipc::channel().expect("Failed to create IPC channel!");
         self.embedder_proxy
-            .send(EmbedderMsg::GetSelectedBluetoothDevice(
+            .send(BluetoothToEmbedderMsg::GetSelectedBluetoothDevice(
                 webview_id,
                 dialog_rows,
                 ipc_sender,

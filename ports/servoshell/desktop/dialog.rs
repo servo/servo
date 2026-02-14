@@ -10,12 +10,12 @@ use egui::{
 };
 use egui_file_dialog::{DialogState, FileDialog as EguiFileDialog};
 use euclid::Length;
+use ipc_channel::ipc::IpcSender;
 use log::warn;
 use servo::{
     AlertDialog, AuthenticationRequest, ColorPicker, ConfirmDialog, ContextMenu, ContextMenuItem,
-    DeviceIndependentPixel, EmbedderControlId, FilePicker, GenericSender, PermissionRequest,
-    PromptDialog, RgbColor, SelectElement, SelectElementOption, SelectElementOptionOrOptgroup,
-    SimpleDialog,
+    DeviceIndependentPixel, EmbedderControlId, FilePicker, PermissionRequest, PromptDialog,
+    RgbColor, SelectElement, SelectElementOption, SelectElementOptionOrOptgroup, SimpleDialog,
 };
 
 /// The minimum width of many UI elements including dialog boxes and menus,
@@ -43,7 +43,7 @@ pub enum Dialog {
     SelectDevice {
         devices: Vec<String>,
         selected_device_index: usize,
-        response_sender: GenericSender<Option<String>>,
+        response_sender: IpcSender<Option<String>>,
     },
     SelectElement {
         maybe_prompt: Option<SelectElement>,
@@ -115,7 +115,7 @@ impl Dialog {
 
     pub fn new_device_selection_dialog(
         devices: Vec<String>,
-        response_sender: GenericSender<Option<String>>,
+        response_sender: IpcSender<Option<String>>,
     ) -> Self {
         Dialog::SelectDevice {
             devices,

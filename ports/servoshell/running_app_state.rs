@@ -12,6 +12,7 @@ use std::rc::Rc;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use euclid::Rect;
 use image::{DynamicImage, ImageFormat, RgbaImage};
+use ipc_channel::ipc::IpcSender;
 #[cfg(all(
     any(coverage, llvm_pgo),
     any(target_os = "android", target_env = "ohos")
@@ -780,7 +781,7 @@ impl WebViewDelegate for RunningAppState {
         &self,
         webview: WebView,
         devices: Vec<String>,
-        response_sender: GenericSender<Option<String>>,
+        response_sender: IpcSender<Option<String>>,
     ) {
         self.platform_window_for_webview_id(webview.id())
             .show_bluetooth_device_dialog(webview.id(), devices, response_sender);

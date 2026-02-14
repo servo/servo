@@ -470,8 +470,6 @@ pub enum EmbedderMsg {
     NotifyLoadStatusChanged(WebViewId, LoadStatus),
     /// A pipeline panicked. First string is the reason, second one is the backtrace.
     Panic(WebViewId, String, Option<String>),
-    /// Open dialog to select bluetooth device.
-    GetSelectedBluetoothDevice(WebViewId, Vec<String>, GenericSender<Option<String>>),
     /// Open interface to request permission specified by prompt.
     PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),
     /// Report a complete sampled profile

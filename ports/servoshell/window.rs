@@ -6,12 +6,13 @@ use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use euclid::Scale;
+use ipc_channel::ipc::IpcSender;
 use log::warn;
 use servo::{
     AuthenticationRequest, ConsoleLogLevel, Cursor, DeviceIndependentIntRect,
     DeviceIndependentPixel, DeviceIntPoint, DeviceIntSize, DevicePixel, EmbedderControl,
-    EmbedderControlId, GenericSender, InputEventId, InputEventResult, MediaSessionEvent,
-    PermissionRequest, RenderingContext, ScreenGeometry, WebView, WebViewBuilder, WebViewId,
+    EmbedderControlId, InputEventId, InputEventResult, MediaSessionEvent, PermissionRequest,
+    RenderingContext, ScreenGeometry, WebView, WebViewBuilder, WebViewId,
 };
 use url::Url;
 
@@ -412,7 +413,7 @@ pub(crate) trait PlatformWindow {
         &self,
         _: WebViewId,
         _devices: Vec<String>,
-        _: GenericSender<Option<String>>,
+        _: IpcSender<Option<String>>,
     ) {
     }
     fn show_permission_dialog(&self, _: WebViewId, _: PermissionRequest) {}

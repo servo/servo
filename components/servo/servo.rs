@@ -14,6 +14,7 @@ pub use base::id::WebViewId;
 use base::id::{PipelineNamespace, PipelineNamespaceId};
 #[cfg(feature = "bluetooth")]
 use bluetooth::BluetoothThreadFactory;
+use bluetooth::embedder::BluetoothToEmbedderMsg;
 #[cfg(feature = "bluetooth")]
 use bluetooth_traits::BluetoothRequest;
 #[cfg(all(
@@ -137,8 +138,9 @@ mod media_platform {
 }
 
 enum Message {
-    FromNet(NetToEmbedderMsg),
-    FromUnknown(EmbedderMsg),
+    Net(NetToEmbedderMsg),
+    Bluetooth(BluetoothToEmbedderMsg),
+    Unknown(EmbedderMsg),
 }
 
 struct ServoInner {
@@ -147,6 +149,7 @@ struct ServoInner {
     constellation_proxy: ConstellationProxy,
     embedder_receiver: Receiver<EmbedderMsg>,
     net_embedder_receiver: Receiver<NetToEmbedderMsg>,
+    bluetooth_embedder_receiver: Receiver<BluetoothToEmbedderMsg>,
     network_manager: Rc<RefCell<NetworkManager>>,
     site_data_manager: Rc<RefCell<SiteDataManager>>,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
@@ -197,8 +200,9 @@ impl ServoInner {
         // Only handle incoming embedder messages if `Paint` hasn't already started shutting down.
         while let Some(message) = self.receive_one_message() {
             match message {
-                Message::FromUnknown(message) => self.handle_embedder_message(message),
-                Message::FromNet(message) => self.handle_net_embedder_message(message),
+                Message::Unknown(message) => self.handle_embedder_message(message),
+                Message::Net(message) => self.handle_net_embedder_message(message),
+                Message::Bluetooth(message) => self.handle_bluetooth_embedder_message(message),
             }
             if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
                 break;
@@ -227,6 +231,7 @@ impl ServoInner {
         let mut select = crossbeam_channel::Select::new();
         let embedder_receiver_index = select.recv(&self.embedder_receiver);
         let net_embedder_receiver_index = select.recv(&self.net_embedder_receiver);
+        let bluetooth_embedder_receiver_index = select.recv(&self.bluetooth_embedder_receiver);
         let Ok(operation) = select.try_select() else {
             return None;
         };
@@ -235,12 +240,17 @@ impl ServoInner {
             let Ok(message) = operation.recv(&self.embedder_receiver) else {
                 return None;
             };
-            Some(Message::FromUnknown(message))
+            Some(Message::Unknown(message))
         } else if index == net_embedder_receiver_index {
             let Ok(message) = operation.recv(&self.net_embedder_receiver) else {
                 return None;
             };
-            Some(Message::FromNet(message))
+            Some(Message::Net(message))
+        } else if index == bluetooth_embedder_receiver_index {
+            let Ok(message) = operation.recv(&self.bluetooth_embedder_receiver) else {
+                return None;
+            };
+            Some(Message::Bluetooth(message))
         } else {
             log::error!("No select operation registered for {index:?}");
             None
@@ -339,6 +349,24 @@ impl ServoInner {
                     webview
                         .delegate()
                         .request_authentication(webview, authentication_request);
+                }
+            },
+        }
+    }
+
+    fn handle_bluetooth_embedder_message(&self, message: BluetoothToEmbedderMsg) {
+        match message {
+            BluetoothToEmbedderMsg::GetSelectedBluetoothDevice(
+                webview_id,
+                items,
+                response_sender,
+            ) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.delegate().show_bluetooth_device_dialog(
+                        webview,
+                        items,
+                        response_sender,
+                    );
                 }
             },
         }
@@ -527,15 +555,6 @@ impl ServoInner {
                     webview
                         .delegate()
                         .notify_crashed(webview, reason, backtrace);
-                }
-            },
-            EmbedderMsg::GetSelectedBluetoothDevice(webview_id, items, response_sender) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview.delegate().show_bluetooth_device_dialog(
-                        webview,
-                        items,
-                        response_sender,
-                    );
                 }
             },
             EmbedderMsg::PromptPermission(webview_id, requested_feature, response_sender) => {
@@ -761,6 +780,8 @@ impl Servo {
         let (embedder_proxy, embedder_receiver) = create_embedder_channel(event_loop_waker.clone());
         let (net_embedder_proxy, net_embedder_receiver) =
             create_generic_embedder_channel::<NetToEmbedderMsg>(event_loop_waker.clone());
+        let (bluetooth_embedder_proxy, bluetooth_embedder_receiver) =
+            create_generic_embedder_channel::<BluetoothToEmbedderMsg>(event_loop_waker.clone());
         let time_profiler_chan = profile_time::Profiler::create(
             &opts.time_profiling,
             opts.time_profiler_trace_path.clone(),
@@ -825,6 +846,7 @@ impl Servo {
             embedder_to_constellation_receiver,
             &paint.borrow(),
             embedder_proxy,
+            bluetooth_embedder_proxy,
             paint_proxy.clone(),
             time_profiler_chan,
             mem_profiler_chan,
@@ -860,6 +882,7 @@ impl Servo {
             constellation_proxy,
             embedder_receiver,
             net_embedder_receiver,
+            bluetooth_embedder_receiver,
             shutdown_state,
             webviews: Default::default(),
             servo_errors: ServoErrorChannel::default(),
@@ -1009,6 +1032,7 @@ fn create_constellation(
     embedder_to_constellation_receiver: Receiver<EmbedderToConstellationMessage>,
     paint: &Paint,
     embedder_proxy: EmbedderProxy,
+    bluetooth_embedder_proxy: GenericEmbedderProxy<BluetoothToEmbedderMsg>,
     paint_proxy: PaintProxy,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
@@ -1025,7 +1049,7 @@ fn create_constellation(
 
     #[cfg(feature = "bluetooth")]
     let bluetooth_thread: GenericSender<BluetoothRequest> =
-        BluetoothThreadFactory::new(embedder_proxy.clone());
+        BluetoothThreadFactory::new(bluetooth_embedder_proxy);
 
     let privileged_urls = protocols.privileged_urls();
 
