@@ -27,14 +27,12 @@ def vendor():
         print("Please call from top level servo directory")
         return
 
-    git_clean = subprocess.run(["git", "clean", "--dry-run", "-x"], capture_output=True)
-    if git_clean is not None and not args.force:
-        print("git clean -x would have removed some files. These would end up in the archive. Aborting")
-        print("run git clean --dry-run -x")
-        print("Or run with --force")
+    git_status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, check=True)
+    if len(git_status.stdout) > 0 and not args.force:
+        print("git working directory is not clean. Check `git status` or run with --force")
         return
 
-    # coying servo into directory
+    # copying servo into temporary directory
     with tempfile.TemporaryDirectory() as tmpdirname:
         print(f"Copying servo repo to temporary directory {tmpdirname}")
         shutil.copytree(
@@ -47,7 +45,7 @@ def vendor():
         # vendoring crates
         print("Vendoring Crates")
         vendor_process = subprocess.run(
-            ["cargo", "vendor", "vendor/"], capture_output=True, encoding="Utf8", check=True
+            ["cargo", "vendor", "vendor/"], capture_output=True, encoding="utf-8", check=True
         )
         out = vendor_process.stdout
         print("Modifying cargo")
@@ -58,7 +56,7 @@ def vendor():
         file = tempfile.gettempdir() + "/servo"
         print(f"Making archive in {file}.tar.gz")
         shutil.make_archive(file, format="gztar", base_dir="./")
-    return 0
+    return
 
 
 if __name__ == "__main__":
