@@ -237,5 +237,5 @@ typedef (WindowProxy or Element or HTMLCollection) NamedPropertyValue;
 
 // https://w3c.github.io/editing/docs/execCommand/#methods-to-query-and-execute-commands
 partial interface Document {
-  [CEReactions] boolean execCommand(DOMString commandId, optional boolean showUI = false, optional (TrustedHTML or DOMString) value = "");
+  [CEReactions, Throws] boolean execCommand(DOMString commandId, optional boolean showUI = false, optional (TrustedHTML or DOMString) value = "");
 };

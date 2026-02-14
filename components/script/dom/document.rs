@@ -6447,12 +6447,27 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#execcommand()>
     fn ExecCommand(
         &self,
-        _command_id: DOMString,
+        command_id: DOMString,
         _show_ui: bool,
-        _value: TrustedHTMLOrString,
-    ) -> bool {
+        value: TrustedHTMLOrString,
+        can_gc: CanGc,
+    ) -> Fallible<bool> {
+        let _value = if command_id == "insertHTML" {
+            TrustedHTML::get_trusted_script_compliant_string(
+                self.window.as_global_scope(),
+                value,
+                "Document execCommand",
+                can_gc,
+            )?
+        } else {
+            match value {
+                TrustedHTMLOrString::TrustedHTML(trusted_html) => trusted_html.data().clone(),
+                TrustedHTMLOrString::String(value) => value,
+            }
+        };
+
         // TODO(25005): Implement the feature
-        false
+        Ok(false)
     }
 
     // https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenerror
