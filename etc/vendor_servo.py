@@ -55,6 +55,8 @@ def vendor():
         file = tempfile.gettempdir() + "/servo"
         print(f"Making archive in {file}.tar.gz")
         shutil.make_archive(file, format="gztar", base_dir="./")
+        print(f"Moving archive to {servo_root}")
+        shutil.move(file, servo_root)
     return
 
 
