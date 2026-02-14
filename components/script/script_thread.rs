@@ -346,10 +346,6 @@ pub struct ScriptThread {
     /// The worklet thread pool
     worklet_thread_pool: DomRefCell<Option<Rc<WorkletThreadPool>>>,
 
-    /// A list of pipelines containing documents that finished loading all their blocking
-    /// resources during a turn of the event loop.
-    docs_with_no_blocking_loads: DomRefCell<FxHashSet<Dom<Document>>>,
-
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
     custom_element_reaction_stack: Rc<CustomElementReactionStack>,
 
@@ -537,15 +533,6 @@ impl ScriptThread {
 
     pub(crate) fn microtask_queue() -> Rc<MicrotaskQueue> {
         with_script_thread(|script_thread| script_thread.microtask_queue.clone())
-    }
-
-    pub(crate) fn mark_document_with_no_blocked_loads(doc: &Document) {
-        with_script_thread(|script_thread| {
-            script_thread
-                .docs_with_no_blocking_loads
-                .borrow_mut()
-                .insert(Dom::from_ref(doc));
-        })
     }
 
     pub(crate) fn page_headers_available(
@@ -1026,7 +1013,6 @@ impl ScriptThread {
                 #[cfg(feature = "webxr")]
                 webxr_registry: state.webxr_registry,
                 worklet_thread_pool: Default::default(),
-                docs_with_no_blocking_loads: Default::default(),
                 custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
                 paint_api: state.cross_process_paint_api,
                 profile_script_events: opts.debug.profile_script_events,
@@ -1509,16 +1495,6 @@ impl ScriptThread {
                 .perform_a_dom_garbage_collection_checkpoint();
         }
 
-        {
-            // https://html.spec.whatwg.org/multipage/#the-end step 6
-            let mut docs = self.docs_with_no_blocking_loads.borrow_mut();
-            for document in docs.iter() {
-                let _realm = enter_auto_realm(cx, &**document);
-                document.maybe_queue_document_completion();
-            }
-            docs.clear();
-        }
-
         let built_any_display_lists = self.needs_rendering_update.load(Ordering::Relaxed) &&
             self.update_the_rendering(CanGc::from_cx(cx));
 
@@ -1737,7 +1713,7 @@ impl ScriptThread {
     ) {
         match msg {
             ScriptThreadMessage::StopDelayingLoadEventsMode(pipeline_id) => {
-                self.handle_stop_delaying_load_events_mode(pipeline_id)
+                self.handle_stop_delaying_load_events_mode(pipeline_id, cx)
             },
             ScriptThreadMessage::NavigateIframe(
                 parent_pipeline_id,
@@ -2899,11 +2875,17 @@ impl ScriptThread {
         }
     }
 
-    fn handle_stop_delaying_load_events_mode(&self, pipeline_id: PipelineId) {
+    fn handle_stop_delaying_load_events_mode(
+        &self,
+        pipeline_id: PipelineId,
+        cx: &mut js::context::JSContext,
+    ) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
             match window.undiscarded_window_proxy() {
-                Some(window_proxy) => window_proxy.stop_delaying_load_events_mode(),
+                Some(window_proxy) => {
+                    window_proxy.stop_delaying_load_events_mode(CanGc::from_cx(cx))
+                },
                 None => warn!(
                     "Attempted to take {} of 'delaying-load-events-mode' after having been discarded.",
                     pipeline_id
@@ -3029,7 +3011,7 @@ impl ScriptThread {
                     // when this navigation algorithm later matures,
                     // or when it terminates (whether due to having run all the steps,
                     // or being canceled, or being aborted), whichever happens first.
-                    window_proxy.stop_delaying_load_events_mode();
+                    window_proxy.stop_delaying_load_events_mode(can_gc);
                 }
             }
             self.senders
@@ -3385,13 +3367,11 @@ impl ScriptThread {
             incomplete.parent_info,
             incomplete.opener,
         );
-        if window_proxy.parent().is_some() {
-            // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
-            // The user agent must take this nested browsing context
-            // out of the delaying load events mode
-            // when this navigation algorithm later matures.
-            window_proxy.stop_delaying_load_events_mode();
-        }
+        // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
+        // The user agent must take this nested browsing context
+        // out of the delaying load events mode
+        // when this navigation algorithm later matures.
+        window_proxy.stop_delaying_load_events_mode(can_gc);
         window.init_window_proxy(&window_proxy);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {

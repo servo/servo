@@ -44,6 +44,7 @@ use servo_url::{ImmutableOrigin, ServoUrl};
 use storage_traits::webstorage_thread::WebStorageThreadMsg;
 use style::attr::parse_integer;
 
+use crate::document_loader::{LoadBlocker, LoadType};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use crate::dom::bindings::error::{Error, Fallible, throw_dom_exception};
@@ -120,11 +121,7 @@ pub(crate) struct WindowProxy {
     parent: Option<Dom<WindowProxy>>,
 
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
-    delaying_load_events_mode: Cell<bool>,
-
-    /// The creator browsing context's url.
-    #[no_trace]
-    creator_url: Option<ServoUrl>,
+    delaying_load_events_mode_blocker: DomRefCell<Option<LoadBlocker>>,
 
     /// The creator browsing context's origin.
     #[no_trace]
@@ -159,9 +156,8 @@ impl WindowProxy {
             is_closing: Cell::new(false),
             frame_element: frame_element.map(Dom::from_ref),
             parent: parent.map(Dom::from_ref),
-            delaying_load_events_mode: Cell::new(false),
+            delaying_load_events_mode_blocker: Default::default(),
             opener,
-            creator_url: creator.url,
             creator_origin: creator.origin,
             script_window_proxies: ScriptThread::window_proxies(),
         }
@@ -384,23 +380,23 @@ impl WindowProxy {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
-    pub(crate) fn is_delaying_load_events_mode(&self) -> bool {
-        self.delaying_load_events_mode.get()
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
-    pub(crate) fn start_delaying_load_events_mode(&self) {
-        self.delaying_load_events_mode.set(true);
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
-    pub(crate) fn stop_delaying_load_events_mode(&self) {
-        self.delaying_load_events_mode.set(false);
-        if let Some(document) = self.document() {
-            if !document.loader().events_inhibited() {
-                ScriptThread::mark_document_with_no_blocked_loads(&document);
-            }
+    pub(crate) fn start_delaying_load_events_mode(
+        &self,
+        parent_document: &Document,
+        current_document_url: ServoUrl,
+    ) {
+        if current_document_url.scheme() == "javascript" {
+            return;
         }
+        *self.delaying_load_events_mode_blocker.borrow_mut() = Some(LoadBlocker::new(
+            parent_document,
+            LoadType::DelayingLoadEventsMode(current_document_url),
+        ));
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#delaying-load-events-mode>
+    pub(crate) fn stop_delaying_load_events_mode(&self, can_gc: CanGc) {
+        LoadBlocker::terminate(&self.delaying_load_events_mode_blocker, can_gc);
     }
 
     // https://html.spec.whatwg.org/multipage/#disowned-its-opener

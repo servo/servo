@@ -3255,8 +3255,11 @@ impl Window {
 
             // Step 15. If navigable's parent is non-null, then set navigable's is delaying load events to true.
             let window_proxy = self.window_proxy();
-            if window_proxy.parent().is_some() {
-                window_proxy.start_delaying_load_events_mode();
+            if let Some(parent_document) =
+                window_proxy.parent().and_then(|parent| parent.document())
+            {
+                window_proxy
+                    .start_delaying_load_events_mode(&parent_document, load_data.url.clone());
             }
 
             if let Some(sender) = self.webdriver_load_status_sender.borrow().as_ref() {
