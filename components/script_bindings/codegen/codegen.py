@@ -895,12 +895,14 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
                 default = f"{union_native_type(type)}::Boolean({boolean})"
             elif tag is IDLType.Tags.usvstring:
                 default = f'{union_native_type(type)}::USVString(USVString("{defaultValue.value}".to_owned()))'
+            elif tag is IDLType.Tags.domstring:
+                default = f'{union_native_type(type)}::String(DOMString::from("{defaultValue.value}"))'
             elif defaultValue.type.isEnum():
                 enum = defaultValue.type.inner.identifier.name
                 default = f"{union_native_type(type)}::{enum}({enum}::{getEnumValueName(defaultValue.value)})"
             else:
                 raise NotImplementedError("We don't currently support default values that aren't \
-                                          null, boolean or default dictionary")
+                                          null, boolean, string or default dictionary")
         elif dictionaries:
             if defaultValue:
                 assert isinstance(defaultValue, IDLDefaultDictionaryValue)

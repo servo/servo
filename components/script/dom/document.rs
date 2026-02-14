@@ -6444,6 +6444,17 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Ok(())
     }
 
+    /// <https://w3c.github.io/editing/docs/execCommand/#execcommand()>
+    fn ExecCommand(
+        &self,
+        _command_id: DOMString,
+        _show_ui: bool,
+        _value: TrustedHTMLOrString,
+    ) -> bool {
+        // TODO(25005): Implement the feature
+        false
+    }
+
     // https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenerror
     event_handler!(fullscreenerror, GetOnfullscreenerror, SetOnfullscreenerror);
 
