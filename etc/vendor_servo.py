@@ -32,6 +32,8 @@ def vendor():
         print("git working directory is not clean. Check `git status` or run with --force")
         return
 
+    git_revision = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True)
+
     # copying servo into temporary directory
     with tempfile.TemporaryDirectory() as tmpdirname:
         print(f"Copying servo repo to temporary directory {tmpdirname}")
@@ -42,6 +44,9 @@ def vendor():
             dirs_exist_ok=True,
         )
         os.chdir(tmpdirname)
+        # Save the git hash into a file so that the archive can be mapped to a git revision.
+        with open('GIT_REVISION', "w") as revision_file:
+            revision_file.write(git_revision.stdout)
         # vendoring crates
         print("Vendoring Crates")
         vendor_process = subprocess.run(
