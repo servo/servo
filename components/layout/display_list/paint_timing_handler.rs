@@ -43,7 +43,7 @@ impl PaintTimingHandler {
             .intersection(&self.viewport_rect.to_rect().cast_unit())
             .unwrap_or(Rect::zero());
 
-        bounding_rect.size.width > 0.0 && bounding_rect.size.height > 0.0
+        !bounding_rect.is_empty()
     }
 
     fn calculate_intersection_rect(
