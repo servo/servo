@@ -61,6 +61,7 @@ def vendor():
         file = tempfile.gettempdir() + "/servo"
         print(f"Making archive in {file}.tar.gz")
         shutil.make_archive(file, format="gztar", base_dir="./")
+        tmp_file_path = file + ".tar.gz"
         if args.filename is not None:
             name = pathlib.Path(args.filename)
             if name.is_absolute():
@@ -71,7 +72,7 @@ def vendor():
         else:
             out_filepath = servo_root.joinpath("servo.tar.gz")
         print(f"Moving archive to {out_filepath}")
-        shutil.move(file, servo_root)
+        shutil.move(tmp_file_path, servo_root)
     return
 
 
