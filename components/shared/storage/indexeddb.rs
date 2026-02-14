@@ -351,6 +351,11 @@ impl AsyncReadOnlyOperation {
             Self::GetAllItems { callback, .. } => callback.send(Err(error)),
             Self::Count { callback, .. } => callback.send(Err(error)),
             Self::Iterate { callback, .. } => callback.send(Err(error)),
+            Self::IndexGetKey { callback, .. } => callback.send(Err(error)),
+            Self::IndexGetItem { callback, .. } => callback.send(Err(error)),
+            Self::IndexGetAllKeys { callback, .. } => callback.send(Err(error)),
+            Self::IndexGetAllItems { callback, .. } => callback.send(Err(error)),
+            Self::IndexCount { callback, .. } => callback.send(Err(error)),
         };
     }
 }

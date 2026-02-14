@@ -442,27 +442,27 @@ impl SqliteEngine {
                     // Step 5.
                     let serialized_index_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
                     connection.execute(
-                        "INSERT INTO unique_index_data (index_id, object_data_key, value, object_store_id) VALUES (?, ?, ?, ?)",
-                        params![index_id, serialized_index_key, serialized_key, store.id],
-                    )?;
+                            "INSERT INTO unique_index_data (index_id, object_data_key, value, object_store_id) VALUES (?, ?, ?, ?)",
+                            params![index_id, serialized_index_key, serialized_key, store.id],
+                        )?;
                 } else if let IndexedDBKeyType::Array(array) = key_type {
                     // TODO: Step 4.
                     // Step 6.
                     for key in array {
                         let serialized_index_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
                         connection.execute(
-                                "INSERT INTO index_data (index_id, object_data_key, value, object_store_id) VALUES (?, ?, ?, ?)",
-                                params![index_id, serialized_index_key, serialized_key, store.id],
-                            )?;
+                                    "INSERT INTO index_data (index_id, object_data_key, value, object_store_id) VALUES (?, ?, ?, ?)",
+                                    params![index_id, serialized_index_key, serialized_key, store.id],
+                                )?;
                     }
                 } else {
                     // TODO: Step 3.
                     // Step 5.
                     let serialized_index_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
                     connection.execute(
-                        "INSERT INTO index_data (index_id, object_data_key, value, object_store_id) VALUES (?, ?, ?, ?)",
-                        params![index_id, serialized_index_key, serialized_key, store.id],
-                    )?;
+                            "INSERT INTO index_data (index_id, object_data_key, value, object_store_id) VALUES (?, ?, ?, ?)",
+                            params![index_id, serialized_index_key, serialized_key, store.id],
+                        )?;
                 }
             }
             Ok(PutItemResult::Success)
@@ -819,9 +819,6 @@ impl KvsEngine for SqliteEngine {
                         index_name,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::get_index_key(&connection, object_store, index_name, key_range)
                                 .map(|key| key.map(|k| postcard::from_bytes(&k).unwrap()))
@@ -833,9 +830,6 @@ impl KvsEngine for SqliteEngine {
                         index_name,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::get_index_item(&connection, object_store, index_name, key_range)
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -847,9 +841,6 @@ impl KvsEngine for SqliteEngine {
                         key_range,
                         count,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::index_get_all_keys(
                                 &connection,
@@ -872,9 +863,6 @@ impl KvsEngine for SqliteEngine {
                         key_range,
                         count,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::index_get_all_items(
                                 &connection,
@@ -891,9 +879,6 @@ impl KvsEngine for SqliteEngine {
                         index_name,
                         key_range,
                     }) => {
-                        let Ok(object_store) = process_object_store(object_store, &callback) else {
-                            continue;
-                        };
                         let _ = callback.send(
                             Self::index_count(&connection, object_store, index_name, key_range)
                                 .map(|r| r as u64)
@@ -985,25 +970,25 @@ impl KvsEngine for SqliteEngine {
         )?;
 
         let index_exists: bool = self.connection.query_row(
-            "SELECT EXISTS(SELECT * FROM object_store_index WHERE name = ? AND object_store_id = ?)",
-            params![index_name.to_string(), object_store.id],
-            |row| row.get(0),
-        )?;
+                "SELECT EXISTS(SELECT * FROM object_store_index WHERE name = ? AND object_store_id = ?)",
+                params![index_name.to_string(), object_store.id],
+                |row| row.get(0),
+            )?;
         if index_exists {
             return Ok(CreateObjectResult::AlreadyExists);
         }
 
         self.connection.execute(
-            "INSERT INTO object_store_index (object_store_id, name, key_path, unique_index, multi_entry_index)\
-            VALUES (?, ?, ?, ?, ?)",
-            params![
-                object_store.id,
-                index_name.to_string(),
-                postcard::to_stdvec(&key_path).unwrap(),
-                unique,
-                multi_entry,
-            ],
-        )?;
+                "INSERT INTO object_store_index (object_store_id, name, key_path, unique_index, multi_entry_index)\
+                VALUES (?, ?, ?, ?, ?)",
+                params![
+                    object_store.id,
+                    index_name.to_string(),
+                    postcard::to_stdvec(&key_path).unwrap(),
+                    unique,
+                    multi_entry,
+                ],
+            )?;
         Ok(CreateObjectResult::Created)
     }
 
