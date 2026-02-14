@@ -16,16 +16,15 @@ import os
 import shutil
 import subprocess
 import tempfile
-
+import pathlib
 
 def vendor():
     parser = argparse.ArgumentParser(prog="vendor_servo")
     parser.add_argument("--force", action="store_true")
 
     args = parser.parse_args()
-    if os.path.basename(os.getcwd()) != "servo":
-        print("Please call from top level servo directory")
-        return
+    # This script is `etc/vendor_servo.py`, so the grandparent of the filename is the servo root directory.
+    servo_root = pathlib.Path(os.path.realpath(__file__)).parent.parent
 
     git_status = subprocess.run(["git", "status", "--porcelain"], capture_output=True, check=True)
     if len(git_status.stdout) > 0 and not args.force:
@@ -36,7 +35,7 @@ def vendor():
     with tempfile.TemporaryDirectory() as tmpdirname:
         print(f"Copying servo repo to temporary directory {tmpdirname}")
         shutil.copytree(
-            ".",
+            servo_root,
             tmpdirname + "/",
             ignore=shutil.ignore_patterns("*.git", "target", "etc", ".venv"),
             dirs_exist_ok=True,
