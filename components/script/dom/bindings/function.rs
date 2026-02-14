@@ -9,9 +9,9 @@
 /// ```
 #[macro_export]
 macro_rules! native_fn {
-    ($call:expr, $name:expr, $nargs:expr, $flags:expr) => {{
-        let cx = $crate::dom::types::GlobalScope::get_cx();
-        let fun_obj = $crate::native_raw_obj_fn!(cx, $call, $name, $nargs, $flags);
+    ($cx:expr, $call:expr, $name:expr, $nargs:expr, $flags:expr) => {{
+        let fun_obj = $crate::native_raw_obj_fn!($cx, $call, $name, $nargs, $flags);
+        let cx = $cx.into();
         #[expect(unsafe_code)]
         unsafe {
             Function::new(cx, fun_obj)
@@ -30,14 +30,21 @@ macro_rules! native_raw_obj_fn {
         #[expect(unsafe_code)]
         #[allow(clippy::macro_metavars_in_unsafe)]
         unsafe extern "C" fn wrapper(cx: *mut JSContext, argc: u32, vp: *mut JSVal) -> bool {
-            unsafe { $call(cx, argc, vp) }
+            let mut cx = unsafe {
+                // SAFETY: We are in SM hook
+                js::context::JSContext::from_ptr(
+                    std::ptr::NonNull::new(cx).expect("JSContext is not null in SM hook"),
+                )
+            };
+            let call_args = unsafe { CallArgs::from_vp(vp, argc) };
+            $call(&mut cx, call_args)
         }
         #[expect(unsafe_code)]
         #[allow(clippy::macro_metavars_in_unsafe)]
         unsafe {
             let name: &std::ffi::CStr = $name;
             let raw_fun = js::jsapi::JS_NewFunction(
-                *$cx,
+                $cx.raw_cx(),
                 Some(wrapper),
                 $nargs,
                 $flags,

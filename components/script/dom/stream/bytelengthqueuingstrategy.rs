@@ -63,7 +63,7 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
     }
 
     /// <https://streams.spec.whatwg.org/#blqs-size>
-    fn GetSize(&self, _can_gc: CanGc) -> Fallible<Rc<Function>> {
+    fn GetSize(&self, cx: &mut js::context::JSContext) -> Fallible<Rc<Function>> {
         let global = self.global();
         // Return this's relevant global object's byte length queuing strategy
         // size function.
@@ -76,7 +76,7 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
 
         // Step 2. Let F be !CreateBuiltinFunction(steps, 1, "size", « »,
         // globalObject’s relevant Realm).
-        let fun = native_fn!(byte_length_queuing_strategy_size, c"size", 1, 0);
+        let fun = native_fn!(cx, byte_length_queuing_strategy_size, c"size", 1, 0);
         // Step 3. Set globalObject’s byte length queuing strategy size function to
         // a Function that represents a reference to F,
         // with callback context equal to globalObject's relevant settings object.
@@ -87,13 +87,10 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
 
 /// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
 #[expect(unsafe_code)]
-pub(crate) unsafe fn byte_length_queuing_strategy_size(
-    cx: *mut JSContext,
-    argc: u32,
-    vp: *mut JSVal,
+pub(crate) fn byte_length_queuing_strategy_size(
+    cx: &mut js::context::JSContext,
+    args: CallArgs,
 ) -> bool {
-    let args = unsafe { CallArgs::from_vp(vp, argc) };
-
     // Step 1. Let steps be the following steps, given chunk:
     // Step 1.1. Return ? GetV(chunk, "byteLength").
     let chunk = unsafe { HandleValue::from_raw(args.get(0)) };
@@ -103,7 +100,7 @@ pub(crate) unsafe fn byte_length_queuing_strategy_size(
     if chunk.is_undefined() || chunk.is_null() {
         unsafe {
             throw_type_error(
-                cx,
+                cx.raw_cx(),
                 c"ByteLengthQueuingStrategy size called with undefined or nulll",
             )
         };
@@ -117,16 +114,16 @@ pub(crate) unsafe fn byte_length_queuing_strategy_size(
         return true;
     }
 
-    rooted!(in(cx) let object = chunk.to_object());
+    rooted!(&in(cx) let object = chunk.to_object());
 
     // Return ? O.[[Get]](P, V).
     match unsafe {
         get_dictionary_property(
-            cx,
+            cx.raw_cx(),
             object.handle(),
             c"byteLength",
             MutableHandleValue::from_raw(args.rval()),
-            CanGc::note(),
+            CanGc::from_cx(cx),
         )
     } {
         Ok(true) => true,

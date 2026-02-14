@@ -61,7 +61,7 @@ impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy 
     }
 
     /// <https://streams.spec.whatwg.org/#cqs-size>
-    fn GetSize(&self, _can_gc: CanGc) -> Fallible<Rc<Function>> {
+    fn GetSize(&self, cx: &mut js::context::JSContext) -> Fallible<Rc<Function>> {
         let global = self.global();
         // Return this's relevant global object's count queuing strategy
         // size function.
@@ -74,7 +74,7 @@ impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy 
 
         // Step 2. Let F be !CreateBuiltinFunction(steps, 1, "size", « »,
         // globalObject’s relevant Realm).
-        let fun = native_fn!(count_queuing_strategy_size, c"size", 0, 0);
+        let fun = native_fn!(cx, count_queuing_strategy_size, c"size", 0, 0);
         // Step 3. Set globalObject’s count queuing strategy size function to
         // a Function that represents a reference to F,
         // with callback context equal to globalObject’s relevant settings object.
@@ -84,13 +84,10 @@ impl CountQueuingStrategyMethods<crate::DomTypeHolder> for CountQueuingStrategy 
 }
 
 /// <https://streams.spec.whatwg.org/#count-queuing-strategy-size-function>
-#[expect(unsafe_code)]
-pub(crate) unsafe fn count_queuing_strategy_size(
-    _cx: *mut JSContext,
-    argc: u32,
-    vp: *mut JSVal,
+pub(crate) fn count_queuing_strategy_size(
+    _cx: &mut js::context::JSContext,
+    args: CallArgs,
 ) -> bool {
-    let args = unsafe { CallArgs::from_vp(vp, argc) };
     // Step 1.1. Return 1.
     args.rval().set(Int32Value(1));
     true
