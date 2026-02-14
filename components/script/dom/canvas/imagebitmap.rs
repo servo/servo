@@ -665,7 +665,10 @@ impl Transferable for ImageBitmap {
     type Data = SerializableImageBitmap;
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:transfer-steps>
-    fn transfer(&self) -> Fallible<(ImageBitmapId, SerializableImageBitmap)> {
+    fn transfer(
+        &self,
+        _cx: &mut js::context::JSContext,
+    ) -> Fallible<(ImageBitmapId, SerializableImageBitmap)> {
         // <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
         // Step 5.2. If transferable has a [[Detached]] internal slot and
         // transferable.[[Detached]] is true, then throw a "DataCloneError"
@@ -695,6 +698,7 @@ impl Transferable for ImageBitmap {
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagebitmap-interface:transfer-receiving-steps>
     fn transfer_receive(
+        cx: &mut js::context::JSContext,
         owner: &GlobalScope,
         _: ImageBitmapId,
         transferred: SerializableImageBitmap,
@@ -703,7 +707,7 @@ impl Transferable for ImageBitmap {
         Ok(ImageBitmap::new(
             owner,
             transferred.bitmap_data.to_owned(),
-            CanGc::note(),
+            CanGc::from_cx(cx),
         ))
     }
 

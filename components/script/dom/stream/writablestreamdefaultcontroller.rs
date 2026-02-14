@@ -402,15 +402,8 @@ impl WritableStreamDefaultController {
     }
 
     /// "Signal abort" call from <https://streams.spec.whatwg.org/#writable-stream-abort>
-    pub(crate) fn signal_abort(
-        &self,
-        cx: SafeJSContext,
-        reason: SafeHandleValue,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) {
-        self.abort_controller
-            .signal_abort(cx, reason, realm, can_gc);
+    pub(crate) fn signal_abort(&self, cx: &mut CurrentRealm, reason: SafeHandleValue) {
+        self.abort_controller.signal_abort(cx, reason);
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-controller-clear-algorithms>

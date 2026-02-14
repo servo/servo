@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 
 use crate::dom::bindings::codegen::Bindings::WritableStreamDefaultWriterBinding::WritableStreamDefaultWriterMethods;
@@ -234,11 +235,9 @@ impl WritableStreamDefaultWriter {
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-abort>
     fn abort(
         &self,
-        cx: SafeJSContext,
+        cx: &mut CurrentRealm,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        realm: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Let stream be writer.[[stream]].
         let Some(stream) = self.stream.get() else {
@@ -247,7 +246,7 @@ impl WritableStreamDefaultWriter {
         };
 
         // Return ! WritableStreamAbort(stream, reason).
-        stream.abort(cx, global, reason, realm, can_gc)
+        stream.abort(cx, global, reason)
     }
 
     /// <https://streams.spec.whatwg.org/#writable-stream-default-writer-close>
@@ -450,25 +449,22 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-abort>
-    fn Abort(
-        &self,
-        cx: SafeJSContext,
-        reason: SafeHandleValue,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) -> Rc<Promise> {
-        let global = GlobalScope::from_safe_context(cx, realm);
+    fn Abort(&self, cx: &mut CurrentRealm, reason: SafeHandleValue) -> Rc<Promise> {
+        let global = GlobalScope::from_current_realm(cx);
 
         // If this.[[stream]] is undefined,
         if self.stream.get().is_none() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type(c"Stream is undefined".to_owned()), can_gc);
+            let promise = Promise::new2(cx, &global);
+            promise.reject_error(
+                Error::Type(c"Stream is undefined".to_owned()),
+                CanGc::from_cx(cx),
+            );
             return promise;
         }
 
         // Return ! WritableStreamDefaultWriterAbort(this, reason).
-        self.abort(cx, &global, reason, realm, can_gc)
+        self.abort(cx, &global, reason)
     }
 
     /// <https://streams.spec.whatwg.org/#default-writer-close>

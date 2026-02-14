@@ -45,7 +45,7 @@ use crate::dom::stream::writablestreamdefaultcontroller::{
     UnderlyingSinkType, WritableStreamDefaultController,
 };
 use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter;
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 impl js::gc::Rootable for AbortAlgorithmFulfillmentHandler {}
@@ -657,22 +657,20 @@ impl WritableStream {
     /// <https://streams.spec.whatwg.org/#writable-stream-abort>
     pub(crate) fn abort(
         &self,
-        cx: SafeJSContext,
+        cx: &mut CurrentRealm,
         global: &GlobalScope,
         provided_reason: SafeHandleValue,
-        realm: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // If stream.[[state]] is "closed" or "errored",
         if self.is_closed() || self.is_errored() {
             // return a promise resolved with undefined.
-            return Promise::new_resolved(global, cx, (), can_gc);
+            return Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx));
         }
 
         // Signal abort on stream.[[controller]].[[abortController]] with reason.
         self.get_controller()
             .expect("Stream must have a controller.")
-            .signal_abort(cx, provided_reason, realm, can_gc);
+            .signal_abort(cx, provided_reason);
 
         // Let state be stream.[[state]].
         let state = self.state.get();
@@ -682,7 +680,7 @@ impl WritableStream {
             state,
             WritableStreamState::Closed | WritableStreamState::Errored
         ) {
-            return Promise::new_resolved(global, cx, (), can_gc);
+            return Promise::new_resolved(global, cx.into(), (), CanGc::from_cx(cx));
         }
 
         // If stream.[[pendingAbortRequest]] is not undefined,
@@ -702,7 +700,7 @@ impl WritableStream {
 
         // Let wasAlreadyErroring be false.
         let mut was_already_erroring = false;
-        rooted!(in(*cx) let undefined_reason = UndefinedValue());
+        rooted!(&in(cx) let undefined_reason = UndefinedValue());
 
         // If state is "erroring",
         let reason = if self.is_erroring() {
@@ -717,7 +715,7 @@ impl WritableStream {
         };
 
         // Let promise be a new promise.
-        let promise = Promise::new(global, can_gc);
+        let promise = Promise::new2(cx, global);
 
         // Set stream.[[pendingAbortRequest]] to a new pending abort request
         // whose promise is promise,
@@ -732,7 +730,7 @@ impl WritableStream {
         // If wasAlreadyErroring is false,
         if !was_already_erroring {
             // perform ! WritableStreamStartErroring(stream, reason)
-            self.start_erroring(cx, global, reason, can_gc);
+            self.start_erroring(cx.into(), global, reason, CanGc::from_cx(cx));
         }
 
         // Return promise.
@@ -1080,25 +1078,22 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#ws-abort>
-    fn Abort(
-        &self,
-        cx: SafeJSContext,
-        reason: SafeHandleValue,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) -> Rc<Promise> {
-        let global = GlobalScope::from_safe_context(cx, realm);
+    fn Abort(&self, cx: &mut CurrentRealm, reason: SafeHandleValue) -> Rc<Promise> {
+        let global = GlobalScope::from_current_realm(cx);
 
         // If ! IsWritableStreamLocked(this) is true,
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type(c"Stream is locked.".to_owned()), can_gc);
+            let promise = Promise::new2(cx, &global);
+            promise.reject_error(
+                Error::Type(c"Stream is locked.".to_owned()),
+                CanGc::from_cx(cx),
+            );
             return promise;
         }
 
         // Return ! WritableStreamAbort(this, reason).
-        self.abort(cx, &global, reason, realm, can_gc)
+        self.abort(cx, &global, reason)
     }
 
     /// <https://streams.spec.whatwg.org/#ws-close>
@@ -1231,7 +1226,10 @@ impl Transferable for WritableStream {
     type Data = MessagePortImpl;
 
     /// <https://streams.spec.whatwg.org/#ref-for-transfer-steps①>
-    fn transfer(&self) -> Fallible<(MessagePortId, MessagePortImpl)> {
+    fn transfer(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<(MessagePortId, MessagePortImpl)> {
         // Step 1. If ! IsWritableStreamLocked(value) is true, throw a
         // "DataCloneError" DOMException.
         if self.is_locked() {
@@ -1239,50 +1237,47 @@ impl Transferable for WritableStream {
         }
 
         let global = self.global();
-        let realm = enter_realm(&*global);
-        let comp = InRealm::Entered(&realm);
-        let cx = GlobalScope::get_cx();
-        let can_gc = CanGc::note();
+        let mut realm = enter_auto_realm(cx, &*global);
+        let mut realm = realm.current_realm();
+        let cx = &mut realm;
 
         // Step 2. Let port1 be a new MessagePort in the current Realm.
-        let port_1 = MessagePort::new(&global, can_gc);
+        let port_1 = MessagePort::new(&global, CanGc::from_cx(cx));
         global.track_message_port(&port_1, None);
 
         // Step 3. Let port2 be a new MessagePort in the current Realm.
-        let port_2 = MessagePort::new(&global, can_gc);
+        let port_2 = MessagePort::new(&global, CanGc::from_cx(cx));
         global.track_message_port(&port_2, None);
 
         // Step 4. Entangle port1 and port2.
         global.entangle_ports(*port_1.message_port_id(), *port_2.message_port_id());
 
         // Step 5. Let readable be a new ReadableStream in the current Realm.
-        let readable = ReadableStream::new_with_proto(&global, None, can_gc);
+        let readable = ReadableStream::new_with_proto(&global, None, CanGc::from_cx(cx));
 
         // Step 6. Perform ! SetUpCrossRealmTransformReadable(readable, port1).
-        readable.setup_cross_realm_transform_readable(cx, &port_1, can_gc);
+        readable.setup_cross_realm_transform_readable(cx.into(), &port_1, CanGc::from_cx(cx));
 
         // Step 7. Let promise be ! ReadableStreamPipeTo(readable, value, false, false, false).
-        let promise = readable.pipe_to(cx, &global, self, false, false, false, None, comp, can_gc);
+        let promise = readable.pipe_to(cx, &global, self, false, false, false, None);
 
         // Step 8. Set promise.[[PromiseIsHandled]] to true.
         promise.set_promise_is_handled();
 
         // Step 9. Set dataHolder.[[port]] to ! StructuredSerializeWithTransfer(port2, « port2 »).
-        port_2.transfer()
+        port_2.transfer(cx)
     }
 
     /// <https://streams.spec.whatwg.org/#ref-for-transfer-receiving-steps①>
     fn transfer_receive(
+        cx: &mut js::context::JSContext,
         owner: &GlobalScope,
         id: MessagePortId,
         port_impl: MessagePortImpl,
     ) -> Result<DomRoot<Self>, ()> {
-        let cx = GlobalScope::get_cx();
-        let can_gc = CanGc::note();
-
         // Their transfer-receiving steps, given dataHolder and value, are:
         // Note: dataHolder is used in `structuredclone.rs`, and value is created here.
-        let value = WritableStream::new_with_proto(owner, None, can_gc);
+        let value = WritableStream::new_with_proto(owner, None, CanGc::from_cx(cx));
 
         // Step 1. Let deserializedRecord be !
         // StructuredDeserializeWithTransfer(dataHolder.[[port]], the current
@@ -1290,10 +1285,14 @@ impl Transferable for WritableStream {
         // Done with the `Deserialize` derive of `MessagePortImpl`.
 
         // Step 2. Let port be deserializedRecord.[[Deserialized]].
-        let transferred_port = MessagePort::transfer_receive(owner, id, port_impl)?;
+        let transferred_port = MessagePort::transfer_receive(cx, owner, id, port_impl)?;
 
         // Step 3. Perform ! SetUpCrossRealmTransformWritable(value, port).
-        value.setup_cross_realm_transform_writable(cx, &transferred_port, can_gc);
+        value.setup_cross_realm_transform_writable(
+            cx.into(),
+            &transferred_port,
+            CanGc::from_cx(cx),
+        );
         Ok(value)
     }
 

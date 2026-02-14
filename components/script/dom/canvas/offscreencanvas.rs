@@ -187,7 +187,10 @@ impl Transferable for OffscreenCanvas {
     type Data = TransferableOffscreenCanvas;
 
     /// <https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface:transfer-steps>
-    fn transfer(&self) -> Fallible<(OffscreenCanvasId, TransferableOffscreenCanvas)> {
+    fn transfer(
+        &self,
+        _cx: &mut js::context::JSContext,
+    ) -> Fallible<(OffscreenCanvasId, TransferableOffscreenCanvas)> {
         // <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
         // Step 5.2. If transferable has a [[Detached]] internal slot and
         // transferable.[[Detached]] is true, then throw a "DataCloneError"
@@ -234,6 +237,7 @@ impl Transferable for OffscreenCanvas {
 
     /// <https://html.spec.whatwg.org/multipage/#the-offscreencanvas-interface:transfer-receiving-steps>
     fn transfer_receive(
+        cx: &mut js::context::JSContext,
         owner: &GlobalScope,
         _: OffscreenCanvasId,
         transferred: TransferableOffscreenCanvas,
@@ -256,7 +260,7 @@ impl Transferable for OffscreenCanvas {
             transferred.width,
             transferred.height,
             None,
-            CanGc::note(),
+            CanGc::from_cx(cx),
         ))
     }
 

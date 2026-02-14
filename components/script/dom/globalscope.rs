@@ -2927,8 +2927,8 @@ impl GlobalScope {
         self.timers().clear_timeout_or_interval(self, handle);
     }
 
-    pub(crate) fn fire_timer(&self, handle: TimerEventId, can_gc: CanGc) {
-        self.timers().fire_timer(handle, self, can_gc);
+    pub(crate) fn fire_timer(&self, handle: TimerEventId, cx: &mut js::context::JSContext) {
+        self.timers().fire_timer(handle, self, cx);
     }
 
     pub(crate) fn resume(&self) {
@@ -3512,7 +3512,7 @@ impl GlobalScope {
         completion_steps: F,
     ) -> i32
     where
-        F: 'static + FnOnce(&GlobalScope, CanGc),
+        F: 'static + FnOnce(&mut js::context::JSContext, &GlobalScope),
     {
         let timers = self.timers();
 
