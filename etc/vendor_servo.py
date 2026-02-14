@@ -18,10 +18,15 @@ import subprocess
 import tempfile
 import pathlib
 
+
 def vendor():
     parser = argparse.ArgumentParser(prog="vendor_servo")
     parser.add_argument("--force", action="store_true")
-    parser.add_argument("--filename", type=pathlib.Path, help="name of the output archive without the extension, e.g. `servo` for `servo.tar.gz`")
+    parser.add_argument(
+        "--filename",
+        type=pathlib.Path,
+        help="name of the output archive without the extension, e.g. `servo` for `servo.tar.gz`",
+    )
 
     args = parser.parse_args()
     # This script is `etc/vendor_servo.py`, so the grandparent of the filename is the servo root directory.
@@ -45,7 +50,7 @@ def vendor():
         )
         os.chdir(tmpdirname)
         # Save the git hash into a file so that the archive can be mapped to a git revision.
-        with open('GIT_REVISION', "w") as revision_file:
+        with open("GIT_REVISION", "w") as revision_file:
             revision_file.write(git_revision.stdout)
         # vendoring crates
         print("Vendoring Crates")
