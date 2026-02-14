@@ -21,6 +21,7 @@ import pathlib
 def vendor():
     parser = argparse.ArgumentParser(prog="vendor_servo")
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--filename", type=pathlib.Path, help="name of the output archive without the extension, e.g. `servo` for `servo.tar.gz`")
 
     args = parser.parse_args()
     # This script is `etc/vendor_servo.py`, so the grandparent of the filename is the servo root directory.
@@ -55,7 +56,16 @@ def vendor():
         file = tempfile.gettempdir() + "/servo"
         print(f"Making archive in {file}.tar.gz")
         shutil.make_archive(file, format="gztar", base_dir="./")
-        print(f"Moving archive to {servo_root}")
+        if args.filename is not None:
+            name = pathlib.Path(args.filename)
+            if name.is_absolute():
+                out_filepath = name
+            else:
+                name = name.with_name(name.name + ".tar.gz")
+                out_filepath = servo_root.joinpath(name)
+        else:
+            out_filepath = servo_root.joinpath("servo.tar.gz")
+        print(f"Moving archive to {out_filepath}")
         shutil.move(file, servo_root)
     return
 
