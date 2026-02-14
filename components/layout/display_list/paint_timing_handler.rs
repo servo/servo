@@ -11,24 +11,27 @@ use webrender_api::units::{LayoutRect, LayoutSize};
 use crate::query::transform_au_rectangle;
 
 pub(crate) struct PaintTimingHandler {
+    /// The rect of viewport.
+    viewport_rect: LayoutRect,
+    /// Initial Transform of display list
+    transform: Option<FastLayoutTransform>,
     /// The document’s largest contentful paint size
     lcp_size: f32,
     /// The LCP candidate, it may be a image or text.
     lcp_candidate: Option<LCPCandidate>,
-    /// The rect of viewport.
-    viewport_rect: LayoutRect,
     /// Flag to indicate if there is an update to LCP candidate.
     /// This is used to avoid sending duplicate LCP candidates to `Paint`.
     lcp_candidate_updated: bool,
 }
 
 impl PaintTimingHandler {
-    pub(crate) fn new(viewport_size: LayoutSize) -> Self {
+    pub(crate) fn new(viewport_size: LayoutSize, transform: Option<FastLayoutTransform>) -> Self {
         Self {
             lcp_size: 0.0,
             lcp_candidate: None,
-            viewport_rect: LayoutRect::from_size(viewport_size),
             lcp_candidate_updated: false,
+            viewport_rect: LayoutRect::from_size(viewport_size),
+            transform: transform,
         }
     }
 
@@ -50,15 +53,15 @@ impl PaintTimingHandler {
         &self,
         bounds: LayoutRect,
         clip_rect: LayoutRect,
-        transform: FastLayoutTransform,
     ) -> Rect<f32, CSSPixel> {
         let clipped_rect = bounds
             .intersection(&clip_rect)
             .unwrap_or(LayoutRect::zero());
 
+        // If transform if not cached, lcp works in minimal mode without considering transform in calculations
         let transformed_rect = transform_au_rectangle(
             f32_rect_to_au_rect(clipped_rect.to_rect().cast_unit()),
-            transform,
+            self.transform.unwrap_or_default(),
         )
         .unwrap_or_default();
 
@@ -75,11 +78,10 @@ impl PaintTimingHandler {
         lcp_candidate_id: LCPCandidateID,
         bounds: LayoutRect,
         clip_rect: LayoutRect,
-        transform: FastLayoutTransform,
     ) {
         // From <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>:
         //  Let intersectionRect be the value returned by the intersection rect algorithm using imageElement as the target and viewport as the root.
-        let intersection_rect = self.calculate_intersection_rect(bounds, clip_rect, transform);
+        let intersection_rect = self.calculate_intersection_rect(bounds, clip_rect);
 
         // Let size be the effective visual size of candidate’s element given intersectionRect.
         let size = intersection_rect.size.width * intersection_rect.size.height;

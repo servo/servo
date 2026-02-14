@@ -1303,12 +1303,25 @@ impl LayoutThread {
         let paint_timing_handler = match paint_timing_handler.as_mut() {
             Some(paint_timing_handler) => paint_timing_handler,
             None => {
-                *paint_timing_handler = Some(PaintTimingHandler::new(
-                    stacking_context_tree
-                        .paint_info
-                        .viewport_details
-                        .layout_size(),
-                ));
+                let viewport = stacking_context_tree
+                    .paint_info
+                    .viewport_details
+                    .layout_size();
+
+                let mut transform = None;
+                // Only calculate and cache transform when feature is enabled.
+                if pref!(largest_contentful_paint_enabled) {
+                    transform = Some(
+                        stacking_context_tree
+                            .paint_info
+                            .scroll_tree
+                            .cumulative_node_to_root_transform(
+                                stacking_context_tree.paint_info.root_reference_frame_id,
+                            ),
+                    )
+                }
+
+                *paint_timing_handler = Some(PaintTimingHandler::new(viewport, transform));
                 paint_timing_handler.as_mut().unwrap()
             },
         };
