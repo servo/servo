@@ -162,21 +162,17 @@ impl IDBOpenDBRequest {
         connection: &IDBDatabase,
         old_version: u64,
         version: u64,
-        transaction: u64,
+        _transaction: u64,
         can_gc: CanGc,
     ) {
         let global = self.global();
         let cx = GlobalScope::get_cx();
 
-        // Note: the transaction should link wiht one created on the backend.
-        // Steps here are meant to create the corresponding webidl object.
-        let transaction = IDBTransaction::new_with_id(
+        let transaction = IDBTransaction::new(
             &global,
             connection,
             IDBTransactionMode::Versionchange,
             &connection.object_stores(),
-            transaction,
-            Some(self.get_id()),
             can_gc,
         );
         transaction.set_versionchange_old_version(old_version);
@@ -274,6 +270,16 @@ impl IDBOpenDBRequest {
 
     pub fn clear_transaction(&self) {
         self.idbrequest.clear_transaction();
+    }
+
+    pub(crate) fn clear_transaction_if_matches(&self, transaction: &IDBTransaction) {
+        let matches = self
+            .idbrequest
+            .transaction()
+            .is_some_and(|current| std::ptr::eq::<IDBTransaction>(&*current, transaction));
+        if matches {
+            self.idbrequest.clear_transaction();
+        }
     }
 
     pub fn dispatch_success(&self, name: String, version: u64, upgraded: bool, can_gc: CanGc) {

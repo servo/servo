@@ -389,6 +389,8 @@ pub enum ConnectionMsg {
         id: Uuid,
         error: BackendError,
     },
+    /// Ask script to recheck whether a transaction can commit now.
+    TxnMaybeCommit { db_name: String, txn: u64 },
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -463,6 +465,30 @@ pub enum SyncOperation {
         txn: u64,
         request_id: u64,
     },
+    CreateTransaction {
+        sender: GenericSender<BackendResult<u64>>,
+        origin: ImmutableOrigin,
+        db_name: String,
+        mode: IndexedDBTxnMode,
+        scope: Vec<String>,
+    },
+    CanStartTransaction {
+        sender: GenericSender<BackendResult<bool>>,
+        origin: ImmutableOrigin,
+        db_name: String,
+        txn: u64,
+    },
+    /// Request script to recheck transaction commit eligibility.
+    TxnMaybeCommit {
+        origin: ImmutableOrigin,
+        db_name: String,
+        txn: u64,
+    },
+    TransactionFinished {
+        origin: ImmutableOrigin,
+        db_name: String,
+        txn: u64,
+    },
 
     /// Creates a new index for the database
     CreateIndex(
@@ -524,15 +550,6 @@ pub enum SyncOperation {
         ImmutableOrigin,
         String, // Database
         Uuid,
-    ),
-
-    /// Returns an unique identifier that is used to be able to
-    /// commit/abort transactions.
-    RegisterNewTxn(
-        /// The unique identifier of the transaction
-        GenericSender<u64>,
-        ImmutableOrigin,
-        String, // Database
     ),
 
     /// Returns the version of the database

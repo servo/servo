@@ -12,10 +12,9 @@ use profile_traits::generic_callback::GenericCallback;
 use profile_traits::generic_channel::channel;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
 use storage_traits::indexeddb::{
-    IndexedDBIndex, IndexedDBThreadMsg, KeyPath, SyncOperation, TxnCompleteMsg,
+    IndexedDBIndex, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, SyncOperation, TxnCompleteMsg,
 };
 use stylo_atoms::Atom;
-use uuid::Uuid;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListMethods;
@@ -76,10 +75,6 @@ pub struct IDBTransaction {
     // An unique identifier, used to commit and revert this transaction
     // FIXME:(rasviitanen) Replace this with a channel
     serial_number: u64,
-
-    /// The id of the associated open request, if any.
-    #[no_trace]
-    _open_request_id: Option<Uuid>,
 }
 
 impl IDBTransaction {
@@ -88,7 +83,6 @@ impl IDBTransaction {
         mode: IDBTransactionMode,
         scope: &DOMStringList,
         serial_number: u64,
-        open_request_id: Option<Uuid>,
     ) -> IDBTransaction {
         IDBTransaction {
             eventtarget: EventTarget::new_inherited(),
@@ -112,12 +106,10 @@ impl IDBTransaction {
             handled_next_unhandled_id: Cell::new(0),
             handled_pending: Default::default(),
             serial_number,
-            _open_request_id: open_request_id,
         }
     }
 
-    /// Does a blocking call to get an id from the backend.
-    /// TODO: remove in favor of something like `new_with_id` below.
+    /// Does a blocking call to create a backend transaction and get its id.
     pub fn new(
         global: &GlobalScope,
         connection: &IDBDatabase,
@@ -125,63 +117,49 @@ impl IDBTransaction {
         scope: &DOMStringList,
         can_gc: CanGc,
     ) -> DomRoot<IDBTransaction> {
-        let serial_number = IDBTransaction::register_new(global, connection.get_name());
+        let serial_number =
+            IDBTransaction::create_transaction(global, connection.get_name(), mode, scope);
         reflect_dom_object(
             Box::new(IDBTransaction::new_inherited(
                 connection,
                 mode,
                 scope,
                 serial_number,
-                None,
             )),
             global,
             can_gc,
         )
     }
 
-    /// Create a new WebIDL object,
-    /// based on an existign transaction on the backend.
-    /// The two are linked via the `transaction_id`.
-    pub(crate) fn new_with_id(
+    fn create_transaction(
         global: &GlobalScope,
-        connection: &IDBDatabase,
+        db_name: DOMString,
         mode: IDBTransactionMode,
         scope: &DOMStringList,
-        transaction_id: u64,
-        open_request_id: Option<Uuid>,
-        can_gc: CanGc,
-    ) -> DomRoot<IDBTransaction> {
-        reflect_dom_object(
-            Box::new(IDBTransaction::new_inherited(
-                connection,
-                mode,
-                scope,
-                transaction_id,
-                open_request_id,
-            )),
-            global,
-            can_gc,
-        )
-    }
-
-    // Registers a new transaction in the idb thread, and gets an unique serial number in return.
-    // The serial number is used when placing requests against a transaction
-    // and allows us to commit/abort transactions running in our idb thread.
-    // FIXME:(rasviitanen) We could probably replace this with a channel instead,
-    // and queue requests directly to that channel.
-    fn register_new(global: &GlobalScope, db_name: DOMString) -> u64 {
+    ) -> u64 {
+        let backend_mode = match mode {
+            IDBTransactionMode::Readonly => IndexedDBTxnMode::Readonly,
+            IDBTransactionMode::Readwrite => IndexedDBTxnMode::Readwrite,
+            IDBTransactionMode::Versionchange => IndexedDBTxnMode::Versionchange,
+        };
+        let scope: Vec<String> = (0..scope.Length())
+            .filter_map(|i| scope.Item(i))
+            .map(|name| name.to_string())
+            .collect();
         let (sender, receiver) = channel(global.time_profiler_chan().clone()).unwrap();
 
         global
             .storage_threads()
-            .send(IndexedDBThreadMsg::Sync(SyncOperation::RegisterNewTxn(
+            .send(IndexedDBThreadMsg::Sync(SyncOperation::CreateTransaction {
                 sender,
-                global.origin().immutable().clone(),
-                db_name.to_string(),
-            )))
-            .unwrap();
+                origin: global.origin().immutable().clone(),
+                db_name: db_name.to_string(),
+                mode: backend_mode,
+                scope,
+            }))
+            .expect("Failed to send IndexedDBThreadMsg::Sync");
 
-        receiver.recv().unwrap()
+        receiver.recv().unwrap().expect("CreateTransaction failed")
     }
 
     pub fn set_active_flag(&self, status: bool) {
@@ -302,12 +280,31 @@ impl IDBTransaction {
         true
     }
 
+    fn can_start_in_backend(&self) -> bool {
+        let global = self.global();
+        let (sender, receiver) = channel(global.time_profiler_chan().clone()).unwrap();
+        let operation = SyncOperation::CanStartTransaction {
+            sender,
+            origin: global.origin().immutable().clone(),
+            db_name: self.db.get_name().to_string(),
+            txn: self.serial_number,
+        };
+        if self
+            .get_idb_thread()
+            .send(IndexedDBThreadMsg::Sync(operation))
+            .is_err()
+        {
+            return false;
+        }
+        receiver.recv().ok().and_then(Result::ok).unwrap_or(false)
+    }
+
     pub(crate) fn maybe_commit(&self) {
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-        // “The implementation must attempt to commit an inactive transaction when all requests
+        // Step 5: transaction when all requests
         //  placed against the transaction have completed and their returned results handled,
         //  no new requests have been placed against the transaction, and the transaction has
-        //  not been aborted.”
+        //  not been aborted.
         let finished = self.finished.get();
         let abort_initiated = self.abort_initiated.get();
         let committing = self.committing.get();
@@ -324,9 +321,9 @@ impl IDBTransaction {
         if handled_next_unhandled_id != issued_count {
             return;
         }
-        // IndexedDB §2.7.2 Transaction scheduling: later transactions must wait for earlier
-        // overlapping ones (ro waits for earlier rw; rw waits for any earlier overlapping txn).
-        if !self.db.is_transaction_commit_eligible(self) {
+        // Commit must respect backend scheduling for overlapping scopes.
+        // https://w3c.github.io/IndexedDB/#transaction-scheduling
+        if !self.can_start_in_backend() {
             return;
         }
 
@@ -354,9 +351,9 @@ impl IDBTransaction {
         if self.active.get() || self.pending_request_count.get() != 0 {
             return;
         }
-        // IndexedDB §2.7.2 Transaction scheduling: keep explicit commit ordered behind
-        // earlier overlapping transactions on the same connection.
-        if !self.db.is_transaction_commit_eligible(self) {
+        // https://w3c.github.io/IndexedDB/#transaction-scheduling
+        // Commit attempts must wait until backend scheduling constraints are met.
+        if !self.can_start_in_backend() {
             return;
         }
         self.attempt_commit();
@@ -479,6 +476,17 @@ impl IDBTransaction {
             .send(IndexedDBThreadMsg::Sync(operation));
     }
 
+    fn notify_backend_transaction_finished(&self) {
+        let global = self.global();
+        let _ = self.get_idb_thread().send(IndexedDBThreadMsg::Sync(
+            SyncOperation::TransactionFinished {
+                origin: global.origin().immutable().clone(),
+                db_name: self.db.get_name().to_string(),
+                txn: self.serial_number,
+            },
+        ));
+    }
+
     pub(crate) fn finalize_abort(&self) {
         if self.finished.get() {
             return;
@@ -511,6 +519,9 @@ impl IDBTransaction {
                 );
                 event.fire(this.upcast(), CanGc::note());
                 if this.mode == IDBTransactionMode::Versionchange {
+                    this.global()
+                        .get_indexeddb()
+                        .clear_open_request_transaction_for_txn(&this);
                     let origin = this.global().origin().immutable().clone();
                     let db_name = this.db.get_name().to_string();
                     let txn = this.serial_number;
@@ -527,11 +538,11 @@ impl IDBTransaction {
                 // “When a transaction is committed or aborted, its state is set to finished.”
                 this.finished.set(true);
                 this.version_change_old_version.set(None);
+                this.notify_backend_transaction_finished();
                 if this.registered_in_global.get() {
                     this.global().get_indexeddb().unregister_indexeddb_transaction(&this);
                     this.registered_in_global.set(false);
                 }
-                this.db.dequeue_transaction_and_maybe_advance(&this);
             }));
     }
 
@@ -547,6 +558,7 @@ impl IDBTransaction {
         if self.mode == IDBTransactionMode::Versionchange {
             self.db.clear_upgrade_transaction(self);
         }
+        self.notify_backend_transaction_finished();
         self.dispatch_complete();
         if self.registered_in_global.get() {
             self.global()
@@ -554,7 +566,6 @@ impl IDBTransaction {
                 .unregister_indexeddb_transaction(self);
             self.registered_in_global.set(false);
         }
-        self.db.dequeue_transaction_and_maybe_advance(self);
     }
 
     fn dispatch_complete(&self) {
@@ -573,6 +584,9 @@ impl IDBTransaction {
                 );
                 event.fire(this.upcast(), CanGc::note());
                 if this.mode == IDBTransactionMode::Versionchange {
+                    this.global()
+                        .get_indexeddb()
+                        .clear_open_request_transaction_for_txn(&this);
                     let origin = this.global().origin().immutable().clone();
                     let db_name = this.db.get_name().to_string();
                     let txn = this.serial_number;

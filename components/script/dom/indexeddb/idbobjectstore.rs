@@ -147,7 +147,7 @@ impl IDBObjectStore {
         self.name.borrow().clone()
     }
 
-    pub fn transaction(&self) -> DomRoot<IDBTransaction> {
+    pub(crate) fn transaction(&self) -> DomRoot<IDBTransaction> {
         self.transaction.as_rooted()
     }
 

@@ -416,6 +416,10 @@ impl IDBRequest {
         self.transaction.set(None);
     }
 
+    pub(crate) fn transaction(&self) -> Option<DomRoot<IDBTransaction>> {
+        self.transaction.get()
+    }
+
     // https://www.w3.org/TR/IndexedDB-2/#asynchronously-execute-a-request
     pub fn execute_async<T, F>(
         source: &IDBObjectStore,

@@ -126,6 +126,38 @@ impl IDBFactory {
         true
     }
 
+    pub(crate) fn maybe_commit_txn(&self, db_name: &str, txn_serial: u64) {
+        let snapshot: Vec<DomRoot<IDBTransaction>> = self
+            .indexeddb_transactions
+            .borrow()
+            .iter()
+            .map(|t| DomRoot::from_ref(&**t))
+            .collect();
+
+        for txn in snapshot {
+            if txn.get_serial_number() == txn_serial && txn.get_db_name() == db_name {
+                txn.maybe_commit();
+                break;
+            }
+        }
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#dom-idbrequest-transaction>
+    /// Clear IDBOpenDBRequest.transaction once the upgrade transaction is finished.
+    pub(crate) fn clear_open_request_transaction_for_txn(&self, transaction: &IDBTransaction) {
+        let requests: Vec<DomRoot<IDBOpenDBRequest>> = {
+            let pending = self.connections.borrow();
+            pending
+                .iter()
+                .flat_map(|(_db_name, entry)| entry.iter())
+                .map(|(_id, request)| request.as_rooted())
+                .collect()
+        };
+        for request in requests {
+            request.clear_transaction_if_matches(transaction);
+        }
+    }
+
     pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<IDBFactory> {
         reflect_dom_object(Box::new(IDBFactory::new_inherited()), global, can_gc)
     }
@@ -286,6 +318,16 @@ impl IDBFactory {
 
                 // Step 10.4: fire a version change event named blocked at request with db’s version and version.
                 request.dispatch_blocked(old_version, Some(version), can_gc);
+            },
+            ConnectionMsg::TxnMaybeCommit { db_name, txn } => {
+                let factory = Trusted::new(self);
+                self.global()
+                    .task_manager()
+                    .dom_manipulation_task_source()
+                    .queue(task!(indexeddb_maybe_commit_txn: move || {
+                        let factory = factory.root();
+                        factory.maybe_commit_txn(&db_name, txn);
+                    }));
             },
         }
     }
