@@ -1791,16 +1791,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
     }
 
-    fn WebdriverCallback(
-        &self,
-        cx: SafeJSContext,
-        value: HandleValue,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) {
+    fn WebdriverCallback(&self, realm: &mut CurrentRealm, value: HandleValue) {
         let webdriver_script_sender = self.webdriver_script_chan.borrow_mut().take();
         if let Some(webdriver_script_sender) = webdriver_script_sender {
-            let result = jsval_to_webdriver(cx, &self.globalscope, value, realm, can_gc);
+            let result = jsval_to_webdriver(realm, &self.globalscope, value);
             let _ = webdriver_script_sender.send(result);
         }
     }

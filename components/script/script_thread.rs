@@ -1830,7 +1830,7 @@ impl ScriptThread {
                 self.handle_unfocus_msg(pipeline_id, sequence, CanGc::from_cx(cx))
             },
             ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, msg) => {
-                self.handle_webdriver_msg(pipeline_id, msg, CanGc::from_cx(cx))
+                self.handle_webdriver_msg(pipeline_id, msg, cx)
             },
             ScriptThreadMessage::WebFontLoaded(pipeline_id, success) => {
                 self.handle_web_font_loaded(pipeline_id, success)
@@ -1916,13 +1916,7 @@ impl ScriptThread {
                 evaluation_id,
                 script,
             ) => {
-                self.handle_evaluate_javascript(
-                    webview_id,
-                    pipeline_id,
-                    evaluation_id,
-                    script,
-                    CanGc::from_cx(cx),
-                );
+                self.handle_evaluate_javascript(webview_id, pipeline_id, evaluation_id, script, cx);
             },
             ScriptThreadMessage::SendImageKeysBatch(pipeline_id, image_keys) => {
                 if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
@@ -2272,7 +2266,7 @@ impl ScriptThread {
         &self,
         pipeline_id: PipelineId,
         msg: WebDriverScriptCommand,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         let documents = self.documents.borrow();
         match msg {
@@ -2291,7 +2285,7 @@ impl ScriptThread {
                     pipeline_id,
                     element_id,
                     reply,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::FindElementsCSSSelector(selector, reply) => {
@@ -2317,7 +2311,7 @@ impl ScriptThread {
                     pipeline_id,
                     selector,
                     reply,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::FindElementsXpathSelector(selector, reply) => {
@@ -2326,7 +2320,7 @@ impl ScriptThread {
                     pipeline_id,
                     selector,
                     reply,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::FindElementElementsCSSSelector(selector, element_id, reply) => {
@@ -2358,7 +2352,7 @@ impl ScriptThread {
                     element_id,
                     selector,
                     reply,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::FindElementElementsXPathSelector(
@@ -2371,7 +2365,7 @@ impl ScriptThread {
                 element_id,
                 selector,
                 reply,
-                can_gc,
+                CanGc::from_cx(cx),
             ),
             WebDriverScriptCommand::FindShadowElementsCSSSelector(
                 selector,
@@ -2416,7 +2410,7 @@ impl ScriptThread {
                 shadow_root_id,
                 selector,
                 reply,
-                can_gc,
+                CanGc::from_cx(cx),
             ),
             WebDriverScriptCommand::GetElementShadowRoot(element_id, reply) => {
                 webdriver_handlers::handle_get_element_shadow_root(
@@ -2432,7 +2426,7 @@ impl ScriptThread {
                     pipeline_id,
                     element_id,
                     reply,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::GetKnownElement(element_id, reply) => {
@@ -2471,7 +2465,12 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::GetPageSource(reply) => {
-                webdriver_handlers::handle_get_page_source(&documents, pipeline_id, reply, can_gc)
+                webdriver_handlers::handle_get_page_source(
+                    &documents,
+                    pipeline_id,
+                    reply,
+                    CanGc::from_cx(cx),
+                )
             },
             WebDriverScriptCommand::GetCookies(reply) => {
                 webdriver_handlers::handle_get_cookies(&documents, pipeline_id, reply)
@@ -2498,14 +2497,20 @@ impl ScriptThread {
                     node_id,
                     name,
                     reply,
-                    can_gc,
+                    cx,
                 )
             },
             WebDriverScriptCommand::GetElementCSS(node_id, name, reply) => {
                 webdriver_handlers::handle_get_css(&documents, pipeline_id, node_id, name, reply)
             },
             WebDriverScriptCommand::GetElementRect(node_id, reply) => {
-                webdriver_handlers::handle_get_rect(&documents, pipeline_id, node_id, reply, can_gc)
+                webdriver_handlers::handle_get_rect(
+                    &documents,
+                    pipeline_id,
+                    node_id,
+                    reply,
+                    CanGc::from_cx(cx),
+                )
             },
             WebDriverScriptCommand::ScrollAndGetBoundingClientRect(node_id, reply) => {
                 webdriver_handlers::handle_scroll_and_get_bounding_client_rect(
@@ -2513,7 +2518,7 @@ impl ScriptThread {
                     pipeline_id,
                     node_id,
                     reply,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::GetElementText(node_id, reply) => {
@@ -2525,7 +2530,7 @@ impl ScriptThread {
                     pipeline_id,
                     node_id,
                     reply,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::GetParentFrameId(reply) => {
@@ -2539,9 +2544,12 @@ impl ScriptThread {
                     reply,
                 )
             },
-            WebDriverScriptCommand::GetUrl(reply) => {
-                webdriver_handlers::handle_get_url(&documents, pipeline_id, reply, can_gc)
-            },
+            WebDriverScriptCommand::GetUrl(reply) => webdriver_handlers::handle_get_url(
+                &documents,
+                pipeline_id,
+                reply,
+                CanGc::from_cx(cx),
+            ),
             WebDriverScriptCommand::IsEnabled(element_id, reply) => {
                 webdriver_handlers::handle_is_enabled(&documents, pipeline_id, element_id, reply)
             },
@@ -2563,7 +2571,7 @@ impl ScriptThread {
                 text,
                 strict_file_interactability,
                 reply,
-                can_gc,
+                CanGc::from_cx(cx),
             ),
             WebDriverScriptCommand::AddLoadStatusSender(_, response_sender) => {
                 webdriver_handlers::handle_add_load_status_sender(
@@ -2584,7 +2592,7 @@ impl ScriptThread {
             WebDriverScriptCommand::ExecuteScriptWithCallback(script, reply) => {
                 let window = documents.find_window(pipeline_id);
                 drop(documents);
-                webdriver_handlers::handle_execute_async_script(window, script, reply, can_gc);
+                webdriver_handlers::handle_execute_async_script(window, script, reply, cx);
             },
             WebDriverScriptCommand::SetProtocolHandlerAutomationMode(mode) => {
                 webdriver_handlers::set_protocol_handler_automation_mode(
@@ -4036,7 +4044,7 @@ impl ScriptThread {
         pipeline_id: PipelineId,
         evaluation_id: JavaScriptEvaluationId,
         script: String,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             let _ = self.senders.pipeline_to_constellation_sender.send((
@@ -4051,16 +4059,16 @@ impl ScriptThread {
         };
 
         let global_scope = window.as_global_scope();
-        let realm = enter_realm(global_scope);
-        let context = window.get_cx();
+        let mut realm = enter_auto_realm(cx, global_scope);
+        let cx = &mut realm.current_realm();
 
-        rooted!(in(*context) let mut return_value = UndefinedValue());
+        rooted!(&in(cx) let mut return_value = UndefinedValue());
         if let Err(err) = global_scope.evaluate_js_on_global(
             script.into(),
             "",
             None, // No known `introductionType` for JS code from embedder
             return_value.handle_mut(),
-            can_gc,
+            CanGc::from_cx(cx),
         ) {
             _ = self.senders.pipeline_to_constellation_sender.send((
                 webview_id,
@@ -4070,13 +4078,7 @@ impl ScriptThread {
             return;
         };
 
-        let result = jsval_to_webdriver(
-            context,
-            global_scope,
-            return_value.handle(),
-            (&realm).into(),
-            can_gc,
-        );
+        let result = jsval_to_webdriver(cx, global_scope, return_value.handle());
         let _ = self.senders.pipeline_to_constellation_sender.send((
             webview_id,
             pipeline_id,
