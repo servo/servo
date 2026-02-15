@@ -291,6 +291,7 @@ pub(crate) mod errorevent;
 pub(crate) mod event;
 pub(crate) mod eventsource;
 pub(crate) mod eventtarget;
+pub(crate) mod execcommand;
 pub(crate) mod extendableevent;
 pub(crate) mod extendablemessageevent;
 pub(crate) mod fetchlaterresult;

@@ -124,6 +124,8 @@ pub struct Preferences {
     pub dom_crypto_subtle_enabled: bool,
     pub dom_document_dblclick_timeout: i64,
     pub dom_document_dblclick_dist: i64,
+    // feature: Document.execCommand | #25005 | Web/API/Document/execCommand
+    pub dom_exec_command_enabled: bool,
     // feature: CSS Font Loading API | #29376 | Web/API/CSS_Font_Loading_API
     pub dom_fontface_enabled: bool,
     pub dom_fullscreen_test: bool,
@@ -358,6 +360,7 @@ impl Preferences {
             dom_crypto_subtle_enabled: true,
             dom_document_dblclick_dist: 1,
             dom_document_dblclick_timeout: 300,
+            dom_exec_command_enabled: false,
             dom_fontface_enabled: false,
             dom_fullscreen_test: false,
             dom_gamepad_enabled: true,

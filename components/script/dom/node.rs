@@ -1684,7 +1684,7 @@ impl Node {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#editing-host>
-    fn is_editing_host(&self) -> bool {
+    pub(crate) fn is_editing_host(&self) -> bool {
         self.downcast::<HTMLElement>()
             .is_some_and(HTMLElement::is_editing_host)
     }
