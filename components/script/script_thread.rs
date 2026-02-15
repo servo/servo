@@ -2108,7 +2108,7 @@ impl ScriptThread {
                 Some(window) => {
                     let global = window.as_global_scope();
                     let _aes = AutoEntryScript::new(global);
-                    devtools::handle_evaluate_js(global, s, reply, CanGc::from_cx(cx))
+                    devtools::handle_evaluate_js(global, s, reply, cx)
                 },
                 None => warn!("Message sent to closed pipeline {}.", id),
             },
