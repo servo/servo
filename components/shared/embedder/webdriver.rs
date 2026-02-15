@@ -17,11 +17,10 @@ use image::RgbaImage;
 use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use servo_geometry::DeviceIndependentIntRect;
+use servo_geometry::{DeviceIndependentIntRect, DeviceIndependentPixel};
 use style_traits::CSSPixel;
 use url::Url;
 use webdriver::error::ErrorStatus;
-use webrender_api::units::DevicePixel;
 
 use crate::{InputEvent, JSValue, JavaScriptEvaluationError, ScreenshotCaptureError, TraversalId};
 
@@ -92,7 +91,10 @@ pub enum WebDriverCommandMsg {
     /// Get the window rectangle.
     GetWindowRect(WebViewId, GenericOneshotSender<DeviceIndependentIntRect>),
     /// Get the viewport size.
-    GetViewportSize(WebViewId, GenericOneshotSender<Size2D<u32, DevicePixel>>),
+    GetViewportSize(
+        WebViewId,
+        GenericOneshotSender<Size2D<f32, DeviceIndependentPixel>>,
+    ),
     /// Load a URL in the top-level browsing context with the given ID.
     LoadUrl(WebViewId, Url, GenericSender<WebDriverLoadStatus>),
     /// Refresh the top-level browsing context with the given ID.
