@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <title>
-    CSS Gap Decorations: Multicolumn gap decorations painted with column-wrap and row break intersection.
+    CSS Gap Decorations: Multicolumn gap decorations painted with column-wrap, row break intersection, and column break none.
 </title>
 <link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
 <link rel="match" href="multicol-gap-decorations-025-ref.html">
@@ -22,13 +22,15 @@
         column-rule-width: 10px;
         column-rule-style: solid;
         column-rule-color: blue;
+        column-rule-break: none;
 
         row-rule-width: 10px;
         row-rule-style: solid;
         row-rule-color: gold;
         row-rule-break: intersection;
-        row-rule-inset: 0px;
         column-wrap: wrap;
+
+        row-rule-inset: 0px;
     }
 
     p {

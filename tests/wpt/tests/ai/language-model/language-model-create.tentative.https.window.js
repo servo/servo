@@ -23,8 +23,9 @@ promise_test(async t => {
 
   assert_equals(typeof session.inputUsage, 'number');
   assert_equals(typeof session.inputQuota, 'number');
-  assert_equals(typeof session.topK, 'number');
-  assert_equals(typeof session.temperature, 'number');
+  assert_equals(typeof session.topK, 'undefined');  // topK is deprecated.
+  assert_equals(
+      typeof session.temperature, 'undefined');  // temperature is deprecated.
 
   assert_equals(typeof session.onquotaoverflow, 'object');
 }, 'LanguageModel.create() returns a valid object with default options');
@@ -39,43 +40,10 @@ promise_test(async t => {
 
 promise_test(async t => {
   let session = await createLanguageModel({ topK: 3, temperature: 0.6 });
+  assert_equals(typeof session.topK, 'undefined');
+  assert_equals(typeof session.temperature, 'undefined');
   assert_true(!!session);
 }, 'Create with topK and temperature');
-
-promise_test(async t => {
-  let result = createLanguageModel({ topK: 3 });
-  await promise_rejects_dom(
-      t, 'NotSupportedError', result,
-      'Initializing a new session must either specify both topK and temperature, or neither of them.');
-}, 'Create with only topK should fail');
-
-promise_test(async t => {
-  let result = createLanguageModel({ temperature: 0.5 });
-  await promise_rejects_dom(
-      t, 'NotSupportedError', result,
-      'Initializing a new session must either specify both topK and temperature, or neither of them.');
-}, 'Create with only temperature should fail');
-
-promise_test(async t => {
-  let result = createLanguageModel({ topK: 3, temperature: -0.5 });
-  await promise_rejects_js(t, RangeError, result);
-}, 'Create with negative temperature should fail');
-
-promise_test(async t => {
-  let result = createLanguageModel({ topK: 0, temperature: 0.5 });
-  await promise_rejects_js(t, RangeError, result);
-}, 'Create with zero topK should fail');
-
-promise_test(async t => {
-  let result = createLanguageModel({ topK: -2, temperature: 0.5 });
-  await promise_rejects_js(t, RangeError, result);
-}, 'Create with negative topK should fail');
-
-promise_test(async t => {
-  let session = await createLanguageModel({ topK: 1.5, temperature: 0.5 });
-  assert_true(!!session);
-  assert_equals(session.topK, 1);
-}, 'Create with fractional topK should be rounded down');
 
 promise_test(async t => {
   let session = await createLanguageModel({

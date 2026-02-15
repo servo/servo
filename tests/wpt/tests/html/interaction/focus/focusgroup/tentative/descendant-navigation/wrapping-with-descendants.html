@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
 <div id=root focusgroup="toolbar wrap">
@@ -35,7 +36,7 @@
     var middle = document.getElementById("middle");
     var last = document.getElementById("last");
 
-    last.focus();
+    await focusAndWait(last);
     await focusAndKeyPress(last, kArrowRight);
     assert_equals(document.activeElement, first, "Should wrap from last nested item to first item");
   }, "Forward wrapping should work from nested descendants to first item");
@@ -45,7 +46,7 @@
     var middle = document.getElementById("middle");
     var last = document.getElementById("last");
 
-    first.focus();
+    await focusAndWait(first);
     await focusAndKeyPress(first, kArrowLeft);
     assert_equals(document.activeElement, last, "Should wrap from first item to last nested item");
   }, "Backward wrapping should work from first item to nested descendants");
@@ -55,7 +56,7 @@
     var middle = document.getElementById("middle");
     var last = document.getElementById("last");
 
-    first.focus();
+    await focusAndWait(first);
     await focusAndKeyPress(first, kArrowRight);
     assert_equals(document.activeElement, middle, "Should navigate normally to middle nested item");
 
@@ -67,7 +68,7 @@
     var first = document.getElementById("first");
     var last = document.getElementById("last");
 
-    last.focus();
+    await focusAndWait(last);
     await focusAndKeyPress(last, kArrowDown);
     assert_equals(document.activeElement, first, "Vertical wrapping should work with nested descendants");
   }, "Vertical wrapping should work correctly with nested descendants");

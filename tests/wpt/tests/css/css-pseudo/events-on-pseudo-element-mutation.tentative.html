@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: event.pseudoTarget stability during DOM mutation/style changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#CSSPseudoElement-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+
+  #scroller {
+    scroll-marker-group: before links;
+    overflow: scroll;
+    height: 200px;
+
+    li {
+      height: 200px;
+      background: purple;
+      border: 1px solid black;
+
+      &::scroll-marker {
+        content: "S";
+        padding: 10px;
+        color: white;
+        background: red;
+      }
+    }
+
+    li::scroll-marker:hover {
+      background: blue;
+    }
+  }
+</style>
+
+<div id="scroller">
+  <li id="target">1</li>
+</div>
+
+<script>
+  // Coordinates roughly over the ::scroll-marker in this layout
+  const scrollMarkerX = 10;
+  const scrollMarkerY = 10;
+  const target = document.getElementById('target');
+  const pseudoElement = target.pseudo('::scroll-marker');
+
+  promise_test(async t => {
+    // Verify that event.pseudoTarget remains stable even if the target
+    // is moved to another parent or restyled during dispatch.
+
+    let pseudoCapture = null;
+    let pseudoBubble = null;
+
+    target.addEventListener('click', (e) => {
+      pseudoCapture = e.pseudoTarget;
+
+      // Move the element to a new parent during event dispatch.
+      let newParent = document.getElementById('new-parent');
+      if (!newParent) {
+        newParent = document.createElement('div');
+        newParent.id = 'new-parent';
+        scroller.appendChild(newParent);
+      }
+      newParent.appendChild(target);
+    }, { capture: true });
+
+    scroller.addEventListener('click', (e) => {
+      pseudoBubble = e.pseudoTarget;
+    }, { capture: false });
+
+    await new test_driver.Actions()
+      .pointerMove(scrollMarkerX, scrollMarkerY)
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+    scroller.style.setProperty('scroll-marker-group', 'none');
+    assert_equals(getComputedStyle(scroller).scrollMarkerGroup, 'none', 'scrollMarkerGroup should be set to none during dispatch');
+    assert_equals(getComputedStyle(target, '::scroll-marker').backgroundColor, '', 'real pseudo-element should no longer have styles after scrollMarkerGroup is set to none');
+
+    assert_equals(pseudoCapture, pseudoElement, 'pseudoTarget recorded in capture listener is the pseudo-element');
+    assert_equals(pseudoBubble, pseudoElement, 'pseudoTarget recorded in bubble listener is the pseudo-element');
+
+    const newParent = document.getElementById('new-parent');
+    assert_true(newParent && newParent.contains(target), 'target should have been moved to new parent during dispatch');
+
+    assert_equals(target.pseudo('::scroll-marker'), pseudoElement, 'target.pseudo() should still return the same pseudo-element');
+    assert_equals(pseudoElement.parent, target, 'pseudo-element should still be associated with the same target');
+    assert_equals(pseudoElement.parent.parentNode, newParent, 'pseudo-element should reflect the new parent of the target');
+  });
+</script>

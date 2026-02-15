@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<video id="target"></video>
+
+<script>
+  const video = document.getElementById("target");
+
+  test(() => {
+    assert_equals(
+      video.loading,
+      "eager",
+      "Video loading property should be 'eager' when attribute is not set"
+    );
+  }, "Video loading attribute default should be eager when not set");
+</script>
+

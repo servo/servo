@@ -78,55 +78,42 @@
       let current_scroller = outerscroller;
 
       async function scrollToTrigger() {
-        const scrollend_promise =
-            waitForScrollEndFallbackToDelayWithoutScrollEvent(current_scroller);
-        source.scrollIntoView({block: "center"});
-        await scrollend_promise;
-        await waitForCompositorReady();
+        return runAndWaitForFrameUpdate(() => {
+          source.scrollIntoView({block: "center"});
+        });
       }
 
       async function resetScrollPositionAndElements(test) {
-        await waitForScrollReset(test, current_scroller);
+        return waitForScrollReset(test, current_scroller).then(() => {
+          // Reset the animations, so we can detect when they trigger again.
+          inner_target.getAnimations()[0].pause();
+          inner_target.getAnimations()[0].currentTime = 0;
 
-        // Reset the animations, so we can detect when they trigger again.
-        inner_target.getAnimations()[0].pause();
-        inner_target.getAnimations()[0].currentTime = 0;
+          outer_target.getAnimations()[0].pause();
+          outer_target.getAnimations()[0].currentTime = 0;
 
-        outer_target.getAnimations()[0].pause();
-        outer_target.getAnimations()[0].currentTime = 0;
-
-        await waitForCompositorCommit();
-
-        // Both inner and outer animations should once again be paused.
-        await assert_playstate_and_current_time(
-          inner_target.id, inner_target.getAnimations()[0], "paused");
-        await assert_playstate_and_current_time(outer_target.id,
-                                          outer_target.getAnimations()[0],
-                                          "paused");
-        assert_equals(current_scroller.scrollTop, 0, "scroll position reset");
+          // Both inner and outer animations should once again be paused.
+          assert_element_animation_state(inner_target, "paused");
+          assert_element_animation_state(outer_target, "paused");
+          assert_equals(current_scroller.scrollTop, 0, "scroll position reset");
+        });
       }
 
       async function scrollAndAssert(inner_play_state, outer_play_state) {
-        await scrollToTrigger();
-        assert_greater_than(current_scroller.scrollTop, 0, "did scroll");
+        return scrollToTrigger().then(() => {
+          assert_greater_than(current_scroller.scrollTop, 0, "did scroll");
 
-        // Both the inner and outer targets should be triggered as there is no
-        // scope and they are both attached to the trigger.
-        await assert_playstate_and_current_time(inner_target.id,
-                                          inner_target.getAnimations()[0],
-                                          inner_play_state);
-        await assert_playstate_and_current_time(outer_target.id,
-                                          outer_target.getAnimations()[0],
-                                          outer_play_state);
+          // Both the inner and outer targets should be triggered as there is no
+          // scope and they are both attached to the trigger.
+          assert_element_animation_state(inner_target, inner_play_state);
+          assert_element_animation_state(outer_target, outer_play_state);
+        });
       }
 
       promise_test(async(test) => {
         assert_equals(getComputedStyle(innerscroller).triggerScope, "none");
-        await assert_playstate_and_current_time(
-          inner_target.id, inner_target.getAnimations()[0], "paused");
-        await assert_playstate_and_current_time(outer_target.id,
-                                          outer_target.getAnimations()[0],
-                                          "paused");
+        assert_element_animation_state(inner_target, "paused");
+        assert_element_animation_state(outer_target, "paused");
 
         // Scroll to make the trigger fire.
         // Both the inner and outer targets should be triggered as there is no

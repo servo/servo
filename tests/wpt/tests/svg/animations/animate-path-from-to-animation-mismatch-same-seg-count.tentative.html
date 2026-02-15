@@ -1,0 +1,41 @@
+<!doctype html>
+<title>SVG path 'd' attribute from-to animation with mismatched commands (same segment count)</title>
+<link rel="help" href="https://www.w3.org/TR/SVG2/paths.html#TheDProperty"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<script src="support/animated-path-helpers.js"></script>
+<svg>
+  <path id="path" d="">
+    <animate id="animation" attributeName="d"
+             from="M 20 20 L 40 20 M 40 20 M 40 20"
+             to="M 20 20 L 60 20 L 40 0 L 40 20"
+             begin="0s" dur="2s" fill="freeze"/>
+  </path>
+</svg>
+<script>
+const rootSVGElement = document.querySelector("svg");
+
+// Setup animation test
+function sample1() {
+  // Discrete animation: at 0%, shows 'from' value
+  assert_animated_path_equals(path, "M 20 20 L 40 20 M 40 20 M 40 20");
+}
+
+function sample2() {
+  // Discrete animation: at 100%, shows 'to' value
+  assert_animated_path_equals(path, "M 20 20 L 60 20 L 40 0 L 40 20");
+}
+
+smil_async_test((t) => {
+  const expectedValues = [
+    // [animationId, time, sampleCallback]
+    ["animation", 0.0,   sample1],
+    ["animation", 0.999, sample1],
+    ["animation", 1.001, sample2],
+    ["animation", 2.0,   sample2],
+    ["animation", 2.001, sample2]
+  ];
+  runAnimationTest(t, expectedValues);
+});
+</script>

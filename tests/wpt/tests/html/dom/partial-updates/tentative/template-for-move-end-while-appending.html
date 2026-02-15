@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - move while appending</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div
+ id="target" marker="results"><?start name="results">Loading...<?end name="results"></div>
+<div id="new-container"></div>
+</div>
+<script>
+  const contents = [];
+  const target = document.querySelector("#target");
+  window.end_marker = target.lastChild;
+  function step() {
+    for (const script of target.querySelectorAll("script")) {
+      script.remove();
+    }
+    contents.push(target.textContent);
+  }
+
+  step();
+</script>
+
+<template for="results"
+  >A<script>
+    step();
+  </script><span id="b">b</span><script>
+    step();
+  </script><span id="c">c</span><script>
+    step();
+    document.querySelector("#b").before(end_marker);
+    step();
+  </script><span id="d">d</span><script>
+    step();
+    end_marker.remove();
+    step();
+  </script><span id="e">E</span><script>
+    step();
+    document.querySelector("#target").insertBefore(end_marker, document.querySelector("#e"));
+    step();
+  </script></script><span id="f">F</span><script>
+    step();
+    document.body.prepend(end_marker);
+    step();
+  </script></script><span id="g">G</span><script>
+    step();
+  </script></template>
+<script>
+  test(() => {
+    assert_array_equals(contents,
+      ["Loading...", "A", "Ab", "Abc", "Abc", "Adbc", "Adbc", "AdbcE", "AdbcE", "AdbcFE", "AdbcFE", "AdbcFEG"]
+    );
+  }, "Multiple <template for>");
+</script>

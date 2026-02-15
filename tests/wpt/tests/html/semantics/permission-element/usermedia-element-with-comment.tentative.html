@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md">
+<link rel="match" href="usermedia-element-with-comment-ref.html">
+
+<usermedia type="camera"> <!-- Comment 1 --> </usermedia>
+<usermedia type="camera"> <!-- C1 --> Text <!-- C2 --> </usermedia>
+<div style="display: flex;">
+  <usermedia type="microphone"> <!-- Comment 1 --> </usermedia>
+</div>
+<usermedia type="microphone">
+  <!-- Comment Before -->
+  <span>
+    <button>Click Me</button>
+    <textarea>Some text</textarea>
+  </span>
+  <!-- Comment After -->
+</usermedia>

@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - mutation records for removal</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="placeholder" marker="m">
+  <script>
+    function stringify(node_list) {
+      return Array.from(node_list || []).map(n => `${n.nodeType}:${n.nodeName}:'${n.textContent.trim()}'`).join(" ");
+    }
+    window.mutation_observer_records = [];
+    const observer = new MutationObserver(
+      records => {
+        window.mutation_observer_records.push(records);
+      },
+    ).observe(document.getElementById("placeholder"), { childList: true });
+  </script>
+  Some<?start name=m>text <span id="remove">remove</span><?end name=m>
+</div>
+<template for="m"><span>content</span></template>
+<script>
+  promise_test(async (t) => {
+    await new Promise((resolve) => t.step_timeout(resolve, 0));
+    assert_equals(window.mutation_observer_records.length, 1);
+    assert_array_equals(window.mutation_observer_records[0].map(
+      r => `added [${stringify(r.addedNodes)}] removed [${stringify(r.removedNodes)}]`),
+    ["added [3:#text:'Some'] removed []",
+     "added [7:start:'name=m'] removed []",
+     "added [3:#text:'text'] removed []",
+     "added [1:SPAN:'remove'] removed []",
+     "added [7:end:'name=m'] removed []",
+     "added [3:#text:''] removed []",
+     "added [] removed [3:#text:'text']",
+     "added [] removed [1:SPAN:'remove']",
+     "added [1:SPAN:'content'] removed []",
+     "added [] removed [7:start:'name=m']",
+     "added [] removed [7:end:'name=m']"]);
+  });
+</script>

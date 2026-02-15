@@ -4,7 +4,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
-<!--The permission element should have some limits for the min/max-width/height:
+<!--The usermedia element should have some limits for the min/max-width/height:
   * min-width should be sufficient to fit the element text (depends on user agent implementation)
   * max-width should be at most 3x min-width
   * min-height should be sufficient to fit the element text (1em)
@@ -55,9 +55,9 @@
 </style>
 
 
-<permission id="el_outside_bounds" type="geolocation"></permission>
-<permission id="el_inside_bounds" type="camera"></permission>
-<permission id="el_large_min_size" type="microphone"></permission>
+<usermedia id="el_outside_bounds" type="camera microphone"></usermedia>
+<usermedia id="el_inside_bounds" type="camera"></usermedia>
+<usermedia id="el_large_min_size" type="microphone"></usermedia>
 
 <script>
   test(function(){

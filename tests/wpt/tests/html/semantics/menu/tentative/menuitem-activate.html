@@ -8,6 +8,11 @@
 <script src="../../popovers/resources/popover-utils.js"></script>
 <link rel=author href=mailto:dom@chromium.org>
 <link rel=help href=https://open-ui.org/components/menu.explainer>
+<style>
+
+menuitem:open { background-color: rgb(12,19,8); }
+
+</style>
 
 <menubar>
  <menuitem id=openMainMenu commandfor=mainmenu command=toggle-menu>Open first menu</menuitem>
@@ -22,6 +27,12 @@
 <menulist id=submenu>
  <menuitem>Sub menu</menuitem>
 </menulist>
+
+<menubar>
+  <menuitem id=toggleSubMenu1 commandfor=submenu command=toggle-menu>Toggle menu</menuitem>
+  <menuitem id=toggleSubMenu2 commandfor=submenu command=toggle-menu>Toggle menu</menuitem>
+  <menuitem id=showSubMenu commandfor=submenu command=show-menu>Show menu</menuitem>
+</menubar>
 
 <div popover id=popover>Popover</div>
 
@@ -48,35 +59,54 @@
 </style>
 
 <script>
+
+function bgcolor_is_open(element) {
+  return getComputedStyle(element).backgroundColor == "rgb(12, 19, 8)";
+}
+
 promise_test(async () => {
   assert_false(mainmenu.matches(":popover-open"), "mainmenu popover starts closed");
+  assert_false(openMainMenu.matches(":open"), "openMainMenu item starts closed");
+  assert_false(bgcolor_is_open(openMainMenu), "openMainMenu item starts closed (style)");
   await clickOn(openMainMenu);
   assert_true(mainmenu.matches(":popover-open"), "mainmenu opens");
+  assert_true(openMainMenu.matches(":open"), "openMainMenu item opens");
+  assert_true(bgcolor_is_open(openMainMenu), "openMainMenu item opens (style)");
 
   assert_false(submenu.matches(":popover-open"), "submenu popover starts closed");
+  assert_false(openSubMenu.matches(":open"), "openSubMenu item starts closed");
   await clickOn(openSubMenu);
   assert_true(submenu.matches(":popover-open"), "submenu opens");
+  assert_true(openSubMenu.matches(":open"), "openSubMenu item opens");
 
   // Close the submenu.
   await clickOn(openSubMenu);
 
   assert_false(submenu.matches(":popover-open"), "submenu popover gets closed");
+  assert_false(openSubMenu.matches(":open"), "openSubMenu item gets closed");
   assert_true(mainmenu.matches(":popover-open"), "mainmenu still open");
 
   // Close the mainmenu.
   await clickOn(openMainMenu);
   assert_false(mainmenu.matches(":popover-open"), "mainmenu gets closed");
+  assert_false(openMainMenu.matches(":open"), "openMainMenu item gets closed");
 }, 'User menuitem activation works with the toggle-menu command');
 
 promise_test(async () => {
   assert_false(mainmenu.matches(":popover-open"), "mainmenu popover starts closed");
+  assert_false(openMainMenu.matches(":open"), "openMainMenu item starts closed");
+  assert_false(bgcolor_is_open(openMainMenu), "openMainMenu item starts closed (style)");
   await clickOn(openMainMenu);
   assert_true(mainmenu.matches(":popover-open"), "mainmenu popover opens");
+  assert_true(openMainMenu.matches(":open"), "openMainMenu item opens");
+  assert_true(bgcolor_is_open(openMainMenu), "openMainMenu item opens (style)");
 
   assert_false(popover.matches(":popover-open"), "div popover starts closed");
+  assert_false(showPopoverMenuItem.matches(":open"), "showPopoverMenuItem item starts closed");
   await clickOn(showPopoverMenuItem);
   assert_true(popover.matches(":popover-open"), "div popover opens");
   assert_false(mainmenu.matches(":popover-open"), "mainmenu popover closes");
+  assert_false(showPopoverMenuItem.matches(":open"), "showPopoverMenuItem item stays closed");
 
   // Close the popover.
   await clickOn(openMainMenu);
@@ -199,4 +229,38 @@ promise_test(async (t) => {
   assert_false(mainmenu.matches(":popover-open"), "mainmenu popover should be closed");
   assert_false(submenu.matches(":popover-open"), "submenu popover should be closed");
 }, 'A mousedown-drag-mouseup gesture on a submenu item leaves both menus open');
+
+promise_test(async () => {
+  assert_false(submenu.matches(":popover-open"), "submenu popover starts closed");
+  assert_false(openMainMenu.matches(":open"), "openMainMenu item starts closed");
+  assert_false(bgcolor_is_open(openMainMenu), "openMainMenu item starts closed (style)");
+  await clickOn(toggleSubMenu1);
+  assert_true(submenu.matches(":popover-open"), "submenu opens");
+  assert_true(toggleSubMenu1.matches(":open"), "toggleSubMenu1 item opens");
+  assert_true(bgcolor_is_open(toggleSubMenu1), "toggleSubMenu1 item opens (style)");
+  assert_false(toggleSubMenu2.matches(":open"), "toggleSubMenu2 item stays closed");
+  assert_false(bgcolor_is_open(toggleSubMenu2), "toggleSubMenu2 item stays closed (style)");
+  assert_false(showSubMenu.matches(":open"), "showSubMenu item stays closed");
+  assert_false(bgcolor_is_open(showSubMenu), "showSubMenu item stays closed (style)");
+  // FIXME(https://crbug.com/406566432): Should closing the menu first be needed?
+  await clickOn(toggleSubMenu1);
+  await clickOn(toggleSubMenu2);
+  assert_true(submenu.matches(":popover-open"), "submenu again open after toggle");
+  assert_false(toggleSubMenu1.matches(":open"), "toggleSubMenu1 item closes");
+  assert_false(bgcolor_is_open(toggleSubMenu1), "toggleSubMenu1 item closes (style)");
+  assert_true(toggleSubMenu2.matches(":open"), "toggleSubMenu2 item opens");
+  assert_true(bgcolor_is_open(toggleSubMenu2), "toggleSubMenu2 item opens (style)");
+  assert_false(showSubMenu.matches(":open"), "showSubMenu item stays closed");
+  assert_false(bgcolor_is_open(showSubMenu), "showSubMenu item stays closed (style)");
+  // FIXME(https://crbug.com/406566432): Should closing the menu first be needed?
+  await clickOn(toggleSubMenu2);
+  await clickOn(showSubMenu);
+  assert_true(submenu.matches(":popover-open"), "submenu again open after show");
+  assert_false(toggleSubMenu1.matches(":open"), "toggleSubMenu1 item stays closed");
+  assert_false(bgcolor_is_open(toggleSubMenu1), "toggleSubMenu1 item stays closed (style)");
+  assert_false(toggleSubMenu2.matches(":open"), "toggleSubMenu2 item closes");
+  assert_false(bgcolor_is_open(toggleSubMenu2), "toggleSubMenu2 item closes (style)");
+  assert_false(showSubMenu.matches(":open"), "showSubMenu item stays closed since :open does not apply");
+  assert_false(bgcolor_is_open(showSubMenu), "showSubMenu item stays closed since :open does not apply (style)");
+}, ':open only applies to the invoker and only works for toggle-menu commands');
 </script>

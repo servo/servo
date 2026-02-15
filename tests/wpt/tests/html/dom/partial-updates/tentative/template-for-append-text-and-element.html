@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>HTML partial updates - declarative append</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="placeholder" marker="placeholder">Some<?start name=placeholder?></div>
+<template for="placeholder"> <span>content</span></template>
+<script>
+  test(() => {
+    const placeholder = document.getElementById("placeholder");
+    assert_equals(placeholder.textContent, "Some content");
+    assert_equals(placeholder.firstChild.textContent, "Some");
+    assert_equals(placeholder.lastChild.tagName, "SPAN");
+  }, "<template for> with text");
+</script>

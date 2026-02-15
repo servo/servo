@@ -100,6 +100,7 @@ class BidiSession:
         self.script = modules.Script(self)
         self.session = modules.Session(self)
         self.storage = modules.Storage(self)
+        self.user_agent_client_hints = modules.UserAgentClientHints(self)
         self.web_extension = modules.WebExtension(self)
 
     @property

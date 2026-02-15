@@ -3,7 +3,7 @@
 <title>HTML Test: focusgroup - Native arrow key handler elements and Tab escape</title>
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
 <link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
-<meta name="assert" content="Native arrow key handler elements inside a focusgroup do not trigger focusgroup arrow navigation when focused. Tab/Shift+Tab treats them as if they have focusgroup=none, following normal Tab order.">
+<meta name="assert" content="Native arrow key handler elements inside a focusgroup do not trigger focusgroup arrow navigation when focused. Tab/Shift+Tab from a focused handler moves to the next/previous segment entry.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -29,7 +29,7 @@
     const bold = document.getElementById("bold");
     const search = document.getElementById("search");
 
-    bold.focus();
+    await focusAndWait(bold);
     assert_equals(document.activeElement, bold, "Precondition: focus starts on bold button");
 
     await focusAndKeyPress(bold, kArrowRight);
@@ -42,7 +42,7 @@
   promise_test(async t => {
     const search = document.getElementById("search");
 
-    search.focus();
+    await focusAndWait(search);
     assert_equals(document.activeElement, search, "Precondition: focus starts on native arrow key handler");
 
     await focusAndKeyPress(search, kArrowRight);
@@ -54,32 +54,31 @@
                   "Left arrow should not move focus out of native arrow key handler (native behavior)");
   }, "Arrow keys cannot navigate FROM native arrow key handler (exit blocked)");
 
-  // Tab from native arrow key handler: the element is treated as if it has
-  // focusgroup="none", so normal Tab order applies. Non-entry focusgroup
-  // items are skipped, and focus exits the focusgroup.
+  // Tab from native arrow key handler: the focused handler creates a segment
+  // boundary, so Tab moves to the next segment's entry element.
   promise_test(async t => {
     const search = document.getElementById("search");
-    const after = document.getElementById("after");
+    const italic = document.getElementById("italic");
 
-    search.focus();
+    await focusAndWait(search);
     assert_equals(document.activeElement, search, "Precondition: focus starts on native arrow key handler");
 
     await navigateFocusForward();
-    assert_equals(document.activeElement, after,
-                  "Tab from native arrow key handler should follow normal Tab order (exit focusgroup)");
-  }, "Tab from native arrow key handler follows normal Tab order");
+    assert_equals(document.activeElement, italic,
+                  "Tab from native arrow key handler should move to next segment entry");
+  }, "Tab from native arrow key handler moves to next segment entry");
 
-  // Shift+Tab from native arrow key handler: the element is treated as if it has
-  // focusgroup="none". Looking backward, the entry element (bold) is visited.
+  // Shift+Tab from native arrow key handler: the focused handler creates a
+  // segment boundary, so Shift+Tab moves to the previous segment's entry.
   promise_test(async t => {
     const bold = document.getElementById("bold");
     const search = document.getElementById("search");
 
-    search.focus();
+    await focusAndWait(search);
     assert_equals(document.activeElement, search, "Precondition: focus starts on native arrow key handler");
 
     await navigateFocusBackward();
     assert_equals(document.activeElement, bold,
-                  "Shift+Tab from native arrow key handler should go to entry element");
-  }, "Shift+Tab from native arrow key handler goes to entry element");
+                  "Shift+Tab from native arrow key handler should go to previous segment entry");
+  }, "Shift+Tab from native arrow key handler goes to previous segment entry");
 </script>

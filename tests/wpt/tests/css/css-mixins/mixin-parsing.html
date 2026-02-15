@@ -28,14 +28,20 @@
     test_invalid_child('@mixin --m() { @layer bar; }', '@layer (statement)');
     test_invalid_child('@mixin --m() { @layer bar {} }', '@layer (block)');
     test_invalid_child('@mixin --m() { @layer {} }', '@layer (anonymous)');
-    test_valid_child('@mixin --m() { div {} }', 'style rule');
-    test_valid_child('@mixin --m() { > div {} }', 'style rule (relative)');
-    test_valid_child('@mixin --m() { @media (width) {} }', '@media');
-    test_valid_child('@mixin --m() { @supports (width:0) {} }', '@supports');
-    test_valid_child('@mixin --m() { @container (width) {} }', '@container');
-    test_valid_child('@mixin --m() { @starting-style {} }', '@starting-style');
-    test_valid_child('@mixin --m() { @scope (.foo) {} }', '@scope');
-    test_valid_child('@mixin --m() { @scope {} }', '@scope (implicit)');
+
+    // NOTE: The @layer rule will be dropped, leaving a valid but empty @mixin body.
+    test_valid_child('@mixin --m() { @result { @layer bar; } }', '@layer (statement) within @result');
+    test_valid_child('@mixin --m() { @result { @layer bar {} } }', '@layer (block) within @result');
+    test_valid_child('@mixin --m() { @result { @layer {} } }', '@layer (anonymous) within @result');
+
+    test_valid_child('@mixin --m() { @result { div {} } }', 'style rule');
+    test_valid_child('@mixin --m() { @result { > div {} } }', 'style rule (relative)');
+    test_valid_child('@mixin --m() { @result { @media (width) {} } }', '@media');
+    test_valid_child('@mixin --m() { @result { @supports (width:0) {} } }', '@supports');
+    test_valid_child('@mixin --m() { @result { @container (width) {} } }', '@container');
+    test_valid_child('@mixin --m() { @result { @starting-style {} } }', '@starting-style');
+    test_valid_child('@mixin --m() { @result { @scope (.foo) {} } }', '@scope');
+    test_valid_child('@mixin --m() { @result { @scope {} } }', '@scope (implicit)');
   </script>
 
   </body>

@@ -8,7 +8,7 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <body>
 
-<permission id="permission_element" type="camera"></permission>
+<usermedia id="usermedia_element" type="camera"></usermedia>
 
 <script>
   promise_test(async() => {
@@ -17,22 +17,22 @@
     await test_driver.set_permission({name: "camera"}, "denied");
     await navigator.permissions.query({name: "camera"});
 
-    assert_false(permission_element.matches(":granted"));
+    assert_false(usermedia_element.matches(":granted"));
 
     // Set the camera state to allowed.
     await test_driver.set_permission({name: "camera"}, "granted");
     await navigator.permissions.query({name: "camera"});
 
     // The granted selector should now be applied.
-    assert_true(permission_element.matches(":granted"));
+    assert_true(usermedia_element.matches(":granted"));
 
     // Set the camera state to denied.
     await test_driver.set_permission({name: "camera"}, "denied");
     await navigator.permissions.query({name: "camera"});
 
     // The granted selector should now be removed.
-    assert_false(permission_element.matches(":granted"));
+    assert_false(usermedia_element.matches(":granted"));
 
-  }, "Permission element should not have the granted selector when the \
+  }, "Usermedia element should not have the granted selector when the \
       permission is not granted.")
 </script>

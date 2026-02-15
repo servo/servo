@@ -19,8 +19,8 @@
     background: blue;
   }
 </style>
-<div class="container">
-  <div contentname="content"><span class="red">Has red</span></div>
+<div class="container" marker="content">
+  <?start name=content><span class="red">Has red</span><?end name=content>
 </div>
 
 <script>
@@ -28,18 +28,16 @@
   async function update(html) {
     const writer = container.streamAppendHTMLUnsafe({runScripts: true}).getWriter();
     await writer.write(`
-      <template contentmethod="replace-children">
-        <div contentname="content">${html}</div>
-      </template>`);
+      <template for=content>${html}</template>`);
     await writer.close();
   }
   promise_test(async () => {
     for (let i = 0; i < 20; ++i) {
-      await update('<span class="blue">Has blue</span>');
+      await update('<?start name=content><span class="blue">Has blue</span>');
       await new Promise((resolve) => requestAnimationFrame(resolve));
       await update("Green (no span)");
       await new Promise((resolve) => requestAnimationFrame(resolve));
-      assert_equals(container.textContent.trim(), "Green (no span)");
+      assert_equals(container.textContent.trim(), "Green (no span)", container.innerHTML);
       assert_equals(
         getComputedStyle(container).backgroundColor,
         "rgb(0, 128, 0)"

@@ -73,8 +73,8 @@
                                 ? { button: actions.ButtonType.RIGHT }
                                 : undefined;
           await actions
-            .pointerMove(0, 0)
             .addPointer('pointer1', pointerType)
+            .pointerMove(0, 0)
             .pointerMove(-20, -20, { origin: target })
             .pointerDown(buttonArguments)
             .pointerMove(20, 20, { origin: target })
@@ -107,28 +107,26 @@
   }
 </script>
 <style>
-  html {
-    touch-action: none;
-  }
   #square1 {
+    touch-action: none;
+    user-select: none;
     height: 50px;
     width: 50px;
   }
 </style>
 <body onload="runTests()">
-  <div id="square1"></div>
+  <div id="square1" draggable="false"></div>
   <iframe onload="frameLoaded()" id="innerFrame" srcdoc='
     <style>
-      html {
-        touch-action: none;
-      }
       #square2 {
+        touch-action: none;
+        user-select: none;
         height: 50px;
         width: 50px;
       }
     </style>
     <body>
-      <div id="square2"></div>
+      <div id="square2" draggable="false"></div>
     </body>
   '></iframe>
   <button id="done">done</button>

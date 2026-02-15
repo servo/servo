@@ -59,38 +59,26 @@
     <script>
 
       promise_test(async() => {
-        await assert_playstate_and_current_time(target.id,
-                                            target.getAnimations()[0],
-                                            "paused");
-
-        let scrollend_promise;
+        assert_element_animation_state(target, "paused");
 
         // Sources 1 through 4 come earlier than source5 in tree-order so they
         // should have no effect.
         for (const source of [source1, source2, source3, source4]) {
-          scrollend_promise =
-              waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
-          source.scrollIntoView({block: "center"});
-          await scrollend_promise;
-          await waitForCompositorReady();
-          await assert_playstate_and_current_time(target.id,
-                                          target.getAnimations()[0],
-                                          "paused");
+          await runAndWaitForFrameUpdate(() => {
+            source.scrollIntoView({block: "center"});
+          });
+          assert_element_animation_state(target, "paused");
         }
 
-        scrollend_promise =
-              waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
-        source5.scrollIntoView({block: "center"});
-        await scrollend_promise;
-        await waitForCompositorReady();
+        await runAndWaitForFrameUpdate(() => {
+          source5.scrollIntoView({block: "center"});
+        });
 
         assert_greater_than(scroller.scrollTop, 0, "did scroll");
 
         // The target should now be playing as the trigger condition
         // has been met.
-        await assert_playstate_and_current_time(target.id,
-                                          target.getAnimations()[0],
-                                          "running");
+        assert_element_animation_state(target, "running");
       }, "Among un-scoped triggers with same name, last in tree-order is "+
          "selected.");
     </script>

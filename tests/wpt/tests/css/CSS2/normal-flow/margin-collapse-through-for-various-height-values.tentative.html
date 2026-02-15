@@ -111,9 +111,11 @@ let testcases = [
   { height: "1px", maxHeight: "stretch", parentHeight: "100px" },
 ];
 
-function generate(testcase, serialization) {
+// The checks below force layout, so as an optimization, generate all elements first.
+let generatedData = testcases.map(testcase => {
   let { height, minHeight, maxHeight, parentHeight, ...unrecognized } = testcase;
   assert_array_equals(Object.keys(unrecognized), [], "No unrecognized key.");
+  let serialization = JSON.stringify(testcase);
   let wrapper = document.createElement("div");
   wrapper.className = "wrapper";
   wrapper.style.height = parentHeight || "";
@@ -129,23 +131,16 @@ function generate(testcase, serialization) {
   test.style.maxHeight = maxHeight || "";
   wrapper.append(before, test, after);
   document.body.append(wrapper);
-  return [before, test, after];
-}
+  return { serialization, before, test, after };
+});
+
 function round(value) {
   return Math.round(value * 10) / 10;
 }
 
-let resolveDomReady;
-let domReady = new Promise(resolve => {
-  resolveDomReady = resolve;
-});
-for (let testcase of testcases) {
-  let serialization = JSON.stringify(testcase);
-  promise_test(async () => {
-    let [before, test, after] = generate(testcase, serialization);
-
-    // The checks below force layout, so as an optimization, run them asynchronously after generating all tests.
-    await domReady;
+for (let data of generatedData) {
+  test(() => {
+    let { before, test, after } = data;
     let height = round(test.getBoundingClientRect().height);
     let marginSum = round(after.getBoundingClientRect().top - before.getBoundingClientRect().bottom) - height;
     if (height === 0) {
@@ -153,7 +148,6 @@ for (let testcase of testcases) {
     } else {
       assert_equals(marginSum, 100, "margins should NOT collapse through when height is " + height);
     }
-  }, serialization);
+  }, data.serialization);
 }
-resolveDomReady();
 </script>

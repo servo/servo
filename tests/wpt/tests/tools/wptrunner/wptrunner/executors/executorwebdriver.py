@@ -40,6 +40,7 @@ from .protocol import (BaseProtocolPart,
                        BidiBluetoothProtocolPart,
                        BidiBrowsingContextProtocolPart,
                        BidiEmulationProtocolPart,
+                       BidiUserAgentClientHintsProtocolPart,
                        BidiEventsProtocolPart,
                        BidiPermissionsProtocolPart,
                        BidiScriptProtocolPart,
@@ -352,6 +353,19 @@ class WebDriverBidiEventsProtocolPart(BidiEventsProtocolPart):
         return self.webdriver.bidi_session.add_event_listener(name=name, fn=fn)
 
 
+class WebDriverBidiUserAgentClientHintsProtocolPart(BidiUserAgentClientHintsProtocolPart):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.webdriver = None
+
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    async def set_client_hints_override(self, client_hints, contexts):
+        return await self.webdriver.bidi_session.user_agent_client_hints.set_client_hints_override(
+            client_hints=client_hints, contexts=contexts)
+
+
 class WebDriverBidiScriptProtocolPart(BidiScriptProtocolPart):
     def __init__(self, parent):
         super().__init__(parent)
@@ -388,6 +402,10 @@ class WebDriverBidiEmulationProtocolPart(BidiEmulationProtocolPart):
             contexts):
         return await self.webdriver.bidi_session.emulation.set_screen_orientation_override(
             screen_orientation=screen_orientation, contexts=contexts)
+
+    async def set_touch_override(self, max_touch_points, contexts):
+        return await self.webdriver.bidi_session.emulation.set_touch_override(
+            max_touch_points=max_touch_points, contexts=contexts)
 
 
 class WebDriverBidiPermissionsProtocolPart(BidiPermissionsProtocolPart):
@@ -1127,6 +1145,7 @@ class WebDriverBidiProtocol(WebDriverProtocol):
                   WebDriverBidiPermissionsProtocolPart,
                   WebDriverBidiScriptProtocolPart,
                   WebDriverBidiWebExtensionsProtocolPart,
+                  WebDriverBidiUserAgentClientHintsProtocolPart,
                   *(part for part in WebDriverProtocol.implements)
                   ]
 

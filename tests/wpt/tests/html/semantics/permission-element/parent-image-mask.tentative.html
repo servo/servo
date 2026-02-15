@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Permission Element: invalid if parent has mask-image</title>
+    <title>Usermedia Element: invalid if parent has mask-image</title>
     <link
       rel="help"
       href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style"
@@ -14,14 +14,14 @@
     <script>
       async_test((t) => {
         const parent = document.createElement("div");
-        const element = document.createElement("permission");
+        const element = document.createElement("usermedia");
         element.setAttribute("type", "camera");
         parent.appendChild(element);
 
         parent.style.maskImage = "url(mask.png)";
 
         element.onvalidationstatuschange = t.step_func(() => {
-          // These two invalid reasons are expected when the permission element was just created.
+          // These two invalid reasons are expected when the usermedia element was just created.
           if (
             element.invalidReason == "unsuccessful_registration" ||
             element.invalidReason == "intersection_changed"
@@ -37,7 +37,7 @@
         });
 
         document.body.appendChild(parent);
-      }, "Permission element is invalid if it has a parent with mask-image.");
+      }, "Usermedia element is invalid if it has a parent with mask-image.");
     </script>
   </body>
 </html>

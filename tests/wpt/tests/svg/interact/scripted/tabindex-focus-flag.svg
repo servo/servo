@@ -43,11 +43,9 @@
         <clipPath tabindex="0"></clipPath>
         <defs tabindex="0"></defs>
         <desc tabindex="0"></desc>
-        <hatch tabindex="0"></hatch>
         <linearGradient tabindex="0"></linearGradient>
         <marker tabindex="0"></marker>
         <mask tabindex="0"></mask>
-        <meshgradient tabindex="0"></meshgradient>
         <metadata tabindex="0"></metadata>
         <pattern tabindex="0"></pattern>
         <radialGradient tabindex="0"></radialGradient>
@@ -97,11 +95,9 @@
         ['clipPath[tabindex]', false],
         ['defs[tabindex]', false],
         ['desc[tabindex]', false],
-        ['hatch[tabindex]', false],
         ['linearGradient[tabindex]', false],
         ['marker[tabindex]', false],
         ['mask[tabindex]', false],
-        ['meshgradient[tabindex]', false],
         ['metadata[tabindex]', false],
         ['pattern[tabindex]', false],
         ['radialGradient[tabindex]', false],

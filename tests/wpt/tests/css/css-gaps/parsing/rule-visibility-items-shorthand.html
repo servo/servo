@@ -37,6 +37,13 @@ const testCases = [
             row: 'between'
         }
     },
+    {
+        input: 'auto',
+        expected: {
+            column: 'auto',
+            row: 'auto'
+        }
+    },
   ];
 for(rule_property in rule_properties) {
     const [column, row] = rule_properties[rule_property];

@@ -5,9 +5,9 @@ mozlog==8.0.0
 mozprocess==1.4.0
 mozshellutil==1.0.0
 packaging==25.0
-pillow==10.4.0; python_version < '3.9'
-pillow==11.3.0; python_version >= '3.9'
+pillow==11.3.0; python_version == '3.9'
+pillow==12.1.1; python_version >= '3.10'
 requests==2.32.3
 types-requests==2.32.0.20241016
-urllib3==2.2.2
+urllib3==2.6.3
 aioquic==1.2.0

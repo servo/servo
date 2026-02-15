@@ -9,6 +9,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
 <!--
@@ -84,7 +85,7 @@
 
     // Test: Arrow navigation TO the conflict element works.
     promise_test(async t => {
-      beforeBtn.focus();
+      await focusAndWait(beforeBtn);
       assert_equals(document.activeElement, beforeBtn, 'Precondition: before button focused');
 
       await focusAndKeyPress(beforeBtn, kArrowRight);
@@ -94,7 +95,7 @@
 
     // Test: Arrow navigation FROM the conflict element is blocked.
     promise_test(async t => {
-      element.focus();
+      await focusAndWait(element);
       assert_equals(document.activeElement, element, `Precondition: ${name} is focused`);
 
       await assert_arrow_keys_do_not_move_focus(element);

@@ -7,7 +7,9 @@
     <script src="/resources/testharnessreport.js"></script>
     <style>
       @mixin --m1() {
-        color: green;
+        @result {
+          color: green;
+        }
       }
       div {
         color: red;

@@ -28,7 +28,7 @@
     var item1 = document.getElementById("item1");
     var after = document.getElementById("after");
 
-    before.focus();
+    await focusAndWait(before);
     await navigateFocusForward();
     assert_equals(document.activeElement, item1, "Tab should enter focusgroup at first item in tree order");
 
@@ -41,7 +41,7 @@
     var item1 = document.getElementById("item1");
     var before = document.getElementById("before");
 
-    after.focus();
+    await focusAndWait(after);
     await navigateFocusBackward();
     assert_equals(document.activeElement, item1, "Shift+Tab should enter focusgroup at first item in tree order");
 
@@ -54,7 +54,7 @@
     var item2 = document.getElementById("item2");
     var item3 = document.getElementById("item3");
 
-    item1.focus();
+    await focusAndWait(item1);
 
     await focusAndKeyPress(item1, kArrowRight);
     assert_equals(document.activeElement, item2, "Arrow key navigation should work within focusgroup");

@@ -34,6 +34,16 @@
     inherits: false;
     initial-value: random(1, 30);
   }
+  @property --percent {
+    syntax: "<percentage>";
+    inherits: true;
+    initial-value: 3%;
+  }
+  @property --transform-function {
+    syntax: "<transform-function>";
+    inherits: true;
+    initial-value: translate(3%);
+  }
   #container {
     font-size: 30px;
   }
@@ -98,12 +108,15 @@ function test_random_computed_value(property, specified, computed, titleExtra, o
   test(() => {
     for (i = 0; i < iterations; ++i) {
       const target = document.getElementById('target');
-      assert_true(property in getComputedStyle(target), property + " doesn't seem to be supported in the computed style");
-      assert_true(CSS.supports(property, specified), "'" + specified + "' is a supported value for " + property + ".");
-      target.style[property] = '';
-      target.style[property] = specified;
+      if (!property.startsWith('--')) {
+        assert_true(property in getComputedStyle(target), property + " doesn't seem to be supported in the computed style");
+        assert_true(CSS.supports(property, specified), "'" + specified + "' is a supported value for " + property + ".");
+      }
 
-      let readValue = getComputedStyle(target)[property];
+      target.style.setProperty(property, '');
+      target.style.setProperty(property, specified);
+
+      let readValue = getComputedStyle(target).getPropertyValue(property);
       if (options.comparisonFunction) {
         options.comparisonFunction(readValue, computed);
       } else if (Array.isArray(computed)) {
@@ -112,9 +125,9 @@ function test_random_computed_value(property, specified, computed, titleExtra, o
         test_random_equals(readValue, computed);
       }
       if (readValue !== specified) {
-        target.style[property] = '';
-        target.style[property] = readValue;
-        test_random_equals(getComputedStyle(target)[property], readValue,
+        target.style.setProperty(property, '');
+        target.style.setProperty(property, readValue);
+        test_random_equals(getComputedStyle(target).getPropertyValue(property), readValue,
                       'computed value should round-trip');
       }
     }
@@ -144,12 +157,13 @@ function test_random_computed_value_in_range(property, specified, computedMin, c
   test(() => {
     for (i = 0; i < iterations; ++i) {
       const target = document.getElementById('target');
-      assert_true(property in getComputedStyle(target), property + " doesn't seem to be supported in the computed style");
-      assert_true(CSS.supports(property, specified), "'" + specified + "' is a supported value for " + property + ".");
-      target.style[property] = '';
-      target.style[property] = specified;
-
-      let readValue = getComputedStyle(target)[property];
+      if (!property.startsWith('--')) {
+        assert_true(property in getComputedStyle(target), property + " doesn't seem to be supported in the computed style");
+        assert_true(CSS.supports(property, specified), "'" + specified + "' is a supported value for " + property + ".");
+      }
+      target.style.setProperty(property, '');
+      target.style.setProperty(property, specified);
+      let readValue = getComputedStyle(target).getPropertyValue(property);
 
       let readValueNumber = parseFloat(readValue);
       let computedMinNumber = parseFloat(computedMin);
@@ -188,12 +202,15 @@ function test_random_computed_value_has_fixed(property, specified, minPercentage
   test(() => {
     for (i = 0; i < iterations; ++i) {
       const target = document.getElementById('target');
-      assert_true(property in getComputedStyle(target), property + " doesn't seem to be supported in the computed style");
-      assert_true(CSS.supports(property, specified), "'" + specified + "' is a supported value for " + property + ".");
-      target.style[property] = '';
-      target.style[property] = specified;
+      if (!property.startsWith('--')) {
+        assert_true(property in getComputedStyle(target), property + " doesn't seem to be supported in the computed style");
+        assert_true(CSS.supports(property, specified), "'" + specified + "' is a supported value for " + property + ".");
+      }
 
-      let readValue = getComputedStyle(target)[property];
+      target.style.setProperty(property, '');
+      target.style.setProperty(property, specified);
+
+      let readValue = getComputedStyle(target).getPropertyValue(property);
 
       // strip 'random(' and ')'.
       let stippedReadValue = readValue.replace('random(', '').replace(')', '');
@@ -357,10 +374,36 @@ test_random_computed_value_has_fixed('translate', 'random(10%, 100%)', '10%', '1
 test_random_computed_value_has_fixed('translate', 'random(3 * 10% , 10 * 10%)', '30%', '100%');
 test_random_computed_value_has_fixed('translate', 'random(10%, 1%)', '10%', '1%');
 test_random_computed_value_has_fixed('translate', 'random(--identifier element-shared, 10%, 100%)', '10%', '100%');
+test_random_computed_value_has_fixed('text-indent', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('flex-basis', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('offset-distance', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('shape-margin', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('stroke-dasharray', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('stroke-dashoffset', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('stroke-width', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('background-position-x', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('background-position-y', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('border-top-left-radius', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('border-top-right-radius', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('border-bottom-left-radius', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('border-bottom-right-radius', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('scroll-padding-top', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('scroll-padding-bottom', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('scroll-padding-left', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('scroll-padding-right', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('cx', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('cy', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('rx', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('ry', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('x', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('y', 'random(10%, 30%)', '10%', '30%');
+test_random_computed_value_has_fixed('border-image-slice', 'random(10%, 30%)', '10%', '30%');
 
 // Test resolvable percentage values
+test_random_computed_value('background-color', 'rgb(225, 215, 0, random(30%, 10%))', 'rgba(225, 215, 0, 0.3)');
 test_random_computed_value('font-size', 'random(30%, 10%)', '9px');
 test_random_computed_value('font-size', 'random(10px * 10% / 1%, 0%)', '100px');
+test_random_computed_value_in_range('--percent', 'random(10%, 30%)', '10%', '30%');
 
 // Test out of range math functions for fixed value
 test_random_base_is_not_1('width', 'random(fixed random(1, 2), 10px, 100px)');
@@ -790,6 +833,34 @@ test(() => {
   document.body.appendChild(holder);
 
   try {
+    var allHaveSameMarginTopAndMarginBlockStart = true;
+    for (i = 0; i < iterations; ++i) {
+      const el1 = document.createElement('div');
+      el1.style['margin-block-start'] = 'random(element-shared, 10px, 30px)';
+      holder.appendChild(el1);
+      const el2 = document.createElement('div');
+      el2.style['margin-top'] = 'random(element-shared, 10px, 30px)';
+      holder.appendChild(el2);
+
+      const el1ComputedMargin = getComputedStyle(el1)['margin-block-start'];
+      const el2ComputedMarginTop = getComputedStyle(el2)['margin-top'];
+      if (el1ComputedMargin != el2ComputedMarginTop) {
+        allHaveSameMarginTopAndMarginBlockStart = false;
+      }
+    }
+
+    assert_false(allHaveSameMarginTopAndMarginBlockStart,
+                 "random() should not be shared between logical and physical properties");
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Shared by property - logical and physical property: random(element-shared, a, b)`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
     for (i = 0; i < iterations; ++i) {
       const t1 = document.createElement('div');
       t1.className = 'randomFixed';
@@ -803,6 +874,39 @@ test(() => {
     document.body.removeChild(holder);
   }
 }, `Fixed: random(fixed <number>, a, b)`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el = document.createElement('div');
+    el.style.setProperty('--transform-function', 'translate(random(30%, 10%))');
+    holder.appendChild(el);
+    let computed = getComputedStyle(el).getPropertyValue('--transform-function');
+
+    test_random_equals(computed, "translate(30%)");
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `Custom property with random() inside transform() should not have fixed`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el = document.createElement('div');
+    el.style.setProperty('background-image', 'radial-gradient(at 30% random(0%, 30%), silver random(30%, 10%, 1%), gold random(70%, 10%, 1%))');
+    holder.appendChild(el);
+    let computed = getComputedStyle(el).getPropertyValue('background-image');
+
+    const re = /radial-gradient\(at 30% random\(fixed 0.\d+, 0%, 30%\), rgb\(192, 192, 192\) 30%, rgb\(255, 215, 0\) 70%\)/;
+    assert_true(re.test(computed));
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() with percentages inside multiple nested functions`);
 
 // Test random value sharing
 test(() => {

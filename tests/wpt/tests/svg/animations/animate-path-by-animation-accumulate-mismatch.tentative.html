@@ -1,0 +1,41 @@
+<!doctype html>
+<title>SVG path 'd' attribute by animation with accumulate='sum' and mismatched commands</title>
+<link rel="help" href="https://www.w3.org/TR/SVG2/paths.html#TheDProperty"/>
+<link rel="help" href="https://svgwg.org/specs/animations/#AccumulateAttribute"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<script src="support/animated-path-helpers.js"></script>
+<svg>
+  <!-- Base value has L (lineto) commands, by value has Q (quadratic curve) commands -->
+  <path id="path" fill="green" d="M10,10 L30,10 L30,30 L10,30 Z">
+    <animate id="animation" attributeName="d"
+             by="M20,20 Q40,20 40,40 Q20,40 20,20 Z"
+             accumulate="sum"
+             begin="0s" dur="2s" repeatCount="3" fill="freeze"/>
+  </path>
+</svg>
+<script>
+const rootSVGElement = document.querySelector("svg");
+
+// Mismatched commands cause blending to fail; accumulation also fails so animated value stays unchanged.
+function sample1() {
+  // All times: base value (blending and accumulation both fail)
+  assert_animated_path_equals(path, "M10,10 L30,10 L30,30 L10,30 Z");
+}
+
+smil_async_test((t) => {
+  const expectedValues = [
+    // [animationId, time, sampleCallback]
+    ["animation", 0.0,   sample1],
+    ["animation", 1.0,   sample1],
+    ["animation", 2.0,   sample1],
+    ["animation", 3.0,   sample1],
+    ["animation", 4.0,   sample1],
+    ["animation", 5.0,   sample1],
+    ["animation", 6.0,   sample1],
+    ["animation", 6.001, sample1]
+  ];
+  runAnimationTest(t, expectedValues);
+});
+</script>

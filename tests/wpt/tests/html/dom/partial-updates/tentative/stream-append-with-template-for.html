@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8" />
+<title>streamHTML methods can apply template with for</title>
+<link rel=help href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div marker=p id="placeholder"><?start name=p>Old content<?end name=p></div>
+<script>
+promise_test(async t => {
+    const writable = document.body.streamAppendHTMLUnsafe({runScripts: true});
+    const writer = writable.getWriter();
+    await writer.write('<template for="p">');
+    await writer.write("New content");
+    await writer.write("</template>");
+    await writer.close();
+    assert_equals(document.querySelector("#placeholder").textContent, "New content")
+});
+</script>

@@ -2,8 +2,41 @@ const kValidAvailabilities =
     ['unavailable', 'downloadable', 'downloading', 'available'];
 const kAvailableAvailabilities = ['downloadable', 'downloading', 'available'];
 
+const kAudioPrompt = 'transcribe this';
+const kImagePrompt = 'describe this';
 const kTestPrompt = 'Please write a sentence in English.';
+
 const kTestContext = 'This is a test; this is only a test.';
+
+const kValidAudioPath = '/media/speech.wav';
+const kValidImagePath = '/images/computer.jpg';
+const kValidSVGImagePath = '/images/pattern.svg';
+const kValidVideoPath = '/media/test.webm';
+
+const kAudioOptions = {
+  expectedInputs: [{type: 'audio'}]
+};
+const kImageOptions = {
+  expectedInputs: [{type: 'image'}]
+};
+
+const kValidAudioKeywords =
+    ['audio', 'speech', 'sentence', 'single', 'segment'];
+const kValidCanvasImageKeywords = ['image', 'black', 'square', 'blank'];
+const kValidImageKeywords =
+    ['image', 'computer', 'keyboard', 'desk', 'PC', 'monitor', 'screen'];
+const kValidSVGImageKeywords =
+    ['image', 'color', 'red', 'green', 'blue', 'black'];
+const kValidVideoKeywords = [
+  'image', 'color', 'bip', 'black', 'white', 'yellow', 'green', 'blue', 'red',
+  'video', 'screen'
+];
+
+const kValidAudioRegex = matchKeywordsRegex(kValidAudioKeywords);
+const kValidCanvasImageRegex = matchKeywordsRegex(kValidCanvasImageKeywords);
+const kValidImageRegex = matchKeywordsRegex(kValidImageKeywords);
+const kValidSVGImageRegex = matchKeywordsRegex(kValidSVGImageKeywords);
+const kValidVideoRegex = matchKeywordsRegex(kValidVideoKeywords);
 
 const getId = (() => {
   let idCount = 0;
@@ -299,4 +332,17 @@ function consumeTransientUserActivation() {
   const win = window.open('about:blank', '_blank');
   if (win)
     win.close();
+}
+
+// Helper function to create a regex from some keywords.
+function matchKeywordsRegex(keywords) {
+  const keywordsPattern = keywords.join('|');
+  return new RegExp(`(${keywordsPattern})`, 'i');
+}
+
+function messageWithContent(prompt, type, value) {
+  return [{
+    role: 'user',
+    content: [{type: 'text', value: prompt}, {type: type, value: value}]
+  }];
 }

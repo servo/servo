@@ -1004,8 +1004,12 @@ def start_servers(logger, host, ports, paths, routes, bind_address, config,
                          'Requires OpenSSL 1.0.2+')
             continue
 
-        # Skip WebTransport over HTTP/3 server unless if is enabled explicitly.
-        if scheme == 'webtransport-h3' and not kwargs.get("webtransport_h3"):
+        # Skip WebTransport over HTTP/3 server unless it is enabled explicitly.
+        if scheme == "webtransport-h3" and not kwargs.get("webtransport_h3"):
+            continue
+
+        # Skip over DNS unless it is enabled explicitly.
+        if scheme == "dns" and not kwargs.get("dns"):
             continue
 
         for port in ports:
@@ -1023,6 +1027,7 @@ def start_servers(logger, host, ports, paths, routes, bind_address, config,
                 "ws": start_ws_server,
                 "wss": start_wss_server,
                 "webtransport-h3": start_webtransport_h3_server,
+                "dns": start_dns_server,
             }[scheme]
 
             server_proc = ServerProc(mp_context, scheme=scheme)
@@ -1201,6 +1206,19 @@ def start_webtransport_h3_server(logger, host, port, paths, routes, bind_address
         sys.exit(0)
 
 
+def start_dns_server(logger, host, port, paths, routes, bind_address, config, **kwargs):
+    try:
+        from .dns import DNSServerDaemon
+        return DNSServerDaemon(host=host,
+                               port=port,
+                               bind_address=bind_address,
+                               config=config,
+                               wildcards=kwargs.get("dns_wildcards"))
+    except Exception as error:
+        logger.critical(f"Failed to start DNS server: {error}")
+        sys.exit(0)
+
+
 def start(logger, config, routes, mp_context, log_handlers, **kwargs):
     host = config["server_host"]
     ports = config.ports
@@ -1263,6 +1281,7 @@ class ConfigBuilder(config.ConfigBuilder):
             "ws": ["auto"],
             "wss": ["auto"],
             "webtransport-h3": ["auto"],
+            "dns": [8053],
         },
         "check_subdomains": True,
         "bind_address": True,
@@ -1387,6 +1406,10 @@ def get_parser():
                         help="Disable the HTTP/2.0 server")
     parser.add_argument("--webtransport-h3", action="store_true",
                         help="Enable WebTransport over HTTP/3 server")
+    parser.add_argument("--dns", action="store_true",
+                        help="Enable DNS server")
+    parser.add_argument("--dns-wildcards", type=int, metavar="N",
+                        help="Provide wildcards for N levels of subdomains")
     parser.add_argument("--exit-after-start", action="store_true",
                         help="Exit after starting servers")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
@@ -1427,8 +1450,8 @@ def get_logger(log_level, log_handlers):
     return logger
 
 
-def run(config_cls=ConfigBuilder, route_builder=None, mp_context=None, log_handlers=None,
-        **kwargs):
+def run(venv=None, config_cls=ConfigBuilder, route_builder=None,
+        mp_context=None, log_handlers=None, **kwargs):
     logger = get_logger("INFO", log_handlers)
 
     if mp_context is None:

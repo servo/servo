@@ -58,7 +58,7 @@ function assert_style_value_equals(a, b) {
       assert_equals(a.value, b.value);
       break;
     case 'CSSUnitValue':
-      assert_approx_equals(a.value, b.value, 1e-6);
+      assert_approx_equals(a.value, b.value, 1e-5);
       assert_equals(a.unit, b.unit);
       break;
     case 'CSSMathSum':
