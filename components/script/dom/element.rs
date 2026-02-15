@@ -113,6 +113,7 @@ use crate::dom::domrect::DOMRect;
 use crate::dom::domrectlist::DOMRectList;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::elementinternals::ElementInternals;
+use crate::dom::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
@@ -4599,7 +4600,7 @@ impl VirtualMethods for Element {
 
         let doc = self.owner_document();
 
-        let fullscreen = doc.GetFullscreenElement();
+        let fullscreen = doc.fullscreen_element();
         if fullscreen.as_deref() == Some(self) {
             doc.exit_fullscreen(can_gc);
         }
@@ -5502,7 +5503,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
                 .upcast::<EventTarget>()
                 .fire_event(atom!("fullscreenerror"), CanGc::from_cx(cx));
             promise.reject_error(
-                Error::Type(String::from("fullscreen is not connected")),
+                Error::Type(c"fullscreen is not connected".to_owned()),
                 CanGc::from_cx(cx),
             );
             return;
@@ -5512,9 +5513,13 @@ impl TaskOnce for ElementPerformFullscreenEnter {
         // The following operations is based on the old version of the specs.
         element.set_fullscreen_state(true);
         document.set_fullscreen_element(Some(&element));
-        document
-            .upcast::<EventTarget>()
-            .fire_event(atom!("fullscreenchange"), CanGc::from_cx(cx));
+        document.upcast::<EventTarget>().fire_event_with_params(
+            atom!("fullscreenchange"),
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable,
+            EventComposed::Composed,
+            CanGc::from_cx(cx),
+        );
 
         // Step 14.
         // > Resolve promise with undefined.
@@ -5549,9 +5554,13 @@ impl TaskOnce for ElementPerformFullscreenExit {
         // The following operations is based on the old version of the specs.
         element.set_fullscreen_state(false);
         document.set_fullscreen_element(None);
-        document
-            .upcast::<EventTarget>()
-            .fire_event(atom!("fullscreenchange"), CanGc::from_cx(cx));
+        document.upcast::<EventTarget>().fire_event_with_params(
+            atom!("fullscreenchange"),
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable,
+            EventComposed::Composed,
+            CanGc::from_cx(cx),
+        );
 
         // Step 16
         // > Resolve promise with undefined.

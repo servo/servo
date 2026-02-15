@@ -16,6 +16,7 @@ use js::jsval::JSVal;
 use js::realm::CurrentRealm;
 use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleValue};
 use js::typedarray::{self, HeapUint8ClampedArray};
+use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::interfaces::TestBindingHelpers;
 use script_bindings::record::Record;
@@ -997,7 +998,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     fn PromiseRejectWithTypeError(&self, p: &Promise, s: USVString, can_gc: CanGc) {
-        p.reject_error(Error::Type(s.0), can_gc);
+        p.reject_error(Error::Type(cformat!("{}", s.0)), can_gc);
     }
 
     fn ResolvePromiseDelayed(&self, p: &Promise, value: DOMString, delay: u64) {
@@ -1112,11 +1113,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     fn MethodThrowToRejectPromise(&self) -> Fallible<Rc<Promise>> {
-        Err(Error::Type("test".to_string()))
+        Err(Error::Type(c"test".to_owned()))
     }
 
     fn GetGetterThrowToRejectPromise(&self) -> Fallible<Rc<Promise>> {
-        Err(Error::Type("test".to_string()))
+        Err(Error::Type(c"test".to_owned()))
     }
 
     fn MethodInternalThrowToRejectPromise(&self, _arg: u64) -> Rc<Promise> {
@@ -1124,7 +1125,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     }
 
     fn StaticThrowToRejectPromise(_: &GlobalScope) -> Fallible<Rc<Promise>> {
-        Err(Error::Type("test".to_string()))
+        Err(Error::Type(c"test".to_owned()))
     }
 
     fn StaticInternalThrowToRejectPromise(_: &GlobalScope, _arg: u64) -> Rc<Promise> {

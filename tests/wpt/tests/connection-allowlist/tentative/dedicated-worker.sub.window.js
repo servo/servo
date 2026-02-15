@@ -35,9 +35,7 @@ function worker_fetch_test(origin, expectation, description) {
     if (expectation === SUCCESS) {
       assert_true(msgEvent.data.success, `Fetch to ${origin} should succeed.`);
     } else {
-      // TODO(crbug.com/447954811): This should be false (blocked) once inheritance is implemented.
-      // For now, we expect SUCCESS because it's not yet implemented.
-      assert_true(msgEvent.data.success, `Fetch to ${origin} currently succeeds but should be blocked.`);
+      assert_false(msgEvent.data.success, `Fetch to ${origin} should be blocked.`);
     }
   }, description);
 }
@@ -50,9 +48,65 @@ worker_fetch_test(
 );
 
 // 2. Cross-origin fetch from the worker should be blocked as it is not allowlisted.
-// Currently it succeeds because inheritance/blocking is not implemented.
 worker_fetch_test(
   "http://{{hosts[alt][]}}" + port,
   FAILURE,
   "Cross-origin fetch from a dedicated worker (data: URL) should be blocked by inherited policy."
 );
+
+function worker_script_fetch_test(origin, expectation, description) {
+  promise_test(async t => {
+    const script_url = `${origin}/connection-allowlist/tentative/resources/worker-fetch-script.js`;
+    let worker;
+    try {
+      worker = new Worker(script_url);
+    } catch (e) {
+      assert_equals(expectation, FAILURE, "Worker constructor threw unexpectedly");
+      return;
+    }
+
+    const result = await new Promise((resolve) => {
+      worker.onmessage = () => resolve(SUCCESS);
+      worker.onerror = (e) => {
+        e.preventDefault();
+        resolve(FAILURE);
+      };
+      // Send a message to the worker. If it loaded successfully, it will
+      // respond and onmessage will fire. If it failed to load, onerror
+      // should fire.
+      worker.postMessage(`${get_host_info().HTTP_ORIGIN}/common/blank-with-cors.html`);
+    });
+
+    assert_equals(result, expectation, description);
+  }, description);
+}
+
+// 3. Same-origin main script fetch should succeed.
+worker_script_fetch_test(
+  get_host_info().HTTP_ORIGIN,
+  SUCCESS,
+  "Same-origin dedicated worker main script fetch succeeds."
+);
+
+// 4. Cross-origin main script fetch should be blocked by the creator's policy.
+worker_script_fetch_test(
+  get_host_info().HTTP_REMOTE_ORIGIN,
+  FAILURE,
+  "Cross-origin dedicated worker main script fetch should be blocked by creator policy."
+);
+
+// 5. Worker script with empty connection allowlist should not be able to fetch anything.
+promise_test(async t => {
+  const script_url = "resources/worker-fetch-script-empty.js";
+  const worker = new Worker(script_url);
+
+  const fetch_url = `${get_host_info().HTTP_ORIGIN}/common/blank-with-cors.html`;
+  worker.postMessage(fetch_url);
+
+  const msgEvent = await new Promise((resolve) => {
+    worker.onmessage = resolve;
+    worker.onerror = (e) => resolve({ data: { success: false, error: "Worker Error" } });
+  });
+
+  assert_false(msgEvent.data.success, "Fetch from worker with empty allowlist should be blocked.");
+}, "Dedicated worker with empty connection allowlist cannot perform any fetches.");

@@ -16,6 +16,5 @@ async function ch_sw_test(t, worker, url, response) {
     }))
   });
 
-  popup_window.location = url;
   await popup_load;
 }

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<style>
+  #multicol {
+    columns: 4;
+    width: 100px;
+    height: 100px;
+    gap: 0;
+    column-fill: auto;
+  }
+  #multicol > div {
+    width: 25px;
+  }
+</style>
+<div id="multicol">
+  <div style="height:50px;"></div>
+  <div style="height:50px; background: blue;"></div>
+  <div style="height:50px; background: orange;">
+    <div style="height:100px; background: purple; opacity: 0.5;"></div>
+  </div>
+  <div style="height:50px; background: yellow;"></div>
+  <div style="height:50px; background: blue;"></div>
+  <div style="height:50px;"></div>
+  <div style="height:100px; background: purple; opacity: 0.5;"></div>
+  <div style="height:100px;"></div>
+  <div style="height:10px; background: purple; opacity: 0.5;"></div>
+</div>

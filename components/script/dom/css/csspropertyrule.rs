@@ -21,7 +21,7 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSPropertyRule {
-    cssrule: CSSRule,
+    css_rule: CSSRule,
     #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     property_rule: RefCell<Arc<PropertyRule>>,
@@ -30,7 +30,7 @@ pub(crate) struct CSSPropertyRule {
 impl CSSPropertyRule {
     fn new_inherited(parent_stylesheet: &CSSStyleSheet, property_rule: Arc<PropertyRule>) -> Self {
         CSSPropertyRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
+            css_rule: CSSRule::new_inherited(parent_stylesheet),
             property_rule: RefCell::new(property_rule),
         }
     }
@@ -59,7 +59,7 @@ impl SpecificCSSRule for CSSPropertyRule {
     }
 
     fn get_css(&self) -> DOMString {
-        let guard = self.cssrule.shared_lock().read();
+        let guard = self.css_rule.shared_lock().read();
         self.property_rule.borrow().to_css_string(&guard).into()
     }
 }

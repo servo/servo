@@ -53,7 +53,7 @@
     var underline = document.getElementById("underline");
     var after = document.getElementById("after");
 
-    before.focus();
+    await focusAndWait(before);
     await navigateFocusForward();
     assert_equals(document.activeElement, bold, "Tab from before should focus Bold (first focusgroup item)");
 
@@ -78,7 +78,7 @@
     var underline = document.getElementById("underline");
     var after = document.getElementById("after");
 
-    help.focus();
+    await focusAndWait(help);
     await navigateFocusBackward();
     assert_equals(document.activeElement, bold, "Shift+Tab from Help should focus Bold");
 
@@ -91,7 +91,7 @@
     var italic = document.getElementById("italic");
     var underline = document.getElementById("underline");
 
-    bold.focus();
+    await focusAndWait(bold);
 
     await focusAndKeyPress(bold, kArrowRight);
     assert_equals(document.activeElement, italic, "Arrow right should move from Bold to Italic");
@@ -112,7 +112,7 @@
     var item2 = document.getElementById("item2");
     var after2 = document.getElementById("after2");
 
-    before2.focus();
+    await focusAndWait(before2);
     await navigateFocusForward();
     assert_equals(document.activeElement, item1, "Tab should enter at Item 1");
 
@@ -136,7 +136,7 @@
     var help = document.getElementById("help");
     var shortcuts = document.getElementById("shortcuts");
 
-    help.focus();
+    await focusAndWait(help);
 
     await focusAndKeyPress(help, kArrowRight);
     assert_equals(document.activeElement, help, "Arrow keys should not work within opted-out section");

@@ -31,7 +31,6 @@ use crate::script_runtime::CanGc;
 pub(crate) struct XRFrame {
     reflector_: Reflector,
     session: Dom<XRSession>,
-    #[ignore_malloc_size_of = "defined in webxr_api"]
     #[no_trace]
     data: Frame,
     active: Cell<bool>,
@@ -220,7 +219,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
 
         if joint_spaces.len() > radii.len() {
             return Err(Error::Type(
-                "Length of radii does not match length of joint spaces".to_string(),
+                c"Length of radii does not match length of joint spaces".to_owned(),
             ));
         }
 
@@ -269,7 +268,7 @@ impl XRFrameMethods<crate::DomTypeHolder> for XRFrame {
 
         if spaces.len() * 16 > transforms.len() {
             return Err(Error::Type(
-                "Transforms array length does not match 16 * spaces length".to_string(),
+                c"Transforms array length does not match 16 * spaces length".to_owned(),
             ));
         }
 

@@ -27,7 +27,7 @@
 
 <script>
   promise_test(async t => {
-    document.getElementById("before1").focus();
+    await focusAndWait(document.getElementById("before1"));
     await navigateFocusForward();
     assert_equals(document.activeElement, document.getElementById("outer1"),
                   "Tab enters outer focusgroup at focusgroupstart element");
@@ -46,7 +46,7 @@
   }, "Forward Tab navigation through nested focusgroups");
 
   promise_test(async t => {
-    document.getElementById("after1").focus();
+    await focusAndWait(document.getElementById("after1"));
     await navigateFocusBackward();
     assert_equals(document.activeElement, document.getElementById("outer2"),
                   "Shift+Tab enters second segment of outer focusgroup");

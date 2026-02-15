@@ -558,7 +558,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         let p = Promise::new_in_current_realm(comp, can_gc);
         if candidate.sdpMid.is_none() && candidate.sdpMLineIndex.is_none() {
             p.reject_error(
-                Error::Type("one of sdpMid and sdpMLineIndex must be set".to_string()),
+                Error::Type(c"one of sdpMid and sdpMLineIndex must be set".to_owned()),
                 can_gc,
             );
             return p;
@@ -567,7 +567,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         // XXXManishearth add support for sdpMid
         if candidate.sdpMLineIndex.is_none() {
             p.reject_error(
-                Error::Type("servo only supports sdpMLineIndex right now".to_string()),
+                Error::Type(c"servo only supports sdpMLineIndex right now".to_owned()),
                 can_gc,
             );
             return p;

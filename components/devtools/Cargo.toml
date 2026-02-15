@@ -22,8 +22,11 @@ embedder_traits = { workspace = true }
 headers = { workspace = true }
 http = { workspace = true }
 log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
 net = { path = "../net" }
 net_traits = { workspace = true }
+profile_traits = { workspace = true }
 rand = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }

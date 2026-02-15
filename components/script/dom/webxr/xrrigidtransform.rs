@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use euclid::{RigidTransform3D, Rotation3D, Vector3D};
 use js::rust::HandleObject;
 use js::typedarray::{Float32, HeapFloat32Array};
+use script_bindings::cformat;
 use script_bindings::trace::RootedTraceableBox;
 
 use crate::dom::bindings::buffer_source::HeapBufferSource;
@@ -24,7 +25,6 @@ pub(crate) struct XRRigidTransform {
     reflector_: Reflector,
     position: MutNullableDom<DOMPointReadOnly>,
     orientation: MutNullableDom<DOMPointReadOnly>,
-    #[ignore_malloc_size_of = "defined in euclid"]
     #[no_trace]
     transform: ApiRigidTransform,
     inverse: MutNullableDom<XRRigidTransform>,
@@ -82,7 +82,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
         orientation: &DOMPointInit,
     ) -> Fallible<DomRoot<Self>> {
         if position.w != 1.0 {
-            return Err(Error::Type(format!(
+            return Err(Error::Type(cformat!(
                 "XRRigidTransform must be constructed with a position that has a w value of of 1.0, not {}",
                 position.w
             )));
@@ -94,7 +94,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
             !position.w.is_finite()
         {
             return Err(Error::Type(
-                "Position must not contain non-finite values".into(),
+                c"Position must not contain non-finite values".into(),
             ));
         }
 
@@ -104,7 +104,7 @@ impl XRRigidTransformMethods<crate::DomTypeHolder> for XRRigidTransform {
             !orientation.w.is_finite()
         {
             return Err(Error::Type(
-                "Orientation must not contain non-finite values".into(),
+                c"Orientation must not contain non-finite values".into(),
             ));
         }
 

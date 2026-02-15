@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
 <div id=root focusgroup="toolbar">
@@ -86,7 +87,7 @@
     var item8 = document.getElementById("item8");
     var item9 = document.getElementById("item9");
 
-    item9.focus();
+    await focusAndWait(item9);
     await focusAndKeyPress(item9, kArrowLeft);
     assert_equals(document.activeElement, item8, "Should navigate backward from final item");
 
@@ -112,7 +113,7 @@
 
     for (let elementId of expectedElements) {
       var element = document.getElementById(elementId);
-      element.focus();
+      await focusAndWait(element);
       assert_equals(document.activeElement, element, `${elementId} should be focusable`);
     }
   }, "All items in different container types should be focusable within focusgroup");

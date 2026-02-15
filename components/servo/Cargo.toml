@@ -156,25 +156,5 @@ tracing = { workspace = true }
 winit = { workspace = true }
 
 [[test]]
-name = "largest_contentful_paint"
-path = "tests/largest_contentful_paint.rs"
-
-[[test]]
-name = "performance_paint_timing"
-path = "tests/performance_paint_timing.rs"
-
-[[test]]
-name = "network_manager"
-
-[[test]]
-name = "webview"
-
-[[test]]
-name = "servo"
-
-[[test]]
-name = "site_data_manager"
-
-[[test]]
 name = "multiprocess"
 harness = false

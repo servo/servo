@@ -136,7 +136,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 if *params.strongMagnitude < 0.0 || *params.strongMagnitude > 1.0 {
                     playing_effect_promise.reject_error(
                         Error::Type(
-                            "Strong magnitude value is not within range of 0.0 to 1.0.".to_string(),
+                            c"Strong magnitude value is not within range of 0.0 to 1.0.".to_owned(),
                         ),
                         can_gc,
                     );
@@ -144,7 +144,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 } else if *params.weakMagnitude < 0.0 || *params.weakMagnitude > 1.0 {
                     playing_effect_promise.reject_error(
                         Error::Type(
-                            "Weak magnitude value is not within range of 0.0 to 1.0.".to_string(),
+                            c"Weak magnitude value is not within range of 0.0 to 1.0.".to_owned(),
                         ),
                         can_gc,
                     );
@@ -156,7 +156,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 if *params.strongMagnitude < 0.0 || *params.strongMagnitude > 1.0 {
                     playing_effect_promise.reject_error(
                         Error::Type(
-                            "Strong magnitude value is not within range of 0.0 to 1.0.".to_string(),
+                            c"Strong magnitude value is not within range of 0.0 to 1.0.".to_owned(),
                         ),
                         can_gc,
                     );
@@ -164,7 +164,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 } else if *params.weakMagnitude < 0.0 || *params.weakMagnitude > 1.0 {
                     playing_effect_promise.reject_error(
                         Error::Type(
-                            "Weak magnitude value is not within range of 0.0 to 1.0.".to_string(),
+                            c"Weak magnitude value is not within range of 0.0 to 1.0.".to_owned(),
                         ),
                         can_gc,
                     );
@@ -172,7 +172,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 } else if *params.leftTrigger < 0.0 || *params.leftTrigger > 1.0 {
                     playing_effect_promise.reject_error(
                         Error::Type(
-                            "Left trigger value is not within range of 0.0 to 1.0.".to_string(),
+                            c"Left trigger value is not within range of 0.0 to 1.0.".to_owned(),
                         ),
                         can_gc,
                     );
@@ -180,7 +180,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
                 } else if *params.rightTrigger < 0.0 || *params.rightTrigger > 1.0 {
                     playing_effect_promise.reject_error(
                         Error::Type(
-                            "Right trigger value is not within range of 0.0 to 1.0.".to_string(),
+                            c"Right trigger value is not within range of 0.0 to 1.0.".to_owned(),
                         ),
                         can_gc,
                     );

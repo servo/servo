@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
 <div id=root focusgroup="toolbar">
@@ -48,7 +49,7 @@
     var item4 = document.getElementById("item4");
     var optout_item1 = document.getElementById("optout_item1");
 
-    item4.focus();
+    await focusAndWait(item4);
     await focusAndKeyPress(item4, kArrowLeft);
     assert_equals(document.activeElement, item3, "Should navigate to item3");
 
@@ -62,7 +63,7 @@
     var optout_item1 = document.getElementById("optout_item1");
     var optout_item2 = document.getElementById("optout_item2");
 
-    optout_item1.focus();
+    await focusAndWait(optout_item1);
     assert_equals(document.activeElement, optout_item1, "Should be able to manually focus opted-out item");
 
     await focusAndKeyPress(optout_item1, kArrowRight);

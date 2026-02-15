@@ -33,6 +33,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Destination;
 use net_traits::{DebugVec, TlsSecurityInfo};
+use profile_traits::mem::ReportsChan;
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use uuid::Uuid;
@@ -62,6 +63,8 @@ pub enum DevtoolsControlMsg {
     FromChrome(ChromeToDevtoolsControlMsg),
     /// Messages from script threads
     FromScript(ScriptToDevtoolsControlMsg),
+    /// Sent when a devtools client thread terminates.
+    ClientExited,
 }
 
 /// Events that the devtools server must act upon.
@@ -76,6 +79,8 @@ pub enum ChromeToDevtoolsControlMsg {
     /// A network event occurred (request, reply, etc.). The actor with the
     /// provided name should be notified.
     NetworkEvent(String, NetworkEvent),
+    /// Perform a memory report.
+    CollectMemoryReport(ReportsChan),
 }
 
 /// The state of a page navigation.
@@ -175,6 +180,8 @@ pub struct NodeInfo {
 
     /// The `DOCTYPE` system identifier if this is a `DocumentType` node, `None` otherwise
     pub doctype_system_identifier: Option<String>,
+
+    pub has_event_listeners: bool,
 }
 
 pub struct StartedTimelineMarker {
@@ -273,6 +280,8 @@ pub enum DevtoolScriptControlMsg {
     ),
     /// Retrieve the computed CSS style properties for the given node.
     GetComputedStyle(PipelineId, String, GenericSender<Option<Vec<NodeStyle>>>),
+    /// Get information about event listeners on a node.
+    GetEventListenerInfo(PipelineId, String, GenericSender<Vec<EventListenerInfo>>),
     /// Retrieve the computed layout properties of the given node in the given pipeline.
     GetLayout(
         PipelineId,
@@ -307,13 +316,14 @@ pub enum DevtoolScriptControlMsg {
     /// Highlight the given DOM node
     HighlightDomNode(PipelineId, Option<String>),
 
+    Eval(String, PipelineId, GenericSender<EvaluateJSReply>),
     GetPossibleBreakpoints(u32, GenericSender<Vec<RecommendedBreakpointLocation>>),
     SetBreakpoint(u32, u32, u32),
     ClearBreakpoint(u32, u32, u32),
     Pause(GenericSender<PauseFrameResult>),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct AttrModification {
     pub attribute_name: String,
@@ -331,7 +341,7 @@ pub struct RuleModification {
     pub priority: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct StackFrame {
     pub filename: String,
@@ -349,7 +359,7 @@ pub fn get_time_stamp() -> u64 {
         .as_millis() as u64
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct ConsoleMessageFields {
     pub level: ConsoleLogLevel,
@@ -364,6 +374,24 @@ pub enum ConsoleArgument {
     String(String),
     Integer(i32),
     Number(f64),
+    Boolean(bool),
+    Object(ConsoleArgumentObject),
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ConsoleArgumentObject {
+    pub class: String,
+    pub own_properties: Vec<ConsoleArgumentPropertyValue>,
+}
+
+/// A property on a JS object passed as a console argument.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ConsoleArgumentPropertyValue {
+    pub key: String,
+    pub configurable: bool,
+    pub enumerable: bool,
+    pub writable: bool,
+    pub value: ConsoleArgument,
 }
 
 impl From<String> for ConsoleArgument {
@@ -379,7 +407,7 @@ pub struct ConsoleMessage {
     pub stacktrace: Option<Vec<StackFrame>>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct PageError {
     pub error_message: String,
@@ -389,10 +417,12 @@ pub struct PageError {
     pub time_stamp: u64,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, MallocSizeOf)]
 pub struct HttpRequest {
     pub url: ServoUrl,
+    #[ignore_malloc_size_of = "http type"]
     pub method: Method,
+    #[ignore_malloc_size_of = "http type"]
     pub headers: HeaderMap,
     pub body: Option<DebugVec>,
     pub pipeline_id: PipelineId,
@@ -405,8 +435,9 @@ pub struct HttpRequest {
     pub browsing_context_id: BrowsingContextId,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, MallocSizeOf)]
 pub struct HttpResponse {
+    #[ignore_malloc_size_of = "Http type"]
     pub headers: Option<HeaderMap>,
     pub status: HttpStatus,
     pub body: Option<DebugVec>,
@@ -476,7 +507,7 @@ impl FromStr for WorkerId {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct CssDatabaseProperty {
     pub is_inherited: bool,
@@ -521,7 +552,7 @@ pub struct RecommendedBreakpointLocation {
     pub is_step_start: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct PauseFrameResult {
     pub column: u32,
@@ -533,4 +564,10 @@ pub struct PauseFrameResult {
     #[serde(rename = "type")]
     pub type_: String,
     pub url: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct EventListenerInfo {
+    pub event_type: String,
+    pub capturing: bool,
 }

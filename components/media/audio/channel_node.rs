@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use malloc_size_of_derive::MallocSizeOf;
+
 use crate::block::{Block, Chunk, FRAMES_PER_BLOCK_USIZE};
 use crate::node::{
     AudioNodeEngine, AudioNodeType, BlockInfo, ChannelCountMode, ChannelInfo, ChannelInterpretation,
 };
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, MallocSizeOf)]
 pub struct ChannelNodeOptions {
     pub channels: u8,
 }

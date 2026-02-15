@@ -23,7 +23,7 @@
   promise_test(async t => {
     const search = document.getElementById("search");
 
-    search.focus();
+    await focusAndWait(search);
 
     // Arrow keys should not move focus (native arrow key handling).
     await assert_arrow_keys_do_not_move_focus(search);

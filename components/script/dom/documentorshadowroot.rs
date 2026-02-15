@@ -23,6 +23,7 @@ use webrender_api::units::LayoutPoint;
 
 use super::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::conversions::{ConversionResult, SafeFromJSValConvertible};
@@ -34,7 +35,7 @@ use crate::dom::element::Element;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{self, Node, VecPreOrderInsertionHelper};
 use crate::dom::shadowroot::ShadowRoot;
-use crate::dom::types::CSSStyleSheet;
+use crate::dom::types::{CSSStyleSheet, EventTarget};
 use crate::dom::window::Window;
 use crate::stylesheet_set::StylesheetSetRef;
 
@@ -446,10 +447,42 @@ impl DocumentOrShadowRoot {
                     owner,
                 )
             },
-            Ok(ConversionResult::Failure(msg)) => Err(Error::Type(msg.to_string())),
+            Ok(ConversionResult::Failure(msg)) => Err(Error::Type(msg.into_owned())),
             Err(_) => Err(Error::Type(
-                "The provided value is not a sequence of 'CSSStylesheet'.".to_owned(),
+                c"The provided value is not a sequence of 'CSSStylesheet'.".to_owned(),
             )),
         }
+    }
+
+    /// <https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement>
+    pub(crate) fn get_fullscreen_element(
+        node: &Node,
+        fullscreen_element: Option<DomRoot<Element>>,
+    ) -> Option<DomRoot<Element>> {
+        // Step 1. If this is a shadow root and its host is not connected, then return null.
+        if let Some(shadow_root) = node.downcast::<ShadowRoot>() {
+            if !shadow_root.Host().is_connected() {
+                return None;
+            }
+        }
+
+        // Step 2. Let candidate be the result of retargeting fullscreen element against this.
+        let retargeted = fullscreen_element?
+            .upcast::<EventTarget>()
+            .retarget(node.upcast());
+        // It's safe to unwrap downcasting to `Element` because `retarget` either returns `fullscreen_element` or a host of `fullscreen_element` and hosts are always elements.
+        let candidate = DomRoot::downcast::<Element>(retargeted).unwrap();
+
+        // Step 3. If candidate and this are in the same tree, then return candidate.
+        if *candidate
+            .upcast::<Node>()
+            .GetRootNode(&GetRootNodeOptions::empty()) ==
+            *node
+        {
+            return Some(candidate);
+        }
+
+        // Step 4. Return null.
+        None
     }
 }

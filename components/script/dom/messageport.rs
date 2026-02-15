@@ -247,7 +247,10 @@ impl Transferable for MessagePort {
     type Data = MessagePortImpl;
 
     /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-steps>
-    fn transfer(&self) -> Fallible<(MessagePortId, MessagePortImpl)> {
+    fn transfer(
+        &self,
+        _cx: &mut js::context::JSContext,
+    ) -> Fallible<(MessagePortId, MessagePortImpl)> {
         // <https://html.spec.whatwg.org/multipage/#structuredserializewithtransfer>
         // Step 5.2. If transferable has a [[Detached]] internal slot and
         // transferable.[[Detached]] is true, then throw a "DataCloneError"
@@ -267,12 +270,17 @@ impl Transferable for MessagePort {
 
     /// <https://html.spec.whatwg.org/multipage/#message-ports:transfer-receiving-steps>
     fn transfer_receive(
+        cx: &mut js::context::JSContext,
         owner: &GlobalScope,
         id: MessagePortId,
         port_impl: MessagePortImpl,
     ) -> Result<DomRoot<Self>, ()> {
-        let transferred_port =
-            MessagePort::new_transferred(owner, id, port_impl.entangled_port_id(), CanGc::note());
+        let transferred_port = MessagePort::new_transferred(
+            owner,
+            id,
+            port_impl.entangled_port_id(),
+            CanGc::from_cx(cx),
+        );
         owner.track_message_port(&transferred_port, Some(port_impl));
         Ok(transferred_port)
     }

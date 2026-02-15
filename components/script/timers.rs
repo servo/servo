@@ -46,7 +46,7 @@ use crate::task_source::SendableTaskSource;
 
 type TimerKey = i32;
 type RunStepsDeadline = Instant;
-type CompletionStep = Box<dyn FnOnce(&GlobalScope, CanGc) + 'static>;
+type CompletionStep = Box<dyn FnOnce(&mut js::context::JSContext, &GlobalScope) + 'static>;
 
 /// <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
 /// OrderingIdentifier per spec ("orderingIdentifier")
@@ -143,18 +143,20 @@ pub(crate) enum OneshotTimerCallback {
 }
 
 impl OneshotTimerCallback {
-    fn invoke<T: DomObject>(self, this: &T, js_timers: &JsTimers, can_gc: CanGc) {
+    fn invoke<T: DomObject>(self, this: &T, js_timers: &JsTimers, cx: &mut js::context::JSContext) {
         match self {
-            OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(can_gc),
+            OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(CanGc::from_cx(cx)),
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
-            OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers, can_gc),
+            OneshotTimerCallback::JsTimer(task) => task.invoke(this, js_timers, cx),
             #[cfg(feature = "testbinding")]
             OneshotTimerCallback::TestBindingCallback(callback) => callback.invoke(),
-            OneshotTimerCallback::RefreshRedirectDue(callback) => callback.invoke(can_gc),
+            OneshotTimerCallback::RefreshRedirectDue(callback) => {
+                callback.invoke(CanGc::from_cx(cx))
+            },
             OneshotTimerCallback::RunStepsAfterTimeout { completion, .. } => {
                 // <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
                 // Step 4.4 Perform completionSteps.
-                completion(&this.global(), can_gc);
+                completion(cx, &this.global());
             },
         }
     }
@@ -318,7 +320,12 @@ impl OneshotTimers {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
-    pub(crate) fn fire_timer(&self, id: TimerEventId, global: &GlobalScope, can_gc: CanGc) {
+    pub(crate) fn fire_timer(
+        &self,
+        id: TimerEventId,
+        global: &GlobalScope,
+        cx: &mut js::context::JSContext,
+    ) {
         // Step 9.2. If id does not exist in global's map of setTimeout and setInterval IDs, then abort these steps.
         let expected_id = self.expected_event_id.get();
         if expected_id != id {
@@ -402,7 +409,7 @@ impl OneshotTimers {
                     // (No additional delay applied.)
 
                     // Step 4.4 Perform completionSteps.
-                    (completion)(global, can_gc);
+                    (completion)(cx, global);
 
                     // Step 4.5 Remove global's map of active timers[timerKey].
                     self.map_of_active_timers.borrow_mut().remove(&timer_key);
@@ -421,7 +428,7 @@ impl OneshotTimers {
                 },
                 _ => {
                     let cb = timer.callback;
-                    cb.invoke(global, &self.js_timers, can_gc);
+                    cb.invoke(global, &self.js_timers, cx);
                 },
             }
         }
@@ -773,7 +780,12 @@ fn clamp_duration(nesting_level: u32, unclamped: Duration) -> Duration {
 
 impl JsTimerTask {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    pub(crate) fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers, can_gc: CanGc) {
+    pub(crate) fn invoke<T: DomObject>(
+        self,
+        this: &T,
+        timers: &JsTimers,
+        cx: &mut js::context::JSContext,
+    ) {
         // step 9.2 can be ignored, because we proactively prevent execution
         // of this task when its scheduled execution is canceled.
 
@@ -816,14 +828,20 @@ impl JsTimerTask {
                 );
 
                 // Step 9.6.9. Run the classic script script.
-                _ = global.run_a_classic_script(script, RethrowErrors::No, can_gc);
+                _ = global.run_a_classic_script(script, RethrowErrors::No, CanGc::from_cx(cx));
             },
             // Step 9.5. If handler is a Function, then invoke handler given arguments and
             // "report", and with callback this value set to thisArg.
             InternalTimerCallback::FunctionTimerCallback(ref function, ref arguments) => {
                 let arguments = self.collect_heap_args(arguments);
-                rooted!(in(*GlobalScope::get_cx()) let mut value: JSVal);
-                let _ = function.Call_(this, arguments, value.handle_mut(), Report, can_gc);
+                rooted!(&in(cx) let mut value: JSVal);
+                let _ = function.Call_(
+                    this,
+                    arguments,
+                    value.handle_mut(),
+                    Report,
+                    CanGc::from_cx(cx),
+                );
             },
         };
 
@@ -882,7 +900,7 @@ impl TimerListener {
     fn handle(&self, event: TimerEvent) {
         let context = self.context.clone();
         // Step 9. Let task be a task that runs the following substeps:
-        self.task_source.queue(task!(timer_event: move || {
+        self.task_source.queue(task!(timer_event: move |cx| {
                 let global = context.root();
                 let TimerEvent(source, id) = event;
                 match source {
@@ -894,7 +912,7 @@ impl TimerListener {
                         global.downcast::<Window>().expect("Worker timer delivered to window");
                     },
                 };
-                global.fire_timer(id, CanGc::note());
+                global.fire_timer(id, cx);
             })
         );
     }

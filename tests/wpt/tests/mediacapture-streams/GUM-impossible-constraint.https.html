@@ -19,19 +19,28 @@ constraint (width &gt;=1G) in getUserMedia works</p>
 <script src=/resources/testdriver-vendor.js></script>
 <script src=permission-helper.js></script>
 <script>
-promise_test(async () => {
-  await setMediaPermission("granted", ["camera"]);
+[
   // Note - integer conversion is weird for +inf and numbers > 2^32, so we
   // use a number less than 2^32 for testing.
+  {width: {min:100000000}},
+  {width: {max: 0}},
+  {height: {max: 0}},
+  {frameRate: {max: 0}},
+  {width: {max: -1}},
+  {height: {max: -1}},
+  {frameRate: {max: -1}},
+  {width: {min: 100, max: 10}},
+  {height: {min: 100, max: 10}},
+  {frameRate: {min: 100, max: 10}},
+].forEach(constraints => promise_test(async t => {
   try {
-    await navigator.mediaDevices.getUserMedia({video: {width: {min:100000000}}});
-    assert_unreached("a Video stream of width 100M cannot be created");
-
-  } catch (error) {
-    assert_equals(error.name, "OverconstrainedError", "An impossible constraint triggers a OverconstrainedError");
-    assert_equals(error.constraint, "width", "The name of the not satisfied error is given in error.constraint");
+    await navigator.mediaDevices.getUserMedia({video: constraints});
+    assert_unreached('getUserMedia hould have rejected');
+  } catch (err) {
+    assert_equals(err.name, 'OverconstrainedError', "An impossible constraint triggers a OverconstrainedError");
+    assert_equals(err.constraint, Object.keys(constraints)[0], "The name of the not satisfied constraint is given in error.constraint");
   }
-}, "Tests that setting an impossible constraint in getUserMedia fails");
+}, `getUserMedia(${JSON.stringify(constraints)}) must fail with OverconstrainedError`));
 </script>
 </body>
 </html>

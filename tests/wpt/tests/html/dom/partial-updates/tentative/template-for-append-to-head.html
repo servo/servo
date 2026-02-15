@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<head marker="head">
+  <meta charset="utf-8" />
+  <title>HTML partial updates - append to head</title>
+  <link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <?marker name=head>
+</head>
+  <body>
+    <template for="head">
+      <meta id="added" content="something" />
+    </template>
+    <script>
+      test(() => {
+        const meta = document.getElementById("added");
+        assert_equals(meta?.id, "added");
+      });
+    </script>
+  </body>
+</head>

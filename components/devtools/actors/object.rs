@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -57,6 +58,7 @@ pub(crate) struct ObjectActorMsg {
     preview: ObjectPreview,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct ObjectActor {
     name: String,
     _uuid: Option<String>,
@@ -172,6 +174,7 @@ impl ActorEncode<ObjectActorMsg> for ObjectActor {
 }
 
 // TODO: Implement functionality of property and symbol iterators
+#[derive(MallocSizeOf)]
 struct PropertyIteratorActor {
     name: String,
 }
@@ -182,6 +185,7 @@ impl Actor for PropertyIteratorActor {
     }
 }
 
+#[derive(MallocSizeOf)]
 struct SymbolIteratorActor {
     name: String,
 }

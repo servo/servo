@@ -52,6 +52,58 @@ addEventListener("addDebuggee", event => {
     debuggeesToWorkerIds.set(debuggerObject, workerId);
 });
 
+// Create a result value object from a debuggee value.
+// Debuggee values: <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#debuggee-values>
+// Type detection follows Firefox's createValueGrip pattern:
+// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/utils.js#116>
+function createValueResult(value) {
+    switch (typeof value) {
+        case "undefined":
+            return { valueType: "undefined" };
+        case "boolean":
+            return { valueType: "boolean", booleanValue: value };
+        case "number":
+            return { valueType: "number", numberValue: value };
+        case "string":
+            return { valueType: "string", stringValue: value };
+        case "object":
+            if (value === null) {
+                return { valueType: "null" };
+            }
+            // Debugger.Object - use the `class` accessor property
+            // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Object.html>
+            return { valueType: "object", objectClass: value.class };
+        default:
+            return { valueType: "string", stringValue: String(value) };
+    }
+}
+
+// <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Object.html#executeinglobal-code-options>
+addEventListener("eval", event => {
+    const {code, pipelineId: {namespaceId, index}, workerId} = event;
+    let object = debuggeesToPipelineIds.keys().next().value;
+    let completionValue = object.executeInGlobal(code);
+
+    // Completion values: <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#completion-values>
+    let resultValue;
+
+    if (completionValue === null) {
+        resultValue = { completionType: "terminated", valueType: "undefined" };
+    } else if ("throw" in completionValue) {
+        // Adopt the value to ensure proper Debugger ownership
+        // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.html#adoptdebuggeevalue-value>
+        // <https://searchfox.org/firefox-main/source/devtools/server/actors/webconsole/eval-with-debugger.js#312>
+        // we probably don't need adoptDebuggeeValue, as we only have one debugger instance for now
+        // let value = dbg.adoptDebuggeeValue(completionValue.throw);
+        resultValue = { completionType: "throw", ...createValueResult(completionValue.throw) };
+    } else if ("return" in completionValue) {
+        // let value = dbg.adoptDebuggeeValue(completionValue.return);
+        resultValue = { completionType: "return", ...createValueResult(completionValue.return) };
+    }
+
+    evalResult(event, resultValue);
+});
+
 addEventListener("getPossibleBreakpoints", event => {
     const {spidermonkeyId} = event;
     const script = sourceIdsToScripts.get(spidermonkeyId);

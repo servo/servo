@@ -66,7 +66,7 @@ where
 
 /// Front-end representation of the profiler used to communicate with the
 /// profiler.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct ProfilerChan(pub GenericSender<ProfilerMsg>);
 
 /// A handle that encompasses a registration with the memory profiler.

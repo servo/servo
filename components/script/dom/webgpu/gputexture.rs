@@ -31,11 +31,10 @@ pub(crate) struct GPUTexture {
     texture: WebGPUTexture,
     label: DomRefCell<USVString>,
     device: Dom<GPUDevice>,
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
-    #[ignore_malloc_size_of = "defined in wgpu"]
     #[no_trace]
+    #[ignore_malloc_size_of = "External type"]
     texture_size: wgpu_types::Extent3d,
     mip_level_count: u32,
     sample_count: u32,

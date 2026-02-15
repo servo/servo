@@ -1,0 +1,69 @@
+<!doctype html>
+<title>SVG path 'd' attribute by animation with accumulate='sum'</title>
+<link rel="help" href="https://www.w3.org/TR/SVG2/paths.html#TheDProperty"/>
+<link rel="help" href="https://svgwg.org/specs/animations/#AccumulateAttribute"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+<script src="support/animated-path-helpers.js"></script>
+<svg>
+  <path id="path" fill="green" d="M10,10 L30,10 L30,30 L10,30 Z">
+    <animate id="animation" attributeName="d"
+             by="M10,10 L20,10 L20,20 L10,20 Z"
+             accumulate="sum"
+             begin="0s" dur="2s" repeatCount="3" fill="freeze"/>
+  </path>
+</svg>
+<script>
+const rootSVGElement = document.querySelector("svg");
+
+function sample1() {
+  // t=0s: base value
+  assert_animated_path_equals(path, "M10,10 L30,10 L30,30 L10,30 Z");
+}
+
+function sample2() {
+  // t=1s: base + 0.5*by = M15,15 L40,15 L40,40 L15,40 Z
+  assert_animated_path_equals(path, "M15,15 L40,15 L40,40 L15,40 Z");
+}
+
+function sample3() {
+  // t=2s: base + by = M20,20 L50,20 L50,50 L20,50 Z
+  assert_animated_path_equals(path, "M20,20 L50,20 L50,50 L20,50 Z");
+}
+
+function sample4() {
+  // t=3s: base + 1.5*by = M25,25 L60,25 L60,60 L25,60 Z
+  assert_animated_path_equals(path, "M25,25 L60,25 L60,60 L25,60 Z");
+}
+
+function sample5() {
+  // t=4s: base + 2*by = M30,30 L70,30 L70,70 L30,70 Z
+  assert_animated_path_equals(path, "M30,30 L70,30 L70,70 L30,70 Z");
+}
+
+function sample6() {
+  // t=5s: base + 2.5*by = M35,35 L80,35 L80,80 L35,80 Z
+  assert_animated_path_equals(path, "M35,35 L80,35 L80,80 L35,80 Z");
+}
+
+function sample7() {
+  // t=6s: base + 3*by = M40,40 L90,40 L90,90 L40,90 Z (frozen)
+  assert_animated_path_equals(path, "M40,40 L90,40 L90,90 L40,90 Z");
+}
+
+smil_async_test((t) => {
+  const expectedValues = [
+    // [animationId, time, sampleCallback]
+    ["animation", 0.0,   sample1],
+    ["animation", 1.0,   sample2],
+    ["animation", 2.0,   sample3],
+    ["animation", 3.0,   sample4],
+    ["animation", 4.0,   sample5],
+    ["animation", 5.0,   sample6],
+    ["animation", 6.0,   sample7],
+    ["animation", 6.001, sample7]
+  ];
+  runAnimationTest(t, expectedValues);
+});
+</script>

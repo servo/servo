@@ -1,61 +1,57 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
 <title>View Transitions: @view-transition removing opt-in doesn't skip active transition</title>
 <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
 <link rel="author" href="mailto:bokan@chromium.org">
-<link rel="match" href="opt-in-removed-during-transition-ref.html">
-<script src="/common/reftest-wait.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
 <style>
   @view-transition {
     navigation: auto;
   }
-  :root {
-    view-transition-name: none;
-  }
-  ::view-transition {
-    background-color: pink;
-  }
-  ::view-transition-new(target) {
-    animation: none;
-    opacity: 0;
-  }
-  ::view-transition-old(target) {
-    animation: none;
-    opacity: 1;
-  }
-  ::view-transition-group(target) {
-    animation-play-state: paused;
-  }
   #target {
-    background-color: limegreen;
-    width: 100px;
-    height: 100px;
     view-transition-name: target;
-  }
-  #target.transitioned {
-    background-color: red;
   }
 </style>
 <script>
-const params = new URLSearchParams(location.search.substr(1));
-const is_starting_page = !params.has('new');
+const params = new URLSearchParams(location.search);
+const mode = params.get("mode") || "test";
 
-if (is_starting_page) {
-  requestAnimationFrame(() => requestAnimationFrame( () => {
-    location.replace(location.href + '?new');
-  }));
-} else {
-  addEventListener('pagereveal', async e => {
-    document.getElementById('target').classList.add('transitioned');
-    await e.viewTransition.ready;
-    await new Promise(resolve => requestAnimationFrame(resolve));
+switch (mode) {
+case "test":
+  promise_test(async t => {
+    const result = await new Promise(resolve => {
+      window.did_reveal = msg => { resolve(msg) };
+      const popup = window.open("?mode=old");
+      t.add_cleanup(() => popup.close());
+    });
 
-    // Remove the opt-in after the view transition has started.
-    document.styleSheets[0].cssRules[0].navigation = 'none';
-
-    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+    assert_equals(result, "pass");
   });
+  break;
+case "old":
+  onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      location.replace("?mode=new");
+  }));
+  break;
+case "new":
+  addEventListener('pagereveal', async e => {
+    if (e.viewTransition) {
+      await e.viewTransition.ready;
+      await new Promise(resolve => requestAnimationFrame(resolve));
+
+      // Remove the opt-in after the view transition has started.
+      document.styleSheets[0].cssRules[0].navigation = 'none';
+
+      e.viewTransition.finished.then(
+        () => window.opener.did_reveal("pass"),
+        () => window.opener.did_reveal("fail: finished rejected"));
+    } else {
+      window.opener.did_reveal("fail: no viewTransition");
+    }
+  });
+  break;
 }
 </script>
+<body>
 <div id="target"></div>
-</html>
+</body>

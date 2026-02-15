@@ -8,6 +8,7 @@ use bluetooth_traits::{BluetoothResponse, BluetoothResponseResult};
 use bluetooth_traits::blocklist::{Blocklist, uuid_is_blocklisted};
 use bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
+use script_bindings::cformat;
 use crate::realms::{AlreadyInRealm, InRealm};
 use crate::conversions::Convert;
 use crate::dom::bindings::cell::{DomRefCell, Ref};
@@ -40,27 +41,29 @@ use js::jsapi::JSObject;
 use js::jsval::{ObjectValue, UndefinedValue};
 use profile_traits::{generic_channel};
 use std::collections::HashMap;
+use std::ffi::CStr;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 const KEY_CONVERSION_ERROR: &str =
     "This `manufacturerData` key can not be parsed as unsigned short:";
-const FILTER_EMPTY_ERROR: &str =
-    "'filters' member, if present, must be nonempty to find any devices.";
-const FILTER_ERROR: &str = "A filter must restrict the devices in some way.";
-const MANUFACTURER_DATA_ERROR: &str =
-    "'manufacturerData', if present, must be non-empty to filter devices.";
-const MASK_LENGTH_ERROR: &str = "`mask`, if present, must have the same length as `dataPrefix`.";
+const FILTER_EMPTY_ERROR: &CStr =
+    c"'filters' member, if present, must be nonempty to find any devices.";
+const FILTER_ERROR: &CStr = c"A filter must restrict the devices in some way.";
+const MANUFACTURER_DATA_ERROR: &CStr =
+    c"'manufacturerData', if present, must be non-empty to filter devices.";
+const MASK_LENGTH_ERROR: &CStr = c"`mask`, if present, must have the same length as `dataPrefix`.";
 // 248 is the maximum number of UTF-8 code units in a Bluetooth Device Name.
 const MAX_DEVICE_NAME_LENGTH: usize = 248;
-const NAME_PREFIX_ERROR: &str = "'namePrefix', if present, must be nonempty.";
-const NAME_TOO_LONG_ERROR: &str = "A device name can't be longer than 248 bytes.";
-const SERVICE_DATA_ERROR: &str = "'serviceData', if present, must be non-empty to filter devices.";
-const SERVICE_ERROR: &str = "'services', if present, must contain at least one service.";
-const OPTIONS_ERROR: &str = "Fields of 'options' conflict with each other.
+const NAME_PREFIX_ERROR: &CStr = c"'namePrefix', if present, must be nonempty.";
+const NAME_TOO_LONG_ERROR: &CStr = c"A device name can't be longer than 248 bytes.";
+const SERVICE_DATA_ERROR: &CStr =
+    c"'serviceData', if present, must be non-empty to filter devices.";
+const SERVICE_ERROR: &CStr = c"'services', if present, must contain at least one service.";
+const OPTIONS_ERROR: &CStr = c"Fields of 'options' conflict with each other.
  Either 'acceptAllDevices' member must be true, or 'filters' member must be set to a value.";
-const BT_DESC_CONVERSION_ERROR: &str =
-    "Can't convert to an IDL value of type BluetoothPermissionDescriptor";
+const BT_DESC_CONVERSION_ERROR: &CStr =
+    c"Can't convert to an IDL value of type BluetoothPermissionDescriptor";
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[expect(non_snake_case)]
@@ -428,7 +431,7 @@ fn canonicalize_filter(filter: &BluetoothLEScanFilterInit) -> Fallible<Bluetooth
                 let manufacturer_id = match key.str().parse::<u16>() {
                     Ok(id) => id,
                     Err(err) => {
-                        return Err(Type(format!("{} {} {}", KEY_CONVERSION_ERROR, key, err)));
+                        return Err(Type(cformat!("{} {} {}", KEY_CONVERSION_ERROR, key, err)));
                     },
                 };
 
@@ -521,7 +524,7 @@ fn canonicalize_bluetooth_data_filter_init(
 impl Convert<Error> for BluetoothError {
     fn convert(self) -> Error {
         match self {
-            BluetoothError::Type(message) => Error::Type(message),
+            BluetoothError::Type(message) => Error::Type(cformat!("{message}")),
             BluetoothError::Network => Error::Network(None),
             BluetoothError::NotFound => Error::NotFound(None),
             BluetoothError::NotSupported => Error::NotSupported(None),
@@ -616,7 +619,7 @@ impl AsyncBluetoothListener for Bluetooth {
             BluetoothResponse::GetAvailability(is_available) => {
                 promise.resolve_native(&is_available, can_gc);
             },
-            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned()), can_gc),
+            _ => promise.reject_error(Error::Type(c"Something went wrong...".to_owned()), can_gc),
         }
     }
 }
@@ -637,7 +640,7 @@ impl PermissionAlgorithm for Bluetooth {
         match BluetoothPermissionDescriptor::new(cx, property.handle(), can_gc) {
             Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-            Err(_) => Err(Error::Type(String::from(BT_DESC_CONVERSION_ERROR))),
+            Err(_) => Err(Error::Type(BT_DESC_CONVERSION_ERROR.into())),
         }
     }
 

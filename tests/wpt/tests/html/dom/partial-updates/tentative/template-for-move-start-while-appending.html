@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - move <?start> while appending has no effect</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div
+ id="target" marker="results">0 <?start name="results"> 1</div>
+<div id="new-container"></div>
+</div>
+<script>
+  const contents = [];
+  const target = document.querySelector("#target");
+  window.start_marker = Array.from(document.querySelector("#target").childNodes).find((node) => node.nodeType === Node.PROCESSING_INSTRUCTION_NODE);
+  function step() {
+    for (const script of target.querySelectorAll("script")) {
+      script.remove();
+    }
+    contents.push(target.textContent);
+  }
+
+  step();
+</script>
+
+<template for="results"
+  >a<script>
+    step();
+  </script><span id="b">b</span><script>
+    step();
+  </script><span id="c">c</span><script>
+    step();
+    target.prepend(start_marker);
+    step();
+  </script><span id="d">d</span><script>
+    step();
+    start_marker.remove();
+    step();
+  </script><span id="e">e</span><script>
+    step();
+    document.body.append(start_marker);
+    step();
+  </script><span id="f">f</span><script>
+    step();
+    target.append(start_marker);
+    step();
+  </script></template>
+<script>
+  test(() => {
+    assert_array_equals(contents,
+      ["0  1", "0 a", "0 ab", "0 abc", "0 abc", "0 abcd", "0 abcd", "0 abcde", "0 abcde", "0 abcdef", "0 abcdef"]
+    );
+    assert_false(start_marker.isConnected);
+  });
+</script>

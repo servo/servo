@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>HTML partial updates - declarative prepend element</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="placeholder" marker="placeholder"><?marker name="placeholder"><span id="ref"></span></div>
+<template for="placeholder"><span>New </span><script id="removal-script">
+    document.querySelector("#ref").remove();
+  </script><span>content</span></template>
+<script>
+  test(() => {
+    document.querySelector("#removal-script").remove();
+    assert_equals(
+      document.getElementById("placeholder").textContent,
+      "New content",
+    );
+  }, "Prepending works even when element after the range is removed");
+</script>

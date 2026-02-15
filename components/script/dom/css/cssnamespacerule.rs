@@ -20,10 +20,10 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSNamespaceRule {
-    cssrule: CSSRule,
+    css_rule: CSSRule,
     #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
-    namespacerule: RefCell<Arc<NamespaceRule>>,
+    namespace_rule: RefCell<Arc<NamespaceRule>>,
 }
 
 impl CSSNamespaceRule {
@@ -32,8 +32,8 @@ impl CSSNamespaceRule {
         namespacerule: Arc<NamespaceRule>,
     ) -> CSSNamespaceRule {
         CSSNamespaceRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
-            namespacerule: RefCell::new(namespacerule),
+            css_rule: CSSRule::new_inherited(parent_stylesheet),
+            namespace_rule: RefCell::new(namespacerule),
         }
     }
 
@@ -54,14 +54,14 @@ impl CSSNamespaceRule {
     }
 
     pub(crate) fn update_rule(&self, namespacerule: Arc<NamespaceRule>) {
-        *self.namespacerule.borrow_mut() = namespacerule;
+        *self.namespace_rule.borrow_mut() = namespacerule;
     }
 }
 
 impl CSSNamespaceRuleMethods<crate::DomTypeHolder> for CSSNamespaceRule {
     /// <https://drafts.csswg.org/cssom/#dom-cssnamespacerule-prefix>
     fn Prefix(&self) -> DOMString {
-        self.namespacerule
+        self.namespace_rule
             .borrow()
             .prefix
             .as_ref()
@@ -71,7 +71,7 @@ impl CSSNamespaceRuleMethods<crate::DomTypeHolder> for CSSNamespaceRule {
 
     /// <https://drafts.csswg.org/cssom/#dom-cssnamespacerule-namespaceuri>
     fn NamespaceURI(&self) -> DOMString {
-        (**self.namespacerule.borrow().url).into()
+        (**self.namespace_rule.borrow().url).into()
     }
 }
 
@@ -81,7 +81,7 @@ impl SpecificCSSRule for CSSNamespaceRule {
     }
 
     fn get_css(&self) -> DOMString {
-        let guard = self.cssrule.shared_lock().read();
-        self.namespacerule.borrow().to_css_string(&guard).into()
+        let guard = self.css_rule.shared_lock().read();
+        self.namespace_rule.borrow().to_css_string(&guard).into()
     }
 }

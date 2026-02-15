@@ -24,7 +24,6 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct GPURenderPipeline {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
     label: DomRefCell<USVString>,

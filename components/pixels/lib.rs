@@ -730,12 +730,19 @@ fn make_decoder(
 
 fn decode_static_image(
     cors_status: CorsStatus,
-    image_decoder: impl ImageDecoder,
+    mut image_decoder: impl ImageDecoder,
 ) -> Option<RasterImage> {
-    let Ok(dynamic_image) = DynamicImage::from_decoder(image_decoder) else {
+    let orientation = image_decoder.orientation();
+
+    let Ok(mut dynamic_image) = DynamicImage::from_decoder(image_decoder) else {
         debug!("Image decoding error");
         return None;
     };
+
+    if let Ok(orientation) = orientation {
+        dynamic_image.apply_orientation(orientation);
+    }
+
     let mut rgba = dynamic_image.into_rgba8();
 
     // Store pre-multiplied data as that prevents having to do conversions of the data at later

@@ -45,9 +45,6 @@
     assert_equals(document.activeElement, btn4);
     await focusAndKeyPress(btn2, kArrowRight);
     assert_equals(document.activeElement, search);
-
-    // Test Tab navigation with search focused.
-    await assert_focusgroup_tab_navigation([btn1, search, btn4]);
-  }, "Tab navigation with native arrow key handler in nested focusgroup");
+  }, "Arrow navigation works in both outer and inner nested focusgroups");
 
 </script>

@@ -226,7 +226,7 @@ impl StylesheetContext {
         // This might happen when we time out a resource, but that happens in `fetch` instead
     }
 
-    fn decrement_load_and_render_blockers(&self, document: &Document) {
+    fn decrement_blockers_and_finish_load(self, document: &Document) {
         if self.is_script_blocking {
             document.decrement_script_blocking_stylesheet_count();
         }
@@ -234,6 +234,8 @@ impl StylesheetContext {
         if self.is_render_blocking {
             document.decrement_render_blocking_element_count();
         }
+
+        document.finish_load(LoadType::Stylesheet(self.url), CanGc::note());
     }
 
     fn do_post_parse_tasks(self, success: bool, stylesheet: Arc<Stylesheet>) {
@@ -250,6 +252,16 @@ impl StylesheetContext {
                 let link = element
                     .downcast::<HTMLLinkElement>()
                     .expect("Should be HTMLinkElement due to StylesheetContextSource");
+                // For failed requests, we should bail out if it is from a previous generation.
+                // Since we can reissue another failed request, which resets the pending load counter
+                // in a link element.
+                if self
+                    .request_generation_id
+                    .is_some_and(|generation| generation != link.get_request_generation_id())
+                {
+                    self.decrement_blockers_and_finish_load(&document);
+                    return;
+                }
                 // https://html.spec.whatwg.org/multipage/#link-type-stylesheet
                 // > When the disabled attribute of a link element with a stylesheet keyword is set,
                 // > disable the associated CSS style sheet.
@@ -307,8 +319,7 @@ impl StylesheetContext {
 
         // Step 6. If el contributes a script-blocking style sheet, then:
         // Step 7. Unblock rendering on el.
-        self.decrement_load_and_render_blockers(&document);
-        document.finish_load(LoadType::Stylesheet(self.url), CanGc::note());
+        self.decrement_blockers_and_finish_load(&document);
     }
 }
 
@@ -378,8 +389,7 @@ impl FetchResponseListener for StylesheetContext {
             // or if, since the resource in question was fetched, it has become appropriate to fetch it again, then:
             if !self.contributes_to_the_styling_processing_model(&element) {
                 // Step 2.1. Remove el from el's node document's script-blocking style sheet set.
-                self.decrement_load_and_render_blockers(&document);
-                document.finish_load(LoadType::Stylesheet(self.url), CanGc::note());
+                self.decrement_blockers_and_finish_load(&document);
                 // Step 2.2. Return.
                 return;
             }

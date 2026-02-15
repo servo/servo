@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2013011">
+<style>
+  :last-of-type {
+    bottom: anchor-size(--anchor-name_0);
+  }
+</style>
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    const cite = document.createElementNS("http://www.w3.org/1999/xhtml", "cite")
+    document.documentElement.appendChild(cite)
+    cite.popover = "auto"
+    cite.showPopover({
+      "source": cite
+    })
+  })
+</script>

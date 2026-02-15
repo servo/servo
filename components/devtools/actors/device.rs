@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -34,6 +35,7 @@ struct SystemInfo {
 
 include!(concat!(env!("OUT_DIR"), "/build_id.rs"));
 
+#[derive(MallocSizeOf)]
 pub(crate) struct DeviceActor {
     name: String,
 }

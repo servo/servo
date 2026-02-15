@@ -82,7 +82,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             Ok(url) => url,
             Err(_) => {
                 // B: Step 1
-                promise.reject_error(Error::Type("Invalid script URL".to_owned()), can_gc);
+                promise.reject_error(Error::Type(c"Invalid script URL".to_owned()), can_gc);
                 return promise;
             },
         };
@@ -94,7 +94,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
                 match api_base_url.join(inner_scope) {
                     Ok(url) => url,
                     Err(_) => {
-                        promise.reject_error(Error::Type("Invalid scope URL".to_owned()), can_gc);
+                        promise.reject_error(Error::Type(c"Invalid scope URL".to_owned()), can_gc);
                         return promise;
                     },
                 }
@@ -109,7 +109,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             "https" | "http" => {},
             _ => {
                 promise.reject_error(
-                    Error::Type("Only secure origins are allowed".to_owned()),
+                    Error::Type(c"Only secure origins are allowed".to_owned()),
                     can_gc,
                 );
                 return promise;
@@ -120,7 +120,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             script_url.path().to_ascii_lowercase().contains("%5c")
         {
             promise.reject_error(
-                Error::Type("Script URL contains forbidden characters".to_owned()),
+                Error::Type(c"Script URL contains forbidden characters".to_owned()),
                 can_gc,
             );
             return promise;
@@ -131,7 +131,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             "https" | "http" => {},
             _ => {
                 promise.reject_error(
-                    Error::Type("Only secure origins are allowed".to_owned()),
+                    Error::Type(c"Only secure origins are allowed".to_owned()),
                     can_gc,
                 );
                 return promise;
@@ -142,7 +142,7 @@ impl ServiceWorkerContainerMethods<crate::DomTypeHolder> for ServiceWorkerContai
             scope.path().to_ascii_lowercase().contains("%5c")
         {
             promise.reject_error(
-                Error::Type("Scope URL contains forbidden characters".to_owned()),
+                Error::Type(c"Scope URL contains forbidden characters".to_owned()),
                 can_gc,
             );
             return promise;
@@ -211,7 +211,7 @@ impl RegisterJobResultHandler {
                         match error {
                             JobError::TypeError => {
                                 promise.reject_error(
-                                    Error::Type("Failed to register a ServiceWorker".to_string()),
+                                    Error::Type(c"Failed to register a ServiceWorker".to_owned()),
                                     CanGc::note(),
                                 );
                             },

@@ -13,9 +13,10 @@ use fonts::GlyphStore;
 use gradient::WebRenderGradient;
 use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
-use paint_api::largest_contentful_paint_candidate::{LCPCandidateID, LargestContentfulPaintType};
+use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DiagnosticsLogging;
+use servo_config::pref;
 use servo_geometry::MaxRect;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
@@ -66,12 +67,12 @@ mod clip;
 mod conversions;
 mod gradient;
 mod hit_test;
-mod largest_contenful_paint_candidate_collector;
+mod paint_timing_handler;
 mod stacking_context;
 
 use background::BackgroundPainter;
 pub(crate) use hit_test::HitTest;
-pub(crate) use largest_contenful_paint_candidate_collector::LargestContentfulPaintCandidateCollector;
+pub(crate) use paint_timing_handler::PaintTimingHandler;
 pub(crate) use stacking_context::*;
 
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(AU_PER_PX);
@@ -121,8 +122,8 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// The device pixel ratio used for this `Document`'s display list.
     device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
 
-    /// The collector for calculating Largest Contentful Paint
-    lcp_candidate_collector: Option<&'a mut LargestContentfulPaintCandidateCollector>,
+    /// Handler for all Paint Timings
+    paint_timing_handler: &'a mut PaintTimingHandler,
 }
 
 struct InspectorHighlight {
@@ -171,7 +172,7 @@ impl DisplayListBuilder<'_> {
         device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
         highlighted_dom_node: Option<OpaqueNode>,
         debug: &DiagnosticsLogging,
-        lcp_candidate_collector: Option<&mut LargestContentfulPaintCandidateCollector>,
+        paint_timing_handler: &mut PaintTimingHandler,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let paint_info = &mut stacking_context_tree.paint_info;
@@ -200,7 +201,7 @@ impl DisplayListBuilder<'_> {
             clip_map: Default::default(),
             image_resolver,
             device_pixel_ratio,
-            lcp_candidate_collector,
+            paint_timing_handler,
         };
 
         builder.add_all_spatial_nodes();
@@ -520,27 +521,36 @@ impl DisplayListBuilder<'_> {
         }
     }
 
-    #[inline]
-    fn collect_lcp_candidate(
+    fn check_for_contentful_paint(&mut self, bounds: LayoutRect, clip_rect: LayoutRect) {
+        if self
+            .paint_timing_handler
+            .check_bounding_rect(bounds, clip_rect)
+        {
+            self.mark_is_contentful();
+        }
+    }
+
+    fn check_for_lcp_candidate(
         &mut self,
-        lcp_type: LargestContentfulPaintType,
         lcp_candidate_id: LCPCandidateID,
         clip_rect: LayoutRect,
         bounds: LayoutRect,
     ) {
-        if let Some(lcp_collector) = &mut self.lcp_candidate_collector {
-            let transform = self
-                .paint_info
-                .scroll_tree
-                .cumulative_node_to_root_transform(self.current_scroll_node_id);
-            lcp_collector.add_or_update_candidate(
-                lcp_type,
-                lcp_candidate_id,
-                clip_rect,
-                bounds,
-                transform,
-            );
+        if !pref!(largest_contentful_paint_enabled) {
+            return;
         }
+
+        let transform = self
+            .paint_info
+            .scroll_tree
+            .cumulative_node_to_root_transform(self.current_scroll_node_id);
+
+        self.paint_timing_handler.update_lcp_candidate(
+            lcp_candidate_id,
+            bounds,
+            clip_rect,
+            transform,
+        );
     }
 }
 
@@ -630,8 +640,6 @@ impl Fragment {
                 let style = image.base.style();
                 match style.get_inherited_box().visibility {
                     Visibility::Visible => {
-                        builder.mark_is_contentful();
-
                         let image_rendering =
                             style.get_inherited_box().image_rendering.to_webrender();
                         let rect = image
@@ -654,6 +662,11 @@ impl Fragment {
                                 image_key,
                                 wr::ColorF::WHITE,
                             );
+
+                            // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+                            // An element target is contentful when one or more of the following apply:
+                            // > target is a replaced element representing an available image.
+                            builder.check_for_contentful_paint(rect, common.clip_rect);
                         }
 
                         if image.showing_broken_image_icon {
@@ -669,12 +682,7 @@ impl Fragment {
                             .tag
                             .map(|tag| LCPCandidateID(tag.node.id()))
                             .unwrap_or(LCPCandidateID(0));
-                        builder.collect_lcp_candidate(
-                            LargestContentfulPaintType::Image,
-                            lcp_candidate_id,
-                            common.clip_rect,
-                            rect,
-                        );
+                        builder.check_for_lcp_candidate(lcp_candidate_id, common.clip_rect, rect);
                     },
                     Visibility::Hidden => (),
                     Visibility::Collapse => (),
@@ -685,7 +693,10 @@ impl Fragment {
                 let style = iframe.base.style();
                 match style.get_inherited_box().visibility {
                     Visibility::Visible => {
-                        builder.mark_is_contentful();
+                        // From <https://www.w3.org/TR/paint-timing/#mark-paint-timing>:
+                        // > A parent frame should not be aware of the paint events from its child iframes, and
+                        // > vice versa. This means that a frame that contains just iframes will have first paint
+                        // > (due to the enclosing boxes of the iframes) but no first contentful paint.
                         let rect = iframe
                             .base
                             .rect
@@ -732,9 +743,6 @@ impl Fragment {
     ) {
         // NB: The order of painting text components (CSS Text Decoration Module Level 3) is:
         // shadows, underline, overline, text, text-emphasis, and then line-through.
-
-        builder.mark_is_contentful();
-
         let rect = fragment
             .base
             .rect
@@ -837,6 +845,12 @@ impl Fragment {
             rgba(color),
             None,
         );
+
+        // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+        // An element target is contentful when one or more of the following apply:
+        // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
+        // TODO(shubhamg13): Consider opacity in separate PR
+        builder.check_for_contentful_paint(glyph_bounds, common.clip_rect);
 
         for text_decoration in text_decorations.iter() {
             if text_decoration
@@ -1396,14 +1410,19 @@ impl<'a> BuilderForBoxFragment<'a> {
                             )
                         }
 
+                        // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+                        // An element target is contentful when one or more of the following apply:
+                        // > target has a background-image which is a contentful image, and its used
+                        // > background-size has non-zero width and height values.
+                        builder.check_for_contentful_paint(layer.bounds, layer.common.clip_rect);
+
                         let lcp_candidate_id = self
                             .fragment
                             .base
                             .tag
                             .map(|tag| LCPCandidateID(tag.node.id()))
                             .unwrap_or(LCPCandidateID(0));
-                        builder.collect_lcp_candidate(
-                            LargestContentfulPaintType::BackgroundImage,
+                        builder.check_for_lcp_candidate(
                             lcp_candidate_id,
                             layer.common.clip_rect,
                             layer.bounds,

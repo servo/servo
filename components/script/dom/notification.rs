@@ -358,14 +358,14 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         // step 1: Check global is a ServiceWorkerGlobalScope
         if global.is::<ServiceWorkerGlobalScope>() {
             return Err(Error::Type(
-                "Notification constructor cannot be used in service worker.".to_string(),
+                c"Notification constructor cannot be used in service worker.".to_owned(),
             ));
         }
 
         // step 2: Check options.actions must be empty
         if !options.actions.is_empty() {
             return Err(Error::Type(
-                "Actions are only supported for persistent notifications.".to_string(),
+                c"Actions are only supported for persistent notifications.".to_owned(),
             ));
         }
 
@@ -617,13 +617,13 @@ fn create_notification(
     // If options["silent"] is true and options["vibrate"] exists, then throw a TypeError.
     if options.silent.is_some() && options.vibrate.is_some() {
         return Err(Error::Type(
-            "Can't specify vibration patterns when setting notification to silent.".to_string(),
+            c"Can't specify vibration patterns when setting notification to silent.".to_owned(),
         ));
     }
     // If options["renotify"] is true and options["tag"] is the empty string, then throw a TypeError.
     if options.renotify && options.tag.is_empty() {
         return Err(Error::Type(
-            "tag must be set to renotify as an existing notification.".to_string(),
+            c"tag must be set to renotify as an existing notification.".to_owned(),
         ));
     }
 

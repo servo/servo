@@ -9,6 +9,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
 <style>
@@ -66,7 +67,7 @@
 
   // Helper to test specific arrow keys.
   async function pressArrowKey(element, key) {
-    element.focus();
+    await focusAndWait(element);
     return test_driver.send_keys(element, key);
   }
 

@@ -22,22 +22,23 @@ use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::gc::MutableHandleValue;
 use js::jsapi::{
-    CompileJsonModule1, CompileModule1, ExceptionStackBehavior, GetModuleResolveHook,
-    Handle as RawHandle, HandleValue as RawHandleValue, Heap, JS_ClearPendingException,
+    CallArgs, CompileJsonModule1, CompileModule1, ExceptionStackBehavior,
+    GetFunctionNativeReserved, GetModuleResolveHook, Handle as RawHandle,
+    HandleValue as RawHandleValue, Heap, JS_ClearPendingException, JS_GetFunctionObject,
     JSAutoRealm, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JSRuntime,
-    ModuleErrorBehaviour, ModuleType, SetModuleDynamicImportHook, SetModuleMetadataHook,
-    SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks,
+    ModuleErrorBehaviour, ModuleType, SetFunctionNativeReserved, SetModuleDynamicImportHook,
+    SetModuleMetadataHook, SetModulePrivate, SetModuleResolveHook, SetScriptPrivateReferenceHooks,
     ThrowOnModuleEvaluationFailure, Value,
 };
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{JS_GetPendingException, JS_SetPendingException, ModuleEvaluate};
 use js::rust::wrappers2::{
-    GetModuleRequestSpecifier, GetModuleRequestType, JS_DefineProperty4, JS_NewStringCopyN,
-    ModuleLink,
+    DefineFunctionWithReserved, GetModuleRequestSpecifier, GetModuleRequestType,
+    JS_DefineProperty4, JS_NewStringCopyN, ModuleLink,
 };
 use js::rust::{
-    CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue,
+    CompileOptionsWrapper, Handle, HandleObject as RustHandleObject, HandleValue, ToString,
     transform_str_to_source_text,
 };
 use mime::Mime;
@@ -47,6 +48,7 @@ use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId, RequestMode,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
+use script_bindings::cformat;
 use script_bindings::domstring::BytesView;
 use script_bindings::error::Fallible;
 use script_bindings::trace::CustomTraceable;
@@ -56,6 +58,7 @@ use servo_url::ServoUrl;
 use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
+use crate::dom::bindings::conversions::SafeToJSValConvertible;
 use crate::dom::bindings::error::{
     Error, ErrorToJsval, report_pending_exception, throw_dom_exception,
 };
@@ -310,8 +313,9 @@ impl ModuleTree {
             loaded_modules: DomRefCell::new(IndexMap::new()),
         };
 
+        let c_url = cformat!("{url}");
         let mut compile_options =
-            unsafe { CompileOptionsWrapper::new_raw(*cx, url.as_str(), line_number) };
+            unsafe { CompileOptionsWrapper::new_raw(*cx, c_url, line_number) };
         if let Some(introduction_type) = introduction_type {
             compile_options.set_introduction_type(introduction_type);
         }
@@ -391,7 +395,8 @@ impl ModuleTree {
         // Step 3. Set script's base URL and fetch options to null.
         // Note: We don't need to call `SetModulePrivate` for json scripts
 
-        let mut compile_options = unsafe { CompileOptionsWrapper::new_raw(*cx, url.as_str(), 1) };
+        let c_url = cformat!("{url}");
+        let mut compile_options = unsafe { CompileOptionsWrapper::new_raw(*cx, c_url, 1) };
         if let Some(introduction_type) = introduction_type {
             compile_options.set_introduction_type(introduction_type);
         }
@@ -587,7 +592,7 @@ impl ModuleTree {
             // Step 14. Throw a TypeError indicating that specifier was a bare specifier,
             // but was not remapped to anything by importMap.
             None => Err(Error::Type(
-                "Specifier was a bare specifier, but was not remapped to anything by importMap."
+                c"Specifier was a bare specifier, but was not remapped to anything by importMap."
                     .to_owned(),
             )),
         }
@@ -958,10 +963,20 @@ impl ScriptFetchOptions {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#descendant-script-fetch-options>
-    pub(crate) fn descendant_fetch_options(&self) -> ScriptFetchOptions {
+    pub(crate) fn descendant_fetch_options(
+        &self,
+        url: &ServoUrl,
+        global: &GlobalScope,
+    ) -> ScriptFetchOptions {
+        // Step 2. Let integrity be the result of resolving a module integrity metadata with url and settingsObject.
+        let integrity = global.import_map().resolve_a_module_integrity_metadata(url);
+
+        // Step 1. Let newOptions be a copy of originalOptions.
+        // TODO Step 4. Set newOptions's fetch priority to "auto".
         Self {
             referrer: self.referrer.clone(),
-            integrity_metadata: String::new(),
+            // Step 3. Set newOptions's integrity metadata to integrity.
+            integrity_metadata: integrity,
             cryptographic_nonce: self.cryptographic_nonce.clone(),
             credentials_mode: self.credentials_mode,
             parser_metadata: self.parser_metadata,
@@ -1039,6 +1054,9 @@ unsafe extern "C" fn HostResolveImportedModule(
     unreachable!()
 }
 
+// https://searchfox.org/firefox-esr140/rev/3fccb0ec900b931a1a752b02eafab1fb9652d9b9/js/loader/ModuleLoaderBase.h#560
+const SLOT_MODULEPRIVATE: usize = 0;
+
 #[expect(unsafe_code)]
 #[expect(non_snake_case)]
 /// <https://tc39.es/ecma262/#sec-hostgetimportmetaproperties>
@@ -1059,24 +1077,104 @@ unsafe extern "C" fn HostPopulateImportMeta(
         None => global_scope.api_base_url(),
     };
 
-    let url_string = unsafe {
-        JS_NewStringCopyN(
+    unsafe {
+        let url_string = JS_NewStringCopyN(
             &mut cx,
             base_url.as_str().as_ptr() as *const _,
             base_url.as_str().len(),
-        )
-    };
-    rooted!(&in(cx) let url_string = url_string);
+        );
+        rooted!(&in(cx) let url_string = url_string);
 
-    // Step 3.
-    unsafe {
-        JS_DefineProperty4(
+        // Step 3.
+        if !JS_DefineProperty4(
             &mut cx,
             Handle::from_raw(meta_object),
             c"url".as_ptr(),
             url_string.handle(),
             JSPROP_ENUMERATE.into(),
-        )
+        ) {
+            return false;
+        }
+
+        // Step 5. Let resolveFunction be ! CreateBuiltinFunction(steps, 1, "resolve", « »).
+        let resolve_function = DefineFunctionWithReserved(
+            &mut cx,
+            meta_object.get(),
+            c"resolve".as_ptr(),
+            Some(import_meta_resolve),
+            1,
+            JSPROP_ENUMERATE.into(),
+        );
+
+        rooted!(&in(cx) let obj = JS_GetFunctionObject(resolve_function));
+        assert!(!obj.is_null());
+        SetFunctionNativeReserved(
+            obj.get(),
+            SLOT_MODULEPRIVATE,
+            &reference_private.get() as *const _,
+        );
+    }
+
+    true
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *mut JSVal) -> bool {
+    // Safety: it is safe to construct a JSContext from engine hook.
+    let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
+    let mut realm = CurrentRealm::assert(&mut cx);
+    let global_scope = GlobalScope::from_current_realm(&realm);
+
+    let cx = &mut realm;
+
+    let args = unsafe { CallArgs::from_vp(vp, argc) };
+
+    rooted!(&in(cx) let module_private = unsafe { *GetFunctionNativeReserved(args.callee(), SLOT_MODULEPRIVATE) });
+    let reference_private = module_private.handle().into();
+    let module_data = unsafe { module_script_from_reference_private(&reference_private) };
+
+    // https://html.spec.whatwg.org/multipage/#hostgetimportmetaproperties
+
+    // Step 4.1. Set specifier to ? ToString(specifier).
+    let specifier = unsafe {
+        let value = HandleValue::from_raw(args.get(0));
+
+        match NonNull::new(ToString(cx.raw_cx(), value)) {
+            Some(jsstr) => DOMString::from_string(jsstr_to_string(cx.raw_cx(), jsstr)),
+            None => return false,
+        }
+    };
+
+    // Step 4.2. Let url be the result of resolving a module specifier given moduleScript and specifier.
+    let url = ModuleTree::resolve_module_specifier(
+        &global_scope,
+        module_data,
+        specifier,
+        CanGc::from_cx(cx),
+    );
+
+    match url {
+        Ok(url) => {
+            // Step 4.3. Return the serialization of url.
+            url.as_str().safe_to_jsval(
+                cx.into(),
+                unsafe { MutableHandleValue::from_raw(args.rval()) },
+                CanGc::from_cx(cx),
+            );
+            true
+        },
+        Err(error) => {
+            let resolution_error = gen_type_error(&global_scope, error, CanGc::from_cx(cx));
+
+            unsafe {
+                JS_SetPendingException(
+                    cx.raw_cx(),
+                    resolution_error.handle(),
+                    ExceptionStackBehavior::Capture,
+                );
+            }
+            false
+        },
     }
 }
 
@@ -1411,6 +1509,17 @@ pub(crate) struct ImportMap {
     integrity: ModuleIntegrityMap,
 }
 
+impl ImportMap {
+    /// <https://html.spec.whatwg.org/multipage/#resolving-a-module-integrity-metadata>
+    pub(crate) fn resolve_a_module_integrity_metadata(&self, url: &ServoUrl) -> String {
+        // Step 1. Let map be settingsObject's global object's import map.
+
+        // Step 2. If map's integrity[url] does not exist, then return the empty string.
+        // Step 3. Return map's integrity[url].
+        self.integrity.get(url).cloned().unwrap_or_default()
+    }
+}
+
 /// <https://html.spec.whatwg.org/multipage/#register-an-import-map>
 pub(crate) fn register_import_map(
     global: &GlobalScope,
@@ -1555,6 +1664,12 @@ fn merge_existing_and_new_import_maps(
         can_gc,
     );
     old_import_map.imports = merged_module_specifier_map;
+
+    // https://html.spec.whatwg.org/multipage/#the-resolution-algorithm
+    // Sort scopes to ensure entries are visited from most-specific to least-specific.
+    old_import_map
+        .scopes
+        .sort_by(|a_key, _, b_key, _| b_key.cmp(a_key));
 }
 
 /// <https://html.spec.whatwg.org/multipage/#merge-module-specifier-maps>
@@ -1598,12 +1713,12 @@ pub(crate) fn parse_an_import_map_string(
 ) -> Fallible<ImportMap> {
     // Step 1. Let parsed be the result of parsing a JSON string to an Infra value given input.
     let parsed: JsonValue = serde_json::from_str(&input.str())
-        .map_err(|_| Error::Type("The value needs to be a JSON object.".to_owned()))?;
+        .map_err(|_| Error::Type(c"The value needs to be a JSON object.".to_owned()))?;
     // Step 2. If parsed is not an ordered map, then throw a TypeError indicating that the
     // top-level value needs to be a JSON object.
     let JsonValue::Object(mut parsed) = parsed else {
         return Err(Error::Type(
-            "The top-level value needs to be a JSON object.".to_owned(),
+            c"The top-level value needs to be a JSON object.".to_owned(),
         ));
     };
 
@@ -1615,7 +1730,7 @@ pub(crate) fn parse_an_import_map_string(
         // indicating that the value for the "imports" top-level key needs to be a JSON object.
         let JsonValue::Object(imports) = imports else {
             return Err(Error::Type(
-                "The \"imports\" top-level value needs to be a JSON object.".to_owned(),
+                c"The \"imports\" top-level value needs to be a JSON object.".to_owned(),
             ));
         };
         // Step 4.2 Set sortedAndNormalizedImports to the result of sorting and
@@ -1636,7 +1751,7 @@ pub(crate) fn parse_an_import_map_string(
         // indicating that the value for the "scopes" top-level key needs to be a JSON object.
         let JsonValue::Object(scopes) = scopes else {
             return Err(Error::Type(
-                "The \"scopes\" top-level value needs to be a JSON object.".to_owned(),
+                c"The \"scopes\" top-level value needs to be a JSON object.".to_owned(),
             ));
         };
         // Step 6.2 Set sortedAndNormalizedScopes to the result of sorting and
@@ -1653,7 +1768,7 @@ pub(crate) fn parse_an_import_map_string(
         // indicating that the value for the "integrity" top-level key needs to be a JSON object.
         let JsonValue::Object(integrity) = integrity else {
             return Err(Error::Type(
-                "The \"integrity\" top-level value needs to be a JSON object.".to_owned(),
+                c"The \"integrity\" top-level value needs to be a JSON object.".to_owned(),
             ));
         };
         // Step 8.2 Set normalizedIntegrity to the result of normalizing
@@ -1783,7 +1898,7 @@ fn sort_and_normalize_scopes(
         // that the value of the scope with prefix scopePrefix needs to be a JSON object.
         let JsonValue::Object(potential_specifier_map) = potential_specifier_map else {
             return Err(Error::Type(
-                "The value of the scope with prefix scopePrefix needs to be a JSON object."
+                c"The value of the scope with prefix scopePrefix needs to be a JSON object."
                     .to_owned(),
             ));
         };
@@ -1924,7 +2039,7 @@ pub(crate) fn resolve_imports_match(
             } else {
                 // Step 1.1.1 If resolutionResult is null, then throw a TypeError.
                 return Err(Error::Type(
-                    "Resolution of specifierKey was blocked by a null entry.".to_owned(),
+                    c"Resolution of specifierKey was blocked by a null entry.".to_owned(),
                 ));
             }
         }
@@ -1941,7 +2056,7 @@ pub(crate) fn resolve_imports_match(
             // Step 1.2.2 Assert: resolutionResult is a URL.
             let Some(resolution_result) = resolution_result else {
                 return Err(Error::Type(
-                    "Resolution of specifierKey was blocked by a null entry.".to_owned(),
+                    c"Resolution of specifierKey was blocked by a null entry.".to_owned(),
                 ));
             };
 
@@ -1960,7 +2075,7 @@ pub(crate) fn resolve_imports_match(
             // Step 1.2.7 Assert: url is a URL.
             let Ok(url) = url else {
                 return Err(Error::Type(
-                    "Resolution of normalizedSpecifier was blocked since
+                    c"Resolution of normalizedSpecifier was blocked since
                     the afterPrefix portion could not be URL-parsed relative to
                     the resolutionResult mapped to by the specifierKey prefix."
                         .to_owned(),
@@ -1971,7 +2086,7 @@ pub(crate) fn resolve_imports_match(
             // a code unit prefix of the serialization of url, then throw a TypeError
             if !url.as_str().starts_with(resolution_result.as_str()) {
                 return Err(Error::Type(
-                    "Resolution of normalizedSpecifier was blocked due to
+                    c"Resolution of normalizedSpecifier was blocked due to
                     it backtracking above its prefix specifierKey."
                         .to_owned(),
                 ));

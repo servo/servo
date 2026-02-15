@@ -30,7 +30,7 @@ interface ViewTransition {
   readonly attribute Promise<undefined> ready;
   readonly attribute Promise<undefined> finished;
   undefined skipTransition();
-  [SameObject] attribute ViewTransitionTypeSet types;
+  [SameObject] readonly attribute ViewTransitionTypeSet types;
   readonly attribute Element transitionRoot;
   undefined waitUntil(Promise<any> promise);
 };

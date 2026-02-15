@@ -17,6 +17,7 @@ use js::jsval;
 use js::rust::{CustomAutoRooterGuard, HandleObject, ToString};
 use js::typedarray::{Float32Array, Float64Array, HeapFloat32Array, HeapFloat64Array};
 use rustc_hash::FxHashMap;
+use script_bindings::cformat;
 use script_bindings::trace::RootedTraceableBox;
 use style::stylesheets::CssRuleType;
 use style_traits::ParsingMode;
@@ -493,7 +494,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
             StringOrUnrestrictedDoubleSequence::String(ref s) => {
                 if !global.is::<Window>() {
                     return Err(error::Error::Type(
-                        "String constructor is only supported in the main thread.".to_owned(),
+                        c"String constructor is only supported in the main thread.".to_owned(),
                     ));
                 }
                 if s.is_empty() {
@@ -1051,8 +1052,8 @@ pub(crate) fn entries_to_matrix(entries: &[f64]) -> Fallible<(bool, Transform3D<
     } else if let Ok(array) = entries.try_into() {
         Ok((false, Transform3D::from_array(array)))
     } else {
-        let err_msg = format!("Expected 6 or 16 entries, but found {}.", entries.len());
-        Err(error::Error::Type(err_msg.to_owned()))
+        let err_msg = cformat!("Expected 6 or 16 entries, but found {}.", entries.len());
+        Err(error::Error::Type(err_msg))
     }
 }
 
@@ -1083,7 +1084,7 @@ fn validate_and_fixup_2d(dict: &DOMMatrix2DInit) -> Fallible<Transform2D<f64>> {
             !same_value_zero(dict.f.unwrap(), dict.m42.unwrap())
     {
         return Err(error::Error::Type(
-            "Property mismatch on matrix initialization.".to_owned(),
+            c"Property mismatch on matrix initialization.".to_owned(),
         ));
     }
 
@@ -1136,7 +1137,7 @@ fn validate_and_fixup(dict: &DOMMatrixInit) -> Fallible<(bool, Transform3D<f64>)
             dict.m44 != 1.0)
     {
         return Err(error::Error::Type(
-            "The is2D member is set to true but the input matrix is a 3d matrix.".to_owned(),
+            c"The is2D member is set to true but the input matrix is a 3d matrix.".to_owned(),
         ));
     }
 

@@ -27,11 +27,11 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSStyleRule {
-    cssgroupingrule: CSSGroupingRule,
+    css_grouping_rule: CSSGroupingRule,
     #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
-    stylerule: RefCell<Arc<Locked<StyleRule>>>,
-    style_decl: MutNullableDom<CSSStyleDeclaration>,
+    style_rule: RefCell<Arc<Locked<StyleRule>>>,
+    style_declaration: MutNullableDom<CSSStyleDeclaration>,
 }
 
 impl CSSStyleRule {
@@ -40,9 +40,9 @@ impl CSSStyleRule {
         stylerule: Arc<Locked<StyleRule>>,
     ) -> CSSStyleRule {
         CSSStyleRule {
-            cssgroupingrule: CSSGroupingRule::new_inherited(parent_stylesheet),
-            stylerule: RefCell::new(stylerule),
-            style_decl: Default::default(),
+            css_grouping_rule: CSSGroupingRule::new_inherited(parent_stylesheet),
+            style_rule: RefCell::new(stylerule),
+            style_declaration: Default::default(),
         }
     }
 
@@ -60,9 +60,9 @@ impl CSSStyleRule {
     }
 
     pub(crate) fn ensure_rules(&self) -> Arc<Locked<CssRules>> {
-        let lock = self.cssgroupingrule.shared_lock();
+        let lock = self.css_grouping_rule.shared_lock();
         let mut guard = lock.write();
-        self.stylerule
+        self.style_rule
             .borrow()
             .write_with(&mut guard)
             .rules
@@ -76,14 +76,14 @@ impl CSSStyleRule {
         guard: &SharedRwLockReadGuard,
     ) {
         if let Some(ref rules) = stylerule.read_with(guard).rules {
-            self.cssgroupingrule.update_rules(rules, guard);
+            self.css_grouping_rule.update_rules(rules, guard);
         }
 
-        if let Some(ref style_decl) = self.style_decl.get() {
+        if let Some(ref style_decl) = self.style_declaration.get() {
             style_decl.update_property_declaration_block(&stylerule.read_with(guard).block);
         }
 
-        *self.stylerule.borrow_mut() = stylerule;
+        *self.style_rule.borrow_mut() = stylerule;
     }
 }
 
@@ -93,8 +93,8 @@ impl SpecificCSSRule for CSSStyleRule {
     }
 
     fn get_css(&self) -> DOMString {
-        let guard = self.cssgroupingrule.shared_lock().read();
-        self.stylerule
+        let guard = self.css_grouping_rule.shared_lock().read();
+        self.style_rule
             .borrow()
             .read_with(&guard)
             .to_css_string(&guard)
@@ -105,13 +105,13 @@ impl SpecificCSSRule for CSSStyleRule {
 impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
     /// <https://drafts.csswg.org/cssom/#dom-cssstylerule-style>
     fn Style(&self, can_gc: CanGc) -> DomRoot<CSSStyleDeclaration> {
-        self.style_decl.or_init(|| {
-            let guard = self.cssgroupingrule.shared_lock().read();
+        self.style_declaration.or_init(|| {
+            let guard = self.css_grouping_rule.shared_lock().read();
             CSSStyleDeclaration::new(
                 self.global().as_window(),
                 CSSStyleOwner::CSSRule(
                     Dom::from_ref(self.upcast()),
-                    RefCell::new(self.stylerule.borrow().read_with(&guard).block.clone()),
+                    RefCell::new(self.style_rule.borrow().read_with(&guard).block.clone()),
                 ),
                 None,
                 CSSModificationAccess::ReadWrite,
@@ -122,9 +122,9 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext>
     fn SelectorText(&self) -> DOMString {
-        let guard = self.cssgroupingrule.shared_lock().read();
+        let guard = self.css_grouping_rule.shared_lock().read();
         DOMString::from_string(
-            self.stylerule
+            self.style_rule
                 .borrow()
                 .read_with(&guard)
                 .selectors
@@ -136,8 +136,11 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
     fn SetSelectorText(&self, value: DOMString) {
         let value = value.str();
         let Ok(mut selector) = ({
-            let guard = self.cssgroupingrule.shared_lock().read();
-            let sheet = self.cssgroupingrule.parent_stylesheet().style_stylesheet();
+            let guard = self.css_grouping_rule.shared_lock().read();
+            let sheet = self
+                .css_grouping_rule
+                .parent_stylesheet()
+                .style_stylesheet();
             let contents = sheet.contents(&guard);
             // It's not clear from the spec if we should use the stylesheet's namespaces.
             // https://github.com/w3c/csswg-drafts/issues/1511
@@ -155,14 +158,14 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
         }) else {
             return;
         };
-        self.cssgroupingrule.parent_stylesheet().will_modify();
+        self.css_grouping_rule.parent_stylesheet().will_modify();
         // This mirrors what we do in CSSStyleOwner::mutate_associated_block.
-        let mut guard = self.cssgroupingrule.shared_lock().write();
+        let mut guard = self.css_grouping_rule.shared_lock().write();
         mem::swap(
-            &mut self.stylerule.borrow().write_with(&mut guard).selectors,
+            &mut self.style_rule.borrow().write_with(&mut guard).selectors,
             &mut selector,
         );
-        self.cssgroupingrule
+        self.css_grouping_rule
             .parent_stylesheet()
             .notify_invalidations();
     }

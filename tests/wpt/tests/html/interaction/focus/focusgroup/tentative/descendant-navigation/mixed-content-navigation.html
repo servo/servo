@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
 <div id=root focusgroup="toolbar">
@@ -71,7 +72,7 @@
     var item4 = document.getElementById("item4");
     var item5 = document.getElementById("item5");
 
-    item5.focus();
+    await focusAndWait(item5);
     await focusAndKeyPress(item5, kArrowLeft);
     assert_equals(document.activeElement, item4, "Should navigate backward to link");
 

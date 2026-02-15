@@ -41,13 +41,13 @@ fn cast_error_callback(
                     error_callback,
                 )))
             } else {
-                Err(Error::Type("Value is not callable.".to_string()))
+                Err(Error::Type(c"Value is not callable.".to_owned()))
             }
         }
     } else if error_callback.get().is_null_or_undefined() {
         Ok(None)
     } else {
-        Err(Error::Type("Value is not an object.".to_string()))
+        Err(Error::Type(c"Value is not an object.".to_owned()))
     }
 }
 

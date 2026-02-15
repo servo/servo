@@ -3,21 +3,22 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use euclid::RigidTransform3D;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
 use crate::{Hand, Input, JointFrame, Native};
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize, MallocSizeOf)]
 pub struct InputId(pub u32);
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, MallocSizeOf)]
 pub enum Handedness {
     None,
     Left,
     Right,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, MallocSizeOf)]
 pub enum TargetRayMode {
     Gaze,
     TrackedPointer,
@@ -25,7 +26,7 @@ pub enum TargetRayMode {
     TransientPointer,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, MallocSizeOf)]
 pub struct InputSource {
     pub handedness: Handedness,
     pub target_ray_mode: TargetRayMode,
@@ -35,7 +36,7 @@ pub struct InputSource {
     pub profiles: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, MallocSizeOf)]
 pub struct InputFrame {
     pub id: InputId,
     pub target_ray_origin: Option<RigidTransform3D<f32, Input, Native>>,

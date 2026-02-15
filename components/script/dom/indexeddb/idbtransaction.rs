@@ -227,7 +227,7 @@ impl IDBTransaction {
 
         let callback = GenericCallback::new(
             global.time_profiler_chan().clone(),
-            move |message: Result<TxnCompleteMsg, ipc_channel::Error>| {
+            move |message: Result<TxnCompleteMsg, ipc_channel::IpcError>| {
                 let this = this.clone();
                 let task_source = task_source.clone();
                 task_source.queue(task!(handle_commit_result: move || {
@@ -454,7 +454,7 @@ impl IDBTransaction {
             .to_sendable();
         let callback = GenericCallback::new(
             global.time_profiler_chan().clone(),
-            move |message: Result<TxnCompleteMsg, ipc_channel::Error>| {
+            move |message: Result<TxnCompleteMsg, ipc_channel::IpcError>| {
                 let this = this.clone();
                 let task_source = task_source.clone();
                 task_source.queue(task!(handle_abort_result: move || {

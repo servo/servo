@@ -1299,7 +1299,7 @@ unsafe extern "C" fn consume_stream(
             throw_dom_exception(
                 cx,
                 &global,
-                Error::Type("Response has unsupported MIME type".to_string()),
+                Error::Type(c"Response has unsupported MIME type".to_owned()),
                 CanGc::note(),
             );
             return false;
@@ -1312,7 +1312,7 @@ unsafe extern "C" fn consume_stream(
                 throw_dom_exception(
                     cx,
                     &global,
-                    Error::Type("Response.type must be 'basic', 'cors' or 'default'".to_string()),
+                    Error::Type(c"Response.type must be 'basic', 'cors' or 'default'".to_owned()),
                     CanGc::note(),
                 );
                 return false;
@@ -1324,7 +1324,7 @@ unsafe extern "C" fn consume_stream(
             throw_dom_exception(
                 cx,
                 &global,
-                Error::Type("Response does not have ok status".to_string()),
+                Error::Type(c"Response does not have ok status".to_owned()),
                 CanGc::note(),
             );
             return false;
@@ -1335,7 +1335,7 @@ unsafe extern "C" fn consume_stream(
             throw_dom_exception(
                 cx,
                 &global,
-                Error::Type("There was an error consuming the Response".to_string()),
+                Error::Type(c"There was an error consuming the Response".to_owned()),
                 CanGc::note(),
             );
             return false;
@@ -1346,7 +1346,7 @@ unsafe extern "C" fn consume_stream(
             throw_dom_exception(
                 cx,
                 &global,
-                Error::Type("Response already consumed".to_string()),
+                Error::Type(c"Response already consumed".to_owned()),
                 CanGc::note(),
             );
             return false;
@@ -1357,7 +1357,7 @@ unsafe extern "C" fn consume_stream(
         throw_dom_exception(
             cx,
             &global,
-            Error::Type("expected Response or Promise resolving to Response".to_string()),
+            Error::Type(c"expected Response or Promise resolving to Response".to_owned()),
             CanGc::note(),
         );
         return false;

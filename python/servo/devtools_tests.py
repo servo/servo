@@ -19,6 +19,9 @@ from geckordp.actors.watcher import WatcherActor
 from geckordp.actors.web_console import WebConsoleActor
 from geckordp.actors.resources import Resources
 from geckordp.actors.events import Events
+from geckordp.actors.inspector import InspectorActor
+from geckordp.actors.walker import WalkerActor
+from geckordp.actors.node import NodeActor
 from geckordp.rdp_client import RDPClient
 import http.server
 import os.path
@@ -716,6 +719,61 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             },
         )
 
+    def test_console_log_object_with_object_preview(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/console/log_object.html")
+
+        result = self.evaluate_and_capture_console_log_output("log_object();")["arguments"][0]
+
+        # Run assertions on the result
+        self.assertEquals(result["ownPropertyLength"], 3)
+
+        preview = result["preview"]
+        self.assertEquals(preview["kind"], "Object")
+        self.assertEquals(preview["ownPropertiesLength"], 3)
+
+        def assert_property_descriptor_equals(actual_descriptor, expected_descriptor):
+            for key, value in expected_descriptor.items():
+                self.assertEquals(
+                    actual_descriptor[key],
+                    value,
+                    f"Incorrect value for {key}, expected {value}, got {actual_descriptor[key]}",
+                )
+
+        assert_property_descriptor_equals(
+            preview["ownProperties"]["foo"],
+            {"configurable": True, "enumerable": True, "value": 1, "writable": True},
+        )
+        assert_property_descriptor_equals(
+            preview["ownProperties"]["bar"],
+            {"configurable": True, "enumerable": False, "value": "servo", "writable": True},
+        )
+        assert_property_descriptor_equals(
+            preview["ownProperties"]["baz"],
+            {"configurable": False, "enumerable": True, "value": True, "writable": True},
+        )
+
+    def test_console_log_booleans(self):
+        script_tag = "<script>let log_booleans = () => console.log(true, false, !false, !true);</script>"
+        self.run_servoshell(url=f"data:text/html,{script_tag}")
+
+        result = self.evaluate_and_capture_console_log_output("log_booleans();")
+        self.assertEquals(result["arguments"], [True, False, True, False])
+
+    def test_inspector_event_listeners(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/inspector/event_listeners.html")
+        with Devtools.connect() as devtools:
+            inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
+            walker = WalkerActor(devtools.client, inspector.get_walker()["actor"])
+            document_element = walker.document_element("")["actor"]
+
+            button = walker.query_selector(document_element, "button")["node"]
+            span = walker.query_selector(document_element, "span")["node"]
+            div = walker.query_selector(document_element, "div")["node"]
+
+            self.assert_event_listeners(button, [{"type": "click", "capturing": False}], devtools)
+            self.assert_event_listeners(span, [{"type": "hover", "capturing": True}], devtools)
+            self.assert_event_listeners(div, None, devtools)
+
     # Sets `base_url` and `web_server` and `web_server_thread`.
     @classmethod
     def setUpClass(cls):
@@ -803,6 +861,20 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             cls.web_server_threads = None
         if cls.base_urls is not None:
             cls.base_urls = None
+
+    def assert_event_listeners(self, node: dict, expected_listeners: Optional[Any], devtools: Devtools):
+        if expected_listeners is None:
+            self.assertFalse(node["hasEventListeners"])
+            return
+
+        self.assertTrue(node["hasEventListeners"])
+        nodeActor = NodeActor(devtools.client, node["actor"])
+        event_listener_info = nodeActor.get_event_listener_info()
+        self.assertEqual(len(event_listener_info), len(expected_listeners))
+
+        for expected_listener, actual_listener in zip(expected_listeners, event_listener_info):
+            for key, value in expected_listener.items():
+                self.assertEqual(actual_listener[key], value)
 
     def assert_sources_list(
         self, expected_sources_by_target: Counter[FrozenMultiset[Source]], *, devtools: Optional[Devtools] = None
@@ -932,6 +1004,27 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
     def get_test_path(self, path: str) -> str:
         return os.path.join(DevtoolsTests.script_path, os.path.join("devtools_tests", path))
+
+    def evaluate_and_capture_console_log_output(self, js: str, timeout: float = 1) -> dict:
+        with Devtools.connect() as devtools:
+            devtools.watcher.watch_resources([Resources.CONSOLE_MESSAGE])
+
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+            evaluation_result = Future()
+
+            async def on_resource_available(data):
+                for resource in data["array"]:
+                    if resource[0] != "console-message":
+                        continue
+                    evaluation_result.set_result(resource[1][0])
+                    return
+
+            devtools.client.add_event_listener(
+                devtools.targets[0]["actor"], Events.Watcher.RESOURCES_AVAILABLE_ARRAY, on_resource_available
+            )
+
+            console.evaluate_js_async(js)
+            return evaluation_result.result(timeout)
 
 
 def run_tests(script_path, servo_binary: str, test_names: list[str]):

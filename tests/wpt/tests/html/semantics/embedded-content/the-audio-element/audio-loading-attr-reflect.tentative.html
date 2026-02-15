@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<!-- Note: this is a reflection test that will ultimately be removed in favor of using the
+ html/dom/elements-embedded.js file instead, once not tentative. -->
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<audio id="target"></audio>
+
+<script>
+  const audio = document.getElementById("target");
+
+  test(() => {
+    audio.removeAttribute("loading");
+    assert_equals(audio.loading, "eager", "Default value should be 'eager'");
+  }, "Audio loading attribute default value is 'eager'");
+
+  test(() => {
+    audio.setAttribute("loading", "lazy");
+    assert_equals(audio.loading, "lazy", "loading='lazy' should reflect as 'lazy'");
+  }, "Audio loading attribute reflects 'lazy'");
+
+  test(() => {
+    audio.setAttribute("loading", "eager");
+    assert_equals(audio.loading, "eager", "loading='eager' should reflect as 'eager'");
+  }, "Audio loading attribute reflects 'eager'");
+
+  test(() => {
+    audio.setAttribute("loading", "invalid");
+    assert_equals(audio.loading, "eager", "Invalid value should reflect as 'eager'");
+  }, "Audio loading attribute with invalid value reflects as 'eager'");
+
+  test(() => {
+    audio.setAttribute("loading", "");
+    assert_equals(audio.loading, "eager", "Empty string should reflect as 'eager'");
+  }, "Audio loading attribute with empty string reflects as 'eager'");
+
+  test(() => {
+    audio.setAttribute("loading", "LAZY");
+    assert_equals(audio.loading, "lazy", "Uppercase 'LAZY' should reflect as 'lazy'");
+  }, "Audio loading attribute is case-insensitive for 'lazy'");
+
+  test(() => {
+    audio.setAttribute("loading", "EAGER");
+    assert_equals(audio.loading, "eager", "Uppercase 'EAGER' should reflect as 'eager'");
+  }, "Audio loading attribute is case-insensitive for 'eager'");
+
+  test(() => {
+    audio.loading = "lazy";
+    assert_equals(audio.getAttribute("loading"), "lazy", "Setting IDL to 'lazy' should set content attribute");
+    assert_equals(audio.loading, "lazy", "IDL should reflect 'lazy'");
+  }, "Setting audio.loading IDL attribute to 'lazy'");
+
+  test(() => {
+    audio.loading = "eager";
+    assert_equals(audio.getAttribute("loading"), "eager", "Setting IDL to 'eager' should set content attribute");
+    assert_equals(audio.loading, "eager", "IDL should reflect 'eager'");
+  }, "Setting audio.loading IDL attribute to 'eager'");
+
+  test(() => {
+    audio.loading = "invalid";
+    assert_equals(audio.getAttribute("loading"), "invalid", "Setting IDL to 'invalid' should set content attribute");
+    assert_equals(audio.loading, "eager", "IDL should reflect 'eager' for invalid content attribute");
+  }, "Setting audio.loading IDL attribute to invalid value");
+</script>

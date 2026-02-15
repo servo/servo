@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - move target while appending</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div
+ id="target" marker="results"><span id="ref">ref </span><?start name="results">Loading...</div>
+<div id="new-container"></div>
+</div>
+<script>
+  const contents = [];
+  const target = document.querySelector("#target");
+  function step() {
+    for (const script of target.querySelectorAll("script")) {
+      script.remove();
+    }
+
+    contents.push(target.textContent);
+  }
+
+  step();
+</script>
+
+<template for="results"
+  >A<script>
+    step();
+    document.querySelector("#target").prepend("Before ");
+    step();
+  </script>B<script>
+    step();
+    document.querySelector("#ref").remove();
+    step();
+  </script>C<script>
+    step();
+    document.querySelector("#new-container").appendChild(document.querySelector("#target"));
+    step();
+  </script><span id="d">D</span><script>
+    step();
+    document.body.append(document.querySelector("#target"));
+    step();
+  </script><span id="e">E</span><script>
+    step();
+  </script></script><span id="f">F</span><script>
+    step();
+  </script></template>
+<script>
+  test(() => {
+    assert_array_equals(contents,
+      ["ref Loading...", "ref A", "Before ref A", "Before ref AB", "Before AB", "Before ABC", "Before ABC", "Before ABCD", "Before ABCD", "Before ABCDE", "Before ABCDEF"]
+    );
+  }, "Multiple <template for>");
+</script>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<title>CSS Borders Test: hit testing border-shape with overflow-clip-margin reference boxes</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#border-shape">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 100px; }
+  .outer {
+    width: 100px;
+    height: 100px;
+    background: grey;
+    overflow: clip;
+    border-shape: circle(50% at 50% 50%);
+    border: 10px solid purple;
+    display: inline-block;
+    margin-right: 200px;
+    vertical-align: top;
+  }
+  .target {
+    width: 200px;
+    height: 200px;
+    background: rgba(0, 255, 0, 0.5);
+    position: relative;
+    left: -50px;
+    top: -50px;
+  }
+  #border-box-ref {
+    overflow-clip-margin: 20px border-box;
+  }
+  #padding-box-ref {
+    overflow-clip-margin: 20px padding-box;
+  }
+  #padding-box-ref-outside {
+    overflow-clip-margin: 20px padding-box;
+  }
+</style>
+
+<div id="border-box-ref" class="outer">
+  <div id="target1" class="target"></div>
+</div>
+
+<div id="padding-box-ref" class="outer">
+  <div id="target2" class="target"></div>
+</div>
+
+<div id="padding-box-ref-outside" class="outer">
+  <div id="target3" class="target"></div>
+</div>
+
+<script>
+  // All boxes: width 100px, height 100px, border 10px.
+  // border-box = 120x120, circle(50%) = radius 60px.
+
+  test(() => {
+    const outer = document.getElementById('border-box-ref');
+    const target = document.getElementById('target1');
+    const rect = outer.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    // overflow-clip-margin: 20px from border-box.
+    // Expanded rect: 160x160 → expanded radius = 80px.
+    // 70px from center: inside (70 < 80) → should hit.
+    assert_equals(document.elementFromPoint(centerX + 70, centerY), target,
+        "Point at 70px from center should hit child with border-box " +
+        "reference (expanded radius 80px)");
+  }, "overflow-clip-margin with border-box reference");
+
+  test(() => {
+    const outer = document.getElementById('padding-box-ref');
+    const target = document.getElementById('target2');
+    const rect = outer.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    // overflow-clip-margin: 20px from padding-box.
+    // padding-box insets 10px from border-box, so net expansion = -10 + 20 = 10px.
+    // Expanded rect: 140x140 → expanded radius = 70px.
+    // 65px from center: inside (65 < 70) → should hit.
+    assert_equals(document.elementFromPoint(centerX + 65, centerY), target,
+        "Point at 65px from center should hit child with padding-box " +
+        "reference (expanded radius 70px)");
+  }, "overflow-clip-margin with padding-box reference (inside)");
+
+  test(() => {
+    const outer = document.getElementById('padding-box-ref-outside');
+    const target = document.getElementById('target3');
+    const rect = outer.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    // Same as above: expanded radius = 70px.
+    // 75px from center: outside (75 > 70) → should NOT hit.
+    // This point would hit with border-box ref (expanded radius 80px)
+    // but misses with padding-box ref, proving the reference box matters.
+    assert_not_equals(document.elementFromPoint(centerX + 75, centerY), target,
+        "Point at 75px from center should NOT hit child with padding-box " +
+        "reference (outside expanded radius 70px, would hit with border-box)");
+  }, "overflow-clip-margin with padding-box reference (outside)");
+</script>

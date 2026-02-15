@@ -10,4 +10,5 @@ from .permissions import Permissions
 from .script import Script
 from .session import Session
 from .storage import Storage
+from .user_agent_client_hints import UserAgentClientHints
 from .web_extension import WebExtension

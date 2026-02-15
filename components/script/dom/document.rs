@@ -610,7 +610,6 @@ pub(crate) struct Document {
     creation_sandboxing_flag_set: Cell<SandboxingFlagSet>,
     /// The cached favicon for that document.
     #[no_trace]
-    #[ignore_malloc_size_of = "TODO: unimplemented on Image"]
     favicon: RefCell<Option<Image>>,
 
     /// All websockets created that are associated with this document.
@@ -3476,14 +3475,14 @@ impl Document {
                 let entry = binding.upcast::<PerformanceEntry>();
                 self.window.Performance().queue_entry(entry);
             },
-            ProgressiveWebMetricType::LargestContentfulPaint { area, lcp_type } => {
+            ProgressiveWebMetricType::LargestContentfulPaint { area } => {
                 let binding = LargestContentfulPaint::new(
                     self.window.as_global_scope(),
                     metric_type,
                     metric_value,
                     can_gc,
                 );
-                metrics.set_largest_contentful_paint(metric_value, area, lcp_type);
+                metrics.set_largest_contentful_paint(metric_value, area);
                 let entry = binding.upcast::<PerformanceEntry>();
                 self.window.Performance().queue_entry(entry);
             },
@@ -3648,8 +3647,8 @@ impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
 // https://html.spec.whatwg.org/multipage/#is-a-registrable-domain-suffix-of-or-is-equal-to
 // The spec says to return a bool, we actually return an Option<Host> containing
 // the parsed host in the successful case, to avoid having to re-parse the host.
-fn get_registrable_domain_suffix_of_or_is_equal_to(
-    host_suffix_string: &DOMString,
+pub(crate) fn get_registrable_domain_suffix_of_or_is_equal_to(
+    host_suffix_string: &str,
     original_host: Host,
 ) -> Option<Host> {
     // Step 1
@@ -3658,7 +3657,7 @@ fn get_registrable_domain_suffix_of_or_is_equal_to(
     }
 
     // Step 2-3.
-    let host = match Host::parse(&host_suffix_string.str()) {
+    let host = match Host::parse(host_suffix_string) {
         Ok(host) => host,
         Err(_) => return None,
     };
@@ -4370,7 +4369,7 @@ impl Document {
         // > If pendingDoc is not fully active, then reject promise with a TypeError exception and return promise.
         if !self.is_fully_active() {
             promise.reject_error(
-                Error::Type("Document is not fully active".to_owned()),
+                Error::Type(c"Document is not fully active".to_owned()),
                 can_gc,
             );
             return promise;
@@ -4486,7 +4485,7 @@ impl Document {
         if !self.is_fully_active() || self.fullscreen_element.get().is_none() {
             promise.reject_error(
                 Error::Type(
-                    "No fullscreen element to exit or document is not fully active".to_owned(),
+                    c"No fullscreen element to exit or document is not fully active".to_owned(),
                 ),
                 can_gc,
             );
@@ -5015,6 +5014,10 @@ impl Document {
         *self.favicon.borrow_mut() = Some(favicon);
         self.notify_embedder_favicon();
     }
+
+    pub(crate) fn fullscreen_element(&self) -> Option<DomRoot<Element>> {
+        self.fullscreen_element.get()
+    }
 }
 
 impl DocumentMethods<crate::DomTypeHolder> for Document {
@@ -5211,10 +5214,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         };
 
         // Step 5. If the given value is not a registrable domain suffix of and is not equal to effectiveDomain, then throw a "SecurityError" DOMException.
-        let host = match get_registrable_domain_suffix_of_or_is_equal_to(&value, effective_domain) {
-            None => return Err(Error::Security(None)),
-            Some(host) => host,
-        };
+        let host =
+            match get_registrable_domain_suffix_of_or_is_equal_to(&value.str(), effective_domain) {
+                None => return Err(Error::Security(None)),
+                Some(host) => host,
+            };
 
         // Step 6. If the surrounding agent's agent cluster's is origin-keyed is true, then return.
         // TODO
@@ -6440,6 +6444,32 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Ok(())
     }
 
+    /// <https://w3c.github.io/editing/docs/execCommand/#execcommand()>
+    fn ExecCommand(
+        &self,
+        command_id: DOMString,
+        _show_ui: bool,
+        value: TrustedHTMLOrString,
+        can_gc: CanGc,
+    ) -> Fallible<bool> {
+        let _value = if command_id == "insertHTML" {
+            TrustedHTML::get_trusted_script_compliant_string(
+                self.window.as_global_scope(),
+                value,
+                "Document execCommand",
+                can_gc,
+            )?
+        } else {
+            match value {
+                TrustedHTMLOrString::TrustedHTML(trusted_html) => trusted_html.data().clone(),
+                TrustedHTMLOrString::String(value) => value,
+            }
+        };
+
+        // TODO(25005): Implement the feature
+        Ok(false)
+    }
+
     // https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenerror
     event_handler!(fullscreenerror, GetOnfullscreenerror, SetOnfullscreenerror);
 
@@ -6462,8 +6492,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement>
     fn GetFullscreenElement(&self) -> Option<DomRoot<Element>> {
-        // TODO ShadowRoot
-        self.fullscreen_element.get()
+        DocumentOrShadowRoot::get_fullscreen_element(&self.node, self.fullscreen_element.get())
     }
 
     /// <https://fullscreen.spec.whatwg.org/#dom-document-exitfullscreen>

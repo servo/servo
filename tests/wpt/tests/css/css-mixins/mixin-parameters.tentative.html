@@ -10,10 +10,14 @@
 
   <style>
     @mixin --m1() {
-      color: green;
+      @result {
+        color: green;
+      }
     }
     @mixin --m1(junk-in-parameter-list) {  /* Will be ignored. */
-      color: red;
+      @result {
+        color: red;
+      }
     }
     #e1 {
       @apply --m1;
@@ -30,7 +34,9 @@
 
   <style>
     @mixin --m2(--my-color) {
-      color: var(--my-color);
+      @result {
+        color: var(--my-color);
+      }
     }
     #e2 {
       @apply --m2(green);
@@ -47,7 +53,9 @@
 
   <style>
     @mixin --m2b(--my-color) {
-      color: var(--my-color);
+      @result {
+        color: var(--my-color);
+      }
     }
     #e2b {
       @apply --m2b(navy);
@@ -64,7 +72,9 @@
 
   <style>
     @mixin --m2c(--my-color) {
-      color: var(--my-color);
+      @result {
+        color: var(--my-color);
+      }
     }
     #e2c {
       color: fuchsia;
@@ -82,7 +92,9 @@
 
   <style>
     @mixin --m3(--my-color) {
-      color: var(--my-color);
+      @result {
+        color: var(--my-color);
+      }
     }
     #e3 {
       @apply --m3({green});
@@ -99,7 +111,9 @@
 
   <style>
     @mixin --m4(--my-color: green) {
-      color: var(--my-color);
+      @result {
+        color: var(--my-color);
+      }
     }
     #e4 {
       @apply --m4;
@@ -116,7 +130,9 @@
 
   <style>
     @mixin --m5() {
-      color: red;
+      @result {
+        color: red;
+      }
     }
     #e5 {
       color: green;
@@ -134,7 +150,9 @@
 
   <style>
     @mixin --m6(--my-color) {
-      color: var(--my-color, navy);
+      @result {
+        color: var(--my-color, navy);
+      }
     }
     #e6 {
       @apply --m6(green);
@@ -151,7 +169,9 @@
 
   <style>
     @mixin --m6b(--my-color) {
-      color: var(--my-color, navy);
+      @result {
+        color: var(--my-color, navy);
+      }
     }
     #e6b {
       @apply --m6b;
@@ -168,7 +188,9 @@
 
   <style>
     @mixin --m6c(--my-color) {
-      color: var(--my-color, navy);
+      @result {
+        color: var(--my-color, navy);
+      }
     }
     #e6c {
       @apply --m6c(invalid-color);
@@ -213,7 +235,9 @@
 
   <style>
     @mixin --m7(--my-color) {
-      color: attr(color-attr type(<color>));
+      @result {
+        color: attr(color-attr type(<color>));
+      }
     }
     #e7 {
       @apply --m7(green);
@@ -230,8 +254,10 @@
 
   <style>
     @mixin --m8(--my-length type(<length>)) {
-      font-size: 10px;
-      --some-length: var(--my-length);
+      @result {
+        font-size: 10px;
+        --some-length: var(--my-length);
+      }
     }
     #e8 {
       @apply --m8(1.0em);
@@ -248,8 +274,10 @@
 
   <style>
     @mixin --m9(--my-length type(length)) {  /* Note the syntax error. */
-      font-size: 10px;
-      --some-length: var(--my-length);
+      @result {
+        font-size: 10px;
+        --some-length: var(--my-length);
+      }
     }
     #e9 {
       @apply --m9(1.0em);
@@ -267,10 +295,14 @@
 
   <style>
     @mixin --m10inner(--inner-color) {
-      color: var(--outer-color);
+      @result {
+        color: var(--outer-color);
+      }
     }
     @mixin --m10outer(--outer-color) {
-      @apply --m10inner(red);
+      @result {
+        @apply --m10inner(red);
+      }
     }
     #e10 {
       @apply --m10outer(green);
@@ -287,7 +319,9 @@
 
   <style>
     @mixin --m11(--val, --true, --false) {
-      color: if(style(--x: var(--val)): var(--true); else: var(--false))
+      @result {
+        color: if(style(--x: var(--val)): var(--true); else: var(--false))
+      }
     }
     #e11 {
       --x: a;
@@ -305,7 +339,9 @@
 
   <style>
     @mixin --m11b(--val, --true, --false) {
-      color: if(style(--x: var(--val)): var(--true); else: var(--false))
+      @result {
+        color: if(style(--x: var(--val)): var(--true); else: var(--false))
+      }
     }
     #e11b {
       --x: a;
@@ -326,7 +362,9 @@
       color: var(--my-color);
     }
     @mixin --m12(--my-color) {
-      color: --f();
+      @result {
+        color: --f();
+      }
     }
     #e12 {
       @apply --m12(red);
@@ -342,13 +380,19 @@
 
   <style>
   @mixin --m13-override-outer(--inner, --outer) {
-    color: var(--inner);
+    @result {
+      color: var(--inner);
+    }
   }
   @mixin --m13-set-inner(--inner) {
-    @apply --m13-override-outer(var(--inner), red);
+    @result {
+      @apply --m13-override-outer(var(--inner), red);
+    }
   }
   @mixin --m13(--outer) {
-    @apply --m13-set-inner(var(--outer));
+    @result {
+      @apply --m13-set-inner(var(--outer));
+    }
   }
   #e13 {
     @apply --m13(green);
@@ -364,7 +408,9 @@
 
   <style>
     @mixin --m14(--param: green) {
-      color: var(--param);
+      @result {
+        color: var(--param);
+      }
     }
     #e14 {
       @apply --m14();
@@ -380,7 +426,9 @@
 
   <style>
     @mixin --m15(--my-length type(<length>): 1em) {
-      --some-length: var(--my-length);
+      @result {
+        --some-length: var(--my-length);
+      }
     }
     #e15 {
       font-size: 12px;
@@ -397,7 +445,9 @@
 
   <style>
     @mixin --m16(--arg: !!) {  /* Invalid declaration. */
-      color: red;
+      @result {
+        color: red;
+      }
     }
     #e16 {
       color: green;
@@ -414,7 +464,9 @@
 
   <style>
     @mixin --m17(--arg) {
-      color: red;
+      @result {
+        color: red;
+      }
     }
     #e17 {
       color: green;

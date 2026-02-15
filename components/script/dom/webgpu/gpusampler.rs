@@ -21,7 +21,6 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct GPUSampler {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
     label: DomRefCell<USVString>,

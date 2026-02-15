@@ -19,9 +19,9 @@ use servo::user_contents::UserStyleSheet;
 use servo::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
     ContextMenuItem, CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType,
-    JSValue, JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, RenderingContext, Servo,
-    SimpleDialog, Theme, UserContentManager, UserScript, WebView, WebViewBuilder, WebViewDelegate,
+    JSValue, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
+    MouseMoveEvent, RenderingContext, Servo, SimpleDialog, Theme, UserContentManager, UserScript,
+    WebView, WebViewBuilder, WebViewDelegate,
 };
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
@@ -29,7 +29,7 @@ use url::Url;
 use webrender_api::units::{DeviceIntSize, DevicePoint};
 
 use crate::common::{
-    ServoTest, WebViewDelegateImpl, evaluate_javascript,
+    ServoTest, WebViewDelegateImpl, click_at_point, evaluate_javascript,
     show_webview_and_wait_for_rendering_to_be_ready,
 };
 
@@ -44,21 +44,6 @@ fn wait_for_webview_scene_to_be_up_to_date(servo_test: &ServoTest, webview: &Web
         callback_waiting.set(false);
     });
     servo_test.spin(move || waiting.get());
-}
-
-fn click_at_point(webview: &WebView, point: DevicePoint) {
-    let point = point.into();
-    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
-    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
-        MouseButtonAction::Down,
-        MouseButton::Left,
-        point,
-    )));
-    webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
-        MouseButtonAction::Up,
-        MouseButton::Left,
-        point,
-    )));
 }
 
 fn open_context_menu_at_point(webview: &WebView, point: DevicePoint) {
@@ -162,91 +147,6 @@ fn test_create_webview_http_custom_host() {
     let url = webview.url();
     assert!(url.is_some());
     assert_eq!(url.unwrap(), custom_url.into_url());
-}
-
-#[test]
-fn test_evaluate_javascript_basic() {
-    let servo_test = ServoTest::new();
-    let delegate = Rc::new(WebViewDelegateImpl::default());
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .delegate(delegate.clone())
-        .build();
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "undefined");
-    assert_eq!(result, Ok(JSValue::Undefined));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "null");
-    assert_eq!(result, Ok(JSValue::Null));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "42");
-    assert_eq!(result, Ok(JSValue::Number(42.0)));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "3 + 4");
-    assert_eq!(result, Ok(JSValue::Number(7.0)));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "'abc' + 'def'");
-    assert_eq!(result, Ok(JSValue::String("abcdef".into())));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "let foo = {blah: 123}; foo");
-    assert!(matches!(result, Ok(JSValue::Object(_))));
-    if let Ok(JSValue::Object(values)) = result {
-        assert_eq!(values.len(), 1);
-        assert_eq!(values.get("blah"), Some(&JSValue::Number(123.0)));
-    }
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "[1, 2, 3, 4]");
-    let expected = JSValue::Array(vec![
-        JSValue::Number(1.0),
-        JSValue::Number(2.0),
-        JSValue::Number(3.0),
-        JSValue::Number(4.0),
-    ]);
-    assert_eq!(result, Ok(expected));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "window");
-    assert!(matches!(result, Ok(JSValue::Window(..))));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "document.body");
-    assert!(matches!(result, Ok(JSValue::Element(..))));
-
-    let result = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "document.body.attachShadow({mode: 'open'})",
-    );
-    assert!(matches!(result, Ok(JSValue::ShadowRoot(..))));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "document.body.shadowRoot");
-    assert!(matches!(result, Ok(JSValue::ShadowRoot(..))));
-
-    let result = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "document.body.innerHTML += '<iframe>'; frames[0]",
-    );
-    assert!(matches!(result, Ok(JSValue::Frame(..))));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "lettt badsyntax = 123");
-    assert_eq!(result, Err(JavaScriptEvaluationError::CompilationFailure));
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "throw new Error()");
-    assert!(matches!(
-        result,
-        Err(JavaScriptEvaluationError::EvaluationFailure(_))
-    ));
-}
-
-#[test]
-fn test_evaluate_javascript_panic() {
-    let servo_test = ServoTest::new();
-    let delegate = Rc::new(WebViewDelegateImpl::default());
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .delegate(delegate.clone())
-        .build();
-
-    let input = "location";
-    let result = evaluate_javascript(&servo_test, webview.clone(), input);
-    assert!(matches!(result, Ok(JSValue::Object(..))));
 }
 
 #[test]
@@ -744,6 +644,33 @@ fn test_simple_context_menu() {
     context_menu.select(ContextMenuAction::Reload);
 
     servo_test.spin(move || !delegate.load_status_changed.get());
+}
+
+#[test]
+fn test_open_context_menu_closes_existing() {
+    let servo_test = ServoTest::new();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,<!DOCTYPE html>").unwrap())
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    open_context_menu_at_point(&webview, DevicePoint::new(50.0, 50.0));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() == 0);
+
+    assert_eq!(delegate.number_of_controls_hidden.get(), 0);
+
+    open_context_menu_at_point(&webview, DevicePoint::new(25.0, 25.0));
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_hidden.get() != 1);
+
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || captured_delegate.number_of_controls_shown.get() != 2);
 }
 
 #[test]

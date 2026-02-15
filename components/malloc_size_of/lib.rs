@@ -48,6 +48,7 @@
 
 use std::cell::OnceCell;
 use std::collections::BinaryHeap;
+use std::ffi::CString;
 use std::hash::{BuildHasher, Hash};
 use std::ops::Range;
 use std::rc::Rc;
@@ -169,6 +170,12 @@ impl MallocSizeOf for markup5ever::QualName {
 }
 
 impl MallocSizeOf for String {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        unsafe { ops.malloc_size_of(self.as_ptr()) }
+    }
+}
+
+impl MallocSizeOf for CString {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         unsafe { ops.malloc_size_of(self.as_ptr()) }
     }
@@ -427,6 +434,12 @@ where
 }
 
 impl<T: MallocSizeOf> MallocSizeOf for BinaryHeap<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.iter().map(|element| element.size_of(ops)).sum()
+    }
+}
+
+impl<T: MallocSizeOf> MallocSizeOf for std::collections::BTreeSet<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.iter().map(|element| element.size_of(ops)).sum()
     }
@@ -758,6 +771,12 @@ impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Box2D<T, U> {
     }
 }
 
+impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Vector3D<T, U> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.x.size_of(ops) + self.y.size_of(ops) + self.z.size_of(ops)
+    }
+}
+
 impl<T: MallocSizeOf, U> MallocSizeOf for euclid::Rect<T, U> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.origin.size_of(ops) + self.size.size_of(ops)
@@ -808,6 +827,18 @@ impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::Transform3D<T, Src, Dst
             self.m42.size_of(ops) +
             self.m43.size_of(ops) +
             self.m44.size_of(ops)
+    }
+}
+
+impl<T: MallocSizeOf, Src, Dst> MallocSizeOf for euclid::RigidTransform3D<T, Src, Dst> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.rotation.i.size_of(ops) +
+            self.rotation.j.size_of(ops) +
+            self.rotation.k.size_of(ops) +
+            self.rotation.r.size_of(ops) +
+            self.translation.x.size_of(ops) +
+            self.translation.y.size_of(ops) +
+            self.translation.z.size_of(ops)
     }
 }
 
@@ -1060,6 +1091,12 @@ impl MallocSizeOf for ipc_channel::ipc::IpcSharedMemory {
     }
 }
 
+impl<T> MallocSizeOf for std::sync::mpsc::Sender<T> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
 impl<T: MallocSizeOf> MallocSizeOf for accountable_refcell::RefCell<T> {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.borrow().size_of(ops)
@@ -1093,11 +1130,13 @@ malloc_size_of_is_0!(resvg::usvg::fontdb::Weight);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Stretch);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Language);
 malloc_size_of_is_0!(std::num::NonZeroU16);
+malloc_size_of_is_0!(std::num::NonZeroU32);
 malloc_size_of_is_0!(std::num::NonZeroU64);
 malloc_size_of_is_0!(std::num::NonZeroUsize);
 malloc_size_of_is_0!(std::sync::atomic::AtomicBool);
 malloc_size_of_is_0!(std::sync::atomic::AtomicIsize);
 malloc_size_of_is_0!(std::sync::atomic::AtomicUsize);
+malloc_size_of_is_0!(std::sync::atomic::AtomicU32);
 malloc_size_of_is_0!(std::time::Duration);
 malloc_size_of_is_0!(std::time::Instant);
 malloc_size_of_is_0!(std::time::SystemTime);
@@ -1114,6 +1153,7 @@ malloc_size_of_is_0!(unicode_bidi::Level);
 malloc_size_of_is_0!(unicode_script::Script);
 malloc_size_of_is_0!(urlpattern::UrlPattern);
 malloc_size_of_is_0!(utf8::Incomplete);
+malloc_size_of_is_0!(std::net::TcpStream);
 
 impl<S: tendril::TendrilSink<tendril::fmt::UTF8, A>, A: tendril::Atomicity> MallocSizeOf
     for tendril::stream::LossyDecoder<S, A>
@@ -1249,6 +1289,7 @@ malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::font::SingleFon
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::align::AlignFlags);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::box_::Overflow);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::font::FontSynthesis);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::font::XLang);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::TextDecorationLine);
 malloc_size_of_is_stylo_malloc_size_of!(stylo_dom::ElementState);
 malloc_size_of_is_stylo_malloc_size_of!(style::computed_values::font_optical_sizing::T);

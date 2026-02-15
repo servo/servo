@@ -4,6 +4,7 @@
 
 //! Utilities to throw exceptions from Rust bindings.
 
+use std::ffi::CString;
 use std::ptr::NonNull;
 use std::slice::from_raw_parts;
 
@@ -48,9 +49,9 @@ thread_local! {
 /// Error values that have no equivalent DOMException representation.
 pub(crate) enum JsEngineError {
     /// An EMCAScript TypeError.
-    Type(String),
+    Type(CString),
     /// An ECMAScript RangeError.
-    Range(String),
+    Range(CString),
     /// The JS engine reported a thrown exception.
     JSFailed,
 }

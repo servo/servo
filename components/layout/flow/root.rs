@@ -169,10 +169,7 @@ fn construct_for_root_element(
     let box_style = info.style.get_box();
 
     let display_inside = match Display::from(box_style.display) {
-        Display::None => {
-            root_element.unset_all_boxes();
-            return Vec::new();
-        },
+        Display::None => return Vec::new(),
         Display::Contents => {
             // Unreachable because the style crate adjusts the computed values:
             // https://drafts.csswg.org/css-display-3/#transformations
@@ -414,12 +411,25 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
         let info =
             NodeAndStyleInfo::new(node, self.primary_style.clone(), node.take_restyle_damage());
 
-        let out_of_flow_absolutely_positioned_box =
-            AbsolutelyPositionedBox::construct(context, &info, self.display_inside, contents);
+        let build_new_box = |old_parent| {
+            let mut out_of_flow_absolutely_positioned_box =
+                AbsolutelyPositionedBox::construct(context, &info, self.display_inside, contents);
+            if let Some(old_parent) = old_parent {
+                out_of_flow_absolutely_positioned_box
+                    .context
+                    .base
+                    .parent_box
+                    .replace(old_parent);
+            }
+            out_of_flow_absolutely_positioned_box
+        };
+
         match &self.box_tree_node {
             DirtyRootBoxTreeNode::AbsolutelyPositionedBlockLevelBox(block_level_box) => {
-                *block_level_box.borrow_mut() = BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                    ArcRefCell::new(out_of_flow_absolutely_positioned_box),
+                let mut block_level_box = block_level_box.borrow_mut();
+                let old_parent = block_level_box.with_base(|base| base.parent_box.clone());
+                *block_level_box = BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
+                    ArcRefCell::new(build_new_box(old_parent)),
                 );
             },
             DirtyRootBoxTreeNode::AbsolutelyPositionedInlineLevelBox(
@@ -427,7 +437,9 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
                 text_offset_index,
             ) => match inline_level_box {
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, offset_in_text) => {
-                    *positioned_box.borrow_mut() = out_of_flow_absolutely_positioned_box;
+                    let mut positioned_box = positioned_box.borrow_mut();
+                    let old_parent = positioned_box.context.base.parent_box.clone();
+                    *positioned_box = build_new_box(old_parent);
                     assert_eq!(
                         *offset_in_text, *text_offset_index,
                         "The offset of the dirty root shouldn't have changed"
@@ -436,14 +448,18 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
                 _ => unreachable!("The dirty root should be absolutely positioned"),
             },
             DirtyRootBoxTreeNode::AbsolutelyPositionedFlexLevelBox(flex_level_box) => {
-                *flex_level_box.borrow_mut() = FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(
-                    ArcRefCell::new(out_of_flow_absolutely_positioned_box),
-                );
+                let mut flex_level_box = flex_level_box.borrow_mut();
+                let old_parent = flex_level_box.with_base(|base| base.parent_box.clone());
+                *flex_level_box = FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(
+                    build_new_box(old_parent),
+                ));
             },
             DirtyRootBoxTreeNode::AbsolutelyPositionedTaffyLevelBox(taffy_level_box) => {
-                taffy_level_box.borrow_mut().taffy_level_box =
+                let mut taffy_level_box = taffy_level_box.borrow_mut();
+                let old_parent = taffy_level_box.with_base(|base| base.parent_box.clone());
+                taffy_level_box.taffy_level_box =
                     TaffyItemBoxInner::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(
-                        out_of_flow_absolutely_positioned_box,
+                        build_new_box(old_parent),
                     ));
             },
         }

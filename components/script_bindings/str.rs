@@ -202,5 +202,5 @@ pub fn serialize_jsval_to_json_utf8(cx: JSContext, data: HandleValue) -> Result<
     out_str
         .string
         .map(Into::into)
-        .ok_or_else(|| Error::Type("unable to serialize JSON".to_owned()))
+        .ok_or_else(|| Error::Type(c"unable to serialize JSON".to_owned()))
 }

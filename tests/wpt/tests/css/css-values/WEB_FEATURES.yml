@@ -91,3 +91,6 @@ features:
   files:
   - rem-unit-*
   - rem-root-*
+- name: random-function
+  files:
+  - random-*

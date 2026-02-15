@@ -9,6 +9,7 @@ use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{GenericSender, channel};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
@@ -41,6 +42,7 @@ pub(crate) struct SourcesReply {
     pub sources: Vec<SourceForm>,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) struct SourceManager {
     source_actor_names: AtomicRefCell<BTreeSet<String>>,
 }
@@ -81,7 +83,7 @@ impl SourceManager {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub(crate) struct SourceActor {
     /// Actor name.
     name: String,

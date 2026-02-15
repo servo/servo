@@ -4,13 +4,14 @@
 
 use std::f64::consts::{PI, SQRT_2};
 
+use malloc_size_of_derive::MallocSizeOf;
 use smallvec::SmallVec;
 
 use crate::block::{Chunk, Tick};
 use crate::node::{AudioNodeEngine, AudioNodeMessage, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::param::{Param, ParamType};
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, MallocSizeOf)]
 pub struct BiquadFilterNodeOptions {
     pub filter: FilterType,
     pub frequency: f32,
@@ -19,7 +20,7 @@ pub struct BiquadFilterNodeOptions {
     pub gain: f32,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, MallocSizeOf)]
 pub enum FilterType {
     LowPass,
     HighPass,
@@ -43,7 +44,7 @@ impl Default for BiquadFilterNodeOptions {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, MallocSizeOf)]
 pub enum BiquadFilterNodeMessage {
     SetFilterType(FilterType),
 }

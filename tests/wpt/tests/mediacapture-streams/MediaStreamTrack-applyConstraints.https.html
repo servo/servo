@@ -121,4 +121,27 @@
     await track.applyConstraints({ resizeMode: "INVALID" });
     assert_equals(track.getSettings().resizeMode, resizeMode);
   }, 'applyConstraints accepts invalid ideal resizeMode, does not change setting');
+
+  [
+    {width: {max: 0}},
+    {height: {max: 0}},
+    {frameRate: {max: 0}},
+    {width: {max: -1}},
+    {height: {max: -1}},
+    {frameRate: {max: -1}},
+    {width: {min: 100, max: 10}},
+    {height: {min: 100, max: 10}},
+    {frameRate: {min: 100, max: 10}},
+  ].forEach(constraints => promise_test(async t => {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    const [track] = stream.getTracks();
+    t.add_cleanup(() => track.stop());
+    try {
+      await track.applyConstraints(constraints);
+      assert_unreached('applyConstraints hould have rejected');
+    } catch (err) {
+      assert_equals(err.name, 'OverconstrainedError', "applyConstraints with impossible constraints rejects with OverconstrainedError");
+      assert_equals(err.constraint, Object.keys(constraints)[0], "OverconstrainedError's constraint attribute is set");
+    }
+  }, `applyConstraints(${JSON.stringify(constraints)}) for video user media must fail with OverconstrainedError`));
 </script>

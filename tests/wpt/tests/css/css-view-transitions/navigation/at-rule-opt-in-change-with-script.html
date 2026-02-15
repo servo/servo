@@ -17,8 +17,6 @@ const params = new URLSearchParams(location.search);
 
 optIn();
 
-// This file includes 3 modes: test, old, new.
-// "test" is where testharness runs. "old" -> "new" is where the view transition takes place.
 switch (params.get("mode") || "test") {
 case "test":
   promise_test(async t => {
@@ -40,7 +38,6 @@ case "new":
   onpagereveal =  e => window.opener.did_reveal(e);
 }
 </script>
-
 <body>
-  Lorem ipsum dolor sit amet consectetur adipisicing elit. Alias quis assumenda doloremque, repellat quidem quia blanditiis harum animi corrupti totam sunt provident sapiente at eius sequi labore repellendus velit fugit!
+Text
 </body>

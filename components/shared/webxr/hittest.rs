@@ -5,11 +5,12 @@
 use std::iter::FromIterator;
 
 use euclid::{Point3D, RigidTransform3D, Rotation3D, Vector3D};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
 use crate::{ApiSpace, Native, Space};
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, MallocSizeOf)]
 /// <https://immersive-web.github.io/hit-test/#xrray>
 pub struct Ray<Space> {
     /// The origin of the ray
@@ -35,7 +36,7 @@ pub struct HitTestSource {
     pub types: EntityTypes,
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, Serialize, Deserialize, MallocSizeOf)]
 pub struct HitTestId(pub u32);
 
 #[derive(Clone, Copy, Debug, Default, Serialize, Deserialize)]
@@ -46,7 +47,7 @@ pub struct EntityTypes {
     pub mesh: bool,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, MallocSizeOf)]
 pub struct HitTestResult {
     pub id: HitTestId,
     pub space: RigidTransform3D<f32, HitTestSpace, Native>,

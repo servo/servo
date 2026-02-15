@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
 <div id=outer_fg focusgroup="toolbar inline">
@@ -41,11 +42,11 @@
     assert_equals(document.activeElement, outer2, 'Outer navigation skips inner shadow scope');
     assert_equals(deepActiveElement(), outer2, 'Deep active element is outer2 after outer navigation');
 
-    inner1.focus();
-    await sendArrowKey(kArrowRight);
+    await focusAndWait(inner1);
+    await sendKey(kArrowRight);
     assert_equals(sr.activeElement, inner2, 'Inner navigation advances');
     assert_equals(deepActiveElement(), inner2, 'Deep active element is inner2');
-    await sendArrowKey(kArrowRight);
+    await sendKey(kArrowRight);
     assert_equals(sr.activeElement, inner2, 'No wrap inside inner scope');
     assert_equals(deepActiveElement(), inner2, 'Deep active element remains inner2');
   }, 'Nested shadow focusgroup is isolated from outer scope navigation');

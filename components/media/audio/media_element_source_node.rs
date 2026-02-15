@@ -7,12 +7,13 @@ use std::collections::hash_map::Entry;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex};
 
+use malloc_size_of_derive::MallocSizeOf;
 use player::audio::AudioRenderer;
 
 use crate::block::{Block, Chunk, FRAMES_PER_BLOCK};
 use crate::node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, MallocSizeOf)]
 pub enum MediaElementSourceNodeMessage {
     GetAudioRenderer(Sender<Arc<Mutex<dyn AudioRenderer>>>),
 }

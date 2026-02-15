@@ -11,7 +11,6 @@ use crate::dom::bindings::str::USVString;
 #[dom_struct]
 pub(crate) struct GPUQuerySet {
     reflector_: Reflector,
-    // #[ignore_malloc_size_of = "defined in wgpu-types"]
 }
 
 // TODO: wgpu does not expose right fields right now

@@ -196,7 +196,7 @@ impl IntersectionObserver {
         for num in &thresholds {
             if **num < 0.0 || **num > 1.0 {
                 return Err(Error::Range(
-                    "Value in thresholds should not be less than 0.0 or greater than 1.0"
+                    c"Value in thresholds should not be less than 0.0 or greater than 1.0"
                         .to_owned(),
                 ));
             }

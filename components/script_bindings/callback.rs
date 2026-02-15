@@ -16,7 +16,6 @@ use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
 use js::rust::{HandleObject, MutableHandleValue, Runtime};
 
-use crate::DomTypes;
 use crate::codegen::GenericBindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::error::{Error, Fallible};
 use crate::inheritance::Castable;
@@ -26,6 +25,7 @@ use crate::reflector::DomObject;
 use crate::root::{Dom, DomRoot};
 use crate::script_runtime::{CanGc, JSContext};
 use crate::settings_stack::{GenericAutoEntryScript, GenericAutoIncumbentScript};
+use crate::{DomTypes, cformat};
 
 pub trait ThisReflector {
     fn jsobject(&self) -> *mut JSObject;
@@ -221,7 +221,7 @@ impl<D: DomTypes> CallbackInterface<D> {
             }
 
             if !callable.is_object() || !IsCallable(callable.to_object()) {
-                return Err(Error::Type(format!(
+                return Err(Error::Type(cformat!(
                     "The value of the {} property is not callable",
                     name
                 )));

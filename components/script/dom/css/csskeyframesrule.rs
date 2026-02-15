@@ -27,11 +27,11 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSKeyframesRule {
-    cssrule: CSSRule,
+    css_rule: CSSRule,
     #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
-    keyframesrule: RefCell<Arc<Locked<KeyframesRule>>>,
-    rulelist: MutNullableDom<CSSRuleList>,
+    keyframes_rule: RefCell<Arc<Locked<KeyframesRule>>>,
+    rule_list: MutNullableDom<CSSRuleList>,
 }
 
 impl CSSKeyframesRule {
@@ -40,9 +40,9 @@ impl CSSKeyframesRule {
         keyframesrule: Arc<Locked<KeyframesRule>>,
     ) -> CSSKeyframesRule {
         CSSKeyframesRule {
-            cssrule: CSSRule::new_inherited(parent_stylesheet),
-            keyframesrule: RefCell::new(keyframesrule),
-            rulelist: MutNullableDom::new(None),
+            css_rule: CSSRule::new_inherited(parent_stylesheet),
+            keyframes_rule: RefCell::new(keyframesrule),
+            rule_list: MutNullableDom::new(None),
         }
     }
 
@@ -63,12 +63,12 @@ impl CSSKeyframesRule {
     }
 
     fn rulelist(&self, can_gc: CanGc) -> DomRoot<CSSRuleList> {
-        self.rulelist.or_init(|| {
+        self.rule_list.or_init(|| {
             let parent_stylesheet = &self.upcast::<CSSRule>().parent_stylesheet();
             CSSRuleList::new(
                 self.global().as_window(),
                 parent_stylesheet,
-                RulesSource::Keyframes(self.keyframesrule.borrow().clone()),
+                RulesSource::Keyframes(self.keyframes_rule.borrow().clone()),
                 can_gc,
             )
         })
@@ -80,10 +80,10 @@ impl CSSKeyframesRule {
         let mut input = ParserInput::new(&selector);
         let mut input = Parser::new(&mut input);
         if let Ok(sel) = KeyframeSelector::parse(&mut input) {
-            let guard = self.cssrule.shared_lock().read();
+            let guard = self.css_rule.shared_lock().read();
             // This finds the *last* element matching a selector
             // because that's the rule that applies. Thus, rposition
-            self.keyframesrule
+            self.keyframes_rule
                 .borrow()
                 .read_with(&guard)
                 .keyframes
@@ -99,11 +99,11 @@ impl CSSKeyframesRule {
         keyframesrule: Arc<Locked<KeyframesRule>>,
         guard: &SharedRwLockReadGuard,
     ) {
-        if let Some(rulelist) = self.rulelist.get() {
+        if let Some(rulelist) = self.rule_list.get() {
             rulelist.update_rules(RulesSource::Keyframes(keyframesrule.clone()), guard);
         }
 
-        *self.keyframesrule.borrow_mut() = keyframesrule;
+        *self.keyframes_rule.borrow_mut() = keyframesrule;
     }
 }
 
@@ -115,7 +115,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
 
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-appendrule>
     fn AppendRule(&self, rule: DOMString, can_gc: CanGc) {
-        let style_stylesheet = self.cssrule.parent_stylesheet().style_stylesheet();
+        let style_stylesheet = self.css_rule.parent_stylesheet().style_stylesheet();
         let rule = rule.str();
         let rule = {
             let guard = style_stylesheet.shared_lock.read();
@@ -127,15 +127,15 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
         };
 
         if let Ok(rule) = rule {
-            self.cssrule.parent_stylesheet().will_modify();
-            let mut guard = self.cssrule.shared_lock().write();
-            self.keyframesrule
+            self.css_rule.parent_stylesheet().will_modify();
+            let mut guard = self.css_rule.shared_lock().write();
+            self.keyframes_rule
                 .borrow()
                 .write_with(&mut guard)
                 .keyframes
                 .push(rule);
             self.rulelist(can_gc).append_lazy_dom_rule();
-            self.cssrule.parent_stylesheet().notify_invalidations();
+            self.css_rule.parent_stylesheet().notify_invalidations();
         }
     }
 
@@ -155,8 +155,15 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
 
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
     fn Name(&self) -> DOMString {
-        let guard = self.cssrule.shared_lock().read();
-        DOMString::from(&**self.keyframesrule.borrow().read_with(&guard).name.as_atom())
+        let guard = self.css_rule.shared_lock().read();
+        DOMString::from(
+            &**self
+                .keyframes_rule
+                .borrow()
+                .read_with(&guard)
+                .name
+                .as_atom(),
+        )
     }
 
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
@@ -164,11 +171,11 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
         // Spec deviation: https://github.com/w3c/csswg-drafts/issues/801
         // Setting this property to a CSS-wide keyword or `none` does not throw,
         // it stores a value that serializes as a quoted string.
-        self.cssrule.parent_stylesheet().will_modify();
+        self.css_rule.parent_stylesheet().will_modify();
         let name = KeyframesName::from_ident(&value.str());
-        let mut guard = self.cssrule.shared_lock().write();
-        self.keyframesrule.borrow().write_with(&mut guard).name = name;
-        self.cssrule.parent_stylesheet().notify_invalidations();
+        let mut guard = self.css_rule.shared_lock().write();
+        self.keyframes_rule.borrow().write_with(&mut guard).name = name;
+        self.css_rule.parent_stylesheet().notify_invalidations();
         Ok(())
     }
 }
@@ -179,8 +186,8 @@ impl SpecificCSSRule for CSSKeyframesRule {
     }
 
     fn get_css(&self) -> DOMString {
-        let guard = self.cssrule.shared_lock().read();
-        self.keyframesrule
+        let guard = self.css_rule.shared_lock().read();
+        self.keyframes_rule
             .borrow()
             .read_with(&guard)
             .to_css_string(&guard)
@@ -188,7 +195,7 @@ impl SpecificCSSRule for CSSKeyframesRule {
     }
 
     fn deparent_children(&self) {
-        if let Some(list) = self.rulelist.get() {
+        if let Some(list) = self.rule_list.get() {
             list.deparent_all()
         }
     }

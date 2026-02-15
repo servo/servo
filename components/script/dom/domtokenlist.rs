@@ -88,7 +88,7 @@ impl DOMTokenList {
     fn validation_steps(&self, token: &str) -> Fallible<bool> {
         match &self.supported_tokens {
             None => Err(Error::Type(
-                "This attribute has no supported tokens".to_owned(),
+                c"This attribute has no supported tokens".to_owned(),
             )),
             Some(supported_tokens) => {
                 let token = Atom::from(token).to_ascii_lowercase();

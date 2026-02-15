@@ -12,6 +12,7 @@
 use std::collections::HashMap;
 
 use atomic_refcell::AtomicRefCell;
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value, json};
 
@@ -44,7 +45,7 @@ struct ListAddonsReply {
 #[derive(Serialize)]
 enum AddonMsg {}
 
-#[derive(Clone, Default, Serialize)]
+#[derive(Clone, Default, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 struct GlobalActors {
     device_actor: String,
@@ -128,7 +129,7 @@ struct GetProcessResponse {
     process_descriptor: ProcessActorMsg,
 }
 
-#[derive(Default)]
+#[derive(Default, MallocSizeOf)]
 pub(crate) struct RootActor {
     active_tab: AtomicRefCell<Option<String>>,
     global_actors: GlobalActors,

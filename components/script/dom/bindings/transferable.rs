@@ -29,10 +29,14 @@ where
     }
 
     /// <https://html.spec.whatwg.org/multipage/#transfer-steps>
-    fn transfer(&self) -> Fallible<(NamespaceIndex<Self::Index>, Self::Data)>;
+    fn transfer(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<(NamespaceIndex<Self::Index>, Self::Data)>;
 
     /// <https://html.spec.whatwg.org/multipage/#transfer-receiving-steps>
     fn transfer_receive(
+        cx: &mut js::context::JSContext,
         owner: &GlobalScope,
         id: NamespaceIndex<Self::Index>,
         serialized: Self::Data,

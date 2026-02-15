@@ -324,7 +324,7 @@ Consider installing certutil via your OS package manager or directly.""")
             kwargs["headless"] = True
             logger.info("Running in headless mode, pass --no-headless to disable")
 
-        if kwargs["browser_channel"] == "nightly" and kwargs["enable_webtransport_h3"] is None:
+        if kwargs["enable_webtransport_h3"] is None:
             kwargs["enable_webtransport_h3"] = True
 
         # Turn off Firefox WebRTC ICE logging on WPT (turned on by mozrunner)
@@ -500,6 +500,11 @@ class ChromeAndEdgeSetup(BrowserSetup):
                 kwargs["webdriver_binary"] = webdriver_binary
             else:
                 raise WptrunError(f"Unable to locate or install matching {self.webdriver_name} binary")
+
+        if kwargs["enable_webtransport_h3"] is None:
+            # To start the WebTransport over HTTP/3 test server.
+            kwargs["enable_webtransport_h3"] = True
+
         if browser_channel in self.experimental_channels:
             # HACK(Hexcles): work around https://github.com/web-platform-tests/wpt/issues/16448
             kwargs["webdriver_args"].append("--disable-build-check")
@@ -507,9 +512,6 @@ class ChromeAndEdgeSetup(BrowserSetup):
                 logger.info(
                     "Automatically turning on experimental features")
                 kwargs["enable_experimental"] = True
-            if kwargs["enable_webtransport_h3"] is None:
-                # To start the WebTransport over HTTP/3 test server.
-                kwargs["enable_webtransport_h3"] = True
         elif browser_channel is not None:
             # browser_channel is not set when running WPT in chromium
             kwargs["enable_experimental"] = False

@@ -83,7 +83,7 @@ fn jsval_to_primitive(
                 throw_dom_exception(
                     cx,
                     global,
-                    Error::Type("Cannot convert JSObject to primitive".to_owned()),
+                    Error::Type(c"Cannot convert JSObject to primitive".to_owned()),
                     can_gc,
                 );
             }
@@ -232,7 +232,7 @@ pub(crate) fn encode_and_enqueue_a_chunk(
                 throw_dom_exception(
                     cx,
                     global,
-                    Error::Type("Cannot convert JS primitive to string".to_owned()),
+                    Error::Type(c"Cannot convert JS primitive to string".to_owned()),
                     can_gc,
                 );
             }
@@ -275,7 +275,7 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     //      given output and encoder’s relevant realm.
     rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
     let chunk = create_buffer_source::<Uint8>(cx, output, js_object.handle_mut(), can_gc)
-        .map_err(|_| Error::Type("Cannot convert byte sequence to Uint8Array".to_owned()))?;
+        .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(in(*cx) let mut rval = UndefinedValue());
     chunk.safe_to_jsval(cx, rval.handle_mut(), can_gc);
     // Step 4.2.2.2 Enqueue chunk into encoder’s transform.
@@ -302,7 +302,7 @@ pub(crate) fn encode_and_flush(
             js_object.handle_mut(),
             can_gc,
         )
-        .map_err(|_| Error::Type("Cannot convert byte sequence to Uint8Array".to_owned()))?;
+        .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
         rooted!(in(*cx) let mut rval = UndefinedValue());
         chunk.safe_to_jsval(cx, rval.handle_mut(), can_gc);
         // Step 1.2 Enqueue chunk into encoder’s transform.

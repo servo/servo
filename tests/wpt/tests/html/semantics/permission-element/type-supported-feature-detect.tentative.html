@@ -1,19 +1,18 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>Permission Element: Feature detection</title>
+<title>Usermedia Element: Feature detection</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
 <script>
   test(() => {
-    assert_not_equals(typeof HTMLPermissionElement, undefined,
-        `HTMLPermissionElement should not be "undefined"`);
-    assert_equals(typeof HTMLPermissionElement.isTypeSupported, "function",
+    assert_not_equals(typeof HTMLUserMediaElement, undefined,
+        `HTMLUserMediaElement should not be "undefined"`);
+    assert_equals(typeof HTMLUserMediaElement.isTypeSupported, "function",
         `The type of the isTypeSupported should be "function"`);
-  }, "Test HTMLPermissionElement and isTypeSupported existence");
+  }, "Test HTMLUserMediaElement and isTypeSupported existence");
 
   [
-    "geolocation",
     "camera",
     "microphone",
     " camera  microphone ",
@@ -22,8 +21,8 @@
     "microphone microphone camera "
   ].forEach((type) => {
     test(() => {
-      assert_true(HTMLPermissionElement.isTypeSupported(type));
-    }, `Test HTMLPermissionElement should support type ${type}`);
+      assert_true(HTMLUserMediaElement.isTypeSupported(type));
+    }, `Test HTMLUserMediaElement should support type ${type}`);
   });
 
   [
@@ -34,8 +33,8 @@
     "camera geolocation microphone",
   ].forEach((type) => {
     test(() => {
-      assert_false(HTMLPermissionElement.isTypeSupported(type));
-    }, `Test HTMLPermissionElement should not support type ${type}`);
+      assert_false(HTMLUserMediaElement.isTypeSupported(type));
+    }, `Test HTMLUserMediaElement should not support type ${type}`);
   });
 </script>
 </body>

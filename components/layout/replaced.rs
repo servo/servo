@@ -247,14 +247,11 @@ impl ReplacedContents {
         let width = svg_data.width.and_then(attr_to_computed);
         let height = svg_data.height.and_then(attr_to_computed);
 
-        let ratio = if let (Some(width), Some(height)) = (width, height) {
-            if !width.is_zero() && !height.is_zero() {
+        let ratio = match (width, height) {
+            (Some(width), Some(height)) if !width.is_zero() && !height.is_zero() => {
                 Some(width.px() / height.px())
-            } else {
-                None
-            }
-        } else {
-            svg_data.ratio_from_view_box()
+            },
+            _ => svg_data.ratio_from_view_box(),
         };
 
         let natural_size = NaturalSizes {
@@ -645,6 +642,23 @@ impl ReplacedContents {
             self.natural_size.height.unwrap_or_else(|| Au::from_px(150))
         } else {
             self.natural_size.width.unwrap_or_else(|| Au::from_px(300))
+        }
+    }
+
+    pub(crate) fn logical_natural_sizes(
+        &self,
+        writing_mode: WritingMode,
+    ) -> LogicalVec2<Option<Au>> {
+        if writing_mode.is_horizontal() {
+            LogicalVec2 {
+                inline: self.natural_size.width,
+                block: self.natural_size.height,
+            }
+        } else {
+            LogicalVec2 {
+                inline: self.natural_size.height,
+                block: self.natural_size.width,
+            }
         }
     }
 

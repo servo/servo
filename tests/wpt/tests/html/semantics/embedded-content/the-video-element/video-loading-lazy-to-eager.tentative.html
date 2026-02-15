@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<link rel="author" title="Squarespace" href="https://www.squarespace.com/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .below-viewport {
+    margin-top: 1000vh;
+  }
+</style>
+<body>
+
+<script>
+  async_test(t => {
+    const video = document.createElement("video");
+    video.loading = "lazy";
+    video.src = "/media/A4.webm";
+    video.className = "below-viewport";
+
+    let loadstartFired = false;
+    let testPhase = 0; // 0: initial lazy, 1: after eager, 2: after remove attribute
+
+    video.addEventListener("loadstart", () => {
+      if (testPhase === 0) {
+        loadstartFired = true;
+      } else if (testPhase === 1) {
+        assert_true(true, "Video should fire loadstart after setting loading='eager'");
+        testPhase = 2;
+        video.loading = "lazy";
+        video.src = "/media/A4.webm?remove-attr";
+        loadstartFired = false;
+        video.removeAttribute("loading");
+      } else if (testPhase === 2) {
+        assert_true(true, "Video should fire loadstart after removing loading attribute");
+        t.done();
+      }
+    });
+
+    document.body.appendChild(video);
+
+    t.step_timeout(() => {
+      assert_false(loadstartFired, "Video should not fire loadstart when lazy and outside viewport");
+      testPhase = 1;
+      video.loading = "eager";
+    }, 500);
+  }, "Below-viewport video with loading='lazy' loads when changed to loading='eager' or when loading attribute is removed");
+</script>
+</body>

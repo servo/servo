@@ -33,7 +33,6 @@ typedef (SmallCryptoKeyID or bigint) CryptoKeyID;
 
 interface mixin SFrameEncrypterManager {
     Promise<undefined> setEncryptionKey(CryptoKey key, CryptoKeyID keyId);
-    attribute EventHandler onerror;
 };
 
 interface mixin SFrameDecrypterManager {

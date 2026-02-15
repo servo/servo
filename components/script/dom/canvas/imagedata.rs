@@ -55,7 +55,7 @@ impl ImageData {
         let len =
             pixels::compute_rgba8_byte_length_if_within_limit(width as usize, height as usize)
                 .ok_or(Error::Range(
-                    "The requested image size exceeds the supported range".to_owned(),
+                    c"The requested image size exceeds the supported range".to_owned(),
                 ))?;
 
         let settings = ImageDataSettings {

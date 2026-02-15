@@ -33,7 +33,7 @@ function load_iframe(apiCall, sandbox) {
     iframe.onload = () => { resolve(iframe); };
     if (sandbox)
       iframe.sandbox = sandbox;
-    iframe.srcdoc = script.replace("%s", apiCalls[apiCall]);
+    iframe.srcdoc = script.replace('%s', apiCall);
     iframe.style.display = 'none';
     document.documentElement.appendChild(iframe);
   });
@@ -52,7 +52,7 @@ function wait_for_message(iframe) {
 
 promise_test(async t => {
   for (apiCall in apiCalls) {
-    const iframe = await load_iframe(apiCall);
+    const iframe = await load_iframe(apiCalls[apiCall]);
     iframe.contentWindow.postMessage({}, '*');
     const message = await wait_for_message(iframe);
     assert_equals(message.result, 'no exception',
@@ -62,12 +62,24 @@ promise_test(async t => {
 
 promise_test(async t => {
   for (apiCall in apiCalls) {
-    const iframe = await load_iframe(apiCall, 'allow-scripts');
+    const iframe = await load_iframe(apiCalls[apiCall], 'allow-scripts');
     iframe.contentWindow.postMessage({}, '*');
     const message = await wait_for_message(iframe);
     assert_equals(message.result, 'SecurityError',
       'cookieStore ${apiCall} should throw SecurityError');
   }
 }, 'cookieStore in sandboxed iframe should throw SecurityError');
+
+promise_test(async t => {
+  const apiCall = 'cookieStore.addEventListener("change", e => {})';
+
+  // Adding a listener in sandboxed iframe doesn't throw, since that would not
+  // be consistent with how EventTarget is spec'd.
+  const iframe = await load_iframe(apiCall, 'allow-scripts');
+  iframe.contentWindow.postMessage({}, '*');
+  const message = await wait_for_message(iframe);
+  assert_equals(message.result, 'no exception',
+                'cookieStore.addEventListener should not throw');
+}, 'cookieStore in sandboxed iframe --- listener access');
 
 </script>

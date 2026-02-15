@@ -13,6 +13,7 @@ use objc2_core_text::{
     kCTFontNameAttribute, kCTFontTraitsAttribute, kCTFontURLAttribute,
 };
 use style::Atom;
+use style::values::computed::XLang;
 use style::values::computed::font::GenericFontFamily;
 use unicode_script::Script;
 
@@ -131,7 +132,7 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
             // In Japanese typography, it is not common to use different fonts
             // for Kanji(Han), Hiragana, and Katakana within the same document. Since Hiragino supports
             // a comprehensive set of Japanese kanji, we uniformly fallback to Hiragino for all Japanese text.
-            _ if options.lang == Some(String::from("ja")) => {
+            _ if options.lang == XLang(Atom::from("ja")) => {
                 families.push("Hiragino Sans");
                 families.push("Hiragino Kaku Gothic ProN");
             },
@@ -140,7 +141,7 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
             // language font to try for fallback is rather arbitrary. Usually, though,
             // we hope that font prefs will have handled this earlier.
             _ if matches!(script, Script::Bopomofo | Script::Han) &&
-                options.lang != Some(String::from("ja")) =>
+                options.lang != XLang(Atom::from("ja")) =>
             {
                 // TODO: Need to differentiate between traditional and simplified Han here!
                 families.push("Songti SC");

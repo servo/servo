@@ -163,7 +163,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
         match (&*self.value.borrow(), self.result_type.get()) {
             (XPathResultValue::Number(n), XPathResultType::Number) => Ok(*n),
             _ => Err(Error::Type(
-                "Can't get number value for non-number XPathResult".to_string(),
+                c"Can't get number value for non-number XPathResult".to_owned(),
             )),
         }
     }
@@ -173,7 +173,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
         match (&*self.value.borrow(), self.result_type.get()) {
             (XPathResultValue::String(s), XPathResultType::String) => Ok(s.clone()),
             _ => Err(Error::Type(
-                "Can't get string value for non-string XPathResult".to_string(),
+                c"Can't get string value for non-string XPathResult".to_owned(),
             )),
         }
     }
@@ -183,7 +183,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
         match (&*self.value.borrow(), self.result_type.get()) {
             (XPathResultValue::Boolean(b), XPathResultType::Boolean) => Ok(*b),
             _ => Err(Error::Type(
-                "Can't get boolean value for non-boolean XPathResult".to_string(),
+                c"Can't get boolean value for non-boolean XPathResult".to_owned(),
             )),
         }
     }
@@ -194,7 +194,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
             self.result_type.get(),
             XPathResultType::OrderedNodeIterator | XPathResultType::UnorderedNodeIterator
         ) {
-            return Err(Error::Type("Result is not an iterator".into()));
+            return Err(Error::Type(c"Result is not an iterator".into()));
         }
 
         if self.document_changed_since_creation() {
@@ -203,7 +203,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
 
         let XPathResultValue::Nodeset(nodes) = &*self.value.borrow() else {
             return Err(Error::Type(
-                "Can't iterate on XPathResult that is not a node-set".to_string(),
+                c"Can't iterate on XPathResult that is not a node-set".to_owned(),
             ));
         };
 
@@ -235,7 +235,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
                 XPathResultType::OrderedNodeSnapshot | XPathResultType::UnorderedNodeSnapshot,
             ) => Ok(nodes.len() as u32),
             _ => Err(Error::Type(
-                "Can't get snapshot length of XPathResult that is not a snapshot".to_string(),
+                c"Can't get snapshot length of XPathResult that is not a snapshot".to_owned(),
             )),
         }
     }
@@ -248,7 +248,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
                 XPathResultType::OrderedNodeSnapshot | XPathResultType::UnorderedNodeSnapshot,
             ) => Ok(nodes.get(index as usize).cloned()),
             _ => Err(Error::Type(
-                "Can't get snapshot item of XPathResult that is not a snapshot".to_string(),
+                c"Can't get snapshot item of XPathResult that is not a snapshot".to_owned(),
             )),
         }
     }
@@ -261,7 +261,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
                 XPathResultType::AnyUnorderedNode | XPathResultType::FirstOrderedNode,
             ) => Ok(nodes.first().cloned()),
             _ => Err(Error::Type(
-                "Getting single value requires result type 'any unordered node' or 'first ordered node'".to_string(),
+                c"Getting single value requires result type 'any unordered node' or 'first ordered node'".to_owned(),
             )),
         }
     }

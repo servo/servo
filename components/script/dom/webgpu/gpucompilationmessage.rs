@@ -17,7 +17,6 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct GPUCompilationMessage {
     reflector_: Reflector,
-    // #[ignore_malloc_size_of = "defined in wgpu-types"]
     message: DOMString,
     mtype: GPUCompilationMessageType,
     line_num: u64,

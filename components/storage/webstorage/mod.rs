@@ -62,7 +62,7 @@ impl WebStorageThreadFactory for GenericSender<WebStorageThreadMsg> {
     }
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, MallocSizeOf, Serialize)]
 pub struct StorageOrigins {
     // TODO: Consider grouping by eTLD+1
     // TODO: Consider ImmutableOrigin instead of String for tracking origins
@@ -304,13 +304,13 @@ impl WebStorageManager {
             reports.push(Report {
                 path: path!["storage", "local"],
                 kind: ReportKind::ExplicitJemallocHeapSize,
-                size: self.environments.size_of(ops),
+                size: self.environments.size_of(ops) + self.local_storage_origins.size_of(ops),
             });
 
             reports.push(Report {
                 path: path!["storage", "session"],
                 kind: ReportKind::ExplicitJemallocHeapSize,
-                size: self.session_data.size_of(ops),
+                size: self.session_data.size_of(ops) + self.session_storage_origins.size_of(ops),
             });
         });
         reports

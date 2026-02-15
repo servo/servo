@@ -13,7 +13,6 @@ use script_bindings::error::{ErrorResult, Fallible};
 use script_bindings::script_runtime::JSContext;
 use servo_arc::Arc;
 use style::author_styles::AuthorStyles;
-use style::dom::TElement;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::Stylesheet;
@@ -579,6 +578,14 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
 
         result
     }
+
+    /// <https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement>
+    fn GetFullscreenElement(&self) -> Option<DomRoot<Element>> {
+        DocumentOrShadowRoot::get_fullscreen_element(
+            self.upcast::<Node>(),
+            self.document.fullscreen_element(),
+        )
+    }
 }
 
 impl VirtualMethods for ShadowRoot {
@@ -631,11 +638,7 @@ pub(crate) trait LayoutShadowRootHelpers<'dom> {
     fn get_host_for_layout(self) -> LayoutDom<'dom, Element>;
     fn get_style_data_for_layout(self) -> &'dom CascadeData;
     fn is_ua_widget(&self) -> bool;
-    unsafe fn flush_stylesheets<E: TElement>(
-        self,
-        stylist: &mut Stylist,
-        guard: &SharedRwLockReadGuard,
-    );
+    unsafe fn flush_stylesheets(self, stylist: &mut Stylist, guard: &SharedRwLockReadGuard);
 }
 
 impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
@@ -662,14 +665,10 @@ impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
     // probably be revisited.
     #[inline]
     #[expect(unsafe_code)]
-    unsafe fn flush_stylesheets<E: TElement>(
-        self,
-        stylist: &mut Stylist,
-        guard: &SharedRwLockReadGuard,
-    ) {
+    unsafe fn flush_stylesheets(self, stylist: &mut Stylist, guard: &SharedRwLockReadGuard) {
         let author_styles = unsafe { self.unsafe_get().author_styles.borrow_mut_for_layout() };
         if author_styles.stylesheets.dirty() {
-            author_styles.flush::<E>(stylist, guard);
+            author_styles.flush(stylist, guard);
         }
     }
 }

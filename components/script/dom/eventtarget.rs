@@ -11,6 +11,7 @@ use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use deny_public_fields::DenyPublicFields;
+use devtools_traits::EventListenerInfo;
 use dom_struct::dom_struct;
 use js::jsapi::JS::CompileFunction;
 use js::jsapi::{JS_GetFunctionObject, SupportUnscopables};
@@ -18,6 +19,7 @@ use js::jsval::JSVal;
 use js::rust::{CompileOptionsWrapper, HandleObject, transform_u16_to_source_text};
 use libc::c_char;
 use rustc_hash::FxBuildHasher;
+use script_bindings::cformat;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
 use stylo_atoms::Atom;
@@ -759,9 +761,8 @@ impl EventTarget {
         let args = if is_error { ERROR_ARG_NAMES } else { ARG_NAMES };
 
         let cx = GlobalScope::get_cx();
-        let options = unsafe {
-            CompileOptionsWrapper::new_raw(*cx, &handler.url.to_string(), handler.line as u32)
-        };
+        let url = cformat!("{}", handler.url);
+        let options = unsafe { CompileOptionsWrapper::new_raw(*cx, url, handler.line as u32) };
 
         // Step 3.9, subsection Scope steps 1-6
         let scopechain = js::rust::EnvironmentChain::new(*cx, SupportUnscopables::Yes);
@@ -1097,6 +1098,22 @@ impl EventTarget {
     /// <https://html.spec.whatwg.org/multipage/#event-handler-content-attributes>
     pub(crate) fn is_content_event_handler(name: &str) -> bool {
         CONTENT_EVENT_HANDLER_NAMES.contains(&name)
+    }
+
+    pub(crate) fn summarize_event_listeners_for_devtools(&self) -> Vec<EventListenerInfo> {
+        let handlers = self.handlers.borrow();
+        let mut listener_infos = Vec::with_capacity(handlers.0.len());
+        for (event_type, event_listeners) in &handlers.0 {
+            for event_listener in event_listeners.iter() {
+                let event_listener_entry = event_listener.borrow();
+                listener_infos.push(EventListenerInfo {
+                    event_type: event_type.to_string(),
+                    capturing: event_listener_entry.phase() == ListenerPhase::Capturing,
+                });
+            }
+        }
+
+        listener_infos
     }
 }
 

@@ -200,7 +200,6 @@ partial interface Document {
 // https://fullscreen.spec.whatwg.org/#api
 partial interface Document {
   [LegacyLenientSetter] readonly attribute boolean fullscreenEnabled;
-  [LegacyLenientSetter] readonly attribute Element? fullscreenElement;
   [LegacyLenientSetter] readonly attribute boolean fullscreen; // historical
 
   Promise<undefined> exitFullscreen();
@@ -235,3 +234,8 @@ partial interface Document {
 
 // https://html.spec.whatwg.org/multipage/#dom-document-nameditem-filter
 typedef (WindowProxy or Element or HTMLCollection) NamedPropertyValue;
+
+// https://w3c.github.io/editing/docs/execCommand/#methods-to-query-and-execute-commands
+partial interface Document {
+  [CEReactions, Throws] boolean execCommand(DOMString commandId, optional boolean showUI = false, optional (TrustedHTML or DOMString) value = "");
+};

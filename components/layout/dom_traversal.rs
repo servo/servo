@@ -152,15 +152,11 @@ fn traverse_element<'dom>(
     handler: &mut impl TraversalHandler<'dom>,
 ) {
     let damage = element.take_restyle_damage();
-    if damage.has_box_damage() {
-        element.unset_all_pseudo_boxes();
-    }
-
     let style = element.style(&context.style_context);
     let info = NodeAndStyleInfo::new(element, style, damage);
 
     match Display::from(info.style.get_box().display) {
-        Display::None => element.unset_all_boxes(),
+        Display::None => {},
         Display::Contents => {
             if ReplacedContents::for_element(element, context).is_some() {
                 // `display: content` on a replaced element computes to `display: none`

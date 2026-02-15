@@ -10,7 +10,9 @@
 
   <style>
     @mixin --m1() {
-      @contents;
+      @result {
+        @contents;
+      }
     }
     #e1::after {
       content: "AFTER";
@@ -29,7 +31,9 @@
 
   <style>
     @mixin --m2() {
-      @contents;
+      @result {
+        @contents;
+      }
     }
     /* Should match <div id=e2> with the specificity of :where(#e2) (zero),
        not with the specificity of :is(:where(#e2), #u1). */

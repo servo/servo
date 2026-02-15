@@ -7,45 +7,45 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <body>
-<!-- The permission element should not be focusable by script.
+<!-- The usermedia element should not be focusable by script.
 -->
-<permission tabindex="0" id="valid_permission_element" type="geolocation"></permission>
+<usermedia tabindex="0" id="valid_usermedia_element" type="camera"></usermedia>
 
 <span tabindex="0" id="focusable_span">This is some text</span>
 
 <!-- style needed to allow the invalid element to have a width -->
-<permission style="width: auto; padding-left: 10px" tabindex="0" id="invalid_permission_element" type="invalid"></permission>
+<usermedia style="width: auto; padding-left: 10px" tabindex="0" id="invalid_usermedia_element" type="invalid"></usermedia>
 
 <script>
   promise_test(async() => {
-    invalid_permission_element.focus();
-    assert_equals(document.activeElement, invalid_permission_element,
-      "Invalid permission element should be focusable");
+    invalid_usermedia_element.focus();
+    assert_equals(document.activeElement, invalid_usermedia_element,
+      "Invalid usermedia element should be focusable");
 
     focusable_span.focus();
-    valid_permission_element.focus();
+    valid_usermedia_element.focus();
     assert_equals(document.activeElement, focusable_span,
-      "Permission element should not be focused.");
+      "Usermedia element should not be focused.");
 
     focusable_span.focus();
     await test_driver.bless('Focus with user activation', () => {
-      valid_permission_element.focus();
+      valid_usermedia_element.focus();
     });
-    assert_equals(document.activeElement, valid_permission_element,
+    assert_equals(document.activeElement, valid_usermedia_element,
       "Focus is allowed with user activation");
 
     focusable_span.focus();
     actions = new test_driver.Actions()
-       .pointerMove(1, 1, {origin: valid_permission_element})
+       .pointerMove(1, 1, {origin: valid_usermedia_element})
        .pointerDown()
        .addTick();
     await actions.send();
-    assert_equals(document.activeElement, valid_permission_element,
+    assert_equals(document.activeElement, valid_usermedia_element,
       "Users can focus the element");
 
     focusable_span.focus();
     assert_equals(document.activeElement, focusable_span,
         "Other element should be focused");
-}, "Permission element is not focusable by script without user activation");
+}, "Usermedia element is not focusable by script without user activation");
 </script>
 </body>

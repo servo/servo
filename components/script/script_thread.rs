@@ -2118,6 +2118,9 @@ impl ScriptThread {
                 },
                 None => warn!("Message sent to closed pipeline {}.", id),
             },
+            DevtoolScriptControlMsg::GetEventListenerInfo(id, node, reply) => {
+                devtools::handle_get_event_listener_info(&documents, id, &node, reply)
+            },
             DevtoolScriptControlMsg::GetRootNode(id, reply) => {
                 devtools::handle_get_root_node(&documents, id, reply, CanGc::from_cx(cx))
             },
@@ -2210,6 +2213,10 @@ impl ScriptThread {
             },
             DevtoolScriptControlMsg::HighlightDomNode(id, node_id) => {
                 devtools::handle_highlight_dom_node(&documents, id, node_id)
+            },
+            DevtoolScriptControlMsg::Eval(code, id, reply) => {
+                self.debugger_global
+                    .fire_eval(CanGc::from_cx(cx), code.into(), id, None, reply);
             },
             DevtoolScriptControlMsg::GetPossibleBreakpoints(spidermonkey_id, result_sender) => {
                 self.debugger_global.fire_get_possible_breakpoints(

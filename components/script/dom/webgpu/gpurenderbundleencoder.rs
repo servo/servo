@@ -31,7 +31,6 @@ use crate::script_runtime::CanGc;
 #[dom_struct]
 pub(crate) struct GPURenderBundleEncoder {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     channel: WebGPU,
     device: Dom<GPUDevice>,

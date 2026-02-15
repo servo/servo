@@ -23,20 +23,20 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct CSSMediaRule {
-    cssconditionrule: CSSConditionRule,
+    css_condition_rule: CSSConditionRule,
     #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
-    mediarule: RefCell<Arc<MediaRule>>,
-    medialist: MutNullableDom<MediaList>,
+    media_rule: RefCell<Arc<MediaRule>>,
+    media_list: MutNullableDom<MediaList>,
 }
 
 impl CSSMediaRule {
     fn new_inherited(parent_stylesheet: &CSSStyleSheet, mediarule: Arc<MediaRule>) -> CSSMediaRule {
         let list = mediarule.rules.clone();
         CSSMediaRule {
-            cssconditionrule: CSSConditionRule::new_inherited(parent_stylesheet, list),
-            mediarule: RefCell::new(mediarule),
-            medialist: MutNullableDom::new(None),
+            css_condition_rule: CSSConditionRule::new_inherited(parent_stylesheet, list),
+            media_rule: RefCell::new(mediarule),
+            media_list: MutNullableDom::new(None),
         }
     }
 
@@ -54,11 +54,11 @@ impl CSSMediaRule {
     }
 
     fn medialist(&self, can_gc: CanGc) -> DomRoot<MediaList> {
-        self.medialist.or_init(|| {
+        self.media_list.or_init(|| {
             MediaList::new(
                 self.global().as_window(),
-                self.cssconditionrule.parent_stylesheet(),
-                self.mediarule.borrow().media_queries.clone(),
+                self.css_condition_rule.parent_stylesheet(),
+                self.media_rule.borrow().media_queries.clone(),
                 can_gc,
             )
         })
@@ -66,8 +66,8 @@ impl CSSMediaRule {
 
     /// <https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface>
     pub(crate) fn get_condition_text(&self) -> DOMString {
-        let guard = self.cssconditionrule.shared_lock().read();
-        self.mediarule
+        let guard = self.css_condition_rule.shared_lock().read();
+        self.media_rule
             .borrow()
             .media_queries
             .read_with(&guard)
@@ -76,12 +76,12 @@ impl CSSMediaRule {
     }
 
     pub(crate) fn update_rule(&self, mediarule: Arc<MediaRule>, guard: &SharedRwLockReadGuard) {
-        self.cssconditionrule
+        self.css_condition_rule
             .update_rules(mediarule.rules.clone(), guard);
-        if let Some(medialist) = self.medialist.get() {
+        if let Some(medialist) = self.media_list.get() {
             medialist.update_media_list(mediarule.media_queries.clone());
         }
-        *self.mediarule.borrow_mut() = mediarule;
+        *self.media_rule.borrow_mut() = mediarule;
     }
 }
 
@@ -91,8 +91,8 @@ impl SpecificCSSRule for CSSMediaRule {
     }
 
     fn get_css(&self) -> DOMString {
-        let guard = self.cssconditionrule.shared_lock().read();
-        self.mediarule.borrow().to_css_string(&guard).into()
+        let guard = self.css_condition_rule.shared_lock().read();
+        self.media_rule.borrow().to_css_string(&guard).into()
     }
 }
 

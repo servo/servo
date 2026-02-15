@@ -287,10 +287,7 @@ impl BoxSlot<'_> {
         *self.slot.borrow_mut() = Some(layout_box);
     }
 
-    pub(crate) fn take_layout_box_if_undamaged(&self, damage: LayoutDamage) -> Option<LayoutBox> {
-        if damage.has_box_damage() {
-            return None;
-        }
+    pub(crate) fn take_layout_box(&self) -> Option<LayoutBox> {
         self.slot.borrow_mut().take()
     }
 }
@@ -320,14 +317,17 @@ pub(crate) trait NodeExt<'dom> {
     /// Remove boxes for the element itself, and all of its pseudo-element boxes.
     fn unset_all_boxes(&self);
 
-    /// Remove all pseudo-element boxes for this element.
-    fn unset_all_pseudo_boxes(&self);
-
     fn fragments_for_pseudo(&self, pseudo_element: Option<PseudoElement>) -> Vec<Fragment>;
     fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase));
 
     fn repair_style(&self, context: &SharedStyleContext);
     fn take_restyle_damage(&self) -> LayoutDamage;
+
+    /// Whether or not this node isolates downward flowing box tree rebuild damage. Roughly,
+    /// this corresponds to independent formatting context boundaries. The node's boxes
+    /// themselves will be rebuilt, but not the descendant node's boxes. When this node
+    /// has no box yet, `false` is returned.
+    fn isolates_box_tree_rebuild_damage(&self) -> bool;
 }
 
 impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
@@ -462,10 +462,6 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         // for DOM descendants of elements with `display: none`.
     }
 
-    fn unset_all_pseudo_boxes(&self) {
-        self.ensure_inner_layout_data().pseudo_boxes.clear();
-    }
-
     fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase)) {
         if let Some(inner_layout_data) = self.inner_layout_data() {
             inner_layout_data.with_layout_box_base_including_pseudos(callback);
@@ -497,5 +493,31 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
             .map(|style_data| std::mem::take(&mut style_data.element_data.borrow_mut().damage))
             .unwrap_or_else(RestyleDamage::reconstruct);
         LayoutDamage::from_bits_retain(damage.bits())
+    }
+
+    fn isolates_box_tree_rebuild_damage(&self) -> bool {
+        let Some(inner_layout_data) = self.inner_layout_data() else {
+            return false;
+        };
+        let self_box = inner_layout_data.self_box.borrow();
+        let Some(self_box) = &*self_box else {
+            return false;
+        };
+
+        match self_box {
+            LayoutBox::DisplayContents(..) => false,
+            LayoutBox::BlockLevel(block_level) => matches!(
+                &*block_level.borrow(),
+                BlockLevelBox::Independent(..) |
+                    BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(..)
+            ),
+            LayoutBox::InlineLevel(inline_level) => matches!(
+                inline_level,
+                InlineItem::OutOfFlowAbsolutelyPositionedBox(..) | InlineItem::Atomic(..)
+            ),
+            LayoutBox::FlexLevel(..) => true,
+            LayoutBox::TableLevelBox(..) => false,
+            LayoutBox::TaffyItemBox(..) => true,
+        }
     }
 }

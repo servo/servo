@@ -8,6 +8,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
 <div id=root focusgroup="toolbar">
@@ -67,15 +68,15 @@
     const optout_item2 = document.getElementById("optout_item2");
     const double_optout = document.getElementById("double_optout");
 
-    optout_item1.focus();
+    await focusAndWait(optout_item1);
     await focusAndKeyPress(optout_item1, kArrowRight);
     assert_equals(document.activeElement, optout_item1, "Arrow keys should not move within opted-out generic subtree");
 
-    optout_item2.focus();
+    await focusAndWait(optout_item2);
     await focusAndKeyPress(optout_item2, kArrowRight);
     assert_equals(document.activeElement, optout_item2, "Arrow keys should not move within opted-out generic subtree (nested)");
 
-    double_optout.focus();
+    await focusAndWait(double_optout);
     await focusAndKeyPress(double_optout, kArrowRight);
     assert_equals(document.activeElement, double_optout, "Double opt-out still blocks navigation");
   }, "Opt-out subtree blocks navigation for its own items");
@@ -85,7 +86,7 @@
     const nested_item1 = document.getElementById("nested_optout_item1");
     const nested_item2 = document.getElementById("nested_optout_item2");
 
-    nested_item1.focus();
+    await focusAndWait(nested_item1);
     await focusAndKeyPress(nested_item1, kArrowRight);
     assert_equals(document.activeElement, nested_item2, "Nested focusgroup should allow forward navigation inside opt-out subtree");
 
@@ -101,7 +102,7 @@
     const item3 = document.getElementById("item3");
     const item4 = document.getElementById("item4");
 
-    item4.focus();
+    await focusAndWait(item4);
     await focusAndKeyPress(item4, kArrowLeft);
     assert_equals(document.activeElement, item3, "Should navigate backward to item3");
 

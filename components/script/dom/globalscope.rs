@@ -254,22 +254,18 @@ pub(crate) struct GlobalScope {
     devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
 
     /// For sending messages to the memory profiler.
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     mem_profiler_chan: profile_mem::ProfilerChan,
 
     /// For sending messages to the time profiler.
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     time_profiler_chan: profile_time::ProfilerChan,
 
     /// A handle for communicating messages to the constellation thread.
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     script_to_constellation_chan: ScriptToConstellationChan,
 
     /// A handle for communicating messages to the Embedder.
-    #[ignore_malloc_size_of = "channels are hard"]
     #[no_trace]
     script_to_embedder_chan: ScriptToEmbedderChan,
 
@@ -2931,8 +2927,8 @@ impl GlobalScope {
         self.timers().clear_timeout_or_interval(self, handle);
     }
 
-    pub(crate) fn fire_timer(&self, handle: TimerEventId, can_gc: CanGc) {
-        self.timers().fire_timer(handle, self, can_gc);
+    pub(crate) fn fire_timer(&self, handle: TimerEventId, cx: &mut js::context::JSContext) {
+        self.timers().fire_timer(handle, self, cx);
     }
 
     pub(crate) fn resume(&self) {
@@ -3516,7 +3512,7 @@ impl GlobalScope {
         completion_steps: F,
     ) -> i32
     where
-        F: 'static + FnOnce(&GlobalScope, CanGc),
+        F: 'static + FnOnce(&mut js::context::JSContext, &GlobalScope),
     {
         let timers = self.timers();
 

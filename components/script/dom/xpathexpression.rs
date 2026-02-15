@@ -71,7 +71,7 @@ impl XPathExpression {
         }
 
         let result_type = XPathResultType::try_from(result_type_num)
-            .map_err(|()| Error::Type("Invalid XPath result type".to_string()))?;
+            .map_err(|()| Error::Type(c"Invalid XPath result type".to_owned()))?;
 
         let global = self.global();
         let window = global.as_window();

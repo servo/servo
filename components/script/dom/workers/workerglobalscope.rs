@@ -663,7 +663,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
         // Step 1: If worker global scope's type is "module", throw a TypeError exception.
         if self.worker_type == WorkerType::Module {
             return Err(Error::Type(
-                "importScripts() is not allowed in module workers".to_string(),
+                c"importScripts() is not allowed in module workers".to_owned(),
             ));
         }
 

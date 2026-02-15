@@ -18,6 +18,7 @@ import subprocess
 import sys
 import textwrap
 from argparse import ArgumentParser
+from contextlib import chdir
 from pathlib import Path
 from typing import Any, List, Optional
 
@@ -449,15 +450,16 @@ class MachCommands(CommandBase):
 
     @Command("fmt", description="Format Rust, Python, and TOML files", category="testing")
     def format_code(self) -> int:
-        result = format_python_files_with_ruff(check_only=False)
-        if result != 0:
-            return result
+        with chdir(self.context.topdir):
+            result = format_python_files_with_ruff(check_only=False)
+            if result != 0:
+                return result
 
-        result = format_toml_files_with_taplo(check_only=False)
-        if result != 0:
-            return result
+            result = format_toml_files_with_taplo(check_only=False)
+            if result != 0:
+                return result
 
-        return format_with_rustfmt(check_only=False)
+            return format_with_rustfmt(check_only=False)
 
     @Command(
         "update-wpt", description="Update the web platform tests", category="testing", parser=wpt.update.create_parser

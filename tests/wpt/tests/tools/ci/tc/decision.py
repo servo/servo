@@ -346,7 +346,11 @@ def build_task_graph(event, all_tasks, tasks):
 
 def create_tasks(queue, task_id_map):
     for (task_id, task_data) in task_id_map.values():
-        queue.createTask(task_id, task_data)
+        try:
+            queue.createTask(task_id, task_data)
+        except Exception:
+            logger.error(f"Failed to create task {task_id} with data:\n{json.dumps(task_data)}")
+            raise
 
 
 def get_event(queue, event_path):

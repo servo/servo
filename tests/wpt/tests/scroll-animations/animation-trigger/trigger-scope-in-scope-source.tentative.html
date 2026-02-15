@@ -62,35 +62,25 @@
         const in_scope_target = document.getElementById("in_scope_target");
         // The in-scope target should be attached to the trigger and paused at
         // time 0.
-        await assert_playstate_and_current_time(in_scope_target.id,
-                                          in_scope_target.getAnimations()[0],
-                                          "paused");
+        assert_element_animation_state(in_scope_target, "paused");
 
         // The out-of-scope target should be paused at time 0, waiting for its
         // trigger.
-        await assert_playstate_and_current_time(out_of_scope_target.id,
-                                          out_of_scope_target.getAnimations()[0],
-                                          "paused");
+        assert_element_animation_state(out_of_scope_target, "paused");
 
         // Perform a scroll that triggers the animation.
-        const scrollend_promise =
-            waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
-        source.scrollIntoView({block: "center"});
-        await scrollend_promise;
-        await waitForCompositorReady();
+        await runAndWaitForFrameUpdate(() => {
+          source.scrollIntoView({block: "center"});
+        });
 
         assert_greater_than(scroller.scrollTop, 0, "did scroll");
 
         // The in-scope target should now be playing as the trigger condition
         // has been met.
-        await assert_playstate_and_current_time(in_scope_target.id,
-                                          in_scope_target.getAnimations()[0],
-                                          "running");
+        assert_element_animation_state(in_scope_target, "running");
 
         // There should be no change to the out-of-scope target.
-        await assert_playstate_and_current_time(out_of_scope_target.id,
-                                          out_of_scope_target.getAnimations()[0],
-                                          "paused");
+        assert_element_animation_state(out_of_scope_target, "paused");
       }, "In-scope target finds trigger of source; out-of-scope " +
          "target does not.");
     </script>

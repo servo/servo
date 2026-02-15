@@ -11,6 +11,7 @@ use indexmap::IndexSet;
 use js::context::JSContext;
 use js::jsapi::{ExceptionStackBehavior, Heap};
 use js::jsval::{JSVal, UndefinedValue};
+use js::realm::CurrentRealm;
 use js::rust::wrappers2::JS_SetPendingException;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use script_bindings::inheritance::Castable;
@@ -29,7 +30,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
 use crate::fetch::{DeferredFetchRecordId, FetchContext};
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
 impl js::gc::Rootable for AbortAlgorithm {}
@@ -116,13 +117,7 @@ impl AbortSignal {
     }
 
     /// <https://dom.spec.whatwg.org/#abortsignal-signal-abort>
-    pub(crate) fn signal_abort(
-        &self,
-        cx: SafeJSContext,
-        reason: HandleValue,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) {
+    pub(crate) fn signal_abort(&self, cx: &mut CurrentRealm, reason: HandleValue) {
         let global = self.global();
 
         // Step 1. If signal is aborted, then return.
@@ -136,8 +131,13 @@ impl AbortSignal {
         if !abort_reason.is_undefined() {
             self.abort_reason.set(abort_reason);
         } else {
-            rooted!(in(*cx) let mut rooted_error = UndefinedValue());
-            Error::Abort(None).to_jsval(cx, &global, rooted_error.handle_mut(), can_gc);
+            rooted!(&in(cx) let mut rooted_error = UndefinedValue());
+            Error::Abort(None).to_jsval(
+                cx.into(),
+                &global,
+                rooted_error.handle_mut(),
+                CanGc::from_cx(cx),
+            );
             self.abort_reason.set(rooted_error.get())
         }
 
@@ -158,11 +158,11 @@ impl AbortSignal {
         }
 
         // Step 5. Run the abort steps for signal.
-        self.run_the_abort_steps(cx, &global, realm, can_gc);
+        self.run_the_abort_steps(cx, &global);
 
         // Step 6. For each dependentSignal of dependentSignalsToAbort, run the abort steps for dependentSignal.
         for dependent_signal in dependent_signals_to_abort.iter() {
-            dependent_signal.run_the_abort_steps(cx, &global, realm, can_gc);
+            dependent_signal.run_the_abort_steps(cx, &global);
         }
     }
 
@@ -185,23 +185,21 @@ impl AbortSignal {
     /// Run a specific abort algorithm.
     pub(crate) fn run_abort_algorithm(
         &self,
-        cx: SafeJSContext,
+        cx: &mut CurrentRealm,
         global: &GlobalScope,
         algorithm: &AbortAlgorithm,
-        realm: InRealm,
-        can_gc: CanGc,
     ) {
         match algorithm {
             AbortAlgorithm::StreamPiping(pipe) => {
-                rooted!(in(*cx) let mut reason = UndefinedValue());
+                rooted!(&in(cx) let mut reason = UndefinedValue());
                 reason.set(self.abort_reason.get());
-                pipe.abort_with_reason(cx, global, reason.handle(), realm, can_gc);
+                pipe.abort_with_reason(cx, global, reason.handle());
             },
             AbortAlgorithm::Fetch(fetch_context) => {
-                rooted!(in(*cx) let mut reason = UndefinedValue());
+                rooted!(&in(cx) let mut reason = UndefinedValue());
                 reason.set(self.abort_reason.get());
                 if let Some(fetch_context) = &mut *fetch_context.lock().unwrap() {
-                    fetch_context.abort_fetch(reason.handle(), cx, can_gc);
+                    fetch_context.abort_fetch(reason.handle(), cx.into(), CanGc::from_cx(cx));
                 }
             },
             AbortAlgorithm::FetchLater(deferred_fetch_record_id) => {
@@ -220,23 +218,17 @@ impl AbortSignal {
     }
 
     /// <https://dom.spec.whatwg.org/#run-the-abort-steps>
-    fn run_the_abort_steps(
-        &self,
-        cx: SafeJSContext,
-        global: &GlobalScope,
-        realm: InRealm,
-        can_gc: CanGc,
-    ) {
+    fn run_the_abort_steps(&self, cx: &mut CurrentRealm, global: &GlobalScope) {
         // Step 1. For each algorithm of signal’s abort algorithms: run algorithm.
         for algo in self.abort_algorithms.borrow().iter() {
-            self.run_abort_algorithm(cx, global, algo, realm, can_gc);
+            self.run_abort_algorithm(cx, global, algo);
         }
         // Step 2. Empty signal’s abort algorithms.
         self.abort_algorithms.borrow_mut().clear();
 
         // Step 3. Fire an event named abort at signal.
         self.upcast::<EventTarget>()
-            .fire_event(atom!("abort"), can_gc);
+            .fire_event(atom!("abort"), CanGc::from_cx(cx));
     }
 
     /// <https://dom.spec.whatwg.org/#abortsignal-aborted>
@@ -397,33 +389,30 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
         global.run_steps_after_a_timeout(
             DOMString::from("AbortSignal-timeout"),
             ms_i64,
-            move |global, _can_gc| {
+            move |_cx, global| {
                 let task_source = global.task_manager().timer_task_source().to_sendable();
 
                 // Step 3.1. Queue a global task on the timer task source given global to signal abort given signal and a new "TimeoutError" DOMException.
                 // For the duration of this timeout, if signal has any event listeners registered for its abort event,
                 // there must be a strong reference from global to signal.
-                task_source.queue(task!(abortsignal_timeout: move || {
+                task_source.queue(task!(abortsignal_timeout: move |cx| {
                     let signal_for_task = signal_keepalive.root();
 
-                    let cx = GlobalScope::get_cx();
-                    rooted!(in(*cx) let mut reason = UndefinedValue());
+                    rooted!(&in(cx) let mut reason = UndefinedValue());
                     Error::Timeout(None).to_jsval(
-                        cx,
+                        cx.into(),
                         &signal_for_task.global(),
                         reason.handle_mut(),
-                        CanGc::note(),
+                        CanGc::from_cx(cx),
                     );
 
-                    let realm = enter_realm(&*signal_for_task.global());
-                    let comp = InRealm::Entered(&realm);
+                    let mut realm = enter_auto_realm(cx, &*signal_for_task.global());
+                    let mut realm = realm.current_realm();
 
                     // “signal abort given signal and a new "TimeoutError" DOMException.”
                     signal_for_task.signal_abort(
-                        cx,
+                        &mut realm,
                         reason.handle(),
-                        comp,
-                        CanGc::note(),
                     );
                 }));
             },

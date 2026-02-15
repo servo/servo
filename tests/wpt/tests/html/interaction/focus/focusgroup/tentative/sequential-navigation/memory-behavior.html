@@ -53,7 +53,7 @@
     var memoryItem3 = document.getElementById("memory-item3");
     var between = document.getElementById("between");
 
-    beforeMemory.focus();
+    await focusAndWait(beforeMemory);
     await navigateFocusForward();
     assert_equals(document.activeElement, memoryItem2, "First tab entry should use focusgroupstart element");
 
@@ -74,7 +74,7 @@
     var noMemoryItem3 = document.getElementById("no-memory-item3");
     var afterNoMemory = document.getElementById("after-no-memory");
 
-    between.focus();
+    await focusAndWait(between);
     await navigateFocusForward();
     assert_equals(document.activeElement, noMemoryItem2, "Entry should use focusgroupstart element");
 
@@ -96,7 +96,7 @@
     var segItem3 = document.getElementById("seg-item3");
     var afterSegments = document.getElementById("after-segments");
 
-    beforeSegments.focus();
+    await focusAndWait(beforeSegments);
     await navigateFocusForward();
     assert_equals(document.activeElement, segItem2, "Should enter at focusgroupstart element");
 
@@ -118,7 +118,7 @@
     var segItem2 = document.getElementById("seg-item2");
     var segOptedOut = document.getElementById("seg-opted-out");
 
-    segOptedOut.focus();
+    await focusAndWait(segOptedOut);
 
     await navigateFocusBackward();
     assert_equals(document.activeElement, segItem2, "Shift+Tab from opted-out should enter first segment at focusgroupstart element");
@@ -134,12 +134,12 @@
     var memoryItem2 = document.getElementById("memory-item2");
     var memoryItem1 = document.getElementById("memory-item1");
 
-    memoryItem2.focus();
+    await focusAndWait(memoryItem2);
 
     await focusAndKeyPress(memoryItem2, kArrowLeft);
     assert_equals(document.activeElement, memoryItem1, "Arrow left should move to Item 1");
 
-    document.getElementById("between").focus();
+    await focusAndWait(document.getElementById("between"));
 
     await navigateFocusBackward();
     assert_equals(document.activeElement, memoryItem1, "Should remember Item 1 as last focused");

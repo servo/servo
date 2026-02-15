@@ -19,7 +19,7 @@ use crate::dom::bindings::str::DOMString;
 
 #[dom_struct]
 pub(crate) struct CSSConditionRule {
-    cssgroupingrule: CSSGroupingRule,
+    css_grouping_rule: CSSGroupingRule,
     #[ignore_malloc_size_of = "Stylo"]
     #[no_trace]
     rules: RefCell<Arc<Locked<StyleCssRules>>>,
@@ -31,17 +31,17 @@ impl CSSConditionRule {
         rules: Arc<Locked<StyleCssRules>>,
     ) -> CSSConditionRule {
         CSSConditionRule {
-            cssgroupingrule: CSSGroupingRule::new_inherited(parent_stylesheet),
+            css_grouping_rule: CSSGroupingRule::new_inherited(parent_stylesheet),
             rules: RefCell::new(rules),
         }
     }
 
     pub(crate) fn parent_stylesheet(&self) -> &CSSStyleSheet {
-        self.cssgroupingrule.parent_stylesheet()
+        self.css_grouping_rule.parent_stylesheet()
     }
 
     pub(crate) fn shared_lock(&self) -> &SharedRwLock {
-        self.cssgroupingrule.shared_lock()
+        self.css_grouping_rule.shared_lock()
     }
 
     pub(crate) fn clone_rules(&self) -> Arc<Locked<StyleCssRules>> {
@@ -53,7 +53,7 @@ impl CSSConditionRule {
         rules: Arc<Locked<StyleCssRules>>,
         guard: &SharedRwLockReadGuard,
     ) {
-        self.cssgroupingrule.update_rules(&rules, guard);
+        self.css_grouping_rule.update_rules(&rules, guard);
         *self.rules.borrow_mut() = rules;
     }
 }

@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::URLPatternBinding::URLPatternResult;
 use script_bindings::codegen::GenericUnionTypes::USVStringOrURLPatternInit;
 use script_bindings::error::{Error, Fallible};
@@ -54,10 +55,10 @@ impl URLPattern {
         // Parse and initialize the URL pattern.
         let pattern_init =
             urlpattern::quirks::process_construct_pattern_input(input, base_url.as_deref())
-                .map_err(|error| Error::Type(format!("{error}")))?;
+                .map_err(|error| Error::Type(cformat!("{error}")))?;
 
         let pattern = urlpattern::UrlPattern::parse(pattern_init, options)
-            .map_err(|error| Error::Type(format!("{error}")))?;
+            .map_err(|error| Error::Type(cformat!("{error}")))?;
 
         let url_pattern = reflect_dom_object_with_proto(
             Box::new(URLPattern::new_inherited(pattern)),
@@ -102,14 +103,14 @@ impl URLPatternMethods<crate::DomTypeHolder> for URLPattern {
     ) -> Fallible<bool> {
         let input = bindings_to_third_party::map_urlpattern_input(input);
         let inputs = urlpattern::quirks::process_match_input(input, base_url.as_deref())
-            .map_err(|error| Error::Type(format!("{error}")))?;
+            .map_err(|error| Error::Type(cformat!("{error}")))?;
         let Some((match_input, _)) = inputs else {
             return Ok(false);
         };
 
         self.associated_url_pattern
             .test(match_input)
-            .map_err(|error| Error::Type(format!("{error}")))
+            .map_err(|error| Error::Type(cformat!("{error}")))
     }
 
     /// <https://urlpattern.spec.whatwg.org/#dom-urlpattern-exec>
@@ -120,7 +121,7 @@ impl URLPatternMethods<crate::DomTypeHolder> for URLPattern {
     ) -> Fallible<Option<URLPatternResult>> {
         let input = bindings_to_third_party::map_urlpattern_input(input);
         let inputs = urlpattern::quirks::process_match_input(input, base_url.as_deref())
-            .map_err(|error| Error::Type(format!("{error}")))?;
+            .map_err(|error| Error::Type(cformat!("{error}")))?;
         let Some((match_input, inputs)) = inputs else {
             return Ok(None);
         };
@@ -128,7 +129,7 @@ impl URLPatternMethods<crate::DomTypeHolder> for URLPattern {
         let result = self
             .associated_url_pattern
             .exec(match_input)
-            .map_err(|error| Error::Type(format!("{error}")))?;
+            .map_err(|error| Error::Type(cformat!("{error}")))?;
         let Some(result) = result else {
             return Ok(None);
         };

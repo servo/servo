@@ -312,8 +312,7 @@ function testPropertyValid(propertyName, examples, specified, computed, descript
       if (specified || example.defaultSpecified) {
         (specified || example.defaultSpecified)(example.specifiedExpected || example.input, specifiedResult);
       } else {
-        assert_style_value_equals(specifiedResult, example.input,
-          `Setting ${example.description} and getting its specified value`);
+        assert_style_value_equals(specifiedResult, example.input);
       }
 
       // computed style
@@ -326,8 +325,7 @@ function testPropertyValid(propertyName, examples, specified, computed, descript
       if (computed || example.defaultComputed) {
         (computed || example.defaultComputed)(example.input, computedResult);
       } else {
-        assert_style_value_equals(computedResult, example.input,
-          `Setting ${example.description} and getting its computed value`);
+        assert_style_value_equals(computedResult, example.input);
       }
     }, `Can set '${propertyName}' to ${description}: ${example.input}`);
   }
@@ -379,9 +377,7 @@ function testUnsupportedValue(propertyName, cssText) {
       'Unsupported value can be set on different element');
 
     const resultAll = element2.attributeStyleMap.getAll(propertyName);
-    assert_style_value_equals(resultAll[0], result,
-      `getAll() with single unsupported value returns single-item list ` +
-      `with same result as get()`);
+    assert_style_value_equals(resultAll[0], result);
   }, `'${propertyName}' does not support '${cssText}'`);
 }
 

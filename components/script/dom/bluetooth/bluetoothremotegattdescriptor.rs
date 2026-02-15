@@ -207,7 +207,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTDescriptor {
                 // TODO: Resolve promise with undefined instead of a value.
                 promise.resolve_native(&(), can_gc);
             },
-            _ => promise.reject_error(Error::Type("Something went wrong...".to_owned()), can_gc),
+            _ => promise.reject_error(Error::Type(c"Something went wrong...".to_owned()), can_gc),
         }
     }
 }

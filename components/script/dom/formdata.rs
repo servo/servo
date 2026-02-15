@@ -96,12 +96,12 @@ impl FormDataMethods<crate::DomTypeHolder> for FormData {
                         .map(FormSubmitterElement::Input)
                 })
                 .ok_or(Error::Type(
-                    "submitter is not a form submitter element".to_string(),
+                    c"submitter is not a form submitter element".to_owned(),
                 ))?;
 
             // Step 1.1.1. If submitter is not a submit button, then throw a TypeError.
             if !submit_button.is_submit_button() {
-                return Err(Error::Type("submitter is not a submit button".to_string()));
+                return Err(Error::Type(c"submitter is not a submit button".to_owned()));
             }
 
             // Step 1.1.2. If submitter’s form owner is not form, then throw a "NotFoundError"

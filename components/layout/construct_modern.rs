@@ -120,12 +120,15 @@ impl<'dom> ModernContainerJob<'dom> {
                     info.style.clone_order()
                 };
 
-                if let Some(layout_box) = box_slot
-                    .take_layout_box_if_undamaged(info.damage)
-                    .and_then(|layout_box| match &layout_box {
-                        LayoutBox::FlexLevel(_) | LayoutBox::TaffyItemBox(_) => Some(layout_box),
-                        _ => None,
-                    })
+                if let Some(layout_box) =
+                    box_slot
+                        .take_layout_box()
+                        .and_then(|layout_box| match &layout_box {
+                            LayoutBox::FlexLevel(_) | LayoutBox::TaffyItemBox(_) => {
+                                Some(layout_box)
+                            },
+                            _ => None,
+                        })
                 {
                     return Some(ModernItem {
                         kind: ModernItemKind::ReusedBox(layout_box),

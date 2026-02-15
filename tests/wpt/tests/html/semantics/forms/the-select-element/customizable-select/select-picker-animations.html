@@ -21,12 +21,12 @@ select::picker(select) {
   color: black;
 }
 
-select::picker(select):popover-open {
+select:open::picker(select) {
   opacity: 1;
   color: rgb(200, 0, 0);
 }
 @starting-style {
-  select::picker(select):popover-open {
+  select:open::picker(select) {
     opacity: 0;
     color: black;
   }

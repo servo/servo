@@ -8,7 +8,9 @@ use std::cell::RefCell;
 use base::generic_channel::{GenericCallback, GenericSender};
 use base::id::{Index, PipelineId, PipelineNamespaceId};
 use constellation_traits::ScriptToConstellationChan;
-use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId};
+use devtools_traits::{
+    DevtoolScriptControlMsg, EvaluateJSReply, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
+};
 use dom_struct::dom_struct;
 use embedder_traits::resources::{self, Resource};
 use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
@@ -16,12 +18,14 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers2::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
+use script_bindings::codegen::GenericBindings::DebuggerEvalEventBinding::EvalResultValue;
 use script_bindings::codegen::GenericBindings::DebuggerGetPossibleBreakpointsEventBinding::RecommendedBreakpointLocation;
 use script_bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::{
     DebuggerGlobalScopeMethods, NotifyNewSource,
 };
 use script_bindings::realms::InRealm;
 use script_bindings::reflector::DomObject;
+use script_bindings::str::DOMString;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
@@ -35,7 +39,9 @@ use crate::dom::debuggerclearbreakpointevent::DebuggerClearBreakpointEvent;
 use crate::dom::debuggerpauseevent::DebuggerPauseEvent;
 use crate::dom::debuggersetbreakpointevent::DebuggerSetBreakpointEvent;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::types::{DebuggerAddDebuggeeEvent, DebuggerGetPossibleBreakpointsEvent, Event};
+use crate::dom::types::{
+    DebuggerAddDebuggeeEvent, DebuggerEvalEvent, DebuggerGetPossibleBreakpointsEvent, Event,
+};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::realms::{enter_auto_realm, enter_realm};
@@ -54,6 +60,8 @@ pub(crate) struct DebuggerGlobalScope {
         RefCell<Option<GenericSender<Vec<devtools_traits::RecommendedBreakpointLocation>>>>,
     #[no_trace]
     get_frame_result_sender: RefCell<Option<GenericSender<devtools_traits::PauseFrameResult>>>,
+    #[no_trace]
+    eval_result_sender: RefCell<Option<GenericSender<EvaluateJSReply>>>,
 }
 
 impl DebuggerGlobalScope {
@@ -101,6 +109,7 @@ impl DebuggerGlobalScope {
             devtools_to_script_sender,
             get_possible_breakpoints_result_sender: RefCell::new(None),
             get_frame_result_sender: RefCell::new(None),
+            eval_result_sender: RefCell::new(None),
         });
         let global = DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx.into(), global);
 
@@ -164,6 +173,35 @@ impl DebuggerGlobalScope {
         assert!(
             event.fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerAddDebuggeeEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_eval(
+        &self,
+        can_gc: CanGc,
+        code: DOMString,
+        debuggee_pipeline_id: PipelineId,
+        debuggee_worker_id: Option<WorkerId>,
+        result_sender: GenericSender<EvaluateJSReply>,
+    ) {
+        assert!(
+            self.eval_result_sender
+                .replace(Some(result_sender))
+                .is_none()
+        );
+        let _realm = enter_realm(self);
+        let debuggee_pipeline_id =
+            crate::dom::pipelineid::PipelineId::new(self.upcast(), debuggee_pipeline_id, can_gc);
+        let event = DomRoot::upcast::<Event>(DebuggerEvalEvent::new(
+            self.upcast(),
+            code,
+            &debuggee_pipeline_id,
+            debuggee_worker_id.map(|id| id.to_string().into()),
+            can_gc,
+        ));
+        assert!(
+            event.fire(self.upcast(), can_gc),
+            "Guaranteed by DebuggerEvalEvent::new"
         );
     }
 
@@ -384,5 +422,55 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             type_: result.type_.clone().into(),
             url: result.url.clone().into(),
         });
+    }
+
+    /// Handle the result from debugger.js executeInGlobal() call.
+    ///
+    /// The result contains completion value information from the SpiderMonkey Debugger API:
+    /// <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#completion-values>
+    fn EvalResult(&self, _event: &DebuggerEvalEvent, result: &EvalResultValue) {
+        let sender = self
+            .eval_result_sender
+            .take()
+            .expect("Guaranteed by Self::fire_eval()");
+
+        let reply = if result.completionType.str() == "terminated" {
+            EvaluateJSReply::VoidValue
+        } else {
+            match &*result.valueType.str() {
+                "undefined" => EvaluateJSReply::VoidValue,
+                "null" => EvaluateJSReply::NullValue,
+                "boolean" => {
+                    EvaluateJSReply::BooleanValue(result.booleanValue.flatten().unwrap_or(false))
+                },
+                "number" => {
+                    let num = result.numberValue.flatten().map(|f| *f).unwrap_or(0.0);
+                    EvaluateJSReply::NumberValue(num)
+                },
+                "string" => EvaluateJSReply::StringValue(
+                    result
+                        .stringValue
+                        .as_ref()
+                        .and_then(|opt| opt.as_ref())
+                        .map(|s| s.to_string())
+                        .unwrap_or_default(),
+                ),
+                "object" => {
+                    let class = result
+                        .objectClass
+                        .as_ref()
+                        .and_then(|opt| opt.as_ref())
+                        .map(|s| s.to_string())
+                        .unwrap_or_else(|| "Object".to_string());
+                    EvaluateJSReply::ActorValue {
+                        class,
+                        uuid: uuid::Uuid::new_v4().to_string(),
+                    }
+                },
+                _ => unreachable!(),
+            }
+        };
+
+        let _ = sender.send(reply);
     }
 }

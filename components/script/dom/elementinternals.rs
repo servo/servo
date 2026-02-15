@@ -263,8 +263,8 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         let bits: ValidationFlags = flags.into();
         if !bits.is_empty() && !message.as_ref().map_or_else(|| false, |m| !m.is_empty()) {
             return Err(Error::Type(
-                "Setting an element to invalid requires a message string as the second argument."
-                    .to_string(),
+                c"Setting an element to invalid requires a message string as the second argument."
+                    .to_owned(),
             ));
         }
 

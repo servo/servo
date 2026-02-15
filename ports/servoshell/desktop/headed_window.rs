@@ -338,7 +338,6 @@ impl HeadedWindow {
 
         let mut handled = true;
         ShortcutMatcher::from_event(key_event.event.clone())
-            .shortcut(CMD_OR_CONTROL, 'R', || active_webview.reload())
             .shortcut(CMD_OR_CONTROL, 'W', || {
                 window.close_webview(active_webview.id());
             })
@@ -572,7 +571,6 @@ impl HeadedWindow {
         // Handle the event
         let mut consumed = false;
         match event {
-            WindowEvent::Focused(true) => state.handle_focused(window.clone()),
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                 // Intercept any ScaleFactorChanged events away from EguiGlow::on_window_event, so
                 // we can use our own logic for calculating the scale factor and set egui’s
@@ -630,6 +628,10 @@ impl HeadedWindow {
 
                 if let WindowEvent::Resized(_) = event {
                     self.rebuild_user_interface(&state, &window);
+                }
+
+                if let WindowEvent::Focused(true) = event {
+                    state.handle_focused(window.clone());
                 }
 
                 if response.repaint && *event != WindowEvent::RedrawRequested {
@@ -1035,6 +1037,10 @@ impl PlatformWindow for HeadedWindow {
             })
             .shortcut(CMD_OR_CONTROL, '0', || {
                 webview.set_page_zoom(1.0);
+            })
+            .shortcut(CMD_OR_CONTROL, 'R', || webview.reload())
+            .shortcut(Modifiers::empty(), Key::Named(NamedKey::F5), || {
+                webview.reload()
             });
     }
 

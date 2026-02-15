@@ -186,7 +186,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                     .dom_manipulation_task_source()
                     .queue(task!(suspend_error: move || {
                         let promise = trusted_promise.root();
-                        promise.reject_error(Error::Type("Something went wrong".to_owned()), CanGc::note());
+                        promise.reject_error(Error::Type(c"Something went wrong".to_owned()), CanGc::note());
                     }));
             },
         };
@@ -242,7 +242,7 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
                     .dom_manipulation_task_source()
                     .queue(task!(suspend_error: move || {
                         let promise = trusted_promise.root();
-                        promise.reject_error(Error::Type("Something went wrong".to_owned()), CanGc::note());
+                        promise.reject_error(Error::Type(c"Something went wrong".to_owned()), CanGc::note());
                     }));
             },
         };

@@ -188,7 +188,7 @@ impl CustomElementRegistry {
             // Step 10.2
             if !prototype.is_object() {
                 return Err(Error::Type(
-                    "constructor.prototype is not an object".to_owned(),
+                    c"constructor.prototype is not an object".to_owned(),
                 ));
             }
         }
@@ -267,7 +267,7 @@ impl CustomElementRegistry {
         );
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             _ => Err(Error::JSFailed),
         }
     }
@@ -305,7 +305,7 @@ impl CustomElementRegistry {
         );
         match conversion {
             Ok(ConversionResult::Success(flag)) => Ok(flag),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             _ => Err(Error::JSFailed),
         }
     }
@@ -343,7 +343,7 @@ impl CustomElementRegistry {
         );
         match conversion {
             Ok(ConversionResult::Success(attributes)) => Ok(attributes),
-            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into())),
+            Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             _ => Err(Error::JSFailed),
         }
     }
@@ -372,7 +372,9 @@ fn get_callback(
         // Step 10.4.2
         if !callback.is_undefined() {
             if !callback.is_object() || !IsCallable(callback.to_object()) {
-                return Err(Error::Type("Lifecycle callback is not callable".to_owned()));
+                return Err(Error::Type(
+                    c"Lifecycle callback is not callable".to_owned(),
+                ));
             }
             Ok(Some(Function::new(cx, callback.to_object())))
         } else {
@@ -406,7 +408,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         if unsafe { !IsConstructor(unwrapped_constructor.get()) } {
             return Err(Error::Type(
-                "Second argument of CustomElementRegistry.define is not a constructor".to_owned(),
+                c"Second argument of CustomElementRegistry.define is not a constructor".to_owned(),
             ));
         }
 
@@ -804,7 +806,7 @@ impl CustomElementDefinition {
                 Ok(ConversionResult::Success(element)) => element,
                 Ok(ConversionResult::Failure(..)) => {
                     return Err(Error::Type(
-                        "Constructor did not return a DOM node".to_owned(),
+                        c"Constructor did not return a DOM node".to_owned(),
                     ));
                 },
                 _ => return Err(Error::JSFailed),
@@ -1022,7 +1024,7 @@ fn run_upgrade_constructor(
         }
         if !same {
             return Err(Error::Type(
-                "Returned element is not SameValue as the upgraded element".to_string(),
+                c"Returned element is not SameValue as the upgraded element".to_owned(),
             ));
         }
     }

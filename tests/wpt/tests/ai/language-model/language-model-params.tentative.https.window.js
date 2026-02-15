@@ -8,10 +8,7 @@
 promise_test(async () => {
   await ensureLanguageModel();
 
-  const params = await LanguageModel.params();
-  assert_true(!!params);
-  assert_equals(typeof params.maxTopK, "number");
-  assert_equals(typeof params.defaultTopK, "number");
-  assert_equals(typeof params.maxTemperature, "number");
-  assert_equals(typeof params.defaultTemperature, "number");
+  assert_false(
+      'params' in LanguageModel,
+      'LanguageModel.params should not be defined on the LanguageModel interface in a window context.');
 });

@@ -8,7 +8,8 @@ def main(request, response):
         request.server.stash.put(key, True)
         return f"put {key} into stash"
 
-    with open("media/movie_300.webm", "rb") as f:
+    file_path = os.path.join(request.doc_root, "media", "movie_300.webm")
+    with open(file_path, "rb") as f:
         f.seek(0, os.SEEK_END)
         file_size = f.tell()
 
