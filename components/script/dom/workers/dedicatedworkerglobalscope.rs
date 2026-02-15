@@ -452,7 +452,7 @@ impl DedicatedWorkerGlobalScope {
                     gpu_id_hub.clone(),
                     cx,
                 );
-                debugger_global.execute(CanGc::from_cx(cx));
+                debugger_global.execute(cx);
 
                 let context_for_interrupt = runtime.thread_safe_js_context();
                 let _ = context_sender.send(context_for_interrupt);

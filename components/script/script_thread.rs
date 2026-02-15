@@ -992,7 +992,7 @@ impl ScriptThread {
             &mut cx,
         );
 
-        debugger_global.execute(CanGc::from_cx(&mut cx));
+        debugger_global.execute(&mut cx);
 
         let user_contents_for_manager_id =
             FxHashMap::from_iter(state.user_contents_for_manager_id.into_iter().map(
