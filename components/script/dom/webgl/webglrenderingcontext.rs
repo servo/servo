@@ -5276,3 +5276,44 @@ fn array_buffer_type_to_sized_type(type_: Type) -> Option<SizedDataType> {
         Type::Simd128 => None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use style::thread_state::{self, ThreadState};
+
+    use super::*;
+
+    const NUM_UNITS: u32 = 8;
+
+    fn make_textures() -> Textures {
+        thread_state::initialize(ThreadState::SCRIPT);
+        Textures::new(NUM_UNITS)
+    }
+
+    #[test]
+    fn active_texture_first_unit_is_valid() {
+        let tex = make_textures();
+        assert!(tex.set_active_unit_enum(constants::TEXTURE0).is_ok());
+    }
+
+    #[test]
+    fn active_texture_last_unit_is_valid() {
+        let tex = make_textures();
+        assert!(tex.set_active_unit_enum(constants::TEXTURE0 + NUM_UNITS - 1).is_ok());
+    }
+
+    #[test]
+    fn active_texture_one_past_last_is_invalid() {
+        // The exact boundary the fix addresses:
+        // `>` would let this through, `>=` correctly rejects it.
+        let tex = make_textures();
+        assert!(tex.set_active_unit_enum(constants::TEXTURE0 + NUM_UNITS).is_err());
+    }
+
+    #[test]
+    fn active_texture_below_texture0_is_invalid() {
+        let tex = make_textures();
+        assert!(tex.set_active_unit_enum(constants::TEXTURE0 - 1).is_err());
+        assert!(tex.set_active_unit_enum(0).is_err());
+    }
+}
