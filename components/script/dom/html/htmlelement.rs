@@ -163,6 +163,14 @@ impl HTMLElement {
                 MediaList::matches_environment(&self.owner_document(), &media.value())
             })
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#editing-host>
+    pub(crate) fn is_editing_host(&self) -> bool {
+        // > An editing host is either an HTML element with its contenteditable attribute in the true state or plaintext-only state,
+        matches!(&*self.ContentEditable().str(), "true" | "plaintext-only")
+        // > or a child HTML element of a Document whose design mode enabled is true.
+        // TODO
+    }
 }
 
 impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
@@ -622,25 +630,42 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         );
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#dom-contenteditable>
-    fn ContentEditable(&self) -> DOMString {
-        // TODO: https://github.com/servo/servo/issues/12776
-        self.as_element()
-            .get_attribute(&ns!(), &local_name!("contenteditable"))
-            .map(|attr| DOMString::from(&**attr.value()))
-            .unwrap_or_else(|| DOMString::from("inherit"))
-    }
+    // https://html.spec.whatwg.org/multipage/#dom-contenteditable
+    make_enumerated_getter!(
+        ContentEditable,
+        "contenteditable",
+        "true" | "false" | "plaintext-only",
+        missing => "inherit",
+        invalid => "inherit",
+        empty => "true"
+    );
 
     /// <https://html.spec.whatwg.org/multipage/#dom-contenteditable>
-    fn SetContentEditable(&self, _: DOMString) {
-        // TODO: https://github.com/servo/servo/issues/12776
-        warn!("The contentEditable attribute is not implemented yet");
+    fn SetContentEditable(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
+        let lower_value = value.to_ascii_lowercase();
+        let element = self.upcast::<Element>();
+        let attr_name = &local_name!("contenteditable");
+        match lower_value.as_ref() {
+            // > On setting, if the new value is an ASCII case-insensitive match for the string "inherit", then the content attribute must be removed,
+            "inherit" => {
+                element.remove_attribute_by_name(attr_name, can_gc);
+            },
+            // > if the new value is an ASCII case-insensitive match for the string "true", then the content attribute must be set to the string "true",
+            // > if the new value is an ASCII case-insensitive match for the string "plaintext-only", then the content attribute must be set to the string "plaintext-only",
+            // > if the new value is an ASCII case-insensitive match for the string "false", then the content attribute must be set to the string "false",
+            "true" | "false" | "plaintext-only" => {
+                element.set_attribute(attr_name, AttrValue::String(lower_value), can_gc);
+            },
+            // > and otherwise the attribute setter must throw a "SyntaxError" DOMException.
+            _ => return Err(Error::Syntax(None)),
+        };
+        Ok(())
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#dom-contenteditable>
+    /// <https://html.spec.whatwg.org/multipage/#dom-iscontenteditable>
     fn IsContentEditable(&self) -> bool {
-        // TODO: https://github.com/servo/servo/issues/12776
-        false
+        // > The isContentEditable IDL attribute, on getting, must return true if the element is either an editing host or editable, and false otherwise.
+        self.is_editing_host() || self.upcast::<Node>().is_editable()
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-attachinternals>
