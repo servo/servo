@@ -414,10 +414,10 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-addrule>
     fn AddRule(
         &self,
+        cx: &mut js::context::JSContext,
         selector: DOMString,
         block: DOMString,
         optional_index: Option<u32>,
-        can_gc: CanGc,
     ) -> Fallible<i32> {
         // > 1. Let *rule* be an empty string.
         // > 2. Append *selector* to *rule*.
@@ -435,10 +435,10 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         };
 
         // > 6. Let *index* be *optionalIndex* if provided, or the number of CSS rules in the stylesheet otherwise.
-        let index = optional_index.unwrap_or_else(|| self.rulelist(can_gc).Length());
+        let index = optional_index.unwrap_or_else(|| self.rulelist(CanGc::from_cx(cx)).Length());
 
         // > 7. Call `insertRule()`, with *rule* and *index* as arguments.
-        self.InsertRule(rule, index, can_gc)?;
+        self.InsertRule(rule, index, CanGc::from_cx(cx))?;
 
         // > 8. Return -1.
         Ok(-1)
