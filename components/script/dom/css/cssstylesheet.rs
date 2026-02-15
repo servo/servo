@@ -6,6 +6,7 @@ use std::cell::{Cell, Ref};
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
+use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use script_bindings::inheritance::Castable;
 use script_bindings::realms::InRealm;
@@ -444,9 +445,9 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-replace>
-    fn Replace(&self, text: USVString, comp: InRealm, can_gc: CanGc) -> Fallible<Rc<Promise>> {
+    fn Replace(&self, cx: &mut CurrentRealm, text: USVString) -> Fallible<Rc<Promise>> {
         // Step 1. Let promise be a promise.
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+        let promise = Promise::new_in_realm(cx);
 
         // Step 2. If the constructed flag is not set, or the disallow modification flag is set,
         // reject promise with a NotAllowedError DOMException and return promise.
@@ -464,7 +465,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         self.global()
             .task_manager()
             .dom_manipulation_task_source()
-            .queue(task!(cssstylesheet_replace: move || {
+            .queue(task!(cssstylesheet_replace: move |cx| {
                 let sheet = trusted_sheet.root();
 
                 // Step 4.1..4.3
@@ -474,7 +475,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
                 sheet.disallow_modification.set(false);
 
                 // Step 4.5. Resolve promise with sheet.
-                trusted_promise.root().resolve_native(&sheet, CanGc::note());
+                trusted_promise.root().resolve_native(&sheet, CanGc::from_cx(cx));
             }));
 
         Ok(promise)
