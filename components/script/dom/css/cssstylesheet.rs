@@ -9,7 +9,6 @@ use dom_struct::dom_struct;
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use script_bindings::inheritance::Castable;
-use script_bindings::realms::InRealm;
 use script_bindings::root::Dom;
 use servo_arc::Arc;
 use style::media_queries::MediaList as StyleMediaList;
