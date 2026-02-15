@@ -13,6 +13,7 @@ use std::ffi::{CStr, CString};
 use std::io::{Write, stdout};
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_void;
+use std::ptr::NonNull;
 use std::rc::{Rc, Weak};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
@@ -299,12 +300,17 @@ unsafe extern "C" fn get_host_defined_data(
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn run_jobs(microtask_queue: *const c_void, cx: *mut RawJSContext) {
-    let cx = unsafe { JSContext::from_ptr(cx) };
+    let mut cx = unsafe {
+        // SAFETY: We are in SM hook
+        js::context::JSContext::from_ptr(
+            NonNull::new(cx).expect("JSContext should not be null in SM hook"),
+        )
+    };
     wrap_panic(&mut || {
         let microtask_queue = unsafe { &*(microtask_queue as *const MicrotaskQueue) };
         // TODO: run Promise- and User-variant Microtasks, and do #notify-about-rejected-promises.
         // Those will require real `target_provider` and `globalscopes` values.
-        microtask_queue.checkpoint(cx, |_| None, vec![], CanGc::note());
+        microtask_queue.checkpoint(&mut cx, |_| None, vec![]);
     });
 }
 

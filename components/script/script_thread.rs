@@ -545,10 +545,10 @@ impl ScriptThread {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         metadata: Option<Metadata>,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Option<DomRoot<ServoParser>> {
         with_script_thread(|script_thread| {
-            script_thread.handle_page_headers_available(webview_id, pipeline_id, metadata, can_gc)
+            script_thread.handle_page_headers_available(webview_id, pipeline_id, metadata, cx)
         })
     }
 
@@ -1129,7 +1129,7 @@ impl ScriptThread {
     /// actually updated.
     ///
     /// Returns true if any reflows produced a new display list.
-    pub(crate) fn update_the_rendering(&self, can_gc: CanGc) -> bool {
+    pub(crate) fn update_the_rendering(&self, cx: &mut js::context::JSContext) -> bool {
         self.last_render_opportunity_time.set(Some(Instant::now()));
         self.cancel_scheduled_update_the_rendering();
         self.needs_rendering_update.store(false, Ordering::Relaxed);
@@ -1192,20 +1192,20 @@ impl ScriptThread {
 
             // TODO: Should this be broken and to match the specification more closely? For instance see
             // https://html.spec.whatwg.org/multipage/#flush-autofocus-candidates.
-            self.process_pending_input_events(*pipeline_id, can_gc);
+            self.process_pending_input_events(*pipeline_id, CanGc::from_cx(cx));
 
             // > 8. For each doc of docs, run the resize steps for doc. [CSSOMVIEW]
-            let resized = document.window().run_the_resize_steps(can_gc);
+            let resized = document.window().run_the_resize_steps(CanGc::from_cx(cx));
 
             // > 9. For each doc of docs, run the scroll steps for doc.
-            document.run_the_scroll_steps(can_gc);
+            document.run_the_scroll_steps(CanGc::from_cx(cx));
 
             // Media queries is only relevant when there are resizing.
             if resized {
                 // 10. For each doc of docs, evaluate media queries and report changes for doc.
                 document
                     .window()
-                    .evaluate_media_queries_and_report_changes(can_gc);
+                    .evaluate_media_queries_and_report_changes(CanGc::from_cx(cx));
 
                 // https://html.spec.whatwg.org/multipage/#img-environment-changes
                 // As per the spec, this can be run at any time.
@@ -1215,7 +1215,7 @@ impl ScriptThread {
             // > 11. For each doc of docs, update animations and send events for doc, passing
             // > in relative high resolution time given frameTimestamp and doc's relevant
             // > global object as the timestamp [WEBANIMATIONS]
-            document.update_animations_and_send_events(can_gc);
+            document.update_animations_and_send_events(cx);
 
             // TODO(#31866): Implement "run the fullscreen steps" from
             // https://fullscreen.spec.whatwg.org/multipage/#run-the-fullscreen-steps.
@@ -1226,18 +1226,18 @@ impl ScriptThread {
             // > 14. For each doc of docs, run the animation frame callbacks for doc, passing
             // > in the relative high resolution time given frameTimestamp and doc's
             // > relevant global object as the timestamp.
-            document.run_the_animation_frame_callbacks(can_gc);
+            document.run_the_animation_frame_callbacks(CanGc::from_cx(cx));
 
             // Run the resize observer steps.
             let _realm = enter_realm(&*document);
             let mut depth = Default::default();
             while document.gather_active_resize_observations_at_depth(&depth) {
                 // Note: this will reflow the doc.
-                depth = document.broadcast_active_resize_observations(can_gc);
+                depth = document.broadcast_active_resize_observations(CanGc::from_cx(cx));
             }
 
             if document.has_skipped_resize_observations() {
-                document.deliver_resize_loop_error_notification(can_gc);
+                document.deliver_resize_loop_error_notification(CanGc::from_cx(cx));
                 // Ensure that another turn of the event loop occurs to process
                 // the skipped observations.
                 document.add_rendering_update_reason(
@@ -1255,7 +1255,8 @@ impl ScriptThread {
             // > passing in the relative high resolution time given now and
             // > doc's relevant global object as the timestamp. [INTERSECTIONOBSERVER]
             // TODO(stevennovaryo): The time attribute should be relative to the time origin of the global object
-            document.update_intersection_observer_steps(CrossProcessInstant::now(), can_gc);
+            document
+                .update_intersection_observer_steps(CrossProcessInstant::now(), CanGc::from_cx(cx));
 
             // TODO: Mark paint timing from https://w3c.github.io/paint-timing.
 
@@ -1277,7 +1278,7 @@ impl ScriptThread {
 
         // Perform a microtask checkpoint as the specifications says that *update the rendering*
         // should be run in a task and a microtask checkpoint is always done when running tasks.
-        self.perform_a_microtask_checkpoint(can_gc);
+        self.perform_a_microtask_checkpoint(cx);
         should_generate_frame
     }
 
@@ -1348,14 +1349,15 @@ impl ScriptThread {
 
     /// Fulfill the possibly-pending pending `document.fonts.ready` promise if
     /// all web fonts have loaded.
-    fn maybe_fulfill_font_ready_promises(&self, can_gc: CanGc) {
+    fn maybe_fulfill_font_ready_promises(&self, cx: &mut js::context::JSContext) {
         let mut sent_message = false;
         for (_, document) in self.documents.borrow().iter() {
-            sent_message = document.maybe_fulfill_font_ready_promise(can_gc) || sent_message;
+            sent_message =
+                document.maybe_fulfill_font_ready_promise(CanGc::from_cx(cx)) || sent_message;
         }
 
         if sent_message {
-            self.perform_a_microtask_checkpoint(can_gc);
+            self.perform_a_microtask_checkpoint(cx);
         }
     }
 
@@ -1442,7 +1444,7 @@ impl ScriptThread {
                 // If we've received the closed signal from the BHM, only handle exit messages.
                 match msg {
                     MixedMessage::FromConstellation(ScriptThreadMessage::ExitScriptThread) => {
-                        self.handle_exit_script_thread_msg(CanGc::from_cx(cx));
+                        self.handle_exit_script_thread_msg(cx);
                         return false;
                     },
                     MixedMessage::FromConstellation(ScriptThreadMessage::ExitPipeline(
@@ -1454,7 +1456,7 @@ impl ScriptThread {
                             webview_id,
                             pipeline_id,
                             discard_browsing_context,
-                            CanGc::from_cx(cx),
+                            cx,
                         );
                     },
                     _ => {},
@@ -1465,7 +1467,7 @@ impl ScriptThread {
             let exiting = self.profile_event(category, pipeline_id, || {
                 match msg {
                     MixedMessage::FromConstellation(ScriptThreadMessage::ExitScriptThread) => {
-                        self.handle_exit_script_thread_msg(CanGc::from_cx(cx));
+                        self.handle_exit_script_thread_msg(cx);
                         return true;
                     },
                     MixedMessage::FromConstellation(inner_msg) => {
@@ -1478,7 +1480,7 @@ impl ScriptThread {
                         self.handle_msg_from_devtools(inner_msg, cx)
                     },
                     MixedMessage::FromImageCache(inner_msg) => {
-                        self.handle_msg_from_image_cache(inner_msg)
+                        self.handle_msg_from_image_cache(inner_msg, cx)
                     },
                     #[cfg(feature = "webgpu")]
                     MixedMessage::FromWebGPUServer(inner_msg) => {
@@ -1497,7 +1499,7 @@ impl ScriptThread {
 
             // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 6
             // TODO(#32003): A microtask checkpoint is only supposed to be performed after running a task.
-            self.perform_a_microtask_checkpoint(CanGc::from_cx(cx));
+            self.perform_a_microtask_checkpoint(cx);
         }
 
         for (_, doc) in self.documents.borrow().iter() {
@@ -1517,10 +1519,10 @@ impl ScriptThread {
             docs.clear();
         }
 
-        let built_any_display_lists = self.needs_rendering_update.load(Ordering::Relaxed) &&
-            self.update_the_rendering(CanGc::from_cx(cx));
+        let built_any_display_lists =
+            self.needs_rendering_update.load(Ordering::Relaxed) && self.update_the_rendering(cx);
 
-        self.maybe_fulfill_font_ready_promises(CanGc::from_cx(cx));
+        self.maybe_fulfill_font_ready_promises(cx);
         self.maybe_resolve_pending_screenshot_readiness_requests(CanGc::from_cx(cx));
 
         // This must happen last to detect if any change above makes a rendering update necessary.
@@ -1747,7 +1749,7 @@ impl ScriptThread {
                 browsing_context_id,
                 load_data,
                 history_handling,
-                CanGc::from_cx(cx),
+                cx,
             ),
             ScriptThreadMessage::UnloadDocument(pipeline_id) => {
                 self.handle_unload_document(pipeline_id, CanGc::from_cx(cx))
@@ -1802,7 +1804,7 @@ impl ScriptThread {
                 webview_id,
                 new_pipeline_id,
                 reason,
-                CanGc::from_cx(cx),
+                cx,
             ),
             ScriptThreadMessage::UpdateHistoryState(pipeline_id, history_state_id, url) => self
                 .handle_update_history_state_msg(
@@ -1837,12 +1839,7 @@ impl ScriptThread {
                 target: browsing_context_id,
                 parent: parent_id,
                 child: child_id,
-            } => self.handle_iframe_load_event(
-                parent_id,
-                browsing_context_id,
-                child_id,
-                CanGc::from_cx(cx),
-            ),
+            } => self.handle_iframe_load_event(parent_id, browsing_context_id, child_id, cx),
             ScriptThreadMessage::DispatchStorageEvent(
                 pipeline_id,
                 storage,
@@ -1864,12 +1861,9 @@ impl ScriptThread {
                 webview_id,
                 pipeline_id,
                 discard_browsing_context,
-            ) => self.handle_exit_pipeline_msg(
-                webview_id,
-                pipeline_id,
-                discard_browsing_context,
-                CanGc::from_cx(cx),
-            ),
+            ) => {
+                self.handle_exit_pipeline_msg(webview_id, pipeline_id, discard_browsing_context, cx)
+            },
             ScriptThreadMessage::PaintMetric(
                 pipeline_id,
                 metric_type,
@@ -2264,7 +2258,11 @@ impl ScriptThread {
         }
     }
 
-    fn handle_msg_from_image_cache(&self, response: ImageCacheResponseMessage) {
+    fn handle_msg_from_image_cache(
+        &self,
+        response: ImageCacheResponseMessage,
+        cx: &mut js::context::JSContext,
+    ) {
         match response {
             ImageCacheResponseMessage::NotifyPendingImageLoadStatus(pending_image_response) => {
                 let window = self
@@ -2272,7 +2270,7 @@ impl ScriptThread {
                     .borrow()
                     .find_window(pending_image_response.pipeline_id);
                 if let Some(ref window) = window {
-                    window.pending_image_notification(pending_image_response);
+                    window.pending_image_notification(pending_image_response, cx);
                 }
             },
             ImageCacheResponseMessage::VectorImageRasterizationComplete(response) => {
@@ -2959,14 +2957,14 @@ impl ScriptThread {
         webview_id: WebViewId,
         new_pipeline_id: PipelineId,
         reason: UpdatePipelineIdReason,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         let frame_element = self
             .documents
             .borrow()
             .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(frame_element) = frame_element {
-            frame_element.update_pipeline_id(new_pipeline_id, reason, can_gc);
+            frame_element.update_pipeline_id(new_pipeline_id, reason, cx);
         }
 
         if let Some(window) = self.documents.borrow().find_window(new_pipeline_id) {
@@ -3027,7 +3025,7 @@ impl ScriptThread {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         metadata: Option<Metadata>,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Option<DomRoot<ServoParser>> {
         if self.closed_pipelines.borrow().contains(&pipeline_id) {
             // If the pipeline closed, do not process the headers.
@@ -3077,7 +3075,7 @@ impl ScriptThread {
         };
 
         let load = self.incomplete_loads.borrow_mut().remove(idx);
-        metadata.map(|meta| self.load(meta, load, can_gc))
+        metadata.map(|meta| self.load(meta, load, cx))
     }
 
     /// Handles a request for the window title.
@@ -3094,7 +3092,7 @@ impl ScriptThread {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
         discard_bc: DiscardBrowsingContext,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         debug!("{pipeline_id}: Starting pipeline exit.");
 
@@ -3112,7 +3110,7 @@ impl ScriptThread {
             );
 
             if let Some(parser) = document.get_current_parser() {
-                parser.abort(can_gc);
+                parser.abort(cx);
             }
 
             debug!("{pipeline_id}: Shutting down layout");
@@ -3153,7 +3151,7 @@ impl ScriptThread {
     }
 
     /// Handles a request to exit the script thread and shut down layout.
-    fn handle_exit_script_thread_msg(&self, can_gc: CanGc) {
+    fn handle_exit_script_thread_msg(&self, cx: &mut js::context::JSContext) {
         debug!("Exiting script thread.");
 
         let mut webview_and_pipeline_ids = Vec::new();
@@ -3173,12 +3171,7 @@ impl ScriptThread {
         );
 
         for (webview_id, pipeline_id) in webview_and_pipeline_ids {
-            self.handle_exit_pipeline_msg(
-                webview_id,
-                pipeline_id,
-                DiscardBrowsingContext::Yes,
-                can_gc,
-            );
+            self.handle_exit_pipeline_msg(webview_id, pipeline_id, DiscardBrowsingContext::Yes, cx);
         }
 
         self.background_hang_monitor.unregister();
@@ -3250,14 +3243,14 @@ impl ScriptThread {
         parent_id: PipelineId,
         browsing_context_id: BrowsingContextId,
         child_id: PipelineId,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         let iframe = self
             .documents
             .borrow()
             .find_iframe(parent_id, browsing_context_id);
         match iframe {
-            Some(iframe) => iframe.iframe_load_event_steps(child_id, can_gc),
+            Some(iframe) => iframe.iframe_load_event_steps(child_id, cx),
             None => warn!("Message sent to closed pipeline {}.", parent_id),
         }
     }
@@ -3288,7 +3281,7 @@ impl ScriptThread {
         &self,
         metadata: Metadata,
         incomplete: InProgressLoad,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<ServoParser> {
         let script_to_constellation_chan = ScriptToConstellationChan {
             sender: self.senders.pipeline_to_constellation_sender.clone(),
@@ -3357,6 +3350,7 @@ impl ScriptThread {
 
         // Create the window and document objects.
         let window = Window::new(
+            cx,
             incomplete.webview_id,
             self.js_runtime.clone(),
             self.senders.self_sender.clone(),
@@ -3401,13 +3395,14 @@ impl ScriptThread {
             self.this.clone(),
         );
         self.debugger_global.fire_add_debuggee(
-            can_gc,
+            CanGc::from_cx(cx),
             window.upcast(),
             incomplete.pipeline_id,
             None,
         );
 
-        let _realm = enter_realm(&*window);
+        let mut realm = enter_auto_realm(cx, &*window);
+        let cx = &mut realm;
 
         // Initialize the browsing context for the window.
         let window_proxy = self.window_proxies.local_window_proxy(
@@ -3489,7 +3484,7 @@ impl ScriptThread {
             incomplete.load_data.has_trustworthy_ancestor_origin,
             self.custom_element_reaction_stack.clone(),
             incomplete.load_data.creation_sandboxing_flag_set,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         let referrer_policy = metadata
@@ -3505,7 +3500,7 @@ impl ScriptThread {
             document.shared_declarative_refresh_steps(refresh_val.as_bytes());
         }
 
-        document.set_ready_state(DocumentReadyState::Loading, can_gc);
+        document.set_ready_state(DocumentReadyState::Loading, CanGc::from_cx(cx));
 
         self.documents
             .borrow_mut()
@@ -3526,7 +3521,7 @@ impl ScriptThread {
                 window_proxy.webview_id(),
                 incomplete.pipeline_id,
                 UpdatePipelineIdReason::Navigation,
-                can_gc,
+                cx,
             );
         }
 
@@ -3563,7 +3558,7 @@ impl ScriptThread {
                 None,
                 final_url,
                 encoding_hint_from_content_type,
-                can_gc,
+                cx,
             );
         } else {
             ServoParser::parse_html_document(
@@ -3572,14 +3567,14 @@ impl ScriptThread {
                 final_url,
                 encoding_hint_from_content_type,
                 incomplete.load_data.container_document_encoding,
-                can_gc,
+                cx,
             );
         }
 
         if incomplete.activity == DocumentActivity::FullyActive {
-            window.resume(can_gc);
+            window.resume(CanGc::from_cx(cx));
         } else {
-            window.suspend(can_gc);
+            window.suspend(CanGc::from_cx(cx));
         }
 
         if incomplete.throttled {
@@ -3666,14 +3661,14 @@ impl ScriptThread {
         browsing_context_id: BrowsingContextId,
         load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         let iframe = self
             .documents
             .borrow()
             .find_iframe(parent_pipeline_id, browsing_context_id);
         if let Some(iframe) = iframe {
-            iframe.navigate_or_reload_child_browsing_context(load_data, history_handling, can_gc);
+            iframe.navigate_or_reload_child_browsing_context(load_data, history_handling, cx);
         }
     }
 
@@ -4076,7 +4071,7 @@ impl ScriptThread {
         });
     }
 
-    pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
+    pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {
         // Only perform the checkpoint if we're not shutting down.
         if self.can_continue_running_inner() {
             let globals = self
@@ -4087,10 +4082,9 @@ impl ScriptThread {
                 .collect();
 
             self.microtask_queue.checkpoint(
-                self.get_cx(),
+                cx,
                 |id| self.documents.borrow().find_global(id),
                 globals,
-                can_gc,
             )
         }
     }

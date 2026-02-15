@@ -755,7 +755,7 @@ impl HTMLLinkElement {
         let trusted_node = Trusted::new(self);
         let window = self.owner_window();
         let request_generation_id = self.get_request_generation_id();
-        window.register_image_cache_listener(id, move |response| {
+        window.register_image_cache_listener(id, move |response, _| {
             let trusted_node = trusted_node.clone();
             let link_element = trusted_node.root();
             let window = link_element.owner_window();

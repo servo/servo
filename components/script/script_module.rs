@@ -748,7 +748,7 @@ impl FetchResponseListener for ModuleContext {
         if let Some(window) = global.downcast::<Window>() {
             window
                 .Document()
-                .finish_load(LoadType::Script(url.clone()), CanGc::from_cx(cx));
+                .finish_load(LoadType::Script(url.clone()), cx);
         }
 
         network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));

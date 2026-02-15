@@ -33,9 +33,9 @@ pub(crate) struct ByteTeeReadRequestMicrotask {
 }
 
 impl ByteTeeReadRequestMicrotask {
-    pub(crate) fn microtask_chunk_steps(&self, can_gc: CanGc) {
+    pub(crate) fn microtask_chunk_steps(&self, cx: &mut js::context::JSContext) {
         self.tee_read_request
-            .chunk_steps(&self.chunk, can_gc)
+            .chunk_steps(&self.chunk, cx)
             .expect("ByteTeeReadRequestMicrotask::microtask_chunk_steps failed");
     }
 }
@@ -115,9 +115,11 @@ impl ByteTeeReadRequest {
 
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A3>
     #[allow(clippy::borrowed_box)]
-    pub(crate) fn chunk_steps(&self, chunk: &Box<Heap<JSVal>>, can_gc: CanGc) -> Fallible<()> {
-        let cx = GlobalScope::get_cx();
-
+    pub(crate) fn chunk_steps(
+        &self,
+        chunk: &Box<Heap<JSVal>>,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<()> {
         // Set readAgainForBranch1 to false.
         self.read_again_for_branch_1.set(false);
 
@@ -129,22 +131,29 @@ impl ByteTeeReadRequest {
         let chunk2 = chunk;
 
         // Helper to surface clone failures exactly once
-        let handle_clone_error = |error: Error| {
-            rooted!(in(*cx) let mut error_value = UndefinedValue());
-            error
-                .clone()
-                .to_jsval(cx, &self.global(), error_value.handle_mut(), can_gc);
+        let handle_clone_error = |cx: &mut js::context::JSContext, error: Error| {
+            rooted!(&in(cx) let mut error_value = UndefinedValue());
+            error.clone().to_jsval(
+                cx.into(),
+                &self.global(),
+                error_value.handle_mut(),
+                CanGc::from_cx(cx),
+            );
 
             let branch_1_controller = self.branch_1.get_byte_controller();
             let branch_2_controller = self.branch_2.get_byte_controller();
 
-            branch_1_controller.error(error_value.handle(), can_gc);
-            branch_2_controller.error(error_value.handle(), can_gc);
+            branch_1_controller.error(error_value.handle(), CanGc::from_cx(cx));
+            branch_2_controller.error(error_value.handle(), CanGc::from_cx(cx));
 
-            let cancel_result =
-                self.stream
-                    .cancel(cx, &self.stream.global(), error_value.handle(), can_gc);
-            self.cancel_promise.resolve_native(&cancel_result, can_gc);
+            let cancel_result = self.stream.cancel(
+                cx.into(),
+                &self.stream.global(),
+                error_value.handle(),
+                CanGc::from_cx(cx),
+            );
+            self.cancel_promise
+                .resolve_native(&cancel_result, CanGc::from_cx(cx));
         };
 
         // Prepare per branch chunks ahead of the spec enqueue steps.
@@ -167,11 +176,11 @@ impl ByteTeeReadRequest {
                 HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
                     RootedTraceableBox::from_box(Heap::boxed(chunk2.get().to_object())),
                 ));
-            let clone_result = chunk2_source.clone_as_uint8_array(cx);
+            let clone_result = chunk2_source.clone_as_uint8_array(cx.into());
 
             // If cloneResult is an abrupt completion,
             if let Err(error) = clone_result {
-                handle_clone_error(error);
+                handle_clone_error(cx, error);
                 return Ok(());
             } else {
                 // Otherwise, set chunk2 to cloneResult.[[Value]].
@@ -183,10 +192,10 @@ impl ByteTeeReadRequest {
                 HeapBufferSource::<ArrayBufferViewU8>::new(BufferSource::ArrayBufferView(
                     RootedTraceableBox::from_box(Heap::boxed(chunk2.get().to_object())),
                 ));
-            match chunk2_source.clone_as_uint8_array(cx) {
+            match chunk2_source.clone_as_uint8_array(cx.into()) {
                 Ok(clone) => chunk2_view = Some(clone),
                 Err(error) => {
-                    handle_clone_error(error);
+                    handle_clone_error(cx, error);
                     return Ok(());
                 },
             }
@@ -195,13 +204,13 @@ impl ByteTeeReadRequest {
         // If canceled1 is false, perform ! ReadableByteStreamControllerEnqueue(branch1.[[controller]], chunk1).
         if let Some(chunk1_view) = chunk1_view {
             let branch_1_controller = self.branch_1.get_byte_controller();
-            branch_1_controller.enqueue(cx, chunk1_view, can_gc)?;
+            branch_1_controller.enqueue(cx.into(), chunk1_view, CanGc::from_cx(cx))?;
         }
 
         // If canceled2 is false, perform ! ReadableByteStreamControllerEnqueue(branch2.[[controller]], chunk2).
         if let Some(chunk2_view) = chunk2_view {
             let branch_2_controller = self.branch_2.get_byte_controller();
-            branch_2_controller.enqueue(cx, chunk2_view, can_gc)?;
+            branch_2_controller.enqueue(cx.into(), chunk2_view, CanGc::from_cx(cx))?;
         }
 
         // Set reading to false.
@@ -209,10 +218,16 @@ impl ByteTeeReadRequest {
 
         // If readAgainForBranch1 is true, perform pull1Algorithm.
         if self.read_again_for_branch_1.get() {
-            self.pull_algorithm(Some(ByteTeePullAlgorithm::Pull1Algorithm), can_gc);
+            self.pull_algorithm(
+                Some(ByteTeePullAlgorithm::Pull1Algorithm),
+                CanGc::from_cx(cx),
+            );
         } else if self.read_again_for_branch_2.get() {
             // Otherwise, if readAgainForBranch2 is true, perform pull2Algorithm.
-            self.pull_algorithm(Some(ByteTeePullAlgorithm::Pull2Algorithm), can_gc);
+            self.pull_algorithm(
+                Some(ByteTeePullAlgorithm::Pull2Algorithm),
+                CanGc::from_cx(cx),
+            );
         }
 
         Ok(())

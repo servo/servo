@@ -11,7 +11,7 @@ use js::rust::Runtime;
 use crate::DomTypes;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::root::{Dom, DomRoot};
-use crate::script_runtime::CanGc;
+use crate::script_runtime::temp_cx;
 
 #[derive(Debug, Eq, JSTraceable, PartialEq)]
 pub enum StackEntryKind {
@@ -78,7 +78,10 @@ impl<D: DomTypes> Drop for GenericAutoEntryScript<D> {
 
         // Step 5
         if !thread::panicking() && stack_is_empty {
-            self.global.perform_a_microtask_checkpoint(CanGc::note());
+            // To remove this we would need to refactor this whole type.
+            // Instead of RAII we should have use callback pattern.
+            let mut cx = unsafe { temp_cx() };
+            self.global.perform_a_microtask_checkpoint(&mut cx);
         }
     }
 }

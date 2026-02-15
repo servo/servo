@@ -43,7 +43,7 @@ use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::microtask::{Microtask, MicrotaskRunnable};
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
@@ -525,12 +525,12 @@ pub(crate) struct WaitForAllSuccessStepsMicrotask {
 }
 
 impl MicrotaskRunnable for WaitForAllSuccessStepsMicrotask {
-    fn handler(&self, _can_gc: CanGc) {
+    fn handler(&self, _cx: &mut JSContext) {
         (self.success_steps)(vec![]);
     }
 
-    fn enter_realm(&self) -> JSAutoRealm {
-        enter_realm(&*self.global)
+    fn enter_realm<'cx>(&self, cx: &'cx mut JSContext) -> AutoRealm<'cx> {
+        enter_auto_realm(cx, &*self.global)
     }
 }
 

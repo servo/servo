@@ -2748,26 +2748,29 @@ impl Element {
     pub(crate) fn parse_fragment(
         &self,
         markup: DOMString,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<DocumentFragment>> {
         // Steps 1-2.
         // TODO(#11995): XML case.
-        let new_children = ServoParser::parse_html_fragment(self, markup, false, can_gc);
+        let new_children = ServoParser::parse_html_fragment(self, markup, false, cx);
         // Step 3.
         // See https://github.com/w3c/DOM-Parsing/issues/61.
         let context_document = {
             if let Some(template) = self.downcast::<HTMLTemplateElement>() {
-                template.Content(can_gc).upcast::<Node>().owner_doc()
+                template
+                    .Content(CanGc::from_cx(cx))
+                    .upcast::<Node>()
+                    .owner_doc()
             } else {
                 self.owner_document()
             }
         };
-        let fragment = DocumentFragment::new(&context_document, can_gc);
+        let fragment = DocumentFragment::new(&context_document, CanGc::from_cx(cx));
         // Step 4.
         for child in new_children {
             fragment
                 .upcast::<Node>()
-                .AppendChild(&child, can_gc)
+                .AppendChild(&child, CanGc::from_cx(cx))
                 .unwrap();
         }
         // Step 5.
@@ -3632,7 +3635,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         };
 
         // Step 3. Unsafely set HTML given target, this, and compliantHTML
-        Node::unsafely_set_html(&target, self, html, CanGc::from_cx(cx));
+        Node::unsafely_set_html(&target, self, html, cx);
         Ok(())
     }
 
@@ -3708,7 +3711,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 3: Let fragment be the result of invoking the fragment parsing algorithm steps
         // with context and compliantString.
-        let frag = self.parse_fragment(value, CanGc::from_cx(cx))?;
+        let frag = self.parse_fragment(value, cx)?;
 
         // Step 5: Replace all with fragment within context.
         Node::replace_all(Some(frag.upcast()), &target, CanGc::from_cx(cx));
@@ -3779,7 +3782,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 6: Let fragment be the result of invoking the
         // fragment parsing algorithm steps given parent and compliantString.
-        let frag = parent.parse_fragment(value, CanGc::from_cx(cx))?;
+        let frag = parent.parse_fragment(value, cx)?;
         // Step 7: Replace this with fragment within this's parent.
         context_parent.ReplaceChild(frag.upcast(), context_node, CanGc::from_cx(cx))?;
         Ok(())
@@ -3991,7 +3994,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 5: Let fragment be the result of invoking the
         // fragment parsing algorithm steps with context and compliantString.
-        let fragment = context.parse_fragment(text, CanGc::from_cx(cx))?;
+        let fragment = context.parse_fragment(text, cx)?;
 
         // Step 6.
         self.insert_adjacent(position, fragment.upcast(), CanGc::from_cx(cx))

@@ -345,26 +345,26 @@ impl Node {
         target: &Node,
         context_element: &Element,
         html: DOMString,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         // Step 1. Let newChildren be the result of the HTML fragment parsing algorithm.
-        let new_children = ServoParser::parse_html_fragment(context_element, html, true, can_gc);
+        let new_children = ServoParser::parse_html_fragment(context_element, html, true, cx);
 
         // Step 2. Let fragment be a new DocumentFragment whose node document is contextElement's node document.
 
         let context_document = context_element.owner_document();
-        let fragment = DocumentFragment::new(&context_document, can_gc);
+        let fragment = DocumentFragment::new(&context_document, CanGc::from_cx(cx));
 
         // Step 3. For each node in newChildren, append node to fragment.
         for child in new_children {
             fragment
                 .upcast::<Node>()
-                .AppendChild(&child, can_gc)
+                .AppendChild(&child, CanGc::from_cx(cx))
                 .unwrap();
         }
 
         // Step 4. Replace all with fragment within target.
-        Node::replace_all(Some(fragment.upcast()), target, can_gc);
+        Node::replace_all(Some(fragment.upcast()), target, CanGc::from_cx(cx));
     }
 
     /// Clear this [`Node`]'s layout data and also clear the layout data of all children.

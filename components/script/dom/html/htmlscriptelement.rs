@@ -263,7 +263,7 @@ fn finish_fetching_a_classic_script(
     script_kind: ExternalScriptKind,
     url: ServoUrl,
     load: ScriptResult,
-    can_gc: CanGc,
+    cx: &mut js::context::JSContext,
 ) {
     // Step 33. The "steps to run when the result is ready" for each type of script in 33.2-33.5.
     // of https://html.spec.whatwg.org/multipage/#prepare-the-script-element
@@ -272,23 +272,23 @@ fn finish_fetching_a_classic_script(
     match script_kind {
         ExternalScriptKind::Asap => {
             document = elem.preparation_time_document.get().unwrap();
-            document.asap_script_loaded(elem, load, can_gc)
+            document.asap_script_loaded(elem, load, CanGc::from_cx(cx))
         },
         ExternalScriptKind::AsapInOrder => {
             document = elem.preparation_time_document.get().unwrap();
-            document.asap_in_order_script_loaded(elem, load, can_gc)
+            document.asap_in_order_script_loaded(elem, load, CanGc::from_cx(cx))
         },
         ExternalScriptKind::Deferred => {
             document = elem.parser_document.as_rooted();
-            document.deferred_script_loaded(elem, load, can_gc);
+            document.deferred_script_loaded(elem, load, CanGc::from_cx(cx));
         },
         ExternalScriptKind::ParsingBlocking => {
             document = elem.parser_document.as_rooted();
-            document.pending_parsing_blocking_script_loaded(elem, load, can_gc);
+            document.pending_parsing_blocking_script_loaded(elem, load, cx);
         },
     }
 
-    document.finish_load(LoadType::Script(url), can_gc);
+    document.finish_load(LoadType::Script(url), cx);
 }
 
 pub(crate) type ScriptResult = Result<Script, ()>;
@@ -387,7 +387,7 @@ impl FetchResponseListener for ClassicContext {
                     self.kind,
                     self.url.clone(),
                     Err(()),
-                    CanGc::from_cx(cx),
+                    cx,
                 );
 
                 // Resource timing is expected to be available before "error" or "load" events are fired.
@@ -463,13 +463,7 @@ impl FetchResponseListener for ClassicContext {
             }
         } else {*/
         let load = Script::Classic(script);
-        finish_fetching_a_classic_script(
-            &elem,
-            self.kind,
-            self.url.clone(),
-            Ok(load),
-            CanGc::from_cx(cx),
-        );
+        finish_fetching_a_classic_script(&elem, self.kind, self.url.clone(), Ok(load), cx);
         // }
 
         network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));

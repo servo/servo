@@ -2963,11 +2963,11 @@ impl GlobalScope {
     }
 
     /// Perform a microtask checkpoint.
-    pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
+    pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {
         if let Some(window) = self.downcast::<Window>() {
-            window.perform_a_microtask_checkpoint(can_gc);
+            window.perform_a_microtask_checkpoint(cx);
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            worker.perform_a_microtask_checkpoint(can_gc);
+            worker.perform_a_microtask_checkpoint(cx);
         }
     }
 
@@ -3586,8 +3586,8 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
         GlobalScope::incumbent()
     }
 
-    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
-        GlobalScope::perform_a_microtask_checkpoint(self, can_gc)
+    fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {
+        GlobalScope::perform_a_microtask_checkpoint(self, cx)
     }
 
     fn get_url(&self) -> ServoUrl {

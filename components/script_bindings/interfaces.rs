@@ -81,7 +81,7 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
 
     fn incumbent() -> Option<DomRoot<D::GlobalScope>>;
 
-    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc);
+    fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext);
 
     fn get_url(&self) -> ServoUrl;
 
