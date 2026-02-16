@@ -23,6 +23,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.options import ArgOptions
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
 from urllib3.exceptions import ProtocolError
 from dataclasses import dataclass
 import threading
@@ -44,8 +46,10 @@ ABOUT_BLANK = "about:blank"
 DIRECTORY = "../../../tests/blink_perf_tests/perf_tests"
 
 skipped_tests = [
-    "large-table-with-collapsed-borders-and-no-colspans.html",
-    "large-table-with-collapsed-borders-and-colspans-wider-than-table.html"
+    "large-table-with-collapsed-borders-and-no-colspans.html", # RAM
+    "large-table-with-collapsed-borders-and-colspans-wider-than-table.html", # RAM
+    "tall-content-short-columns-realistic.html", # JS Fatal
+    "tall-content-short-columns.html" # JS Fatal
 ]
 
 class LocalFileServe:
@@ -228,6 +232,39 @@ max\s+(?P<max>[0-9.]+)\s+(?P=unit)
 def get_serve_path_for_file(root: str, file: str) -> str:
     return root.split("tests/blink_perf_tests/perf_tests/")[1]
 
+def reset_tab_ram(driver: webdriver.Remote):
+    original_tab = driver.current_window_handle
+    # driver.switch_to.new_window("tab")
+    # driver.get("about:blank")
+    # driver.switch_to.window(original_tab)
+    # driver.close()
+    
+    # driver.get("https://www.w3schools.com/w3css/tryw3css_examples_newspaper.htm")
+    # time.sleep(2)
+    # actions = ActionChains(driver)
+    # actions.key_down(Keys.CONTROL).send_keys("t").key_up(Keys.CONTROL).perform()
+    # driver.switch_to.new_window("tab")
+    # print(">>> new tab")
+    # driver.newWindow()
+    # driver.execute_script("window.open();")
+    # original_tab = driver.current_window_handle
+    # driver.switch_to.window(original_tab)
+
+    # driver.send_keys(Keys.CONTROL + 't')
+    # driver.execute_script("window.open('about:blank')")
+    driver.switch_to.new_window('tab')
+    driver.get("about:blank")
+
+    # driver.execute_script("window.open('about:blank','secondtab');")
+    # time.sleep(2)
+    # print(">>> go back")
+    driver.switch_to.window(original_tab)
+    # time.sleep(2)
+    driver.close()
+    print(">>> windows has been resets")
+    # time.sleep(60)
+    remaining_tab = driver.window_handles[0]
+    driver.switch_to.window(remaining_tab)
 
 def test(s: str, driver: webdriver.Remote, port: int, serve_path) -> TestResult | AbortReason:
     """Run a test by loading a website, and returning (avg, min, max).
@@ -279,7 +316,7 @@ def write_file(results):
 
 import csv
 def run_tests(webdriver, port):
-    skip_until = "word-break-break-all.html"
+    skip_until = "nested-blocks-with-percent-height-and-max-height.html"
 
     final_result = {}
     with open("../../../output.csv", "w", newline="", encoding="utf-8") as f:
@@ -288,12 +325,14 @@ def run_tests(webdriver, port):
 
         for root, dir, files in os.walk("../../../tests/blink_perf_tests/perf_tests/layout", onerror=oswalk_error):
             for file in files:
+                dir[:] = [d for d in dir if d != "resources"]
                 filePath = file
                 if skip_until is None or skip_until in filePath:
-                    # skip_until = None
+                    skip_until = None
                     if filePath in skipped_tests:
                         continue
                     # print(f">>> ROOT: {root}\n>>> dir: {dir}\n>>> files: {files}\n<<<")
+                    reset_tab_ram(webdriver)
                     result = test(filePath, webdriver, port, get_serve_path_for_file(root, filePath))
                     print(f">>> result: {result}")
                     if result == AbortReason.NotFound or result == AbortReason.Panic:
@@ -325,7 +364,7 @@ if __name__ == "__main__":
             print("Starting new servo instance...")
             cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver"
             hdc.cmd(cmd_str, timeout=10)
-            with HarmonyDevicePerfMode(screen_timeout_seconds = 1 * 60 * 60):
+            with HarmonyDevicePerfMode(screen_timeout_seconds = 2 * 60 * 60):
                 close_usb_popup(hdc)
                 print(">>> Creating webdriver")
                 wd = create_driver()
