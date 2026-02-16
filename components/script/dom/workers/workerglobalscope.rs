@@ -656,8 +656,8 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-importscripts>
     fn ImportScripts(
         &self,
+        cx: &mut js::context::JSContext,
         url_strings: Vec<TrustedScriptURLOrUSVString>,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // https://html.spec.whatwg.org/multipage/#import-scripts-into-worker-global-scope
         // Step 1: If worker global scope's type is "module", throw a TypeError exception.
@@ -679,7 +679,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 url,
                 "WorkerGlobalScope",
                 "importScripts",
-                can_gc,
+                CanGc::from_cx(cx),
             )?;
             let url = self.worker_url.borrow().join(&url.str());
             match url {
@@ -709,7 +709,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
                 &WorkerCspProcessor {
                     global_scope: DomRoot::from_ref(global_scope),
                 },
-                can_gc,
+                cx,
             ) {
                 Err(_) => return Err(Error::Network(None)),
                 Ok((metadata, bytes, muted_errors)) => {
@@ -751,9 +751,11 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             );
 
             // Run the classic script script, with rethrow errors set to true.
-            let result = self
-                .globalscope
-                .run_a_classic_script(script, RethrowErrors::Yes, can_gc);
+            let result = self.globalscope.run_a_classic_script(
+                script,
+                RethrowErrors::Yes,
+                CanGc::from_cx(cx),
+            );
 
             if let Err(error) = result {
                 if self.is_closing() {

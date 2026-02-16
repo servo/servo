@@ -388,7 +388,7 @@ impl ServiceWorkerGlobalScope {
                     &resource_threads_sender,
                     global.upcast(),
                     &ServiceWorkerCspProcessor {},
-                    CanGc::from_cx(cx),
+                    cx,
                 ) {
                     Err(_) => {
                         error!("error loading script {}", serialized_worker_url);

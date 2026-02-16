@@ -700,7 +700,7 @@ impl WorkletThread {
             &resource_fetcher,
             global,
             &WorkletCspProcessor {},
-            CanGc::from_cx(cx),
+            cx,
         )
         .ok()
         .and_then(|(_, bytes, _)| String::from_utf8(bytes).ok());
