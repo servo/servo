@@ -3,17 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::sync::Arc;
 
 use bitflags::Flags;
 use layout_api::LayoutDamage;
 use layout_api::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
-use script::layout_dom::ServoThreadSafeLayoutNode;
+use script::layout_dom::{ServoLayoutNode, ServoThreadSafeLayoutNode};
 use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
 use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::traversal::{DomTraversal, PerLevelTraversalData, recalc_style_at};
 
+use crate::BoxTree;
 use crate::context::LayoutContext;
 use crate::dom::{DOMLayoutData, NodeExt};
 
@@ -95,16 +97,79 @@ where
 }
 
 #[servo_tracing::instrument(skip_all)]
-pub(crate) fn compute_damage_and_repair_style(
-    context: &SharedStyleContext,
-    node: ServoThreadSafeLayoutNode<'_>,
+pub(crate) fn compute_damage_and_rebuild_box_tree(
+    box_tree: &mut Option<Arc<BoxTree>>,
+    layout_context: &LayoutContext,
+    dirty_root: ServoLayoutNode<'_>,
+    root_node: ServoLayoutNode<'_>,
     damage_from_environment: RestyleDamage,
 ) -> RestyleDamage {
-    compute_damage_and_repair_style_inner(context, node, damage_from_environment)
+    let restyle_damage = compute_damage_and_rebuild_box_tree_inner(
+        layout_context,
+        dirty_root.to_threadsafe(),
+        damage_from_environment,
+    );
+
+    let layout_damage: LayoutDamage = restyle_damage.into();
+    if box_tree.is_none() {
+        *box_tree = Some(Arc::new(BoxTree::construct(layout_context, root_node)));
+        return restyle_damage;
+    }
+
+    // There are two cases where we need to do more work:
+    //
+    // 1. Fragment tree layout needs to run again, in which case we should invalidate all
+    //    fragments to the root of the DOM.
+    // 2. Box tree reconstruction needs to run at the dirty root, in which case we need to
+    //    find an appropriate place to run box tree reconstruction and *also* invlidate all
+    //    fragments to the root of the DOM.
+    if !restyle_damage.contains(RestyleDamage::RELAYOUT) {
+        return restyle_damage;
+    }
+
+    // If the damage traversal indicated that the dirty root needs a new box, walk up the
+    // tree to find an appropriate place to run box tree reconstruction.
+    let mut needs_box_tree_rebuild = layout_damage.needs_new_box();
+
+    let mut maybe_parent_node = dirty_root.parent_node();
+    while let Some(parent_node) = maybe_parent_node {
+        let threadsafe_parent_node = parent_node.to_threadsafe();
+
+        // If we need box tree reconstruction, try it here.
+        if needs_box_tree_rebuild &&
+            threadsafe_parent_node
+                .rebuild_box_tree_from_independent_formatting_context(layout_context)
+        {
+            needs_box_tree_rebuild = false;
+        }
+
+        if needs_box_tree_rebuild {
+            // We have not yet found a place to run box tree reconstruction, so clear this
+            // node's boxes to ensure that they are invalidated for the reconstruction we
+            // will run later.
+            threadsafe_parent_node.unset_all_boxes();
+        } else {
+            // Reconstruction has already run or was not necessary, so we just need to
+            // ensure that fragment tree layout does not reuse any cached fragments.
+            threadsafe_parent_node.with_layout_box_base_including_pseudos(|base| {
+                base.clear_fragments_and_fragment_cache()
+            });
+        }
+
+        maybe_parent_node = parent_node.parent_node();
+    }
+
+    // We could not find a place in the middle of the tree to run box tree reconstruction,
+    // so just rebuild the whole tree.
+    if needs_box_tree_rebuild {
+        *box_tree = Some(Arc::new(BoxTree::construct(layout_context, root_node)));
+    }
+
+    restyle_damage
 }
 
-pub(crate) fn compute_damage_and_repair_style_inner(
-    context: &SharedStyleContext,
+pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
+    layout_context: &LayoutContext,
     node: ServoThreadSafeLayoutNode<'_>,
     damage_from_parent: RestyleDamage,
 ) -> RestyleDamage {
@@ -132,11 +197,11 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     // box damage.
     let mut damage_for_children = element_and_parent_damage;
     damage_for_children.truncate();
-    let rebuild_children = element_damage.contains(LayoutDamage::rebuild_box_tree()) ||
-        (damage_from_parent.contains(LayoutDamage::rebuild_box_tree()) &&
+    let rebuild_children = element_damage.contains(LayoutDamage::box_damage()) ||
+        (damage_from_parent.contains(LayoutDamage::box_damage()) &&
             !node.isolates_damage_for_damage_propagation());
     if rebuild_children {
-        damage_for_children.insert(LayoutDamage::rebuild_box_tree());
+        damage_for_children.insert(LayoutDamage::box_damage());
     } else if damage_for_children.contains(RestyleDamage::RELAYOUT) &&
         !element_damage.contains(RestyleDamage::RELAYOUT) &&
         node.isolates_damage_for_damage_propagation()
@@ -150,8 +215,11 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     let mut damage_from_children = RestyleDamage::empty();
     for child in node.children() {
         if child.is_element() {
-            damage_from_children |=
-                compute_damage_and_repair_style_inner(context, child, damage_for_children);
+            damage_from_children |= compute_damage_and_rebuild_box_tree_inner(
+                layout_context,
+                child,
+                damage_for_children,
+            );
         }
     }
 
@@ -160,17 +228,31 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     let mut layout_damage_for_parent =
         element_and_parent_damage | (damage_from_children & RestyleDamage::RELAYOUT);
 
-    if damage_from_children.contains(LayoutDamage::recollect_box_tree_children()) ||
-        element_and_parent_damage.contains(LayoutDamage::recollect_box_tree_children())
-    {
-        // In this case, this node, an ancestor, or a descendant needs to be completely
-        // rebuilt. That means that this box is no longer valid and also needs to be rebuilt
-        // (perhaps some of its children do not though). In this case, unset all existing
-        // boxes for the node and ensure that the appropriate rebuild-type damage propagates
-        // up the tree.
-        node.unset_all_boxes();
-        layout_damage_for_parent
-            .insert(LayoutDamage::recollect_box_tree_children() | RestyleDamage::RELAYOUT);
+    let element_or_ancestors_need_rebuild =
+        element_and_parent_damage.contains(LayoutDamage::descendant_has_box_damage());
+    let descendant_needs_rebuild =
+        damage_from_children.contains(LayoutDamage::descendant_has_box_damage());
+    if element_or_ancestors_need_rebuild || descendant_needs_rebuild {
+        if element_or_ancestors_need_rebuild ||
+            !node.rebuild_box_tree_from_independent_formatting_context(layout_context)
+        {
+            // In this case:
+            //  - this node or an ancestor needs to be completely rebuilt.
+            //  - a descendant needs to be rebuilt, but we are still propagating the rebuild
+            //    damage to an independent formatting context.
+            //
+            // This means that this box is no longer valid and also needs to be rebuilt
+            // (perhaps some of its descendants do not though). In this case, unset all existing
+            // boxes for the node and ensure that the appropriate rebuild-type damage
+            // propagates up the tree.
+            node.unset_all_boxes();
+            layout_damage_for_parent
+                .insert(LayoutDamage::descendant_has_box_damage() | RestyleDamage::RELAYOUT);
+        } else {
+            // In this case, we have rebuilt the box tree from this point and we do not
+            // have to propagate rebuild box tree damage up the tree any further.
+            layout_damage_for_parent.insert(RestyleDamage::RELAYOUT);
+        }
     } else {
         // In this case, this node's boxes are preserved! It's possible that we still need
         // to run fragment tree layout in this subtree due to an ancestor, this node, or a
@@ -191,7 +273,7 @@ pub(crate) fn compute_damage_and_repair_style_inner(
         // update any preserved layout data structures' style references, if *this*
         // element's style has changed.
         if !element_damage.is_empty() {
-            node.repair_style(context);
+            node.repair_style(&layout_context.style_context);
         }
     }
 

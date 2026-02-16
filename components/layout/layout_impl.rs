@@ -22,8 +22,8 @@ use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use layout_api::wrapper_traits::LayoutNode;
 use layout_api::{
-    BoxAreaType, CSSPixelRectIterator, IFrameSizes, Layout, LayoutConfig, LayoutDamage,
-    LayoutFactory, OffsetParentResponse, PhysicalSides, PropertyRegistration, QueryMsg, ReflowGoal,
+    BoxAreaType, CSSPixelRectIterator, IFrameSizes, Layout, LayoutConfig, LayoutFactory,
+    OffsetParentResponse, PhysicalSides, PropertyRegistration, QueryMsg, ReflowGoal,
     ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult, RegisterPropertyError,
     ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
 };
@@ -93,7 +93,7 @@ use crate::query::{
     process_resolved_font_style_query, process_resolved_style_request,
     process_scroll_container_query,
 };
-use crate::traversal::{RecalcStyle, compute_damage_and_repair_style};
+use crate::traversal::{RecalcStyle, compute_damage_and_rebuild_box_tree};
 use crate::{BoxTree, FragmentTree};
 
 // This mutex is necessary due to syncronisation issues between two different types of thread-local storage
@@ -1106,11 +1106,26 @@ impl LayoutThread {
             Default::default()
         };
 
-        let damage = compute_damage_and_repair_style(
-            &layout_context.style_context,
-            root_node.to_threadsafe(),
-            damage_from_environment,
-        );
+        let mut box_tree = self.box_tree.borrow_mut();
+        let damage = {
+            let box_tree = &mut *box_tree;
+            let mut compute_damage_and_build_box_tree = || {
+                compute_damage_and_rebuild_box_tree(
+                    box_tree,
+                    &layout_context,
+                    dirty_root,
+                    root_node,
+                    damage_from_environment,
+                )
+            };
+
+            if let Some(pool) = rayon_pool {
+                pool.install(compute_damage_and_build_box_tree)
+            } else {
+                compute_damage_and_build_box_tree()
+            }
+        };
+
         if damage.contains(RestyleDamage::RECALCULATE_OVERFLOW) {
             self.need_overflow_calculation.set(true);
         }
@@ -1120,31 +1135,12 @@ impl LayoutThread {
         if damage.contains(RestyleDamage::REPAINT) {
             self.need_new_display_list.set(true);
         }
-
         if !damage.contains(RestyleDamage::RELAYOUT) {
             layout_context.style_context.stylist.rule_tree().maybe_gc();
             return (ReflowPhasesRun::empty(), IFrameSizes::default());
         }
 
-        let mut box_tree = self.box_tree.borrow_mut();
-        let box_tree = &mut *box_tree;
-        let layout_damage: LayoutDamage = damage.into();
-        if box_tree.is_none() || layout_damage.has_box_damage() {
-            let mut build_box_tree = || {
-                if !BoxTree::update(recalc_style_traversal.context(), dirty_root) {
-                    *box_tree = Some(Arc::new(BoxTree::construct(
-                        recalc_style_traversal.context(),
-                        root_node,
-                    )));
-                }
-            };
-            if let Some(pool) = rayon_pool {
-                pool.install(build_box_tree)
-            } else {
-                build_box_tree()
-            };
-        }
-
+        let box_tree = &*box_tree;
         let viewport_size = self.stylist.device().au_viewport_size();
         let run_layout = || {
             box_tree

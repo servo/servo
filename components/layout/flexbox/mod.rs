@@ -212,7 +212,7 @@ impl FlexLevelBox {
 
 #[derive(MallocSizeOf)]
 pub(crate) struct FlexItemBox {
-    independent_formatting_context: IndependentFormattingContext,
+    pub(crate) independent_formatting_context: IndependentFormattingContext,
 }
 
 impl std::fmt::Debug for FlexItemBox {

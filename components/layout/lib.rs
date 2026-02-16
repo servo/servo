@@ -157,7 +157,7 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for ContainingBlock<'a> {
 /// Data that is propagated from ancestors to descendants during [`crate::flow::BoxTree`]
 /// construction.  This allows data to flow in the reverse direction of the typical layout
 /// propoagation, but only during `BoxTree` construction.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, MallocSizeOf)]
 struct PropagatedBoxTreeData {
     allow_percentage_column_in_tables: bool,
 }

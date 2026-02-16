@@ -92,6 +92,11 @@ impl LayoutBoxBase {
         self.fragments.borrow_mut().clear();
     }
 
+    pub(crate) fn clear_fragments_and_fragment_cache(&self) {
+        self.fragments.borrow_mut().clear();
+        *self.cached_layout_result.borrow_mut() = None;
+    }
+
     pub(crate) fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
         self.style = new_style.clone();
         for fragment in self.fragments.borrow_mut().iter_mut() {
@@ -111,8 +116,7 @@ impl LayoutBoxBase {
         element_damage: LayoutDamage,
         damage_from_children: LayoutDamage,
     ) -> LayoutDamage {
-        self.clear_fragments();
-        *self.cached_layout_result.borrow_mut() = None;
+        self.clear_fragments_and_fragment_cache();
 
         if !element_damage.is_empty() ||
             damage_from_children.contains(LayoutDamage::RECOMPUTE_INLINE_CONTENT_SIZES)

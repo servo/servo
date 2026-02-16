@@ -731,9 +731,9 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
         };
 
         if box_tree_needs_rebuild() {
-            RestyleDamage::from_bits_retain(LayoutDamage::REBUILD_BOX.bits())
+            RestyleDamage::from_bits_retain(LayoutDamage::BOX_DAMAGE.bits())
         } else if text_shaping_needs_recollect() {
-            RestyleDamage::from_bits_retain(LayoutDamage::RECOLLECT_BOX_TREE_CHILDREN.bits())
+            RestyleDamage::from_bits_retain(LayoutDamage::DESCENDANT_HAS_BOX_DAMAGE.bits())
         } else {
             // This element needs to be laid out again, but does not have any damage to
             // its box. In the future, we will distinguish between types of damage to the

@@ -22,6 +22,8 @@ use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
 use crate::cell::{ArcRefCell, WeakRefCell};
+use crate::context::LayoutContext;
+use crate::dom_traversal::NodeAndStyleInfo;
 use crate::flexbox::FlexLevelBox;
 use crate::flow::BlockLevelBox;
 use crate::flow::inline::{InlineItem, SharedInlineStyles, WeakInlineItem};
@@ -312,6 +314,7 @@ pub(crate) trait NodeExt<'dom> {
 
     fn ensure_inner_layout_data(&self) -> AtomicRefMut<'dom, InnerDOMLayoutData>;
     fn inner_layout_data(&self) -> Option<AtomicRef<'dom, InnerDOMLayoutData>>;
+    fn inner_layout_data_mut(&self) -> Option<AtomicRefMut<'dom, InnerDOMLayoutData>>;
     fn box_slot(&self) -> BoxSlot<'dom>;
 
     /// Remove boxes for the element itself, and all of its pseudo-element boxes.
@@ -333,6 +336,17 @@ pub(crate) trait NodeExt<'dom> {
     ///
     /// When this node has no box yet, `false` is returned.
     fn isolates_damage_for_damage_propagation(&self) -> bool;
+
+    /// Try to re-run box tree reconstruction from this point. This can succeed if the
+    /// node itself is still valid and isolates box tree damage from ancestors (for
+    /// instance, if it starts an independent formatting context). **Note:** This assumes
+    /// that no ancestors have box damage.
+    ///
+    /// Returns `true` if box tree reconstruction was sucessful and `false` otherwise.
+    fn rebuild_box_tree_from_independent_formatting_context(
+        &self,
+        layout_context: &LayoutContext,
+    ) -> bool;
 }
 
 impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
@@ -428,6 +442,16 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         })
     }
 
+    fn inner_layout_data_mut(&self) -> Option<AtomicRefMut<'dom, InnerDOMLayoutData>> {
+        self.layout_data().map(|data| {
+            data.as_any()
+                .downcast_ref::<DOMLayoutData>()
+                .unwrap()
+                .0
+                .borrow_mut()
+        })
+    }
+
     fn box_slot(&self) -> BoxSlot<'dom> {
         let pseudo_element_chain = self.pseudo_element_chain();
         let Some(primary) = pseudo_element_chain.primary else {
@@ -515,6 +539,77 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
             LayoutBox::FlexLevel(..) => true,
             LayoutBox::TableLevelBox(..) => false,
             LayoutBox::TaffyItemBox(..) => true,
+        }
+    }
+
+    fn rebuild_box_tree_from_independent_formatting_context(
+        &self,
+        layout_context: &LayoutContext,
+    ) -> bool {
+        let layout_box = {
+            let Some(mut inner_layout_data) = self.inner_layout_data_mut() else {
+                return false;
+            };
+            inner_layout_data.pseudo_boxes.clear();
+            inner_layout_data.self_box.clone()
+        };
+
+        let layout_box = layout_box.borrow();
+        let Some(layout_box) = &*layout_box else {
+            return false;
+        };
+
+        let info = NodeAndStyleInfo::new(*self, self.style(&layout_context.style_context));
+        match layout_box {
+            LayoutBox::DisplayContents(..) => false,
+            LayoutBox::BlockLevel(block_level) => {
+                let mut block_level = block_level.borrow_mut();
+                match &mut *block_level {
+                    BlockLevelBox::Independent(independent_formatting_context) => {
+                        independent_formatting_context.rebuild(layout_context, &info);
+                        true
+                    },
+                    BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                        positioned_box
+                            .borrow_mut()
+                            .context
+                            .rebuild(layout_context, &info);
+                        true
+                    },
+                    _ => false,
+                }
+            },
+            LayoutBox::InlineLevel(inline_level) => match inline_level {
+                InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
+                    positioned_box
+                        .borrow_mut()
+                        .context
+                        .rebuild(layout_context, &info);
+                    true
+                },
+                InlineItem::Atomic(atomic_box, _, _) => {
+                    atomic_box.borrow_mut().rebuild(layout_context, &info);
+                    true
+                },
+                _ => false,
+            },
+            LayoutBox::FlexLevel(flex_level_box) => {
+                let mut flex_level_box = flex_level_box.borrow_mut();
+                match &mut *flex_level_box {
+                    FlexLevelBox::FlexItem(flex_item_box) => flex_item_box
+                        .independent_formatting_context
+                        .rebuild(layout_context, &info),
+                    FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                        positioned_box
+                            .borrow_mut()
+                            .context
+                            .rebuild(layout_context, &info);
+                    },
+                }
+                true
+            },
+            LayoutBox::TableLevelBox(..) => false,
+            LayoutBox::TaffyItemBox(..) => false,
         }
     }
 }

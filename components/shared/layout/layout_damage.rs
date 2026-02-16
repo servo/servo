@@ -10,32 +10,33 @@ bitflags! {
     /// of `RestyleDamage` from stylo, which only uses the 4 lower bits.
     #[derive(Clone, Copy, Default, Eq, PartialEq)]
     pub struct LayoutDamage: u16 {
-        /// Recollect the box children for this element, because some of the them will be
-        /// rebuilt.
-        const RECOLLECT_BOX_TREE_CHILDREN = 0b0111_1111_1111 << 4;
         /// Clear the cached inline content sizes and recompute them during the next layout.
         const RECOMPUTE_INLINE_CONTENT_SIZES = 0b1000_0000_0000 << 4;
-        /// Rebuild the entire box for this element, which means that every part of layout
-        /// needs to happen again.
-        const REBUILD_BOX = 0b1111_1111_1111 << 4;
+        /// Rebuild this box and all of its ancestors. Do not rebuild any children. This
+        /// is used when a box's content (such as text content) changes or a descendant
+        /// has box damage ([`Self::BOX_DAMAGE`]).
+        const DESCENDANT_HAS_BOX_DAMAGE = 0b0111_1111_1111 << 4;
+        /// Rebuild this box, all of its ancestors and all of its descendants. This is the
+        /// most a box can be damaged.
+        const BOX_DAMAGE = 0b1111_1111_1111 << 4;
     }
 }
 
 impl LayoutDamage {
-    pub fn recollect_box_tree_children() -> RestyleDamage {
-        RestyleDamage::from_bits_retain(LayoutDamage::RECOLLECT_BOX_TREE_CHILDREN.bits())
+    pub fn descendant_has_box_damage() -> RestyleDamage {
+        RestyleDamage::from_bits_retain(LayoutDamage::DESCENDANT_HAS_BOX_DAMAGE.bits())
+    }
+
+    pub fn box_damage() -> RestyleDamage {
+        RestyleDamage::from_bits_retain(LayoutDamage::BOX_DAMAGE.bits())
+    }
+
+    pub fn needs_new_box(&self) -> bool {
+        self.contains(Self::DESCENDANT_HAS_BOX_DAMAGE)
     }
 
     pub fn recompute_inline_content_sizes() -> RestyleDamage {
         RestyleDamage::from_bits_retain(LayoutDamage::RECOMPUTE_INLINE_CONTENT_SIZES.bits())
-    }
-
-    pub fn rebuild_box_tree() -> RestyleDamage {
-        RestyleDamage::from_bits_retain(LayoutDamage::REBUILD_BOX.bits())
-    }
-
-    pub fn has_box_damage(&self) -> bool {
-        self.intersects(Self::REBUILD_BOX)
     }
 }
 
@@ -53,9 +54,9 @@ impl From<LayoutDamage> for RestyleDamage {
 
 impl std::fmt::Debug for LayoutDamage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.contains(Self::REBUILD_BOX) {
+        if self.contains(Self::BOX_DAMAGE) {
             f.write_str("REBUILD_BOX")
-        } else if self.contains(Self::RECOLLECT_BOX_TREE_CHILDREN) {
+        } else if self.contains(Self::DESCENDANT_HAS_BOX_DAMAGE) {
             f.write_str("RECOLLECT_BOX_TREE_CHILDREN")
         } else {
             f.write_str("EMPTY")

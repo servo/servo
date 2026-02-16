@@ -99,6 +99,7 @@ impl<'dom> ModernContainerJob<'dom> {
                 let formatting_context = IndependentFormattingContext::new(
                     LayoutBoxBase::new(info.into(), info.style.clone()),
                     IndependentFormattingContextContents::Flow(block_formatting_context),
+                    Default::default(),
                 );
 
                 Some(ModernItem {

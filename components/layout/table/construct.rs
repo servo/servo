@@ -121,6 +121,7 @@ impl Table {
         let ifc = IndependentFormattingContext::new(
             LayoutBoxBase::new((&table_info).into(), table_style),
             IndependentFormattingContextContents::Table(table),
+            propagated_data,
         );
 
         (table_info, ifc)
@@ -882,7 +883,11 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                         );
                         let base = LayoutBoxBase::new(info.into(), info.style.clone());
                         ArcRefCell::new(TableCaption {
-                            context: IndependentFormattingContext::new(base, contents),
+                            context: IndependentFormattingContext::new(
+                                base,
+                                contents,
+                                self.current_propagated_data,
+                            ),
                         })
                     });
 
