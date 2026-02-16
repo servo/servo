@@ -71,8 +71,6 @@ class LocalFileServe:
         thread.start()
 
     def __exit__(self, *args):
-        print(f">>> *args: {args}")
-        print(f">>> Closing local test file server on port {self.port}")
         self.local_server.server_close()
 
 
@@ -243,8 +241,12 @@ def test(s: str, driver: webdriver.Remote, port: int, serve_path) -> TestResult 
         driver.get(s)
         avg_line, min_line, max_line = None, None, None
         for i in range(MAX_WAIT_TIME):
-            element = driver.find_element(By.ID, "log")
-            text = element.text
+            try:
+                element = driver.find_element(By.ID, "log")
+                text = element.text
+            except NoSuchElementException:
+                time.sleep(1)
+                continue
             m = _PATTERN.search(text)
             if m:
                 avg_line = float(m.group("avg"))
@@ -277,7 +279,7 @@ def write_file(results):
 
 import csv
 def run_tests(webdriver, port):
-    skip_until = "nested-percent-height-tables.html"
+    skip_until = "word-break-break-all.html"
 
     final_result = {}
     with open("../../../output.csv", "w", newline="", encoding="utf-8") as f:
@@ -288,7 +290,7 @@ def run_tests(webdriver, port):
             for file in files:
                 filePath = file
                 if skip_until is None or skip_until in filePath:
-                    skip_until = None
+                    # skip_until = None
                     if filePath in skipped_tests:
                         continue
                     # print(f">>> ROOT: {root}\n>>> dir: {dir}\n>>> files: {files}\n<<<")
