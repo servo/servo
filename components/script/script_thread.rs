@@ -65,7 +65,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{JSContext as UnsafeJSContext, JSTracer};
+use js::jsapi::JSContext as UnsafeJSContext;
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
 use js::rust::wrappers2::{JS_AddInterruptCallback, SetWindowProxyClass};
@@ -127,7 +127,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
@@ -180,18 +179,6 @@ fn with_optional_script_thread<R>(f: impl FnOnce(Option<&ScriptThread>) -> R) ->
 
 pub(crate) fn with_script_thread<R: Default>(f: impl FnOnce(&ScriptThread) -> R) -> R {
     with_optional_script_thread(|script_thread| script_thread.map(f).unwrap_or_default())
-}
-
-/// # Safety
-///
-/// The `JSTracer` argument must point to a valid `JSTracer` in memory. In addition,
-/// implementors of this method must ensure that all active objects are properly traced
-/// or else the garbage collector may end up collecting objects that are still reachable.
-pub(crate) unsafe fn trace_thread(tr: *mut JSTracer) {
-    with_script_thread(|script_thread| {
-        trace!("tracing fields of ScriptThread");
-        unsafe { script_thread.trace(tr) };
-    })
 }
 
 // We borrow the incomplete parser contexts mutably during parsing,
@@ -900,7 +887,8 @@ impl ScriptThread {
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
     ) -> (Rc<ScriptThread>, js::context::JSContext) {
         let (self_sender, self_receiver) = unbounded();
-        let runtime = Runtime::new(Some(ScriptEventLoopSender::MainThread(self_sender.clone())));
+        let mut runtime =
+            Runtime::new(Some(ScriptEventLoopSender::MainThread(self_sender.clone())));
 
         // SAFETY: We ensure that only one JSContext exists in this thread.
         // This is the first one and the only one
@@ -964,7 +952,6 @@ impl ScriptThread {
         };
 
         let microtask_queue = runtime.microtask_queue.clone();
-        let js_runtime = Rc::new(runtime);
         #[cfg(feature = "webgpu")]
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
@@ -1002,50 +989,53 @@ impl ScriptThread {
             ));
 
         (
-            Rc::new_cyclic(|weak_script_thread| Self {
-                documents: DomRefCell::new(DocumentCollection::default()),
-                last_render_opportunity_time: Default::default(),
-                window_proxies: Default::default(),
-                incomplete_loads: DomRefCell::new(vec![]),
-                incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
-                senders,
-                receivers,
-                image_cache_factory,
-                resource_threads: state.resource_threads,
-                storage_threads: state.storage_threads,
-                task_queue,
-                background_hang_monitor,
-                closing,
-                timer_scheduler: Default::default(),
-                microtask_queue,
-                js_runtime,
-                closed_pipelines: DomRefCell::new(FxHashSet::default()),
-                mutation_observers: Default::default(),
-                system_font_service: Arc::new(state.system_font_service.to_proxy()),
-                webgl_chan: state.webgl_chan,
-                #[cfg(feature = "webxr")]
-                webxr_registry: state.webxr_registry,
-                worklet_thread_pool: Default::default(),
-                docs_with_no_blocking_loads: Default::default(),
-                custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
-                paint_api: state.cross_process_paint_api,
-                profile_script_events: opts.debug.profile_script_events,
-                print_pwm: opts.print_pwm,
-                unminify_js: opts.unminify_js,
-                local_script_source: opts.local_script_source.clone(),
-                unminify_css: opts.unminify_css,
-                user_contents_for_manager_id: RefCell::new(user_contents_for_manager_id),
-                player_context: state.player_context,
-                pipeline_to_node_ids: Default::default(),
-                is_user_interacting: Rc::new(Cell::new(false)),
-                #[cfg(feature = "webgpu")]
-                gpu_id_hub,
-                layout_factory,
-                scheduled_update_the_rendering: Default::default(),
-                needs_rendering_update: Arc::new(AtomicBool::new(false)),
-                debugger_global: debugger_global.as_traced(),
-                privileged_urls: state.privileged_urls,
-                this: weak_script_thread.clone(),
+            Rc::new_cyclic(|weak_script_thread| {
+                runtime.set_script_thread(weak_script_thread.clone());
+                Self {
+                    documents: DomRefCell::new(DocumentCollection::default()),
+                    last_render_opportunity_time: Default::default(),
+                    window_proxies: Default::default(),
+                    incomplete_loads: DomRefCell::new(vec![]),
+                    incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
+                    senders,
+                    receivers,
+                    image_cache_factory,
+                    resource_threads: state.resource_threads,
+                    storage_threads: state.storage_threads,
+                    task_queue,
+                    background_hang_monitor,
+                    closing,
+                    timer_scheduler: Default::default(),
+                    microtask_queue,
+                    js_runtime: Rc::new(runtime),
+                    closed_pipelines: DomRefCell::new(FxHashSet::default()),
+                    mutation_observers: Default::default(),
+                    system_font_service: Arc::new(state.system_font_service.to_proxy()),
+                    webgl_chan: state.webgl_chan,
+                    #[cfg(feature = "webxr")]
+                    webxr_registry: state.webxr_registry,
+                    worklet_thread_pool: Default::default(),
+                    docs_with_no_blocking_loads: Default::default(),
+                    custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
+                    paint_api: state.cross_process_paint_api,
+                    profile_script_events: opts.debug.profile_script_events,
+                    print_pwm: opts.print_pwm,
+                    unminify_js: opts.unminify_js,
+                    local_script_source: opts.local_script_source.clone(),
+                    unminify_css: opts.unminify_css,
+                    user_contents_for_manager_id: RefCell::new(user_contents_for_manager_id),
+                    player_context: state.player_context,
+                    pipeline_to_node_ids: Default::default(),
+                    is_user_interacting: Rc::new(Cell::new(false)),
+                    #[cfg(feature = "webgpu")]
+                    gpu_id_hub,
+                    layout_factory,
+                    scheduled_update_the_rendering: Default::default(),
+                    needs_rendering_update: Arc::new(AtomicBool::new(false)),
+                    debugger_global: debugger_global.as_traced(),
+                    privileged_urls: state.privileged_urls,
+                    this: weak_script_thread.clone(),
+                }
             }),
             cx,
         )
