@@ -30,7 +30,7 @@ use crate::dom::promise::Promise;
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::realms::InRealm;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::{CanGc, ClearablePromise, JSContext};
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct ActiveBufferMapping {
@@ -78,8 +78,8 @@ pub(crate) struct GPUBuffer {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-usage>
     usage: GPUFlagsConstant,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-pending_map-slot>
-    #[conditional_malloc_size_of]
-    pending_map: DomRefCell<Option<Rc<Promise>>>,
+    #[ignore_malloc_size_of = "conditional->uncoditional->conditional MallocSizeof is unsupported"]
+    pending_map: Rc<ClearablePromise>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapping-slot>
     mapping: DomRefCell<Option<ActiveBufferMapping>>,
 }
@@ -93,6 +93,7 @@ impl GPUBuffer {
         usage: GPUFlagsConstant,
         mapping: Option<ActiveBufferMapping>,
         label: USVString,
+        pending_map: Rc<ClearablePromise>,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
@@ -100,7 +101,7 @@ impl GPUBuffer {
             label: DomRefCell::new(label),
             device: Dom::from_ref(device),
             buffer,
-            pending_map: DomRefCell::new(None),
+            pending_map,
             size,
             usage,
             mapping: DomRefCell::new(mapping),
@@ -118,14 +119,23 @@ impl GPUBuffer {
         mapping: Option<ActiveBufferMapping>,
         label: USVString,
         can_gc: CanGc,
-    ) -> DomRoot<Self> {
-        reflect_dom_object(
+    ) -> Fallible<DomRoot<Self>> {
+        let runtime = global.current_runtime().ok_or(Error::InvalidState(None))?;
+        let pending_mapping = runtime.register_promise_finalizer();
+        Ok(reflect_dom_object(
             Box::new(GPUBuffer::new_inherited(
-                channel, buffer, device, size, usage, mapping, label,
+                channel,
+                buffer,
+                device,
+                size,
+                usage,
+                mapping,
+                label,
+                pending_mapping,
             )),
             global,
             can_gc,
-        )
+        ))
     }
 }
 
@@ -168,7 +178,7 @@ impl GPUBuffer {
             None
         };
 
-        Ok(GPUBuffer::new(
+        GPUBuffer::new(
             &device.global(),
             device.channel().clone(),
             buffer,
@@ -178,7 +188,7 @@ impl GPUBuffer {
             mapping,
             descriptor.parent.label.clone(),
             can_gc,
-        ))
+        )
     }
 }
 

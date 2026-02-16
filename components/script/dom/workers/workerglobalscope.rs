@@ -289,7 +289,7 @@ pub(crate) struct WorkerGlobalScope {
     closing: Arc<AtomicBool>,
     execution_ready: AtomicBool,
     #[ignore_malloc_size_of = "Defined in js"]
-    runtime: DomRefCell<Option<Runtime>>,
+    runtime: DomRefCell<Option<Rc<Runtime>>>,
     location: MutNullableDom<WorkerLocation>,
     navigator: MutNullableDom<WorkerNavigator>,
     #[no_trace]
@@ -380,7 +380,7 @@ impl WorkerGlobalScope {
             worker_url: DomRefCell::new(worker_url),
             closing,
             execution_ready: AtomicBool::new(false),
-            runtime: DomRefCell::new(Some(runtime)),
+            runtime: DomRefCell::new(Some(Rc::new(runtime))),
             location: Default::default(),
             navigator: Default::default(),
             policy_container: Default::default(),
@@ -418,6 +418,10 @@ impl WorkerGlobalScope {
     /// Returns a policy value that should be used by fetches initiated by this worker.
     pub(crate) fn insecure_requests_policy(&self) -> InsecureRequestsPolicy {
         self.insecure_requests_policy
+    }
+
+    pub(crate) fn current_runtime(&self) -> Option<Rc<Runtime>> {
+        self.runtime.borrow().clone()
     }
 
     /// Clear various items when the worker event-loop shuts-down.
