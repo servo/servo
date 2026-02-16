@@ -21,7 +21,7 @@ libc = { workspace = true }
 log = { workspace = true }
 postcard = { workspace = true }
 profile_traits = { workspace = true }
-rusqlite = { version = "0.37", features = ["bundled"] }
+rusqlite = { version = "0.37", features = ["bundled", "chrono"] }
 rustc-hash = { workspace = true }
 sea-query = { workspace = true }
 sea-query-rusqlite = { workspace = true }
