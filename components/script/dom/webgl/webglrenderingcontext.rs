@@ -5089,12 +5089,12 @@ impl Textures {
     }
 
     fn set_active_unit_enum(&self, index: u32) -> WebGLResult<()> {
-        if index < constants::TEXTURE0 || (index - constants::TEXTURE0) as usize > self.units.len()
-        {
-            return Err(InvalidEnum);
+        if (constants::TEXTURE0..constants::TEXTURE0 + self.units.len() as u32).contains(&index) {
+            self.active_unit.set(index - constants::TEXTURE0);
+            Ok(())
+        } else {
+            Err(InvalidEnum)
         }
-        self.active_unit.set(index - constants::TEXTURE0);
-        Ok(())
     }
 
     pub(crate) fn active_texture_slot(
