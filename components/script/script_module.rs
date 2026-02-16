@@ -1633,8 +1633,8 @@ fn merge_existing_and_new_import_maps(
     for record in resolved_module_set.iter() {
         // For each specifier → url of newImportMapImports:
         new_import_map_imports.retain(|specifier, val| {
-            // If specifier starts with record's specifier, then:
-            if specifier.starts_with(&record.specifier) {
+            // If record's specifier starts with specifier, then:
+            if record.specifier.starts_with(specifier) {
                 // The user agent may report a warning to the console indicating the ignored rule.
                 // They may choose to avoid reporting if the rule is identical to an existing one.
                 Console::internal_warn(
