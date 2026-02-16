@@ -376,8 +376,7 @@ pub(crate) fn jsval_to_webdriver(
     let mut seen = HashSet::new();
     let result = jsval_to_webdriver_inner(cx.into(), global_scope, val, &mut seen);
 
-    let mut realm = CurrentRealm::assert(cx);
-    let in_realm_proof = (&mut realm).into();
+    let in_realm_proof = cx.into();
     let in_realm = InRealm::Already(&in_realm_proof);
 
     if result.is_err() {
