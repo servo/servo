@@ -64,6 +64,7 @@ search-path = [
 project-includes = [
     "python/**/*.py",
     "components/script_bindings",
+    "etc/ci/*.py",
 ]
 project-excludes = [
     "**/venv/**",
