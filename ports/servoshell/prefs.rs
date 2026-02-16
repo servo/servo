@@ -407,7 +407,7 @@ struct CmdArgs {
     #[bpaf(argument("1.0"))]
     device_pixel_ratio: Option<f32>,
 
-    /// Start remote devtools server on port listening on this address
+    /// Start remote devtools server on port listening on this address. <address>:<port> and <port> are valid values.
     #[bpaf(argument("127.0.0.1:7000"))]
     devtools: Option<String>,
 
