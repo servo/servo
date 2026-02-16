@@ -19,7 +19,7 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH \
     UV_TOOL_BIN_DIR=/usr/local/bin \
-    RUST_VERSION=1.91.0
+    RUST_VERSION=1.92.0
 
 # Keep the list of components in sync with `rust-toolchain.toml` file.
 RUN curl https://sh.rustup.rs -sSf \

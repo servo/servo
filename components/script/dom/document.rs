@@ -3266,6 +3266,7 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
+    #[expect(clippy::redundant_iter_cloned)]
     pub(crate) fn broadcast_active_resize_observations(
         &self,
         can_gc: CanGc,
