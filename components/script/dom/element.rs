@@ -2471,7 +2471,11 @@ impl Element {
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-set>
     /// including steps of
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-replace>
-    fn set_attribute_node(&self, attr: &Attr, can_gc: CanGc) -> Fallible<Option<DomRoot<Attr>>> {
+    fn set_attribute_node(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+    ) -> Fallible<Option<DomRoot<Attr>>> {
         // Step 1. Let verifiedValue be the result of calling
         // get Trusted Types-compliant attribute value with attr’s local name,
         // attr’s namespace, element, and attr’s value. [TRUSTED-TYPES]
@@ -2482,7 +2486,7 @@ impl Element {
             Some(attr.namespace()),
             TrustedTypeOrString::String(attr.Value()),
             &self.owner_global(),
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
 
         // Step 2. If attr’s element is neither null nor element,
@@ -2540,7 +2544,7 @@ impl Element {
                 Some(&old_attr.value()),
                 Some(verified_value),
                 AttributeMutationReason::Directly,
-                can_gc,
+                CanGc::from_cx(cx),
             );
 
             Some(old_attr)
@@ -2548,7 +2552,7 @@ impl Element {
             // Step 7. Otherwise, append attr to element.
             attr.set_owner(Some(self));
             attr.upcast::<Node>().set_owner_doc(&self.node.owner_doc());
-            self.push_attribute(attr, AttributeMutationReason::Directly, can_gc);
+            self.push_attribute(attr, AttributeMutationReason::Directly, CanGc::from_cx(cx));
 
             None
         };
@@ -3014,9 +3018,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://dom.spec.whatwg.org/#dom-element-toggleattribute>
     fn ToggleAttribute(
         &self,
+        cx: &mut js::context::JSContext,
         name: DOMString,
         force: Option<bool>,
-        can_gc: CanGc,
     ) -> Fallible<bool> {
         // Step 1. If qualifiedName is not a valid attribute local name,
         //      then throw an "InvalidCharacterError" DOMException.
@@ -3041,7 +3045,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                         ns!(),
                         None,
                         |attr| *attr.name() == name,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                     Ok(true)
                 },
@@ -3051,7 +3055,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             Some(_index) => match force {
                 // Step 5.
                 None | Some(false) => {
-                    self.remove_attribute_by_name(&name, can_gc);
+                    self.remove_attribute_by_name(&name, CanGc::from_cx(cx));
                     Ok(false)
                 },
                 // Step 6.
@@ -3063,9 +3067,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://dom.spec.whatwg.org/#dom-element-setattribute>
     fn SetAttribute(
         &self,
+        cx: &mut js::context::JSContext,
         name: DOMString,
         value: TrustedTypeOrString,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1. If qualifiedName does not match the Name production in XML,
         // then throw an "InvalidCharacterError" DOMException.
@@ -3087,7 +3091,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             None,
             value,
             &self.owner_global(),
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
 
         // Step 4. Let attribute be the first attribute in this’s attribute list whose qualified name is qualifiedName, and null otherwise.
@@ -3102,7 +3106,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             ns!(),
             None,
             |attr| *attr.name() == name,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         Ok(())
     }
@@ -3110,10 +3114,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://dom.spec.whatwg.org/#dom-element-setattributens>
     fn SetAttributeNS(
         &self,
+        cx: &mut js::context::JSContext,
         namespace: Option<DOMString>,
         qualified_name: DOMString,
         value: TrustedTypeOrString,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1. Let namespace, prefix, and localName be the result of passing namespace and qualifiedName to validate and extract.
         let (namespace, prefix, local_name) =
@@ -3127,7 +3131,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             Some(&namespace),
             value,
             &self.owner_global(),
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
         // Step 3. Set an attribute value for this using localName, verifiedValue, and also prefix and namespace.
         let value = self.parse_attribute(&namespace, &local_name, value);
@@ -3138,19 +3142,27 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             namespace.clone(),
             prefix,
             |attr| *attr.local_name() == local_name && *attr.namespace() == namespace,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-setattributenode>
-    fn SetAttributeNode(&self, attr: &Attr, can_gc: CanGc) -> Fallible<Option<DomRoot<Attr>>> {
-        self.set_attribute_node(attr, can_gc)
+    fn SetAttributeNode(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+    ) -> Fallible<Option<DomRoot<Attr>>> {
+        self.set_attribute_node(cx, attr)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-setattributenodens>
-    fn SetAttributeNodeNS(&self, attr: &Attr, can_gc: CanGc) -> Fallible<Option<DomRoot<Attr>>> {
-        self.set_attribute_node(attr, can_gc)
+    fn SetAttributeNodeNS(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+    ) -> Fallible<Option<DomRoot<Attr>>> {
+        self.set_attribute_node(cx, attr)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-removeattribute>
@@ -3162,18 +3174,22 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://dom.spec.whatwg.org/#dom-element-removeattributens>
     fn RemoveAttributeNS(
         &self,
+        cx: &mut js::context::JSContext,
         namespace: Option<DOMString>,
         local_name: DOMString,
-        can_gc: CanGc,
     ) {
         let namespace = namespace_from_domstring(namespace);
         let local_name = LocalName::from(local_name);
-        self.remove_attribute(&namespace, &local_name, can_gc);
+        self.remove_attribute(&namespace, &local_name, CanGc::from_cx(cx));
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-removeattributenode>
-    fn RemoveAttributeNode(&self, attr: &Attr, can_gc: CanGc) -> Fallible<DomRoot<Attr>> {
-        self.remove_first_matching_attribute(|a| a == attr, can_gc)
+    fn RemoveAttributeNode(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+    ) -> Fallible<DomRoot<Attr>> {
+        self.remove_first_matching_attribute(|a| a == attr, CanGc::from_cx(cx))
             .ok_or(Error::NotFound(None))
     }
 

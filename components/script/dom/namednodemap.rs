@@ -66,32 +66,45 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-setnameditem>
-    fn SetNamedItem(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
-        self.owner.SetAttributeNode(attr, CanGc::note())
+    fn SetNamedItem(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+    ) -> Fallible<Option<DomRoot<Attr>>> {
+        self.owner.SetAttributeNode(cx, attr)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-setnameditemns>
-    fn SetNamedItemNS(&self, attr: &Attr) -> Fallible<Option<DomRoot<Attr>>> {
-        self.SetNamedItem(attr)
+    fn SetNamedItemNS(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+    ) -> Fallible<Option<DomRoot<Attr>>> {
+        self.SetNamedItem(cx, attr)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-removenameditem>
-    fn RemoveNamedItem(&self, name: DOMString) -> Fallible<DomRoot<Attr>> {
+    fn RemoveNamedItem(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: DOMString,
+    ) -> Fallible<DomRoot<Attr>> {
         let name = self.owner.parsed_name(name);
         self.owner
-            .remove_attribute_by_name(&name, CanGc::note())
+            .remove_attribute_by_name(&name, CanGc::from_cx(cx))
             .ok_or(Error::NotFound(None))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-removenameditemns>
     fn RemoveNamedItemNS(
         &self,
+        cx: &mut js::context::JSContext,
         namespace: Option<DOMString>,
         local_name: DOMString,
     ) -> Fallible<DomRoot<Attr>> {
         let ns = namespace_from_domstring(namespace);
         self.owner
-            .remove_attribute(&ns, &LocalName::from(local_name), CanGc::note())
+            .remove_attribute(&ns, &LocalName::from(local_name), CanGc::from_cx(cx))
             .ok_or(Error::NotFound(None))
     }
 
