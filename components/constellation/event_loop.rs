@@ -111,6 +111,7 @@ impl EventLoop {
             player_context: WindowGLContext::get(),
             privileged_urls: constellation.privileged_urls.clone(),
             user_contents_for_manager_id: constellation.user_contents_for_manager_id.clone(),
+            accessibility_active: constellation.accessibility_active,
         };
 
         let event_loop = if opts::get().multiprocess {

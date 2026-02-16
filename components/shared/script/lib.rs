@@ -389,6 +389,8 @@ pub struct InitialScriptState {
     pub privileged_urls: Vec<ServoUrl>,
     /// A copy of constellation's `UserContentManagerId` to `UserContents` map.
     pub user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
+    /// Whether this script should be initialized with accessibility already active.
+    pub accessibility_active: bool,
 }
 
 /// Errors from executing a paint worklet

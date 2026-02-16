@@ -407,6 +407,10 @@ pub struct ScriptThread {
     /// A list of URLs that can access privileged internal APIs.
     #[no_trace]
     privileged_urls: Vec<ServoUrl>,
+
+    /// Whether accessibility is active. If true, each Layout will maintain an accessibility tree
+    /// and send accessibility updates to the embedder.
+    accessibility_active: Cell<bool>,
 }
 
 struct BHMExitSignal {
@@ -1038,6 +1042,7 @@ impl ScriptThread {
                     debugger_paused: Cell::new(false),
                     privileged_urls: state.privileged_urls,
                     this: weak_script_thread.clone(),
+                    accessibility_active: Cell::new(state.accessibility_active),
                 }
             }),
             cx,
@@ -3345,6 +3350,7 @@ impl ScriptThread {
             viewport_details: incomplete.viewport_details,
             user_stylesheets,
             theme: incomplete.theme,
+            accessibility_active: self.accessibility_active.get(),
         };
 
         // Create the window and document objects.
@@ -3637,6 +3643,7 @@ impl ScriptThread {
     }
 
     fn set_accessibility_active(&self, active: bool) {
+        self.accessibility_active.replace(active);
         for (_, document) in self.documents.borrow().iter() {
             let window = document.window();
             let layout = window.layout();

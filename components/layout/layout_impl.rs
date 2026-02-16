@@ -208,6 +208,10 @@ pub struct LayoutThread {
 
     /// Handler for all Paint Timings
     paint_timing_handler: RefCell<Option<PaintTimingHandler>>,
+
+    /// Whether accessibility is active in this layout.
+    /// (Note: this is a temporary field which will be replaced with an optional accessibility tree member.)
+    accessibility_active: Cell<bool>,
 }
 
 pub struct LayoutFactoryImpl();
@@ -710,7 +714,9 @@ impl Layout for LayoutThread {
         Ok(())
     }
 
-    fn set_accessibility_active(&self, _active: bool) {}
+    fn set_accessibility_active(&self, active: bool) {
+        self.accessibility_active.replace(active);
+    }
 }
 
 impl LayoutThread {
@@ -766,6 +772,7 @@ impl LayoutThread {
             previously_highlighted_dom_node: Cell::new(None),
             paint_timing_handler: Default::default(),
             user_stylesheets: config.user_stylesheets,
+            accessibility_active: Cell::new(config.accessibility_active),
         }
     }
 

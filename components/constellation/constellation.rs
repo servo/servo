@@ -511,7 +511,7 @@ pub struct Constellation<STF, SWF> {
     pub(crate) user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
 
     /// Whether accessibility trees are being built and sent to the underlying platform.
-    accessibility_active: bool,
+    pub(crate) accessibility_active: bool,
 }
 
 /// State needed to construct a constellation.
