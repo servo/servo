@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::TextMetricsBinding::TextMetricsMethods;
 use crate::dom::bindings::num::Finite;
@@ -66,6 +67,7 @@ impl TextMetrics {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
+        cx: &mut JSContext,
         width: f64,
         actualBoundingBoxLeft: f64,
         actualBoundingBoxRight: f64,
@@ -78,7 +80,6 @@ impl TextMetrics {
         hangingBaseline: f64,
         alphabeticBaseline: f64,
         ideographicBaseline: f64,
-        can_gc: CanGc,
     ) -> DomRoot<TextMetrics> {
         reflect_dom_object(
             Box::new(TextMetrics::new_inherited(
@@ -96,11 +97,11 @@ impl TextMetrics {
                 ideographicBaseline,
             )),
             global,
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 
-    pub(crate) fn default(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
+    pub(crate) fn default(global: &GlobalScope, cx: &mut JSContext) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(Self {
                 reflector_: Reflector::new(),
@@ -118,7 +119,7 @@ impl TextMetrics {
                 ideographicBaseline: Default::default(),
             }),
             global,
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 }

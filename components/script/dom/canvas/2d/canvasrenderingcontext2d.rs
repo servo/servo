@@ -6,6 +6,7 @@ use base::{Epoch, generic_channel};
 use canvas_traits::canvas::{Canvas2dMsg, CanvasId};
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
+use js::context::JSContext;
 use pixels::Snapshot;
 use script_bindings::reflector::AssociatedMemory;
 use servo_url::ServoUrl;
@@ -194,8 +195,8 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-gettransform>
-    fn GetTransform(&self, can_gc: CanGc) -> DomRoot<DOMMatrix> {
-        self.canvas_state.get_transform(&self.global(), can_gc)
+    fn GetTransform(&self, cx: &mut JSContext) -> DomRoot<DOMMatrix> {
+        self.canvas_state.get_transform(&self.global(), cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform>
@@ -335,13 +336,9 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     }
 
     /// <https://html.spec.whatwg.org/multipage/#textmetrics>
-    fn MeasureText(&self, text: DOMString, can_gc: CanGc) -> DomRoot<TextMetrics> {
-        self.canvas_state.measure_text(
-            &self.global(),
-            self.canvas.canvas().as_deref(),
-            text,
-            can_gc,
-        )
+    fn MeasureText(&self, cx: &mut JSContext, text: DOMString) -> DomRoot<TextMetrics> {
+        self.canvas_state
+            .measure_text(&self.global(), self.canvas.canvas().as_deref(), text, cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-font>
@@ -516,32 +513,37 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata>
-    fn CreateImageData(&self, sw: i32, sh: i32, can_gc: CanGc) -> Fallible<DomRoot<ImageData>> {
+    fn CreateImageData(
+        &self,
+        cx: &mut JSContext,
+        sw: i32,
+        sh: i32,
+    ) -> Fallible<DomRoot<ImageData>> {
         self.canvas_state
-            .create_image_data(&self.global(), sw, sh, can_gc)
+            .create_image_data(&self.global(), cx, sw, sh)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata>
     fn CreateImageData_(
         &self,
+        cx: &mut JSContext,
         imagedata: &ImageData,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         self.canvas_state
-            .create_image_data_(&self.global(), imagedata, can_gc)
+            .create_image_data_(&self.global(), cx, imagedata)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata>
     fn GetImageData(
         &self,
+        cx: &mut JSContext,
         sx: i32,
         sy: i32,
         sw: i32,
         sh: i32,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         self.canvas_state
-            .get_image_data(self.canvas.size(), &self.global(), sx, sy, sw, sh, can_gc)
+            .get_image_data(self.canvas.size(), &self.global(), cx, sx, sy, sw, sh)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>
@@ -577,40 +579,40 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createlineargradient>
     fn CreateLinearGradient(
         &self,
+        cx: &mut JSContext,
         x0: Finite<f64>,
         y0: Finite<f64>,
         x1: Finite<f64>,
         y1: Finite<f64>,
-        can_gc: CanGc,
     ) -> DomRoot<CanvasGradient> {
         self.canvas_state
-            .create_linear_gradient(&self.global(), x0, y0, x1, y1, can_gc)
+            .create_linear_gradient(&self.global(), cx, x0, y0, x1, y1)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient>
     fn CreateRadialGradient(
         &self,
+        cx: &mut JSContext,
         x0: Finite<f64>,
         y0: Finite<f64>,
         r0: Finite<f64>,
         x1: Finite<f64>,
         y1: Finite<f64>,
         r1: Finite<f64>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<CanvasGradient>> {
         self.canvas_state
-            .create_radial_gradient(&self.global(), x0, y0, r0, x1, y1, r1, can_gc)
+            .create_radial_gradient(&self.global(), cx, x0, y0, r0, x1, y1, r1)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern>
     fn CreatePattern(
         &self,
+        cx: &mut JSContext,
         image: CanvasImageSource,
         repetition: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
         self.canvas_state
-            .create_pattern(&self.global(), image, repetition, can_gc)
+            .create_pattern(&self.global(), cx, image, repetition)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth>

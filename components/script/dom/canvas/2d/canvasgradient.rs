@@ -6,6 +6,7 @@ use canvas_traits::canvas::{
     CanvasGradientStop, FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle,
 };
 use dom_struct::dom_struct;
+use js::context::JSContext;
 
 use super::canvas_state::parse_color;
 use crate::dom::bindings::cell::DomRefCell;
@@ -44,13 +45,13 @@ impl CanvasGradient {
 
     pub(crate) fn new(
         global: &GlobalScope,
+        cx: &mut JSContext,
         style: CanvasGradientStyle,
-        can_gc: CanGc,
     ) -> DomRoot<CanvasGradient> {
         reflect_dom_object(
             Box::new(CanvasGradient::new_inherited(style)),
             global,
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 }

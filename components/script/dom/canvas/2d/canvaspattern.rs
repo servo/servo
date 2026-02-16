@@ -5,6 +5,7 @@
 use canvas_traits::canvas::{FillOrStrokeStyle, RepetitionStyle, SurfaceStyle};
 use dom_struct::dom_struct;
 use euclid::default::{Size2D, Transform2D};
+use js::context::JSContext;
 use pixels::{SharedSnapshot, Snapshot};
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -59,11 +60,11 @@ impl CanvasPattern {
     }
     pub(crate) fn new(
         global: &GlobalScope,
+        cx: &mut JSContext,
         surface_data: Snapshot,
         surface_size: Size2D<u32>,
         repeat: RepetitionStyle,
         origin_clean: bool,
-        can_gc: CanGc,
     ) -> DomRoot<CanvasPattern> {
         reflect_dom_object(
             Box::new(CanvasPattern::new_inherited(
@@ -73,7 +74,7 @@ impl CanvasPattern {
                 origin_clean,
             )),
             global,
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
     pub(crate) fn origin_is_clean(&self) -> bool {
