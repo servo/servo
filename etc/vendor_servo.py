@@ -55,7 +55,7 @@ def vendor():
         # vendoring crates
         print("Vendoring Crates")
         vendor_process = subprocess.run(
-            ["cargo", "vendor", "vendor/"], capture_output=True, encoding="utf-8", check=True
+            ["cargo", "vendor", "--locked", "vendor/"], capture_output=True, encoding="utf-8", check=True
         )
         out = vendor_process.stdout
         print("Modifying .cargo/config.toml")
