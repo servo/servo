@@ -3041,6 +3041,10 @@ where
     }
 
     fn set_accessibility_active(&mut self, active: bool) {
+        if !(pref!(accessibility_enabled)) {
+            return;
+        }
+
         self.accessibility_active = active;
         for event_loop in self.event_loops() {
             let _ = event_loop.send(ScriptThreadMessage::SetAccessibilityActive(active));

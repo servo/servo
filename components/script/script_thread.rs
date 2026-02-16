@@ -92,7 +92,7 @@ use script_traits::{
     UpdatePipelineIdReason,
 };
 use servo_arc::Arc as ServoArc;
-use servo_config::{opts, prefs};
+use servo_config::{opts, pref, prefs};
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::WebStorageType;
@@ -3643,6 +3643,10 @@ impl ScriptThread {
     }
 
     fn set_accessibility_active(&self, active: bool) {
+        if !(pref!(accessibility_enabled)) {
+            return;
+        }
+
         self.accessibility_active.replace(active);
         for (_, document) in self.documents.borrow().iter() {
             let window = document.window();

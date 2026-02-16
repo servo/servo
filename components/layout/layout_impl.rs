@@ -715,6 +715,10 @@ impl Layout for LayoutThread {
     }
 
     fn set_accessibility_active(&self, active: bool) {
+        if !(pref!(accessibility_enabled)) {
+            return;
+        }
+
         self.accessibility_active.replace(active);
     }
 }
