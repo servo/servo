@@ -104,11 +104,9 @@ impl IDBDatabase {
             .any(|store_name| store_name == name)
     }
 
+    /// <https://w3c.github.io/IndexedDB/#dom-idbdatabase-version>
     pub(crate) fn version(&self) -> u64 {
-        // `IDBDatabase.version` is synchronously observable on the connection, and
-        // IndexedDB §5.8 notes that aborting an upgrade reverts this returned value.
-        // https://w3c.github.io/IndexedDB/#dom-idbdatabase-version
-        // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
+        // The version getter steps are to return this’s version.
         self.version.get()
     }
 
@@ -191,13 +189,13 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         if mode != IDBTransactionMode::Versionchange {
             // https://w3c.github.io/IndexedDB/#dom-idbdatabase-transaction
             // Step 8: Set transaction’s cleanup event loop to the current event loop.
-            // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
-            // “transactions created by a script call to transaction() are deactivated once the task that invoked the script has completed.”
-            // https://w3c.github.io/IndexedDB/#transaction-concept
-            // “A transaction optionally has a cleanup event loop which is an event loop.”
-            // Versionchange transactions can’t be manually created; only script-created transactions()
-            // are subject to HTML cleanup deactivation.
             transaction.set_cleanup_event_loop();
+            // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+            // NOTE: These steps are invoked by [HTML]. They ensure that transactions created
+            // by a script call to transaction() are deactivated once the task that invoked
+            // the script has completed. The steps are run at most once for each transaction.
+            // https://w3c.github.io/IndexedDB/#transaction-concept
+            // A transaction optionally has a cleanup event loop which is an event loop.
             self.global()
                 .get_indexeddb()
                 .register_indexeddb_transaction(&transaction);

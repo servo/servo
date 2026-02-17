@@ -483,13 +483,13 @@ pub enum SyncOperation {
         txn: u64,
         committed: bool,
     },
-    // When each request associated with a transaction is processed,
-    // a success or error event will be fired. While the event is being
-    // dispatched, the transaction state is set to active, allowing
-    // additional requests to be made against the transaction.
-    // Once the event dispatch is complete, the transaction’s
-    // state is set to inactive again.
-    // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+    /// <https://w3c.github.io/IndexedDB/#transaction-lifetime
+    /// Step 3:
+    /// When each request associated with a transaction is processed,
+    /// a success or error event will be fired. While the event is
+    /// being dispatched, the transaction state is set to active, allowing
+    /// additional requests to be made against the transaction. Once the
+    /// event dispatch is complete, the transaction’s state is set to inactive again.
     RequestHandled {
         origin: ImmutableOrigin,
         db_name: String,

@@ -98,11 +98,11 @@ impl IDBFactory {
         // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
         // To cleanup Indexed Database transactions, run the following steps.
         // They will return true if any transactions were cleaned up, or false otherwise.
-        // If there are no transactions with cleanup event loop matching the current event loop, return false.
-        // For each transaction transaction with cleanup event loop matching the current event loop:
-        // Set transaction’s state to inactive.
-        // Clear transaction’s cleanup event loop.
-        // Return true.
+        // Step 1: If there are no transactions with cleanup event loop matching the current event loop, return false.
+        // Step 2: For each transaction transaction with cleanup event loop matching the current event loop:
+        // Step 2.1: Set transaction’s state to inactive.
+        // Step 2.2: Clear transaction’s cleanup event loop.
+        // Step 3: Return true.
         let any_matching = snapshot
             .iter()
             .any(|txn| txn.cleanup_event_loop_matches_current());

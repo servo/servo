@@ -162,11 +162,12 @@ impl IDBTransaction {
         receiver.recv().unwrap().expect("CreateTransaction failed")
     }
 
+    /// <https://w3c.github.io/IndexedDB/#transaction-lifecycle>
     pub fn set_active_flag(&self, status: bool) {
-        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-        // “inactive … No requests can be made against the transaction when it is in this state.”
-        // “finished … Once a transaction has committed or aborted, it enters this state.”
-        // “When a transaction is committed or aborted, its state is set to finished.”
+        // inactive
+        // A transaction is in this state after control returns to the event loop after its creation,
+        //  and when events are not being dispatched.
+        // No requests can be made against the transaction when it is in this state.
         self.active.set(status);
     }
 
@@ -174,15 +175,12 @@ impl IDBTransaction {
         self.active.get()
     }
 
+    /// <https://w3c.github.io/IndexedDB/#transaction-lifetime>
     pub(crate) fn is_usable(&self) -> bool {
-        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-        // An abort will also be initiated following a failed request that is not handled by script.
         // A transaction can be aborted at any time before it is finished,
-        // even if the transaction isn’t currently active or hasn’t yet started.
-
-        // committing
-        // Once all requests associated with a transaction have completed, the transaction will enter this state as it attempts to commit.
-        // No requests can be made against the transaction when it is in this state.
+        //  even if the transaction isn’t currently active or hasn’t yet started.
+        // An explicit call to abort() will initiate an abort.
+        // An abort will also be initiated following a failed request that is not handled by script.
         !self.finished.get() && !self.abort_initiated.get() && !self.committing.get()
     }
 
@@ -267,10 +265,6 @@ impl IDBTransaction {
 
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
         // When committing, the transaction state is set to committing.
-        // The implementation must atomically write any changes to the database made by requests
-        // placed against the transaction. That is, either all of the changes must be written,
-        // or if an error occurs, such as a disk write error, the implementation must not write
-        // any of the changes to the database, and the steps to abort a transaction will be followed.
         let send_result = self
             .get_idb_thread()
             .send(IndexedDBThreadMsg::Sync(commit_operation));
@@ -283,7 +277,7 @@ impl IDBTransaction {
     }
 
     pub(crate) fn maybe_commit(&self) {
-        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // https://w3c.github.io/IndexedDB/#transaction-lifetime
         // Step 5: transaction when all requests
         //  placed against the transaction have completed and their returned results handled,
         //  no new requests have been placed against the transaction, and the transaction has
@@ -314,7 +308,7 @@ impl IDBTransaction {
     }
 
     fn force_commit(&self) {
-        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // https://w3c.github.io/IndexedDB/#transaction-lifetime
         // An explicit call to commit() will initiate a commit without waiting for request results
         //  to be handled by script.
         //
@@ -379,9 +373,6 @@ impl IDBTransaction {
             .set(self.pending_request_count.get() + 1);
     }
 
-    /// Must be called by an `IDBRequest` when it finishes (either success or
-    /// error). This only updates the pending request count; `finished` is
-    /// driven by backend commit/abort completion.
     pub fn request_finished(&self) {
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
         // finished
@@ -395,8 +386,8 @@ impl IDBTransaction {
     }
 
     pub(crate) fn initiate_abort(&self, error: Error, can_gc: CanGc) {
-        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-        // An abort will also be initiated following a failed request that is not handled by script.
+        // https://w3c.github.io/IndexedDB/#transaction-lifetime
+        // Step 4: An abort will also be initiated following a failed request that is not handled by script.
         // A transaction can be aborted at any time before it is finished,
         // even if the transaction isn’t currently active or hasn’t yet started.
         if self.finished.get() || self.abort_initiated.get() {
@@ -506,8 +497,8 @@ impl IDBTransaction {
                         },
                     ));
                 }
-                // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-                // “When a transaction is committed or aborted, its state is set to finished.”
+                // https://w3c.github.io/IndexedDB/#transaction-lifetime
+                // Step 6: When a transaction is committed or aborted, its state is set to finished.
                 this.finished.set(true);
                 this.version_change_old_version.set(None);
                 this.notify_backend_transaction_finished();
@@ -524,8 +515,8 @@ impl IDBTransaction {
         }
         self.committing.set(false);
         self.version_change_old_version.set(None);
-        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-        // When a transaction is committed or aborted, its state is set to finished.
+        // https://w3c.github.io/IndexedDB/#transaction-lifetime
+        // Step 6: When a transaction is committed or aborted, its state is set to finished.
         self.finished.set(true);
         if self.mode == IDBTransactionMode::Versionchange {
             self.db.clear_upgrade_transaction(self);
@@ -683,15 +674,13 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
             return Err(Error::InvalidState(None));
         }
 
-        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-        // “An explicit call to commit() will initiate a commit without waiting for request results
-        //  to be handled by script.”
-        //
-        // Automatic commit additionally requires:
-        // The implementation must attempt to commit an inactive transaction
-        // when all requests placed against the transaction have completed and
-        // their returned results handled, no new requests have been placed against the transaction,
-        // and the transaction has not been aborted
+        // https://w3c.github.io/IndexedDB/#transaction-lifetime
+        // Step 5: The implementation must attempt to commit an inactive transaction when all requests placed against
+        // the transaction have completed and their returned results handled, no new requests have been placed against the transaction, and the transaction has not been aborted
+        // An explicit call to commit() will initiate a commit without waiting for request results to be handled by script.
+        // When committing, the transaction state is set to committing. The implementation must atomically write any changes
+        // to the database made by requests placed against the transaction. That is, either all of the changes must be written,
+        // or if an error occurs, such as a disk write error, the implementation must not write any of the changes to the database, and the steps to abort a transaction will be followed.
         self.set_active_flag(false);
         self.force_commit();
 
@@ -700,11 +689,6 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-abort>
     fn Abort(&self) -> Fallible<()> {
-        // FIXME:(rasviitanen)
-        // This only sets the flags, and does not abort the transaction
-        // see https://www.w3.org/TR/IndexedDB-2/#abort-a-transaction
-        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-        // Once commit has begun (state is committing), abort() must throw InvalidStateError.
         if self.finished.get() || self.committing.get() {
             return Err(Error::InvalidState(None));
         }

@@ -315,7 +315,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         txn: u64,
         sender: Option<GenericSender<BackendResult<()>>>,
     ) {
-        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // https://w3c.github.io/IndexedDB/#transaction-lifetime
         // Take the current queued batch of requests for this txn.
         // If more requests arrive while the engine is running, they’ll be queued into
         // transaction.requests and scheduled in a later batch once we receive EngineTxnBatchComplete.
@@ -466,7 +466,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
     fn abort_transaction(&mut self, txn: u64) {
         // Keep scheduling metadata until script reports TransactionFinished.
-        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // https://w3c.github.io/IndexedDB/#transaction-lifetime
         self.transactions.remove(&txn);
         self.queued_readonly.retain(|queued| *queued != txn);
         self.queued_readwrite.retain(|queued| *queued != txn);

@@ -284,8 +284,13 @@ impl RequestListener {
             event
                 .upcast::<Event>()
                 .fire(request.upcast(), CanGc::from_cx(cx));
-            // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-            // Once the event dispatch is complete, the transaction's state is set to inactive again.
+            // https://w3c.github.io/IndexedDB/#transaction-lifetime
+            // Step 3:
+            // When each request associated with a transaction is processed,
+            // a success or error event will be fired. While the event is being
+            // dispatched, the transaction state is set to active, allowing additional
+            // requests to be made against the transaction. Once the event dispatch
+            // is complete, the transaction’s state is set to inactive again.
             transaction.set_active_flag(false);
             // Notify the transaction that this request has finished.
             transaction.request_finished();
@@ -336,19 +341,23 @@ impl RequestListener {
 
         transaction.set_active_flag(true);
         // https://w3c.github.io/IndexedDB/#events
-        // Set event’s bubbles and cancelable attributes to false.
+        // Step 3: Set event’s bubbles and cancelable attributes to false.
         let default_not_prevented = event
             .upcast::<Event>()
             .fire(request.upcast(), CanGc::from_cx(cx));
-        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-        // Once the event dispatch is complete, the transaction's state is set to inactive again.
+        // https://w3c.github.io/IndexedDB/#transaction-lifetime
+        // Step 3:
+        // When each request associated with a transaction is processed,
+        // a success or error event will be fired. While the event is being
+        // dispatched, the transaction state is set to active, allowing additional
+        // requests to be made against the transaction. Once the event dispatch
+        // is complete, the transaction’s state is set to inactive again.
         transaction.set_active_flag(false);
-        // https://w3c.github.io/IndexedDB/#transaction-lifecycle
+        // https://w3c.github.io/IndexedDB/#transaction-lifetime
+        // Step 4: A transaction can be aborted at any time before it is finished, even if the transaction isn’t currently active or hasn’t yet started.
         // An explicit call to abort() will initiate an abort. An abort will also be initiated following a failed request that is not handled by script.
+        // When a transaction is aborted the implementation must undo (roll back) any changes that were made to the database during that transaction. This includes both changes to the contents of object stores as well as additions and removals of object stores and indexes.
         if default_not_prevented {
-            // https://w3c.github.io/IndexedDB/#transaction-lifecycle
-            // An explicit call to abort() will initiate an abort.
-            // An abort will also be initiated following a failed request that is not handled by script.
             transaction.initiate_abort(error.clone(), CanGc::from_cx(cx));
             transaction.request_backend_abort();
         }
