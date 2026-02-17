@@ -531,21 +531,16 @@ impl ElementStylesheetLoader<'_> {
             },
             ElementStylesheetLoader::Asynchronous(asynchronous_loader) => {
                 let css_error_reporter = window.css_error_reporter().clone();
-                let thread_pool = STYLE_THREAD_POOL.pool();
-                let thread_pool = thread_pool.as_ref().unwrap();
 
-                thread_pool.spawn(move || {
+                let parse_stylesheet = move || {
                     let pipeline_id = asynchronous_loader.pipeline_id;
                     let main_thread_sender = asynchronous_loader.main_thread_sender.clone();
-
                     let loader = ElementStylesheetLoader::Asynchronous(asynchronous_loader);
                     let stylesheet =
                         listener.parse(quirks_mode, shared_lock, &css_error_reporter, loader);
-
                     let task = task!(finish_parsing_of_stylesheet_on_main_thread: move || {
                         listener.do_post_parse_tasks(true, stylesheet);
                     });
-
                     let _ = main_thread_sender.send(MainThreadScriptMsg::Common(
                         CommonScriptMsg::Task(
                             ScriptThreadEventCategory::StylesheetLoad,
@@ -554,7 +549,14 @@ impl ElementStylesheetLoader<'_> {
                             TaskSourceName::Networking,
                         ),
                     ));
-                });
+                };
+
+                let thread_pool = STYLE_THREAD_POOL.pool();
+                if let Some(thread_pool) = thread_pool.as_ref() {
+                    thread_pool.spawn(parse_stylesheet);
+                } else {
+                    parse_stylesheet();
+                }
             },
         };
     }
