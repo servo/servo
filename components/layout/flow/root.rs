@@ -147,9 +147,9 @@ impl BoxTree {
     ///   made an incremental update.
     pub(crate) fn update(
         context: &LayoutContext,
-        dirty_root_from_script: ServoLayoutNode<'_>,
+        dirty_root_from_style: ServoLayoutNode<'_>,
     ) -> bool {
-        let Some(box_tree_update) = IncrementalBoxTreeUpdate::find(dirty_root_from_script) else {
+        let Some(box_tree_update) = IncrementalBoxTreeUpdate::find(dirty_root_from_style) else {
             return false;
         };
         box_tree_update.update_from_dirty_root(context);
@@ -285,11 +285,15 @@ struct IncrementalBoxTreeUpdate<'dom> {
 
 impl<'dom> IncrementalBoxTreeUpdate<'dom> {
     fn find(dirty_root_from_script: ServoLayoutNode<'dom>) -> Option<Self> {
-        let mut maybe_dirty_root_node = Some(dirty_root_from_script);
+        let mut maybe_dirty_root_node = dirty_root_from_script.parent_node();
         while let Some(dirty_root_node) = maybe_dirty_root_node {
             if let Some(dirty_root) = Self::new_if_valid(dirty_root_node) {
                 return Some(dirty_root);
             }
+
+            // A node above this one will be the root for box tree reconstruction, so we
+            // must force this node's boxes to be rebuilt.
+            dirty_root_node.to_threadsafe().unset_all_boxes();
 
             maybe_dirty_root_node = dirty_root_node.parent_node();
         }
@@ -457,6 +461,16 @@ impl<'dom> IncrementalBoxTreeUpdate<'dom> {
                         build_new_box(old_parent),
                     ));
             },
+        }
+
+        let mut invalidate_start_point = self.node;
+        while let Some(parent_node) = invalidate_start_point.parent_node() {
+            parent_node
+                .to_threadsafe()
+                .with_layout_box_base_including_pseudos(|base| {
+                    base.clear_fragments_and_fragment_cache();
+                });
+            invalidate_start_point = parent_node;
         }
     }
 }
