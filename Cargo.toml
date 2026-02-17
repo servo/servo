@@ -74,7 +74,7 @@ euclid = "0.22"
 flate2 = "1.1"
 fonts_traits = { path = "components/shared/fonts" }
 freetype-sys = "0.20"
-futures = { version = "0.3" }
+futures = { version = "0.3", default-features = false }
 futures-core = { version = "0.3", default-features = false }
 futures-util = { version = "0.3", default-features = false }
 gleam = "0.15"
