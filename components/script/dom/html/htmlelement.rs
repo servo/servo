@@ -477,7 +477,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>
     #[expect(unsafe_code)]
-    fn GetScrollParent(&self) -> Option<DomRoot<Element>> {
+    fn ScrollParent(&self) -> Option<DomRoot<Element>> {
         self.owner_window()
             .scroll_container_query(
                 Some(self.upcast()),
