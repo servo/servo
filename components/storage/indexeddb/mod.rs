@@ -1891,21 +1891,19 @@ impl IndexedDBManager {
                         db.queue_pending_commit_callback(txn, callback);
                     }
                     db.schedule_transactions(origin.clone(), &db_name);
-                } else {
-                    if callback
-                        .send(TxnCompleteMsg {
-                            origin: origin.clone(),
-                            db_name: db_name.clone(),
-                            txn,
-                            result: Err(BackendError::DbNotFound),
-                        })
-                        .is_err()
-                    {
-                        error!(
-                            "Failed to send commit failure (DbNotFound) for db '{}' txn {}.",
-                            db_name, txn
-                        );
-                    }
+                } else if callback
+                    .send(TxnCompleteMsg {
+                        origin: origin.clone(),
+                        db_name: db_name.clone(),
+                        txn,
+                        result: Err(BackendError::DbNotFound),
+                    })
+                    .is_err()
+                {
+                    error!(
+                        "Failed to send commit failure (DbNotFound) for db '{}' txn {}.",
+                        db_name, txn
+                    );
                 }
             },
             SyncOperation::Abort(abort_callback, origin, db_name, txn) => {
