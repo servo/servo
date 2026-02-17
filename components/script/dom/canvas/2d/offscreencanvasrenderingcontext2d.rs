@@ -391,7 +391,7 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         sw: i32,
         sh: i32,
     ) -> Fallible<DomRoot<ImageData>> {
-        self.context.CreateImageData(cx, sw, sh)
+        self.context.CreateImageData(sw, sh, CanGc::from_cx(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata>
@@ -400,7 +400,7 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         cx: &mut JSContext,
         imagedata: &ImageData,
     ) -> Fallible<DomRoot<ImageData>> {
-        self.context.CreateImageData_(cx, imagedata)
+        self.context.CreateImageData_(imagedata, CanGc::from_cx(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata>
@@ -412,7 +412,8 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         sw: i32,
         sh: i32,
     ) -> Fallible<DomRoot<ImageData>> {
-        self.context.GetImageData(cx, sx, sy, sw, sh)
+        self.context
+            .GetImageData(sx, sy, sw, sh, CanGc::from_cx(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>

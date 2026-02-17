@@ -1741,24 +1741,24 @@ impl CanvasState {
     pub(super) fn create_image_data(
         &self,
         global: &GlobalScope,
-        cx: &mut JSContext,
         sw: i32,
         sh: i32,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         if sw == 0 || sh == 0 {
             return Err(Error::IndexSize(None));
         }
-        ImageData::new(global, cx, sw.unsigned_abs(), sh.unsigned_abs(), None)
+        ImageData::new(global, sw.unsigned_abs(), sh.unsigned_abs(), None, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata
     pub(super) fn create_image_data_(
         &self,
         global: &GlobalScope,
-        cx: &mut JSContext,
         imagedata: &ImageData,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
-        ImageData::new(global, cx, imagedata.Width(), imagedata.Height(), None)
+        ImageData::new(global, imagedata.Width(), imagedata.Height(), None, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata
@@ -1767,11 +1767,11 @@ impl CanvasState {
         &self,
         canvas_size: Size2D<u32>,
         global: &GlobalScope,
-        cx: &mut JSContext,
         sx: i32,
         sy: i32,
         sw: i32,
         sh: i32,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         // FIXME(nox): There are many arithmetic operations here that can
         // overflow or underflow, this should probably be audited.
@@ -1789,7 +1789,7 @@ impl CanvasState {
             Some(rect) => rect,
             None => {
                 // All the pixels are outside the canvas surface.
-                return ImageData::new(global, cx, size.width, size.height, None);
+                return ImageData::new(global, size.width, size.height, None, can_gc);
             },
         };
 
@@ -1809,7 +1809,7 @@ impl CanvasState {
             None
         };
 
-        ImageData::new(global, cx, size.width, size.height, data)
+        ImageData::new(global, size.width, size.height, data, can_gc)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata

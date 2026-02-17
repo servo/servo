@@ -10,7 +10,6 @@ use base::id::{ImageDataId, ImageDataIndex};
 use constellation_traits::SerializableImageData;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
-use js::context::JSContext;
 use js::gc::CustomAutoRooterGuard;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
@@ -48,10 +47,10 @@ pub(crate) struct ImageData {
 impl ImageData {
     pub(crate) fn new(
         global: &GlobalScope,
-        cx: &mut JSContext,
         width: u32,
         height: u32,
         mut data: Option<Vec<u8>>,
+        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
         let len =
             pixels::compute_rgba8_byte_length_if_within_limit(width as usize, height as usize)
@@ -67,27 +66,16 @@ impl ImageData {
         if let Some(ref mut d) = data {
             d.resize(len as usize, 0);
 
-            rooted!(&in(cx) let mut js_object = std::ptr::null_mut::<JSObject>());
-            let _buffer_source = create_buffer_source::<ClampedU8>(
-                cx.into(),
-                &d[..],
-                js_object.handle_mut(),
-                CanGc::from_cx(cx),
-            )
-            .map_err(|_| Error::JSFailed)?;
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let mut js_object = std::ptr::null_mut::<JSObject>());
+            let _buffer_source =
+                create_buffer_source::<ClampedU8>(cx, &d[..], js_object.handle_mut(), can_gc)
+                    .map_err(|_| Error::JSFailed)?;
             auto_root!(&in(cx) let data = TypedArray::<ClampedU8, *mut JSObject>::from(js_object.get()).map_err(|_| Error::JSFailed)?);
 
-            Self::Constructor_(
-                global,
-                None,
-                CanGc::from_cx(cx),
-                data,
-                width,
-                Some(height),
-                &settings,
-            )
+            Self::Constructor_(global, None, can_gc, data, width, Some(height), &settings)
         } else {
-            Self::Constructor(global, None, CanGc::from_cx(cx), width, height, &settings)
+            Self::Constructor(global, None, can_gc, width, height, &settings)
         }
     }
 
@@ -253,7 +241,11 @@ impl Serializable for ImageData {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-imagedata-interface:deserialization-steps>
-    fn deserialize(owner: &GlobalScope, serialized: Self::Data) -> Result<DomRoot<Self>, ()> {
+    fn deserialize(
+        owner: &GlobalScope,
+        serialized: Self::Data,
+        can_gc: CanGc,
+    ) -> Result<DomRoot<Self>, ()> {
         // Step 1 Initialize value's data attribute to the sub-deserialization of serialized.[[Data]].
         // Step 2 Initialize value's width attribute to serialized.[[Width]].
         // Step 3 Initialize value's height attribute to serialized.[[Height]].
@@ -261,10 +253,10 @@ impl Serializable for ImageData {
         // Step 5 Initialize value's pixelFormat attribute to serialized.[[PixelFormat]].
         ImageData::new(
             owner,
-            cx,
             serialized.width,
             serialized.height,
             Some(serialized.data),
+            can_gc,
         )
         .map_err(|_| ())
     }
