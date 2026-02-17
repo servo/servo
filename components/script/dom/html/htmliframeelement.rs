@@ -16,6 +16,7 @@ use content_security_policy::sandboxing_directive::{
 use dom_struct::dom_struct;
 use embedder_traits::ViewportDetails;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use net_traits::request::Destination;
@@ -999,9 +1000,9 @@ impl VirtualMethods for HTMLIFrameElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-iframe-element:html-element-post-connection-steps>
-    fn post_connection_steps(&self, can_gc: CanGc) {
+    fn post_connection_steps(&self, cx: &mut JSContext) {
         if let Some(s) = self.super_type() {
-            s.post_connection_steps(can_gc);
+            s.post_connection_steps(cx);
         }
 
         // This isn't mentioned any longer in the specification, but still seems important. This is
@@ -1014,14 +1015,14 @@ impl VirtualMethods for HTMLIFrameElement {
         debug!("<iframe> running post connection steps");
 
         // Step 1. Create a new child navigable for insertedNode.
-        self.create_nested_browsing_context(can_gc);
+        self.create_nested_browsing_context(CanGc::from_cx(cx));
 
         // Step 2: If insertedNode has a sandbox attribute, then parse the sandboxing directive
         // given the attribute's value and insertedNode's iframe sandboxing flag set.
         self.parse_sandbox_attribute();
 
         // Step 3. Process the iframe attributes for insertedNode, with initialInsertion set to true.
-        self.process_the_iframe_attributes(ProcessingMode::FirstTime, can_gc);
+        self.process_the_iframe_attributes(ProcessingMode::FirstTime, CanGc::from_cx(cx));
     }
 
     fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {

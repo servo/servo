@@ -2751,7 +2751,7 @@ impl Node {
                 // Step 12. For each node of staticNodeList, if node is connected, then run the
                 //          post-connection steps with node.
                 for node in static_node_list {
-                    vtable_for(&node).post_connection_steps(CanGc::from_cx(cx));
+                    vtable_for(&node).post_connection_steps(cx);
                 }
             }),
         );
