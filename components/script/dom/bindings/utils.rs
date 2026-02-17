@@ -160,7 +160,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         args: &CallArgs,
         global: &<crate::DomTypeHolder as DomTypes>::GlobalScope,
         proto_id: PrototypeList::ID,
-        creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+        creator: unsafe fn(&mut js::context::JSContext, HandleObject, *mut ProtoOrIfaceArray),
     ) -> bool {
         call_html_constructor::<T>(cx, args, global, proto_id, creator)
     }

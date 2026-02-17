@@ -5,13 +5,12 @@
 pub(crate) mod base {
     pub(crate) use std::ptr;
 
-    #[expect(unused_imports)]
     pub(crate) use js::context::JSContext;
     #[expect(unused_imports)]
     pub(crate) use js::realm::CurrentRealm;
     pub(crate) use js::rust::{HandleObject, MutableHandleObject};
 
-    pub(crate) use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+    pub(crate) use crate::script_runtime::JSContext as SafeJSContext;
 }
 
 pub(crate) mod module {

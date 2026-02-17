@@ -12,7 +12,6 @@ use crate::interfaces::GlobalScopeHelpers;
 use crate::iterable::{Iterable, IterableIterator};
 use crate::realms::InRealm;
 use crate::root::{Dom, DomRoot, Root};
-use crate::script_runtime::{CanGc, JSContext};
 use crate::{DomTypes, JSTraceable};
 
 pub trait AssociatedMemorySize: Default {
@@ -197,11 +196,10 @@ pub trait DomObjectWrap<D: DomTypes>: Sized + DomObject + DomGlobalGeneric<D> {
     /// Function pointer to the general wrap function type
     #[expect(clippy::type_complexity)]
     const WRAP: unsafe fn(
-        JSContext,
+        &mut js::context::JSContext,
         &D::GlobalScope,
         Option<HandleObject>,
         Box<Self>,
-        CanGc,
     ) -> Root<Dom<Self>>;
 }
 
@@ -211,10 +209,9 @@ pub trait DomObjectIteratorWrap<D: DomTypes>: DomObjectWrap<D> + JSTraceable + I
     /// Function pointer to the wrap function for `IterableIterator<T>`
     #[expect(clippy::type_complexity)]
     const ITER_WRAP: unsafe fn(
-        JSContext,
+        &mut js::context::JSContext,
         &D::GlobalScope,
         Option<HandleObject>,
         Box<IterableIterator<D, Self>>,
-        CanGc,
     ) -> Root<Dom<IterableIterator<D, Self>>>;
 }

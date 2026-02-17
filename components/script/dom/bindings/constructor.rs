@@ -52,7 +52,7 @@ use crate::dom::element::{Element, ElementCreator};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::window::Window;
-use crate::script_runtime::{CanGc, JSContext, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#htmlconstructor>
 fn html_constructor(
@@ -61,7 +61,7 @@ fn html_constructor(
     call_args: &CallArgs,
     check_type: fn(&Element) -> bool,
     proto_id: PrototypeList::ID,
-    creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+    creator: unsafe fn(&mut js::context::JSContext, HandleObject, *mut ProtoOrIfaceArray),
 ) -> Result<(), ()> {
     let window = global.downcast::<Window>().unwrap();
     let document = window.Document();
@@ -131,17 +131,13 @@ fn html_constructor(
         if definition.is_autonomous() {
             // Since this element is autonomous, its active function object must be the HTMLElement
             // Retrieve the constructor object for HTMLElement
-            HTMLElementBinding::GetConstructorObject(
-                cx.into(),
-                global_object,
-                constructor.handle_mut(),
-            );
+            HTMLElementBinding::GetConstructorObject(cx, global_object, constructor.handle_mut());
         }
         // Step 6. Otherwise (i.e., if definition is for a customized built-in element):
         else {
             get_constructor_object_from_local_name(
                 definition.local_name.clone(),
-                cx.into(),
+                cx,
                 global_object,
                 constructor.handle_mut(),
             );
@@ -163,13 +159,7 @@ fn html_constructor(
 
     // Step 6
     rooted!(&in(cx) let mut prototype = ptr::null_mut::<JSObject>());
-    get_desired_proto(
-        cx.into(),
-        call_args,
-        proto_id,
-        creator,
-        prototype.handle_mut(),
-    )?;
+    get_desired_proto(cx, call_args, proto_id, creator, prototype.handle_mut())?;
 
     let entry = definition.construction_stack.borrow().last().cloned();
     let result = match entry {
@@ -278,7 +268,7 @@ fn html_constructor(
 /// extended attribute.
 fn get_constructor_object_from_local_name(
     name: LocalName,
-    cx: JSContext,
+    cx: &mut js::context::JSContext,
     global: HandleObject,
     rval: MutableHandleObject,
 ) -> bool {
@@ -421,7 +411,7 @@ pub(crate) fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
     args: &CallArgs,
     global: &GlobalScope,
     proto_id: PrototypeList::ID,
-    creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+    creator: unsafe fn(&mut js::context::JSContext, HandleObject, *mut ProtoOrIfaceArray),
 ) -> bool {
     fn element_derives_interface<T: DerivedFrom<Element>>(element: &Element) -> bool {
         element.is::<T>()

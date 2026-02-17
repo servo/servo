@@ -23,6 +23,7 @@ use js::rust::HandleValue;
 use js::rust::wrappers::{Call, Construct1};
 use net_traits::image_cache::ImageCache;
 use pixels::PixelFormat;
+use script_bindings::script_runtime::temp_cx;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -44,7 +45,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::css::cssstylevalue::CSSStyleValue;
 use crate::dom::css::stylepropertymapreadonly::StylePropertyMapReadOnly;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::paintrenderingcontext2d::PaintRenderingContext2D;
 use crate::dom::paintsize::PaintSize;
 use crate::dom::worklet::WorkletExecutor;
@@ -85,6 +85,7 @@ pub(crate) struct PaintWorkletGlobalScope {
 }
 
 impl PaintWorkletGlobalScope {
+    #[expect(unsafe_code)]
     pub(crate) fn new(
         webview_id: WebViewId,
         pipeline_id: PipelineId,
@@ -93,6 +94,7 @@ impl PaintWorkletGlobalScope {
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
     ) -> DomRoot<PaintWorkletGlobalScope> {
+        let mut cx = unsafe { temp_cx() };
         debug!(
             "Creating paint worklet global scope for pipeline {}.",
             pipeline_id
@@ -122,7 +124,7 @@ impl PaintWorkletGlobalScope {
                 missing_image_urls: Vec::new(),
             }),
         });
-        PaintWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), global)
+        PaintWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(&mut cx, global)
     }
 
     pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {

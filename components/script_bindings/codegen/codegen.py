@@ -3206,8 +3206,8 @@ def InitLegacyUnforgeablePropertiesOnHolder(descriptor: Descriptor, properties: 
     """
     unforgeables = []
 
-    defineLegacyUnforgeableAttrs = "define_guarded_properties::<D>(cx, unforgeable_holder.handle(), %s, global);"
-    defineLegacyUnforgeableMethods = "define_guarded_methods::<D>(cx, unforgeable_holder.handle(), %s, global);"
+    defineLegacyUnforgeableAttrs = "define_guarded_properties::<D>(cx.into(), unforgeable_holder.handle(), %s, global);"
+    defineLegacyUnforgeableMethods = "define_guarded_methods::<D>(cx.into(), unforgeable_holder.handle(), %s, global);"
 
     unforgeableMembers = [
         (defineLegacyUnforgeableAttrs, properties.unforgeable_attrs),
@@ -3265,11 +3265,10 @@ class CGWrapMethod(CGAbstractMethod):
     def __init__(self, descriptor: Descriptor) -> None:
         assert not descriptor.interface.isCallback()
         assert not descriptor.isGlobal()
-        args = [Argument('SafeJSContext', 'cx'),
+        args = [Argument('&mut JSContext', 'cx'),
                 Argument('&D::GlobalScope', 'scope'),
                 Argument('Option<HandleObject>', 'given_proto'),
-                Argument(f"Box<{descriptor.concreteType}>", 'object'),
-                Argument('CanGc', '_can_gc')]
+                Argument(f"Box<{descriptor.concreteType}>", 'object')]
         retval = f'DomRoot<{descriptor.concreteType}>'
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
                                   pub=True, unsafe=True,
@@ -3362,7 +3361,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
     def __init__(self, descriptor: Descriptor, properties: PropertyArrays) -> None:
         assert not descriptor.interface.isCallback()
         assert descriptor.isGlobal()
-        args = [Argument('SafeJSContext', 'cx'),
+        args = [Argument('&mut JSContext', 'cx'),
                 Argument(f"Box<{descriptor.concreteType}>", 'object')]
         retval = f'DomRoot<{descriptor.concreteType}>'
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
@@ -3377,7 +3376,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             ("define_guarded_methods", self.properties.methods),
             ("define_guarded_constants", self.properties.consts)
         ]
-        members = [f"{function}::<D>(cx, obj.handle(), {array.variableName()}.get(), obj.handle());"
+        members = [f"{function}::<D>(cx.into(), obj.handle(), {array.variableName()}.get(), obj.handle());"
                    for (function, array) in pairs if array.length() > 0]
         membersStr = "\n".join(members)
 
@@ -3388,7 +3387,7 @@ unsafe {{
 
     rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
     create_global_object::<D>(
-        cx,
+        cx.into(),
         &Class.get().base,
         raw.as_ptr() as *const libc::c_void,
         {TRACE_HOOK_NAME}::<D>,
@@ -3489,11 +3488,10 @@ class CGDomObjectWrap(CGThing):
         return f"""
 impl DomObjectWrap<crate::DomTypeHolder> for {firstCap(ifaceName)} {{
     const WRAP: unsafe fn(
-        SafeJSContext,
+        &mut JSContext,
         &GlobalScope,
         Option<HandleObject>,
         Box<Self>,
-        CanGc,
     ) -> Root<Dom<Self>> = {bindingModule}::Wrap::<crate::DomTypeHolder>;
 }}
 """
@@ -3516,11 +3514,10 @@ class CGDomObjectIteratorWrap(CGThing):
         return f"""
 impl DomObjectIteratorWrap<crate::DomTypeHolder> for {name} {{
     const ITER_WRAP: unsafe fn(
-        SafeJSContext,
+        &mut JSContext,
         &GlobalScope,
         Option<HandleObject>,
         Box<IterableIterator<crate::DomTypeHolder, Self>>,
-        CanGc,
     ) -> Root<Dom<IterableIterator<crate::DomTypeHolder, Self>>> = {bindingModule}::Wrap::<crate::DomTypeHolder>;
 }}
 """
@@ -3659,7 +3656,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
     properties should be a PropertyArrays instance.
     """
     def __init__(self, descriptor: Descriptor, properties: PropertyArrays, haveUnscopables: bool, haveLegacyWindowAliases: bool) -> None:
-        args = [Argument('SafeJSContext', 'cx'), Argument('HandleObject', 'global'),
+        args = [Argument('&mut JSContext', 'cx'), Argument('HandleObject', 'global'),
                 Argument('*mut ProtoOrIfaceArray', 'cache')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args,
                                   unsafe=True, templateArgs=['D: DomTypes'])
@@ -3687,7 +3684,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 rooted!(&in(cx) let proto = {proto});
 assert!(!proto.is_null());
 rooted!(&in(cx) let mut namespace = ptr::null_mut::<JSObject>());
-create_namespace_object::<D>(cx, global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
+create_namespace_object::<D>(cx.into(), global, proto.handle(), &NAMESPACE_OBJECT_CLASS,
                         {methods}, {constants}, {str_to_cstr(name)}, namespace.handle_mut());
 assert!(!namespace.is_null());
 assert!((*cache)[PrototypeList::Constructor::{id} as usize].is_null());
@@ -3701,7 +3698,7 @@ assert!((*cache)[PrototypeList::Constructor::{id} as usize].is_null());
             cName = str_to_cstr(name)
             return CGGeneric(f"""
 rooted!(&in(cx) let mut interface = ptr::null_mut::<JSObject>());
-create_callback_interface_object::<D>(cx, global, sConstants.get(), {cName}, interface.handle_mut());
+create_callback_interface_object::<D>(cx.into(), global, sConstants.get(), {cName}, interface.handle_mut());
 assert!(!interface.is_null());
 assert!((*cache)[PrototypeList::Constructor::{name} as usize].is_null());
 (*cache)[PrototypeList::Constructor::{name} as usize] = interface.get();
@@ -3733,7 +3730,7 @@ assert!(!prototype_proto.is_null());""")]
             assert not self.haveUnscopables
             code.append(CGGeneric(f"""
 rooted!(&in(cx) let mut prototype_proto_proto = prototype_proto.get());
-D::{name}::create_named_properties_object(cx, prototype_proto_proto.handle(), prototype_proto.handle_mut());
+D::{name}::create_named_properties_object(cx.into(), prototype_proto_proto.handle(), prototype_proto.handle_mut());
 assert!(!prototype_proto.is_null());"""))
 
         properties = {
@@ -3762,7 +3759,7 @@ assert!(!prototype_proto.is_null());"""))
 
         code.append(CGGeneric(f"""
 rooted!(&in(cx) let mut prototype = ptr::null_mut::<JSObject>());
-create_interface_prototype_object::<D>(cx,
+create_interface_prototype_object::<D>(cx.into(),
                                   global,
                                   prototype_proto.handle(),
                                   &PrototypeClass,
@@ -3798,7 +3795,7 @@ assert!((*cache)[PrototypeList::ID::{proto_properties['id']} as usize].is_null()
 assert!(!interface_proto.is_null());
 
 rooted!(&in(cx) let mut interface = ptr::null_mut::<JSObject>());
-create_noncallback_interface_object::<D>(cx,
+create_noncallback_interface_object::<D>(cx.into(),
                                     global,
                                     interface_proto.handle(),
                                     INTERFACE_OBJECT_CLASS.get(),
@@ -3885,7 +3882,7 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                 specs.append(CGGeneric(f"({hook}::<D> as ConstructorClassHook, {name}, {length})"))
             values = CGIndenter(CGList(specs, "\n"), 4)
             code.append(CGWrapper(values, pre=f"{decl} = [\n", post="\n];"))
-            code.append(CGGeneric("create_named_constructors(cx, global, &named_constructors, prototype.handle());"))
+            code.append(CGGeneric("create_named_constructors(cx.into(), global, &named_constructors, prototype.handle());"))
 
         if self.descriptor.hasLegacyUnforgeableMembers:
             # We want to use the same JSClass and prototype as the object we'll
@@ -3925,7 +3922,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
     constructor object).
     """
     def __init__(self, descriptor: Descriptor, name: str, idPrefix: str = "", pub: bool = False) -> None:
-        args = [Argument('SafeJSContext', 'cx'),
+        args = [Argument('&mut JSContext', 'cx'),
                 Argument('HandleObject', 'global'),
                 Argument('MutableHandleObject', 'mut rval')]
         CGAbstractMethod.__init__(self, descriptor, name,
@@ -6901,7 +6898,7 @@ let global = D::GlobalScope::from_object(JS_CALLEE(cx.raw_cx(), vp).to_object())
                 PrototypeList::ID::{MakeNativeName(self.descriptor.name)},
                 \"{ctorName}\",
                 CreateInterfaceObjects::<D>,
-                |cx: SafeJSContext, args: &CallArgs, global: &D::GlobalScope, desired_proto: HandleObject| {{
+                |cx: &mut JSContext, args: &CallArgs, global: &D::GlobalScope, desired_proto: HandleObject| {{
                     {constructor.define()}
                 }}
             )
@@ -8050,7 +8047,7 @@ class CGConcreteBindingRoot(CGThing):
                     if d.interface.hasInterfaceObject() and d.shouldHaveGetConstructorObjectMethod():
                         cgthings += [CGGeneric(f"""
 pub(crate) fn GetConstructorObject(
-    cx: SafeJSContext, global: HandleObject, rval: MutableHandleObject
+    cx: &mut JSContext, global: HandleObject, rval: MutableHandleObject
 ) {{
     self::{firstCap(ifaceName)}_Binding::GetConstructorObject::<crate::DomTypeHolder>(cx, global, rval)
 }}

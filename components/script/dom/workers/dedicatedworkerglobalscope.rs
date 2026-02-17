@@ -23,6 +23,7 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, Origin, ParserMetadata,
     PreloadedResources, Referrer, RequestBuilder, RequestClient, RequestMode,
 };
+use script_bindings::script_runtime::temp_cx;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 
@@ -303,6 +304,7 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
+    #[expect(unsafe_code)]
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         init: WorkerGlobalScopeInit,
@@ -343,10 +345,8 @@ impl DedicatedWorkerGlobalScope {
             insecure_requests_policy,
             font_context,
         ));
-        DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
-            GlobalScope::get_cx(),
-            scope,
-        )
+        let mut cx = unsafe { temp_cx() };
+        DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(&mut cx, scope)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>

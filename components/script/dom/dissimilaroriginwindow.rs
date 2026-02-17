@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue};
+use script_bindings::script_runtime::temp_cx;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
@@ -45,11 +46,12 @@ pub(crate) struct DissimilarOriginWindow {
 }
 
 impl DissimilarOriginWindow {
+    #[expect(unsafe_code)]
     pub(crate) fn new(
         global_to_clone_from: &GlobalScope,
         window_proxy: &WindowProxy,
     ) -> DomRoot<Self> {
-        let cx = GlobalScope::get_cx();
+        let mut cx = unsafe { temp_cx() };
         let win = Box::new(Self {
             globalscope: GlobalScope::new_inherited(
                 PipelineId::new(),
@@ -72,7 +74,7 @@ impl DissimilarOriginWindow {
             window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),
         });
-        DissimilarOriginWindowBinding::Wrap::<crate::DomTypeHolder>(cx, win)
+        DissimilarOriginWindowBinding::Wrap::<crate::DomTypeHolder>(&mut cx, win)
     }
 
     pub(crate) fn window_proxy(&self) -> DomRoot<WindowProxy> {

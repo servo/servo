@@ -5,7 +5,7 @@
 //! The `Reflector` struct.
 
 use js::rust::HandleObject;
-use script_bindings::interfaces::GlobalScopeHelpers;
+use script_bindings::script_runtime::temp_cx;
 
 use crate::DomTypes;
 use crate::dom::bindings::conversions::DerivedFrom;
@@ -16,21 +16,22 @@ use crate::script_runtime::CanGc;
 
 /// Create the reflector for a new DOM object and yield ownership to the
 /// reflector.
-pub(crate) fn reflect_dom_object<D, T, U>(obj: Box<T>, global: &U, can_gc: CanGc) -> DomRoot<T>
+pub(crate) fn reflect_dom_object<D, T, U>(obj: Box<T>, global: &U, _can_gc: CanGc) -> DomRoot<T>
 where
     D: DomTypes,
     T: DomObject + DomObjectWrap<D>,
     U: DerivedFrom<D::GlobalScope>,
 {
     let global_scope = global.upcast();
-    unsafe { T::WRAP(D::GlobalScope::get_cx(), global_scope, None, obj, can_gc) }
+    let mut cx = unsafe { temp_cx() };
+    unsafe { T::WRAP(&mut cx, global_scope, None, obj) }
 }
 
 pub(crate) fn reflect_dom_object_with_proto<D, T, U>(
     obj: Box<T>,
     global: &U,
     proto: Option<HandleObject>,
-    can_gc: CanGc,
+    _can_gc: CanGc,
 ) -> DomRoot<T>
 where
     D: DomTypes,
@@ -38,7 +39,8 @@ where
     U: DerivedFrom<D::GlobalScope>,
 {
     let global_scope = global.upcast();
-    unsafe { T::WRAP(D::GlobalScope::get_cx(), global_scope, proto, obj, can_gc) }
+    let mut cx = unsafe { temp_cx() };
+    unsafe { T::WRAP(&mut cx, global_scope, proto, obj) }
 }
 
 pub(crate) trait DomGlobal {

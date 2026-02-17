@@ -112,7 +112,7 @@ impl DebuggerGlobalScope {
             get_frame_result_sender: RefCell::new(None),
             eval_result_sender: RefCell::new(None),
         });
-        let global = DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx.into(), global);
+        let global = DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, global);
 
         let mut realm = enter_auto_realm(cx, &*global);
         let mut realm = realm.current_realm();

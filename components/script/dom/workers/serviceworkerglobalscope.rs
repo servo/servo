@@ -23,6 +23,7 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, ParserMetadata, Referrer, RequestBuilder,
 };
 use rand::random;
+use script_bindings::script_runtime::temp_cx;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use style::thread_state::{self, ThreadState};
@@ -266,6 +267,7 @@ impl ServiceWorkerGlobalScope {
         }
     }
 
+    #[expect(unsafe_code)]
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         init: WorkerGlobalScopeInit,
@@ -281,6 +283,7 @@ impl ServiceWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
+        let mut cx = unsafe { temp_cx() };
         let scope = Box::new(ServiceWorkerGlobalScope::new_inherited(
             init,
             worker_url,
@@ -295,7 +298,7 @@ impl ServiceWorkerGlobalScope {
             closing,
             font_context,
         ));
-        ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), scope)
+        ServiceWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(&mut cx, scope)
     }
 
     /// <https://w3c.github.io/ServiceWorker/#run-service-worker-algorithm>

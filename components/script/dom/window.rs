@@ -80,6 +80,7 @@ use script_bindings::codegen::GenericBindings::WindowBinding::ScrollToOptions;
 use script_bindings::conversions::SafeToJSValConvertible;
 use script_bindings::interfaces::WindowHelpers;
 use script_bindings::root::Root;
+use script_bindings::script_runtime::temp_cx;
 use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
 use selectors::attr::CaseSensitivity;
 use servo_arc::Arc as ServoArc;
@@ -3714,6 +3715,7 @@ impl Window {
     }
 
     #[allow(clippy::too_many_arguments)]
+    #[expect(unsafe_code)]
     pub(crate) fn new(
         webview_id: WebViewId,
         runtime: Rc<Runtime>,
@@ -3751,6 +3753,7 @@ impl Window {
         theme: Theme,
         weak_script_thread: Weak<ScriptThread>,
     ) -> DomRoot<Self> {
+        let mut cx = unsafe { temp_cx() };
         let error_reporter = CSSErrorReporter {
             pipelineid: pipeline_id,
             script_chan: control_chan,
@@ -3845,7 +3848,7 @@ impl Window {
             last_activation_timestamp: Cell::new(UserActivationTimestamp::PositiveInfinity),
         });
 
-        WindowBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), win)
+        WindowBinding::Wrap::<crate::DomTypeHolder>(&mut cx, win)
     }
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {

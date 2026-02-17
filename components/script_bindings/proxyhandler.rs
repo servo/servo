@@ -616,7 +616,11 @@ pub(crate) unsafe extern "C" fn maybe_cross_origin_set_rawcx<D: DomTypes>(
 pub(crate) fn maybe_cross_origin_get_prototype<D: DomTypes>(
     cx: &mut CurrentRealm,
     proxy: RawHandleObject,
-    get_proto_object: fn(cx: SafeJSContext, global: HandleObject, rval: MutableHandleObject),
+    get_proto_object: fn(
+        cx: &mut js::context::JSContext,
+        global: HandleObject,
+        rval: MutableHandleObject,
+    ),
     proto: RawMutableHandleObject,
 ) -> bool {
     let proxy = unsafe { Handle::from_raw(proxy) };
@@ -625,11 +629,9 @@ pub(crate) fn maybe_cross_origin_get_prototype<D: DomTypes>(
         let mut realm = AutoRealm::new_from_handle(cx, proxy);
         let mut realm = realm.current_realm();
         let global = D::GlobalScope::from_current_realm(&realm);
-        get_proto_object(
-            unsafe { SafeJSContext::from_ptr(realm.raw_cx()) },
-            global.reflector().get_jsobject(),
-            unsafe { MutableHandleObject::from_raw(proto) },
-        );
+        get_proto_object(&mut realm, global.reflector().get_jsobject(), unsafe {
+            MutableHandleObject::from_raw(proto)
+        });
         return !proto.is_null();
     }
 

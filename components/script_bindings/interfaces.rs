@@ -42,7 +42,7 @@ pub trait DomHelpers<D: DomTypes> {
         args: &CallArgs,
         global: &D::GlobalScope,
         proto_id: PrototypeList::ID,
-        creator: unsafe fn(JSContext, HandleObject, *mut ProtoOrIfaceArray),
+        creator: unsafe fn(&mut js::context::JSContext, HandleObject, *mut ProtoOrIfaceArray),
     ) -> bool;
 
     fn settings_stack() -> &'static LocalKey<RefCell<Vec<StackEntry<D>>>>;
