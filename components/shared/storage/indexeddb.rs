@@ -397,7 +397,6 @@ pub enum ConnectionMsg {
         id: Uuid,
         version: u64,
         old_version: u64,
-        transaction: u64,
     },
     /// A `versionchange` event should be fired for a connection.
     VersionChange {
@@ -503,12 +502,6 @@ pub enum SyncOperation {
         db_name: String,
         mode: IndexedDBTxnMode,
         scope: Vec<String>,
-    },
-    CanStartTransaction {
-        sender: GenericSender<BackendResult<bool>>,
-        origin: ImmutableOrigin,
-        db_name: String,
-        txn: u64,
     },
     /// Request script to recheck transaction commit eligibility.
     TxnMaybeCommit {

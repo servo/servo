@@ -70,9 +70,7 @@ impl IDBFactory {
 
     pub(crate) fn register_indexeddb_transaction(&self, txn: &IDBTransaction) {
         let mut v = self.indexeddb_transactions.borrow_mut();
-        if v.iter()
-            .any(|entry| std::ptr::eq::<IDBTransaction>(&**entry, txn))
-        {
+        if v.iter().any(|entry| &**entry == txn) {
             return;
         }
         v.push(Dom::from_ref(txn));
@@ -81,7 +79,7 @@ impl IDBFactory {
     pub(crate) fn unregister_indexeddb_transaction(&self, txn: &IDBTransaction) {
         self.indexeddb_transactions
             .borrow_mut()
-            .retain(|entry| !std::ptr::eq::<IDBTransaction>(&**entry, txn));
+            .retain(|entry| &**entry != txn);
     }
 
     pub(crate) fn cleanup_indexeddb_transactions(&self) -> bool {
@@ -153,9 +151,15 @@ impl IDBFactory {
                 .map(|(_id, request)| request.as_rooted())
                 .collect()
         };
+        let mut cleared = 0usize;
         for request in requests {
-            request.clear_transaction_if_matches(transaction);
+            cleared += request.clear_transaction_if_matches(transaction) as usize;
         }
+
+        debug_assert_eq!(
+            cleared, 1,
+            "A versionchange transaction should belong to exactly one IDBOpenDBRequest."
+        );
     }
 
     pub fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<IDBFactory> {
@@ -241,7 +245,6 @@ impl IDBFactory {
                 id,
                 version,
                 old_version,
-                transaction,
             } => {
                 let global = self.global();
 
@@ -254,7 +257,7 @@ impl IDBFactory {
 
                 let connection =
                     request.get_or_init_connection(&global, name, version, false, can_gc);
-                request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
+                request.upgrade_db_version(&connection, old_version, version, can_gc);
             },
             ConnectionMsg::VersionError { name, id } => {
                 // Step 2.1 If result is an error, see dispatch_error().

@@ -107,6 +107,7 @@ struct IndexedDBEnvironment<E: KvsEngine> {
     running_readonly: HashSet<u64>,
     handled_next_unhandled_request_id: FxHashMap<u64, u64>,
     handled_pending: FxHashMap<u64, HashSet<u64>>,
+    pending_commit_callbacks: FxHashMap<u64, Vec<GenericCallback<TxnCompleteMsg>>>,
 }
 
 impl<E: KvsEngine> IndexedDBEnvironment<E> {
@@ -126,6 +127,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             running_readonly: HashSet::new(),
             handled_next_unhandled_request_id: FxHashMap::default(),
             handled_pending: FxHashMap::default(),
+            pending_commit_callbacks: FxHashMap::default(),
         }
     }
 
@@ -348,11 +350,18 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
                 // Notify the manager thread when the engine finishes so it can:
                 // - clear running_readonly / running_readwrite
                 // - re-run scheduling (maybe start next queued txn or next batch)
-                let _ = manager_sender.send(IndexedDBThreadMsg::EngineTxnBatchComplete {
+                if let Err(err) = manager_sender.send(IndexedDBThreadMsg::EngineTxnBatchComplete {
                     origin,
                     db_name,
                     txn,
-                });
+                }) {
+                    error!(
+                        "Failed to send IndexedDBThreadMsg::EngineTxnBatchComplete: {:?}",
+                        err
+                    );
+                    // TODO: Prevent backend/manager shutdown while a transaction batch is
+                    // running so completion notification cannot be dropped in normal flow.
+                }
 
                 // We have a sender if the transaction is started manually, and they
                 // probably want to know when it is finished.
@@ -402,15 +411,33 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         }
     }
 
+    fn can_commit_now(&self, txn: u64) -> bool {
+        self.can_start_by_spec(txn) && self.can_notify_txn_maybe_commit(txn)
+    }
+
+    fn queue_pending_commit_callback(
+        &mut self,
+        txn: u64,
+        callback: GenericCallback<TxnCompleteMsg>,
+    ) {
+        self.pending_commit_callbacks
+            .entry(txn)
+            .or_default()
+            .push(callback);
+    }
+
+    fn take_pending_commit_callbacks(&mut self, txn: u64) -> Vec<GenericCallback<TxnCompleteMsg>> {
+        self.pending_commit_callbacks
+            .remove(&txn)
+            .unwrap_or_default()
+    }
+
     fn maybe_commit_candidates(&self) -> Vec<u64> {
         let mut candidates: Vec<(u64, u64)> = self
             .txn_info
             .iter()
             .filter_map(|(txn, info)| {
-                if !info.live ||
-                    !self.can_start_by_spec(*txn) ||
-                    !self.can_notify_txn_maybe_commit(*txn)
-                {
+                if !info.live || !self.can_commit_now(*txn) {
                     return None;
                 }
                 Some((*txn, info.created_seq))
@@ -434,6 +461,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         self.running_readonly.remove(&txn);
         self.handled_next_unhandled_request_id.remove(&txn);
         self.handled_pending.remove(&txn);
+        self.pending_commit_callbacks.remove(&txn);
     }
 
     fn abort_transaction(&mut self, txn: u64) {
@@ -448,6 +476,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         self.running_readonly.remove(&txn);
         self.handled_next_unhandled_request_id.remove(&txn);
         self.handled_pending.remove(&txn);
+        self.pending_commit_callbacks.remove(&txn);
     }
 
     fn has_key_generator(&self, store_name: &str) -> bool {
@@ -849,6 +878,44 @@ impl IndexedDBManager {
         }
     }
 
+    fn handle_txn_maybe_commit(&mut self, origin: ImmutableOrigin, db_name: String, txn: u64) {
+        let key = IndexedDBDescription {
+            origin: origin.clone(),
+            name: db_name.clone(),
+        };
+        let callbacks = {
+            let Some(db) = self.databases.get_mut(&key) else {
+                return;
+            };
+            if !db.can_commit_now(txn) {
+                return;
+            }
+            db.take_pending_commit_callbacks(txn)
+        };
+
+        if callbacks.is_empty() {
+            self.dispatch_txn_maybe_commit(origin, db_name, txn);
+            return;
+        }
+
+        for callback in callbacks {
+            if callback
+                .send(TxnCompleteMsg {
+                    origin: origin.clone(),
+                    db_name: db_name.clone(),
+                    txn,
+                    result: Ok(()),
+                })
+                .is_err()
+            {
+                error!(
+                    "Failed to send deferred commit completion for db '{}' txn {}.",
+                    db_name, txn
+                );
+            }
+        }
+    }
+
     /// Handle when an upgrade transaction finishes in script.
     fn handle_upgrade_transaction_finished(
         &mut self,
@@ -1210,6 +1277,10 @@ impl IndexedDBManager {
         // Step 4: Set db’s upgrade transaction to transaction.
         // Step 5: Set transaction’s state to inactive.
         // Step 6: Start transaction.
+        // Note: this backend message does not carry an upgrade transaction id.
+        // The front entry in this per-database queue is the only open request being
+        // upgraded, and script creates the matching IDBTransaction (with its backend id)
+        // when handling ConnectionMsg::Upgrade for that request id.
         // TODO: implement transactions and their lifecyle.
 
         // Step 7: Let old version be db’s version.
@@ -1232,7 +1303,6 @@ impl IndexedDBManager {
                 name: db_name.clone(),
                 version: new_version,
                 old_version,
-                transaction: 0,
             })
             .is_err()
         {
@@ -1801,31 +1871,87 @@ impl IndexedDBManager {
                 // https://w3c.github.io/IndexedDB/#commit-a-transaction
                 // TODO: implement the commit algorithm and only reply after the backend has
                 // transitioned the transaction to committed/aborted (should be atomic).
-                let _ = callback.send(TxnCompleteMsg {
-                    origin: origin.clone(),
-                    db_name: db_name.clone(),
-                    txn,
-                    result: Ok(()),
-                });
                 if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
+                    if db.can_commit_now(txn) {
+                        if callback
+                            .send(TxnCompleteMsg {
+                                origin: origin.clone(),
+                                db_name: db_name.clone(),
+                                txn,
+                                result: Ok(()),
+                            })
+                            .is_err()
+                        {
+                            error!(
+                                "Failed to send immediate commit completion for db '{}' txn {}.",
+                                db_name, txn
+                            );
+                        }
+                    } else {
+                        db.queue_pending_commit_callback(txn, callback);
+                    }
                     db.schedule_transactions(origin.clone(), &db_name);
+                } else {
+                    if callback
+                        .send(TxnCompleteMsg {
+                            origin: origin.clone(),
+                            db_name: db_name.clone(),
+                            txn,
+                            result: Err(BackendError::DbNotFound),
+                        })
+                        .is_err()
+                    {
+                        error!(
+                            "Failed to send commit failure (DbNotFound) for db '{}' txn {}.",
+                            db_name, txn
+                        );
+                    }
                 }
             },
-            SyncOperation::Abort(callback, origin, db_name, txn) => {
+            SyncOperation::Abort(abort_callback, origin, db_name, txn) => {
                 // https://w3c.github.io/IndexedDB/#abort-a-transaction
                 // “When a transaction is aborted the implementation must undo (roll back) any changes that were made to the database during that transaction.”
                 // TODO: implement the abort algorithm and rollback for the engine.
+                let pending_commit_callbacks =
+                    if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
+                        let callbacks = db.take_pending_commit_callbacks(txn);
+                        db.abort_transaction(txn);
+                        callbacks
+                    } else {
+                        Vec::new()
+                    };
                 if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
-                    db.abort_transaction(txn);
+                    db.schedule_transactions(origin.clone(), &db_name);
                 }
-                let _ = callback.send(storage_traits::indexeddb::TxnCompleteMsg {
-                    origin: origin.clone(),
-                    db_name: db_name.clone(),
-                    txn,
-                    result: Err(BackendError::Abort),
-                });
-                if let Some(db) = self.get_database_mut(origin.clone(), db_name.clone()) {
-                    db.schedule_transactions(origin, &db_name);
+                for callback in pending_commit_callbacks {
+                    if callback
+                        .send(storage_traits::indexeddb::TxnCompleteMsg {
+                            origin: origin.clone(),
+                            db_name: db_name.clone(),
+                            txn,
+                            result: Err(BackendError::Abort),
+                        })
+                        .is_err()
+                    {
+                        error!(
+                            "Failed to send deferred abort completion for db '{}' txn {}.",
+                            db_name, txn
+                        );
+                    }
+                }
+                if abort_callback
+                    .send(storage_traits::indexeddb::TxnCompleteMsg {
+                        origin: origin.clone(),
+                        db_name: db_name.clone(),
+                        txn,
+                        result: Err(BackendError::Abort),
+                    })
+                    .is_err()
+                {
+                    error!(
+                        "Failed to send abort completion for db '{}' txn {}.",
+                        db_name, txn
+                    );
                 }
             },
             SyncOperation::UpgradeTransactionFinished {
@@ -1868,7 +1994,7 @@ impl IndexedDBManager {
                 db_name,
                 txn,
             } => {
-                self.dispatch_txn_maybe_commit(origin, db_name, txn);
+                self.handle_txn_maybe_commit(origin, db_name, txn);
             },
             SyncOperation::TransactionFinished {
                 origin,
@@ -1884,7 +2010,7 @@ impl IndexedDBManager {
                         Vec::new()
                     };
                 for candidate in maybe_commit_txns {
-                    self.dispatch_txn_maybe_commit(origin.clone(), db_name.clone(), candidate);
+                    self.handle_txn_maybe_commit(origin.clone(), db_name.clone(), candidate);
                 }
             },
             SyncOperation::CreateTransaction {
@@ -1904,18 +2030,6 @@ impl IndexedDBManager {
                     db.register_transaction(transaction_id, mode, scope);
                     db.schedule_transactions(origin, &db_name);
                     let _ = sender.send(Ok(transaction_id));
-                } else {
-                    let _ = sender.send(Err(BackendError::DbNotFound));
-                }
-            },
-            SyncOperation::CanStartTransaction {
-                sender,
-                origin,
-                db_name,
-                txn,
-            } => {
-                if let Some(db) = self.get_database(origin, db_name) {
-                    let _ = sender.send(Ok(db.can_start_by_spec(txn)));
                 } else {
                     let _ = sender.send(Err(BackendError::DbNotFound));
                 }

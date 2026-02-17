@@ -225,6 +225,8 @@ impl IDBTransaction {
             .dom_manipulation_task_source()
             .to_sendable();
 
+        // TODO: Reuse a shared transaction callback path (similar to IDBFactory
+        // connection callbacks) instead of creating one per transaction operation.
         let callback = GenericCallback::new(
             global.time_profiler_chan().clone(),
             move |message: Result<TxnCompleteMsg, ipc_channel::IpcError>| {
@@ -280,25 +282,6 @@ impl IDBTransaction {
         true
     }
 
-    fn can_start_in_backend(&self) -> bool {
-        let global = self.global();
-        let (sender, receiver) = channel(global.time_profiler_chan().clone()).unwrap();
-        let operation = SyncOperation::CanStartTransaction {
-            sender,
-            origin: global.origin().immutable().clone(),
-            db_name: self.db.get_name().to_string(),
-            txn: self.serial_number,
-        };
-        if self
-            .get_idb_thread()
-            .send(IndexedDBThreadMsg::Sync(operation))
-            .is_err()
-        {
-            return false;
-        }
-        receiver.recv().ok().and_then(Result::ok).unwrap_or(false)
-    }
-
     pub(crate) fn maybe_commit(&self) {
         // https://w3c.github.io/IndexedDB/#transaction-lifecycle
         // Step 5: transaction when all requests
@@ -321,12 +304,6 @@ impl IDBTransaction {
         if handled_next_unhandled_id != issued_count {
             return;
         }
-        // Commit must respect backend scheduling for overlapping scopes.
-        // https://w3c.github.io/IndexedDB/#transaction-scheduling
-        if !self.can_start_in_backend() {
-            return;
-        }
-
         if !self.attempt_commit() {
             // We failed to initiate the commit algorithm (backend task could not be queued),
             // so the transaction cannot progress to a successful "complete".
@@ -349,11 +326,6 @@ impl IDBTransaction {
             return;
         }
         if self.active.get() || self.pending_request_count.get() != 0 {
-            return;
-        }
-        // https://w3c.github.io/IndexedDB/#transaction-scheduling
-        // Commit attempts must wait until backend scheduling constraints are met.
-        if !self.can_start_in_backend() {
             return;
         }
         self.attempt_commit();

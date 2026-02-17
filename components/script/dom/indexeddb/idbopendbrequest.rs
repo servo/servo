@@ -162,7 +162,6 @@ impl IDBOpenDBRequest {
         connection: &IDBDatabase,
         old_version: u64,
         version: u64,
-        _transaction: u64,
         can_gc: CanGc,
     ) {
         let global = self.global();
@@ -272,7 +271,7 @@ impl IDBOpenDBRequest {
         self.idbrequest.clear_transaction();
     }
 
-    pub(crate) fn clear_transaction_if_matches(&self, transaction: &IDBTransaction) {
+    pub(crate) fn clear_transaction_if_matches(&self, transaction: &IDBTransaction) -> bool {
         let matches = self
             .idbrequest
             .transaction()
@@ -280,6 +279,7 @@ impl IDBOpenDBRequest {
         if matches {
             self.idbrequest.clear_transaction();
         }
+        matches
     }
 
     pub fn dispatch_success(&self, name: String, version: u64, upgraded: bool, can_gc: CanGc) {
