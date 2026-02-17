@@ -779,8 +779,7 @@ impl Debug for ImageUpdate {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-/// Serialized `ImageData`. It contains IPC byte channel receiver to prevent from loading bytes too
-/// slow.
+/// Serialized `ImageData`.
 pub enum SerializableImageData {
     /// A simple series of bytes, provided by the embedding and owned by WebRender.
     /// The format is stored out-of-band, currently in ImageDescriptor.
