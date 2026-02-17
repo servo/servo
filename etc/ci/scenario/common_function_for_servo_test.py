@@ -203,7 +203,7 @@ def port_forward(port: int | str, reverse: bool) -> PortMapResult:
     return PortMapResult.SUCCESSFUL
 
 
-def setup_hdc_forward(timeout: int = 5):
+def setup_hdc_forward(timeout: int = 5, webdriver_port: int = WEBDRIVER_PORT, host_service_port: int = MITMPROXY_PORT):
     """
     set hdc forward
     :return: If successful, return driver; If failed, return False
@@ -214,14 +214,14 @@ def setup_hdc_forward(timeout: int = 5):
     start_time = time.time()
     while time.time() - start_time < timeout:
         try:
-            if port_forward(WEBDRIVER_PORT, False).is_success() and port_forward(MITMPROXY_PORT, True).is_success():
+            if port_forward(webdriver_port, False).is_success() and port_forward(host_service_port, True).is_success():
                 return
             time.sleep(0.2)
         except FileNotFoundError:
             print("HDC command not found. Make sure OHOS SDK is installed and hdc is in PATH.")
             raise
         except subprocess.TimeoutExpired:
-            print(f"HDC port forwarding timed out on port {WEBDRIVER_PORT}")
+            print(f"HDC port forwarding timed out on port {webdriver_port}")
             raise
         except Exception as e:
             print(f"failed to setup HDC forwarding: {e}")

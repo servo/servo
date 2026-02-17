@@ -10,7 +10,6 @@
 # except according to those terms.
 
 import random
-import subprocess
 from enum import Enum
 import os
 import time
@@ -28,7 +27,7 @@ from selenium.webdriver.common.keys import Keys
 from urllib3.exceptions import ProtocolError
 from dataclasses import dataclass
 import threading
-
+from common_function_for_servo_test import create_driver, setup_hdc_forward, stop_servo, close_usb_popup
 
 class PortMapResult(Enum):
     SUCCESSFUL = (1,)
@@ -64,141 +63,16 @@ class LocalFileServe:
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, directory=DIRECTORY, **kwargs)
 
-        # handler = partial(SimpleHTTPRequestHandler, directory = DIRECTORY)
         self.local_server = ThreadingHTTPServer(
             ("0.0.0.0", self.port),
             StaticHandler,
         )
 
-        # self.local_server.serve_forever()
         thread = threading.Thread(target=self.local_server.serve_forever, daemon=True)
         thread.start()
 
     def __exit__(self, *args):
         self.local_server.server_close()
-
-
-def create_driver(timeout: int = 10) -> webdriver.Remote:
-    print("Trying to create driver")
-    options = ArgOptions()
-    options.set_capability("browserName", "servo")
-    driver = None
-    start_time = time.time()
-    while driver is None and time.time() - start_time < timeout:
-        try:
-            driver = webdriver.Remote(command_executor=SERVO_URL, options=options)
-        except (ConnectionError, ProtocolError):
-            time.sleep(0.2)
-        except Exception as e:
-            print(f"Unexpected exception when creating webdriver: {e}, {type(e)}")
-            time.sleep(1)
-    print(
-        f"Established Webdriver connection in {time.time() - start_time}s",
-    )
-    return driver
-
-
-def port_forward(port: int | str, reverse: bool) -> PortMapResult:
-    cmd = ["hdc", "fport", "ls"]
-    output = subprocess.check_output(cmd, encoding="utf-8")
-    if f"tcp:{port}" in output:
-        return PortMapResult.PORT_EXISTS
-
-    cmd = []
-    if reverse:
-        cmd = ["hdc", "rport", f"tcp:{port}", f"tcp:{port}"]
-    else:
-        cmd = ["hdc", "fport", f"tcp:{port}", f"tcp:{port}"]
-    print(f"Setting up HDC port forwarding: {' '.join(cmd)}")
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-    if result.stdout.startswith("[Fail]TCP Port listen failed"):
-        print("Forward failed")
-        return PortMapResult.FORWARD_FAILED
-    elif result.stdout.startswith("[Fail]"):
-        print("Forward failed other way")
-        raise RuntimeError(f"HDC port forwarding failed with: {result.stdout}")
-
-    print("Port forward successful")
-    return PortMapResult.SUCCESSFUL
-
-
-def setup_hdc_forward(timeout: int = 5):
-    """
-    set hdc forward
-    :return: If successful, return driver; If failed, return False
-    """
-    for v in ("HTTP_PROXY", "http_proxy", "HTTPS_PROXY", "https_proxy"):
-        os.environ.pop(v, None)
-
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        try:
-            if (
-                port_forward(WEBDRIVER_PORT, False).is_success()
-                and port_forward(BLINK_PERF_FILES_SERVE_PORT, True).is_success()
-            ):
-                return
-            time.sleep(0.2)
-        except FileNotFoundError:
-            print("HDC command not found. Make sure OHOS SDK is installed and hdc is in PATH.")
-            raise
-        except subprocess.TimeoutExpired:
-            print(f"HDC port forwarding timed out on port {WEBDRIVER_PORT}")
-            raise
-        except Exception as e:
-            print(f"failed to setup HDC forwarding: {e}")
-            raise
-    raise TimeoutError("HDC port forwarding timed out")
-
-
-def stop_servo():
-    """stop servo application"""
-    print("Prepare to stop Test Application...")
-    cmd = ["hdc", "shell", "aa force-stop org.servo.servo"]
-    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-    print("Stop Test Application successful!")
-
-
-def close_usb_popup(hdc: HarmonyDeviceConnector):
-    """
-    When connecting an OpenHarmony device, a system pop-up will be opened on the device,
-    asking the user to confirm which USB mode should be used for the connection.
-    This pop-up overlays servo, and will hence disturb some inputs, and affect screenshots.
-    """
-    try:
-        if not is_servo_window_focused(hdc):
-            print("The focused window does not belong to servo. Sending back-event to try and close the window.")
-            # The USB pop-up can be dismissed by simulating the back key-event.
-            hdc.cmd("uitest uiInput keyEvent Back")
-        if not is_servo_window_focused(hdc):
-            print("The focused window still isn't servo. Giving up.")
-    except Exception as e:
-        print(f"Internal error trying to close the USB pop-up overlay: {e}. Ignoring...")
-
-
-def is_servo_window_focused(hdc: HarmonyDeviceConnector) -> bool:
-    completed_process = hdc.cmd("hidumper -s WindowManagerService -a '-a'", capture_output=True, encoding="utf-8")
-    output = str(completed_process.stdout)
-    lines = output.splitlines()
-    focused_window = None
-    servo_window_id = None
-    for line in lines:
-        if line.lower().startswith("focus window:"):
-            focused_window = int(line.split(":")[1].strip())
-        if line.lower().startswith("servo"):
-            # The table format is as follows:
-            # WindowName DisplayId Pid WinId
-            servo_window_id = int(line.split()[3])
-        if line.lower().startswith("windowname"):
-            table_headers = line.split()
-            assert table_headers[0].lower() == "windowname"
-            assert table_headers[3].lower() == "winid"
-        if focused_window is not None and servo_window_id is not None:
-            break
-    if focused_window is None or servo_window_id is None:
-        raise RuntimeError("Could not find focused window or servo window id.")
-    return focused_window == servo_window_id
-
 
 @dataclass(frozen=True)
 class TestResult:
@@ -234,35 +108,11 @@ def get_serve_path_for_file(root: str, file: str) -> str:
 
 def reset_tab_ram(driver: webdriver.Remote):
     original_tab = driver.current_window_handle
-    # driver.switch_to.new_window("tab")
-    # driver.get("about:blank")
-    # driver.switch_to.window(original_tab)
-    # driver.close()
-    
-    # driver.get("https://www.w3schools.com/w3css/tryw3css_examples_newspaper.htm")
-    # time.sleep(2)
-    # actions = ActionChains(driver)
-    # actions.key_down(Keys.CONTROL).send_keys("t").key_up(Keys.CONTROL).perform()
-    # driver.switch_to.new_window("tab")
-    # print(">>> new tab")
-    # driver.newWindow()
-    # driver.execute_script("window.open();")
-    # original_tab = driver.current_window_handle
-    # driver.switch_to.window(original_tab)
-
-    # driver.send_keys(Keys.CONTROL + 't')
-    # driver.execute_script("window.open('about:blank')")
     driver.switch_to.new_window('tab')
     driver.get("about:blank")
-
-    # driver.execute_script("window.open('about:blank','secondtab');")
-    # time.sleep(2)
-    # print(">>> go back")
     driver.switch_to.window(original_tab)
-    # time.sleep(2)
     driver.close()
     print(">>> windows has been resets")
-    # time.sleep(60)
     remaining_tab = driver.window_handles[0]
     driver.switch_to.window(remaining_tab)
 
@@ -316,7 +166,7 @@ def write_file(results):
 
 import csv
 def run_tests(webdriver, port):
-    skip_until = "nested-blocks-with-percent-height-and-max-height.html"
+    skip_until = "animate-abspos-deep.html"
 
     final_result = {}
     with open("../../../output.csv", "w", newline="", encoding="utf-8") as f:
@@ -328,7 +178,7 @@ def run_tests(webdriver, port):
                 dir[:] = [d for d in dir if d != "resources"]
                 filePath = file
                 if skip_until is None or skip_until in filePath:
-                    skip_until = None
+                    # skip_until = None
                     if filePath in skipped_tests:
                         continue
                     # print(f">>> ROOT: {root}\n>>> dir: {dir}\n>>> files: {files}\n<<<")
@@ -359,7 +209,7 @@ if __name__ == "__main__":
     try:
         print("Stopping potential old servo instance ...")
         stop_servo()
-        setup_hdc_forward()
+        setup_hdc_forward(webdriver_port=WEBDRIVER_PORT, host_service_port=BLINK_PERF_FILES_SERVE_PORT)
         with LocalFileServe(BLINK_PERF_FILES_SERVE_PORT):
             print("Starting new servo instance...")
             cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver"
