@@ -14,6 +14,7 @@ use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::{Sender, unbounded};
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
+use js::context::JSContext;
 use js::jsapi::{
     HandleValueArray, Heap, IsCallable, IsConstructor, JS_ClearPendingException,
     JS_IsExceptionPending, JSAutoRealm, JSObject, NewArrayObject, Value,
@@ -23,7 +24,6 @@ use js::rust::HandleValue;
 use js::rust::wrappers::{Call, Construct1};
 use net_traits::image_cache::ImageCache;
 use pixels::PixelFormat;
-use script_bindings::script_runtime::temp_cx;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -85,7 +85,6 @@ pub(crate) struct PaintWorkletGlobalScope {
 }
 
 impl PaintWorkletGlobalScope {
-    #[expect(unsafe_code)]
     pub(crate) fn new(
         webview_id: WebViewId,
         pipeline_id: PipelineId,
@@ -93,8 +92,8 @@ impl PaintWorkletGlobalScope {
         inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
+        cx: &mut JSContext,
     ) -> DomRoot<PaintWorkletGlobalScope> {
-        let mut cx = unsafe { temp_cx() };
         debug!(
             "Creating paint worklet global scope for pipeline {}.",
             pipeline_id
@@ -124,7 +123,7 @@ impl PaintWorkletGlobalScope {
                 missing_image_urls: Vec::new(),
             }),
         });
-        PaintWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(&mut cx, global)
+        PaintWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, global)
     }
 
     pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {

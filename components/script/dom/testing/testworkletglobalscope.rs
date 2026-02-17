@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::Sender;
 use dom_struct::dom_struct;
-use script_bindings::script_runtime::temp_cx;
+use js::context::JSContext;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -29,7 +29,6 @@ pub(crate) struct TestWorkletGlobalScope {
 }
 
 impl TestWorkletGlobalScope {
-    #[expect(unsafe_code)]
     pub(crate) fn new(
         webview_id: WebViewId,
         pipeline_id: PipelineId,
@@ -37,8 +36,8 @@ impl TestWorkletGlobalScope {
         inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
+        cx: &mut JSContext,
     ) -> DomRoot<TestWorkletGlobalScope> {
-        let mut cx = unsafe { temp_cx() };
         debug!(
             "Creating test worklet global scope for pipeline {}.",
             pipeline_id
@@ -54,7 +53,7 @@ impl TestWorkletGlobalScope {
             ),
             lookup_table: Default::default(),
         });
-        TestWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(&mut cx, global)
+        TestWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, global)
     }
 
     pub(crate) fn perform_a_worklet_task(&self, task: TestWorkletTask) {

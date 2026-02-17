@@ -72,6 +72,7 @@ impl WorkletGlobalScope {
                 inherited_secure_context,
                 executor,
                 init,
+                cx,
             )),
             WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
                 webview_id,
@@ -80,6 +81,7 @@ impl WorkletGlobalScope {
                 inherited_secure_context,
                 executor,
                 init,
+                cx,
             )),
         };
 

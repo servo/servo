@@ -23,7 +23,6 @@ use net_traits::request::{
     CredentialsMode, Destination, InsecureRequestsPolicy, Origin, ParserMetadata,
     PreloadedResources, Referrer, RequestBuilder, RequestClient, RequestMode,
 };
-use script_bindings::script_runtime::temp_cx;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 
@@ -304,7 +303,6 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
-    #[expect(unsafe_code)]
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         init: WorkerGlobalScopeInit,
@@ -324,6 +322,7 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Option<Arc<FontContext>>,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
             init,
@@ -345,8 +344,7 @@ impl DedicatedWorkerGlobalScope {
             insecure_requests_policy,
             font_context,
         ));
-        let mut cx = unsafe { temp_cx() };
-        DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(&mut cx, scope)
+        DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
@@ -495,6 +493,7 @@ impl DedicatedWorkerGlobalScope {
                     control_receiver,
                     insecure_requests_policy,
                     font_context,
+                    cx,
                 );
                 debugger_global.fire_add_debuggee(
                     CanGc::from_cx(cx),
