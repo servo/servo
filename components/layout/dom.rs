@@ -322,11 +322,17 @@ pub(crate) trait NodeExt<'dom> {
 
     fn repair_style(&self, context: &SharedStyleContext);
 
-    /// Whether or not this node isolates downward flowing box tree rebuild damage. Roughly,
-    /// this corresponds to independent formatting context boundaries. The node's boxes
-    /// themselves will be rebuilt, but not the descendant node's boxes. When this node
-    /// has no box yet, `false` is returned.
-    fn isolates_box_tree_rebuild_damage(&self) -> bool;
+    /// Whether or not this node isolates downward flowing box tree rebuild damage and
+    /// fragment tree layout cache damage. Roughly, this corresponds to independent
+    /// formatting context boundaries.
+    ///
+    /// - The node's boxes themselves will be rebuilt, but not the descendant node's
+    ///   boxes.
+    /// - The node's fragment tree layout will be rebuilt, not the descendent node's
+    ///   fragment tree layout cache.
+    ///
+    /// When this node has no box yet, `false` is returned.
+    fn isolates_damage_for_damage_propagation(&self) -> bool;
 }
 
 impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
@@ -486,7 +492,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         }
     }
 
-    fn isolates_box_tree_rebuild_damage(&self) -> bool {
+    fn isolates_damage_for_damage_propagation(&self) -> bool {
         let Some(inner_layout_data) = self.inner_layout_data() else {
             return false;
         };

@@ -134,9 +134,17 @@ pub(crate) fn compute_damage_and_repair_style_inner(
     damage_for_children.truncate();
     let rebuild_children = element_damage.contains(LayoutDamage::rebuild_box_tree()) ||
         (damage_from_parent.contains(LayoutDamage::rebuild_box_tree()) &&
-            !node.isolates_box_tree_rebuild_damage());
+            !node.isolates_damage_for_damage_propagation());
     if rebuild_children {
         damage_for_children.insert(LayoutDamage::rebuild_box_tree());
+    } else if damage_for_children.contains(RestyleDamage::RELAYOUT) &&
+        !element_damage.contains(RestyleDamage::RELAYOUT) &&
+        node.isolates_damage_for_damage_propagation()
+    {
+        // If not rebuilding the boxes for this node, but fragments need to be rebuilt
+        // only because of an ancestor, fragment layout caches should still be valid when
+        // crossing down into new independent formatting contexts.
+        damage_for_children.remove(RestyleDamage::RELAYOUT);
     }
 
     let mut damage_from_children = RestyleDamage::empty();
