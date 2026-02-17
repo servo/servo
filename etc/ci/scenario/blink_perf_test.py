@@ -42,7 +42,7 @@ WEBDRIVER_PORT = 7000
 BLINK_PERF_FILES_SERVE_PORT = random.randrange(7150, 9000)
 SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
 ABOUT_BLANK = "about:blank"
-DIRECTORY = "../../../tests/blink_perf_tests/perf_tests"
+DIRECTORY = "tests/blink_perf_tests/perf_tests"
 
 skipped_tests = [
     "large-table-with-collapsed-borders-and-no-colspans.html", # RAM
@@ -161,7 +161,7 @@ def oswalk_error(error: OSError):
 
 
 def write_file(results):
-    with open("../../../results.json", "w") as f:
+    with open("results.json", "w") as f:
         json.dump(results, f)
 
 import csv
@@ -169,11 +169,11 @@ def run_tests(webdriver, port):
     skip_until = "animate-abspos-deep.html"
 
     final_result = {}
-    with open("../../../output.csv", "w", newline="", encoding="utf-8") as f:
+    with open("output.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["name", "return"])
 
-        for root, dir, files in os.walk("../../../tests/blink_perf_tests/perf_tests/layout", onerror=oswalk_error):
+        for root, dir, files in os.walk("tests/blink_perf_tests/perf_tests/layout", onerror=oswalk_error):
             for file in files:
                 dir[:] = [d for d in dir if d != "resources"]
                 filePath = file
