@@ -35,7 +35,6 @@ use fonts::FontContext;
 use indexmap::IndexSet;
 use ipc_channel::ipc::{self};
 use ipc_channel::router::ROUTER;
-use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::{
     CurrentGlobalOrNull, GetNonCCWObjectGlobal, HandleObject, Heap, JSContext, JSObject, JSScript,
 };
@@ -114,7 +113,6 @@ use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::global_scope_script_execution::{compile_script, evaluate_script};
-use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::performance::Performance;
@@ -2327,22 +2325,6 @@ impl GlobalScope {
         unsafe { Self::from_context(*cx, realm) }
     }
 
-    /// Returns the global object of the realm that the given JS object
-    /// was created in, after unwrapping any wrappers.
-    #[expect(unsafe_code)]
-    pub(crate) unsafe fn from_object_maybe_wrapped(
-        mut obj: *mut JSObject,
-        cx: *mut JSContext,
-    ) -> DomRoot<Self> {
-        unsafe {
-            if IsWrapper(obj) {
-                obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ false);
-                assert!(!obj.is_null());
-            }
-            GlobalScope::from_object(obj)
-        }
-    }
-
     pub(crate) fn add_uncaught_rejection(&self, rejection: HandleObject) {
         self.uncaught_rejections
             .borrow_mut()
@@ -2487,10 +2469,6 @@ impl GlobalScope {
 
     pub(crate) fn send_to_embedder(&self, msg: EmbedderMsg) {
         self.script_to_embedder_chan().send(msg).unwrap();
-    }
-
-    pub(crate) fn send_to_constellation(&self, msg: ScriptToConstellationMessage) {
-        self.script_to_constellation_chan().send(msg).unwrap();
     }
 
     /// Get the `PipelineId` for this global scope.
@@ -2969,17 +2947,6 @@ impl GlobalScope {
 
         // TODO: plug worklets into this.
         true
-    }
-
-    /// Returns the idb factory for this global.
-    /// TODO: move the idb to the global itself.
-    pub(crate) fn get_indexeddb(&self) -> DomRoot<IDBFactory> {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.IndexedDB();
-        } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.IndexedDB();
-        }
-        unreachable!("IndexedDB is only exposed on Window and WorkerGlobalScope.");
     }
 
     /// Perform a microtask checkpoint.
@@ -3476,10 +3443,6 @@ impl GlobalScope {
 
     pub(crate) fn resolved_module_set(&self) -> Ref<'_, HashSet<ResolvedModule>> {
         self.resolved_module_set.borrow()
-    }
-
-    pub(crate) fn resolved_module_set_mut(&self) -> RefMut<'_, HashSet<ResolvedModule>> {
-        self.resolved_module_set.borrow_mut()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#add-module-to-resolved-module-set>
