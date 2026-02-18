@@ -85,7 +85,7 @@ def kill_servo():
     subprocess.Popen(["killall", "servo"])
 
 
-_REGEX_RESULTS_LOG_ELEMENT = re.compile(
+REGEX_RESULTS_LOG_ELEMENT = re.compile(
     r"""
 Time:\s+
 values\s+[0-9.,\s]+(?P<unit>ms|runs\/s)\s+
@@ -118,7 +118,7 @@ def test(s: str, driver: webdriver.Remote) -> TestResult | AbortReason:
         for i in range(MAX_WAIT_TIME):
             element = driver.find_element(By.ID, "log")
             text = element.text
-            results_log_groups = _REGEX_RESULTS_LOG_ELEMENT.search(text)
+            results_log_groups = REGEX_RESULTS_LOG_ELEMENT.search(text)
             if results_log_groups:
                 avg_line = float(results_log_groups.group("avg"))
                 min_line = float(results_log_groups.group("min"))
@@ -197,12 +197,14 @@ def main():
                         combined_result["lower_value"] = result.lower_value
                         combined_result["upper_value"] = result.upper_value
 
-                        bencher_unit = "other"
+                        bencher_unit = None
 
                         if result.unit == "ms":
                             bencher_unit = "ms"
                         elif result.unit == "runs/s":
                             bencher_unit = "throughput"
+                        else:
+                            bencher_unit = "other"
 
                         final_result[canonical_test_path(filePath, args.prepend)] = {bencher_unit: combined_result}
 
