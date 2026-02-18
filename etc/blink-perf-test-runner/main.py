@@ -85,7 +85,7 @@ def kill_servo():
     subprocess.Popen(["killall", "servo"])
 
 
-_PATTERN = re.compile(
+_REGEX_RESULTS_LOG_ELEMENT = re.compile(
     r"""
 Time:\s+
 values\s+[0-9.,\s]+(?P<unit>ms|runs\/s)\s+
@@ -118,12 +118,12 @@ def test(s: str, driver: webdriver.Remote) -> TestResult | AbortReason:
         for i in range(MAX_WAIT_TIME):
             element = driver.find_element(By.ID, "log")
             text = element.text
-            m = _PATTERN.search(text)
-            if m:
-                avg_line = float(m.group("avg"))
-                min_line = float(m.group("min"))
-                max_line = float(m.group("max"))
-                unit = m.group("unit")
+            results_log_groups = _REGEX_RESULTS_LOG_ELEMENT.search(text)
+            if results_log_groups:
+                avg_line = float(results_log_groups.group("avg"))
+                min_line = float(results_log_groups.group("min"))
+                max_line = float(results_log_groups.group("max"))
+                unit = results_log_groups.group("unit")
             if avg_line is not None and min_line is not None and max_line is not None and unit is not None:
                 return TestResult(value=avg_line, lower_value=min_line, upper_value=max_line, unit=unit)
             time.sleep(1)
@@ -133,6 +133,7 @@ def test(s: str, driver: webdriver.Remote) -> TestResult | AbortReason:
     except Exception as e:
         print(f"Some other exception for this test case: {e}")
         return AbortReason.Panic
+    print("Wait for valid log element timed out. Could not find valid log.")
     return AbortReason.NotFound
 
 
@@ -180,7 +181,7 @@ def main():
     time.sleep(2)
     if webdriver:
         webdriver.implicitly_wait(30)
-        for root, dir, files in os.walk("tests/blink_perf_tests/perf_tests/layout", onerror=oswalk_error):
+        for root, _, files in os.walk("tests/blink_perf_tests/perf_tests/layout", onerror=oswalk_error):
             for file in files:
                 if test_file(file):
                     filePath = os.path.join(os.path.abspath(root), file)
@@ -196,10 +197,14 @@ def main():
                         combined_result["lower_value"] = result.lower_value
                         combined_result["upper_value"] = result.upper_value
 
+                        bencher_unit = "other"
+
                         if result.unit == "ms":
-                            final_result[canonical_test_path(filePath, args.prepend)] = {"ms": combined_result}
-                        else:
-                            final_result[canonical_test_path(filePath, args.prepend)] = {"throughput": combined_result}
+                            bencher_unit = "ms"
+                        elif result.unit == "runs/s":
+                            bencher_unit = "throughput"
+
+                        final_result[canonical_test_path(filePath, args.prepend)] = {bencher_unit: combined_result}
 
     print(final_result)
     write_file(final_result)
