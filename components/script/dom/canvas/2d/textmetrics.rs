@@ -81,7 +81,7 @@ impl TextMetrics {
         alphabeticBaseline: f64,
         ideographicBaseline: f64,
     ) -> DomRoot<TextMetrics> {
-        reflect_dom_object(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(TextMetrics::new_inherited(
                 width,
                 actualBoundingBoxLeft,
@@ -97,12 +97,13 @@ impl TextMetrics {
                 ideographicBaseline,
             )),
             global,
-            CanGc::from_cx(cx),
+            None,
+            cx,
         )
     }
 
     pub(crate) fn default(global: &GlobalScope, cx: &mut JSContext) -> DomRoot<Self> {
-        reflect_dom_object(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(Self {
                 reflector_: Reflector::new(),
                 width: Default::default(),
@@ -119,7 +120,8 @@ impl TextMetrics {
                 ideographicBaseline: Default::default(),
             }),
             global,
-            CanGc::from_cx(cx),
+            None,
+            cx,
         )
     }
 }

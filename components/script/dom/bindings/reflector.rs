@@ -43,6 +43,23 @@ where
     unsafe { T::WRAP(&mut cx, global_scope, proto, obj) }
 }
 
+/// Create the reflector for a new DOM object and yield ownership to the
+/// reflector.
+pub(crate) fn reflect_dom_object_with_proto_and_cx<D, T, U>(
+    obj: Box<T>,
+    global: &U,
+    proto: Option<HandleObject>,
+    cx: &mut js::context::JSContext,
+) -> DomRoot<T>
+where
+    D: DomTypes,
+    T: DomObject + DomObjectWrap<D>,
+    U: DerivedFrom<D::GlobalScope>,
+{
+    let global_scope = global.upcast();
+    unsafe { T::WRAP(cx, global_scope, proto, obj) }
+}
+
 pub(crate) trait DomGlobal {
     /// Returns the [relevant global] in whatever realm is currently active.
     ///
