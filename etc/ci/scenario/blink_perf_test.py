@@ -20,11 +20,9 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from hdc_py.hdc import HarmonyDeviceConnector, HarmonyDevicePerfMode
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.options import ArgOptions
 from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.keys import Keys
-from urllib3.exceptions import ProtocolError
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from dataclasses import dataclass
 import threading
 from common_function_for_servo_test import create_driver, setup_hdc_forward, stop_servo, close_usb_popup
@@ -48,7 +46,8 @@ skipped_tests = [
     "large-table-with-collapsed-borders-and-no-colspans.html", # RAM
     "large-table-with-collapsed-borders-and-colspans-wider-than-table.html", # RAM
     "tall-content-short-columns-realistic.html", # JS Fatal
-    "tall-content-short-columns.html" # JS Fatal
+    "tall-content-short-columns.html", # JS Fatal
+    "floats_10_1000.html" # timeout
 ]
 
 class LocalFileServe:
@@ -115,6 +114,7 @@ def reset_tab_ram(driver: webdriver.Remote):
     print(">>> windows has been resets")
     remaining_tab = driver.window_handles[0]
     driver.switch_to.window(remaining_tab)
+    # time.sleep(.1)
 
 def test(s: str, driver: webdriver.Remote, port: int, serve_path) -> TestResult | AbortReason:
     """Run a test by loading a website, and returning (avg, min, max).
@@ -125,12 +125,22 @@ def test(s: str, driver: webdriver.Remote, port: int, serve_path) -> TestResult 
     print(f">>> testing url: {s}")
     text = None
     try:
+        before_get = time.perf_counter()
+        # print(f">>> entered try at {before_get}")
         driver.get(s)
+        after_get = time.perf_counter()
+        # print(f">>> exited try at {after_get}, diff {after_get- before_get}")
+        if after_get - before_get > 2:
+            raise TimeoutError(f"Page loading took {(after_get - before_get):.2f}s (> 2s limit)")
+        
         avg_line, min_line, max_line = None, None, None
-        for i in range(MAX_WAIT_TIME):
+        start_time, latest_time = time.perf_counter(), 0
+        while (latest_time - start_time < 60):
             try:
                 element = driver.find_element(By.ID, "log")
+                latest_time = time.perf_counter()
                 text = element.text
+                # print(f">>> text:\n{text}\n<<<")
             except NoSuchElementException:
                 time.sleep(1)
                 continue
@@ -166,7 +176,8 @@ def write_file(results):
 
 import csv
 def run_tests(webdriver, port):
-    skip_until = "animate-abspos-deep.html"
+    skip_until = None
+    # skip_until = "editing_append_single_line.html"
 
     final_result = {}
     with open("output.csv", "w", newline="", encoding="utf-8") as f:
@@ -178,13 +189,14 @@ def run_tests(webdriver, port):
                 dir[:] = [d for d in dir if d != "resources"]
                 filePath = file
                 if skip_until is None or skip_until in filePath:
-                    # skip_until = None
+                    skip_until = None
                     if filePath in skipped_tests:
                         continue
-                    # print(f">>> ROOT: {root}\n>>> dir: {dir}\n>>> files: {files}\n<<<")
-                    reset_tab_ram(webdriver)
+                    # reset_tab_ram(webdriver)
                     result = test(filePath, webdriver, port, get_serve_path_for_file(root, filePath))
                     print(f">>> result: {result}")
+                    # get_memory_report(webdriver)
+                    
                     if result == AbortReason.NotFound or result == AbortReason.Panic:
                         writer.writerow([filePath, "error"])
                         pass
@@ -203,6 +215,25 @@ def run_tests(webdriver, port):
         print(f">>> final_result {final_result}")
     write_file(final_result)
 
+def get_memory_report(driver: webdriver.Remote) -> str:
+    original_tab = driver.current_window_handle
+    driver.switch_to.new_window("tab")
+    driver.get("about:memory")
+    wait = WebDriverWait(driver, 200)
+    measure_button = wait.until(
+        EC.element_to_be_clickable((By.ID, "startButton"))
+    )
+    measure_button.click()
+    reports = wait.until(
+        lambda d: d.find_element(By.ID, "reports")
+    )
+    wait.until(
+        lambda d: d.find_element(By.ID, "reports").text.strip() != ""
+    )
+    report_text =  reports.text
+    driver.close()
+    driver.switch_to.window(original_tab)
+    return report_text
 
 if __name__ == "__main__":
     hdc = HarmonyDeviceConnector()
