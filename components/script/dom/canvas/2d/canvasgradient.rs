@@ -17,7 +17,6 @@ use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_a
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient
 #[dom_struct]
