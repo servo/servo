@@ -1683,6 +1683,29 @@ impl Node {
             .and_then(|rare_data| rare_data.implemented_pseudo_element)
     }
 
+    /// <https://w3c.github.io/editing/docs/execCommand/#editing-host-of>
+    pub(crate) fn editing_host_of(&self) -> Option<DomRoot<Node>> {
+        // > The editing host of node is null if node is neither editable nor an editing host;
+        // > node itself, if node is an editing host;
+        // > or the nearest ancestor of node that is an editing host, if node is editable.
+        for ancestor in self.inclusive_ancestors(ShadowIncluding::No) {
+            if ancestor.is_editing_host() {
+                return Some(ancestor);
+            }
+            if ancestor
+                .downcast::<HTMLElement>()
+                .is_some_and(|el| el.ContentEditable().str() == "false")
+            {
+                return None;
+            }
+        }
+        None
+    }
+
+    pub(crate) fn is_editable_or_editing_host(&self) -> bool {
+        self.editing_host_of().is_some()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#editing-host>
     pub(crate) fn is_editing_host(&self) -> bool {
         self.downcast::<HTMLElement>()
@@ -1704,7 +1727,7 @@ impl Node {
         let Some(parent) = self.GetParentNode() else {
             return false;
         };
-        if !parent.is_editable() && !parent.is_editing_host() {
+        if !parent.is_editable_or_editing_host() {
             return false;
         }
         // > and either it is an HTML element, or it is an svg or math element, or it is not an Element and its parent is an HTML element.

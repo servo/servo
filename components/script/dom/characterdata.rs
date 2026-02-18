@@ -166,19 +166,23 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         Ok(DOMString::from(substring))
     }
 
-    /// <https://dom.spec.whatwg.org/#dom-characterdata-appenddatadata>
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-appenddata>
     fn AppendData(&self, data: DOMString) {
+        // > The appendData(data) method steps are to replace data of this with this’s length, 0, and data.
+        //
         // FIXME(ajeffrey): Efficient append on DOMStrings?
         self.append_data(&data.str());
     }
 
-    /// <https://dom.spec.whatwg.org/#dom-characterdata-insertdataoffset-data>
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-insertdata>
     fn InsertData(&self, offset: u32, arg: DOMString) -> ErrorResult {
+        // > The insertData(offset, data) method steps are to replace data of this with offset, 0, and data.
         self.ReplaceData(offset, 0, arg)
     }
 
-    /// <https://dom.spec.whatwg.org/#dom-characterdata-deletedataoffset-count>
+    /// <https://dom.spec.whatwg.org/#dom-characterdata-deletedata>
     fn DeleteData(&self, offset: u32, count: u32) -> ErrorResult {
+        // > The deleteData(offset, count) method steps are to replace data of this with offset, count, and the empty string.
         self.ReplaceData(offset, count, DOMString::new())
     }
 

@@ -21,15 +21,13 @@ impl Document {
         let selection = self.GetSelection(can_gc)?;
         let range = selection.active_range()?;
         // > its start node is either editable or an editing host,
-        let start = range.start_container();
-        if !start.is_editable() && !start.is_editing_host() {
+        if !range.start_container().is_editable_or_editing_host() {
             return None;
         }
         // > the editing host of its start node is not an EditContext editing host,
         // TODO
         // > its end node is either editable or an editing host,
-        let end = range.end_container();
-        if !end.is_editable() && !end.is_editing_host() {
+        if !range.end_container().is_editable_or_editing_host() {
             return None;
         }
         // > the editing host of its end node is not an EditContext editing host,
