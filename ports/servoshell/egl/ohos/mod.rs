@@ -460,17 +460,6 @@ impl ServoAction {
                     viewport_rect,
                     hidpi_factor,
                 );
-                // TODO: creating the window and creating the webview should be separate.
-                let webview = servo.create_and_activate_toplevel_webview(servo.initial_url());
-                let id = webview.id();
-                NATIVE_WEBVIEWS
-                    .lock()
-                    .unwrap()
-                    .push(NativeWebViewComponents {
-                        id,
-                        xcomponent: xcomponent.clone(),
-                        window: native_window.clone(),
-                    });
             },
             NewWebview(xcomponent, window) => {
                 servo.pause_painting();
