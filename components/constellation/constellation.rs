@@ -4946,30 +4946,27 @@ where
             // The past is stored with older entries at the front.
             // We reverse the iter so that newer entries are at the front and then
             // skip _n_ entries and evict the remaining entries.
-            let mut pipelines_to_evict = webview
+            let past_trim = webview
                 .session_history
                 .past
                 .iter()
                 .rev()
                 .map(|diff| diff.alive_old_pipeline())
                 .skip(history_length)
-                .flatten()
-                .collect::<Vec<_>>();
+                .flatten();
 
             // The future is stored with oldest entries front, so we must
             // reverse the iterator like we do for the `past`.
-            pipelines_to_evict.extend(
-                webview
-                    .session_history
-                    .future
-                    .iter()
-                    .rev()
-                    .map(|diff| diff.alive_new_pipeline())
-                    .skip(history_length)
-                    .flatten(),
-            );
+            let future_trim = webview
+                .session_history
+                .future
+                .iter()
+                .rev()
+                .map(|diff| diff.alive_new_pipeline())
+                .skip(history_length)
+                .flatten();
 
-            pipelines_to_evict
+            past_trim.chain(future_trim).collect::<Vec<_>>()
         };
 
         let mut dead_pipelines = vec![];
