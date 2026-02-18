@@ -537,7 +537,10 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(..) | InlineItem::Atomic(..)
             ),
             LayoutBox::FlexLevel(..) => true,
-            LayoutBox::TableLevelBox(..) => false,
+            LayoutBox::TableLevelBox(table_level_box) => matches!(
+                table_level_box,
+                TableLevelBox::Cell(..) | TableLevelBox::Caption(..),
+            ),
             LayoutBox::TaffyItemBox(..) => true,
         }
     }
@@ -617,7 +620,17 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                 }
                 true
             },
-            LayoutBox::TableLevelBox(..) => false,
+            LayoutBox::TableLevelBox(table_level_box) => match table_level_box {
+                TableLevelBox::Caption(caption) => {
+                    caption.borrow_mut().context.rebuild(layout_context, &info);
+                    true
+                },
+                TableLevelBox::Cell(table_cell) => {
+                    table_cell.borrow_mut().rebuild(layout_context, &info);
+                    true
+                },
+                _ => false,
+            },
             LayoutBox::TaffyItemBox(..) => false,
         }
     }

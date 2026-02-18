@@ -360,7 +360,7 @@ impl TableTrackGroup {
 #[derive(Debug, MallocSizeOf)]
 pub struct TableCaption {
     /// The contents of this cell, with its own layout.
-    context: IndependentFormattingContext,
+    pub(crate) context: IndependentFormattingContext,
 }
 
 /// A calculated collapsed border.

@@ -1172,3 +1172,26 @@ fn add_column(
     collection.extend(repeat_n(column.clone(), span as usize));
     column
 }
+
+impl TableSlotCell {
+    pub(crate) fn rebuild(
+        &mut self,
+        layout_context: &LayoutContext,
+        node_and_style_info: &NodeAndStyleInfo,
+    ) {
+        self.contents = BlockFormattingContext::construct(
+            layout_context,
+            node_and_style_info,
+            NonReplacedContents::OfElement,
+            // TODO: This only works because currently PropagatedBoxTreeData only stores
+            // this single bit of information. If we ever add more information to
+            // PropagatedBoxTreeData, this will need to be stored on the table cell
+            // and reused.
+            PropagatedBoxTreeData::default().disallowing_percentage_table_columns(),
+            false, /* is_list_item */
+        );
+        self.base.clear_fragments_and_fragment_cache();
+        *self.base.cached_inline_content_size.borrow_mut() = None;
+        self.base.repair_style(&node_and_style_info.style);
+    }
+}
