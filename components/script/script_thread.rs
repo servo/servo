@@ -65,7 +65,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::{JSContext as UnsafeJSContext, JSTracer};
+use js::jsapi::JSContext as UnsafeJSContext;
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
 use js::rust::wrappers2::{JS_AddInterruptCallback, SetWindowProxyClass};
@@ -127,7 +127,6 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
@@ -180,18 +179,6 @@ fn with_optional_script_thread<R>(f: impl FnOnce(Option<&ScriptThread>) -> R) ->
 
 pub(crate) fn with_script_thread<R: Default>(f: impl FnOnce(&ScriptThread) -> R) -> R {
     with_optional_script_thread(|script_thread| script_thread.map(f).unwrap_or_default())
-}
-
-/// # Safety
-///
-/// The `JSTracer` argument must point to a valid `JSTracer` in memory. In addition,
-/// implementors of this method must ensure that all active objects are properly traced
-/// or else the garbage collector may end up collecting objects that are still reachable.
-pub(crate) unsafe fn trace_thread(tr: *mut JSTracer) {
-    with_script_thread(|script_thread| {
-        trace!("tracing fields of ScriptThread");
-        unsafe { script_thread.trace(tr) };
-    })
 }
 
 // We borrow the incomplete parser contexts mutably during parsing,
@@ -414,6 +401,8 @@ pub struct ScriptThread {
     needs_rendering_update: Arc<AtomicBool>,
 
     debugger_global: Dom<DebuggerGlobalScope>,
+
+    debugger_paused: Cell<bool>,
 
     /// A list of URLs that can access privileged internal APIs.
     #[no_trace]
@@ -900,7 +889,8 @@ impl ScriptThread {
         background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
     ) -> (Rc<ScriptThread>, js::context::JSContext) {
         let (self_sender, self_receiver) = unbounded();
-        let runtime = Runtime::new(Some(ScriptEventLoopSender::MainThread(self_sender.clone())));
+        let mut runtime =
+            Runtime::new(Some(ScriptEventLoopSender::MainThread(self_sender.clone())));
 
         // SAFETY: We ensure that only one JSContext exists in this thread.
         // This is the first one and the only one
@@ -964,7 +954,6 @@ impl ScriptThread {
         };
 
         let microtask_queue = runtime.microtask_queue.clone();
-        let js_runtime = Rc::new(runtime);
         #[cfg(feature = "webgpu")]
         let gpu_id_hub = Arc::new(IdentityHub::default());
 
@@ -992,7 +981,7 @@ impl ScriptThread {
             &mut cx,
         );
 
-        debugger_global.execute(CanGc::from_cx(&mut cx));
+        debugger_global.execute(&mut cx);
 
         let user_contents_for_manager_id =
             FxHashMap::from_iter(state.user_contents_for_manager_id.into_iter().map(
@@ -1002,50 +991,54 @@ impl ScriptThread {
             ));
 
         (
-            Rc::new_cyclic(|weak_script_thread| Self {
-                documents: DomRefCell::new(DocumentCollection::default()),
-                last_render_opportunity_time: Default::default(),
-                window_proxies: Default::default(),
-                incomplete_loads: DomRefCell::new(vec![]),
-                incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
-                senders,
-                receivers,
-                image_cache_factory,
-                resource_threads: state.resource_threads,
-                storage_threads: state.storage_threads,
-                task_queue,
-                background_hang_monitor,
-                closing,
-                timer_scheduler: Default::default(),
-                microtask_queue,
-                js_runtime,
-                closed_pipelines: DomRefCell::new(FxHashSet::default()),
-                mutation_observers: Default::default(),
-                system_font_service: Arc::new(state.system_font_service.to_proxy()),
-                webgl_chan: state.webgl_chan,
-                #[cfg(feature = "webxr")]
-                webxr_registry: state.webxr_registry,
-                worklet_thread_pool: Default::default(),
-                docs_with_no_blocking_loads: Default::default(),
-                custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
-                paint_api: state.cross_process_paint_api,
-                profile_script_events: opts.debug.profile_script_events,
-                print_pwm: opts.print_pwm,
-                unminify_js: opts.unminify_js,
-                local_script_source: opts.local_script_source.clone(),
-                unminify_css: opts.unminify_css,
-                user_contents_for_manager_id: RefCell::new(user_contents_for_manager_id),
-                player_context: state.player_context,
-                pipeline_to_node_ids: Default::default(),
-                is_user_interacting: Rc::new(Cell::new(false)),
-                #[cfg(feature = "webgpu")]
-                gpu_id_hub,
-                layout_factory,
-                scheduled_update_the_rendering: Default::default(),
-                needs_rendering_update: Arc::new(AtomicBool::new(false)),
-                debugger_global: debugger_global.as_traced(),
-                privileged_urls: state.privileged_urls,
-                this: weak_script_thread.clone(),
+            Rc::new_cyclic(|weak_script_thread| {
+                runtime.set_script_thread(weak_script_thread.clone());
+                Self {
+                    documents: DomRefCell::new(DocumentCollection::default()),
+                    last_render_opportunity_time: Default::default(),
+                    window_proxies: Default::default(),
+                    incomplete_loads: DomRefCell::new(vec![]),
+                    incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
+                    senders,
+                    receivers,
+                    image_cache_factory,
+                    resource_threads: state.resource_threads,
+                    storage_threads: state.storage_threads,
+                    task_queue,
+                    background_hang_monitor,
+                    closing,
+                    timer_scheduler: Default::default(),
+                    microtask_queue,
+                    js_runtime: Rc::new(runtime),
+                    closed_pipelines: DomRefCell::new(FxHashSet::default()),
+                    mutation_observers: Default::default(),
+                    system_font_service: Arc::new(state.system_font_service.to_proxy()),
+                    webgl_chan: state.webgl_chan,
+                    #[cfg(feature = "webxr")]
+                    webxr_registry: state.webxr_registry,
+                    worklet_thread_pool: Default::default(),
+                    docs_with_no_blocking_loads: Default::default(),
+                    custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
+                    paint_api: state.cross_process_paint_api,
+                    profile_script_events: opts.debug.profile_script_events,
+                    print_pwm: opts.print_pwm,
+                    unminify_js: opts.unminify_js,
+                    local_script_source: opts.local_script_source.clone(),
+                    unminify_css: opts.unminify_css,
+                    user_contents_for_manager_id: RefCell::new(user_contents_for_manager_id),
+                    player_context: state.player_context,
+                    pipeline_to_node_ids: Default::default(),
+                    is_user_interacting: Rc::new(Cell::new(false)),
+                    #[cfg(feature = "webgpu")]
+                    gpu_id_hub,
+                    layout_factory,
+                    scheduled_update_the_rendering: Default::default(),
+                    needs_rendering_update: Arc::new(AtomicBool::new(false)),
+                    debugger_global: debugger_global.as_traced(),
+                    debugger_paused: Cell::new(false),
+                    privileged_urls: state.privileged_urls,
+                    this: weak_script_thread.clone(),
+                }
             }),
             cx,
         )
@@ -1830,7 +1823,7 @@ impl ScriptThread {
                 self.handle_unfocus_msg(pipeline_id, sequence, CanGc::from_cx(cx))
             },
             ScriptThreadMessage::WebDriverScriptCommand(pipeline_id, msg) => {
-                self.handle_webdriver_msg(pipeline_id, msg, CanGc::from_cx(cx))
+                self.handle_webdriver_msg(pipeline_id, msg, cx)
             },
             ScriptThreadMessage::WebFontLoaded(pipeline_id, success) => {
                 self.handle_web_font_loaded(pipeline_id, success)
@@ -1916,13 +1909,7 @@ impl ScriptThread {
                 evaluation_id,
                 script,
             ) => {
-                self.handle_evaluate_javascript(
-                    webview_id,
-                    pipeline_id,
-                    evaluation_id,
-                    script,
-                    CanGc::from_cx(cx),
-                );
+                self.handle_evaluate_javascript(webview_id, pipeline_id, evaluation_id, script, cx);
             },
             ScriptThreadMessage::SendImageKeysBatch(pipeline_id, image_keys) => {
                 if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
@@ -2114,7 +2101,7 @@ impl ScriptThread {
                 Some(window) => {
                     let global = window.as_global_scope();
                     let _aes = AutoEntryScript::new(global);
-                    devtools::handle_evaluate_js(global, s, reply, CanGc::from_cx(cx))
+                    devtools::handle_evaluate_js(global, s, reply, cx)
                 },
                 None => warn!("Message sent to closed pipeline {}.", id),
             },
@@ -2245,6 +2232,28 @@ impl ScriptThread {
                 self.debugger_global
                     .fire_pause(CanGc::from_cx(cx), result_sender);
             },
+            DevtoolScriptControlMsg::Resume => {
+                self.debugger_paused.set(false);
+            },
+        }
+    }
+
+    /// Enter a nested event loop for debugger pause.
+    /// TODO: This should also be called when manual pause is triggered.
+    pub(crate) fn enter_debugger_pause_loop(&self) {
+        self.debugger_paused.set(true);
+
+        #[allow(unsafe_code)]
+        let mut cx = unsafe { js::context::JSContext::from_ptr(js::rust::Runtime::get().unwrap()) };
+
+        while self.debugger_paused.get() {
+            match self.receivers.devtools_server_receiver.recv() {
+                Ok(Ok(msg)) => self.handle_msg_from_devtools(msg, &mut cx),
+                _ => {
+                    self.debugger_paused.set(false);
+                    break;
+                },
+            }
         }
     }
 
@@ -2272,7 +2281,7 @@ impl ScriptThread {
         &self,
         pipeline_id: PipelineId,
         msg: WebDriverScriptCommand,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         let documents = self.documents.borrow();
         match msg {
@@ -2291,7 +2300,7 @@ impl ScriptThread {
                     pipeline_id,
                     element_id,
                     reply,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::FindElementsCSSSelector(selector, reply) => {
@@ -2317,7 +2326,7 @@ impl ScriptThread {
                     pipeline_id,
                     selector,
                     reply,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::FindElementsXpathSelector(selector, reply) => {
@@ -2326,7 +2335,7 @@ impl ScriptThread {
                     pipeline_id,
                     selector,
                     reply,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::FindElementElementsCSSSelector(selector, element_id, reply) => {
@@ -2358,7 +2367,7 @@ impl ScriptThread {
                     element_id,
                     selector,
                     reply,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::FindElementElementsXPathSelector(
@@ -2371,7 +2380,7 @@ impl ScriptThread {
                 element_id,
                 selector,
                 reply,
-                can_gc,
+                CanGc::from_cx(cx),
             ),
             WebDriverScriptCommand::FindShadowElementsCSSSelector(
                 selector,
@@ -2416,7 +2425,7 @@ impl ScriptThread {
                 shadow_root_id,
                 selector,
                 reply,
-                can_gc,
+                CanGc::from_cx(cx),
             ),
             WebDriverScriptCommand::GetElementShadowRoot(element_id, reply) => {
                 webdriver_handlers::handle_get_element_shadow_root(
@@ -2432,7 +2441,7 @@ impl ScriptThread {
                     pipeline_id,
                     element_id,
                     reply,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::GetKnownElement(element_id, reply) => {
@@ -2471,7 +2480,12 @@ impl ScriptThread {
                 )
             },
             WebDriverScriptCommand::GetPageSource(reply) => {
-                webdriver_handlers::handle_get_page_source(&documents, pipeline_id, reply, can_gc)
+                webdriver_handlers::handle_get_page_source(
+                    &documents,
+                    pipeline_id,
+                    reply,
+                    CanGc::from_cx(cx),
+                )
             },
             WebDriverScriptCommand::GetCookies(reply) => {
                 webdriver_handlers::handle_get_cookies(&documents, pipeline_id, reply)
@@ -2498,14 +2512,20 @@ impl ScriptThread {
                     node_id,
                     name,
                     reply,
-                    can_gc,
+                    cx,
                 )
             },
             WebDriverScriptCommand::GetElementCSS(node_id, name, reply) => {
                 webdriver_handlers::handle_get_css(&documents, pipeline_id, node_id, name, reply)
             },
             WebDriverScriptCommand::GetElementRect(node_id, reply) => {
-                webdriver_handlers::handle_get_rect(&documents, pipeline_id, node_id, reply, can_gc)
+                webdriver_handlers::handle_get_rect(
+                    &documents,
+                    pipeline_id,
+                    node_id,
+                    reply,
+                    CanGc::from_cx(cx),
+                )
             },
             WebDriverScriptCommand::ScrollAndGetBoundingClientRect(node_id, reply) => {
                 webdriver_handlers::handle_scroll_and_get_bounding_client_rect(
@@ -2513,7 +2533,7 @@ impl ScriptThread {
                     pipeline_id,
                     node_id,
                     reply,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::GetElementText(node_id, reply) => {
@@ -2525,7 +2545,7 @@ impl ScriptThread {
                     pipeline_id,
                     node_id,
                     reply,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             WebDriverScriptCommand::GetParentFrameId(reply) => {
@@ -2539,9 +2559,12 @@ impl ScriptThread {
                     reply,
                 )
             },
-            WebDriverScriptCommand::GetUrl(reply) => {
-                webdriver_handlers::handle_get_url(&documents, pipeline_id, reply, can_gc)
-            },
+            WebDriverScriptCommand::GetUrl(reply) => webdriver_handlers::handle_get_url(
+                &documents,
+                pipeline_id,
+                reply,
+                CanGc::from_cx(cx),
+            ),
             WebDriverScriptCommand::IsEnabled(element_id, reply) => {
                 webdriver_handlers::handle_is_enabled(&documents, pipeline_id, element_id, reply)
             },
@@ -2563,7 +2586,7 @@ impl ScriptThread {
                 text,
                 strict_file_interactability,
                 reply,
-                can_gc,
+                CanGc::from_cx(cx),
             ),
             WebDriverScriptCommand::AddLoadStatusSender(_, response_sender) => {
                 webdriver_handlers::handle_add_load_status_sender(
@@ -2584,7 +2607,7 @@ impl ScriptThread {
             WebDriverScriptCommand::ExecuteScriptWithCallback(script, reply) => {
                 let window = documents.find_window(pipeline_id);
                 drop(documents);
-                webdriver_handlers::handle_execute_async_script(window, script, reply, can_gc);
+                webdriver_handlers::handle_execute_async_script(window, script, reply, cx);
             },
             WebDriverScriptCommand::SetProtocolHandlerAutomationMode(mode) => {
                 webdriver_handlers::set_protocol_handler_automation_mode(
@@ -4036,7 +4059,7 @@ impl ScriptThread {
         pipeline_id: PipelineId,
         evaluation_id: JavaScriptEvaluationId,
         script: String,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             let _ = self.senders.pipeline_to_constellation_sender.send((
@@ -4051,16 +4074,16 @@ impl ScriptThread {
         };
 
         let global_scope = window.as_global_scope();
-        let realm = enter_realm(global_scope);
-        let context = window.get_cx();
+        let mut realm = enter_auto_realm(cx, global_scope);
+        let cx = &mut realm.current_realm();
 
-        rooted!(in(*context) let mut return_value = UndefinedValue());
+        rooted!(&in(cx) let mut return_value = UndefinedValue());
         if let Err(err) = global_scope.evaluate_js_on_global(
             script.into(),
             "",
             None, // No known `introductionType` for JS code from embedder
             return_value.handle_mut(),
-            can_gc,
+            CanGc::from_cx(cx),
         ) {
             _ = self.senders.pipeline_to_constellation_sender.send((
                 webview_id,
@@ -4070,13 +4093,7 @@ impl ScriptThread {
             return;
         };
 
-        let result = jsval_to_webdriver(
-            context,
-            global_scope,
-            return_value.handle(),
-            (&realm).into(),
-            can_gc,
-        );
+        let result = jsval_to_webdriver(cx, global_scope, return_value.handle());
         let _ = self.senders.pipeline_to_constellation_sender.send((
             webview_id,
             pipeline_id,

@@ -17,15 +17,32 @@ use crate::dom::webgpu::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::webgpu::gpucomputepipeline::GPUComputePipeline;
 use crate::script_runtime::CanGc;
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPUComputePassEncoder {
+    #[no_trace]
+    channel: WebGPU,
+    #[no_trace]
+    compute_pass: WebGPUComputePass,
+}
+
+impl Drop for DroppableGPUComputePassEncoder {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropComputePass(self.compute_pass.0))
+        {
+            warn!("Failed to send WebGPURequest::DropComputePass with {e:?}");
+        }
+    }
+}
+
 #[dom_struct]
 pub(crate) struct GPUComputePassEncoder {
     reflector_: Reflector,
-    #[no_trace]
-    channel: WebGPU,
     label: DomRefCell<USVString>,
-    #[no_trace]
-    compute_pass: WebGPUComputePass,
     command_encoder: Dom<GPUCommandEncoder>,
+    droppable: DroppableGPUComputePassEncoder,
 }
 
 impl GPUComputePassEncoder {
@@ -36,11 +53,13 @@ impl GPUComputePassEncoder {
         label: USVString,
     ) -> Self {
         Self {
-            channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
-            compute_pass,
             command_encoder: Dom::from_ref(parent),
+            droppable: DroppableGPUComputePassEncoder {
+                channel,
+                compute_pass,
+            },
         }
     }
 
@@ -78,16 +97,17 @@ impl GPUComputePassEncoderMethods<crate::DomTypeHolder> for GPUComputePassEncode
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-dispatchworkgroups>
     fn DispatchWorkgroups(&self, x: u32, y: u32, z: u32) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::ComputePassDispatchWorkgroups {
-                compute_pass_id: self.compute_pass.0,
-                x,
-                y,
-                z,
-                device_id: self.command_encoder.device_id().0,
-            })
+        if let Err(e) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::ComputePassDispatchWorkgroups {
+                    compute_pass_id: self.droppable.compute_pass.0,
+                    x,
+                    y,
+                    z,
+                    device_id: self.command_encoder.device_id().0,
+                })
         {
             warn!("Error sending WebGPURequest::ComputePassDispatchWorkgroups: {e:?}")
         }
@@ -95,15 +115,16 @@ impl GPUComputePassEncoderMethods<crate::DomTypeHolder> for GPUComputePassEncode
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-dispatchworkgroupsindirect>
     fn DispatchWorkgroupsIndirect(&self, buffer: &GPUBuffer, offset: u64) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::ComputePassDispatchWorkgroupsIndirect {
-                compute_pass_id: self.compute_pass.0,
-                buffer_id: buffer.id().0,
-                offset,
-                device_id: self.command_encoder.device_id().0,
-            })
+        if let Err(e) =
+            self.droppable
+                .channel
+                .0
+                .send(WebGPURequest::ComputePassDispatchWorkgroupsIndirect {
+                    compute_pass_id: self.droppable.compute_pass.0,
+                    buffer_id: buffer.id().0,
+                    offset,
+                    device_id: self.command_encoder.device_id().0,
+                })
         {
             warn!("Error sending WebGPURequest::ComputePassDispatchWorkgroupsIndirect: {e:?}")
         }
@@ -111,48 +132,51 @@ impl GPUComputePassEncoderMethods<crate::DomTypeHolder> for GPUComputePassEncode
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-endpass>
     fn End(&self) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::EndComputePass {
-            compute_pass_id: self.compute_pass.0,
-            device_id: self.command_encoder.device_id().0,
-            command_encoder_id: self.command_encoder.id().0,
-        }) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::EndComputePass {
+                compute_pass_id: self.droppable.compute_pass.0,
+                device_id: self.command_encoder.device_id().0,
+                command_encoder_id: self.command_encoder.id().0,
+            })
+        {
             warn!("Failed to send WebGPURequest::EndComputePass: {e:?}");
         }
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup>
     fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, offsets: Vec<u32>) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::ComputePassSetBindGroup {
-            compute_pass_id: self.compute_pass.0,
-            index,
-            bind_group_id: bind_group.id().0,
-            offsets,
-            device_id: self.command_encoder.device_id().0,
-        }) {
+        if let Err(e) = self
+            .droppable
+            .channel
+            .0
+            .send(WebGPURequest::ComputePassSetBindGroup {
+                compute_pass_id: self.droppable.compute_pass.0,
+                index,
+                bind_group_id: bind_group.id().0,
+                offsets,
+                device_id: self.command_encoder.device_id().0,
+            })
+        {
             warn!("Error sending WebGPURequest::ComputePassSetBindGroup: {e:?}")
         }
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-setpipeline>
     fn SetPipeline(&self, pipeline: &GPUComputePipeline) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::ComputePassSetPipeline {
-            compute_pass_id: self.compute_pass.0,
-            pipeline_id: pipeline.id().0,
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Error sending WebGPURequest::ComputePassSetPipeline: {e:?}")
-        }
-    }
-}
-
-impl Drop for GPUComputePassEncoder {
-    fn drop(&mut self) {
         if let Err(e) = self
+            .droppable
             .channel
             .0
-            .send(WebGPURequest::DropComputePass(self.compute_pass.0))
+            .send(WebGPURequest::ComputePassSetPipeline {
+                compute_pass_id: self.droppable.compute_pass.0,
+                pipeline_id: pipeline.id().0,
+                device_id: self.command_encoder.device_id().0,
+            })
         {
-            warn!("Failed to send WebGPURequest::DropComputePass with {e:?}");
+            warn!("Error sending WebGPURequest::ComputePassSetPipeline: {e:?}")
         }
     }
 }

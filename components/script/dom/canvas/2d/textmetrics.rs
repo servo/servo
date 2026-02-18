@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::TextMetricsBinding::TextMetricsMethods;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 #[expect(non_snake_case)]
@@ -66,6 +66,7 @@ impl TextMetrics {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         global: &GlobalScope,
+        cx: &mut JSContext,
         width: f64,
         actualBoundingBoxLeft: f64,
         actualBoundingBoxRight: f64,
@@ -78,9 +79,8 @@ impl TextMetrics {
         hangingBaseline: f64,
         alphabeticBaseline: f64,
         ideographicBaseline: f64,
-        can_gc: CanGc,
     ) -> DomRoot<TextMetrics> {
-        reflect_dom_object(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(TextMetrics::new_inherited(
                 width,
                 actualBoundingBoxLeft,
@@ -96,12 +96,13 @@ impl TextMetrics {
                 ideographicBaseline,
             )),
             global,
-            can_gc,
+            None,
+            cx,
         )
     }
 
-    pub(crate) fn default(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
-        reflect_dom_object(
+    pub(crate) fn default(global: &GlobalScope, cx: &mut JSContext) -> DomRoot<Self> {
+        reflect_dom_object_with_proto_and_cx(
             Box::new(Self {
                 reflector_: Reflector::new(),
                 width: Default::default(),
@@ -118,7 +119,8 @@ impl TextMetrics {
                 ideographicBaseline: Default::default(),
             }),
             global,
-            can_gc,
+            None,
+            cx,
         )
     }
 }

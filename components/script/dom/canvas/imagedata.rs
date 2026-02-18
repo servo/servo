@@ -30,7 +30,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct ImageData {
@@ -67,11 +67,11 @@ impl ImageData {
             d.resize(len as usize, 0);
 
             let cx = GlobalScope::get_cx();
-            rooted!(in (*cx) let mut js_object = std::ptr::null_mut::<JSObject>());
+            rooted!(in(*cx) let mut js_object = std::ptr::null_mut::<JSObject>());
             let _buffer_source =
                 create_buffer_source::<ClampedU8>(cx, &d[..], js_object.handle_mut(), can_gc)
                     .map_err(|_| Error::JSFailed)?;
-            auto_root!(in(*cx) let data = TypedArray::<ClampedU8, *mut JSObject>::from(js_object.get()).map_err(|_| Error::JSFailed)?);
+            auto_root!(&in(cx) let data = TypedArray::<ClampedU8, *mut JSObject>::from(js_object.get()).map_err(|_| Error::JSFailed)?);
 
             Self::Constructor_(global, None, can_gc, data, width, Some(height), &settings)
         } else {
@@ -356,7 +356,10 @@ impl ImageDataMethods<crate::DomTypeHolder> for ImageData {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-imagedata-data>
-    fn GetData(&self, _: JSContext) -> Fallible<RootedTraceableBox<HeapUint8ClampedArray>> {
+    fn GetData(
+        &self,
+        _: script_bindings::script_runtime::JSContext,
+    ) -> Fallible<RootedTraceableBox<HeapUint8ClampedArray>> {
         self.data.get_typed_array().map_err(|_| Error::JSFailed)
     }
 

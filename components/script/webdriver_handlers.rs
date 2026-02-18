@@ -17,12 +17,14 @@ use embedder_traits::{
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self};
+use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::jsapi::{
     self, GetPropertyKeys, HandleValueArray, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
     JS_IsExceptionPending, JSAutoRealm, JSObject, JSType, PropertyDescriptor,
 };
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
 use js::rust::{Handle, HandleObject, HandleValue, IdVector, ToString};
 use net_traits::CookieSource::{HTTP, NonHTTP};
@@ -88,7 +90,7 @@ use crate::dom::types::ShadowRoot;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
@@ -366,17 +368,19 @@ impl From<HandleValue<'_>> for HashableJSVal {
 
 /// <https://w3c.github.io/webdriver/#dfn-json-clone>
 pub(crate) fn jsval_to_webdriver(
-    cx: SafeJSContext,
+    cx: &mut CurrentRealm,
     global_scope: &GlobalScope,
     val: HandleValue,
-    realm: InRealm,
-    can_gc: CanGc,
 ) -> WebDriverJSResult {
     let _aes = AutoEntryScript::new(global_scope);
     let mut seen = HashSet::new();
-    let result = jsval_to_webdriver_inner(cx, global_scope, val, &mut seen);
+    let result = jsval_to_webdriver_inner(cx.into(), global_scope, val, &mut seen);
+
+    let in_realm_proof = cx.into();
+    let in_realm = InRealm::Already(&in_realm_proof);
+
     if result.is_err() {
-        report_pending_exception(cx, true, realm, can_gc);
+        report_pending_exception(cx.into(), true, in_realm, CanGc::from_cx(cx));
     }
     result
 }
@@ -626,14 +630,13 @@ pub(crate) fn handle_execute_async_script(
     window: Option<DomRoot<Window>>,
     eval: String,
     reply: GenericSender<WebDriverJSResult>,
-    can_gc: CanGc,
+    cx: &mut JSContext,
 ) {
     match window {
         Some(window) => {
-            let cx = window.get_cx();
             let reply_sender = reply.clone();
             window.set_webdriver_script_chan(Some(reply));
-            rooted!(in(*cx) let mut rval = UndefinedValue());
+            rooted!(&in(cx) let mut rval = UndefinedValue());
 
             let global_scope = window.as_global_scope();
             if let Err(error) = global_scope.evaluate_js_on_global(
@@ -641,7 +644,7 @@ pub(crate) fn handle_execute_async_script(
                 "",
                 None, // No known `introductionType` for JS code from WebDriver
                 rval.handle_mut(),
-                can_gc,
+                CanGc::from_cx(cx),
             ) {
                 reply_sender.send(Err(error)).unwrap_or_else(|error| {
                     error!("ExecuteAsyncScript Failed to send reply: {error}");
@@ -1693,39 +1696,38 @@ pub(crate) fn handle_get_property(
     node_id: String,
     name: String,
     reply: GenericSender<Result<JSValue, ErrorStatus>>,
-    can_gc: CanGc,
+    cx: &mut JSContext,
 ) {
     reply
         .send(
             get_known_element(documents, pipeline, node_id).map(|element| {
                 let document = documents.find_document(pipeline).unwrap();
-                let realm = enter_realm(&*document);
-                let cx = document.window().get_cx();
+
                 let Ok(cname) = CString::new(name) else {
                     return JSValue::Undefined;
                 };
 
-                rooted!(in(*cx) let mut property = UndefinedValue());
+                let mut realm = enter_auto_realm(cx, &*document);
+                let cx = &mut realm.current_realm();
+
+                rooted!(&in(cx) let mut property = UndefinedValue());
                 match get_property_jsval(
-                    cx,
+                    cx.into(),
                     element.reflector().get_jsobject(),
                     &cname,
                     property.handle_mut(),
                 ) {
-                    Ok(_) => {
-                        match jsval_to_webdriver(
-                            cx,
-                            &element.global(),
-                            property.handle(),
-                            InRealm::entered(&realm),
-                            can_gc,
-                        ) {
-                            Ok(property) => property,
-                            Err(_) => JSValue::Undefined,
-                        }
+                    Ok(_) => match jsval_to_webdriver(cx, &element.global(), property.handle()) {
+                        Ok(property) => property,
+                        Err(_) => JSValue::Undefined,
                     },
                     Err(error) => {
-                        throw_dom_exception(cx, &element.global(), error, can_gc);
+                        throw_dom_exception(
+                            cx.into(),
+                            &element.global(),
+                            error,
+                            CanGc::from_cx(cx),
+                        );
                         JSValue::Undefined
                     },
                 }

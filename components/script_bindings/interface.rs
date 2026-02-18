@@ -6,23 +6,23 @@
 
 use std::convert::TryFrom;
 use std::ffi::CStr;
-use std::ptr;
+use std::ptr::{self, NonNull};
 
 use js::error::throw_type_error;
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::JS::CompartmentIterResult;
 use js::jsapi::{
-    CallArgs, CheckedUnwrapStatic, Compartment, CompartmentSpecifier, CurrentGlobalOrNull,
-    GetFunctionRealm, GetNonCCWObjectGlobal, GetRealmGlobalOrNull, GetWellKnownSymbol,
-    HandleObject as RawHandleObject, IsSharableCompartment, IsSystemCompartment,
-    JS_AtomizeAndPinString, JS_GetFunctionObject, JS_GetProperty, JS_IterateCompartments,
-    JS_NewFunction, JS_NewGlobalObject, JS_NewObject, JS_NewStringCopyN, JS_SetReservedSlot,
-    JS_SetTrustedPrincipals, JS_WrapObject, JSAutoRealm, JSClass, JSClassOps, JSContext,
+    CallArgs, CheckedUnwrapStatic, Compartment, CompartmentSpecifier, GetNonCCWObjectGlobal,
+    GetRealmGlobalOrNull, GetWellKnownSymbol, HandleObject as RawHandleObject,
+    IsSharableCompartment, IsSystemCompartment, JS_AtomizeAndPinString, JS_GetFunctionObject,
+    JS_IterateCompartments, JS_NewFunction, JS_NewGlobalObject, JS_NewObject, JS_NewStringCopyN,
+    JS_SetReservedSlot, JS_SetTrustedPrincipals, JSAutoRealm, JSClass, JSClassOps, JSContext,
     JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject, JSPROP_ENUMERATE, JSPROP_PERMANENT,
     JSPROP_READONLY, JSPROP_RESOLVING, JSPropertySpec, JSString, JSTracer, ObjectOps,
     OnNewGlobalHookOption, SymbolCode, TrueHandleValue, Value, jsid,
 };
 use js::jsval::{JSVal, NullValue, PrivateValue};
+use js::realm::AutoRealm;
 use js::rust::wrappers::{
     JS_DefineProperty, JS_DefineProperty3, JS_DefineProperty4, JS_DefineProperty5,
     JS_DefinePropertyById5, JS_FireOnNewGlobalObject, JS_LinkConstructorAndPrototype,
@@ -568,10 +568,10 @@ impl From<ProtoOrIfaceIndex> for usize {
 }
 
 pub(crate) fn get_per_interface_object_handle(
-    cx: SafeJSContext,
+    cx: &mut js::context::JSContext,
     global: HandleObject,
     id: ProtoOrIfaceIndex,
-    creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+    creator: unsafe fn(&mut js::context::JSContext, HandleObject, *mut ProtoOrIfaceArray),
     mut rval: MutableHandleObject,
 ) {
     unsafe {
@@ -595,7 +595,7 @@ pub(crate) fn define_dom_interface(
     cx: &mut js::context::JSContext,
     global: HandleObject,
     id: ProtoOrIfaceIndex,
-    creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+    creator: unsafe fn(&mut js::context::JSContext, HandleObject, *mut ProtoOrIfaceArray),
     enabled: fn(&mut js::context::JSContext, HandleObject) -> bool,
 ) {
     assert!(!global.get().is_null());
@@ -605,7 +605,7 @@ pub(crate) fn define_dom_interface(
     }
 
     rooted!(&in(cx) let mut proto = ptr::null_mut::<JSObject>());
-    get_per_interface_object_handle(cx.into(), global, id, creator, proto.handle_mut());
+    get_per_interface_object_handle(cx, global, id, creator, proto.handle_mut());
     assert!(!proto.is_null());
 }
 
@@ -623,10 +623,10 @@ fn get_proto_id_for_new_target(new_target: HandleObject) -> Option<PrototypeList
 
 #[allow(clippy::result_unit_err)]
 pub fn get_desired_proto(
-    cx: SafeJSContext,
+    cx: &mut js::context::JSContext,
     args: &CallArgs,
     proto_id: PrototypeList::ID,
-    creator: unsafe fn(SafeJSContext, HandleObject, *mut ProtoOrIfaceArray),
+    creator: unsafe fn(&mut js::context::JSContext, HandleObject, *mut ProtoOrIfaceArray),
     mut desired_proto: MutableHandleObject,
 ) -> Result<(), ()> {
     unsafe {
@@ -645,8 +645,8 @@ pub fn get_desired_proto(
         // our DOM constructors.  This is safe because on those the "constructor"
         // property is non-configurable and non-writable, so we don't have to do the
         // slow JS_GetProperty call.
-        rooted!(in(*cx) let mut new_target = args.new_target().to_object());
-        rooted!(in(*cx) let original_new_target = *new_target);
+        rooted!(&in(cx) let mut new_target = args.new_target().to_object());
+        rooted!(&in(cx) let original_new_target = *new_target);
         // See whether we have a known DOM constructor here, such that we can take a
         // fast path.
         let target_proto_id = get_proto_id_for_new_target(new_target.handle()).or_else(|| {
@@ -665,7 +665,9 @@ pub fn get_desired_proto(
             let global = GetNonCCWObjectGlobal(*new_target);
             let proto_or_iface_cache = get_proto_or_iface_array(global);
             desired_proto.set((*proto_or_iface_cache)[proto_id as usize]);
-            if *new_target != *original_new_target && !JS_WrapObject(*cx, desired_proto.into()) {
+            if *new_target != *original_new_target &&
+                !js::rust::wrappers2::JS_WrapObject(cx, desired_proto)
+            {
                 return Err(());
             }
             return Ok(());
@@ -675,12 +677,12 @@ pub fn get_desired_proto(
         // GetPrototypeFromConstructor except that instead of taking a string naming
         // the fallback prototype we determine the fallback based on the proto id we
         // were handed.
-        rooted!(in(*cx) let mut proto_val = NullValue());
-        if !JS_GetProperty(
-            *cx,
-            original_new_target.handle().into(),
+        rooted!(&in(cx) let mut proto_val = NullValue());
+        if !js::rust::wrappers2::JS_GetProperty(
+            cx,
+            original_new_target.handle(),
             c"prototype".as_ptr(),
-            proto_val.handle_mut().into(),
+            proto_val.handle_mut(),
         ) {
             return Err(());
         }
@@ -692,18 +694,18 @@ pub fn get_desired_proto(
 
         // Fall back to getting the proto for our given proto id in the realm that
         // GetFunctionRealm(newTarget) returns.
-        let realm = GetFunctionRealm(*cx, new_target.handle().into());
+        let realm = js::rust::wrappers2::GetFunctionRealm(cx, new_target.handle());
 
         if realm.is_null() {
             return Err(());
         }
 
         {
-            let _realm = JSAutoRealm::new(*cx, GetRealmGlobalOrNull(realm));
-            rooted!(in(*cx) let global = CurrentGlobalOrNull(*cx));
+            let mut realm = AutoRealm::new(cx, NonNull::new(GetRealmGlobalOrNull(realm)).unwrap());
+            let (global, realm) = realm.global_and_reborrow();
             get_per_interface_object_handle(
-                cx,
-                global.handle(),
+                realm,
+                global,
                 ProtoOrIfaceIndex::ID(proto_id),
                 creator,
                 desired_proto.reborrow(),
@@ -713,7 +715,7 @@ pub fn get_desired_proto(
             }
         }
 
-        maybe_wrap_object(*cx, desired_proto);
+        maybe_wrap_object(cx.raw_cx(), desired_proto);
         Ok(())
     }
 }

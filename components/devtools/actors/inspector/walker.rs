@@ -4,11 +4,13 @@
 
 //! The walker actor is responsible for traversing the DOM tree in various ways to create new nodes
 
+use std::net::TcpStream;
+
 use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{self, GenericSender};
 use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
-use devtools_traits::{AttrModification, DevtoolScriptControlMsg};
+use devtools_traits::{DevtoolScriptControlMsg, DomMutation};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
@@ -28,7 +30,7 @@ pub(crate) struct WalkerMsg {
 #[derive(MallocSizeOf)]
 pub(crate) struct WalkerActor {
     pub name: String,
-    pub mutations: AtomicRefCell<Vec<(AttrModification, String)>>,
+    pub mutations: AtomicRefCell<Vec<DomMutation>>,
     pub pipeline: PipelineId,
     pub script_chan: GenericSender<DevtoolScriptControlMsg>,
 }
@@ -73,11 +75,22 @@ struct WatchRootNodeNotification {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct MutationMsg {
-    attribute_name: String,
-    new_value: Option<String>,
-    target: String,
+    #[serde(flatten)]
+    variant: MutationVariant,
     #[serde(rename = "type")]
     type_: String,
+    target: String,
+}
+
+#[derive(Serialize)]
+#[serde(untagged)]
+enum MutationVariant {
+    AttributeModified {
+        #[serde(rename = "attributeName")]
+        attribute_name: String,
+        #[serde(rename = "newValue")]
+        new_value: Option<String>,
+    },
 }
 
 #[derive(Serialize)]
@@ -208,23 +221,7 @@ impl Actor for WalkerActor {
                 };
                 request.reply_final(&msg)?
             },
-            "getMutations" => {
-                let msg = GetMutationsReply {
-                    from: self.name(),
-                    mutations: self
-                        .mutations
-                        .borrow_mut()
-                        .drain(..)
-                        .map(|(mutation, target)| MutationMsg {
-                            attribute_name: mutation.attribute_name,
-                            new_value: mutation.new_value,
-                            target,
-                            type_: "attributes".into(),
-                        })
-                        .collect(),
-                };
-                request.reply_final(&msg)?
-            },
+            "getMutations" => self.handle_get_mutations(request, registry)?,
             "getOffsetParent" => {
                 let msg = GetOffsetParentReply {
                     from: self.name(),
@@ -281,22 +278,6 @@ impl Actor for WalkerActor {
 }
 
 impl WalkerActor {
-    pub(crate) fn new_mutations(
-        &self,
-        request: &mut ClientRequest,
-        target: &str,
-        modifications: &[AttrModification],
-    ) {
-        {
-            let mut mutations = self.mutations.borrow_mut();
-            mutations.extend(modifications.iter().cloned().map(|m| (m, target.into())));
-        }
-        let _ = request.write_json_packet(&NewMutationsNotification {
-            from: self.name(),
-            type_: "newMutations".into(),
-        });
-    }
-
     pub(crate) fn root(&self, registry: &ActorRegistry) -> Result<NodeActorMsg, ActorError> {
         let (tx, rx) = generic_channel::channel().ok_or(ActorError::Internal)?;
         self.script_chan
@@ -312,6 +293,69 @@ impl WalkerActor {
             self.pipeline,
             self.name(),
         ))
+    }
+
+    pub(crate) fn handle_dom_mutation(
+        &self,
+        dom_mutation: DomMutation,
+        stream: &mut TcpStream,
+    ) -> Result<(), ActorError> {
+        let mut pending_mutations = self.mutations.borrow_mut();
+
+        // Discard all previous modifications to that same attribute
+        // which we didn't tell the devtools client about yet.
+        let DomMutation::AttributeModified {
+            node,
+            attribute_name,
+            ..
+        } = &dom_mutation;
+        pending_mutations.retain(|pending_mutation| match pending_mutation {
+            DomMutation::AttributeModified {
+                node: old_node,
+                attribute_name: old_attribute_name,
+                ..
+            } => old_node != node || old_attribute_name != attribute_name,
+        });
+
+        log::warn!("notified of dom mutation: {dom_mutation:?}");
+        pending_mutations.push(dom_mutation);
+
+        stream.write_json_packet(&NewMutationsNotification {
+            from: self.name(),
+            type_: "newMutations".into(),
+        })
+    }
+
+    /// Handle the `getMutations` message from a devtools client.
+    fn handle_get_mutations(
+        &self,
+        request: ClientRequest,
+        registry: &ActorRegistry,
+    ) -> Result<(), ActorError> {
+        let msg = GetMutationsReply {
+            from: self.name(),
+            mutations: self
+                .mutations
+                .borrow_mut()
+                .drain(..)
+                .map(|mutation| match mutation {
+                    DomMutation::AttributeModified {
+                        node,
+                        attribute_name,
+                        new_value,
+                    } => MutationMsg {
+                        variant: MutationVariant::AttributeModified {
+                            attribute_name,
+                            new_value,
+                        },
+                        target: registry.script_to_actor(node),
+                        type_: "attributes".to_owned(),
+                    },
+                })
+                .collect(),
+        };
+
+        request.reply_final(&msg)
     }
 }
 

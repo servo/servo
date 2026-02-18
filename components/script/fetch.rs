@@ -725,7 +725,7 @@ pub(crate) fn load_whole_resource(
     core_resource_thread: &CoreResourceThread,
     global: &GlobalScope,
     csp_violations_processor: &dyn CspViolationsProcessor,
-    can_gc: CanGc,
+    cx: &mut js::context::JSContext,
 ) -> Result<(Metadata, Vec<u8>, bool), NetworkError> {
     let request = request.https_state(global.get_https_state());
     let (action_sender, action_receiver) = ipc::channel().unwrap();
@@ -755,7 +755,13 @@ pub(crate) fn load_whole_resource(
             FetchResponseMsg::ProcessResponseEOF(_, Ok(_), _) => {
                 let metadata = metadata.unwrap();
                 if let Some(timing) = &metadata.timing {
-                    submit_timing_data(global, url, InitiatorType::Other, timing, can_gc);
+                    submit_timing_data(
+                        global,
+                        url,
+                        InitiatorType::Other,
+                        timing,
+                        CanGc::from_cx(cx),
+                    );
                 }
                 return Ok((metadata, buf, muted_errors));
             },

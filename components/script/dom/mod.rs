@@ -291,6 +291,7 @@ pub(crate) mod errorevent;
 pub(crate) mod event;
 pub(crate) mod eventsource;
 pub(crate) mod eventtarget;
+pub(crate) mod execcommand;
 pub(crate) mod extendableevent;
 pub(crate) mod extendablemessageevent;
 pub(crate) mod fetchlaterresult;
@@ -308,7 +309,6 @@ pub(crate) use self::gamepad::*;
 pub(crate) mod geolocation;
 pub(crate) use self::geolocation::*;
 pub(crate) mod global_scope_script_execution;
-#[expect(dead_code)]
 pub(crate) mod globalscope;
 pub(crate) mod hashchangeevent;
 pub(crate) mod headers;

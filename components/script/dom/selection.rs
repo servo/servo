@@ -105,6 +105,12 @@ impl Selection {
     fn is_same_root(&self, node: &Node) -> bool {
         &*node.GetRootNode(&GetRootNodeOptions::empty()) == self.document.upcast::<Node>()
     }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#active-range>
+    pub(crate) fn active_range(&self) -> Option<DomRoot<Range>> {
+        // > The active range is the range of the selection given by calling getSelection() on the context object. (Thus the active range may be null.)
+        self.range.get()
+    }
 }
 
 impl SelectionMethods<crate::DomTypeHolder> for Selection {

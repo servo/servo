@@ -17,9 +17,8 @@ pub(crate) fn load_script(head: &HTMLHeadElement) {
         return;
     }
     let win = DomRoot::from_ref(doc.window());
-    doc.add_delayed_task(task!(UserScriptExecute: |win: DomRoot<Window>| {
-        let cx = win.get_cx();
-        rooted!(in(*cx) let mut rval = UndefinedValue());
+    doc.add_delayed_task(task!(UserScriptExecute: |cx, win: DomRoot<Window>| {
+        rooted!(&in(cx) let mut rval = UndefinedValue());
 
         let global_scope = win.as_global_scope();
         for user_script in userscripts {
@@ -28,7 +27,7 @@ pub(crate) fn load_script(head: &HTMLHeadElement) {
                 &user_script.source_file().map(|path| path.to_string_lossy().to_string()).unwrap_or_default(),
                 None,
                 rval.handle_mut(),
-                CanGc::note(),
+                CanGc::from_cx(cx),
             );
         }
     }));

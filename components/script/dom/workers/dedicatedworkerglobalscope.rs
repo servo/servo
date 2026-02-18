@@ -322,6 +322,7 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Option<Arc<FontContext>>,
+        cx: &mut js::context::JSContext,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
             init,
@@ -343,10 +344,7 @@ impl DedicatedWorkerGlobalScope {
             insecure_requests_policy,
             font_context,
         ));
-        DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
-            GlobalScope::get_cx(),
-            scope,
-        )
+        DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
@@ -452,7 +450,7 @@ impl DedicatedWorkerGlobalScope {
                     gpu_id_hub.clone(),
                     cx,
                 );
-                debugger_global.execute(CanGc::from_cx(cx));
+                debugger_global.execute(cx);
 
                 let context_for_interrupt = runtime.thread_safe_js_context();
                 let _ = context_sender.send(context_for_interrupt);
@@ -495,6 +493,7 @@ impl DedicatedWorkerGlobalScope {
                     control_receiver,
                     insecure_requests_policy,
                     font_context,
+                    cx,
                 );
                 debugger_global.fire_add_debuggee(
                     CanGc::from_cx(cx),
@@ -650,7 +649,7 @@ impl DedicatedWorkerGlobalScope {
         match msg {
             MixedMessage::Devtools(msg) => match msg {
                 DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
-                    devtools::handle_evaluate_js(self.upcast(), string, sender, CanGc::from_cx(cx))
+                    devtools::handle_evaluate_js(self.upcast(), string, sender, cx)
                 },
                 DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
                     devtools::handle_wants_live_notifications(self.upcast(), bool_val)

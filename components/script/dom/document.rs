@@ -139,6 +139,7 @@ use crate::dom::element::{
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::execcommand::execcommands::ExecCommandsSupport;
 use crate::dom::focusevent::FocusEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
@@ -3266,6 +3267,7 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
+    #[expect(clippy::redundant_iter_cloned)]
     pub(crate) fn broadcast_active_resize_observations(
         &self,
         can_gc: CanGc,
@@ -6452,7 +6454,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         value: TrustedHTMLOrString,
         can_gc: CanGc,
     ) -> Fallible<bool> {
-        let _value = if command_id == "insertHTML" {
+        let value = if command_id == "insertHTML" {
             TrustedHTML::get_trusted_script_compliant_string(
                 self.window.as_global_scope(),
                 value,
@@ -6466,8 +6468,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             }
         };
 
-        // TODO(25005): Implement the feature
-        Ok(false)
+        Ok(self.exec_command_for_command_id(command_id, value, can_gc))
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#querycommandenabled()>
+    fn QueryCommandEnabled(&self, command_id: DOMString, can_gc: CanGc) -> bool {
+        self.check_support_and_enabled(command_id, can_gc).is_some()
     }
 
     // https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenerror

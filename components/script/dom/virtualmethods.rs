@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use html5ever::LocalName;
+use js::context::JSContext;
 use script_bindings::script_runtime::CanGc;
 use style::attr::AttrValue;
 
@@ -101,9 +102,9 @@ pub(crate) trait VirtualMethods {
     /// Invoked during a DOM tree mutation after a node becomes connected, once all
     /// related DOM tree mutations have been applied.
     /// <https://dom.spec.whatwg.org/#concept-node-post-connection-ext>
-    fn post_connection_steps(&self, can_gc: CanGc) {
+    fn post_connection_steps(&self, cx: &mut JSContext) {
         if let Some(s) = self.super_type() {
-            s.post_connection_steps(can_gc);
+            s.post_connection_steps(cx);
         }
     }
 

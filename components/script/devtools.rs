@@ -11,6 +11,7 @@ use devtools_traits::{
     AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty, EvaluateJSReply,
     EventListenerInfo, NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
 };
+use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::jsval::UndefinedValue;
 use js::rust::ToString;
@@ -41,7 +42,7 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::types::{EventTarget, HTMLElement};
-use crate::realms::enter_realm;
+use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, IntroductionType};
 
 #[expect(unsafe_code)]
@@ -49,13 +50,12 @@ pub(crate) fn handle_evaluate_js(
     global: &GlobalScope,
     eval: String,
     reply: GenericSender<EvaluateJSReply>,
-    can_gc: CanGc,
+    cx: &mut JSContext,
 ) {
-    // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
     let result = unsafe {
-        let cx = GlobalScope::get_cx();
-        let _ac = enter_realm(global);
-        rooted!(in(*cx) let mut rval = UndefinedValue());
+        let mut realm = enter_auto_realm(cx, global);
+        let cx = &mut realm;
+        rooted!(&in(cx) let mut rval = UndefinedValue());
         // TODO: run code with SpiderMonkey Debugger API, like Firefox does
         // <https://searchfox.org/mozilla-central/rev/f6a806c38c459e0e0d797d264ca0e8ad46005105/devtools/server/actors/webconsole/eval-with-debugger.js#270>
         _ = global.evaluate_js_on_global(
@@ -63,7 +63,7 @@ pub(crate) fn handle_evaluate_js(
             "<eval>",
             Some(IntroductionType::DEBUGGER_EVAL),
             rval.handle_mut(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         if rval.is_undefined() {
@@ -72,21 +72,21 @@ pub(crate) fn handle_evaluate_js(
             EvaluateJSReply::BooleanValue(rval.to_boolean())
         } else if rval.is_double() || rval.is_int32() {
             EvaluateJSReply::NumberValue(
-                match FromJSValConvertible::from_jsval(*cx, rval.handle(), ()) {
+                match FromJSValConvertible::from_jsval(cx.raw_cx(), rval.handle(), ()) {
                     Ok(ConversionResult::Success(v)) => v,
                     _ => unreachable!(),
                 },
             )
         } else if rval.is_string() {
             let jsstr = std::ptr::NonNull::new(rval.to_string()).unwrap();
-            EvaluateJSReply::StringValue(jsstr_to_string(*cx, jsstr))
+            EvaluateJSReply::StringValue(jsstr_to_string(cx.raw_cx(), jsstr))
         } else if rval.is_null() {
             EvaluateJSReply::NullValue
         } else {
             assert!(rval.is_object());
 
-            let jsstr = std::ptr::NonNull::new(ToString(*cx, rval.handle())).unwrap();
-            let class_name = jsstr_to_string(*cx, jsstr);
+            let jsstr = std::ptr::NonNull::new(ToString(cx.raw_cx(), rval.handle())).unwrap();
+            let class_name = jsstr_to_string(cx.raw_cx(), jsstr);
 
             EvaluateJSReply::ActorValue {
                 class: class_name,

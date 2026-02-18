@@ -14,6 +14,7 @@ use base::id::{PipelineId, WebViewId};
 use crossbeam_channel::{Sender, unbounded};
 use dom_struct::dom_struct;
 use euclid::{Scale, Size2D};
+use js::context::JSContext;
 use js::jsapi::{
     HandleValueArray, Heap, IsCallable, IsConstructor, JS_ClearPendingException,
     JS_IsExceptionPending, JSAutoRealm, JSObject, NewArrayObject, Value,
@@ -44,7 +45,6 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::css::cssstylevalue::CSSStyleValue;
 use crate::dom::css::stylepropertymapreadonly::StylePropertyMapReadOnly;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::paintrenderingcontext2d::PaintRenderingContext2D;
 use crate::dom::paintsize::PaintSize;
 use crate::dom::worklet::WorkletExecutor;
@@ -92,6 +92,7 @@ impl PaintWorkletGlobalScope {
         inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
+        cx: &mut JSContext,
     ) -> DomRoot<PaintWorkletGlobalScope> {
         debug!(
             "Creating paint worklet global scope for pipeline {}.",
@@ -122,7 +123,7 @@ impl PaintWorkletGlobalScope {
                 missing_image_urls: Vec::new(),
             }),
         });
-        PaintWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(GlobalScope::get_cx(), global)
+        PaintWorkletGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, global)
     }
 
     pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {

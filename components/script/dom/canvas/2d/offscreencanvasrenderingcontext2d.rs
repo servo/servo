@@ -5,6 +5,7 @@
 use canvas_traits::canvas::Canvas2dMsg;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
+use js::context::JSContext;
 use pixels::Snapshot;
 
 use crate::canvas_context::{CanvasContext, HTMLCanvasElementOrOffscreenCanvas};
@@ -189,38 +190,38 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createlineargradient>
     fn CreateLinearGradient(
         &self,
+        cx: &mut JSContext,
         x0: Finite<f64>,
         y0: Finite<f64>,
         x1: Finite<f64>,
         y1: Finite<f64>,
-        can_gc: CanGc,
     ) -> DomRoot<CanvasGradient> {
-        self.context.CreateLinearGradient(x0, y0, x1, y1, can_gc)
+        self.context.CreateLinearGradient(cx, x0, y0, x1, y1)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createradialgradient>
     fn CreateRadialGradient(
         &self,
+        cx: &mut JSContext,
         x0: Finite<f64>,
         y0: Finite<f64>,
         r0: Finite<f64>,
         x1: Finite<f64>,
         y1: Finite<f64>,
         r1: Finite<f64>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<CanvasGradient>> {
         self.context
-            .CreateRadialGradient(x0, y0, r0, x1, y1, r1, can_gc)
+            .CreateRadialGradient(cx, x0, y0, r0, x1, y1, r1)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createpattern>
     fn CreatePattern(
         &self,
+        cx: &mut JSContext,
         image: CanvasImageSource,
         repetition: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
-        self.context.CreatePattern(image, repetition, can_gc)
+        self.context.CreatePattern(cx, image, repetition)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-save>
@@ -279,8 +280,8 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     /// <https://html.spec.whatwg.org/multipage/#textmetrics>
-    fn MeasureText(&self, text: DOMString, can_gc: CanGc) -> DomRoot<TextMetrics> {
-        self.context.MeasureText(text, can_gc)
+    fn MeasureText(&self, cx: &mut JSContext, text: DOMString) -> DomRoot<TextMetrics> {
+        self.context.MeasureText(cx, text)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-font>
@@ -384,29 +385,35 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata>
-    fn CreateImageData(&self, sw: i32, sh: i32, can_gc: CanGc) -> Fallible<DomRoot<ImageData>> {
-        self.context.CreateImageData(sw, sh, can_gc)
+    fn CreateImageData(
+        &self,
+        cx: &mut JSContext,
+        sw: i32,
+        sh: i32,
+    ) -> Fallible<DomRoot<ImageData>> {
+        self.context.CreateImageData(sw, sh, CanGc::from_cx(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-createimagedata>
     fn CreateImageData_(
         &self,
+        cx: &mut JSContext,
         imagedata: &ImageData,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
-        self.context.CreateImageData_(imagedata, can_gc)
+        self.context.CreateImageData_(imagedata, CanGc::from_cx(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-getimagedata>
     fn GetImageData(
         &self,
+        cx: &mut JSContext,
         sx: i32,
         sy: i32,
         sw: i32,
         sh: i32,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<ImageData>> {
-        self.context.GetImageData(sx, sy, sw, sh, can_gc)
+        self.context
+            .GetImageData(sx, sy, sw, sh, CanGc::from_cx(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>
@@ -536,8 +543,8 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-gettransform>
-    fn GetTransform(&self, can_gc: CanGc) -> DomRoot<DOMMatrix> {
-        self.context.GetTransform(can_gc)
+    fn GetTransform(&self, cx: &mut JSContext) -> DomRoot<DOMMatrix> {
+        self.context.GetTransform(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-settransform>

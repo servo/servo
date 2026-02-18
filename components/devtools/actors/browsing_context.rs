@@ -143,7 +143,7 @@ pub(crate) struct BrowsingContextActor {
     accessibility: String,
     pub console: String,
     css_properties: String,
-    inspector: String,
+    pub(crate) inspector: String,
     reflow: String,
     style_sheets: String,
     pub thread: String,

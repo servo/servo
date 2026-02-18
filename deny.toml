@@ -214,7 +214,6 @@ skip = [
     # These need to be investigated separately to see if the duplication can be
     # avoided.
     "libloading",
-    "futures",
     "cfg-expr",
     "system-deps",
     "target-lexicon",

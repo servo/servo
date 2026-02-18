@@ -28,6 +28,17 @@ updates:
         - "emath"
         - "epaint"
         - "epaint_default_fonts"
+    futures-rs-related:
+      patterns:
+        - "futures"
+        - "futures-channel"
+        - "futures-core"
+        - "futures-executor"
+        - "futures-io"
+        - "futures-macro"
+        - "futures-sink"
+        - "futures-task"
+        - "futures-util"
     gstreamer-related:
       patterns:
         - "gio*"

@@ -13,6 +13,7 @@ use base::id::WebViewId;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::{HandleObject, Stencil};
 use net_traits::http_status::HttpStatus;
@@ -1232,13 +1233,13 @@ impl VirtualMethods for HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#script-processing-model:the-script-element-20>
-    fn post_connection_steps(&self, can_gc: CanGc) {
+    fn post_connection_steps(&self, cx: &mut JSContext) {
         if let Some(s) = self.super_type() {
-            s.post_connection_steps(can_gc);
+            s.post_connection_steps(cx);
         }
 
         if self.upcast::<Node>().is_connected() && !self.parser_inserted.get() {
-            self.prepare(Some(IntroductionType::INJECTED_SCRIPT), can_gc);
+            self.prepare(Some(IntroductionType::INJECTED_SCRIPT), CanGc::from_cx(cx));
         }
     }
 

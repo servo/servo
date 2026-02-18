@@ -67,6 +67,7 @@ use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{
     GetRootNodeOptions, NodeConstants, NodeMethods,
 };
@@ -1681,6 +1682,34 @@ impl Node {
             .as_ref()
             .and_then(|rare_data| rare_data.implemented_pseudo_element)
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#editing-host>
+    pub(crate) fn is_editing_host(&self) -> bool {
+        self.downcast::<HTMLElement>()
+            .is_some_and(HTMLElement::is_editing_host)
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#editable>
+    pub(crate) fn is_editable(&self) -> bool {
+        // > Something is editable if it is a node; it is not an editing host;
+        if self.is_editing_host() {
+            return false;
+        }
+        // > it does not have a contenteditable attribute set to the false state;
+        let html_element = self.downcast::<HTMLElement>();
+        if html_element.is_some_and(|el| el.ContentEditable().str() == "false") {
+            return false;
+        }
+        // > its parent is an editing host or editable;
+        let Some(parent) = self.GetParentNode() else {
+            return false;
+        };
+        if !parent.is_editable() && !parent.is_editing_host() {
+            return false;
+        }
+        // > and either it is an HTML element, or it is an svg or math element, or it is not an Element and its parent is an HTML element.
+        html_element.is_some() || parent.downcast::<HTMLElement>().is_some()
+    }
 }
 
 /// Iterate through `nodes` until we find a `Node` that is not in `not_in`
@@ -2722,7 +2751,7 @@ impl Node {
                 // Step 12. For each node of staticNodeList, if node is connected, then run the
                 //          post-connection steps with node.
                 for node in static_node_list {
-                    vtable_for(&node).post_connection_steps(CanGc::from_cx(cx));
+                    vtable_for(&node).post_connection_steps(cx);
                 }
             }),
         );

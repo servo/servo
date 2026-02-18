@@ -5,18 +5,18 @@
 use canvas_traits::canvas::{FillOrStrokeStyle, RepetitionStyle, SurfaceStyle};
 use dom_struct::dom_struct;
 use euclid::default::{Size2D, Transform2D};
+use js::context::JSContext;
 use pixels::{SharedSnapshot, Snapshot};
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasPatternMethods;
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
 use crate::dom::bindings::error::ErrorResult;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::canvasgradient::ToFillOrStrokeStyle;
 use crate::dom::dommatrixreadonly::dommatrix2dinit_to_matrix;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 /// <https://html.spec.whatwg.org/multipage/#canvaspattern>
 #[dom_struct]
@@ -59,13 +59,13 @@ impl CanvasPattern {
     }
     pub(crate) fn new(
         global: &GlobalScope,
+        cx: &mut JSContext,
         surface_data: Snapshot,
         surface_size: Size2D<u32>,
         repeat: RepetitionStyle,
         origin_clean: bool,
-        can_gc: CanGc,
     ) -> DomRoot<CanvasPattern> {
-        reflect_dom_object(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(CanvasPattern::new_inherited(
                 surface_data,
                 surface_size,
@@ -73,7 +73,8 @@ impl CanvasPattern {
                 origin_clean,
             )),
             global,
-            can_gc,
+            None,
+            cx,
         )
     }
     pub(crate) fn origin_is_clean(&self) -> bool {

@@ -411,15 +411,24 @@ impl RasterImage {
             .expect("Asked for a frame that did not exist: {frame_index:?}");
 
         let (format, data) = match self.format {
-            PixelFormat::BGRA8 => (WebRenderImageFormat::BGRA8, (*self.bytes).clone()),
-            PixelFormat::RGBA8 => (WebRenderImageFormat::RGBA8, (*self.bytes).clone()),
+            PixelFormat::BGRA8 => (
+                WebRenderImageFormat::BGRA8,
+                GenericSharedMemory::from_bytes(&self.bytes),
+            ),
+            PixelFormat::RGBA8 => (
+                WebRenderImageFormat::RGBA8,
+                GenericSharedMemory::from_bytes(&self.bytes),
+            ),
             PixelFormat::RGB8 => {
                 let frame_bytes = &self.bytes[frame.byte_range.clone()];
                 let mut bytes = Vec::with_capacity(frame_bytes.len() / 3 * 4);
                 for rgb in frame_bytes.chunks(3) {
                     bytes.extend_from_slice(&[rgb[2], rgb[1], rgb[0], 0xff]);
                 }
-                (WebRenderImageFormat::BGRA8, bytes)
+                (
+                    WebRenderImageFormat::BGRA8,
+                    GenericSharedMemory::from_bytes(&bytes),
+                )
             },
             PixelFormat::K8 | PixelFormat::KA8 => {
                 panic!("Not support by webrender yet");
@@ -436,7 +445,7 @@ impl RasterImage {
             offset: frame.byte_range.start as i32,
             flags,
         };
-        (descriptor, GenericSharedMemory::from_bytes(&data))
+        (descriptor, data)
     }
 
     /// For animations the image already exists in a cache in 'Painter'. We just send the description.

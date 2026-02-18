@@ -72,6 +72,7 @@ impl WorkletGlobalScope {
                 inherited_secure_context,
                 executor,
                 init,
+                cx,
             )),
             WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
                 webview_id,
@@ -80,6 +81,7 @@ impl WorkletGlobalScope {
                 inherited_secure_context,
                 executor,
                 init,
+                cx,
             )),
         };
 
@@ -138,16 +140,16 @@ impl WorkletGlobalScope {
     pub(crate) fn evaluate_js(
         &self,
         script: Cow<'_, str>,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Result<(), JavaScriptEvaluationError> {
         debug!("Evaluating Dom in a worklet.");
-        rooted!(in (*GlobalScope::get_cx()) let mut rval = UndefinedValue());
+        rooted!(&in(cx) let mut rval = UndefinedValue());
         self.globalscope.evaluate_js_on_global(
             script,
             "",
             Some(IntroductionType::WORKLET),
             rval.handle_mut(),
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 

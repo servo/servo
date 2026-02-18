@@ -11,6 +11,8 @@ partial interface DebuggerGlobalScope {
     undefined getFrameResult(
         DebuggerPauseEvent event,
         PauseFrameResult result);
+
+    undefined notifyBreakpointHit(PipelineIdInit pipelineId, PauseFrameResult result);
 };
 
 dictionary PauseFrameResult {

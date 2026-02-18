@@ -6,17 +6,17 @@ use canvas_traits::canvas::{
     CanvasGradientStop, FillOrStrokeStyle, LinearGradientStyle, RadialGradientStyle,
 };
 use dom_struct::dom_struct;
+use js::context::JSContext;
 
 use super::canvas_state::parse_color;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasGradientMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 // https://html.spec.whatwg.org/multipage/#canvasgradient
 #[dom_struct]
@@ -44,13 +44,14 @@ impl CanvasGradient {
 
     pub(crate) fn new(
         global: &GlobalScope,
+        cx: &mut JSContext,
         style: CanvasGradientStyle,
-        can_gc: CanGc,
     ) -> DomRoot<CanvasGradient> {
-        reflect_dom_object(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(CanvasGradient::new_inherited(style)),
             global,
-            can_gc,
+            None,
+            cx,
         )
     }
 }

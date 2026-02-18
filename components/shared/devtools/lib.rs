@@ -129,6 +129,20 @@ pub enum ScriptToDevtoolsControlMsg {
     ),
 
     UpdateSourceContent(PipelineId, String),
+
+    DomMutation(PipelineId, DomMutation),
+
+    /// A breakpoint was hit in script, sending frame information.
+    BreakpointHit(PipelineId, PauseFrameResult),
+}
+
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+pub enum DomMutation {
+    AttributeModified {
+        node: String,
+        attribute_name: String,
+        new_value: Option<String>,
+    },
 }
 
 /// Serialized JS return values
@@ -321,6 +335,7 @@ pub enum DevtoolScriptControlMsg {
     SetBreakpoint(u32, u32, u32),
     ClearBreakpoint(u32, u32, u32),
     Pause(GenericSender<PauseFrameResult>),
+    Resume,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
@@ -552,7 +567,7 @@ pub struct RecommendedBreakpointLocation {
     pub is_step_start: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PauseFrameResult {
     pub column: u32,

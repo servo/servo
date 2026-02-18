@@ -521,17 +521,17 @@ impl ModuleTree {
         } else {
             None
         };
+        let specifier = &specifier.str();
 
         // Step 6. Let serializedBaseURL be baseURL, serialized.
         let serialized_base_url = base_url.as_str();
         // Step 7. Let asURL be the result of resolving a URL-like module specifier given specifier and baseURL.
-        let as_url = Self::resolve_url_like_module_specifier(&specifier, base_url);
+        let as_url = Self::resolve_url_like_module_specifier(specifier, base_url);
         // Step 8. Let normalizedSpecifier be the serialization of asURL, if asURL is non-null;
         // otherwise, specifier.
-        let specifier = specifier.str();
         let normalized_specifier = match &as_url {
             Some(url) => url.as_str(),
-            None => &specifier,
+            None => specifier,
         };
 
         // Step 9. Let result be a URL-or-null, initially null.
@@ -599,20 +599,15 @@ impl ModuleTree {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#resolving-a-url-like-module-specifier>
-    fn resolve_url_like_module_specifier(
-        specifier: &DOMString,
-        base_url: &ServoUrl,
-    ) -> Option<ServoUrl> {
+    fn resolve_url_like_module_specifier(specifier: &str, base_url: &ServoUrl) -> Option<ServoUrl> {
         // Step 1. If specifier starts with "/", "./", or "../", then:
-        if specifier.starts_with('/') ||
-            specifier.starts_with_str("./") ||
-            specifier.starts_with_str("../")
+        if specifier.starts_with('/') || specifier.starts_with("./") || specifier.starts_with("../")
         {
             // Step 1.1. Let url be the result of URL parsing specifier with baseURL.
-            return ServoUrl::parse_with_base(Some(base_url), &specifier.str()).ok();
+            return ServoUrl::parse_with_base(Some(base_url), specifier).ok();
         }
         // Step 2. Let url be the result of URL parsing specifier (with no base URL).
-        ServoUrl::parse(&specifier.str()).ok()
+        ServoUrl::parse(specifier).ok()
     }
 }
 
@@ -1578,8 +1573,7 @@ fn merge_existing_and_new_import_maps(
                                 record
                                     .specifier_url
                                     .as_ref()
-                                    .map(|u| u.is_special_scheme())
-                                    .unwrap_or_default()))
+                                    .is_some_and(|u| u.is_special_scheme())))
                     {
                         // The user agent may report a warning to the console indicating the ignored rule.
                         // They may choose to avoid reporting if the rule is identical to an existing one.
@@ -1640,7 +1634,10 @@ fn merge_existing_and_new_import_maps(
         // For each specifier → url of newImportMapImports:
         new_import_map_imports.retain(|specifier, val| {
             // If specifier starts with record's specifier, then:
-            if specifier.starts_with(&record.specifier) {
+            //
+            // Note: Spec is wrong, we need to check if record's specifier starts with specifier
+            // See: https://github.com/whatwg/html/issues/11875
+            if record.specifier.starts_with(specifier) {
                 // The user agent may report a warning to the console indicating the ignored rule.
                 // They may choose to avoid reporting if the rule is identical to an existing one.
                 Console::internal_warn(
@@ -1833,8 +1830,8 @@ fn sort_and_normalize_module_specifier_map(
         };
 
         // Step 2.4. Let address_url be the result of resolving a URL-like module specifier given value and baseURL.
-        let value = DOMString::from(value.as_str());
-        let Some(address_url) = ModuleTree::resolve_url_like_module_specifier(&value, base_url)
+        let Some(address_url) =
+            ModuleTree::resolve_url_like_module_specifier(value.as_str(), base_url)
         else {
             // Step 2.5 If address_url is null, then:
             // Step 2.5.1. The user agent may report a warning to the console
@@ -1953,7 +1950,7 @@ fn normalize_module_integrity_map(
         // Step 2.1 Let resolvedURL be the result of
         // resolving a URL-like module specifier given key and baseURL.
         let Some(resolved_url) =
-            ModuleTree::resolve_url_like_module_specifier(&DOMString::from(key.as_str()), base_url)
+            ModuleTree::resolve_url_like_module_specifier(key.as_str(), base_url)
         else {
             // Step 2.2 If resolvedURL is null, then:
             // Step 2.2.1 The user agent may report a warning
@@ -2005,8 +2002,7 @@ fn normalize_specifier_key(
         return None;
     }
     // step 2. Let url be the result of resolving a URL-like module specifier, given specifierKey and baseURL.
-    let url =
-        ModuleTree::resolve_url_like_module_specifier(&DOMString::from(specifier_key), base_url);
+    let url = ModuleTree::resolve_url_like_module_specifier(specifier_key, base_url);
 
     // step 3. If url is not null, then return the serialization of url.
     if let Some(url) = url {
@@ -2021,7 +2017,7 @@ fn normalize_specifier_key(
 ///
 /// When the error is thrown, it will terminate the entire resolve a module specifier algorithm
 /// without any further fallbacks.
-pub(crate) fn resolve_imports_match(
+fn resolve_imports_match(
     normalized_specifier: &str,
     as_url: Option<&ServoUrl>,
     specifier_map: &ModuleSpecifierMap,
@@ -2050,7 +2046,7 @@ pub(crate) fn resolve_imports_match(
         // - either asURL is null, or asURL is special, then:
         if specifier_key.ends_with('\u{002f}') &&
             normalized_specifier.starts_with(specifier_key) &&
-            (as_url.is_none() || as_url.map(|u| u.is_special_scheme()).unwrap_or_default())
+            (as_url.is_none() || as_url.is_some_and(|u| u.is_special_scheme()))
         {
             // Step 1.2.1 If resolutionResult is null, then throw a TypeError.
             // Step 1.2.2 Assert: resolutionResult is a URL.

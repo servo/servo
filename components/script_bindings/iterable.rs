@@ -160,11 +160,10 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
     DomObjectWrap<D> for IterableIterator<D, T>
 {
     const WRAP: unsafe fn(
-        JSContext,
+        &mut js::context::JSContext,
         &D::GlobalScope,
         Option<HandleObject>,
         Box<Self>,
-        CanGc,
     ) -> Root<Dom<Self>> = T::ITER_WRAP;
 }
 

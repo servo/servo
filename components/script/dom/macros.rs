@@ -166,7 +166,8 @@ macro_rules! make_enumerated_getter(
         $htmlname:tt,
         $($choices:literal)|+,
         missing => $missing:literal,
-        invalid => $invalid:literal
+        invalid => $invalid:literal,
+        empty => $empty:literal
     ) => (
         fn $attr(&self) -> DOMString {
             use $crate::dom::bindings::inheritance::Castable;
@@ -193,9 +194,15 @@ macro_rules! make_enumerated_getter(
                         }
                     )+
 
-                    // Step 3. If the attribute has an invalid value default state defined, then return that invalid
+                    // Step 3. If the attribute has an empty value default state defined and the attribute's value
+                    // is the empty string, then return that empty value default state.
+                    if value.is_empty() {
+                        return DOMString::from($empty)
+                    }
+
+                    // Step 4. If the attribute has an invalid value default state defined, then return that invalid
                     // value default state.
-                    // Step 4. Return no state.
+                    // Step 5. Return no state.
                     return DOMString::from($invalid);
                 }
             }
@@ -210,7 +217,8 @@ macro_rules! make_enumerated_getter(
             $htmlname,
             $($choices)|+,
             missing => "",
-            invalid => ""
+            invalid => "",
+            empty => ""
         );
     );
     ($attr:ident,
@@ -223,7 +231,8 @@ macro_rules! make_enumerated_getter(
             $htmlname,
             $($choices)|+,
             missing => "",
-            invalid => $invalid
+            invalid => $invalid,
+            empty => $invalid
         );
     );
     ($attr:ident,
@@ -236,7 +245,23 @@ macro_rules! make_enumerated_getter(
             $htmlname,
             $($choices)|+,
             missing => $missing,
-            invalid => ""
+            invalid => "",
+            empty => ""
+        );
+    );
+    ($attr:ident,
+        $htmlname:tt,
+        $($choices:literal)|+,
+        missing => $missing:literal,
+        invalid => $invalid:literal
+    ) => (
+        make_enumerated_getter!(
+            $attr,
+            $htmlname,
+            $($choices)|+,
+            missing => $missing,
+            invalid => $invalid,
+            empty => $invalid
         );
     );
 );

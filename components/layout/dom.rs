@@ -9,8 +9,8 @@ use base::id::{BrowsingContextId, PipelineId};
 use html5ever::{local_name, ns};
 use layout_api::wrapper_traits::{LayoutDataTrait, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{
-    GenericLayoutDataTrait, LayoutDamage, LayoutElementType,
-    LayoutNodeType as ScriptLayoutNodeType, SVGElementData,
+    GenericLayoutDataTrait, LayoutElementType, LayoutNodeType as ScriptLayoutNodeType,
+    SVGElementData,
 };
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::image_cache::Image;
@@ -19,7 +19,7 @@ use servo_arc::Arc as ServoArc;
 use smallvec::SmallVec;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
-use style::selector_parser::{PseudoElement, RestyleDamage};
+use style::selector_parser::PseudoElement;
 
 use crate::cell::{ArcRefCell, WeakRefCell};
 use crate::flexbox::FlexLevelBox;
@@ -321,13 +321,18 @@ pub(crate) trait NodeExt<'dom> {
     fn with_layout_box_base_including_pseudos(&self, callback: impl Fn(&LayoutBoxBase));
 
     fn repair_style(&self, context: &SharedStyleContext);
-    fn take_restyle_damage(&self) -> LayoutDamage;
 
-    /// Whether or not this node isolates downward flowing box tree rebuild damage. Roughly,
-    /// this corresponds to independent formatting context boundaries. The node's boxes
-    /// themselves will be rebuilt, but not the descendant node's boxes. When this node
-    /// has no box yet, `false` is returned.
-    fn isolates_box_tree_rebuild_damage(&self) -> bool;
+    /// Whether or not this node isolates downward flowing box tree rebuild damage and
+    /// fragment tree layout cache damage. Roughly, this corresponds to independent
+    /// formatting context boundaries.
+    ///
+    /// - The node's boxes themselves will be rebuilt, but not the descendant node's
+    ///   boxes.
+    /// - The node's fragment tree layout will be rebuilt, not the descendent node's
+    ///   fragment tree layout cache.
+    ///
+    /// When this node has no box yet, `false` is returned.
+    fn isolates_damage_for_damage_propagation(&self) -> bool;
 }
 
 impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
@@ -487,15 +492,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         }
     }
 
-    fn take_restyle_damage(&self) -> LayoutDamage {
-        let damage = self
-            .style_data()
-            .map(|style_data| std::mem::take(&mut style_data.element_data.borrow_mut().damage))
-            .unwrap_or_else(RestyleDamage::reconstruct);
-        LayoutDamage::from_bits_retain(damage.bits())
-    }
-
-    fn isolates_box_tree_rebuild_damage(&self) -> bool {
+    fn isolates_damage_for_damage_propagation(&self) -> bool {
         let Some(inner_layout_data) = self.inner_layout_data() else {
             return false;
         };

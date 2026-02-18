@@ -58,7 +58,7 @@ pub(crate) struct InspectorActor {
     name: String,
     highlighter: String,
     page_style: String,
-    walker: String,
+    pub(crate) walker: String,
 }
 
 impl Actor for InspectorActor {

@@ -32,9 +32,9 @@ data-url = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 fst = "0.4"
-futures = { version = "0.3", package = "futures" }
-futures-core = { version = "0.3.30", default-features = false }
-futures-util = { version = "0.3.30", default-features = false }
+futures = { workspace = true }
+futures-core = { workspace = true }
+futures-util = { workspace = true }
 generic-array = "0.14"
 headers = { workspace = true }
 http = { workspace = true }
@@ -67,7 +67,7 @@ serde = { workspace = true }
 servo_arc = { workspace = true }
 servo_config = { path = "../config" }
 servo_url = { path = "../url" }
-sha2 = "0.10"
+sha2 = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
 tokio-rustls = { workspace = true }
@@ -84,7 +84,6 @@ webrender_api = { workspace = true }
 embedder_traits = { workspace = true, features = ["baked-default-resources"] }
 flate2 = { workspace = true }
 fst = "0.4"
-futures = { version = "0.3", features = ["compat"] }
 hyper = { workspace = true, features = ["full"] }
 hyper-util = { workspace = true, features = ["server-graceful"] }
 net = { path = "../net", features = ["test-util"] }

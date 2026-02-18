@@ -19,9 +19,8 @@ from datetime import datetime
 from typing import List, Optional
 
 import sys
-from github import Github, Auth
-
-import boto3
+from github import Github, Auth  # pyrefly: ignore
+import boto3  # pyrefly: ignore
 
 
 def get_s3_secret(secret_from_environment: bool) -> tuple:
