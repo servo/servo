@@ -275,7 +275,7 @@ impl IDBOpenDBRequest {
         let matches = self
             .idbrequest
             .transaction()
-            .is_some_and(|current| std::ptr::eq::<IDBTransaction>(&*current, transaction));
+            .is_some_and(|current| &*current == transaction);
         if matches {
             self.idbrequest.clear_transaction();
         }

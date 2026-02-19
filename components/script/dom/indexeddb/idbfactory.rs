@@ -50,9 +50,9 @@ pub struct IDBFactory {
     connections:
         DomRefCell<HashMapTracedValues<DBName, HashMapTracedValues<Uuid, Dom<IDBOpenDBRequest>>>>,
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#transaction>
+    /// <https://www.w3.org/TR/IndexedDB-3/#transaction>
     /// Active transactions associated with this factory's global.
-    indexeddb_transactions: DomRefCell<Vec<Dom<IDBTransaction>>>,
+    indexeddb_transactions: DomRefCell<HashMapTracedValues<DBName, Vec<Dom<IDBTransaction>>>>,
 
     #[no_trace]
     callback: DomRefCell<Option<GenericCallback<ConnectionMsg>>>,
@@ -69,28 +69,48 @@ impl IDBFactory {
     }
 
     pub(crate) fn register_indexeddb_transaction(&self, txn: &IDBTransaction) {
-        let mut v = self.indexeddb_transactions.borrow_mut();
-        if v.iter().any(|entry| &**entry == txn) {
-            return;
+        let db_name = DBName(txn.get_db_name().to_string());
+        let mut map = self.indexeddb_transactions.borrow_mut();
+        let bucket = map.entry(db_name).or_default();
+        if !bucket.iter().any(|entry| &**entry == txn) {
+            bucket.push(Dom::from_ref(txn));
         }
-        v.push(Dom::from_ref(txn));
+        txn.set_registered_in_global();
     }
 
     pub(crate) fn unregister_indexeddb_transaction(&self, txn: &IDBTransaction) {
-        self.indexeddb_transactions
-            .borrow_mut()
-            .retain(|entry| &**entry != txn);
+        let db_name = DBName(txn.get_db_name().to_string());
+        let mut map = self.indexeddb_transactions.borrow_mut();
+        if let Some(bucket) = map.get_mut(&db_name) {
+            bucket.retain(|entry| &**entry != txn);
+            if bucket.is_empty() {
+                map.remove(&db_name);
+            }
+        }
+        txn.clear_registered_in_global();
     }
 
     pub(crate) fn cleanup_indexeddb_transactions(&self) -> bool {
         // We implement the HTML-triggered deactivation effect by tracking script-created
         // transactions on the global and deactivating them at the microtask checkpoint.
         let snapshot: Vec<DomRoot<IDBTransaction>> = {
-            let mut transactions = self.indexeddb_transactions.borrow_mut();
-            transactions.retain(|txn| !txn.is_finished());
+            let mut map = self.indexeddb_transactions.borrow_mut();
 
-            transactions
-                .iter()
+            // Transactions are normally unregistered when they finish (commit/abort),
+            // but unregister can occur in a queued task (e.g. finalize_abort), so we can
+            // briefly observe finished transactions here. Prune them defensively.
+            let keys: Vec<DBName> = map.iter().map(|(k, _)| k.clone()).collect();
+            for key in keys {
+                if let Some(bucket) = map.get_mut(&key) {
+                    bucket.retain(|txn| !txn.is_finished());
+                    if bucket.is_empty() {
+                        map.remove(&key);
+                    }
+                }
+            }
+
+            map.iter()
+                .flat_map(|(_db, bucket)| bucket.iter())
                 .map(|txn| DomRoot::from_ref(&**txn))
                 .collect()
         };
@@ -106,9 +126,11 @@ impl IDBFactory {
         let any_matching = snapshot
             .iter()
             .any(|txn| txn.cleanup_event_loop_matches_current());
+
         if !any_matching {
             return false;
         }
+
         for txn in snapshot {
             if txn.cleanup_event_loop_matches_current() {
                 txn.set_active_flag(false);
@@ -118,22 +140,34 @@ impl IDBFactory {
                 }
             }
         }
-        self.indexeddb_transactions
-            .borrow_mut()
-            .retain(|txn| !txn.is_finished());
+
+        // Prune finished transactions again after maybe_commit() progress.
+        let mut map = self.indexeddb_transactions.borrow_mut();
+        let keys: Vec<DBName> = map.iter().map(|(k, _)| k.clone()).collect();
+        for key in keys {
+            if let Some(bucket) = map.get_mut(&key) {
+                bucket.retain(|txn| !txn.is_finished());
+                if bucket.is_empty() {
+                    map.remove(&key);
+                }
+            }
+        }
+
         true
     }
 
     pub(crate) fn maybe_commit_txn(&self, db_name: &str, txn_serial: u64) {
-        let snapshot: Vec<DomRoot<IDBTransaction>> = self
-            .indexeddb_transactions
-            .borrow()
-            .iter()
-            .map(|t| DomRoot::from_ref(&**t))
-            .collect();
+        let key = DBName(db_name.to_string());
+        let snapshot: Vec<DomRoot<IDBTransaction>> = {
+            let map = self.indexeddb_transactions.borrow();
+            let Some(bucket) = map.get(&key) else {
+                return;
+            };
+            bucket.iter().map(|t| DomRoot::from_ref(&**t)).collect()
+        };
 
         for txn in snapshot {
-            if txn.get_serial_number() == txn_serial && txn.get_db_name() == db_name {
+            if txn.get_serial_number() == txn_serial {
                 txn.maybe_commit();
                 break;
             }

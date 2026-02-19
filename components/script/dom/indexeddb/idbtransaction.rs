@@ -69,7 +69,8 @@ pub struct IDBTransaction {
     // finished.
     pending_request_count: Cell<usize>,
     next_request_id: Cell<u64>,
-    handled_next_unhandled_id: Cell<u64>,
+    // Smallest request_id that has not yet been marked handled (all < this are handled).
+    next_unhandled_request_id: Cell<u64>,
     handled_pending: DomRefCell<HashSet<u64>>,
 
     // An unique identifier, used to commit and revert this transaction
@@ -103,7 +104,7 @@ impl IDBTransaction {
             registered_in_global: Cell::new(false),
             pending_request_count: Cell::new(0),
             next_request_id: Cell::new(0),
-            handled_next_unhandled_id: Cell::new(0),
+            next_unhandled_request_id: Cell::new(0),
             handled_pending: Default::default(),
             serial_number,
         }
@@ -211,6 +212,10 @@ impl IDBTransaction {
         self.registered_in_global.set(true);
     }
 
+    pub(crate) fn clear_registered_in_global(&self) {
+        self.registered_in_global.set(false);
+    }
+
     pub(crate) fn set_versionchange_old_version(&self, version: u64) {
         self.version_change_old_version.set(Some(version));
     }
@@ -238,14 +243,9 @@ impl IDBTransaction {
                             this.finalize_commit();
                         }
                         Err(_err) => {
-                            // TODO: Map backend commit error to appropriate DOMException.
-                            this.initiate_abort(
-                                Error::QuotaExceeded {
-                                    quota: None,
-                                    requested: None,
-                                },
-                                CanGc::note(),
-                            );
+                             // TODO: Map backend commit/rollback failure to an appropriate DOMException
+                            this.initiate_abort(Error::Operation(None), CanGc::note());
+
                             this.finalize_abort();
                         }
                     }
@@ -287,7 +287,7 @@ impl IDBTransaction {
         let committing = self.committing.get();
         let active = self.active.get();
         let pending_request_count = self.pending_request_count.get();
-        let handled_next_unhandled_id = self.handled_next_unhandled_id.get();
+        let next_unhandled_request_id = self.next_unhandled_request_id.get();
         let issued_count = self.issued_count();
         if finished || abort_initiated || committing {
             return;
@@ -295,7 +295,7 @@ impl IDBTransaction {
         if active || pending_request_count != 0 {
             return;
         }
-        if handled_next_unhandled_id != issued_count {
+        if next_unhandled_request_id != issued_count {
             return;
         }
         if !self.attempt_commit() {
@@ -350,7 +350,7 @@ impl IDBTransaction {
     }
 
     pub(crate) fn mark_request_handled(&self, request_id: u64) {
-        let current = self.handled_next_unhandled_id.get();
+        let current = self.next_unhandled_request_id.get();
         if request_id == current {
             let mut next = current + 1;
             {
@@ -359,7 +359,7 @@ impl IDBTransaction {
                     next += 1;
                 }
             }
-            self.handled_next_unhandled_id.set(next);
+            self.next_unhandled_request_id.set(next);
         } else if request_id > current {
             self.handled_pending.borrow_mut().insert(request_id);
         }
@@ -504,7 +504,6 @@ impl IDBTransaction {
                 this.notify_backend_transaction_finished();
                 if this.registered_in_global.get() {
                     this.global().get_indexeddb().unregister_indexeddb_transaction(&this);
-                    this.registered_in_global.set(false);
                 }
             }));
     }
@@ -527,14 +526,13 @@ impl IDBTransaction {
             self.global()
                 .get_indexeddb()
                 .unregister_indexeddb_transaction(self);
-            self.registered_in_global.set(false);
         }
     }
 
     fn dispatch_complete(&self) {
         let global = self.global();
         let this = Trusted::new(self);
-        global.task_manager().dom_manipulation_task_source().queue(
+        global.task_manager().database_access_task_source().queue(
             task!(send_complete_notification: move || {
                 let this = this.root();
                 let global = this.global();

@@ -119,12 +119,17 @@ impl IDBDatabase {
     }
 
     pub(crate) fn clear_upgrade_transaction(&self, transaction: &IDBTransaction) {
-        let Some(current) = self.upgrade_transaction.get() else {
-            return;
-        };
-        if &*current == transaction {
-            self.upgrade_transaction.set(None);
-        }
+        let current = self
+            .upgrade_transaction
+            .get()
+            .expect("clear_upgrade_transaction called but no upgrade transaction is set");
+
+        debug_assert!(
+            &*current == transaction,
+            "clear_upgrade_transaction called with non-current transaction"
+        );
+
+        self.upgrade_transaction.set(None);
     }
 
     /// <https://w3c.github.io/IndexedDB/#eventdef-idbdatabase-versionchange>
@@ -186,21 +191,26 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
                 )
             },
         };
-        if mode != IDBTransactionMode::Versionchange {
-            // https://w3c.github.io/IndexedDB/#dom-idbdatabase-transaction
-            // Step 8: Set transaction’s cleanup event loop to the current event loop.
-            transaction.set_cleanup_event_loop();
-            // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
-            // NOTE: These steps are invoked by [HTML]. They ensure that transactions created
-            // by a script call to transaction() are deactivated once the task that invoked
-            // the script has completed. The steps are run at most once for each transaction.
-            // https://w3c.github.io/IndexedDB/#transaction-concept
-            // A transaction optionally has a cleanup event loop which is an event loop.
-            self.global()
-                .get_indexeddb()
-                .register_indexeddb_transaction(&transaction);
-            transaction.set_registered_in_global();
+
+        // https://w3c.github.io/IndexedDB/#dom-idbdatabase-transaction
+        // Step 6: If mode is not "readonly" or "readwrite", throw a TypeError.
+        if mode != IDBTransactionMode::Readonly && mode != IDBTransactionMode::Readwrite {
+            return Err(Error::Type(c"Invalid transaction mode".to_owned()));
         }
+
+        // https://w3c.github.io/IndexedDB/#dom-idbdatabase-transaction
+        // Step 8: Set transaction’s cleanup event loop to the current event loop.
+        transaction.set_cleanup_event_loop();
+        // https://w3c.github.io/IndexedDB/#cleanup-indexed-database-transactions
+        // NOTE: These steps are invoked by [HTML]. They ensure that transactions created
+        // by a script call to transaction() are deactivated once the task that invoked
+        // the script has completed. The steps are run at most once for each transaction.
+        // https://w3c.github.io/IndexedDB/#transaction-concept
+        // A transaction optionally has a cleanup event loop which is an event loop.
+        self.global()
+            .get_indexeddb()
+            .register_indexeddb_transaction(&transaction);
+
         Ok(transaction)
     }
 

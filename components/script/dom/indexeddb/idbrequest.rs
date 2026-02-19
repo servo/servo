@@ -478,7 +478,7 @@ impl IDBRequest {
 
         let task_source = global
             .task_manager()
-            .dom_manipulation_task_source()
+            .database_access_task_source()
             .to_sendable();
 
         let closure = move |message: Result<BackendResult<T>, ipc_channel::IpcError>| {

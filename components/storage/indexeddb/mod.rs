@@ -16,7 +16,7 @@ use base::threadpool::ThreadPool;
 use log::{debug, error, warn};
 use profile_traits::generic_callback::GenericCallback;
 use rusqlite::Error as RusqliteError;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
@@ -103,6 +103,9 @@ struct IndexedDBEnvironment<E: KvsEngine> {
     txn_info: FxHashMap<u64, TxnInfo>,
     queued_readwrite: VecDeque<u64>,
     queued_readonly: VecDeque<u64>,
+    // Fast membership checks + de-dup for queued_*.
+    queued_readwrite_set: FxHashSet<u64>,
+    queued_readonly_set: FxHashSet<u64>,
     running_readwrite: Option<u64>,
     running_readonly: HashSet<u64>,
     handled_next_unhandled_request_id: FxHashMap<u64, u64>,
@@ -123,6 +126,8 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             txn_info: FxHashMap::default(),
             queued_readwrite: VecDeque::new(),
             queued_readonly: VecDeque::new(),
+            queued_readwrite_set: FxHashSet::default(),
+            queued_readonly_set: FxHashSet::default(),
             running_readwrite: None,
             running_readonly: HashSet::new(),
             handled_next_unhandled_request_id: FxHashMap::default(),
@@ -189,12 +194,17 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     }
 
     fn enqueue_txn(&mut self, txn: u64, mode: &IndexedDBTxnMode) {
-        let queue = match mode {
-            IndexedDBTxnMode::Readonly => &mut self.queued_readonly,
-            _ => &mut self.queued_readwrite,
-        };
-        if !queue.contains(&txn) {
-            queue.push_back(txn);
+        match mode {
+            IndexedDBTxnMode::Readonly => {
+                if self.queued_readonly_set.insert(txn) {
+                    self.queued_readonly.push_back(txn);
+                }
+            },
+            _ => {
+                if self.queued_readwrite_set.insert(txn) {
+                    self.queued_readwrite.push_back(txn);
+                }
+            },
         }
     }
 
@@ -248,12 +258,17 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             let Some(txn) = self.queued_readonly.pop_front() else {
                 break;
             };
+
+            self.queued_readonly_set.remove(&txn);
+
             let Some(transaction) = self.transactions.get(&txn) else {
                 continue;
             };
             if self.running_readonly.contains(&txn) {
                 if !transaction.requests.is_empty() {
-                    self.queued_readonly.push_back(txn);
+                    if self.queued_readonly_set.insert(txn) {
+                        self.queued_readonly.push_back(txn);
+                    }
                 }
                 continue;
             }
@@ -261,7 +276,9 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
                 continue;
             }
             if !self.can_start_by_spec(txn) {
-                self.queued_readonly.push_back(txn);
+                if self.queued_readonly_set.insert(txn) {
+                    self.queued_readonly.push_back(txn);
+                }
                 continue;
             }
 
@@ -280,13 +297,18 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             let Some(txn) = self.queued_readwrite.pop_front() else {
                 break;
             };
+
+            self.queued_readwrite_set.remove(&txn);
+
             let Some(transaction) = self.transactions.get(&txn) else {
                 continue;
             };
 
             if self.running_readwrite == Some(txn) {
                 if !transaction.requests.is_empty() {
-                    self.queued_readwrite.push_back(txn);
+                    if self.queued_readwrite_set.insert(txn) {
+                        self.queued_readwrite.push_back(txn);
+                    }
                 }
                 continue;
             }
@@ -295,7 +317,9 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
                 continue;
             }
             if !self.can_start_by_spec(txn) {
-                self.queued_readwrite.push_back(txn);
+                if self.queued_readwrite_set.insert(txn) {
+                    self.queued_readwrite.push_back(txn);
+                }
                 continue;
             }
 
@@ -402,7 +426,7 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             return false;
         }
         // Avoid if the txn is still queued or has queued operations.
-        if self.queued_readonly.contains(&txn) || self.queued_readwrite.contains(&txn) {
+        if self.queued_readonly_set.contains(&txn) || self.queued_readwrite_set.contains(&txn) {
             return false;
         }
         match self.transactions.get(&txn) {
@@ -455,6 +479,8 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         self.transactions.remove(&txn);
         self.queued_readonly.retain(|queued| *queued != txn);
         self.queued_readwrite.retain(|queued| *queued != txn);
+        self.queued_readonly_set.remove(&txn);
+        self.queued_readwrite_set.remove(&txn);
         if self.running_readwrite == Some(txn) {
             self.running_readwrite = None;
         }
@@ -470,6 +496,8 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         self.transactions.remove(&txn);
         self.queued_readonly.retain(|queued| *queued != txn);
         self.queued_readwrite.retain(|queued| *queued != txn);
+        self.queued_readonly_set.remove(&txn);
+        self.queued_readwrite_set.remove(&txn);
         if self.running_readwrite == Some(txn) {
             self.running_readwrite = None;
         }
