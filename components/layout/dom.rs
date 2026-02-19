@@ -546,6 +546,15 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         &self,
         layout_context: &LayoutContext,
     ) -> bool {
+        // Do not run incremental box tree layout at the `<body>` or root element as there
+        // is some special processing that must happen for these elements and it currently
+        // only happens when doing a full box tree construction traversal.
+        if self.as_element().is_some_and(|element| {
+            element.is_body_element_of_html_element_root() || element.is_root()
+        }) {
+            return false;
+        }
+
         let layout_box = {
             let Some(mut inner_layout_data) = self.inner_layout_data_mut() else {
                 return false;

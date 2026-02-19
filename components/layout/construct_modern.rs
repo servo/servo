@@ -99,6 +99,8 @@ impl<'dom> ModernContainerJob<'dom> {
                 let formatting_context = IndependentFormattingContext::new(
                     LayoutBoxBase::new(info.into(), info.style.clone()),
                     IndependentFormattingContextContents::Flow(block_formatting_context),
+                    // This is just a series of anonymous text runs, so we don't need to worry
+                    // about what kind of PropagatedBoxTreeData is used here.
                     Default::default(),
                 );
 

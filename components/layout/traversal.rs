@@ -121,7 +121,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree(
     // 1. Fragment tree layout needs to run again, in which case we should invalidate all
     //    fragments to the root of the DOM.
     // 2. Box tree reconstruction needs to run at the dirty root, in which case we need to
-    //    find an appropriate place to run box tree reconstruction and *also* invlidate all
+    //    find an appropriate place to run box tree reconstruction and *also* invalidate all
     //    fragments to the root of the DOM.
     if !restyle_damage.contains(RestyleDamage::RELAYOUT) {
         return restyle_damage;
@@ -131,9 +131,10 @@ pub(crate) fn compute_damage_and_rebuild_box_tree(
     // tree to find an appropriate place to run box tree reconstruction.
     let mut needs_box_tree_rebuild = layout_damage.needs_new_box();
 
-    let mut maybe_parent_node = dirty_root.parent_node();
+    let mut damage_for_ancestors = LayoutDamage::RECOMPUTE_INLINE_CONTENT_SIZES;
+    let mut maybe_parent_node = dirty_root.traversal_parent();
     while let Some(parent_node) = maybe_parent_node {
-        let threadsafe_parent_node = parent_node.to_threadsafe();
+        let threadsafe_parent_node = parent_node.as_node().to_threadsafe();
 
         // If we need box tree reconstruction, try it here.
         if needs_box_tree_rebuild &&
@@ -151,12 +152,17 @@ pub(crate) fn compute_damage_and_rebuild_box_tree(
         } else {
             // Reconstruction has already run or was not necessary, so we just need to
             // ensure that fragment tree layout does not reuse any cached fragments.
+            let new_damage_for_ancestors = Cell::new(LayoutDamage::empty());
             threadsafe_parent_node.with_layout_box_base_including_pseudos(|base| {
-                base.clear_fragments_and_fragment_cache()
+                new_damage_for_ancestors.set(
+                    new_damage_for_ancestors.get() |
+                        base.add_damage(Default::default(), damage_for_ancestors),
+                );
             });
+            damage_for_ancestors = new_damage_for_ancestors.get();
         }
 
-        maybe_parent_node = parent_node.parent_node();
+        maybe_parent_node = parent_node.traversal_parent();
     }
 
     // We could not find a place in the middle of the tree to run box tree reconstruction,
@@ -251,7 +257,8 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
         } else {
             // In this case, we have rebuilt the box tree from this point and we do not
             // have to propagate rebuild box tree damage up the tree any further.
-            layout_damage_for_parent.insert(RestyleDamage::RELAYOUT);
+            layout_damage_for_parent
+                .insert(RestyleDamage::RELAYOUT | LayoutDamage::recompute_inline_content_sizes());
         }
     } else {
         // In this case, this node's boxes are preserved! It's possible that we still need
