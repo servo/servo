@@ -4,6 +4,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
+use std::sync::atomic::AtomicU64;
 
 use euclid::Scale;
 use log::warn;
@@ -29,6 +30,8 @@ pub(crate) const LINE_WIDTH: f32 = 76.0;
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
 pub(crate) const MIN_WINDOW_INNER_SIZE: DeviceIntSize = DeviceIntSize::new(100, 100);
 
+static SERVOSHELL_WINDOW_ID: AtomicU64 = AtomicU64::new(0);
+
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub(crate) struct ServoShellWindowId(u64);
 
@@ -39,12 +42,9 @@ impl From<u64> for ServoShellWindowId {
 }
 
 impl ServoShellWindowId {
-    pub(crate) fn inc(&self) -> ServoShellWindowId {
-        ServoShellWindowId(self.0 + 1)
-    }
-
-    pub(crate) fn default() -> ServoShellWindowId {
-        ServoShellWindowId(0)
+    #[cfg_attr(not(any(target_os = "android", target_env = "ohos")), expect(unused))]
+    pub(crate) fn next() -> ServoShellWindowId {
+        ServoShellWindowId(SERVOSHELL_WINDOW_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst))
     }
 }
 
@@ -160,7 +160,7 @@ impl ServoShellWindow {
         self.needs_repaint.set(true)
     }
 
-    #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
+    #[cfg_attr(target_os = "android", expect(dead_code))]
     pub(crate) fn schedule_close(&self) {
         self.close_scheduled.set(true)
     }
