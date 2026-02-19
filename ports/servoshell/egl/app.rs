@@ -320,14 +320,7 @@ impl App {
             )
             .expect("Could not create RenderingContext"),
         );
-        let id = self
-            .state
-            .windows()
-            .values()
-            .map(|windows| windows.id())
-            .max()
-            .unwrap_or(ServoShellWindowId::default())
-            .inc();
+        let id = ServoShellWindowId::next();
         let platform_window = Rc::new(EmbeddedPlatformWindow {
             id,
             host: self.host.clone(),

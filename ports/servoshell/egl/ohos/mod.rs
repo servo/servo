@@ -103,7 +103,7 @@ use super::host_trait::HostTrait;
 use crate::egl::ohos::resources::ResourceReaderInstance;
 use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 use crate::running_app_state::RunningAppState;
-use crate::window::ServoShellWindow;
+use crate::window::{ServoShellWindow, ServoShellWindowId};
 
 /// Queue length for the thread-safe function to submit URL updates to ArkTS
 const UPDATE_URL_QUEUE_SIZE: usize = 1;
@@ -123,10 +123,6 @@ static TERMINATE_CALLBACK: OnceLock<
 > = OnceLock::new();
 static PROMPT_TOAST: OnceLock<
     ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, PROMPT_QUEUE_SIZE>,
-> = OnceLock::new();
-
-static UI_CALLBACK: OnceLock<
-    ThreadsafeFunction<Vec<i32>, (), Vec<i32>, napi_ohos::Status, false, false, 1>,
 > = OnceLock::new();
 
 static SERVO_CHANNEL: OnceLock<Sender<ServoAction>> = OnceLock::new();
@@ -352,8 +348,9 @@ pub(super) enum ServoAction {
         width: i32,
         height: i32,
     },
-    FocusWindow(u32),
+    FocusWindow(u32, Vec<u32>),
     CreatePlatformWindow(XComponentWrapper, WindowWrapper),
+    RemovePlatformWindow(u32, Vec<u32>),
 }
 
 impl std::fmt::Debug for ServoAction {
@@ -389,8 +386,17 @@ impl std::fmt::Debug for ServoAction {
                 .field("width", width)
                 .field("height", height)
                 .finish(),
-            Self::FocusWindow(arg0) => f.debug_tuple("FocusWindow").field(arg0).finish(),
+            Self::FocusWindow(arg0, arkts_ids) => f
+                .debug_tuple("FocusWindow")
+                .field(arg0)
+                .field(arkts_ids)
+                .finish(),
             Self::CreatePlatformWindow(..) => f.debug_tuple("CreatePlatformWindow").finish(),
+            Self::RemovePlatformWindow(window, arkts_ids) => f
+                .debug_tuple("RemovePlatformWindow")
+                .field(window)
+                .field(arkts_ids)
+                .finish(),
         }
     }
 }
@@ -450,16 +456,12 @@ impl ServoAction {
             Resize { width, height } => {
                 servo.resize(Rect::new(Point2D::origin(), Size2D::new(*width, *height)))
             },
-            FocusWindow(arkts_id) => {
+            FocusWindow(arkts_index, arkts_ids) => {
                 let windows = servo.state.windows();
-
-                let mut ids = windows
-                    .values()
-                    .map(|window| window.id())
-                    .collect::<Vec<_>>();
-                ids.sort_unstable();
-
-                if let Some(window) = ids.get(*arkts_id as usize).and_then(|id| windows.get(id)) {
+                if let Some(window) = arkts_ids
+                    .get(*arkts_index as usize)
+                    .and_then(|value| windows.get(&ServoShellWindowId::from(*value as u64)))
+                {
                     servo.state.focus_window(window.clone());
                     if let Some(webview) = window.active_webview() {
                         webview.focus();
@@ -470,7 +472,12 @@ impl ServoAction {
                         }
                     }
                 } else {
-                    error!("Could not find window to activate.");
+                    error!(
+                        "Could not find window to activate. Arkts_index {}, arkts_ids {:?}, window_ids {:?}",
+                        arkts_index,
+                        arkts_ids,
+                        windows.keys().collect::<Vec<_>>(),
+                    );
                 }
             },
             CreatePlatformWindow(xcomponent, native_window) => {
@@ -487,6 +494,26 @@ impl ServoAction {
                     viewport_rect,
                     hidpi_factor,
                 );
+            },
+            RemovePlatformWindow(arkts_index, arkts_ids) => {
+                let windows = servo.state.windows();
+                if let Some(window_to_remove) = arkts_ids
+                    .get(*arkts_index as usize)
+                    .map(|id| ServoShellWindowId::from(*id as u64))
+                    .and_then(|window_id| windows.get(&window_id))
+                {
+                    if let Some(window_to_focus) =
+                        servo.state.windows().get(&ServoShellWindowId::from(0))
+                    {
+                        servo.state.focus_window(window_to_focus.clone());
+                        if let Some(webview) = window_to_focus.active_webview() {
+                            webview.focus();
+                        }
+                        window_to_remove.schedule_close();
+                    } else {
+                        error!("Window is already closed.");
+                    }
+                }
             },
         };
     }
@@ -937,9 +964,14 @@ pub fn init_servo(init_opts: InitOpts) -> napi_ohos::Result<()> {
 }
 
 #[napi]
-fn focus_webview(id: u32) {
-    debug!("Focusing webview {id} from napi");
-    call(ServoAction::FocusWindow(id)).expect("Could not focus webview");
+fn focus_webview(index: u32, arkts_ids: Vec<u32>) {
+    debug!("Focusing webview {index} from napi");
+    call(ServoAction::FocusWindow(index, arkts_ids)).expect("Could not focus webview");
+}
+
+#[napi]
+fn delete_webview(index: u32, arkts_ids: Vec<u32>) {
+    call(ServoAction::RemovePlatformWindow(index, arkts_ids)).expect("Could not delete webview");
 }
 
 struct OhosImeOptions {
