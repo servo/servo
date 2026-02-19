@@ -18,9 +18,10 @@ use std::cell::{OnceCell, RefCell};
 use std::fmt;
 use std::marker::PhantomData;
 
-use ipc_channel::ErrorKind;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
+use malloc_size_of_derive::MallocSizeOf;
 use serde::de::VariantAccess;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_config::opts;
@@ -28,6 +29,7 @@ use servo_config::opts;
 use crate::generic_channel::{GenericCallback, SendError, SendResult};
 
 /// Basic struct for [LazyCallback]
+#[derive(MallocSizeOf)]
 pub struct LazyCallback<T: Serialize + for<'de> Deserialize<'de> + Send + 'static>(
     LazyCallbackVariants<T>,
 );
@@ -41,6 +43,21 @@ where
         callback: OnceCell<GenericCallback<T>>,
     },
     Ipc(IpcSender<T>),
+}
+
+impl<T> MallocSizeOfTrait for LazyCallbackVariants<T>
+where
+    T: Serialize + Send + 'static,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match self {
+            LazyCallbackVariants::InProcess {
+                callback_receiver,
+                callback,
+            } => callback_receiver.size_of(ops) + callback.size_of(ops),
+            LazyCallbackVariants::Ipc(_) => 0,
+        }
+    }
 }
 
 impl<T> LazyCallback<T>
@@ -65,10 +82,12 @@ where
                 cb.send(value)
             },
             LazyCallbackVariants::Ipc(ipc_sender) => {
-                ipc_sender.send(value).map_err(|error| match *error {
-                    ErrorKind::Io(_) => SendError::Disconnected,
-                    serialization_error => {
-                        SendError::SerializationError(serialization_error.to_string())
+                ipc_sender.send(value).map_err(|error| match error {
+                    ipc_channel::IpcError::SerializationError(ser_de_error) => {
+                        SendError::SerializationError(ser_de_error.to_string())
+                    },
+                    ipc_channel::IpcError::Io(_) | ipc_channel::IpcError::Disconnected => {
+                        SendError::Disconnected
                     },
                 })
             },
@@ -198,9 +217,9 @@ where
     T: Serialize + for<'de> Deserialize<'de> + Send + 'static,
 {
     /// This sets the callback.
-    pub fn set_callback<F: FnMut(Result<T, ipc_channel::Error>) + Send + 'static>(
+    pub fn set_callback<F: FnMut(Result<T, ipc_channel::IpcError>) + Send + 'static>(
         self,
-        callback: F,
+        mut callback: F,
     ) {
         match self.0 {
             CallbackSetterVariants::InProcess(sender) => {
@@ -208,7 +227,10 @@ where
                 sender.send(callback).expect("Could not send callback");
             },
             CallbackSetterVariants::Ipc(ipc_receiver) => {
-                ROUTER.add_typed_route(ipc_receiver, Box::new(callback));
+                let new_callback = move |msg: Result<T, ipc_channel::SerDeError>| {
+                    callback(msg.map_err(|error| error.into()))
+                };
+                ROUTER.add_typed_route(ipc_receiver, Box::new(new_callback));
             },
         }
     }
