@@ -35,14 +35,13 @@ function waitForFrame() {
 }
 
 test(function() {
-  let testBinding = new window.TestBinding();
   let div = createTransitionElement();
 
   // Start a transition and allow 30% of it to complete.
   div.style.width = "110px";
   getComputedStyle(div).width;
 
-  testBinding.advanceClock(3000);
+  ServoTestUtils.advanceClock(3000);
   getComputedStyle(div).width;
   assert_approx_equals(div.clientWidth, 40, 1);
 
@@ -51,7 +50,7 @@ test(function() {
   div.style.width = "10px";
   getComputedStyle(div).width;
 
-  testBinding.advanceClock(3000);
+  ServoTestUtils.advanceClock(3000);
   getComputedStyle(div).width;
   assert_approx_equals(div.clientWidth, 10, 1);
 
@@ -59,14 +58,13 @@ test(function() {
 }, "Reversed transitions are shortened proportionally");
 
 test(function() {
-  let testBinding = new window.TestBinding();
   let div = createTransitionElement();
 
   // Start a transition and allow 50% of it to complete.
   div.style.width = "110px";
   getComputedStyle(div).width;
 
-  testBinding.advanceClock(5000);
+  ServoTestUtils.advanceClock(5000);
   getComputedStyle(div).width;
   assert_approx_equals(div.clientWidth, 60, 1);
 
@@ -74,7 +72,7 @@ test(function() {
   div.style.width = "10px";
   getComputedStyle(div).width;
 
-  testBinding.advanceClock(2500);
+  ServoTestUtils.advanceClock(2500);
   getComputedStyle(div).width;
   assert_approx_equals(div.clientWidth, 35, 1);
 
@@ -82,15 +80,15 @@ test(function() {
   div.style.width = "110px";
   getComputedStyle(div).width;
 
-  testBinding.advanceClock(2000);
+  ServoTestUtils.advanceClock(2000);
   getComputedStyle(div).width;
   assert_approx_equals(div.clientWidth, 55, 1);
 
-  testBinding.advanceClock(4500);
+  ServoTestUtils.advanceClock(4500);
   getComputedStyle(div).width;
   assert_approx_equals(div.clientWidth, 100, 1);
 
-  testBinding.advanceClock(1000);
+  ServoTestUtils.advanceClock(1000);
   getComputedStyle(div).width;
   assert_approx_equals(div.clientWidth, 110, 1);
 
@@ -98,14 +96,13 @@ test(function() {
 }, "Reversed already reversed transitions are shortened proportionally");
 
 test(function() {
-  let testBinding = new window.TestBinding();
   let div = createTransitionElement();
 
   // Start a transition and allow most of it to complete.
   div.style.width = "110px";
   getComputedStyle(div).width;
 
-  testBinding.advanceClock(9000);
+  ServoTestUtils.advanceClock(9000);
   getComputedStyle(div).width;
   assert_approx_equals(div.clientWidth, 100, 1);
 
@@ -114,22 +111,21 @@ test(function() {
   div.style.width = "0px";
   getComputedStyle(div).width;
 
-  testBinding.advanceClock(2000);
+  ServoTestUtils.advanceClock(2000);
   getComputedStyle(div).width;
   assert_approx_equals(div.clientWidth, 80, 1);
 
-  testBinding.advanceClock(6000);
+  ServoTestUtils.advanceClock(6000);
   getComputedStyle(div).width;
   assert_approx_equals(div.clientWidth, 20, 1);
 
-  testBinding.advanceClock(2000);
+  ServoTestUtils.advanceClock(2000);
   assert_equals(getComputedStyle(div).getPropertyValue("width"), "0px");
 
   document.body.removeChild(div);
 }, "Non-reversed transition changes use the full transition-duration");
 
 promise_test(async t => {
-  let testBinding = new window.TestBinding();
   let div = createTransitionElement();
 
   let handledTransitionEnd = false;
@@ -146,13 +142,13 @@ promise_test(async t => {
   div.style.width = "110px";
   getComputedStyle(div).width;
 
-  testBinding.advanceClock(10000);
+  ServoTestUtils.advanceClock(10000);
   getComputedStyle(div).width;
 
   div.style.transitionDuration = "1000s";
   div.style.width = "10px";
 
-  testBinding.advanceClock(1);
+  ServoTestUtils.advanceClock(1);
   getComputedStyle(div).width;
 
   await waitForFrame();

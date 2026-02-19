@@ -1071,19 +1071,6 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         }
     }
 
-    #[expect(unsafe_code)]
-    fn CrashHard(&self) {
-        unsafe { std::ptr::null_mut::<i32>().write(42) }
-    }
-
-    fn AdvanceClock(&self, ms: i32) {
-        self.global().as_window().advance_animation_clock(ms);
-    }
-
-    fn Panic(&self) {
-        panic!("explicit panic from script")
-    }
-
     fn EntryGlobal(&self) -> DomRoot<GlobalScope> {
         GlobalScope::entry()
     }
