@@ -29,12 +29,22 @@ pub(crate) const LINE_WIDTH: f32 = 76.0;
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
 pub(crate) const MIN_WINDOW_INNER_SIZE: DeviceIntSize = DeviceIntSize::new(100, 100);
 
-#[derive(Copy, Clone, Eq, Hash, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub(crate) struct ServoShellWindowId(u64);
 
 impl From<u64> for ServoShellWindowId {
     fn from(value: u64) -> Self {
         Self(value)
+    }
+}
+
+impl ServoShellWindowId {
+    pub(crate) fn inc(&self) -> ServoShellWindowId {
+        ServoShellWindowId(self.0 + 1)
+    }
+
+    pub(crate) fn default() -> ServoShellWindowId {
+        ServoShellWindowId(0)
     }
 }
 
