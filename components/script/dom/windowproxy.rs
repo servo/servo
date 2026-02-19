@@ -547,7 +547,7 @@ impl WindowProxy {
                 target_window.as_global_scope().get_referrer()
             };
             // Propagate CSP list and about-base-url from opener to new document
-            let csp_list = existing_document.get_csp_list();
+            let csp_list = existing_document.get_csp_list().clone();
             target_document.set_csp_list(csp_list);
 
             // Step 15.5 Otherwise, navigate targetNavigable to urlRecord using sourceDocument,

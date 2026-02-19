@@ -1968,8 +1968,10 @@ impl Document {
         self.policy_container.borrow_mut().set_csp_list(csp_list);
     }
 
-    pub(crate) fn get_csp_list(&self) -> Option<CspList> {
-        self.policy_container.borrow().csp_list.clone()
+    pub(crate) fn get_csp_list(&self) -> Ref<'_, Option<CspList>> {
+        Ref::map(self.policy_container.borrow(), |policy_container| {
+            &policy_container.csp_list
+        })
     }
 
     pub(crate) fn preloaded_resources(&self) -> std::cell::Ref<'_, PreloadedResources> {
@@ -3918,7 +3920,7 @@ impl Document {
 
     /// Returns a policy value that should be used for fetches initiated by this document.
     pub(crate) fn insecure_requests_policy(&self) -> InsecureRequestsPolicy {
-        if let Some(csp_list) = self.get_csp_list() {
+        if let Some(csp_list) = &*self.get_csp_list() {
             for policy in &csp_list.0 {
                 if policy.contains_a_directive_whose_name_is("upgrade-insecure-requests") &&
                     policy.disposition == PolicyDisposition::Enforce

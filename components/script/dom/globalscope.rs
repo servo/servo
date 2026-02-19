@@ -2621,9 +2621,7 @@ impl GlobalScope {
             return document.get_referrer_policy();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            let policy_container = worker.policy_container().to_owned();
-
-            return policy_container.get_referrer_policy();
+            return worker.policy_container().get_referrer_policy();
         }
         unreachable!();
     }
