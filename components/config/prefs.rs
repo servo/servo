@@ -310,9 +310,10 @@ pub struct Preferences {
     /// default), then `rustls-platform-verifier` will be used, except on Android where
     /// `rust-webpki` is always used.
     pub network_use_webpki_roots: bool,
-    /// How long the session history for a single webview is. Pipelines that are more than
-    /// `session_history_max_length` steps in the future or
-    /// `session_history_max_length` steps in the past will be closed.
+    /// The length of the session history, in navigations, for each `WebView. Back-forward 
+    /// cache entries that are more than `session_history_max_length` steps in the future or
+    /// `session_history_max_length` steps in the past will be discarded. Navigating forward
+    /// or backward to that entry will cause the entire page to be reloaded. 
     pub session_history_max_length: i64,
     /// The background color of shell's viewport. This will be used by OpenGL's `glClearColor`.
     pub shell_background_color_rgba: [f64; 4],
