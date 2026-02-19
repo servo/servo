@@ -1920,12 +1920,14 @@ impl IndexedDBManager {
                         origin: origin.clone(),
                         db_name: db_name.clone(),
                         txn,
-                        result: Err(BackendError::DbNotFound),
+                        // If the database entry has already been removed, treat commit as a
+                        // no-op success so script side completion does not spuriously abort.
+                        result: Ok(()),
                     })
                     .is_err()
                 {
                     error!(
-                        "Failed to send commit failure (DbNotFound) for db '{}' txn {}.",
+                        "Failed to send commit completion for missing db '{}' txn {}.",
                         db_name, txn
                     );
                 }
