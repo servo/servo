@@ -4143,15 +4143,14 @@ class CGCallGenerator(CGThing):
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
-        if nativeMethodName in descriptor.cx_no_gcMethods:
-            args.prepend(CGGeneric("&cx"))
-        elif nativeMethodName in descriptor.cxMethods:
-            args.prepend(CGGeneric("&mut cx"))
+        if nativeMethodName in descriptor.cx_no_gcMethods or nativeMethodName in descriptor.cxMethods:
+            args.prepend(CGGeneric("cx"))
         elif nativeMethodName in descriptor.realmMethods:
             self.cgRoot.append(CGList([
-                CGGeneric("let mut realm = CurrentRealm::assert(&mut cx);")
+                CGGeneric("let mut realm = CurrentRealm::assert(cx);"),
+                CGGeneric("let cx = &mut realm;"),
             ]))
-            args.prepend(CGGeneric("&mut realm"))
+            args.prepend(CGGeneric("cx"))
         else:
             if "cx" not in argsPre and needsCx:
                 args.prepend(CGGeneric("SafeJSContext::from_ptr(cx.raw_cx())"))
@@ -4471,6 +4470,7 @@ class CGSpecializedMethod(CGAbstractExternMethod):
         return CGWrapper(CGMethodCall([], nativeName, self.method.isStatic(),
                                       self.descriptor, self.method),
                          pre="let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n"
+                             "let cx = &mut cx;\n"
                              f"let this = &*(this as *const {self.descriptor.concreteType});\n"
                              "let args = &*args;\n"
                              "let argc = args.argc_;\n")
@@ -4612,7 +4612,7 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
     def generate_code(self) -> CGThing:
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor,
                                                         self.method)
-        safeContext = CGGeneric("let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n")
+        safeContext = CGGeneric("let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\nlet cx = &mut cx;\n")
         setupArgs = CGGeneric("let args = CallArgs::from_vp(vp, argc);\n")
         call = CGMethodCall(["&global"], nativeName, True, self.descriptor, self.method)
         return CGList([safeContext, setupArgs, call])
@@ -4639,6 +4639,7 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         return CGWrapper(CGGetterCall([], self.attr.type, nativeName,
                                       self.descriptor, self.attr),
                          pre="let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n"
+                             "let cx = &mut cx;\n"
                              f"let this = &*(this as *const {self.descriptor.concreteType});\n")
 
     @staticmethod
@@ -4668,7 +4669,7 @@ class CGStaticGetter(CGAbstractStaticBindingMethod):
     def generate_code(self) -> CGThing:
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
-        safeContext = CGGeneric("let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n")
+        safeContext = CGGeneric("let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\nlet cx = &mut cx;\n")
         setupArgs = CGGeneric("let args = CallArgs::from_vp(vp, argc);\n")
         call = CGGetterCall(["&global"], self.attr.type, nativeName, self.descriptor,
                             self.attr)
@@ -4695,6 +4696,7 @@ class CGSpecializedSetter(CGAbstractExternMethod):
         return CGWrapper(
             CGSetterCall([], self.attr.type, nativeName, self.descriptor, self.attr),
             pre=("let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n"
+                 "let cx = &mut cx;\n"
                  f"let this = &*(this as *const {self.descriptor.concreteType});\n")
         )
 
@@ -4719,7 +4721,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
     def generate_code(self) -> CGThing:
         nativeName = CGSpecializedSetter.makeNativeName(self.descriptor,
                                                         self.attr)
-        safeContext = CGGeneric("let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\n")
+        safeContext = CGGeneric("let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());\nlet cx = &mut cx;\n")
         checkForArg = CGGeneric(
             "let args = CallArgs::from_vp(vp, argc);\n"
             "if argc == 0 {\n"
@@ -4748,6 +4750,7 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
         assert all(ord(c) < 128 for c in forwardToAttrName)
         return CGGeneric(f"""
 let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+let cx = &mut cx;
 rooted!(&in(cx) let mut v = UndefinedValue());
 if !JS_GetProperty(cx.raw_cx(), HandleObject::from_raw(obj), {str_to_cstr_ptr(attrName)}, v.handle_mut()) {{
     return false;
@@ -6856,6 +6859,7 @@ class CGClassConstructHook(CGAbstractExternMethod):
 
     def definition_body(self) -> CGThing:
         preamble = """let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+let cx = &mut cx;
 let args = CallArgs::from_vp(vp, argc);
 let global = D::GlobalScope::from_object(JS_CALLEE(cx.raw_cx(), vp).to_object());
 """
@@ -6864,7 +6868,7 @@ let global = D::GlobalScope::from_object(JS_CALLEE(cx.raw_cx(), vp).to_object())
             assert len(signatures) == 1
             constructorCall = f"""
                 <D as DomHelpers<D>>::call_html_constructor::<D::{self.descriptor.name}>(
-                    &mut cx,
+                    cx,
                     &args,
                     &global,
                     PrototypeList::ID::{MakeNativeName(self.descriptor.name)},
@@ -6879,20 +6883,21 @@ let global = D::GlobalScope::from_object(JS_CALLEE(cx.raw_cx(), vp).to_object())
             if len(self.exposureSet) == 1:
                 args = [
                     f"global.downcast::<D::{list(self.exposureSet)[0]}>().unwrap()",
-                    "Some(desired_proto)",
-                    "CanGc::note()"
+                    "Some(desired_proto)"
                 ]
             else:
                 args = [
                     "global",
                     "Some(desired_proto)",
-                    "CanGc::note()"
                 ]
+
+            if nativeName not in self.descriptor.cxMethods:
+                args += ['CanGc::from_cx(cx)']
 
             constructor = CGMethodCall(args, nativeName, True, self.descriptor, self.constructor)
             constructorCall = f"""
             call_default_constructor::<D>(
-                &mut cx,
+                cx,
                 &args,
                 &global,
                 PrototypeList::ID::{MakeNativeName(self.descriptor.name)},
@@ -7113,12 +7118,14 @@ class CGInterfaceTrait(CGThing):
             infallible = 'infallible' in descriptor.getExtendedAttributes(ctor)
             for (i, (rettype, arguments)) in enumerate(ctor.signatures()):
                 name = (baseName or ctor.identifier.name) + ('_' * i)
-                args = list(method_arguments(descriptor, rettype, arguments))
+                cx = name in descriptor.cxMethods
+                args = list(method_arguments(descriptor, rettype, arguments, cx=cx))
                 extra = [
                     ("global", f"&D::{exposedGlobal}"),
                     ("proto", "Option<HandleObject>"),
-                    ("can_gc", "CanGc"),
                 ]
+                if not cx:
+                    extra += [("can_gc", "CanGc")]
                 if args and args[0][0] == "cx":
                     args = [args[0]] + extra + args[1:]
                 else:

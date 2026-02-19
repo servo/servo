@@ -42,7 +42,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::TrustedPromise;
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto_and_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{ByteString, DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -72,46 +72,46 @@ impl TestBinding {
     }
 
     fn new(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<TestBinding> {
-        reflect_dom_object_with_proto(
+        reflect_dom_object_with_proto_and_cx(
             Box::new(TestBinding::new_inherited()),
             global,
             proto,
-            can_gc,
+            cx,
         )
     }
 }
 
 impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<TestBinding>> {
-        Ok(TestBinding::new(global, proto, can_gc))
+        Ok(TestBinding::new(cx, global, proto))
     }
 
     #[expect(unused_variables)]
     fn Constructor_(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         nums: Vec<f64>,
     ) -> Fallible<DomRoot<TestBinding>> {
-        Ok(TestBinding::new(global, proto, can_gc))
+        Ok(TestBinding::new(cx, global, proto))
     }
 
     #[expect(unused_variables)]
     fn Constructor__(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         num: f64,
     ) -> Fallible<DomRoot<TestBinding>> {
-        Ok(TestBinding::new(global, proto, can_gc))
+        Ok(TestBinding::new(cx, global, proto))
     }
 
     fn BooleanAttribute(&self) -> bool {
