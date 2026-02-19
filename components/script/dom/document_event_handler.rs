@@ -953,7 +953,6 @@ impl DocumentEventHandler {
             Finite::wrap(hit_test_result.point_in_frame.y as f64 + window.PageYOffset() as f64);
 
         // This is used to construct pointerevent and touchdown event.
-        // TODO: Need cleanup later.
         let pointer_touch = Touch::new(
             window,
             identifier,
@@ -1002,24 +1001,23 @@ impl DocumentEventHandler {
                 (current_target, pointer_touch)
             },
             _ => {
-                // https://w3c.github.io/touch-events/#dfn-touchend
-                // For move/up/cancel:
-                // The target of this event must be the same Element on which the touch
-                // point started when it was first placed on the surface,
-                // even if the touch point has since moved outside
-                // the interactive area of the target element.
-                let mut active = self.active_touch_points.borrow_mut();
-                let index = match active.iter().position(|t| t.Identifier() == identifier) {
-                    Some(i) => i,
-                    None => {
-                        warn!("No active touch point for {:?}", event.event_type);
-                        return Default::default();
-                    },
+                // From <https://w3c.github.io/touch-events/#dfn-touchend>:
+                // > For move/up/cancel:
+                // > The target of this event must be the same Element on which the touch
+                // > point started when it was first placed on the surface, even if the touch point
+                // > has since moved outside the interactive area of the target element.
+                let mut active_touch_points = self.active_touch_points.borrow_mut();
+                let Some(index) = active_touch_points
+                    .iter()
+                    .position(|point| point.Identifier() == identifier)
+                else {
+                    warn!("No active touch point for {:?}", event.event_type);
+                    return Default::default();
                 };
-                // original target from touchstart
-                let original_target = active[index].Target();
+                // This is the original target that was selected during `touchstart` event handling.
+                let original_target = active_touch_points[index].Target();
 
-                let changed_touch = Touch::new(
+                let touch_with_touchstart_target = Touch::new(
                     window,
                     identifier,
                     &original_target,
@@ -1035,36 +1033,26 @@ impl DocumentEventHandler {
                 // Update or remove the stored touch
                 match event.event_type {
                     TouchEventType::Move => {
-                        active[index] = Dom::from_ref(&*changed_touch);
+                        active_touch_points[index] = Dom::from_ref(&*touch_with_touchstart_target);
                     },
                     TouchEventType::Up | TouchEventType::Cancel => {
-                        active.swap_remove(index);
+                        active_touch_points.swap_remove(index);
                         self.remove_pointer_id_for_touch(identifier);
                     },
-                    TouchEventType::Down => unreachable!(),
+                    TouchEventType::Down => unreachable!("Should have been handled above"),
                 }
-                (original_target, changed_touch)
+                (original_target, touch_with_touchstart_target)
             },
         };
 
-        let touches = {
-            let active = self.active_touch_points.borrow();
-            TouchList::new(window, active.r(), can_gc)
-        };
-
-        let target_touches = {
-            let active = self.active_touch_points.borrow();
-            rooted_vec!(let mut filtered);
-            filtered.extend(
-                active
-                    .iter()
-                    .filter(|t| t.Target() == touch_dispatch_target)
-                    .cloned(),
-            );
-            TouchList::new(window, filtered.r(), can_gc)
-        };
-
-        let changed_touches = TouchList::new(window, from_ref(&&*changed_touch), can_gc);
+        rooted_vec!(let mut target_touches);
+        target_touches.extend(
+            self.active_touch_points
+                .borrow()
+                .iter()
+                .filter(|t| t.Target() == touch_dispatch_target)
+                .cloned(),
+        );
 
         let event_name = match event.event_type {
             TouchEventType::Down => "touchstart",
@@ -1081,9 +1069,9 @@ impl DocumentEventHandler {
             EventComposed::Composed,
             Some(window),
             0i32,
-            &touches,
-            &changed_touches,
-            &target_touches,
+            &TouchList::new(window, self.active_touch_points.borrow().r(), can_gc),
+            &TouchList::new(window, from_ref(&&*changed_touch), can_gc),
+            &TouchList::new(window, target_touches.r(), can_gc),
             // FIXME: modifier keys
             false,
             false,
