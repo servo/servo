@@ -46,17 +46,9 @@ fn test_basic_accessibility_update() {
     let load_webview = webview.clone();
     servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 3);
     let tree = build_tree(updates);
-
-    let root_node = tree.state().root();
-    let scroll_view =
-        find_first_matching_node(root_node, |node| node.role() == accesskit::Role::ScrollView)
-            .expect("Tree should include a scroll view corresponding to the WebView.");
-    let scroll_view_children: Vec<accesskit_consumer::Node<'_>> = scroll_view.children().collect();
-    assert_eq!(scroll_view_children.len(), 1);
-    let graft_node = scroll_view_children[0];
-    assert!(graft_node.is_graft());
+    let _ = assert_tree_structure_and_get_root_web_area(&tree);
 }
 
 fn wait_for_min_updates(
@@ -111,6 +103,27 @@ fn build_tree(tree_updates: Vec<accesskit::TreeUpdate>) -> accesskit_consumer::T
         tree.update_and_process_changes(tree_update, &mut NoOpChangeHandler);
     }
     tree
+}
+
+fn assert_tree_structure_and_get_root_web_area<'tree>(
+    tree: &'tree accesskit_consumer::Tree,
+) -> accesskit_consumer::Node<'tree> {
+    let root_node = tree.state().root();
+    let scroll_view =
+        find_first_matching_node(root_node, |node| node.role() == accesskit::Role::ScrollView)
+            .expect("Tree should include a scroll view corresponding to the WebView.");
+    let scroll_view_children: Vec<accesskit_consumer::Node<'_>> = scroll_view.children().collect();
+    assert_eq!(scroll_view_children.len(), 1);
+    let graft_node = scroll_view_children[0];
+    assert!(graft_node.is_graft());
+
+    let graft_node_children: Vec<accesskit_consumer::Node<'_>> = graft_node.children().collect();
+    assert_eq!(graft_node_children.len(), 1);
+
+    let root_web_area = graft_node_children[0];
+    assert_eq!(root_web_area.role(), accesskit::Role::RootWebArea);
+
+    root_web_area
 }
 
 fn find_first_matching_node(
