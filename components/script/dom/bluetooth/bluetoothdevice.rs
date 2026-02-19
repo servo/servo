@@ -12,6 +12,7 @@ use bluetooth_traits::{
     BluetoothServiceMsg,
 };
 use dom_struct::dom_struct;
+use js::realm::CurrentRealm;
 use profile_traits::generic_channel;
 
 use crate::conversions::Convert;
@@ -32,7 +33,6 @@ use crate::dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -77,22 +77,25 @@ impl BluetoothDevice {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         id: DOMString,
         name: Option<DOMString>,
         context: &Bluetooth,
-        can_gc: CanGc,
     ) -> DomRoot<BluetoothDevice> {
         reflect_dom_object(
             Box::new(BluetoothDevice::new_inherited(id, name, context)),
             global,
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 
-    pub(crate) fn get_gatt(&self, can_gc: CanGc) -> DomRoot<BluetoothRemoteGATTServer> {
+    pub(crate) fn get_gatt(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> DomRoot<BluetoothRemoteGATTServer> {
         self.gatt
-            .or_init(|| BluetoothRemoteGATTServer::new(&self.global(), self, can_gc))
+            .or_init(|| BluetoothRemoteGATTServer::new(cx, &self.global(), self))
     }
 
     fn get_context(&self) -> DomRoot<Bluetooth> {
@@ -101,9 +104,9 @@ impl BluetoothDevice {
 
     pub(crate) fn get_or_create_service(
         &self,
+        cx: &mut js::context::JSContext,
         service: &BluetoothServiceMsg,
         server: &BluetoothRemoteGATTServer,
-        can_gc: CanGc,
     ) -> DomRoot<BluetoothRemoteGATTService> {
         let service_map_ref = &self.attribute_instance_map.service_map;
         let mut service_map = service_map_ref.borrow_mut();
@@ -111,12 +114,12 @@ impl BluetoothDevice {
             return DomRoot::from_ref(existing_service);
         }
         let bt_service = BluetoothRemoteGATTService::new(
+            cx,
             &server.global(),
             &server.Device(),
             DOMString::from(service.uuid.clone()),
             service.is_primary,
             service.instance_id.clone(),
-            can_gc,
         );
         service_map.insert(service.instance_id.clone(), Dom::from_ref(&bt_service));
         bt_service
@@ -124,9 +127,9 @@ impl BluetoothDevice {
 
     pub(crate) fn get_or_create_characteristic(
         &self,
+        cx: &mut js::context::JSContext,
         characteristic: &BluetoothCharacteristicMsg,
         service: &BluetoothRemoteGATTService,
-        can_gc: CanGc,
     ) -> DomRoot<BluetoothRemoteGATTCharacteristic> {
         let characteristic_map_ref = &self.attribute_instance_map.characteristic_map;
         let mut characteristic_map = characteristic_map_ref.borrow_mut();
@@ -134,6 +137,7 @@ impl BluetoothDevice {
             return DomRoot::from_ref(existing_characteristic);
         }
         let properties = BluetoothCharacteristicProperties::new(
+            cx,
             &service.global(),
             characteristic.broadcast,
             characteristic.read,
@@ -144,15 +148,14 @@ impl BluetoothDevice {
             characteristic.authenticated_signed_writes,
             characteristic.reliable_write,
             characteristic.writable_auxiliaries,
-            can_gc,
         );
         let bt_characteristic = BluetoothRemoteGATTCharacteristic::new(
+            cx,
             &service.global(),
             service,
             DOMString::from(characteristic.uuid.clone()),
             &properties,
             characteristic.instance_id.clone(),
-            can_gc,
         );
         characteristic_map.insert(
             characteristic.instance_id.clone(),
@@ -175,9 +178,9 @@ impl BluetoothDevice {
 
     pub(crate) fn get_or_create_descriptor(
         &self,
+        cx: &mut js::context::JSContext,
         descriptor: &BluetoothDescriptorMsg,
         characteristic: &BluetoothRemoteGATTCharacteristic,
-        can_gc: CanGc,
     ) -> DomRoot<BluetoothRemoteGATTDescriptor> {
         let descriptor_map_ref = &self.attribute_instance_map.descriptor_map;
         let mut descriptor_map = descriptor_map_ref.borrow_mut();
@@ -185,11 +188,11 @@ impl BluetoothDevice {
             return DomRoot::from_ref(existing_descriptor);
         }
         let bt_descriptor = BluetoothRemoteGATTDescriptor::new(
+            cx,
             &characteristic.global(),
             characteristic,
             DOMString::from(descriptor.uuid.clone()),
             descriptor.instance_id.clone(),
-            can_gc,
         );
         descriptor_map.insert(
             descriptor.instance_id.clone(),
@@ -203,9 +206,11 @@ impl BluetoothDevice {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#clean-up-the-disconnected-device
-    pub(crate) fn clean_up_disconnected_device(&self, can_gc: CanGc) {
+    pub(crate) fn clean_up_disconnected_device(&self, cx: &mut js::context::JSContext) {
+        let can_gc = CanGc::from_cx(cx);
+
         // Step 1.
-        self.get_gatt(can_gc).set_connected(false);
+        self.get_gatt(cx).set_connected(false);
 
         // TODO: Step 2: Implement activeAlgorithms internal slot for BluetoothRemoteGATTServer.
 
@@ -238,14 +243,17 @@ impl BluetoothDevice {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#garbage-collect-the-connection
-    pub(crate) fn garbage_collect_the_connection(&self, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn garbage_collect_the_connection(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> ErrorResult {
         // Step 1: TODO: Check if other systems using this device.
 
         // Step 2.
         let context = self.get_context();
         for (id, device) in context.get_device_map().borrow().iter() {
             // Step 2.1 - 2.2.
-            if id == &self.Id().to_string() && device.get_gatt(can_gc).Connected() {
+            if id == &self.Id().to_string() && device.get_gatt(cx).Connected() {
                 return Ok(());
             }
         }
@@ -275,7 +283,10 @@ impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt>
-    fn GetGatt(&self, can_gc: CanGc) -> Option<DomRoot<BluetoothRemoteGATTServer>> {
+    fn GetGatt(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Option<DomRoot<BluetoothRemoteGATTServer>> {
         // Step 1.
         if self
             .global()
@@ -284,15 +295,15 @@ impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
             .allowed_devices_contains_id(self.id.clone()) &&
             !self.is_represented_device_null()
         {
-            return Some(self.get_gatt(can_gc));
+            return Some(self.get_gatt(cx));
         }
         // Step 2.
         None
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-watchadvertisements>
-    fn WatchAdvertisements(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        let p = Promise::new_in_current_realm(comp, can_gc);
+    fn WatchAdvertisements(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+        let p = Promise::new_in_realm(cx);
         let sender = response_async(&p, self);
         // TODO: Step 1.
         // Note: Steps 2 - 3 are implemented in components/bluetooth/lib.rs in watch_advertisements function
@@ -327,16 +338,24 @@ impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
 }
 
 impl AsyncBluetoothListener for BluetoothDevice {
-    fn handle_response(&self, response: BluetoothResponse, promise: &Rc<Promise>, can_gc: CanGc) {
+    fn handle_response(
+        &self,
+        cx: &mut js::context::JSContext,
+        response: BluetoothResponse,
+        promise: &Rc<Promise>,
+    ) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-unwatchadvertisements
             BluetoothResponse::WatchAdvertisements(_result) => {
                 // Step 3.1.
                 self.watching_advertisements.set(true);
                 // Step 3.2.
-                promise.resolve_native(&(), can_gc);
+                promise.resolve_native(&(), CanGc::from_cx(cx));
             },
-            _ => promise.reject_error(Error::Type(c"Something went wrong...".to_owned()), can_gc),
+            _ => promise.reject_error(
+                Error::Type(c"Something went wrong...".to_owned()),
+                CanGc::from_cx(cx),
+            ),
         }
     }
 }

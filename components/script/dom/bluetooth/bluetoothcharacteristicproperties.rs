@@ -55,6 +55,7 @@ impl BluetoothCharacteristicProperties {
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         broadcast: bool,
         read: bool,
@@ -65,7 +66,6 @@ impl BluetoothCharacteristicProperties {
         authenticatedSignedWrites: bool,
         reliableWrite: bool,
         writableAuxiliaries: bool,
-        can_gc: CanGc,
     ) -> DomRoot<BluetoothCharacteristicProperties> {
         reflect_dom_object(
             Box::new(BluetoothCharacteristicProperties::new_inherited(
@@ -80,7 +80,7 @@ impl BluetoothCharacteristicProperties {
                 writableAuxiliaries,
             )),
             global,
-            can_gc,
+            CanGc::from_cx(cx),
         )
     }
 }

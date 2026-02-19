@@ -31,30 +31,33 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissionstatus::PermissionStatus;
 use crate::dom::promise::Promise;
 use crate::realms::{AlreadyInRealm, InRealm};
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 pub(crate) trait PermissionAlgorithm {
     type Descriptor;
     #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
     type Status;
     fn create_descriptor(
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         permission_descriptor_obj: *mut JSObject,
-        can_gc: CanGc,
     ) -> Result<Self::Descriptor, Error>;
     fn permission_query(
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         promise: &Rc<Promise>,
         descriptor: &Self::Descriptor,
         status: &Self::Status,
     );
     fn permission_request(
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         promise: &Rc<Promise>,
         descriptor: &Self::Descriptor,
         status: &Self::Status,
     );
-    fn permission_revoke(descriptor: &Self::Descriptor, status: &Self::Status, can_gc: CanGc);
+    fn permission_revoke(
+        cx: &mut js::context::JSContext,
+        descriptor: &Self::Descriptor,
+        status: &Self::Status,
+    );
 }
 
 enum Operation {
@@ -86,12 +89,12 @@ impl Permissions {
     #[expect(non_snake_case)]
     fn manipulate(
         &self,
+        cx: &mut js::context::JSContext,
         op: Operation,
-        cx: JSContext,
         permissionDesc: *mut JSObject,
         promise: Option<Rc<Promise>>,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
+        let can_gc = CanGc::from_cx(cx);
         // (Query, Request) Step 3.
         let p = match promise {
             Some(promise) => promise,
@@ -102,7 +105,7 @@ impl Permissions {
         };
 
         // (Query, Request, Revoke) Step 1.
-        let root_desc = match Permissions::create_descriptor(cx, permissionDesc, can_gc) {
+        let root_desc = match Permissions::create_descriptor(cx, permissionDesc) {
             Ok(descriptor) => descriptor,
             Err(error) => {
                 p.reject_error(error, can_gc);
@@ -117,8 +120,7 @@ impl Permissions {
         match root_desc.name {
             #[cfg(feature = "bluetooth")]
             PermissionName::Bluetooth => {
-                let bluetooth_desc = match Bluetooth::create_descriptor(cx, permissionDesc, can_gc)
-                {
+                let bluetooth_desc = match Bluetooth::create_descriptor(cx, permissionDesc) {
                     Ok(descriptor) => descriptor,
                     Err(error) => {
                         p.reject_error(error, can_gc);
@@ -127,7 +129,7 @@ impl Permissions {
                 };
 
                 // (Query, Request) Step 5.
-                let result = BluetoothPermissionResult::new(&self.global(), &status, can_gc);
+                let result = BluetoothPermissionResult::new(cx, &self.global(), &status);
 
                 match op {
                     // (Request) Step 6 - 8.
@@ -149,7 +151,7 @@ impl Permissions {
                             .remove(&root_desc.name);
 
                         // (Revoke) Step 4.
-                        Bluetooth::permission_revoke(&bluetooth_desc, &result, can_gc)
+                        Bluetooth::permission_revoke(cx, &bluetooth_desc, &result)
                     },
                 }
             },
@@ -181,16 +183,14 @@ impl Permissions {
                             .remove(&root_desc.name);
 
                         // (Revoke) Step 4.
-                        Permissions::permission_revoke(&root_desc, &status, can_gc);
+                        Permissions::permission_revoke(cx, &root_desc, &status);
                     },
                 }
             },
         };
         match op {
             // (Revoke) Step 5.
-            Operation::Revoke => {
-                self.manipulate(Operation::Query, cx, permissionDesc, Some(p), can_gc)
-            },
+            Operation::Revoke => self.manipulate(cx, Operation::Query, permissionDesc, Some(p)),
 
             // (Query, Request) Step 4.
             _ => p,
@@ -201,18 +201,26 @@ impl Permissions {
 #[expect(non_snake_case)]
 impl PermissionsMethods<crate::DomTypeHolder> for Permissions {
     /// <https://w3c.github.io/permissions/#dom-permissions-query>
-    fn Query(&self, cx: JSContext, permissionDesc: *mut JSObject, can_gc: CanGc) -> Rc<Promise> {
-        self.manipulate(Operation::Query, cx, permissionDesc, None, can_gc)
+    fn Query(&self, cx: &mut js::context::JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+        self.manipulate(cx, Operation::Query, permissionDesc, None)
     }
 
     /// <https://w3c.github.io/permissions/#dom-permissions-request>
-    fn Request(&self, cx: JSContext, permissionDesc: *mut JSObject, can_gc: CanGc) -> Rc<Promise> {
-        self.manipulate(Operation::Request, cx, permissionDesc, None, can_gc)
+    fn Request(
+        &self,
+        cx: &mut js::context::JSContext,
+        permissionDesc: *mut JSObject,
+    ) -> Rc<Promise> {
+        self.manipulate(cx, Operation::Request, permissionDesc, None)
     }
 
     /// <https://w3c.github.io/permissions/#dom-permissions-revoke>
-    fn Revoke(&self, cx: JSContext, permissionDesc: *mut JSObject, can_gc: CanGc) -> Rc<Promise> {
-        self.manipulate(Operation::Revoke, cx, permissionDesc, None, can_gc)
+    fn Revoke(
+        &self,
+        cx: &mut js::context::JSContext,
+        permissionDesc: *mut JSObject,
+    ) -> Rc<Promise> {
+        self.manipulate(cx, Operation::Revoke, permissionDesc, None)
     }
 }
 
@@ -221,15 +229,14 @@ impl PermissionAlgorithm for Permissions {
     type Status = PermissionStatus;
 
     fn create_descriptor(
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         permission_descriptor_obj: *mut JSObject,
-        can_gc: CanGc,
     ) -> Result<PermissionDescriptor, Error> {
-        rooted!(in(*cx) let mut property = UndefinedValue());
+        rooted!(&in(cx) let mut property = UndefinedValue());
         property
             .handle_mut()
             .set(ObjectValue(permission_descriptor_obj));
-        match PermissionDescriptor::new(cx, property.handle(), can_gc) {
+        match PermissionDescriptor::new(cx.into(), property.handle(), CanGc::from_cx(cx)) {
             Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
             Err(_) => Err(Error::JSFailed),
@@ -248,7 +255,7 @@ impl PermissionAlgorithm for Permissions {
     /// > The default permission query algorithm, given a PermissionDescriptor
     /// > permissionDesc and a PermissionStatus status, runs the following steps:
     fn permission_query(
-        _cx: JSContext,
+        _cx: &mut js::context::JSContext,
         _promise: &Rc<Promise>,
         _descriptor: &PermissionDescriptor,
         status: &PermissionStatus,
@@ -259,7 +266,7 @@ impl PermissionAlgorithm for Permissions {
 
     /// <https://w3c.github.io/permissions/#boolean-permission-request-algorithm>
     fn permission_request(
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         promise: &Rc<Promise>,
         descriptor: &PermissionDescriptor,
         status: &PermissionStatus,
@@ -289,9 +296,9 @@ impl PermissionAlgorithm for Permissions {
     }
 
     fn permission_revoke(
+        _cx: &mut js::context::JSContext,
         _descriptor: &PermissionDescriptor,
         _status: &PermissionStatus,
-        _can_gc: CanGc,
     ) {
     }
 }

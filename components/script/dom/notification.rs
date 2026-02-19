@@ -122,6 +122,7 @@ pub(crate) struct Notification {
 impl Notification {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         title: DOMString,
         options: RootedTraceableBox<NotificationOptions>,
@@ -129,7 +130,6 @@ impl Notification {
         base_url: ServoUrl,
         fallback_timestamp: u64,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
         let notification = reflect_dom_object_with_proto(
             Box::new(Notification::new_inherited(
@@ -142,7 +142,7 @@ impl Notification {
             )),
             global,
             proto,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         notification.data.set(options.data.get());
@@ -349,9 +349,9 @@ impl Notification {
 impl NotificationMethods<crate::DomTypeHolder> for Notification {
     /// <https://notifications.spec.whatwg.org/#constructors>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         title: DOMString,
         options: RootedTraceableBox<NotificationOptions>,
     ) -> Fallible<DomRoot<Notification>> {
@@ -371,7 +371,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
         // step 3: Create a notification with a settings object
         let notification =
-            create_notification_with_settings_object(global, title, options, proto, can_gc)?;
+            create_notification_with_settings_object(cx, global, title, options, proto)?;
 
         // TODO: Run step 5.1, 5.2 in parallel
         // step 5.1: If the result of getting the notifications permission state is not "granted",
@@ -400,16 +400,18 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-requestpermission>
     fn RequestPermission(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         permission_callback: Option<Rc<NotificationPermissionCallback>>,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
+        let can_gc = CanGc::from_cx(cx);
+
         // Step 2: Let promise be a new promise in this’s relevant Realm.
         let promise = Promise::new(global, can_gc);
 
         // TODO: Step 3: Run these steps in parallel:
         // Step 3.1: Let permissionState be the result of requesting permission to use "notifications".
-        let notification_permission = request_notification_permission(global, can_gc);
+        let notification_permission = request_notification_permission(cx, global);
 
         // Step 3.2: Queue a global task on the DOM manipulation task source given global to run these steps:
         let trusted_promise = TrustedPromise::new(promise.clone());
@@ -572,11 +574,11 @@ struct Action {
 
 /// <https://notifications.spec.whatwg.org/#create-a-notification-with-a-settings-object>
 fn create_notification_with_settings_object(
+    cx: &mut js::context::JSContext,
     global: &GlobalScope,
     title: DOMString,
     options: RootedTraceableBox<NotificationOptions>,
     proto: Option<HandleObject>,
-    can_gc: CanGc,
 ) -> Fallible<DomRoot<Notification>> {
     // step 1: Let origin be settings’s origin.
     let origin = global.origin().immutable().clone();
@@ -591,6 +593,7 @@ fn create_notification_with_settings_object(
     // step 4: Return the result of creating a notification given title, options, origin,
     //         baseURL, and fallbackTimestamp.
     create_notification(
+        cx,
         global,
         title,
         options,
@@ -598,13 +601,13 @@ fn create_notification_with_settings_object(
         base_url,
         fallback_timestamp,
         proto,
-        can_gc,
     )
 }
 
 /// <https://notifications.spec.whatwg.org/#create-a-notification
 #[expect(clippy::too_many_arguments)]
 fn create_notification(
+    cx: &mut js::context::JSContext,
     global: &GlobalScope,
     title: DOMString,
     options: RootedTraceableBox<NotificationOptions>,
@@ -612,7 +615,6 @@ fn create_notification(
     base_url: ServoUrl,
     fallback_timestamp: u64,
     proto: Option<HandleObject>,
-    can_gc: CanGc,
 ) -> Fallible<DomRoot<Notification>> {
     // If options["silent"] is true and options["vibrate"] exists, then throw a TypeError.
     if options.silent.is_some() && options.vibrate.is_some() {
@@ -628,6 +630,7 @@ fn create_notification(
     }
 
     Ok(Notification::new(
+        cx,
         global,
         title,
         options,
@@ -635,7 +638,6 @@ fn create_notification(
         base_url,
         fallback_timestamp,
         proto,
-        can_gc,
     ))
 }
 
@@ -685,8 +687,11 @@ fn get_notifications_permission_state(global: &GlobalScope) -> NotificationPermi
     }
 }
 
-fn request_notification_permission(global: &GlobalScope, can_gc: CanGc) -> NotificationPermission {
-    let cx = GlobalScope::get_cx();
+fn request_notification_permission(
+    cx: &mut js::context::JSContext,
+    global: &GlobalScope,
+) -> NotificationPermission {
+    let can_gc = CanGc::from_cx(cx);
     let promise = &Promise::new(global, can_gc);
     let descriptor = PermissionDescriptor {
         name: PermissionName::Notifications,
