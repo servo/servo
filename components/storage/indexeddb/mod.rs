@@ -265,10 +265,8 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
                 continue;
             };
             if self.running_readonly.contains(&txn) {
-                if !transaction.requests.is_empty() {
-                    if self.queued_readonly_set.insert(txn) {
-                        self.queued_readonly.push_back(txn);
-                    }
+                if !transaction.requests.is_empty() && self.queued_readonly_set.insert(txn) {
+                    self.queued_readonly.push_back(txn);
                 }
                 continue;
             }
@@ -305,10 +303,8 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
             };
 
             if self.running_readwrite == Some(txn) {
-                if !transaction.requests.is_empty() {
-                    if self.queued_readwrite_set.insert(txn) {
-                        self.queued_readwrite.push_back(txn);
-                    }
+                if !transaction.requests.is_empty() && self.queued_readwrite_set.insert(txn) {
+                    self.queued_readwrite.push_back(txn);
                 }
                 continue;
             }
