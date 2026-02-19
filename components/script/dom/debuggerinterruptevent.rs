@@ -6,7 +6,7 @@ use std::fmt::Debug;
 
 use dom_struct::dom_struct;
 
-use crate::dom::bindings::codegen::Bindings::DebuggerPauseEventBinding::DebuggerPauseEventMethods;
+use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::DebuggerInterruptEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
@@ -16,31 +16,31 @@ use crate::script_runtime::CanGc;
 
 #[dom_struct]
 /// Event for Rust → JS calls in [`crate::dom::DebuggerGlobalScope`].
-pub(crate) struct DebuggerPauseEvent {
+pub(crate) struct DebuggerInterruptEvent {
     event: Event,
 }
 
-impl DebuggerPauseEvent {
+impl DebuggerInterruptEvent {
     pub(crate) fn new(debugger_global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
         let result = Box::new(Self {
             event: Event::new_inherited(),
         });
         let result = reflect_dom_object(result, debugger_global, can_gc);
-        result.event.init_event("pause".into(), false, false);
+        result.event.init_event("interrupt".into(), false, false);
 
         result
     }
 }
 
-impl DebuggerPauseEventMethods<crate::DomTypeHolder> for DebuggerPauseEvent {
+impl DebuggerInterruptEventMethods<crate::DomTypeHolder> for DebuggerInterruptEvent {
     // check-tidy: no specs after this line
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }
 }
 
-impl Debug for DebuggerPauseEvent {
+impl Debug for DebuggerInterruptEvent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("DebuggerPauseEvent").finish()
+        f.debug_struct("DebuggerInterruptEvent").finish()
     }
 }

@@ -5,7 +5,7 @@
 use std::collections::HashSet;
 
 use atomic_refcell::AtomicRefCell;
-use base::generic_channel::{GenericSender, channel};
+use base::generic_channel::GenericSender;
 use devtools_traits::DevtoolScriptControlMsg;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
@@ -142,37 +142,10 @@ impl Actor for ThreadActor {
             },
 
             "interrupt" => {
-                let (tx, rx) = channel().ok_or(ActorError::Internal)?;
                 self.script_sender
-                    .send(DevtoolScriptControlMsg::Pause(tx))
+                    .send(DevtoolScriptControlMsg::Interrupt)
                     .map_err(|_| ActorError::Internal)?;
-                let result = rx.recv().map_err(|_| ActorError::Internal)?;
 
-                let pause = registry.new_name::<PauseActor>();
-                registry.register(PauseActor {
-                    name: pause.clone(),
-                });
-
-                let source = self
-                    .source_manager
-                    .find_source(registry, &result.url)
-                    .ok_or(ActorError::Internal)?;
-
-                let frame = FrameActor::register(registry, source.name(), result);
-                self.frames.borrow_mut().insert(frame.clone());
-
-                let msg = ThreadInterruptedReply {
-                    from: self.name(),
-                    type_: "paused".to_owned(),
-                    actor: pause,
-                    frame: registry.encode::<FrameActor, _>(&frame),
-                    // TODO: Read the msg for on_next
-                    why: WhyMsg {
-                        type_: "interrupted".into(),
-                        on_next: Some(true),
-                    },
-                };
-                request.write_json_packet(&msg)?;
                 request.reply_final(&EmptyReplyMsg { from: self.name() })?
             },
 

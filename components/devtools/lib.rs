@@ -24,8 +24,7 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,
     DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation, NavigationState,
-    NetworkEvent, PauseFrameResult, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
-    get_time_stamp,
+    NetworkEvent, PausedFrame, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId, get_time_stamp,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use log::{trace, warn};
@@ -350,10 +349,11 @@ impl DevtoolsInstance {
                 )) => {
                     self.handle_dom_mutation(pipeline_id, dom_mutation).unwrap();
                 },
-                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::BreakpointHit(
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::DebuggerPause(
                     pipeline_id,
                     frame_result,
-                )) => self.handle_breakpoint_hit(pipeline_id, frame_result),
+                    is_breakpoint,
+                )) => self.handle_breakpoint_hit(pipeline_id, frame_result, is_breakpoint),
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                     request_id,
                     network_event,
@@ -738,10 +738,15 @@ impl DevtoolsInstance {
         actors.set_inline_source_content(pipeline_id, source_content);
     }
 
-    fn handle_breakpoint_hit(&mut self, pipeline_id: PipelineId, frame_result: PauseFrameResult) {
+    fn handle_breakpoint_hit(
+        &mut self,
+        pipeline_id: PipelineId,
+        frame: PausedFrame,
+        is_breakpoint: bool,
+    ) {
         let actors = &self.registry;
 
-        let Some(actor_name) = self
+        let Some(browsing_context) = self
             .pipelines
             .get(&pipeline_id)
             .and_then(|id| self.browsing_contexts.get(id))
@@ -749,41 +754,44 @@ impl DevtoolsInstance {
             return;
         };
 
-        let browsing_context = actors.find::<BrowsingContextActor>(actor_name);
-        let thread_actor = actors.find::<ThreadActor>(&browsing_context.thread);
+        let browsing_context = actors.find::<BrowsingContextActor>(browsing_context);
+        let thread = actors.find::<ThreadActor>(&browsing_context.thread);
 
         // Find the source actor for this URL
-        let source_actor_name = match thread_actor
-            .source_manager
-            .find_source(actors, &frame_result.url)
-        {
+        let source = match thread.source_manager.find_source(actors, &frame.url) {
             Some(source) => source.name(),
             None => {
-                warn!("No source actor found for URL: {}", frame_result.url);
+                warn!("No source actor found for URL: {}", frame.url);
                 return;
             },
         };
 
-        let pause_actor_name = actors.new_name::<PauseActor>();
+        let pause = actors.new_name::<PauseActor>();
         actors.register(PauseActor {
-            name: pause_actor_name.clone(),
+            name: pause.clone(),
         });
 
-        let frame_actor_name = FrameActor::register(actors, source_actor_name, frame_result);
-        thread_actor
-            .frames
-            .borrow_mut()
-            .insert(frame_actor_name.clone());
+        let frame = FrameActor::register(actors, source, frame);
+        thread.frames.borrow_mut().insert(frame.clone());
+
+        let why = if is_breakpoint {
+            WhyMsg {
+                type_: "breakpoint".into(),
+                on_next: None,
+            }
+        } else {
+            WhyMsg {
+                type_: "interrupted".into(),
+                on_next: Some(true),
+            }
+        };
 
         let msg = ThreadInterruptedReply {
-            from: thread_actor.name(),
+            from: thread.name(),
             type_: "paused".to_owned(),
-            actor: pause_actor_name,
-            frame: actors.encode::<FrameActor, _>(&frame_actor_name),
-            why: WhyMsg {
-                type_: "breakpoint".to_owned(),
-                on_next: None,
-            },
+            actor: pause,
+            frame: actors.encode::<FrameActor, _>(&frame),
+            why,
         };
 
         for stream in self.connections.lock().unwrap().values_mut() {

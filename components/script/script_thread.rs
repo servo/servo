@@ -2228,9 +2228,8 @@ impl ScriptThread {
                     offset,
                 );
             },
-            DevtoolScriptControlMsg::Pause(result_sender) => {
-                self.debugger_global
-                    .fire_pause(CanGc::from_cx(cx), result_sender);
+            DevtoolScriptControlMsg::Interrupt => {
+                self.debugger_global.fire_interrupt(CanGc::from_cx(cx));
             },
             DevtoolScriptControlMsg::Resume => {
                 self.debugger_paused.set(false);

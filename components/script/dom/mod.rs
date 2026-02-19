@@ -259,7 +259,7 @@ pub(crate) mod debuggerclearbreakpointevent;
 pub(crate) mod debuggerevalevent;
 pub(crate) mod debuggergetpossiblebreakpointsevent;
 pub(crate) mod debuggerglobalscope;
-pub(crate) mod debuggerpauseevent;
+pub(crate) mod debuggerinterruptevent;
 pub(crate) mod debuggersetbreakpointevent;
 pub(crate) mod dissimilaroriginlocation;
 pub(crate) mod dissimilaroriginwindow;

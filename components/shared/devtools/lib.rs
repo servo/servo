@@ -132,8 +132,8 @@ pub enum ScriptToDevtoolsControlMsg {
 
     DomMutation(PipelineId, DomMutation),
 
-    /// A breakpoint was hit in script, sending frame information.
-    BreakpointHit(PipelineId, PauseFrameResult),
+    /// The debugger is paused, sending frame information.
+    DebuggerPause(PipelineId, PausedFrame, bool),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -334,7 +334,7 @@ pub enum DevtoolScriptControlMsg {
     GetPossibleBreakpoints(u32, GenericSender<Vec<RecommendedBreakpointLocation>>),
     SetBreakpoint(u32, u32, u32),
     ClearBreakpoint(u32, u32, u32),
-    Pause(GenericSender<PauseFrameResult>),
+    Interrupt,
     Resume,
 }
 
@@ -569,7 +569,7 @@ pub struct RecommendedBreakpointLocation {
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PauseFrameResult {
+pub struct PausedFrame {
     pub column: u32,
     pub display_name: String,
     pub line: u32,

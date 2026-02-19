@@ -5,17 +5,16 @@
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
 [Exposed=DebuggerGlobalScope]
-interface DebuggerPauseEvent : Event {};
+interface DebuggerInterruptEvent : Event {};
 
 partial interface DebuggerGlobalScope {
-    undefined getFrameResult(
-        DebuggerPauseEvent event,
-        PauseFrameResult result);
-
-    undefined notifyBreakpointHit(PipelineIdInit pipelineId, PauseFrameResult result);
+    undefined pauseFrame(
+        PipelineIdInit pipelineId,
+        PausedFrame result,
+        boolean is_breakpoint);
 };
 
-dictionary PauseFrameResult {
+dictionary PausedFrame {
     required unsigned long column;
     required DOMString displayName;
     required unsigned long line;

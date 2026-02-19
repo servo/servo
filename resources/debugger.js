@@ -117,6 +117,36 @@ addEventListener("getPossibleBreakpoints", event => {
     getPossibleBreakpointsResult(event, result);
 });
 
+function handlePauseFrame(frame, is_breakpoint) {
+    // Get the pipeline ID for this debuggee
+    const pipelineId = debuggeesToPipelineIds.get(frame.script.global);
+    if (!pipelineId) {
+        console.error("[debugger] No pipeline ID for frame's global");
+        return undefined;
+    }
+
+    // TODO: Some properties throw if terminated is true
+    // TODO: Check if start line / column is correct or we need the proper breakpoint
+    const result = {
+        // TODO: arguments: frame.arguments,
+        column: frame.script.startColumn,
+        displayName: frame.script.displayName,
+        line: frame.script.startLine,
+        onStack: frame.onStack,
+        oldest: frame.older == null,
+        terminated: frame.terminated,
+        type_: frame.type,
+        url: frame.script.url,
+    };
+
+    // Notify devtools and enter pause loop. This blocks until Resume.
+    pauseFrame(pipelineId, result, is_breakpoint);
+
+    // <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
+    // Return undefined to continue execution normally after resume.
+    return undefined;
+}
+
 addEventListener("setBreakpoint", event => {
     const {spidermonkeyId, scriptId, offset} = event;
     const script = sourceIdsToScripts.get(spidermonkeyId);
@@ -125,53 +155,16 @@ addEventListener("setBreakpoint", event => {
         target.setBreakpoint(offset, {
             // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#setbreakpoint-offset-handler>
             // The hit handler receives a Debugger.Frame instance representing the currently executing stack frame.
-            hit: (frame) => {
-                // Get the pipeline ID for this debuggee
-                const pipelineId = debuggeesToPipelineIds.get(frame.script.global);
-                if (!pipelineId) {
-                    console.error("[debugger] No pipeline ID for frame's global");
-                    return undefined;
-                }
-
-                const result = {
-                    column: frame.script.startColumn,
-                    displayName: frame.script.displayName,
-                    line: frame.script.startLine,
-                    onStack: frame.onStack,
-                    oldest: frame.older == null,
-                    terminated: frame.terminated,
-                    type_: frame.type,
-                    url: frame.script.url,
-                };
-
-                // Notify devtools and enter pause loop. This blocks until Resume.
-                notifyBreakpointHit(pipelineId, result);
-                // <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
-                // Return undefined to continue execution normally after resume.
-                return undefined;
-            }
+            hit: (frame) => handlePauseFrame(frame, true)
         });
     }
 });
 
 // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Frame.html>
-addEventListener("pause", event => {
+addEventListener("interrupt", event => {
     dbg.onEnterFrame = function(frame) {
         dbg.onEnterFrame = undefined;
-        // TODO: Some properties throw if terminated is true
-        // TODO: Check if start line / column is correct or we need the proper breakpoint
-        const result = {
-            // TODO: arguments: frame.arguments,
-            column: frame.script.startColumn,
-            displayName: frame.script.displayName,
-            line: frame.script.startLine,
-            onStack: frame.onStack,
-            oldest: frame.older == null,
-            terminated: frame.terminated,
-            type_: frame.type,
-            url: frame.script.url,
-        };
-        getFrameResult(event, result);
+        handlePauseFrame(frame, false);
     };
 });
 
