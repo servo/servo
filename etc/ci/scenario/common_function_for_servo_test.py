@@ -163,9 +163,12 @@ def create_driver(timeout: int = 10) -> webdriver.Remote:
         except Exception as e:
             print(f"Unexpected exception when creating webdriver: {e}, {type(e)}")
             time.sleep(1)
-    print(
-        f"Established Webdriver connection in {time.time() - start_time}s",
-    )
+    if driver is None:
+        print(f"The driver is not created due to {timeout}s timeout (took: {time.time() - start_time}s)")
+    else:
+        print(
+            f"Established Webdriver connection in {time.time() - start_time}s",
+        )
     return driver
 
 
