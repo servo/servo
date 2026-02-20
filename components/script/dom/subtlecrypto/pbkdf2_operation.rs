@@ -5,6 +5,7 @@
 use std::num::NonZero;
 
 use aws_lc_rs::pbkdf2;
+use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
@@ -79,12 +80,12 @@ pub(crate) fn derive_bits(
 
 /// <https://w3c.github.io/webcrypto/#pbkdf2-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. If format is not "raw", throw a NotSupportedError
     if !matches!(format, KeyFormat::Raw | KeyFormat::Raw_secret) {
@@ -120,7 +121,7 @@ pub(crate) fn import_key(
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages,
         Handle::Pbkdf2(key_data.to_vec()),
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 9. Return key.

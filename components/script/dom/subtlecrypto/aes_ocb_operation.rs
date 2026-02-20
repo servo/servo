@@ -6,6 +6,7 @@ use aes::cipher::crypto_common::Key;
 use aes::{Aes128, Aes192, Aes256};
 use cipher::generic_array::typenum::{GrEq, IsGreaterOrEqual, IsLessOrEqual, LeEq, NonZero};
 use cipher::{ArrayLength, BlockDecrypt, BlockEncrypt, BlockSizeUser};
+use js::context::JSContext;
 use ocb3::aead::AeadMutInPlace;
 use ocb3::aead::consts::{U6, U7, U8, U9, U10, U11, U12, U13, U14, U15, U16};
 use ocb3::{KeyInit, Nonce, Ocb3};
@@ -20,7 +21,6 @@ use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
     ExportedKey, SubtleAeadParams, SubtleAesDerivedKeyParams, SubtleAesKeyGenParams, aes_common,
 };
-use crate::script_runtime::CanGc;
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-encrypt>
 pub(crate) fn encrypt(
@@ -462,39 +462,39 @@ where
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-generate-key>
 pub(crate) fn generate_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleAesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     aes_common::generate_key(
         AesAlgorithm::AesOcb,
+        cx,
         global,
         normalized_algorithm,
         extractable,
         usages,
-        can_gc,
     )
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     aes_common::import_key(
         AesAlgorithm::AesOcb,
+        cx,
         global,
         format,
         key_data,
         extractable,
         usages,
-        can_gc,
     )
 }
 

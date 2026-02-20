@@ -5,6 +5,7 @@
 use std::ops::{Mul, Sub};
 
 use base64ct::{Base64UrlUnpadded, Encoding};
+use js::context::JSContext;
 use num_bigint_dig::{BigInt, ModInverse, Sign};
 use num_traits::One;
 use pkcs8::der::asn1::BitString;
@@ -47,11 +48,11 @@ pub(crate) enum RsaAlgorithm {
 /// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-generate-key>
 pub(crate) fn generate_key(
     rsa_algorithm: RsaAlgorithm,
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleRsaHashedKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<CryptoKeyPair, Error> {
     match rsa_algorithm {
         RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
@@ -161,7 +162,7 @@ pub(crate) fn generate_key(
         KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm.clone()),
         intersected_usages,
         Handle::RsaPublicKey(public_key),
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 14. Let privateKey be a new CryptoKey representing the private key of the generated key
@@ -196,7 +197,7 @@ pub(crate) fn generate_key(
         KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm),
         intersected_usages,
         Handle::RsaPrivateKey(private_key),
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 19. Let result be a new CryptoKeyPair dictionary.
@@ -221,13 +222,13 @@ pub(crate) fn generate_key(
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn import_key(
     rsa_algorithm: RsaAlgorithm,
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleRsaHashedImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
@@ -386,7 +387,6 @@ pub(crate) fn import_key(
             //     Let jwk equal keyData.
             // Otherwise:
             //     Throw a DataError.
-            let cx = GlobalScope::get_cx();
             let jwk = JsonWebKey::parse(cx, key_data)?;
 
             match &rsa_algorithm {
@@ -584,7 +584,6 @@ pub(crate) fn import_key(
                     cx,
                     Operation::Digest,
                     &AlgorithmIdentifier::String(DOMString::from(hash)),
-                    can_gc,
                 )?;
 
                 // Step 2.8.2. If normalizedHash is not equal to the hash member of
@@ -724,7 +723,7 @@ pub(crate) fn import_key(
         KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm),
         usages,
         key_handle,
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 9. Return key.

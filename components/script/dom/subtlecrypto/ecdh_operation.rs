@@ -5,6 +5,7 @@
 use elliptic_curve::SecretKey;
 use elliptic_curve::rand_core::OsRng;
 use elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint, ValidatePublicKey};
+use js::context::JSContext;
 use p256::NistP256;
 use p384::NistP384;
 use p521::NistP521;
@@ -32,11 +33,11 @@ use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-generate-key>
 pub(crate) fn generate_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleEcKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains an entry which is not "deriveKey" or "deriveBits" then throw a
     // SyntaxError.
@@ -114,7 +115,7 @@ pub(crate) fn generate_key(
         KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm.clone()),
         Vec::new(),
         public_key_handle,
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 12. Let privateKey be a new CryptoKey representing the private key of the generated key pair.
@@ -134,7 +135,7 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         private_key_handle,
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 17. Let result be a new CryptoKeyPair dictionary.
@@ -306,13 +307,13 @@ pub(crate) fn derive_bits(
 
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleEcKeyImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
@@ -456,7 +457,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
                 usages,
                 handle,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         KeyFormat::Pkcs8 => {
@@ -624,7 +625,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
                 usages,
                 handle,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         KeyFormat::Jwk => {
@@ -633,7 +634,7 @@ pub(crate) fn import_key(
             //     Let jwk equal keyData.
             // Otherwise:
             //     Throw a DataError.
-            let jwk = JsonWebKey::parse(GlobalScope::get_cx(), key_data)?;
+            let jwk = JsonWebKey::parse(cx, key_data)?;
 
             // Step 2.2. If the d field is present and if usages contains an entry which is not
             // "deriveKey" or "deriveBits" then throw a SyntaxError.
@@ -880,7 +881,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
                 usages,
                 handle,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         KeyFormat::Raw | KeyFormat::Raw_public => {
@@ -967,7 +968,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
                 usages,
                 handle,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // Otherwise:

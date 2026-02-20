@@ -4,6 +4,7 @@
 
 use der::asn1::{BitString, OctetString};
 use der::{AnyRef, Choice, Decode, Encode, Sequence};
+use js::context::JSContext;
 use ml_dsa::{
     B32, EncodedVerifyingKey, KeyGen, MlDsa44, MlDsa65, MlDsa87, Signature, VerifyingKey,
 };
@@ -284,11 +285,11 @@ pub(crate) fn verify(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-operations-generate-key>
 pub(crate) fn generate_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleAlgorithm,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw a
     // SyntaxError.
@@ -333,7 +334,7 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         public_key_handle,
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 11. Let privateKey be a new CryptoKey representing the private key of the generated key
@@ -354,7 +355,7 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         private_key_handle,
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 16. Let result be a new CryptoKeyPair dictionary.
@@ -371,13 +372,13 @@ pub(crate) fn generate_key(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleAlgorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
@@ -463,7 +464,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 public_key,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // If format is "pkcs8":
@@ -589,7 +590,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 ml_dsa_private_key,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // If format is "raw-public":
@@ -619,7 +620,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 public_key_handle,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // If format is "raw-seed":
@@ -658,7 +659,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 private_key_handle,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // If format is "jwk":
@@ -668,7 +669,7 @@ pub(crate) fn import_key(
             //     Let jwk equal keyData.
             // Otherwise:
             //     Throw a DataError.
-            let jwk = JsonWebKey::parse(GlobalScope::get_cx(), key_data)?;
+            let jwk = JsonWebKey::parse(cx, key_data)?;
 
             // Step 2.2. If the priv field is present and usages contains a value which is not
             // "sign", or, if the priv field is not present and usages contains a value which is
@@ -763,7 +764,7 @@ pub(crate) fn import_key(
                     KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                     usages,
                     private_key_handle,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             }
             // Otherwise:
@@ -788,7 +789,7 @@ pub(crate) fn import_key(
                     KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                     usages,
                     public_key_handle,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             }
         },

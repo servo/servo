@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use argon2::{Argon2, AssociatedData, ParamsBuilder, Version};
+use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
@@ -129,13 +130,13 @@ pub(crate) fn derive_bits(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#argon2-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleAlgorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
@@ -177,7 +178,7 @@ pub(crate) fn import_key(
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages,
         Handle::Argon2Password(key_data.to_vec()),
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 10. Return key.

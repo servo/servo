@@ -4,6 +4,7 @@
 
 use der::asn1::{BitString, OctetString};
 use der::{AnyRef, Choice, Decode, Encode, Sequence};
+use js::context::JSContext;
 use ml_kem::kem::{Decapsulate, Encapsulate, EncapsulationKey};
 use ml_kem::{
     B32, Encoded, EncodedSizeUser, KemCore, MlKem512, MlKem512Params, MlKem768, MlKem768Params,
@@ -291,11 +292,11 @@ pub(crate) fn decapsulate(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-generate-key>
 pub(crate) fn generate_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleAlgorithm,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains any entry which is not one of "encapsulateKey",
     // "encapsulateBits", "decapsulateKey" or "decapsulateBits", then throw a SyntaxError.
@@ -347,7 +348,7 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         public_key_handle,
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 11. Let privateKey be a new CryptoKey representing the decapsulation key of the
@@ -368,7 +369,7 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         private_key_handle,
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 16. Let result be a new CryptoKeyPair dictionary.
@@ -385,13 +386,13 @@ pub(crate) fn generate_key(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleAlgorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
@@ -483,7 +484,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 public_key,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // If format is "pkcs8":
@@ -615,7 +616,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 ml_kem_private_key,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // If format is "raw-public":
@@ -653,7 +654,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 public_key_handle,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // If format is "raw-seed":
@@ -699,7 +700,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 private_key_handle,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // If format is "jwk":
@@ -709,7 +710,7 @@ pub(crate) fn import_key(
             //     Let jwk equal keyData.
             // Otherwise:
             //     Throw a DataError.
-            let jwk = JsonWebKey::parse(GlobalScope::get_cx(), key_data)?;
+            let jwk = JsonWebKey::parse(cx, key_data)?;
 
             // Step 2.2. If the priv field of jwk is present and if usages contains an entry which
             // is not "decapsulateKey" or "decapsulateBits" then throw a SyntaxError.
@@ -872,7 +873,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 key_handle,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // Otherwise:

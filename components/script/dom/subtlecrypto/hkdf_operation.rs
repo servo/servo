@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use hkdf::Hkdf;
+use js::context::JSContext;
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
 
@@ -76,12 +77,12 @@ pub(crate) fn derive_bits(
 
 /// <https://w3c.github.io/webcrypto/#hkdf-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
@@ -119,7 +120,7 @@ pub(crate) fn import_key(
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
             usages,
             Handle::HkdfSecret(key_data.to_vec()),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // Step 2.8. Return key.

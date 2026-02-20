@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::context::JSContext;
 use rsa::pkcs1v15::{Signature, SigningKey, VerifyingKey};
 use rsa::signature::{SignatureEncoding, Signer, Verifier};
 use sha1::Sha1;
@@ -20,7 +21,6 @@ use crate::dom::subtlecrypto::{
     ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, KeyAlgorithmAndDerivatives,
     SubtleRsaHashedImportParams, SubtleRsaHashedKeyGenParams,
 };
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-sign>
 pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
@@ -140,41 +140,41 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
 
 /// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-generate-key>
 pub(crate) fn generate_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleRsaHashedKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<CryptoKeyPair, Error> {
     rsa_common::generate_key(
         RsaAlgorithm::RsassaPkcs1v1_5,
+        cx,
         global,
         normalized_algorithm,
         extractable,
         usages,
-        can_gc,
     )
 }
 
 /// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleRsaHashedImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     rsa_common::import_key(
         RsaAlgorithm::RsassaPkcs1v1_5,
+        cx,
         global,
         normalized_algorithm,
         format,
         key_data,
         extractable,
         usages,
-        can_gc,
     )
 }
 

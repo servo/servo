@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::context::JSContext;
 use pkcs8::PrivateKeyInfo;
 use pkcs8::der::asn1::{BitStringRef, OctetString, OctetStringRef};
 use pkcs8::der::{AnyRef, Decode, Encode};
@@ -110,10 +111,10 @@ pub(crate) fn derive_bits(
 
 /// <https://w3c.github.io/webcrypto/#x25519-operations-generate-key>
 pub(crate) fn generate_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains an entry which is not "deriveKey" or "deriveBits" then throw a
     // SyntaxError.
@@ -147,7 +148,7 @@ pub(crate) fn generate_key(
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.clone()),
         Vec::new(),
         Handle::X25519PublicKey(public_key),
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 10. Let privateKey be a new CryptoKey representing the private key of the generated key pair.
@@ -167,7 +168,7 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         Handle::X25519PrivateKey(private_key),
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 15. Let result be a new CryptoKeyPair dictionary.
@@ -184,12 +185,12 @@ pub(crate) fn generate_key(
 
 /// <https://w3c.github.io/webcrypto/#x25519-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
@@ -246,7 +247,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::X25519PublicKey(public_key),
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // If format is "pkcs8":
@@ -309,7 +310,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::X25519PrivateKey(private_key),
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // If format is "jwk":
@@ -319,7 +320,7 @@ pub(crate) fn import_key(
             //     Let jwk equal keyData.
             // Otherwise:
             //     Throw a DataError.
-            let jwk = JsonWebKey::parse(GlobalScope::get_cx(), key_data)?;
+            let jwk = JsonWebKey::parse(cx, key_data)?;
 
             // Step 2.2. If the d field is present and if usages contains an entry which is not
             // "deriveKey" or "deriveBits" then throw a SyntaxError.
@@ -424,7 +425,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 handle,
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // If format is "raw":
@@ -457,7 +458,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::X25519PublicKey(public_key),
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // Otherwise:

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use aws_lc_rs::hmac;
+use js::context::JSContext;
 use rand::TryRngCore;
 use rand::rngs::OsRng;
 use script_bindings::codegen::GenericBindings::CryptoKeyBinding::CryptoKeyMethods;
@@ -69,11 +70,11 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-generate-key>
 pub(crate) fn generate_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleHmacKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. If usages contains any entry which is not "sign" or "verify", then throw a SyntaxError.
     if usages
@@ -138,7 +139,7 @@ pub(crate) fn generate_key(
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm),
         usages,
         Handle::Hmac(key_data),
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 16. Return key.
@@ -147,13 +148,13 @@ pub(crate) fn generate_key(
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleHmacImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
@@ -186,7 +187,7 @@ pub(crate) fn import_key(
             // Step 2.1. If keyData is a JsonWebKey dictionary: Let jwk equal keyData.
             // Otherwise: Throw a DataError.
             // NOTE: Deserialize keyData to JsonWebKey dictionary by running JsonWebKey::parse
-            let jwk = JsonWebKey::parse(GlobalScope::get_cx(), key_data)?;
+            let jwk = JsonWebKey::parse(cx, key_data)?;
 
             // Step 2.2. If the kty field of jwk is not "oct", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "oct") {
@@ -313,7 +314,7 @@ pub(crate) fn import_key(
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm),
         usages,
         Handle::Hmac(truncated_data),
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 15. Return key.

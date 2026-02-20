@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use js::context::JSContext;
 use pkcs8::rand_core::OsRng;
 use rsa::Oaep;
 use sha1::Sha1;
@@ -20,7 +21,6 @@ use crate::dom::subtlecrypto::{
     ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, KeyAlgorithmAndDerivatives,
     SubtleRsaHashedImportParams, SubtleRsaHashedKeyGenParams, SubtleRsaOaepParams,
 };
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-encrypt>
 pub(crate) fn encrypt(
@@ -142,41 +142,41 @@ pub(crate) fn decrypt(
 
 /// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-generate-key>
 pub(crate) fn generate_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleRsaHashedKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<CryptoKeyPair, Error> {
     rsa_common::generate_key(
         RsaAlgorithm::RsaOaep,
+        cx,
         global,
         normalized_algorithm,
         extractable,
         usages,
-        can_gc,
     )
 }
 
 /// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleRsaHashedImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     rsa_common::import_key(
         RsaAlgorithm::RsaOaep,
+        cx,
         global,
         normalized_algorithm,
         format,
         key_data,
         extractable,
         usages,
-        can_gc,
     )
 }
 

@@ -4,6 +4,7 @@
 
 use aes::cipher::crypto_common::Key;
 use aes::{Aes128, Aes192, Aes256};
+use js::context::JSContext;
 use pkcs8::rand_core::{OsRng, RngCore};
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
@@ -41,11 +42,11 @@ pub(crate) enum AesAlgorithm {
 /// this implementation.
 pub(crate) fn generate_key(
     aes_algorithm: AesAlgorithm,
+    cx: &mut JSContext,
     global: &GlobalScope,
     normalized_algorithm: &SubtleAesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     match aes_algorithm {
         AesAlgorithm::AesCtr |
@@ -150,7 +151,7 @@ pub(crate) fn generate_key(
         KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm),
         usages,
         handle,
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 13. Return key.
@@ -171,12 +172,12 @@ pub(crate) fn generate_key(
 /// align with the specification of other AES algorithms.
 pub(crate) fn import_key(
     aes_algorithm: AesAlgorithm,
+    cx: &mut JSContext,
     global: &GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     match &aes_algorithm {
         AesAlgorithm::AesCtr |
@@ -257,7 +258,7 @@ pub(crate) fn import_key(
             //     Let jwk equal keyData.
             // Otherwise:
             //     Throw a DataError.
-            let jwk = JsonWebKey::parse(GlobalScope::get_cx(), key_data)?;
+            let jwk = JsonWebKey::parse(cx, key_data)?;
 
             // Step 2.2. If the kty field of jwk is not "oct", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "oct") {
@@ -504,7 +505,7 @@ pub(crate) fn import_key(
         KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm),
         usages,
         handle,
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 9. Return key.

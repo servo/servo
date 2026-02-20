@@ -4,6 +4,7 @@
 
 use aws_lc_rs::encoding::{AsBigEndian, AsDer};
 use aws_lc_rs::signature::{ED25519, Ed25519KeyPair, KeyPair, ParsedPublicKey, UnparsedPublicKey};
+use js::context::JSContext;
 use rand::TryRngCore;
 use rand::rngs::OsRng;
 
@@ -84,10 +85,10 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
 
 /// <https://w3c.github.io/webcrypto/#ed25519-operations-generate-key>
 pub(crate) fn generate_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains any entry which is not "sign" or "verify", then throw a
     // SyntaxError.
@@ -134,7 +135,7 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         Handle::Ed25519(key_pair.public_key().as_ref().to_vec()),
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 10. Let privateKey be a new CryptoKey representing the private key of the generated key pair.
@@ -154,7 +155,7 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         Handle::Ed25519(seed),
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 16. Let result be a new CryptoKeyPair dictionary.
@@ -171,12 +172,12 @@ pub(crate) fn generate_key(
 
 /// <https://w3c.github.io/webcrypto/#ed25519-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
     // NOTE: It is given as a method parameter.
@@ -224,7 +225,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::Ed25519(public_key.as_ref().to_vec()),
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // If format is "pkcs8":
@@ -287,14 +288,13 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::Ed25519(curve_private_key),
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
             // Step 2.1. If keyData is a JsonWebKey dictionary: Let jwk equal keyData.
             // Otherwise: Throw a DataError.
-            let cx = GlobalScope::get_cx();
             let jwk = JsonWebKey::parse(cx, key_data)?;
 
             // Step 2.2 If the d field is present and usages contains a value which is not "sign",
@@ -389,7 +389,7 @@ pub(crate) fn import_key(
                     KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                     usages,
                     Handle::Ed25519(d),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             }
             // Otherwise:
@@ -408,7 +408,7 @@ pub(crate) fn import_key(
                     KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                     usages,
                     Handle::Ed25519(x),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             }
 
@@ -445,7 +445,7 @@ pub(crate) fn import_key(
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::Ed25519(key_data.to_vec()),
-                can_gc,
+                CanGc::from_cx(cx),
             )
         },
         // Otherwise:

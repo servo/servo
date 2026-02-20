@@ -4,6 +4,7 @@
 
 use chacha20poly1305::aead::{AeadMutInPlace, KeyInit, OsRng};
 use chacha20poly1305::{ChaCha20Poly1305, Key};
+use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
@@ -148,10 +149,10 @@ pub(crate) fn decrypt(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-generate-key>
 pub(crate) fn generate_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. If usages contains any entry which is not one of "encrypt", "decrypt", "wrapKey" or
     // "unwrapKey", then throw a SyntaxError.
@@ -189,7 +190,7 @@ pub(crate) fn generate_key(
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages,
         Handle::ChaCha20Poly1305Key(generated_key),
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 11. Return key.
@@ -198,12 +199,12 @@ pub(crate) fn generate_key(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-import-key>
 pub(crate) fn import_key(
+    cx: &mut JSContext,
     global: &GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-    can_gc: CanGc,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
@@ -244,7 +245,7 @@ pub(crate) fn import_key(
             //     Let jwk equal keyData.
             // Otherwise:
             //     Throw a DataError.
-            let jwk = JsonWebKey::parse(GlobalScope::get_cx(), key_data)?;
+            let jwk = JsonWebKey::parse(cx, key_data)?;
 
             // Step 3.2. If the kty field of jwk is not "oct", then throw a DataError.
             if jwk.kty.as_ref().is_none_or(|kty| kty != "oct") {
@@ -317,7 +318,7 @@ pub(crate) fn import_key(
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages,
         handle,
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     // Step 9. Return key.
