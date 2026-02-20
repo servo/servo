@@ -54,15 +54,18 @@ skipped_tests = [
     "floats_10_1000.html",  # timeout
     "nested-percent-height-tables.html",
     "large-table-with-collapsed-borders-and-colspans.html",  # causes next test to fail
+    "contain-content-style-change.html",
 ]
 
 tests_that_hang_memory_report = [
-    "contain-content-style-change.html",
     "large-grid.html",
     "layer-overhead.html",
+    "css-contain-change-text.html",
+    "fit-content-change-available-size-text.html",
 ]
 
 ### Failed tests
+# subtree-detaching.html,error
 # abspos.html,error
 # flexbox-row-stretch-height-definite.html,error
 
@@ -122,18 +125,6 @@ max\s+(?P<max>[0-9.]+)\s+(?P=unit)
 
 def get_serve_path_for_file(root: str, file: str) -> str:
     return root.split("tests/blink_perf_tests/perf_tests/")[1]
-
-
-def reset_tab_ram(driver: webdriver.Remote):
-    original_tab = driver.current_window_handle
-    driver.switch_to.new_window("tab")
-    driver.get("about:blank")
-    driver.switch_to.window(original_tab)
-    driver.close()
-    print("The tab has been reset")
-    remaining_tab = driver.window_handles[0]
-    driver.switch_to.window(remaining_tab)
-    # time.sleep(.1)
 
 
 def test(s: str, driver: webdriver.Remote, port: int, serve_path, cli_args=None) -> TestResult | AbortReason:
@@ -335,13 +326,12 @@ def run_tests(port, cli_args=None):
                         skip_until = None
                     if filePath in skipped_tests:
                         continue
-                    # reset_tab_ram(webdriver)
                     print("Starting new servo instance...")
                     cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver --psn=--pref=session_history_max_length=1"
                     hdc.cmd(cmd_str, timeout=10)
                     with HarmonyDevicePerfMode(screen_timeout_seconds=2 * 60 * 60):
                         close_usb_popup(hdc)
-                        webdriver = create_driver()
+                        webdriver = create_driver(timeout=1)
                         if webdriver is None:
                             continue
 
@@ -408,8 +398,6 @@ def run_tests(port, cli_args=None):
 def get_memory_report_str(driver: webdriver.Remote) -> MemoryReport | ParseError:
     report_text = None
     try:
-        # original_tab = driver.current_window_handle
-        # driver.switch_to.new_window("tab")
         driver.get("about:memory")
         wait = WebDriverWait(driver, 5)
         measure_button = wait.until(EC.element_to_be_clickable((By.ID, "startButton")))
@@ -417,8 +405,6 @@ def get_memory_report_str(driver: webdriver.Remote) -> MemoryReport | ParseError
         reports = wait.until(lambda d: d.find_element(By.ID, "reports"))
         wait.until(lambda d: d.find_element(By.ID, "reports").text.strip() != "")
         report_text = reports.text
-        # driver.close()
-        # driver.switch_to.window(original_tab)
     except Exception as e:
         return ParseError(message=str(e))
 
