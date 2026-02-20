@@ -51,6 +51,30 @@ fn test_basic_accessibility_update() {
     let _ = assert_tree_structure_and_get_root_web_area(&tree);
 }
 
+#[test]
+fn test_activate_accessibility_after_layout() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.accessibility_enabled = true;
+        builder.preferences(preferences)
+    });
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse("data:text/html,<!DOCTYPE html>").unwrap())
+        .build();
+
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    webview.set_accessibility_active(true);
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 3);
+    let tree = build_tree(updates);
+    let _ = assert_tree_structure_and_get_root_web_area(&tree);
+}
+
 fn wait_for_min_updates(
     servo_test: &ServoTest,
     delegate: Rc<WebViewDelegateImpl>,
