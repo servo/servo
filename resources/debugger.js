@@ -117,7 +117,7 @@ addEventListener("getPossibleBreakpoints", event => {
     getPossibleBreakpointsResult(event, result);
 });
 
-function handlePauseFrame(frame, is_breakpoint) {
+function handlePauseAndRespond(frame, is_breakpoint) {
     // Get the pipeline ID for this debuggee
     const pipelineId = debuggeesToPipelineIds.get(frame.script.global);
     if (!pipelineId) {
@@ -126,7 +126,6 @@ function handlePauseFrame(frame, is_breakpoint) {
     }
 
     // TODO: Some properties throw if terminated is true
-    // TODO: Check if start line / column is correct or we need the proper breakpoint
     const result = {
         // TODO: arguments: frame.arguments,
         column: frame.script.startColumn,
@@ -140,7 +139,7 @@ function handlePauseFrame(frame, is_breakpoint) {
     };
 
     // Notify devtools and enter pause loop. This blocks until Resume.
-    pauseFrame(pipelineId, result, is_breakpoint);
+    pauseAndRespond(pipelineId, result, is_breakpoint);
 
     // <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
     // Return undefined to continue execution normally after resume.
@@ -155,7 +154,7 @@ addEventListener("setBreakpoint", event => {
         target.setBreakpoint(offset, {
             // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#setbreakpoint-offset-handler>
             // The hit handler receives a Debugger.Frame instance representing the currently executing stack frame.
-            hit: (frame) => handlePauseFrame(frame, true)
+            hit: (frame) => handlePauseAndRespond(frame, true)
         });
     }
 });
@@ -164,7 +163,7 @@ addEventListener("setBreakpoint", event => {
 addEventListener("interrupt", event => {
     dbg.onEnterFrame = function(frame) {
         dbg.onEnterFrame = undefined;
-        handlePauseFrame(frame, false);
+        handlePauseAndRespond(frame, false);
     };
 });
 

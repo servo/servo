@@ -222,6 +222,36 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(paused_data.get("type"), "paused")
             self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
 
+    def test_manual_pause(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/breakpoint/manual_pause.html")
+        with Devtools.connect() as devtools:
+            thread_actor = devtools.targets[0]["threadActor"]
+            devtools.client.send_receive({"to": thread_actor, "type": "attach"})
+
+            # Listen for paused event
+            paused_future = Future()
+
+            def on_paused(data):
+                paused_future.set_result(data)
+
+            devtools.client.add_event_listener(thread_actor, "paused", on_paused)
+
+            # Interrupt when entering the next frame
+            devtools.client.send_receive(
+                {
+                    "to": thread_actor,
+                    "type": "interrupt",
+                    "when": "onNext",
+                }
+            )
+
+            # Verify pause
+            paused_data = paused_future.result(3)
+            self.assertEqual(paused_data.get("type"), "paused")
+            why = paused_data.get("why", {})
+            self.assertEqual(why.get("type"), "interrupted")
+            self.assertEqual(why.get("onNext"), True)
+
     # Sources list
     # Classic script vs module script:
     # - <https://html.spec.whatwg.org/multipage/#classic-script>

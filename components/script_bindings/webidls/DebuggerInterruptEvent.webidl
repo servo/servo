@@ -8,7 +8,7 @@
 interface DebuggerInterruptEvent : Event {};
 
 partial interface DebuggerGlobalScope {
-    undefined pauseFrame(
+    undefined pauseAndRespond(
         PipelineIdInit pipelineId,
         PausedFrame result,
         boolean is_breakpoint);

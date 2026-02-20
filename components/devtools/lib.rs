@@ -774,6 +774,7 @@ impl DevtoolsInstance {
         let frame = FrameActor::register(actors, source, frame);
         thread.frames.borrow_mut().insert(frame.clone());
 
+        // https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1662
         let why = if is_breakpoint {
             WhyMsg {
                 type_: "breakpoint".into(),

@@ -451,7 +451,12 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         let _ = sender.send(reply);
     }
 
-    fn PauseFrame(&self, pipeline_id: &PipelineIdInit, result: &PausedFrame, is_breakpoint: bool) {
+    fn PauseAndRespond(
+        &self,
+        pipeline_id: &PipelineIdInit,
+        result: &PausedFrame,
+        is_breakpoint: bool,
+    ) {
         let pipeline_id = PipelineId {
             namespace_id: PipelineNamespaceId(pipeline_id.namespaceId),
             index: Index::new(pipeline_id.index).expect("`pipelineId.index` must not be zero"),
