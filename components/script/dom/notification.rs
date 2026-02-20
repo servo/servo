@@ -43,7 +43,7 @@ use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
 use crate::dom::bindings::codegen::UnionTypes::UnsignedLongOrUnsignedLongSequence;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -131,7 +131,7 @@ impl Notification {
         fallback_timestamp: u64,
         proto: Option<HandleObject>,
     ) -> DomRoot<Self> {
-        let notification = reflect_dom_object_with_proto(
+        let notification = reflect_dom_object_with_proto_and_cx(
             Box::new(Notification::new_inherited(
                 global,
                 title,
@@ -142,7 +142,7 @@ impl Notification {
             )),
             global,
             proto,
-            CanGc::from_cx(cx),
+            cx,
         );
 
         notification.data.set(options.data.get());
@@ -404,10 +404,8 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         global: &GlobalScope,
         permission_callback: Option<Rc<NotificationPermissionCallback>>,
     ) -> Rc<Promise> {
-        let can_gc = CanGc::from_cx(cx);
-
         // Step 2: Let promise be a new promise in this’s relevant Realm.
-        let promise = Promise::new(global, can_gc);
+        let promise = Promise::new(global, CanGc::from_cx(cx));
 
         // TODO: Step 3: Run these steps in parallel:
         // Step 3.1: Let permissionState be the result of requesting permission to use "notifications".
@@ -691,12 +689,11 @@ fn request_notification_permission(
     cx: &mut js::context::JSContext,
     global: &GlobalScope,
 ) -> NotificationPermission {
-    let can_gc = CanGc::from_cx(cx);
-    let promise = &Promise::new(global, can_gc);
+    let promise = &Promise::new(global, CanGc::from_cx(cx));
     let descriptor = PermissionDescriptor {
         name: PermissionName::Notifications,
     };
-    let status = PermissionStatus::new(global, &descriptor, can_gc);
+    let status = PermissionStatus::new(global, &descriptor, CanGc::from_cx(cx));
 
     // The implementation of `request_notification_permission` seemed to be synchronous
     Permissions::permission_request(cx, promise, &descriptor, &status);

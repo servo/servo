@@ -20,7 +20,7 @@ use crate::dom::bindings::error::Error::{
     self, InvalidModification, Network, NotSupported, Security,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{ByteString, DOMString};
 use crate::dom::bluetooth::{AsyncBluetoothListener, get_gatt_children, response_async};
@@ -72,7 +72,7 @@ impl BluetoothRemoteGATTCharacteristic {
         properties: &BluetoothCharacteristicProperties,
         instance_id: String,
     ) -> DomRoot<BluetoothRemoteGATTCharacteristic> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(BluetoothRemoteGATTCharacteristic::new_inherited(
                 service,
                 uuid,
@@ -80,7 +80,7 @@ impl BluetoothRemoteGATTCharacteristic {
                 instance_id,
             )),
             global,
-            CanGc::from_cx(cx),
+            cx,
         )
     }
 
@@ -114,7 +114,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptor>
     fn GetDescriptor(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut CurrentRealm,
         descriptor: BluetoothDescriptorUUID,
     ) -> Rc<Promise> {
         let is_connected = self.Service().Device().get_gatt(cx).Connected();
@@ -133,7 +133,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptors>
     fn GetDescriptors(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut CurrentRealm,
         descriptor: Option<BluetoothDescriptorUUID>,
     ) -> Rc<Promise> {
         let is_connected = self.Service().Device().get_gatt(cx).Connected();

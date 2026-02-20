@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDe
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetooth::{AsyncBluetoothListener, Bluetooth, response_async};
@@ -83,10 +83,10 @@ impl BluetoothDevice {
         name: Option<DOMString>,
         context: &Bluetooth,
     ) -> DomRoot<BluetoothDevice> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(BluetoothDevice::new_inherited(id, name, context)),
             global,
-            CanGc::from_cx(cx),
+            cx,
         )
     }
 
@@ -207,8 +207,6 @@ impl BluetoothDevice {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#clean-up-the-disconnected-device
     pub(crate) fn clean_up_disconnected_device(&self, cx: &mut js::context::JSContext) {
-        let can_gc = CanGc::from_cx(cx);
-
         // Step 1.
         self.get_gatt(cx).set_connected(false);
 
@@ -239,7 +237,7 @@ impl BluetoothDevice {
 
         // Step 8.
         self.upcast::<EventTarget>()
-            .fire_bubbling_event(atom!("gattserverdisconnected"), can_gc);
+            .fire_bubbling_event(atom!("gattserverdisconnected"), CanGc::from_cx(cx));
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#garbage-collect-the-connection

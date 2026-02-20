@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use bluetooth_traits::{BluetoothResponse, GATTType};
 use dom_struct::dom_struct;
+use js::realm::CurrentRealm;
 
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
@@ -89,7 +90,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristic>
     fn GetCharacteristic(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut CurrentRealm,
         characteristic: BluetoothCharacteristicUUID,
     ) -> Rc<Promise> {
         let is_connected = self.Device().get_gatt(cx).Connected();
@@ -108,7 +109,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristics>
     fn GetCharacteristics(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut CurrentRealm,
         characteristic: Option<BluetoothCharacteristicUUID>,
     ) -> Rc<Promise> {
         let is_connected = self.Device().get_gatt(cx).Connected();
@@ -127,7 +128,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservice>
     fn GetIncludedService(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut CurrentRealm,
         service: BluetoothServiceUUID,
     ) -> Rc<Promise> {
         let is_connected = self.Device().get_gatt(cx).Connected();
@@ -146,7 +147,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservices>
     fn GetIncludedServices(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut CurrentRealm,
         service: Option<BluetoothServiceUUID>,
     ) -> Rc<Promise> {
         let is_connected = self.Device().get_gatt(cx).Connected();

@@ -5,10 +5,9 @@
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::codegen::Bindings::BluetoothCharacteristicPropertiesBinding::BluetoothCharacteristicPropertiesMethods;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
-use crate::script_runtime::CanGc;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#characteristicproperties
 #[dom_struct]
@@ -67,7 +66,7 @@ impl BluetoothCharacteristicProperties {
         reliableWrite: bool,
         writableAuxiliaries: bool,
     ) -> DomRoot<BluetoothCharacteristicProperties> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(BluetoothCharacteristicProperties::new_inherited(
                 broadcast,
                 read,
@@ -80,7 +79,7 @@ impl BluetoothCharacteristicProperties {
                 writableAuxiliaries,
             )),
             global,
-            CanGc::from_cx(cx),
+            cx,
         )
     }
 }

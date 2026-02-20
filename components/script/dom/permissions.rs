@@ -94,13 +94,12 @@ impl Permissions {
         permissionDesc: *mut JSObject,
         promise: Option<Rc<Promise>>,
     ) -> Rc<Promise> {
-        let can_gc = CanGc::from_cx(cx);
         // (Query, Request) Step 3.
         let p = match promise {
             Some(promise) => promise,
             None => {
                 let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
-                Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc)
+                Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), CanGc::from_cx(cx))
             },
         };
 
@@ -108,13 +107,13 @@ impl Permissions {
         let root_desc = match Permissions::create_descriptor(cx, permissionDesc) {
             Ok(descriptor) => descriptor,
             Err(error) => {
-                p.reject_error(error, can_gc);
+                p.reject_error(error, CanGc::from_cx(cx));
                 return p;
             },
         };
 
         // (Query, Request) Step 5.
-        let status = PermissionStatus::new(&self.global(), &root_desc, can_gc);
+        let status = PermissionStatus::new(&self.global(), &root_desc, CanGc::from_cx(cx));
 
         // (Query, Request, Revoke) Step 2.
         match root_desc.name {
@@ -123,7 +122,7 @@ impl Permissions {
                 let bluetooth_desc = match Bluetooth::create_descriptor(cx, permissionDesc) {
                     Ok(descriptor) => descriptor,
                     Err(error) => {
-                        p.reject_error(error, can_gc);
+                        p.reject_error(error, CanGc::from_cx(cx));
                         return p;
                     },
                 };
@@ -164,14 +163,14 @@ impl Permissions {
                         // (Request) Step 7. The default algorithm always resolve
 
                         // (Request) Step 8.
-                        p.resolve_native(&status, can_gc);
+                        p.resolve_native(&status, CanGc::from_cx(cx));
                     },
                     Operation::Query => {
                         // (Query) Step 6.
                         Permissions::permission_query(cx, &p, &root_desc, &status);
 
                         // (Query) Step 7.
-                        p.resolve_native(&status, can_gc);
+                        p.resolve_native(&status, CanGc::from_cx(cx));
                     },
 
                     Operation::Revoke => {

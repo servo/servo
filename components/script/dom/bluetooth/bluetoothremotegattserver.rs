@@ -13,7 +13,7 @@ use js::realm::CurrentRealm;
 use crate::dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bluetooth::{AsyncBluetoothListener, get_gatt_children, response_async};
 use crate::dom::bluetoothdevice::BluetoothDevice;
@@ -44,10 +44,10 @@ impl BluetoothRemoteGATTServer {
         global: &GlobalScope,
         device: &BluetoothDevice,
     ) -> DomRoot<BluetoothRemoteGATTServer> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(BluetoothRemoteGATTServer::new_inherited(device)),
             global,
-            CanGc::from_cx(cx),
+            cx,
         )
     }
 
@@ -114,7 +114,7 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice>
     fn GetPrimaryService(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut CurrentRealm,
         service: BluetoothServiceUUID,
     ) -> Rc<Promise> {
         let is_connected = self.Device().get_gatt(cx).Connected();
@@ -134,7 +134,7 @@ impl BluetoothRemoteGATTServerMethods<crate::DomTypeHolder> for BluetoothRemoteG
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservices>
     fn GetPrimaryServices(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut CurrentRealm,
         service: Option<BluetoothServiceUUID>,
     ) -> Rc<Promise> {
         // Step 1 - 2.
@@ -161,30 +161,28 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-connect
             BluetoothResponse::GATTServerConnect(connected) => {
-                let can_gc = CanGc::from_cx(cx);
                 // Step 5.2.3
                 if self.Device().is_represented_device_null() {
                     if let Err(e) = self.Device().garbage_collect_the_connection(cx) {
-                        return promise.reject_error(e, can_gc);
+                        return promise.reject_error(e, CanGc::from_cx(cx));
                     }
-                    return promise.reject_error(Error::Network(None), can_gc);
+                    return promise.reject_error(Error::Network(None), CanGc::from_cx(cx));
                 }
 
                 // Step 5.2.4.
                 self.connected.set(connected);
 
                 // Step 5.2.5.
-                promise.resolve_native(self, can_gc);
+                promise.resolve_native(self, CanGc::from_cx(cx));
             },
             // https://webbluetoothcg.github.io/web-bluetooth/#getgattchildren
             // Step 7.
             BluetoothResponse::GetPrimaryServices(services_vec, single) => {
-                let can_gc = CanGc::from_cx(cx);
                 let device = self.Device();
                 if single {
                     promise.resolve_native(
                         &device.get_or_create_service(cx, &services_vec[0], self),
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                     return;
                 }
@@ -193,7 +191,7 @@ impl AsyncBluetoothListener for BluetoothRemoteGATTServer {
                     let bt_service = device.get_or_create_service(cx, &service, self);
                     services.push(bt_service);
                 }
-                promise.resolve_native(&services, can_gc);
+                promise.resolve_native(&services, CanGc::from_cx(cx));
             },
             _ => promise.reject_error(
                 Error::Type(c"Something went wrong...".to_owned()),
