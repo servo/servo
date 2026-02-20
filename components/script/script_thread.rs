@@ -85,7 +85,7 @@ use profile_traits::mem::{ProcessReports, ReportsChan, perform_memory_report};
 use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
-use script_bindings::script_runtime::JSContext;
+use script_bindings::script_runtime::{JSContext, temp_cx};
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewPipelineInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage,
@@ -2668,7 +2668,10 @@ impl ScriptThread {
         }
     }
 
+    #[expect(unsafe_code)]
     pub(crate) fn spawn_pipeline(&self, new_pipeline_info: NewPipelineInfo) {
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         self.profile_event(
             ScriptThreadEventCategory::SpawnPipeline,
             Some(new_pipeline_info.new_pipeline_id),
@@ -2697,7 +2700,7 @@ impl ScriptThread {
                 };
 
                 // Kick off the fetch for the new resource.
-                self.pre_page_load(InProgressLoad::new(new_pipeline_info, origin));
+                self.pre_page_load(cx, InProgressLoad::new(new_pipeline_info, origin));
             },
         );
     }
