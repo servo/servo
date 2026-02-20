@@ -146,12 +146,12 @@ partial /*sealed*/ interface Document {
   boolean hasFocus();
   // [CEReactions]
   // attribute DOMString designMode;
-  // [CEReactions]
-  // boolean execCommand(DOMString commandId, optional boolean showUI = false, optional DOMString value = "");
-  // boolean queryCommandEnabled(DOMString commandId);
+  [CEReactions, Throws, Pref="dom_exec_command_enabled"]
+  boolean execCommand(DOMString commandId, optional boolean showUI = false, optional (TrustedHTML or DOMString) value = "");
+  [Pref="dom_exec_command_enabled"] boolean queryCommandEnabled(DOMString commandId);
   // boolean queryCommandIndeterm(DOMString commandId);
   // boolean queryCommandState(DOMString commandId);
-  boolean queryCommandSupported(DOMString commandId);
+  [Pref="dom_exec_command_enabled"] boolean queryCommandSupported(DOMString commandId);
   // DOMString queryCommandValue(DOMString commandId);
   readonly attribute boolean hidden;
   readonly attribute DocumentVisibilityState visibilityState;
@@ -234,9 +234,3 @@ partial interface Document {
 
 // https://html.spec.whatwg.org/multipage/#dom-document-nameditem-filter
 typedef (WindowProxy or Element or HTMLCollection) NamedPropertyValue;
-
-// https://w3c.github.io/editing/docs/execCommand/#methods-to-query-and-execute-commands
-partial interface Document {
-  [CEReactions, Throws, Pref="dom_exec_command_enabled"] boolean execCommand(DOMString commandId, optional boolean showUI = false, optional (TrustedHTML or DOMString) value = "");
-  [CEReactions, Pref="dom_exec_command_enabled"] boolean queryCommandEnabled(DOMString commandId);
-};

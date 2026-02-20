@@ -50,6 +50,7 @@ impl Document {
 }
 
 pub(crate) trait ExecCommandsSupport {
+    fn is_command_supported(&self, command_id: DOMString) -> bool;
     fn check_support_and_enabled(
         &self,
         command_id: DOMString,
@@ -64,6 +65,11 @@ pub(crate) trait ExecCommandsSupport {
 }
 
 impl ExecCommandsSupport for Document {
+    /// <https://w3c.github.io/editing/docs/execCommand/#querycommandsupported()>
+    fn is_command_supported(&self, command_id: DOMString) -> bool {
+        self.command_if_command_is_supported(command_id).is_some()
+    }
+
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandenabled()>
     fn check_support_and_enabled(
         &self,

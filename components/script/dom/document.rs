@@ -5113,11 +5113,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         Ok(document)
     }
 
-    /// <https://w3c.github.io/editing/ActiveDocuments/execCommand.html#querycommandsupported()>
-    fn QueryCommandSupported(&self, _command: DOMString) -> bool {
-        false
-    }
-
     /// <https://drafts.csswg.org/cssom/#dom-document-stylesheets>
     fn StyleSheets(&self, can_gc: CanGc) -> DomRoot<StyleSheetList> {
         self.stylesheet_list.or_init(|| {
@@ -6473,7 +6468,16 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandenabled()>
     fn QueryCommandEnabled(&self, command_id: DOMString, can_gc: CanGc) -> bool {
+        // Step 2. Return true if command is both supported and enabled, false otherwise.
         self.check_support_and_enabled(command_id, can_gc).is_some()
+    }
+
+    /// <https://w3c.github.io/editing/ActiveDocuments/execCommand.html#querycommandsupported()>
+    fn QueryCommandSupported(&self, command_id: DOMString) -> bool {
+        // > When the queryCommandSupported(command) method on the Document interface is invoked,
+        // the user agent must return true if command is supported and available
+        // within the current script on the current site, and false otherwise.
+        self.is_command_supported(command_id)
     }
 
     // https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenerror
