@@ -29,7 +29,7 @@ fn test_multiprocess_preference_observer() {
         .delegate(delegate.clone())
         .build();
 
-    let result = evaluate_javascript(&servo_test, webview.clone(), "window.gc");
+    let result = evaluate_javascript(&servo_test, webview.clone(), "window.ServoTestUtils");
     assert_eq!(result, Ok(JSValue::Undefined));
 
     let mut prefs = prefs::get().clone();
@@ -40,7 +40,7 @@ fn test_multiprocess_preference_observer() {
     webview.reload();
     servo_test.spin(move || !delegate.load_status_changed.get());
 
-    let result = evaluate_javascript(&servo_test, webview.clone(), "window.gc");
+    let result = evaluate_javascript(&servo_test, webview.clone(), "window.ServoTestUtils");
     assert!(matches!(result, Ok(JSValue::Object(..))));
 }
 

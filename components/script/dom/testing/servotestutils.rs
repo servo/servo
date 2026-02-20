@@ -4,6 +4,7 @@
 
 // check-tidy: no specs after this line
 
+use backtrace::Backtrace;
 use dom_struct::dom_struct;
 use layout_api::ReflowPhasesRun;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
@@ -55,6 +56,12 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
         }
 
         LayoutResult::new(global, phases, can_gc)
+    }
+
+    fn Js_backtrace(_: &GlobalScope) {
+        println!("Current JS stack:");
+        let rust_stack = Backtrace::new();
+        println!("Current Rust stack:\n{:?}", rust_stack);
     }
 
     fn Panic(_: &GlobalScope) {

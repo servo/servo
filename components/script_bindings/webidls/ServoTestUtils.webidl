@@ -17,6 +17,8 @@ namespace ServoTestUtils {
   [Exposed=Window]
   LayoutResult forceLayout();
 
+  undefined js_backtrace();
+
   undefined panic();
 };
 

@@ -135,16 +135,6 @@ partial interface Window {
   [Replaceable] readonly attribute double devicePixelRatio;
 };
 
-// Proprietary extensions.
-partial interface Window {
-  [Pref="dom_servo_helpers_enabled"]
-  undefined debug(DOMString arg);
-  [Pref="dom_servo_helpers_enabled"]
-  undefined gc();
-  [Pref="dom_servo_helpers_enabled"]
-  undefined js_backtrace();
-};
-
 // WebDriver extensions
 partial interface Window {
   // Shouldn't be public, but just to make things work for now

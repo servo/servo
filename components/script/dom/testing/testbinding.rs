@@ -17,7 +17,6 @@ use js::realm::CurrentRealm;
 use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleValue};
 use js::typedarray::{self, HeapUint8ClampedArray};
 use script_bindings::cformat;
-use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::interfaces::TestBindingHelpers;
 use script_bindings::record::Record;
 use servo_config::prefs;
@@ -569,7 +568,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         &self,
         _dictionary: RootedTraceableBox<TestDictionaryWithTypedArray>,
     ) {
-        self.global().as_window().Gc();
+        self.global().as_window().gc();
     }
     fn ReceiveTestDictionaryWithSuccessOnKeyword(&self) -> RootedTraceableBox<TestDictionary> {
         RootedTraceableBox::new(TestDictionary {
