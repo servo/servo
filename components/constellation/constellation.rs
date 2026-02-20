@@ -1192,12 +1192,12 @@ where
         self.browsing_contexts
             .insert(browsing_context_id, browsing_context);
 
-        if self.accessibility_active &&
-            let Some(pipeline) = self.pipelines.get(&pipeline_id)
-        {
-            let _ = pipeline
-                .event_loop
-                .send(ScriptThreadMessage::SetAccessibilityActive(true));
+        if self.accessibility_active {
+            if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                let _ = pipeline
+                    .event_loop
+                    .send(ScriptThreadMessage::SetAccessibilityActive(true));
+            }
         }
 
         // If this context is a nested container, attach it to parent pipeline.
