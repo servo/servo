@@ -38,7 +38,7 @@ use js::conversions::ConversionResult;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
-use js::rust::wrappers::JS_ParseJSON;
+use js::rust::wrappers2::JS_ParseJSON;
 use js::rust::{HandleValue, MutableHandleValue};
 use js::typedarray::ArrayBufferU8;
 
@@ -3104,12 +3104,7 @@ impl JsonWebKeyExt for JsonWebKey {
         // JavaScript String containing json.
         rooted!(&in(cx) let mut result = UndefinedValue());
         unsafe {
-            if !JS_ParseJSON(
-                cx.raw_cx(),
-                json.as_ptr(),
-                json.len() as u32,
-                result.handle_mut(),
-            ) {
+            if !JS_ParseJSON(cx, json.as_ptr(), json.len() as u32, result.handle_mut()) {
                 return Err(Error::JSFailed);
             }
         }
