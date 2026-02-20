@@ -3647,7 +3647,11 @@ impl ScriptThread {
             return;
         }
 
-        self.accessibility_active.replace(active);
+        let old_value = self.accessibility_active.replace(active);
+        if active == old_value {
+            return;
+        }
+
         for (_, document) in self.documents.borrow().iter() {
             document.window().layout().set_accessibility_active(active);
         }
