@@ -11,20 +11,25 @@ use style::values::specified::box_::DisplayOutside;
 use crate::dom::abstractrange::bp_position;
 use crate::dom::bindings::cell::Ref;
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
-use crate::dom::bindings::inheritance::NodeTypeId;
+use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
+use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::element::Element;
 use crate::dom::html::htmlbrelement::HTMLBRElement;
+use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
 use crate::dom::html::htmllielement::HTMLLIElement;
-use crate::dom::node::{Node, ShadowIncluding};
+use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::range::Range;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
+use crate::script_runtime::CanGc;
 
 impl Text {
     /// <https://dom.spec.whatwg.org/#concept-cd-data>
@@ -624,6 +629,108 @@ impl Node {
             // Step 10.3.3. Add one to start offset.
             start_offset += 1;
         }
+    }
+}
+
+pub(crate) trait ContentEditableRange {
+    fn handle_focus_state_for_contenteditable(&self, can_gc: CanGc);
+}
+
+impl ContentEditableRange for HTMLElement {
+    /// There is no specification for this implementation. Instead, it is
+    /// reverse-engineered based on the WPT test
+    /// /selection/contenteditable/initial-selection-on-focus.tentative.html
+    fn handle_focus_state_for_contenteditable(&self, can_gc: CanGc) {
+        if !self.is_editing_host() {
+            return;
+        }
+        let document = self.owner_document();
+        let Some(selection) = document.GetSelection(can_gc) else {
+            return;
+        };
+        let range = self
+            .upcast::<Element>()
+            .ensure_contenteditable_selection_range(&document, can_gc);
+        // If the current range is already associated with this contenteditable
+        // element, then we shouldn't do anything. This is important when focus
+        // is lost and regained, but selection was changed beforehand. In that
+        // case, we should maintain the selection as it were, by not creating
+        // a new range.
+        if selection
+            .active_range()
+            .is_some_and(|active| active == range)
+        {
+            return;
+        }
+        let node = self.upcast::<Node>();
+        let mut selected_node = DomRoot::from_ref(node);
+        let mut previous_eligible_node = DomRoot::from_ref(node);
+        let mut previous_node = DomRoot::from_ref(node);
+        let mut selected_offset = 0;
+        for child in node.traverse_preorder(ShadowIncluding::Yes) {
+            if let Some(text) = child.downcast::<Text>() {
+                // Note that to consider it whitespace, it needs to take more
+                // into account than simply "it has a non-whitespace" character.
+                // Therefore, we need to first check if it is not a whitespace
+                // node and only then can we find what the relevant character is.
+                if !text.is_whitespace_node() {
+                    // A node with "white-space: pre" set must select its first
+                    // character, regardless if that's a whitespace character or not.
+                    let is_pre_formatted_text_node = child
+                        .GetParentElement()
+                        .and_then(|parent| parent.style())
+                        .is_some_and(|style| {
+                            style.get_inherited_text().white_space_collapse ==
+                                WhiteSpaceCollapse::Preserve
+                        });
+                    if !is_pre_formatted_text_node {
+                        // If it isn't pre-formatted, then we should instead select the
+                        // first non-whitespace character.
+                        selected_offset = text
+                            .data()
+                            .find(|c: char| !c.is_whitespace())
+                            .unwrap_or_default() as u32;
+                    }
+                    selected_node = child;
+                    break;
+                }
+            }
+            // For <input>, <textarea>, <hr> and <br> elements, we should select the previous
+            // node, regardless if it was a block node or not
+            if matches!(
+                child.type_id(),
+                NodeTypeId::Element(ElementTypeId::HTMLElement(
+                    HTMLElementTypeId::HTMLInputElement,
+                )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
+                    HTMLElementTypeId::HTMLTextAreaElement,
+                )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
+                    HTMLElementTypeId::HTMLHRElement,
+                )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
+                    HTMLElementTypeId::HTMLBRElement,
+                ))
+            ) {
+                selected_node = previous_node;
+                break;
+            }
+            // When we encounter a non-contenteditable element, we should select the previous
+            // eligible node
+            if child
+                .downcast::<HTMLElement>()
+                .is_some_and(|el| el.ContentEditable().str() == "false")
+            {
+                selected_node = previous_eligible_node;
+                break;
+            }
+            // We can only select block nodes as eligible nodes for the case of non-conenteditable
+            // nodes
+            if child.is_block_node() {
+                previous_eligible_node = child.clone();
+            }
+            previous_node = child;
+        }
+        range.set_start(&selected_node, selected_offset);
+        range.set_end(&selected_node, selected_offset);
+        selection.AddRange(&range);
     }
 }
 

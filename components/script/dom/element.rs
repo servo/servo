@@ -74,6 +74,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::{
     ElementMethods, GetHTMLOptions, ScrollIntoViewContainer, ScrollLogicalPosition, ShadowRootInit,
 };
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
@@ -165,6 +166,7 @@ use crate::dom::node::{
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
+use crate::dom::range::Range;
 use crate::dom::raredata::ElementRareData;
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollingBox};
 use crate::dom::servoparser::ServoParser;
@@ -947,6 +949,16 @@ impl Element {
             None,
             inner_target_rect,
         )
+    }
+
+    pub(crate) fn ensure_contenteditable_selection_range(
+        &self,
+        document: &Document,
+        can_gc: CanGc,
+    ) -> DomRoot<Range> {
+        self.ensure_rare_data()
+            .contenteditable_selection_range
+            .or_init(|| Range::new_with_doc(document, None, can_gc))
     }
 }
 
@@ -1773,7 +1785,7 @@ impl Element {
         }
 
         // <a>, <input>, <select>, and <textrea> are inherently focusable.
-        matches!(
+        if matches!(
             node.type_id(),
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLAnchorElement,
@@ -1784,7 +1796,18 @@ impl Element {
             )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLTextAreaElement,
             ))
-        )
+        ) {
+            return true;
+        }
+
+        if node
+            .downcast::<HTMLElement>()
+            .is_some_and(|el| el.IsContentEditable())
+        {
+            return true;
+        }
+
+        false
     }
 
     /// Returns the focusable shadow host if this is a text control inner editor.

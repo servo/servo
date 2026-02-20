@@ -207,7 +207,7 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
-    fn set_start(&self, node: &Node, offset: u32) {
+    pub(crate) fn set_start(&self, node: &Node, offset: u32) {
         if self.start().node() != node || self.start_offset() != offset {
             self.report_change();
         }
@@ -225,7 +225,7 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-bp-set>
-    fn set_end(&self, node: &Node, offset: u32) {
+    pub(crate) fn set_end(&self, node: &Node, offset: u32) {
         if self.end().node() != node || self.end_offset() != offset {
             self.report_change();
         }

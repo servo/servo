@@ -139,6 +139,7 @@ use crate::dom::element::{
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::execcommand::basecommand::ContentEditableRange;
 use crate::dom::execcommand::execcommands::ExecCommandsSupport;
 use crate::dom::focusevent::FocusEvent;
 use crate::dom::globalscope::GlobalScope;
@@ -1535,6 +1536,9 @@ impl Document {
             if let Some(elem) = &new_focused_filtered {
                 elem.set_focus_state(true);
                 let node = elem.upcast::<Node>();
+                if let Some(html_element) = elem.downcast::<HTMLElement>() {
+                    html_element.handle_focus_state_for_contenteditable(can_gc);
+                }
                 // FIXME: pass appropriate relatedTarget
                 self.fire_focus_event(FocusEventType::Focus, node.upcast(), None, can_gc);
 

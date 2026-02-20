@@ -20,7 +20,7 @@ use crate::dom::intersectionobserver::IntersectionObserverRegistration;
 use crate::dom::mutationobserver::RegisteredObserver;
 use crate::dom::node::UniqueId;
 use crate::dom::nodelist::NodeList;
-use crate::dom::range::WeakRangeVec;
+use crate::dom::range::{Range, WeakRangeVec};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::window::LayoutValue;
 
@@ -94,4 +94,9 @@ pub(crate) struct ElementRareData {
 
     /// <https://drafts.csswg.org/css-shadow-parts/#dom-element-part>
     pub(crate) part: MutNullableDom<DOMTokenList>,
+
+    /// <https://w3c.github.io/selection-api/#definition>
+    /// > This one selection must be shared by all the content of the document (though not by nested documents),
+    /// > including any editing hosts in the document.
+    pub(crate) contenteditable_selection_range: MutNullableDom<Range>,
 }
