@@ -864,6 +864,8 @@ impl AbsoluteAxisSolver {
             // https://drafts.csswg.org/css-align/#valdef-self-position-end
             // https://drafts.csswg.org/css-align/#valdef-self-position-flex-end
             AlignFlags::END | AlignFlags::FLEX_END => AlignFlags::END,
+            // https://drafts.csswg.org/css-align-3/#baseline-values
+            AlignFlags::LAST_BASELINE => AlignFlags::END,
             // https://drafts.csswg.org/css-align/#valdef-self-position-start
             // https://drafts.csswg.org/css-align/#valdef-self-position-flex-start
             _ => AlignFlags::START,
