@@ -3044,6 +3044,9 @@ where
         if !(pref!(accessibility_enabled)) {
             return;
         }
+        if active == self.accessibility_active {
+            return;
+        }
 
         self.accessibility_active = active;
         for event_loop in self.event_loops() {
