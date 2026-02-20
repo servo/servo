@@ -75,6 +75,56 @@ fn test_activate_accessibility_after_layout() {
     let _ = assert_tree_structure_and_get_root_web_area(&tree);
 }
 
+#[test]
+fn test_navigate_creates_new_accessibility_update() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.accessibility_enabled = true;
+        builder.preferences(preferences)
+    });
+
+    let page_1_url = Url::parse("data:text/html,<!DOCTYPE html> page 1").unwrap();
+    let page_2_url = Url::parse("data:text/html,<!DOCTYPE html> page 2").unwrap();
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(page_1_url)
+        .build();
+    webview.set_accessibility_active(true);
+
+    let load_webview = webview.clone();
+    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 3);
+    let mut tree = build_tree(updates);
+
+    let root_web_area = assert_tree_structure_and_get_root_web_area(&tree);
+
+    let result = find_first_matching_node(root_web_area, |node| {
+        node.role() == accesskit::Role::TextRun
+    });
+    let text_node = result.expect("Should be exactly one TextRun in the tree");
+
+    assert_eq!(text_node.value().as_deref(), Some("page 1"));
+
+    let load_webview = webview.clone();
+    webview.load(page_2_url.clone());
+    servo_test.spin(move || load_webview.url() != Some(page_2_url.clone()));
+
+    let new_updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
+    for tree_update in new_updates {
+        tree.update_and_process_changes(tree_update, &mut NoOpChangeHandler);
+    }
+
+    let root_node = tree.state().root();
+    let result =
+        find_first_matching_node(root_node, |node| node.role() == accesskit::Role::TextRun);
+    let text_node = result.expect("Should be exactly one TextRun in the tree");
+
+    assert_eq!(text_node.value().as_deref(), Some("page 2"));
+}
+
 fn wait_for_min_updates(
     servo_test: &ServoTest,
     delegate: Rc<WebViewDelegateImpl>,
