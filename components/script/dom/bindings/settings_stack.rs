@@ -28,8 +28,6 @@ pub(crate) fn is_execution_stack_empty() -> bool {
     STACK.with(|stack| stack.borrow().is_empty())
 }
 
-pub(crate) type AutoEntryScript = GenericAutoEntryScript<crate::DomTypeHolder>;
-
 /// Returns the ["entry"] global object.
 ///
 /// ["entry"]: https://html.spec.whatwg.org/multipage/#entry

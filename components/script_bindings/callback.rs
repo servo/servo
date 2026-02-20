@@ -24,7 +24,7 @@ use crate::realms::{InRealm, enter_realm};
 use crate::reflector::DomObject;
 use crate::root::Dom;
 use crate::script_runtime::{CanGc, JSContext};
-use crate::settings_stack::{GenericAutoEntryScript, GenericAutoIncumbentScript};
+use crate::settings_stack::{GenericAutoIncumbentScript, run_a_script};
 use crate::{DomTypes, cformat};
 
 pub trait ThisReflector {
@@ -270,29 +270,30 @@ pub fn call_setup<D: DomTypes, T: CallbackContainer<D>, R>(
     }
     let cx = D::GlobalScope::get_cx();
 
+    let global = &global;
+
     // Step 8: Prepare to run script with relevant settings.
-    let aes = GenericAutoEntryScript::<D>::new(&global);
-    // Step 9: Prepare to run a callback with stored settings.
-    let ais = callback
-        .incumbent()
-        .map(GenericAutoIncumbentScript::<D>::new);
-    let old_realm = unsafe { EnterRealm(*cx, callback.callback()) };
-    let r = f(cx);
-    unsafe {
-        LeaveRealm(*cx, old_realm);
-    }
-    if handling == ExceptionHandling::Report {
-        let ar = enter_realm::<D>(&*global);
-        <D as DomHelpers<D>>::report_pending_exception(
-            cx,
-            true,
-            InRealm::Entered(&ar),
-            CanGc::note(),
-        );
-    }
-    // Step 14.1: Clean up after running a callback with stored settings.
-    drop(ais);
-    // Step 14.2: Clean up after running script with relevant settings.
-    drop(aes);
-    r
+    run_a_script::<D, R>(global, move || {
+        // Step 9: Prepare to run a callback with stored settings.
+        let ais = callback
+            .incumbent()
+            .map(GenericAutoIncumbentScript::<D>::new);
+        let old_realm = unsafe { EnterRealm(*cx, callback.callback()) };
+        let r = f(cx);
+        unsafe {
+            LeaveRealm(*cx, old_realm);
+        }
+        if handling == ExceptionHandling::Report {
+            let ar = enter_realm::<D>(&**global);
+            <D as DomHelpers<D>>::report_pending_exception(
+                cx,
+                true,
+                InRealm::Entered(&ar),
+                CanGc::note(),
+            );
+        }
+        // Step 14.1: Clean up after running a callback with stored settings.
+        drop(ais);
+        r
+    }) // Step 14.2: Clean up after running script with relevant settings.
 }

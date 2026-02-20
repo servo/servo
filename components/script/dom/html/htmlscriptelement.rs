@@ -20,12 +20,14 @@ use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder, RequestId,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
+use script_bindings::settings_stack::run_a_script;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 use stylo_atoms::Atom;
 use uuid::Uuid;
 
+use crate::DomTypeHolder;
 use crate::document_loader::LoadType;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
