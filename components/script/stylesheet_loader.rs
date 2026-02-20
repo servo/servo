@@ -349,11 +349,12 @@ impl FetchResponseListener for StylesheetContext {
 
     fn process_response_eof(
         mut self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        network_listener::submit_timing(&self, &status, &timing, CanGc::note());
+        network_listener::submit_timing(&self, &status, &timing, CanGc::from_cx(cx));
 
         let document = self.document.root();
         let Some(metadata) = self.metadata.as_ref() else {

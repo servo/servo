@@ -743,6 +743,7 @@ impl FetchResponseListener for ModuleContext {
     /// Step 13
     fn process_response_eof(
         mut self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -753,10 +754,10 @@ impl FetchResponseListener for ModuleContext {
         if let Some(window) = global.downcast::<Window>() {
             window
                 .Document()
-                .finish_load(LoadType::Script(url.clone()), CanGc::note());
+                .finish_load(LoadType::Script(url.clone()), CanGc::from_cx(cx));
         }
 
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
 
         let Some(ModuleStatus::Fetching(pending)) =
             global.get_module_map_entry(&self.module_request)
@@ -773,7 +774,7 @@ impl FetchResponseListener for ModuleContext {
         if let (Err(error), _) | (_, Err(error)) = (response.as_ref(), self.status.as_ref()) {
             error!("Fetching module script failed {:?}", error);
             global.set_module_map(self.module_request, ModuleStatus::Loaded(None));
-            return promise.resolve_native(&(), CanGc::note());
+            return promise.resolve_native(&(), CanGc::from_cx(cx));
         }
 
         let metadata = self.metadata.take().unwrap();
@@ -822,7 +823,7 @@ impl FetchResponseListener for ModuleContext {
                     true,
                     1,
                     self.introduction_type,
-                    CanGc::note(),
+                    CanGc::from_cx(cx),
                 ));
                 module_script = Some(module_tree);
             }
@@ -835,14 +836,14 @@ impl FetchResponseListener for ModuleContext {
                     &global,
                     &final_url,
                     self.introduction_type,
-                    CanGc::note(),
+                    CanGc::from_cx(cx),
                 ));
                 module_script = Some(module_tree);
             }
         }
         // Step 8. Set moduleMap[(url, moduleType)] to moduleScript, and run onComplete given moduleScript.
         global.set_module_map(self.module_request, ModuleStatus::Loaded(module_script));
-        promise.resolve_native(&(), CanGc::note());
+        promise.resolve_native(&(), CanGc::from_cx(cx));
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

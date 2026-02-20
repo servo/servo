@@ -1124,6 +1124,7 @@ impl FetchResponseListener for FaviconFetchContext {
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -1132,7 +1133,7 @@ impl FetchResponseListener for FaviconFetchContext {
             self.id,
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
         );
-        submit_timing(&self, &response, &timing, CanGc::note());
+        submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

@@ -330,11 +330,12 @@ impl FetchResponseListener for CSPReportEndpointFetchListener {
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        submit_timing(&self, &response, &timing, CanGc::note());
+        submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, _violations: Vec<Violation>) {}

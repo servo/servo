@@ -452,18 +452,19 @@ impl FetchResponseListener for EventSourceContext {
 
     fn process_response_eof(
         mut self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
         if self.incomplete_utf8.take().is_some() {
-            self.parse("\u{FFFD}".chars(), CanGc::note());
+            self.parse("\u{FFFD}".chars(), CanGc::from_cx(cx));
         }
         if response.is_ok() {
             self.reestablish_the_connection();
         }
 
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

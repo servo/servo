@@ -3834,6 +3834,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -3878,7 +3879,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             // Step 1. Fire an event named progress at the media element.
             element
                 .upcast::<EventTarget>()
-                .fire_event(atom!("progress"), CanGc::note());
+                .fire_event(atom!("progress"), CanGc::from_cx(cx));
 
             // Step 2. Set the networkState to NETWORK_IDLE and fire an event named suspend at the
             // media element.
@@ -3886,17 +3887,17 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
             element
                 .upcast::<EventTarget>()
-                .fire_event(atom!("suspend"), CanGc::note());
+                .fire_event(atom!("suspend"), CanGc::from_cx(cx));
         } else if status.is_err() && element.ready_state.get() != ReadyState::HaveNothing {
             // => "If the connection is interrupted after some media data has been received..."
-            element.media_data_processing_fatal_steps(MEDIA_ERR_NETWORK, CanGc::note());
+            element.media_data_processing_fatal_steps(MEDIA_ERR_NETWORK, CanGc::from_cx(cx));
         } else {
             // => "If the media data can be fetched but is found by inspection to be in an
             // unsupported format, or can otherwise not be rendered at all"
             element.media_data_processing_failure_steps();
         }
 
-        network_listener::submit_timing(&self, &status, &timing, CanGc::note());
+        network_listener::submit_timing(&self, &status, &timing, CanGc::from_cx(cx));
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

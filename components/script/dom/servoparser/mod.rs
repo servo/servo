@@ -1405,6 +1405,7 @@ impl FetchResponseListener for ParserContext {
     // Resource listeners are called via net_traits::Action::process, which handles submission for them
     fn process_response_eof(
         mut self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -1426,7 +1427,7 @@ impl FetchResponseListener for ParserContext {
         //
         // the end of the resource is reached.
         if !self.has_loaded_document {
-            self.load_document(CanGc::note());
+            self.load_document(CanGc::from_cx(cx));
         }
 
         let _realm = enter_realm(&*parser);
@@ -1437,7 +1438,7 @@ impl FetchResponseListener for ParserContext {
 
         parser.last_chunk_received.set(true);
         if !parser.suspended.get() {
-            parser.parse_sync(CanGc::note());
+            parser.parse_sync(CanGc::from_cx(cx));
         }
 
         // TODO: Only update if this is the current document resource.
@@ -1448,7 +1449,7 @@ impl FetchResponseListener for ParserContext {
                 &document.global(),
                 CrossProcessInstant::now(),
                 document,
-                CanGc::note(),
+                CanGc::from_cx(cx),
             );
             document
                 .global()

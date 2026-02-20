@@ -158,13 +158,11 @@ impl FetchResponseListener for ScriptFetchContext {
 
     fn process_response_eof(
         mut self,
+        cx: &mut js::context::JSContext,
         _request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        #[expect(unsafe_code)]
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
         let scope = self.scope.root();
 
         if response

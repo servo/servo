@@ -621,6 +621,7 @@ impl FetchResponseListener for FetchContext {
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -631,16 +632,16 @@ impl FetchResponseListener for FetchContext {
             if *error == NetworkError::DecompressionError {
                 response_object.error_stream(
                     Error::Type(c"Network error occurred".to_owned()),
-                    CanGc::note(),
+                    CanGc::from_cx(cx),
                 );
             }
         }
-        response_object.finish(CanGc::note());
+        response_object.finish(CanGc::from_cx(cx));
         // TODO
         // ... trailerObject is not supported in Servo yet.
 
         // navigation submission is handled in servoparser/mod.rs
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -685,11 +686,12 @@ impl FetchResponseListener for FetchLaterListener {
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

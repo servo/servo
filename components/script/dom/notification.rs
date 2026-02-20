@@ -781,6 +781,7 @@ impl FetchResponseListener for ResourceFetchListener {
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -789,7 +790,7 @@ impl FetchResponseListener for ResourceFetchListener {
             self.pending_image_id,
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
         );
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

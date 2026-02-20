@@ -126,16 +126,17 @@ impl FetchResponseListener for XHRContext {
 
     fn process_response_eof(
         self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        network_listener::submit_timing(&self, &response, &timing, CanGc::note());
+        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
 
         let rv = self.xhr.root().process_response_complete(
             self.gen_id,
             response.map(|_| ()),
-            CanGc::note(),
+            CanGc::from_cx(cx),
         );
         *self.sync_status.borrow_mut() = Some(rv);
     }

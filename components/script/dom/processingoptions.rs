@@ -486,6 +486,7 @@ impl FetchResponseListener for LinkFetchContext {
     /// and step 3.1 of <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
     fn process_response_eof(
         mut self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         response_result: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -519,7 +520,7 @@ impl FetchResponseListener for LinkFetchContext {
             );
         }
 
-        submit_timing(&self, &response_result, &timing, CanGc::note());
+        submit_timing(&self, &response_result, &timing, CanGc::from_cx(cx));
 
         // Step 11.6. If processResponse is given, then call processResponse with response.
         //
@@ -530,7 +531,7 @@ impl FetchResponseListener for LinkFetchContext {
         // Part of Prefetch
         if let Some(link) = self.link.as_ref() {
             link.root()
-                .fire_event_after_response(response_result, CanGc::note());
+                .fire_event_after_response(response_result, CanGc::from_cx(cx));
         }
     }
 
