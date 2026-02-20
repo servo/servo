@@ -463,6 +463,13 @@ pub enum SyncOperation {
         String, // Database
         String, // Store
     ),
+    /// Generate and reserve a key from an object store key generator.
+    GenerateKey(
+        GenericSender<BackendResult<IndexedDBKeyType>>,
+        ImmutableOrigin,
+        String, // Database
+        String, // Store
+    ),
 
     /// Commits changes of a transaction to the database
     Commit(

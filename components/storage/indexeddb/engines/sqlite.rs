@@ -307,12 +307,13 @@ impl SqliteEngine {
             unreachable!("Should be caught in the script thread");
         }
         // TODO: handle overflows, this also needs to be able to handle 2^53 as per spec
-        let new_key = store.auto_increment + 1;
+        let generated_key = store.auto_increment as f64;
+        let next_key = store.auto_increment + 1;
         connection.execute(
             "UPDATE object_store SET auto_increment = ? WHERE id = ?",
-            params![new_key, store.id],
+            params![next_key, store.id],
         )?;
-        Ok(IndexedDBKeyType::Number(new_key as f64))
+        Ok(IndexedDBKeyType::Number(generated_key))
     }
 }
 
@@ -559,6 +560,15 @@ impl KvsEngine for SqliteEngine {
             // TODO: Wrong (change trait definition for this function)
             .unwrap_or_default() !=
             0
+    }
+
+    fn generate_key(&self, store_name: &str) -> Result<IndexedDBKeyType, Self::Error> {
+        let store = self.connection.query_row(
+            "SELECT * FROM object_store WHERE name = ?",
+            params![store_name.to_string()],
+            |row| object_store_model::Model::try_from(row),
+        )?;
+        Self::generate_key(&self.connection, &store)
     }
 
     fn key_path(&self, store_name: &str) -> Option<KeyPath> {

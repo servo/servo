@@ -27,8 +27,8 @@ use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
     AsyncOperation, BackendError, BackendResult, ConnectionMsg, CreateObjectResult, DatabaseInfo,
-    DbResult, IndexedDBIndex, IndexedDBObjectStore, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath,
-    SyncOperation, TxnCompleteMsg,
+    DbResult, IndexedDBIndex, IndexedDBKeyType, IndexedDBObjectStore, IndexedDBThreadMsg,
+    IndexedDBTxnMode, KeyPath, SyncOperation, TxnCompleteMsg,
 };
 use uuid::Uuid;
 
@@ -522,6 +522,12 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
 
     fn has_key_generator(&self, store_name: &str) -> bool {
         self.engine.has_key_generator(store_name)
+    }
+
+    fn generate_key(&self, store_name: &str) -> DbResult<IndexedDBKeyType> {
+        self.engine
+            .generate_key(store_name)
+            .map_err(|err| format!("{err:?}"))
     }
 
     fn key_path(&self, store_name: &str) -> Option<KeyPath> {
@@ -1935,6 +1941,13 @@ impl IndexedDBManager {
                         name: store_name,
                     });
                 let _ = sender.send(result.ok_or(BackendError::DbNotFound));
+            },
+            SyncOperation::GenerateKey(sender, origin, db_name, store_name) => {
+                if let Some(db) = self.get_database(origin, db_name) {
+                    let _ = sender.send(db.generate_key(&store_name).map_err(BackendError::from));
+                } else {
+                    let _ = sender.send(Err(BackendError::DbNotFound));
+                }
             },
             SyncOperation::CreateIndex(
                 origin,

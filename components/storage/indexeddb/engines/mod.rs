@@ -7,7 +7,7 @@ use std::collections::VecDeque;
 use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
 use storage_traits::indexeddb::{
-    AsyncOperation, CreateObjectResult, IndexedDBIndex, IndexedDBTxnMode, KeyPath,
+    AsyncOperation, CreateObjectResult, IndexedDBIndex, IndexedDBKeyType, IndexedDBTxnMode, KeyPath,
 };
 
 pub use self::sqlite::SqliteEngine;
@@ -52,6 +52,7 @@ pub trait KvsEngine: MallocSizeOf {
     );
 
     fn has_key_generator(&self, store_name: &str) -> bool;
+    fn generate_key(&self, store_name: &str) -> Result<IndexedDBKeyType, Self::Error>;
     fn key_path(&self, store_name: &str) -> Option<KeyPath>;
     fn object_store_names(&self) -> Result<Vec<String>, Self::Error>;
     fn indexes(&self, store_name: &str) -> Result<Vec<IndexedDBIndex>, Self::Error>;

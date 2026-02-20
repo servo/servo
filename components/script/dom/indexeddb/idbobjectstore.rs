@@ -43,6 +43,7 @@ use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::indexeddb::{
     ExtractionResult, convert_value_to_key, convert_value_to_key_range, extract_key,
+    inject_key_into_value, map_backend_error_to_dom_error,
 };
 use crate::script_runtime::CanGc;
 
@@ -175,6 +176,26 @@ impl IDBObjectStore {
         receiver.recv().unwrap().unwrap().has_key_generator
     }
 
+    fn generate_key(&self) -> Fallible<IndexedDBKeyType> {
+        // FIXME: blocking IPC call ? how ?
+        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
+        let operation = SyncOperation::GenerateKey(
+            sender,
+            self.global().origin().immutable().clone(),
+            self.db_name.to_string(),
+            self.name.borrow().to_string(),
+        );
+
+        self.get_idb_thread()
+            .send(IndexedDBThreadMsg::Sync(operation))
+            .unwrap();
+
+        receiver
+            .recv()
+            .unwrap()
+            .map_err(map_backend_error_to_dom_error)
+    }
+
     /// <https://www.w3.org/TR/IndexedDB-3/#object-store-in-line-keys>
     fn uses_inline_keys(&self) -> bool {
         self.key_path.is_some()
@@ -263,7 +284,7 @@ impl IDBObjectStore {
                 .map(|p| extract_key(cx, value, p, None));
 
             match extraction_result {
-                Some(Ok(ExtractionResult::Failure)) | None => {
+                Some(Ok(ExtractionResult::Failure)) => {
                     // Step 11.4. Otherwise:
                     // Step 11.4.1. If store does not have a key generator, throw
                     // a "DataError" DOMException.
@@ -273,7 +294,19 @@ impl IDBObjectStore {
                     // Step 11.4.2. Otherwise, if the steps to check that a key could
                     // be injected into a value with clone and store’s key path return
                     // false, throw a "DataError" DOMException.
-                    // TODO
+                    let generated_key = self.generate_key()?;
+                    let Some(KeyPath::String(key_path)) = self.key_path.as_ref() else {
+                        return Err(Error::Data(None));
+                    };
+                    if !inject_key_into_value(cx, value, &generated_key, key_path)? {
+                        return Err(Error::Data(None));
+                    }
+                    serialized_key = Some(generated_key);
+                },
+                None => {
+                    if !self.has_key_generator() {
+                        return Err(Error::Data(None));
+                    }
                     serialized_key = None;
                 },
                 // Step 11.1. Rethrow any exceptions.

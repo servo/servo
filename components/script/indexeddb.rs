@@ -10,9 +10,10 @@ use js::context::JSContext;
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::jsapi::{
     ClippedTime, ESClass, IsArrayBufferObject, JS_GetStringLength, JS_IsArrayBufferViewObject,
-    PropertyKey,
+    JSPROP_ENUMERATE, PropertyKey,
 };
 use js::jsval::{DoubleValue, JSVal, UndefinedValue};
+use js::rust::wrappers::JS_DefineProperty;
 use js::rust::wrappers2::{
     GetArrayLength, GetBuiltinClass, IsArrayObject, JS_GetProperty, JS_HasOwnProperty,
     JS_HasOwnPropertyById, JS_IndexToId, JS_IsIdentifier, JS_NewObject, NewDateObject,
@@ -520,6 +521,123 @@ pub(crate) enum ExtractionResult {
     Key(IndexedDBKeyType),
     Invalid,
     Failure,
+}
+
+/// <https://w3c.github.io/IndexedDB/#inject-a-key-into-a-value-using-a-key-path>
+#[expect(unsafe_code)]
+pub(crate) fn inject_key_into_value(
+    cx: &mut JSContext,
+    value: HandleValue,
+    key: &IndexedDBKeyType,
+    key_path: &DOMString,
+) -> Result<bool, Error> {
+    // Step 1. Let identifiers be the result of strictly splitting keyPath on U+002E FULL STOP characters (.).
+    let key_path_string = key_path.str();
+    let mut identifiers: Vec<&str> = key_path_string.split('.').collect();
+
+    // Step 2. Assert: identifiers is not empty.
+    let Some(last) = identifiers.pop() else {
+        return Ok(false);
+    };
+
+    // Step 3. Let last be the last item of identifiers and remove it from the list.
+    // Done by `pop()` above.
+
+    rooted!(&in(cx) let mut current_value = *value);
+
+    // Step 4. For each remaining identifier of identifiers:
+    for identifier in identifiers {
+        // Step 4.1 Assert: value is an Object or an Array.
+        if !current_value.is_object() {
+            return Ok(false);
+        }
+
+        rooted!(&in(cx) let current_object = current_value.to_object());
+        let identifier_name =
+            CString::new(identifier).expect("Failed to convert key path identifier to CString");
+
+        // Step 4.2 Let hop be ! HasOwnProperty(value, identifier).
+        let mut hop = false;
+        if !unsafe {
+            JS_HasOwnProperty(
+                cx,
+                current_object.handle(),
+                identifier_name.as_ptr(),
+                &mut hop,
+            )
+        } {
+            return Err(Error::JSFailed);
+        }
+
+        // Step 4.3 If hop is false, then:
+        if !hop {
+            // Step 4.3.1 Let o be a new Object created as if by the expression ({}).
+            rooted!(&in(cx) let o = unsafe { JS_NewObject(cx, ptr::null()) });
+            rooted!(&in(cx) let mut o_value = UndefinedValue());
+            o.safe_to_jsval(cx, o_value.handle_mut());
+
+            // Step 4.3.2 Let status be CreateDataProperty(value, identifier, o).
+            if !unsafe {
+                JS_DefineProperty(
+                    cx.raw_cx(),
+                    current_object.handle(),
+                    identifier_name.as_ptr(),
+                    o_value.handle(),
+                    JSPROP_ENUMERATE as u32,
+                )
+            } {
+                return Err(Error::JSFailed);
+            }
+
+            // Step 4.3.3 Assert: status is true.
+        }
+
+        // Step 4.3 Let value be ! Get(value, identifier).
+        if !unsafe {
+            JS_GetProperty(
+                cx,
+                current_object.handle(),
+                identifier_name.as_ptr(),
+                current_value.handle_mut(),
+            )
+        } {
+            return Err(Error::JSFailed);
+        }
+
+        // Step 5 "Assert: value is an Object or an Array."
+        if !current_value.is_object() {
+            return Ok(false);
+        }
+    }
+
+    // Step 6. Let keyValue be the result of converting a key to a value with key.
+    rooted!(&in(cx) let mut key_value = UndefinedValue());
+    key_type_to_jsval(cx, key, key_value.handle_mut());
+
+    // `current_value` is the parent object where `last` will be defined.
+    if !current_value.is_object() {
+        return Ok(false);
+    }
+    rooted!(&in(cx) let parent_object = current_value.to_object());
+    let last_name = CString::new(last).expect("Failed to convert final key path identifier");
+
+    // Step 7. Let status be CreateDataProperty(value, last, keyValue).
+    if !unsafe {
+        JS_DefineProperty(
+            cx.raw_cx(),
+            parent_object.handle(),
+            last_name.as_ptr(),
+            key_value.handle(),
+            JSPROP_ENUMERATE as u32,
+        )
+    } {
+        return Err(Error::JSFailed);
+    }
+
+    // Step 8. Assert: status is true.
+    // The JS_DefineProperty success check above enforces this assertion.
+    // "NOTE: Assertions can be made in the above steps because this algorithm is only applied to values that are the output of StructuredDeserialize, and the steps to check that a key could be injected into a value have been run."
+    Ok(true)
 }
 
 /// <https://www.w3.org/TR/IndexedDB-3/#extract-a-key-from-a-value-using-a-key-path>
