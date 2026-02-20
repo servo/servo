@@ -532,7 +532,7 @@ impl TouchHandler {
         {
             Some(i) => Some(touch_sequence.active_touch_points.swap_remove(i).point),
             None => {
-                warn!("Got a touch up event for a non-active touch point");
+                warn!("Got a touchup event for a non-active touch point");
                 None
             },
         };

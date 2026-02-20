@@ -87,7 +87,7 @@ pub struct Preferences {
     pub css_animations_testing_enabled: bool,
     /// Start the devtools server at startup
     pub devtools_server_enabled: bool,
-    /// The address +port the devtools server listens to, default to 127.0.0.1:7000.
+    /// The address:port the devtools server listens to, default to 127.0.0.1:7000.
     pub devtools_server_listen_address: String,
     // feature: WebGPU | #24706 | Web/API/WebGPU_API
     pub dom_webgpu_enabled: bool,
