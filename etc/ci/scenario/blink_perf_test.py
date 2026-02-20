@@ -62,7 +62,7 @@ tests_that_hang_memory_report = [
     "layer-overhead.html",
     "css-contain-change-text.html",
     "fit-content-change-available-size-text.html",
-    "css-contain-change-text-without-subtree-root.html"
+    "css-contain-change-text-without-subtree-root.html",
 ]
 
 ### Failed tests
