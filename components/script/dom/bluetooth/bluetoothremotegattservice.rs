@@ -10,7 +10,7 @@ use dom_struct::dom_struct;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::reflect_dom_object_with_cx;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetooth::{AsyncBluetoothListener, get_gatt_children};
@@ -56,12 +56,12 @@ impl BluetoothRemoteGATTService {
         isPrimary: bool,
         instanceID: String,
     ) -> DomRoot<BluetoothRemoteGATTService> {
-        reflect_dom_object(
+        reflect_dom_object_with_cx(
             Box::new(BluetoothRemoteGATTService::new_inherited(
                 device, uuid, isPrimary, instanceID,
             )),
             global,
-            CanGc::from_cx(cx),
+            cx,
         )
     }
 
