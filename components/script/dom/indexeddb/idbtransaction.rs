@@ -520,8 +520,10 @@ impl IDBTransaction {
         if self.mode == IDBTransactionMode::Versionchange {
             self.db.clear_upgrade_transaction(self);
         }
-        self.notify_backend_transaction_finished();
+        // Queue the "complete" event before unblocking later transactions in the backend.
+        // This preserves event ordering for overlapping transactions created on the same connection
         self.dispatch_complete();
+        self.notify_backend_transaction_finished();
         if self.registered_in_global.get() {
             self.global()
                 .get_indexeddb()
