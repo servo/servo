@@ -120,6 +120,17 @@ impl IDBTransaction {
     ) -> DomRoot<IDBTransaction> {
         let serial_number =
             IDBTransaction::create_transaction(global, connection.get_name(), mode, scope);
+        IDBTransaction::new_with_serial(global, connection, mode, scope, serial_number, can_gc)
+    }
+
+    pub(crate) fn new_with_serial(
+        global: &GlobalScope,
+        connection: &IDBDatabase,
+        mode: IDBTransactionMode,
+        scope: &DOMStringList,
+        serial_number: u64,
+        can_gc: CanGc,
+    ) -> DomRoot<IDBTransaction> {
         reflect_dom_object(
             Box::new(IDBTransaction::new_inherited(
                 connection,
@@ -625,8 +636,15 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
             return Err(Error::InvalidState(None));
         }
 
-        // Step 2: Check that the object store exists
-        if !self.object_store_names.Contains(name.clone()) {
+        // Step 2: Check that the object store exists in this transaction's scope.
+        // For versionchange transactions, the scope tracks object store changes
+        // performed during the upgrade.
+        let in_scope = if self.mode == IDBTransactionMode::Versionchange {
+            self.db.object_store_exists(&name)
+        } else {
+            self.object_store_names.Contains(name.clone())
+        };
+        if !in_scope {
             return Err(Error::NotFound(None));
         }
 
@@ -699,7 +717,11 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstorenames>
     fn ObjectStoreNames(&self) -> DomRoot<DOMStringList> {
-        self.object_store_names.as_rooted()
+        if self.mode == IDBTransactionMode::Versionchange {
+            self.db.object_stores()
+        } else {
+            self.object_store_names.as_rooted()
+        }
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-mode>

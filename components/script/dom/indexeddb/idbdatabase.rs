@@ -24,7 +24,6 @@ use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::domstringlist::DOMStringList;
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
@@ -140,16 +139,14 @@ impl IDBDatabase {
         can_gc: CanGc,
     ) {
         let global = self.global();
-        let event = IDBVersionChangeEvent::new(
+        let _ = IDBVersionChangeEvent::fire_version_change_event(
             &global,
+            self.upcast(),
             Atom::from("versionchange"),
-            EventBubbles::DoesNotBubble,
-            EventCancelable::NotCancelable,
             old_version,
             new_version,
             can_gc,
         );
-        event.upcast::<Event>().fire(self.upcast(), can_gc);
     }
 }
 

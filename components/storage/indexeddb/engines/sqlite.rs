@@ -577,6 +577,12 @@ impl KvsEngine for SqliteEngine {
             .unwrap_or_default()
     }
 
+    fn object_store_names(&self) -> Result<Vec<String>, Self::Error> {
+        let mut stmt = self.connection.prepare("SELECT name FROM object_store")?;
+        stmt.query_map([], |row| row.get(0))?
+            .collect::<Result<Vec<_>, _>>()
+    }
+
     fn indexes(&self, store_name: &str) -> Result<Vec<IndexedDBIndex>, Self::Error> {
         let object_store = self.connection.query_row(
             "SELECT * FROM object_store WHERE name = ?",

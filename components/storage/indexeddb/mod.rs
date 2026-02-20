@@ -511,6 +511,12 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         self.engine.key_path(store_name)
     }
 
+    fn object_store_names(&self) -> DbResult<Vec<String>> {
+        self.engine
+            .object_store_names()
+            .map_err(|err| format!("{err:?}"))
+    }
+
     fn indexes(&self, store_name: &str) -> DbResult<Vec<IndexedDBIndex>> {
         self.engine
             .indexes(store_name)
@@ -593,7 +599,7 @@ enum OpenRequest {
         /// Note: when the open algorithm starts, this will be mutated and set to something as per the algo.
         version: Option<u64>,
 
-        /// Optionnaly, a version pending ugrade.
+        /// Optionnaly, a version pending upgrade.
         /// Used as <https://w3c.github.io/IndexedDB/#request-processed-flag>
         pending_upgrade: Option<VersionUpgrade>,
 
@@ -742,6 +748,7 @@ impl OpenRequest {
 struct VersionUpgrade {
     old: u64,
     new: u64,
+    transaction: u64,
 }
 
 /// <https://w3c.github.io/IndexedDB/#connection>
@@ -945,7 +952,7 @@ impl IndexedDBManager {
         &mut self,
         name: String,
         origin: ImmutableOrigin,
-        _txn: u64,
+        txn: u64,
         committed: bool,
     ) {
         let key = IndexedDBDescription {
@@ -961,12 +968,15 @@ impl IndexedDBManager {
                 return debug_assert!(false, "A pending open request should exist.");
             };
             let OpenRequest::Open {
-                pending_upgrade: Some(_pending_upgrade),
+                pending_upgrade: Some(pending_upgrade),
                 ..
             } = front
             else {
                 return;
             };
+            if pending_upgrade.transaction != txn {
+                return;
+            }
 
             let Some(open_request) = queue.pop_front() else {
                 return;
@@ -1008,13 +1018,16 @@ impl IndexedDBManager {
                 return debug_assert!(false, "A pending open request should exist.");
             };
             let OpenRequest::Open {
-                pending_upgrade: Some(_pending_upgrade),
+                pending_upgrade: Some(pending_upgrade),
                 id,
                 ..
             } = front
             else {
                 return;
             };
+            if pending_upgrade.transaction != txn {
+                return;
+            }
             *id
         };
 
@@ -1268,7 +1281,6 @@ impl IndexedDBManager {
     /// <https://w3c.github.io/IndexedDB/#upgrade-a-database>
     /// To upgrade a database with connection (a connection),
     /// a new version, and a request, run these steps:
-    /// TODO: connection and request.
     fn upgrade_database(&mut self, key: IndexedDBDescription, new_version: u64) {
         let Some(queue) = self.connection_queues.get_mut(&key) else {
             return debug_assert!(false, "A connection queue should exist.");
@@ -1290,43 +1302,52 @@ impl IndexedDBManager {
         };
 
         // Step 1: Let db be connection’s database.
-        // TODO: connection.
         let db = self
             .databases
             .get_mut(&key)
             .expect("Db should have been opened.");
 
         // Step 2: Let transaction be a new upgrade transaction with connection used as connection.
+        let transaction = self.serial_number_counter;
+        self.serial_number_counter += 1;
+
         // Step 3: Set transaction’s scope to connection’s object store set.
+        let scope = db
+            .object_store_names()
+            .expect("Fetching object store names should not fail.");
+
         // Step 4: Set db’s upgrade transaction to transaction.
+        // Backend tracks the active upgrade transaction in `pending_upgrade` below.
+        db.register_transaction(transaction, IndexedDBTxnMode::Versionchange, scope);
+
         // Step 5: Set transaction’s state to inactive.
         // Step 6: Start transaction.
-        // Note: this backend message does not carry an upgrade transaction id.
-        // The front entry in this per-database queue is the only open request being
-        // upgraded, and script creates the matching IDBTransaction (with its backend id)
-        // when handling ConnectionMsg::Upgrade for that request id.
-        // TODO: implement transactions and their lifecyle.
+        // Backend transactions are started by the scheduler when requests are queued;
+        // newly created upgrade transactions are therefore initially inactive.
 
         // Step 7: Let old version be db’s version.
         let old_version = db.version().expect("DB should have a version.");
 
-        // Step 8: Set db’s version to version.
-        // This change is considered part of the transaction,
-        // and so if the transaction is aborted, this change is reverted.
-        // TODO: wrap in transaction.
+        // Step 8: Set db’s version to version. This change is considered part of the
+        // transaction, and so if the transaction is aborted, this change is reverted.
         db.set_version(new_version)
             .expect("Setting the version should not fail");
 
         // Step 9: Set request’s processed flag to true.
-        // TODO: implement requests.
+        let _ = pending_upgrade.insert(VersionUpgrade {
+            old: old_version,
+            new: new_version,
+            transaction,
+        });
 
-        // Step 10: Queue a database task to run these steps:
+        // Step 10: Queue a database task to run these steps.
         if sender
             .send(ConnectionMsg::Upgrade {
                 id: *id,
                 name: db_name.clone(),
                 version: new_version,
                 old_version,
+                transaction,
             })
             .is_err()
         {
@@ -1334,10 +1355,7 @@ impl IndexedDBManager {
         }
 
         // Step 11: Wait for transaction to finish.
-        let _ = pending_upgrade.insert(VersionUpgrade {
-            old: old_version,
-            new: new_version,
-        });
+        // Queue progression remains blocked while `pending_upgrade` is set.
     }
 
     /// <https://w3c.github.io/IndexedDB/#open-a-database-connection>

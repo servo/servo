@@ -279,6 +279,7 @@ impl IDBFactory {
                 id,
                 version,
                 old_version,
+                transaction,
             } => {
                 let global = self.global();
 
@@ -291,7 +292,7 @@ impl IDBFactory {
 
                 let connection =
                     request.get_or_init_connection(&global, name, version, false, can_gc);
-                request.upgrade_db_version(&connection, old_version, version, can_gc);
+                request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
             },
             ConnectionMsg::VersionError { name, id } => {
                 // Step 2.1 If result is an error, see dispatch_error().
@@ -404,7 +405,7 @@ impl IDBFactory {
         request.clear_transaction();
 
         // Step 5.3.1.3: Set request’s done flag to true.
-        // TODO.
+        request.set_ready_state_done();
 
         // Step 5.3.1.4: Fire an event named error at request
         // with its bubbles

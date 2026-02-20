@@ -317,11 +317,11 @@ impl CompiledEventListener {
         event: &Event,
         exception_handle: ExceptionHandling,
         can_gc: CanGc,
-    ) {
+    ) -> Fallible<()> {
         // Step 3
         match *self {
             CompiledEventListener::Listener(ref listener) => {
-                let _ = listener.HandleEvent_(object, event, exception_handle, can_gc);
+                listener.HandleEvent_(object, event, exception_handle, can_gc)
             },
             CompiledEventListener::Handler(ref handler) => {
                 match *handler {
@@ -351,12 +351,12 @@ impl CompiledEventListener {
                                         event.upcast::<Event>().PreventDefault();
                                     }
                                 }
-                                return;
+                                return return_value;
                             }
                         }
 
                         rooted!(in(*GlobalScope::get_cx()) let mut rooted_return_value: JSVal);
-                        let _ = handler.Call_(
+                        handler.Call_(
                             object,
                             EventOrString::Event(DomRoot::from_ref(event)),
                             None,
@@ -366,58 +366,63 @@ impl CompiledEventListener {
                             rooted_return_value.handle_mut(),
                             exception_handle,
                             can_gc,
-                        );
+                        )
                     },
 
                     CommonEventHandler::BeforeUnloadEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<BeforeUnloadEvent>() {
                             // Step 5
-                            if let Ok(value) = handler.Call_(
+                            match handler.Call_(
                                 object,
                                 event.upcast::<Event>(),
                                 exception_handle,
                                 can_gc,
                             ) {
-                                let rv = event.ReturnValue();
-                                if let Some(v) = value {
-                                    if rv.is_empty() {
-                                        event.SetReturnValue(v);
+                                Ok(value) => {
+                                    let rv = event.ReturnValue();
+                                    if let Some(v) = value {
+                                        if rv.is_empty() {
+                                            event.SetReturnValue(v);
+                                        }
+                                        event.upcast::<Event>().PreventDefault();
                                     }
-                                    event.upcast::<Event>().PreventDefault();
-                                }
+                                    Ok(())
+                                },
+                                Err(err) => Err(err),
                             }
                         } else {
                             // Step 5, "Otherwise" clause
-                            let _ = handler.Call_(
-                                object,
-                                event.upcast::<Event>(),
-                                exception_handle,
-                                can_gc,
-                            );
+                            handler
+                                .Call_(object, event.upcast::<Event>(), exception_handle, can_gc)
+                                .map(|_| ())
                         }
                     },
 
                     CommonEventHandler::EventHandler(ref handler) => {
                         let cx = GlobalScope::get_cx();
                         rooted!(in(*cx) let mut rooted_return_value: JSVal);
-                        if let Ok(()) = handler.Call_(
+                        match handler.Call_(
                             object,
                             event,
                             rooted_return_value.handle_mut(),
                             exception_handle,
                             can_gc,
                         ) {
-                            let value = rooted_return_value.handle();
+                            Ok(()) => {
+                                let value = rooted_return_value.handle();
 
-                            // Step 5
-                            let should_cancel = value.is_boolean() && !value.to_boolean();
+                                // Step 5
+                                let should_cancel = value.is_boolean() && !value.to_boolean();
 
-                            if should_cancel {
-                                // FIXME: spec says to set the cancelled flag directly
-                                // here, not just to prevent default;
-                                // can that ever make a difference?
-                                event.PreventDefault();
-                            }
+                                if should_cancel {
+                                    // FIXME: spec says to set the cancelled flag directly
+                                    // here, not just to prevent default;
+                                    // can that ever make a difference?
+                                    event.PreventDefault();
+                                }
+                                Ok(())
+                            },
+                            Err(err) => Err(err),
                         }
                     },
                 }

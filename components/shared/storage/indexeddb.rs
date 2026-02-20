@@ -397,6 +397,7 @@ pub enum ConnectionMsg {
         id: Uuid,
         version: u64,
         old_version: u64,
+        transaction: u64,
     },
     /// A `versionchange` event should be fired for a connection.
     VersionChange {
