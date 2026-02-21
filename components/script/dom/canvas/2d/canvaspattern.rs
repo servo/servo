@@ -12,7 +12,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasPatternMethods;
 use crate::dom::bindings::codegen::Bindings::DOMMatrixBinding::DOMMatrix2DInit;
 use crate::dom::bindings::error::ErrorResult;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::canvasgradient::ToFillOrStrokeStyle;
 use crate::dom::dommatrixreadonly::dommatrix2dinit_to_matrix;
@@ -65,7 +65,7 @@ impl CanvasPattern {
         repeat: RepetitionStyle,
         origin_clean: bool,
     ) -> DomRoot<CanvasPattern> {
-        reflect_dom_object_with_proto_and_cx(
+        reflect_dom_object_with_cx(
             Box::new(CanvasPattern::new_inherited(
                 surface_data,
                 surface_size,
@@ -73,7 +73,6 @@ impl CanvasPattern {
                 origin_clean,
             )),
             global,
-            None,
             cx,
         )
     }
