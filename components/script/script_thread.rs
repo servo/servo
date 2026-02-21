@@ -1762,7 +1762,7 @@ impl ScriptThread {
             },
             ScriptThreadMessage::GetTitle(pipeline_id) => self.handle_get_title_msg(pipeline_id),
             ScriptThreadMessage::SetDocumentActivity(pipeline_id, activity) => {
-                self.handle_set_document_activity_msg(pipeline_id, activity, CanGc::from_cx(cx))
+                self.handle_set_document_activity_msg(cx, pipeline_id, activity)
             },
             ScriptThreadMessage::SetThrottled(webview_id, pipeline_id, throttled) => {
                 self.handle_set_throttled_msg(webview_id, pipeline_id, throttled)
@@ -1785,6 +1785,7 @@ impl ScriptThread {
                 source_origin,
                 data,
             } => self.handle_post_message_msg(
+                cx,
                 target_pipeline_id,
                 source_webview,
                 source_with_ancestry,
@@ -2779,9 +2780,9 @@ impl ScriptThread {
     /// Handles activity change message
     fn handle_set_document_activity_msg(
         &self,
+        cx: &mut js::context::JSContext,
         id: PipelineId,
         activity: DocumentActivity,
-        can_gc: CanGc,
     ) {
         debug!(
             "Setting activity of {} to be {:?} in {:?}.",
@@ -2791,7 +2792,7 @@ impl ScriptThread {
         );
         let document = self.documents.borrow().find_document(id);
         if let Some(document) = document {
-            document.set_activity(activity, can_gc);
+            document.set_activity(cx, activity);
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
@@ -2887,9 +2888,11 @@ impl ScriptThread {
         }
     }
 
+    #[expect(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#window-post-message-steps>
     fn handle_post_message_msg(
         &self,
+        cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
         source_webview: WebViewId,
         source_with_ancestry: Vec<BrowsingContextId>,
@@ -2908,6 +2911,7 @@ impl ScriptThread {
                         continue;
                     }
                     let window_proxy = WindowProxy::new_dissimilar_origin(
+                        cx,
                         window.upcast::<GlobalScope>(),
                         browsing_context_id,
                         source_webview,
@@ -2971,6 +2975,7 @@ impl ScriptThread {
             // Ensure that the state of any local window proxies accurately reflects
             // the new pipeline.
             let _ = self.window_proxies.local_window_proxy(
+                cx,
                 &self.senders,
                 &self.documents,
                 &window,
@@ -3406,6 +3411,7 @@ impl ScriptThread {
 
         // Initialize the browsing context for the window.
         let window_proxy = self.window_proxies.local_window_proxy(
+            cx,
             &self.senders,
             &self.documents,
             &window,
@@ -3574,7 +3580,7 @@ impl ScriptThread {
         if incomplete.activity == DocumentActivity::FullyActive {
             window.resume(CanGc::from_cx(cx));
         } else {
-            window.suspend(CanGc::from_cx(cx));
+            window.suspend(cx);
         }
 
         if incomplete.throttled {

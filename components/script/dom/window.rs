@@ -1315,12 +1315,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-opener>
-    fn GetOpener(
-        &self,
-        cx: SafeJSContext,
-        in_realm_proof: InRealm,
-        mut retval: MutableHandleValue,
-    ) -> Fallible<()> {
+    fn GetOpener(&self, cx: &mut CurrentRealm, mut retval: MutableHandleValue) -> Fallible<()> {
         // Step 1, Let current be this Window object's browsing context.
         let current = match self.window_proxy.get() {
             Some(proxy) => proxy,
@@ -1339,7 +1334,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             return Ok(());
         }
         // Step 3 to 5.
-        current.opener(*cx, in_realm_proof, retval);
+        current.opener(cx, retval);
         Ok(())
     }
 
@@ -3330,13 +3325,13 @@ impl Window {
         self.unhandled_resize_event.borrow().is_some()
     }
 
-    pub(crate) fn suspend(&self, can_gc: CanGc) {
+    pub(crate) fn suspend(&self, cx: &mut js::context::JSContext) {
         // Suspend timer events.
         self.as_global_scope().suspend();
 
         // Set the window proxy to be a cross-origin window.
         if self.window_proxy().currently_active() == Some(self.global().pipeline_id()) {
-            self.window_proxy().unset_currently_active(can_gc);
+            self.window_proxy().unset_currently_active(cx);
         }
 
         // A hint to the JS runtime that now would be a good time to

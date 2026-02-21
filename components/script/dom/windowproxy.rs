@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::ptr;
+use std::ptr::{self, NonNull};
 use std::rc::Rc;
 
 use base::generic_channel;
@@ -33,6 +33,7 @@ use js::jsapi::{
     ObjectOpResult, PropertyDescriptor,
 };
 use js::jsval::{NullValue, PrivateValue, UndefinedValue};
+use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers::{JS_TransplantObject, NewWindowProxy, SetWindowProxy};
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -232,6 +233,7 @@ impl WindowProxy {
 
     #[expect(unsafe_code)]
     pub(crate) fn new_dissimilar_origin(
+        cx: &mut js::context::JSContext,
         global_to_clone_from: &GlobalScope,
         browsing_context_id: BrowsingContextId,
         webview_id: WebViewId,
@@ -241,8 +243,6 @@ impl WindowProxy {
     ) -> DomRoot<WindowProxy> {
         unsafe {
             let handler = WindowProxyHandler::x_origin_proxy_handler();
-
-            let cx = GlobalScope::get_cx();
 
             // Create a new browsing context.
             let window_proxy = Box::new(WindowProxy::new_inherited(
@@ -256,17 +256,18 @@ impl WindowProxy {
             ));
 
             // Create a new dissimilar-origin window.
-            let window = DissimilarOriginWindow::new(global_to_clone_from, &window_proxy);
+            let window = DissimilarOriginWindow::new(cx, global_to_clone_from, &window_proxy);
             let window_jsobject = window.reflector().get_jsobject();
             assert!(!window_jsobject.get().is_null());
             assert_ne!(
                 ((*get_object_class(window_jsobject.get())).flags & JSCLASS_IS_GLOBAL),
                 0
             );
-            let _ac = JSAutoRealm::new(*cx, window_jsobject.get());
+            let mut realm = AutoRealm::new(cx, NonNull::new(window_jsobject.get()).unwrap());
+            let cx = &mut realm;
 
             // Create a new window proxy.
-            rooted!(in(*cx) let js_proxy = handler.new_window_proxy(&cx, window_jsobject));
+            rooted!(&in(cx) let js_proxy = handler.new_window_proxy(&cx.into(), window_jsobject));
             assert!(!js_proxy.is_null());
 
             // The window proxy owns the browsing context.
@@ -278,7 +279,7 @@ impl WindowProxy {
             );
 
             // Notify the JS engine about the new window proxy binding.
-            SetWindowProxy(*cx, window_jsobject, js_proxy.handle());
+            SetWindowProxy(cx.raw_cx(), window_jsobject, js_proxy.handle());
 
             // Set the reflector.
             debug!(
@@ -419,14 +420,8 @@ impl WindowProxy {
         self.is_closing.get()
     }
 
-    #[expect(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-opener
-    pub(crate) fn opener(
-        &self,
-        cx: *mut JSContext,
-        in_realm_proof: InRealm,
-        mut retval: MutableHandleValue,
-    ) {
+    pub(crate) fn opener(&self, cx: &mut CurrentRealm, mut retval: MutableHandleValue) {
         if self.disowned.get() {
             return retval.set(NullValue());
         }
@@ -445,11 +440,11 @@ impl WindowProxy {
                     opener_id,
                 ) {
                     Some(opener_top_id) => {
-                        let global_to_clone_from =
-                            unsafe { GlobalScope::from_context(cx, in_realm_proof) };
+                        let global_to_clone_from = GlobalScope::from_current_realm(cx);
                         let creator =
                             CreatorBrowsingContextInfo::from(parent_browsing_context, None);
                         WindowProxy::new_dissimilar_origin(
+                            cx,
                             &global_to_clone_from,
                             opener_id,
                             opener_top_id,
@@ -465,7 +460,7 @@ impl WindowProxy {
         if opener_proxy.is_browsing_context_discarded() {
             return retval.set(NullValue());
         }
-        unsafe { opener_proxy.to_jsval(cx, retval) };
+        opener_proxy.safe_to_jsval(cx, retval);
     }
 
     // https://html.spec.whatwg.org/multipage/#window-open-steps
@@ -769,18 +764,18 @@ impl WindowProxy {
         self.currently_active.set(Some(global_scope.pipeline_id()));
     }
 
-    pub(crate) fn unset_currently_active(&self, can_gc: CanGc) {
+    pub(crate) fn unset_currently_active(&self, cx: &mut js::context::JSContext) {
         if self.currently_active().is_none() {
             return debug!(
                 "Attempt to unset the currently active window on a windowproxy that does not have one."
             );
         }
         let globalscope = self.global();
-        let window = DissimilarOriginWindow::new(&globalscope, self);
+        let window = DissimilarOriginWindow::new(cx, &globalscope, self);
         self.set_window(
             window.upcast(),
             WindowProxyHandler::x_origin_proxy_handler(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         self.currently_active.set(None);
     }

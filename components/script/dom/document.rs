@@ -843,7 +843,7 @@ impl Document {
         self.current_rendering_epoch.get()
     }
 
-    pub(crate) fn set_activity(&self, activity: DocumentActivity, can_gc: CanGc) {
+    pub(crate) fn set_activity(&self, cx: &mut js::context::JSContext, activity: DocumentActivity) {
         // This function should only be called on documents with a browsing context
         assert!(self.has_browsing_context);
         if activity == self.activity.get() {
@@ -858,7 +858,7 @@ impl Document {
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
 
         if activity != DocumentActivity::FullyActive {
-            self.window().suspend(can_gc);
+            self.window().suspend(cx);
             media.suspend(&client_context_id);
             return;
         }
@@ -866,7 +866,7 @@ impl Document {
         self.title_changed();
         self.notify_embedder_favicon();
         self.dirty_all_nodes();
-        self.window().resume(can_gc);
+        self.window().resume(CanGc::from_cx(cx));
         media.resume(&client_context_id);
 
         if self.ready_state.get() != DocumentReadyState::Complete {
