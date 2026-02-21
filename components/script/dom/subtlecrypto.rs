@@ -2174,11 +2174,18 @@ struct SubtleAlgorithm {
     name: String,
 }
 
-impl From<Algorithm> for SubtleAlgorithm {
-    fn from(params: Algorithm) -> Self {
-        SubtleAlgorithm {
-            name: params.name.to_string(),
-        }
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAlgorithm {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue<'a>,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<Algorithm>(cx, value)?;
+
+        Ok(SubtleAlgorithm {
+            name: dictionary.name.to_string(),
+        })
     }
 }
 
@@ -2214,18 +2221,25 @@ pub(crate) struct SubtleRsaHashedKeyGenParams {
     hash: Box<NormalizedAlgorithm>,
 }
 
-impl TryFromWithCx<RootedTraceableBox<RsaHashedKeyGenParams>> for SubtleRsaHashedKeyGenParams {
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedKeyGenParams {
     type Error = Error;
 
     fn try_from_with_cx(
-        value: RootedTraceableBox<RsaHashedKeyGenParams>,
+        value: HandleValue,
         cx: &mut js::context::JSContext,
     ) -> Result<Self, Self::Error> {
+        let dictionary =
+            dictionary_from_jsval::<RootedTraceableBox<RsaHashedKeyGenParams>>(cx, value)?;
+
         Ok(SubtleRsaHashedKeyGenParams {
-            name: value.parent.parent.name.to_string(),
-            modulus_length: value.parent.modulusLength,
-            public_exponent: value.parent.publicExponent.to_vec(),
-            hash: Box::new(normalize_algorithm(cx, Operation::Digest, &value.hash)?),
+            name: dictionary.parent.parent.name.to_string(),
+            modulus_length: dictionary.parent.modulusLength,
+            public_exponent: dictionary.parent.publicExponent.to_vec(),
+            hash: Box::new(normalize_algorithm(
+                cx,
+                Operation::Digest,
+                &dictionary.hash,
+            )?),
         })
     }
 }
@@ -2280,16 +2294,23 @@ struct SubtleRsaHashedImportParams {
     hash: Box<NormalizedAlgorithm>,
 }
 
-impl TryFromWithCx<RootedTraceableBox<RsaHashedImportParams>> for SubtleRsaHashedImportParams {
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedImportParams {
     type Error = Error;
 
     fn try_from_with_cx(
-        value: RootedTraceableBox<RsaHashedImportParams>,
+        value: HandleValue,
         cx: &mut js::context::JSContext,
     ) -> Result<Self, Self::Error> {
+        let dictionary =
+            dictionary_from_jsval::<RootedTraceableBox<RsaHashedImportParams>>(cx, value)?;
+
         Ok(SubtleRsaHashedImportParams {
-            name: value.parent.name.to_string(),
-            hash: Box::new(normalize_algorithm(cx, Operation::Digest, &value.hash)?),
+            name: dictionary.parent.name.to_string(),
+            hash: Box::new(normalize_algorithm(
+                cx,
+                Operation::Digest,
+                &dictionary.hash,
+            )?),
         })
     }
 }
@@ -2304,12 +2325,19 @@ struct SubtleRsaPssParams {
     salt_length: u32,
 }
 
-impl From<RsaPssParams> for SubtleRsaPssParams {
-    fn from(value: RsaPssParams) -> Self {
-        SubtleRsaPssParams {
-            name: value.parent.name.to_string(),
-            salt_length: value.saltLength,
-        }
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaPssParams {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<RsaPssParams>(cx, value)?;
+
+        Ok(SubtleRsaPssParams {
+            name: dictionary.parent.name.to_string(),
+            salt_length: dictionary.saltLength,
+        })
     }
 }
 
@@ -2322,16 +2350,24 @@ struct SubtleRsaOaepParams {
     label: Option<Vec<u8>>,
 }
 
-impl From<RootedTraceableBox<RsaOaepParams>> for SubtleRsaOaepParams {
-    fn from(value: RootedTraceableBox<RsaOaepParams>) -> Self {
-        let label = value.label.as_ref().map(|label| match label {
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaOaepParams {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue<'a>,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<RootedTraceableBox<RsaOaepParams>>(cx, value)?;
+
+        let label = dictionary.label.as_ref().map(|label| match label {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         });
-        SubtleRsaOaepParams {
-            name: value.parent.name.to_string(),
+
+        Ok(SubtleRsaOaepParams {
+            name: dictionary.parent.name.to_string(),
             label,
-        }
+        })
     }
 }
 
@@ -2345,17 +2381,22 @@ struct SubtleEcdsaParams {
     hash: Box<NormalizedAlgorithm>,
 }
 
-impl TryFromWithCx<RootedTraceableBox<EcdsaParams>> for SubtleEcdsaParams {
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcdsaParams {
     type Error = Error;
 
     fn try_from_with_cx(
-        value: RootedTraceableBox<EcdsaParams>,
+        value: HandleValue<'a>,
         cx: &mut js::context::JSContext,
     ) -> Result<Self, Self::Error> {
-        let hash = normalize_algorithm(cx, Operation::Digest, &value.hash)?;
+        let dictionary = dictionary_from_jsval::<RootedTraceableBox<EcdsaParams>>(cx, value)?;
+
         Ok(SubtleEcdsaParams {
-            name: value.parent.name.to_string(),
-            hash: Box::new(hash),
+            name: dictionary.parent.name.to_string(),
+            hash: Box::new(normalize_algorithm(
+                cx,
+                Operation::Digest,
+                &dictionary.hash,
+            )?),
         })
     }
 }
@@ -2370,12 +2411,19 @@ struct SubtleEcKeyGenParams {
     named_curve: String,
 }
 
-impl From<EcKeyGenParams> for SubtleEcKeyGenParams {
-    fn from(value: EcKeyGenParams) -> Self {
-        SubtleEcKeyGenParams {
-            name: value.parent.name.to_string(),
-            named_curve: value.namedCurve.to_string(),
-        }
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcKeyGenParams {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue<'a>,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<EcKeyGenParams>(cx, value)?;
+
+        Ok(SubtleEcKeyGenParams {
+            name: dictionary.parent.name.to_string(),
+            named_curve: dictionary.namedCurve.to_string(),
+        })
     }
 }
 
@@ -2412,12 +2460,19 @@ struct SubtleEcKeyImportParams {
     named_curve: String,
 }
 
-impl From<EcKeyImportParams> for SubtleEcKeyImportParams {
-    fn from(value: EcKeyImportParams) -> Self {
-        SubtleEcKeyImportParams {
-            name: value.parent.name.to_string(),
-            named_curve: value.namedCurve.to_string(),
-        }
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcKeyImportParams {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue<'a>,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<EcKeyImportParams>(cx, value)?;
+
+        Ok(SubtleEcKeyImportParams {
+            name: dictionary.parent.name.to_string(),
+            named_curve: dictionary.namedCurve.to_string(),
+        })
     }
 }
 
@@ -2431,12 +2486,19 @@ struct SubtleEcdhKeyDeriveParams {
     public: Trusted<CryptoKey>,
 }
 
-impl From<EcdhKeyDeriveParams> for SubtleEcdhKeyDeriveParams {
-    fn from(value: EcdhKeyDeriveParams) -> Self {
-        SubtleEcdhKeyDeriveParams {
-            name: value.parent.name.to_string(),
-            public: Trusted::new(&value.public),
-        }
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcdhKeyDeriveParams {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue<'a>,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<EcdhKeyDeriveParams>(cx, value)?;
+
+        Ok(SubtleEcdhKeyDeriveParams {
+            name: dictionary.parent.name.to_string(),
+            public: Trusted::new(&dictionary.public),
+        })
     }
 }
 
@@ -2453,17 +2515,25 @@ struct SubtleAesCtrParams {
     length: u8,
 }
 
-impl From<RootedTraceableBox<AesCtrParams>> for SubtleAesCtrParams {
-    fn from(params: RootedTraceableBox<AesCtrParams>) -> Self {
-        let counter = match &params.counter {
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesCtrParams {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue<'a>,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<RootedTraceableBox<AesCtrParams>>(cx, value)?;
+
+        let counter = match &dictionary.counter {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
-        SubtleAesCtrParams {
-            name: params.parent.name.to_string(),
+
+        Ok(SubtleAesCtrParams {
+            name: dictionary.parent.name.to_string(),
             counter,
-            length: params.length,
-        }
+            length: dictionary.length,
+        })
     }
 }
 
@@ -2500,12 +2570,19 @@ struct SubtleAesKeyGenParams {
     length: u16,
 }
 
-impl From<AesKeyGenParams> for SubtleAesKeyGenParams {
-    fn from(params: AesKeyGenParams) -> Self {
-        SubtleAesKeyGenParams {
-            name: params.parent.name.to_string(),
-            length: params.length,
-        }
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesKeyGenParams {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue<'a>,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<AesKeyGenParams>(cx, value)?;
+
+        Ok(SubtleAesKeyGenParams {
+            name: dictionary.parent.name.to_string(),
+            length: dictionary.length,
+        })
     }
 }
 
@@ -2519,12 +2596,19 @@ struct SubtleAesDerivedKeyParams {
     length: u16,
 }
 
-impl From<AesDerivedKeyParams> for SubtleAesDerivedKeyParams {
-    fn from(params: AesDerivedKeyParams) -> Self {
-        SubtleAesDerivedKeyParams {
-            name: params.parent.name.to_string(),
-            length: params.length,
-        }
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesDerivedKeyParams {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue<'a>,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<AesDerivedKeyParams>(cx, value)?;
+
+        Ok(SubtleAesDerivedKeyParams {
+            name: dictionary.parent.name.to_string(),
+            length: dictionary.length,
+        })
     }
 }
 
@@ -2538,16 +2622,24 @@ struct SubtleAesCbcParams {
     iv: Vec<u8>,
 }
 
-impl From<RootedTraceableBox<AesCbcParams>> for SubtleAesCbcParams {
-    fn from(params: RootedTraceableBox<AesCbcParams>) -> Self {
-        let iv = match &params.iv {
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesCbcParams {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue<'a>,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<RootedTraceableBox<AesCbcParams>>(cx, value)?;
+
+        let iv = match &dictionary.iv {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
-        SubtleAesCbcParams {
-            name: params.parent.name.to_string(),
+
+        Ok(SubtleAesCbcParams {
+            name: dictionary.parent.name.to_string(),
             iv,
-        }
+        })
     }
 }
 
@@ -2567,23 +2659,30 @@ struct SubtleAesGcmParams {
     tag_length: Option<u8>,
 }
 
-impl From<RootedTraceableBox<AesGcmParams>> for SubtleAesGcmParams {
-    fn from(params: RootedTraceableBox<AesGcmParams>) -> Self {
-        let iv = match &params.iv {
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesGcmParams {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue<'a>,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<RootedTraceableBox<AesGcmParams>>(cx, value)?;
+
+        let iv = match &dictionary.iv {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
-        let additional_data = params.additionalData.as_ref().map(|data| match data {
+        let additional_data = dictionary.additionalData.as_ref().map(|data| match data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         });
 
-        SubtleAesGcmParams {
-            name: params.parent.name.to_string(),
+        Ok(SubtleAesGcmParams {
+            name: dictionary.parent.name.to_string(),
             iv,
             additional_data,
-            tag_length: params.tagLength,
-        }
+            tag_length: dictionary.tagLength,
+        })
     }
 }
 
@@ -2600,18 +2699,23 @@ struct SubtleHmacImportParams {
     length: Option<u32>,
 }
 
-impl TryFromWithCx<RootedTraceableBox<HmacImportParams>> for SubtleHmacImportParams {
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHmacImportParams {
     type Error = Error;
 
     fn try_from_with_cx(
-        params: RootedTraceableBox<HmacImportParams>,
+        value: HandleValue<'a>,
         cx: &mut js::context::JSContext,
-    ) -> Result<Self, Error> {
-        let hash = normalize_algorithm(cx, Operation::Digest, &params.hash)?;
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<RootedTraceableBox<HmacImportParams>>(cx, value)?;
+
         Ok(SubtleHmacImportParams {
-            name: params.parent.name.to_string(),
-            hash: Box::new(hash),
-            length: params.length,
+            name: dictionary.parent.name.to_string(),
+            hash: Box::new(normalize_algorithm(
+                cx,
+                Operation::Digest,
+                &dictionary.hash,
+            )?),
+            length: dictionary.length,
         })
     }
 }
@@ -2659,18 +2763,23 @@ struct SubtleHmacKeyGenParams {
     length: Option<u32>,
 }
 
-impl TryFromWithCx<RootedTraceableBox<HmacKeyGenParams>> for SubtleHmacKeyGenParams {
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHmacKeyGenParams {
     type Error = Error;
 
     fn try_from_with_cx(
-        params: RootedTraceableBox<HmacKeyGenParams>,
+        value: HandleValue<'a>,
         cx: &mut js::context::JSContext,
-    ) -> Result<Self, Error> {
-        let hash = normalize_algorithm(cx, Operation::Digest, &params.hash)?;
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<RootedTraceableBox<HmacKeyGenParams>>(cx, value)?;
+
         Ok(SubtleHmacKeyGenParams {
-            name: params.parent.name.to_string(),
-            hash: Box::new(hash),
-            length: params.length,
+            name: dictionary.parent.name.to_string(),
+            hash: Box::new(normalize_algorithm(
+                cx,
+                Operation::Digest,
+                &dictionary.hash,
+            )?),
+            length: dictionary.length,
         })
     }
 }
@@ -2691,25 +2800,31 @@ pub(crate) struct SubtleHkdfParams {
     info: Vec<u8>,
 }
 
-impl TryFromWithCx<RootedTraceableBox<HkdfParams>> for SubtleHkdfParams {
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHkdfParams {
     type Error = Error;
 
     fn try_from_with_cx(
-        params: RootedTraceableBox<HkdfParams>,
+        value: HandleValue<'a>,
         cx: &mut js::context::JSContext,
-    ) -> Result<Self, Error> {
-        let hash = normalize_algorithm(cx, Operation::Digest, &params.hash)?;
-        let salt = match &params.salt {
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<RootedTraceableBox<HkdfParams>>(cx, value)?;
+
+        let salt = match &dictionary.salt {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
-        let info = match &params.info {
+        let info = match &dictionary.info {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
+
         Ok(SubtleHkdfParams {
-            name: params.parent.name.to_string(),
-            hash: Box::new(hash),
+            name: dictionary.parent.name.to_string(),
+            hash: Box::new(normalize_algorithm(
+                cx,
+                Operation::Digest,
+                &dictionary.hash,
+            )?),
             salt,
             info,
         })
@@ -2732,23 +2847,29 @@ pub(crate) struct SubtlePbkdf2Params {
     hash: Box<NormalizedAlgorithm>,
 }
 
-impl TryFromWithCx<RootedTraceableBox<Pbkdf2Params>> for SubtlePbkdf2Params {
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtlePbkdf2Params {
     type Error = Error;
 
     fn try_from_with_cx(
-        params: RootedTraceableBox<Pbkdf2Params>,
+        value: HandleValue<'a>,
         cx: &mut js::context::JSContext,
-    ) -> Result<Self, Error> {
-        let salt = match &params.salt {
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<RootedTraceableBox<Pbkdf2Params>>(cx, value)?;
+
+        let salt = match &dictionary.salt {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
-        let hash = normalize_algorithm(cx, Operation::Digest, &params.hash)?;
+
         Ok(SubtlePbkdf2Params {
-            name: params.parent.name.to_string(),
+            name: dictionary.parent.name.to_string(),
             salt,
-            iterations: params.iterations,
-            hash: Box::new(hash),
+            iterations: dictionary.iterations,
+            hash: Box::new(normalize_algorithm(
+                cx,
+                Operation::Digest,
+                &dictionary.hash,
+            )?),
         })
     }
 }
@@ -2763,16 +2884,24 @@ struct SubtleContextParams {
     context: Option<Vec<u8>>,
 }
 
-impl From<RootedTraceableBox<ContextParams>> for SubtleContextParams {
-    fn from(value: RootedTraceableBox<ContextParams>) -> Self {
-        let context = value.context.as_ref().map(|context| match context {
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleContextParams {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue<'a>,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<RootedTraceableBox<ContextParams>>(cx, value)?;
+
+        let context = dictionary.context.as_ref().map(|context| match context {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         });
-        SubtleContextParams {
-            name: value.parent.name.to_string(),
+
+        Ok(SubtleContextParams {
+            name: dictionary.parent.name.to_string(),
             context,
-        }
+        })
     }
 }
 
@@ -2792,23 +2921,30 @@ struct SubtleAeadParams {
     tag_length: Option<u8>,
 }
 
-impl From<RootedTraceableBox<AeadParams>> for SubtleAeadParams {
-    fn from(value: RootedTraceableBox<AeadParams>) -> Self {
-        let iv = match &value.iv {
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAeadParams {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue<'a>,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<RootedTraceableBox<AeadParams>>(cx, value)?;
+
+        let iv = match &dictionary.iv {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
-        let additional_data = value.additionalData.as_ref().map(|data| match data {
+        let additional_data = dictionary.additionalData.as_ref().map(|data| match data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         });
 
-        SubtleAeadParams {
-            name: value.parent.name.to_string(),
+        Ok(SubtleAeadParams {
+            name: dictionary.parent.name.to_string(),
             iv,
             additional_data,
-            tag_length: value.tagLength,
-        }
+            tag_length: dictionary.tagLength,
+        })
     }
 }
 
@@ -2828,28 +2964,38 @@ struct SubtleCShakeParams {
     customization: Option<Vec<u8>>,
 }
 
-impl From<RootedTraceableBox<CShakeParams>> for SubtleCShakeParams {
-    fn from(value: RootedTraceableBox<CShakeParams>) -> Self {
-        let function_name = value
-            .functionName
-            .as_ref()
-            .map(|function_name| match function_name {
-                ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-                ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-            });
-        let customization = value
-            .customization
-            .as_ref()
-            .map(|customization| match customization {
-                ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-                ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-            });
-        SubtleCShakeParams {
-            name: value.parent.name.to_string(),
-            length: value.length,
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleCShakeParams {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue<'a>,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<RootedTraceableBox<CShakeParams>>(cx, value)?;
+
+        let function_name =
+            dictionary
+                .functionName
+                .as_ref()
+                .map(|function_name| match function_name {
+                    ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+                    ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+                });
+        let customization =
+            dictionary
+                .customization
+                .as_ref()
+                .map(|customization| match customization {
+                    ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+                    ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+                });
+
+        Ok(SubtleCShakeParams {
+            name: dictionary.parent.name.to_string(),
+            length: dictionary.length,
             function_name,
             customization,
-        }
+        })
     }
 }
 
@@ -2881,13 +3027,20 @@ struct SubtleArgon2Params {
     associated_data: Option<Vec<u8>>,
 }
 
-impl From<RootedTraceableBox<Argon2Params>> for SubtleArgon2Params {
-    fn from(value: RootedTraceableBox<Argon2Params>) -> Self {
-        let nonce = match &value.nonce {
+impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleArgon2Params {
+    type Error = Error;
+
+    fn try_from_with_cx(
+        value: HandleValue<'a>,
+        cx: &mut js::context::JSContext,
+    ) -> Result<Self, Self::Error> {
+        let dictionary = dictionary_from_jsval::<RootedTraceableBox<Argon2Params>>(cx, value)?;
+
+        let nonce = match &dictionary.nonce {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
-        let secret_value = value
+        let secret_value = dictionary
             .secretValue
             .as_ref()
             .map(|secret_value| match secret_value {
@@ -2895,23 +3048,24 @@ impl From<RootedTraceableBox<Argon2Params>> for SubtleArgon2Params {
                 ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
             });
         let associated_data =
-            value
+            dictionary
                 .associatedData
                 .as_ref()
                 .map(|associated_data| match associated_data {
                     ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
                     ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
                 });
-        SubtleArgon2Params {
-            name: value.parent.name.to_string(),
+
+        Ok(SubtleArgon2Params {
+            name: dictionary.parent.name.to_string(),
             nonce,
-            parallelism: value.parallelism,
-            memory: value.memory,
-            passes: value.passes,
-            version: value.version,
+            parallelism: dictionary.parallelism,
+            memory: dictionary.memory,
+            passes: dictionary.passes,
+            version: dictionary.version,
             secret_value,
             associated_data,
-        }
+        })
     }
 }
 
@@ -3873,79 +4027,70 @@ impl NormalizedAlgorithm {
         desired_type: ParameterType,
     ) -> Result<NormalizedAlgorithm, Error> {
         let normalized_algorithm = match desired_type {
-            ParameterType::None => NormalizedAlgorithm::Algorithm(
-                dictionary_from_jsval::<Algorithm>(cx, value)?.into(),
-            ),
-            ParameterType::RsaHashedKeyGenParams => NormalizedAlgorithm::RsaHashedKeyGenParams(
-                dictionary_from_jsval::<RootedTraceableBox<RsaHashedKeyGenParams>>(cx, value)?
-                    .try_into_with_cx(cx)?,
-            ),
-            ParameterType::RsaHashedImportParams => NormalizedAlgorithm::RsaHashedImportParams(
-                dictionary_from_jsval::<RootedTraceableBox<RsaHashedImportParams>>(cx, value)?
-                    .try_into_with_cx(cx)?,
-            ),
-            ParameterType::RsaPssParams => NormalizedAlgorithm::RsaPssParams(
-                dictionary_from_jsval::<RsaPssParams>(cx, value)?.into(),
-            ),
-            ParameterType::RsaOaepParams => NormalizedAlgorithm::RsaOaepParams(
-                dictionary_from_jsval::<RootedTraceableBox<RsaOaepParams>>(cx, value)?.into(),
-            ),
-            ParameterType::EcdsaParams => NormalizedAlgorithm::EcdsaParams(
-                dictionary_from_jsval::<RootedTraceableBox<EcdsaParams>>(cx, value)?
-                    .try_into_with_cx(cx)?,
-            ),
-            ParameterType::EcKeyGenParams => NormalizedAlgorithm::EcKeyGenParams(
-                dictionary_from_jsval::<EcKeyGenParams>(cx, value)?.into(),
-            ),
-            ParameterType::EcKeyImportParams => NormalizedAlgorithm::EcKeyImportParams(
-                dictionary_from_jsval::<EcKeyImportParams>(cx, value)?.into(),
-            ),
-            ParameterType::EcdhKeyDeriveParams => NormalizedAlgorithm::EcdhKeyDeriveParams(
-                dictionary_from_jsval::<EcdhKeyDeriveParams>(cx, value)?.into(),
-            ),
-            ParameterType::AesCtrParams => NormalizedAlgorithm::AesCtrParams(
-                dictionary_from_jsval::<RootedTraceableBox<AesCtrParams>>(cx, value)?.into(),
-            ),
-            ParameterType::AesKeyGenParams => NormalizedAlgorithm::AesKeyGenParams(
-                dictionary_from_jsval::<AesKeyGenParams>(cx, value)?.into(),
-            ),
-            ParameterType::AesDerivedKeyParams => NormalizedAlgorithm::AesDerivedKeyParams(
-                dictionary_from_jsval::<AesDerivedKeyParams>(cx, value)?.into(),
-            ),
-            ParameterType::AesCbcParams => NormalizedAlgorithm::AesCbcParams(
-                dictionary_from_jsval::<RootedTraceableBox<AesCbcParams>>(cx, value)?.into(),
-            ),
-            ParameterType::AesGcmParams => NormalizedAlgorithm::AesGcmParams(
-                dictionary_from_jsval::<RootedTraceableBox<AesGcmParams>>(cx, value)?.into(),
-            ),
-            ParameterType::HmacImportParams => NormalizedAlgorithm::HmacImportParams(
-                dictionary_from_jsval::<RootedTraceableBox<HmacImportParams>>(cx, value)?
-                    .try_into_with_cx(cx)?,
-            ),
-            ParameterType::HmacKeyGenParams => NormalizedAlgorithm::HmacKeyGenParams(
-                dictionary_from_jsval::<RootedTraceableBox<HmacKeyGenParams>>(cx, value)?
-                    .try_into_with_cx(cx)?,
-            ),
-            ParameterType::HkdfParams => NormalizedAlgorithm::HkdfParams(
-                dictionary_from_jsval::<RootedTraceableBox<HkdfParams>>(cx, value)?
-                    .try_into_with_cx(cx)?,
-            ),
-            ParameterType::Pbkdf2Params => NormalizedAlgorithm::Pbkdf2Params(
-                dictionary_from_jsval::<RootedTraceableBox<Pbkdf2Params>>(cx, value)?
-                    .try_into_with_cx(cx)?,
-            ),
-            ParameterType::ContextParams => NormalizedAlgorithm::ContextParams(
-                dictionary_from_jsval::<RootedTraceableBox<ContextParams>>(cx, value)?.into(),
-            ),
-            ParameterType::AeadParams => NormalizedAlgorithm::AeadParams(
-                dictionary_from_jsval::<RootedTraceableBox<AeadParams>>(cx, value)?.into(),
-            ),
-            ParameterType::CShakeParams => NormalizedAlgorithm::CShakeParams(
-                dictionary_from_jsval::<RootedTraceableBox<CShakeParams>>(cx, value)?.into(),
-            ),
-            ParameterType::Argon2Params => NormalizedAlgorithm::Argon2Params(
-                dictionary_from_jsval::<RootedTraceableBox<Argon2Params>>(cx, value)?.into(),
-            ),
+            ParameterType::None => NormalizedAlgorithm::Algorithm(value.try_into_with_cx(cx)?),
+            ParameterType::RsaHashedKeyGenParams => {
+                NormalizedAlgorithm::RsaHashedKeyGenParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::RsaHashedImportParams => {
+                NormalizedAlgorithm::RsaHashedImportParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::RsaPssParams => {
+                NormalizedAlgorithm::RsaPssParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::RsaOaepParams => {
+                NormalizedAlgorithm::RsaOaepParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::EcdsaParams => {
+                NormalizedAlgorithm::EcdsaParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::EcKeyGenParams => {
+                NormalizedAlgorithm::EcKeyGenParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::EcKeyImportParams => {
+                NormalizedAlgorithm::EcKeyImportParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::EcdhKeyDeriveParams => {
+                NormalizedAlgorithm::EcdhKeyDeriveParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::AesCtrParams => {
+                NormalizedAlgorithm::AesCtrParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::AesKeyGenParams => {
+                NormalizedAlgorithm::AesKeyGenParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::AesDerivedKeyParams => {
+                NormalizedAlgorithm::AesDerivedKeyParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::AesCbcParams => {
+                NormalizedAlgorithm::AesCbcParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::AesGcmParams => {
+                NormalizedAlgorithm::AesGcmParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::HmacImportParams => {
+                NormalizedAlgorithm::HmacImportParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::HmacKeyGenParams => {
+                NormalizedAlgorithm::HmacKeyGenParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::HkdfParams => {
+                NormalizedAlgorithm::HkdfParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::Pbkdf2Params => {
+                NormalizedAlgorithm::Pbkdf2Params(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::ContextParams => {
+                NormalizedAlgorithm::ContextParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::AeadParams => {
+                NormalizedAlgorithm::AeadParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::CShakeParams => {
+                NormalizedAlgorithm::CShakeParams(value.try_into_with_cx(cx)?)
+            },
+            ParameterType::Argon2Params => {
+                NormalizedAlgorithm::Argon2Params(value.try_into_with_cx(cx)?)
+            },
         };
 
         Ok(normalized_algorithm)
