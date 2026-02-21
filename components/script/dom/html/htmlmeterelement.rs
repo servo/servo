@@ -321,10 +321,10 @@ impl VirtualMethods for HTMLMeterElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         let is_important_attribute = matches!(
             attr.local_name(),
@@ -336,7 +336,7 @@ impl VirtualMethods for HTMLMeterElement {
                 &local_name!("value")
         );
         if is_important_attribute {
-            self.update_state(can_gc);
+            self.update_state(CanGc::from_cx(cx));
         }
     }
 

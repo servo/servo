@@ -222,7 +222,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 );
                             }
                         }
-                        element.update_sequentially_focusable_status(can_gc);
+                        element.update_sequentially_focusable_status(CanGc::from_cx(cx));
                     }
                 } else {
                     for field in fields {

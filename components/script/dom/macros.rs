@@ -283,12 +283,11 @@ macro_rules! make_setter(
 #[macro_export]
 macro_rules! make_bool_setter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, value: bool) {
+        fn $attr(&self, cx: &mut js::context::JSContext, value: bool) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
-            use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
-            element.set_bool_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+            element.set_bool_attribute(cx, &html5ever::local_name!($htmlname), value)
         }
     );
 );

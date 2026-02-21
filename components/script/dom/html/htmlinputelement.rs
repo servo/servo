@@ -3102,7 +3102,7 @@ impl VirtualMethods for HTMLInputElement {
 
                         if new_type == InputType::File {
                             let window = self.owner_window();
-                            let filelist = FileList::new(&window, vec![], can_gc);
+                            let filelist = FileList::new(&window, vec![], CanGc::from_cx(cx));
                             self.filelist.set(Some(&filelist));
                         }
 
@@ -3111,7 +3111,7 @@ impl VirtualMethods for HTMLInputElement {
                             // Step 1
                             (&ValueMode::Value, false, ValueMode::Default) |
                             (&ValueMode::Value, false, ValueMode::DefaultOn) => {
-                                self.SetValue(old_idl_value, can_gc)
+                                self.SetValue(old_idl_value, CanGc::from_cx(cx))
                                     .expect("Failed to set input value on type change to a default ValueMode.");
                             },
 
@@ -3160,7 +3160,7 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     AttributeMutation::Removed => {
                         if self.input_type() == InputType::Radio {
-                            broadcast_radio_checked(self, self.radio_group_name().as_ref(), can_gc);
+                            broadcast_radio_checked(self, self.radio_group_name().as_ref(), CanGc::from_cx(cx));
                         }
                         self.input_type.set(InputType::default());
                         let el = self.upcast::<Element>();

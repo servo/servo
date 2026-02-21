@@ -3360,10 +3360,10 @@ impl VirtualMethods for HTMLMediaElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         match *attr.local_name() {
             local_name!("muted") => {
@@ -3384,12 +3384,12 @@ impl VirtualMethods for HTMLMediaElement {
                 // the media element's media element load algorithm (Removing the src attribute does
                 // not do this, even if there are source elements present).
                 if !mutation.is_removal() {
-                    self.media_element_load_algorithm(can_gc);
+                    self.media_element_load_algorithm(CanGc::from_cx(cx));
                 }
             },
             local_name!("controls") => {
                 if mutation.new_value(attr).is_some() {
-                    self.render_controls(can_gc);
+                    self.render_controls(CanGc::from_cx(cx));
                 } else {
                     self.remove_controls();
                 }

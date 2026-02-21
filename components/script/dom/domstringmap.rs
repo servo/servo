@@ -39,13 +39,13 @@ impl DOMStringMap {
 // https://html.spec.whatwg.org/multipage/#domstringmap
 impl DOMStringMapMethods<crate::DomTypeHolder> for DOMStringMap {
     /// <https://html.spec.whatwg.org/multipage/#dom-domstringmap-removeitem>
-    fn NamedDeleter(&self, name: DOMString, can_gc: CanGc) {
-        self.element.delete_custom_attr(name, can_gc)
+    fn NamedDeleter(&self, cx: &mut js::context::JSContext, name: DOMString) {
+        self.element.delete_custom_attr(cx, name)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-domstringmap-setitem>
-    fn NamedSetter(&self, name: DOMString, value: DOMString, can_gc: CanGc) -> ErrorResult {
-        self.element.set_custom_attr(name, value, can_gc)
+    fn NamedSetter(&self, cx: &mut js::context::JSContext, name: DOMString, value: DOMString) -> ErrorResult {
+        self.element.set_custom_attr(cx, name, value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-domstringmap-nameditem>

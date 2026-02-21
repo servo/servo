@@ -389,10 +389,10 @@ impl VirtualMethods for HTMLOptionElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
@@ -407,7 +407,7 @@ impl VirtualMethods for HTMLOptionElement {
                         el.check_parent_disabled_state_for_option();
                     },
                 }
-                self.update_select_validity(can_gc);
+                self.update_select_validity(CanGc::from_cx(cx));
             },
             local_name!("selected") => {
                 match mutation {
@@ -424,13 +424,13 @@ impl VirtualMethods for HTMLOptionElement {
                         }
                     },
                 }
-                self.update_select_validity(can_gc);
+                self.update_select_validity(CanGc::from_cx(cx));
             },
             local_name!("label") => {
                 // The label of the selected option is displayed inside the select element, so we need to repaint
                 // when it changes
                 if let Some(select_element) = self.owner_select_element() {
-                    select_element.update_shadow_tree(CanGc::note());
+                    select_element.update_shadow_tree(CanGc::from_cx(cx));
                 }
             },
             _ => {},
