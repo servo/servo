@@ -60,7 +60,7 @@ impl HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#show-a-modal-dialog>
-    pub fn show_a_modal(&self, source: Option<DomRoot<Element>>, can_gc: CanGc) -> ErrorResult {
+    pub fn show_a_modal(&self, cx: &mut js::context::JSContext, source: Option<DomRoot<Element>>) -> ErrorResult {
         let subject = self.upcast::<Element>();
         // Step 1. If subject has an open attribute and is modal of subject is true, then return.
         if subject.has_attribute(&local_name!("open")) &&
@@ -95,10 +95,10 @@ impl HTMLDialogElement {
             DOMString::from("closed"),
             DOMString::from("open"),
             source.borrow().clone(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         let event = event.upcast::<Event>();
-        if !event.fire(self.upcast::<EventTarget>(), can_gc) {
+        if !event.fire(self.upcast::<EventTarget>(), CanGc::from_cx(cx)) {
             return Ok(());
         }
 
@@ -122,7 +122,7 @@ impl HTMLDialogElement {
         );
 
         // Step 11. Add an open attribute to subject, whose value is the empty string.
-        subject.set_bool_attribute(&local_name!("open"), true, can_gc);
+        subject.set_bool_attribute(cx, &local_name!("open"), true);
         subject.set_open_state(true);
 
         // TODO: Step 12. Assert: subject's close watcher is not null.
@@ -153,9 +153,9 @@ impl HTMLDialogElement {
     /// <https://html.spec.whatwg.org/multipage/#close-the-dialog>
     pub fn close_the_dialog(
         &self,
+        cx: &mut js::context::JSContext,
         result: Option<DOMString>,
         source: Option<DomRoot<Element>>,
-        can_gc: CanGc,
     ) {
         let subject = self.upcast::<Element>();
         // Step 1. If subject does not have an open attribute, then return.
@@ -172,10 +172,10 @@ impl HTMLDialogElement {
             DOMString::from("open"),
             DOMString::from("closed"),
             source.borrow().clone(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         let event = event.upcast::<Event>();
-        event.fire(self.upcast::<EventTarget>(), can_gc);
+        event.fire(self.upcast::<EventTarget>(), CanGc::from_cx(cx));
 
         // Step 3. If subject does not have an open attribute, then return.
         if !subject.has_attribute(&local_name!("open")) {
@@ -190,7 +190,7 @@ impl HTMLDialogElement {
         );
 
         // Step 5. Remove subject's open attribute.
-        subject.remove_attribute(&ns!(), &local_name!("open"), can_gc);
+        subject.remove_attribute(cx, &ns!(), &local_name!("open"));
         subject.set_open_state(false);
 
         // TODO: Step 6. If is modal of subject is true, then request an element to be removed from the top layer given subject.
@@ -291,7 +291,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-show>
-    fn Show(&self, can_gc: CanGc) -> ErrorResult {
+    fn Show(&self, cx: &mut js::context::JSContext) -> ErrorResult {
         let element = self.upcast::<Element>();
         // Step 1. If this has an open attribute and is modal of this is false, then return.
         if element.has_attribute(&local_name!("open")) &&
@@ -314,10 +314,10 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
             DOMString::from("closed"),
             DOMString::from("open"),
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         let event = event.upcast::<Event>();
-        if !event.fire(self.upcast::<EventTarget>(), can_gc) {
+        if !event.fire(self.upcast::<EventTarget>(), CanGc::from_cx(cx)) {
             return Ok(());
         }
 
@@ -334,7 +334,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
         );
 
         // Step 6. Add an open attribute to this, whose value is the empty string.
-        element.set_bool_attribute(&local_name!("open"), true, can_gc);
+        element.set_bool_attribute(cx, &local_name!("open"), true);
         element.set_open_state(true);
 
         // TODO: Step 7. Set this's previously focused element to the focused element.
@@ -355,15 +355,15 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-showmodal>
-    fn ShowModal(&self, can_gc: CanGc) -> ErrorResult {
+    fn ShowModal(&self, cx: &mut js::context::JSContext) -> ErrorResult {
         // The showModal() method steps are to show a modal dialog given this and null.
-        self.show_a_modal(None, can_gc)
+        self.show_a_modal(cx, None)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-close>
-    fn Close(&self, return_value: Option<DOMString>, can_gc: CanGc) {
+    fn Close(&self, cx: &mut js::context::JSContext, return_value: Option<DOMString>) {
         // Step 1. If returnValue is not given, then set it to null.
         // Step 2. Close the dialog this with returnValue and null.
-        self.close_the_dialog(return_value, None, can_gc);
+        self.close_the_dialog(cx, return_value, None);
     }
 }

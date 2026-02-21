@@ -1743,9 +1743,9 @@ fn parse_a_sizes_attribute(value: &str) -> SourceSizeList {
 impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-image>
     fn Image(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         width: Option<u32>,
         height: Option<u32>,
     ) -> Fallible<DomRoot<HTMLImageElement>> {
@@ -1761,20 +1761,20 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             proto,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         let image = DomRoot::downcast::<HTMLImageElement>(element).unwrap();
 
         // Step 3. If width is given, then set an attribute value for img using "width" and width.
         if let Some(w) = width {
-            image.SetWidth(w);
+            image.SetWidth(cx, w);
         }
 
         // Step 4. If height is given, then set an attribute value for img using "height" and
         // height.
         if let Some(h) = height {
-            image.SetHeight(h);
+            image.SetHeight(cx, h);
         }
 
         // Step 5. Return img.
@@ -1809,8 +1809,8 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin>
-    fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
-        set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
+    fn SetCrossOrigin(&self, cx: &mut js::context::JSContext, value: Option<DOMString>) {
+        set_cross_origin_attribute(cx, self.upcast::<Element>(), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap

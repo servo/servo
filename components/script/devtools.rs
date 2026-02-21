@@ -511,22 +511,23 @@ pub(crate) fn handle_modify_attribute(
                     AttrValue::String(string),
                 );
             },
-            None => elem.RemoveAttribute(DOMString::from(modification.attribute_name), CanGc::from_cx(cx)),
+            None => elem.RemoveAttribute(cx, DOMString::from(modification.attribute_name)),
         }
     }
 }
 
 pub(crate) fn handle_modify_rule(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     modifications: Vec<RuleModification>,
-    can_gc: CanGc,
 ) {
     let Some(document) = documents.find_document(pipeline) else {
         return warn!("Document for pipeline id {} is not found", &pipeline);
     };
-    let _realm = enter_realm(document.window());
+    let mut realm = enter_auto_realm(cx, document.window());
+    let cx = &mut realm;
 
     let Some(node) = find_node_by_unique_id(documents, pipeline, &node_id) else {
         return warn!(
@@ -538,14 +539,14 @@ pub(crate) fn handle_modify_rule(
     let elem = node
         .downcast::<HTMLElement>()
         .expect("This should be an HTMLElement");
-    let style = elem.Style(can_gc);
+    let style = elem.Style(CanGc::from_cx(cx));
 
     for modification in modifications {
         let _ = style.SetProperty(
+            cx,
             modification.name.into(),
             modification.value.into(),
             modification.priority.into(),
-            can_gc,
         );
     }
 }

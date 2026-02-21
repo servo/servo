@@ -144,7 +144,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length>
-    fn SetLength(&self, length: u32, can_gc: CanGc) {
+    fn SetLength(&self, cx: &mut js::context::JSContext, length: u32) {
         // Step 1. Let current be the number of nodes represented by the collection.
         let current = self.upcast().Length();
 
@@ -161,7 +161,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
 
                 // Step 2.3 Append n new option elements with no attributes and no child
                 // nodes to the select element on which this is rooted.
-                self.add_new_elements(n, can_gc).unwrap();
+                self.add_new_elements(n, CanGc::from_cx(cx)).unwrap();
             },
             // Step 3. If the given value is less than current, then:
             Ordering::Less => {

@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
 
 use crate::dom::attr::Attr;
@@ -90,10 +91,10 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-output-defaultvalue>
-    fn SetDefaultValue(&self, value: DOMString, can_gc: CanGc) {
+    fn SetDefaultValue(&self, cx: &mut JSContext, value: DOMString) {
         if self.default_value_override.borrow().is_none() {
             // Step 1 ("and return")
-            Node::string_replace_all(value.clone(), self.upcast::<Node>(), can_gc);
+            Node::string_replace_all(value.clone(), self.upcast::<Node>(), CanGc::from_cx(cx));
         } else {
             // Step 2, if not returned from step 1
             *self.default_value_override.borrow_mut() = Some(value);
@@ -106,9 +107,9 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-output-value>
-    fn SetValue(&self, value: DOMString, can_gc: CanGc) {
+    fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
         *self.default_value_override.borrow_mut() = Some(self.DefaultValue());
-        Node::string_replace_all(value, self.upcast::<Node>(), can_gc);
+        Node::string_replace_all(value, self.upcast::<Node>(), CanGc::from_cx(cx));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-output-type>

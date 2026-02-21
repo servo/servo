@@ -251,8 +251,8 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fs-encoding>
-    fn SetEncoding(&self, value: DOMString) {
-        self.SetEnctype(value)
+    fn SetEncoding(&self, cx: &mut js::context::JSContext, value: DOMString) {
+        self.SetEnctype(cx, value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-method
@@ -496,9 +496,9 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-rel>
-    fn SetRel(&self, rel: DOMString, can_gc: CanGc) {
+    fn SetRel(&self, cx: &mut js::context::JSContext, rel: DOMString) {
         self.upcast::<Element>()
-            .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
+            .set_tokenlist_attribute(cx, &local_name!("rel"), rel);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-rellist>

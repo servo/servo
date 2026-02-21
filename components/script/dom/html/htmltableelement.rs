@@ -213,9 +213,9 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-caption>
-    fn SetCaption(&self, new_caption: Option<&HTMLTableCaptionElement>) -> Fallible<()> {
+    fn SetCaption(&self, cx: &mut js::context::JSContext, new_caption: Option<&HTMLTableCaptionElement>) -> Fallible<()> {
         if let Some(ref caption) = self.GetCaption() {
-            caption.upcast::<Node>().remove_self(CanGc::note());
+            caption.upcast::<Node>().remove_self(CanGc::from_cx(cx));
         }
 
         if let Some(caption) = new_caption {
@@ -223,7 +223,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             node.InsertBefore(
                 caption.upcast(),
                 node.GetFirstChild().as_deref(),
-                CanGc::note(),
+                CanGc::from_cx(cx),
             )?;
         }
 
@@ -266,12 +266,12 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-thead>
-    fn SetTHead(&self, thead: Option<&HTMLTableSectionElement>) -> ErrorResult {
+    fn SetTHead(&self, cx: &mut js::context::JSContext, thead: Option<&HTMLTableSectionElement>) -> ErrorResult {
         self.set_first_section_of_type(
             &local_name!("thead"),
             thead,
             |n| !n.is::<HTMLTableCaptionElement>() && !n.is::<HTMLTableColElement>(),
-            CanGc::note(),
+            CanGc::from_cx(cx),
         )
     }
 
@@ -291,7 +291,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-tfoot>
-    fn SetTFoot(&self, tfoot: Option<&HTMLTableSectionElement>) -> ErrorResult {
+    fn SetTFoot(&self, cx: &mut js::context::JSContext, tfoot: Option<&HTMLTableSectionElement>) -> ErrorResult {
         self.set_first_section_of_type(
             &local_name!("tfoot"),
             tfoot,
@@ -309,7 +309,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
 
                 true
             },
-            CanGc::note(),
+            CanGc::from_cx(cx),
         )
     }
 

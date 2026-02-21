@@ -143,9 +143,9 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-text>
-    fn SetText(&self, value: DOMString, can_gc: CanGc) {
+    fn SetText(&self, cx: &mut js::context::JSContext, value: DOMString) {
         self.upcast::<Node>()
-            .set_text_content_for_element(Some(value), can_gc)
+            .set_text_content_for_element(Some(value), CanGc::from_cx(cx))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel
@@ -209,8 +209,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href>
-    fn SetHref(&self, value: USVString, can_gc: CanGc) {
-        self.set_href(value, can_gc);
+    fn SetHref(&self, cx: &mut js::context::JSContext, value: USVString) {
+        self.set_href(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-origin>
@@ -224,8 +224,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol>
-    fn SetProtocol(&self, value: USVString, can_gc: CanGc) {
-        self.set_protocol(value, can_gc);
+    fn SetProtocol(&self, cx: &mut js::context::JSContext, value: USVString) {
+        self.set_protocol(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
@@ -234,8 +234,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-password>
-    fn SetPassword(&self, value: USVString, can_gc: CanGc) {
-        self.set_password(value, can_gc);
+    fn SetPassword(&self, cx: &mut js::context::JSContext, value: USVString) {
+        self.set_password(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
@@ -244,8 +244,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash>
-    fn SetHash(&self, value: USVString, can_gc: CanGc) {
-        self.set_hash(value, can_gc);
+    fn SetHash(&self, cx: &mut js::context::JSContext, value: USVString) {
+        self.set_hash(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
@@ -254,8 +254,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-host>
-    fn SetHost(&self, value: USVString, can_gc: CanGc) {
-        self.set_host(value, can_gc);
+    fn SetHost(&self, cx: &mut js::context::JSContext, value: USVString) {
+        self.set_host(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
@@ -264,8 +264,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname>
-    fn SetHostname(&self, value: USVString, can_gc: CanGc) {
-        self.set_hostname(value, can_gc);
+    fn SetHostname(&self, cx: &mut js::context::JSContext, value: USVString) {
+        self.set_hostname(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
@@ -274,8 +274,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-port>
-    fn SetPort(&self, value: USVString, can_gc: CanGc) {
-        self.set_port(value, can_gc);
+    fn SetPort(&self, cx: &mut js::context::JSContext, value: USVString) {
+        self.set_port(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
@@ -284,8 +284,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname>
-    fn SetPathname(&self, value: USVString, can_gc: CanGc) {
-        self.set_pathname(value, can_gc);
+    fn SetPathname(&self, cx: &mut js::context::JSContext, value: USVString) {
+        self.set_pathname(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
@@ -294,8 +294,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-search>
-    fn SetSearch(&self, value: USVString, can_gc: CanGc) {
-        self.set_search(value, can_gc);
+    fn SetSearch(&self, cx: &mut js::context::JSContext, value: USVString) {
+        self.set_search(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
@@ -304,8 +304,8 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-username>
-    fn SetUsername(&self, value: USVString, can_gc: CanGc) {
-        self.set_username(value, can_gc);
+    fn SetUsername(&self, cx: &mut js::context::JSContext, value: USVString) {
+        self.set_username(cx, value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-referrerpolicy>

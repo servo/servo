@@ -5697,7 +5697,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#document.title>
-    fn SetTitle(&self, title: DOMString, can_gc: CanGc) {
+    fn SetTitle(&self, cx: &mut js::context::JSContext, title: DOMString) {
         let root = match self.GetDocumentElement() {
             Some(root) => root,
             None => return,
@@ -5718,12 +5718,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                         ElementCreator::ScriptCreated,
                         CustomElementCreationMode::Synchronous,
                         None,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent
-                        .InsertBefore(child, parent.GetFirstChild().as_deref(), can_gc)
+                        .InsertBefore(child, parent.GetFirstChild().as_deref(), CanGc::from_cx(cx))
                         .unwrap()
                 },
             }
@@ -5744,10 +5744,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                             ElementCreator::ScriptCreated,
                             CustomElementCreationMode::Synchronous,
                             None,
-                            can_gc,
+                            CanGc::from_cx(cx),
                         );
                         head.upcast::<Node>()
-                            .AppendChild(elem.upcast(), can_gc)
+                            .AppendChild(elem.upcast(), CanGc::from_cx(cx))
                             .unwrap()
                     },
                     None => return,
@@ -5757,7 +5757,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return;
         };
 
-        node.set_text_content_for_element(Some(title), can_gc);
+        node.set_text_content_for_element(Some(title), CanGc::from_cx(cx));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-head>
@@ -5791,7 +5791,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-body>
-    fn SetBody(&self, new_body: Option<&HTMLElement>, can_gc: CanGc) -> ErrorResult {
+    fn SetBody(&self, cx: &mut js::context::JSContext, new_body: Option<&HTMLElement>) -> ErrorResult {
         // Step 1.
         let new_body = match new_body {
             Some(new_body) => new_body,
@@ -5817,7 +5817,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             // Step 3.
             (Some(ref root), Some(child)) => {
                 let root = root.upcast::<Node>();
-                root.ReplaceChild(new_body.upcast(), child.upcast(), can_gc)
+                root.ReplaceChild(new_body.upcast(), child.upcast(), CanGc::from_cx(cx))
                     .unwrap();
             },
 
@@ -5827,7 +5827,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             // Step 5.
             (Some(ref root), &None) => {
                 let root = root.upcast::<Node>();
-                root.AppendChild(new_body.upcast(), can_gc).unwrap();
+                root.AppendChild(new_body.upcast(), CanGc::from_cx(cx)).unwrap();
             },
         }
         Ok(())

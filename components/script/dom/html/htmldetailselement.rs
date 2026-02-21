@@ -272,8 +272,8 @@ impl HTMLDetailsElement {
         shadow_tree.details_content.Assign(slottable_children);
     }
 
-    fn update_shadow_tree_styles(&self, can_gc: CanGc) {
-        let shadow_tree = self.shadow_tree(can_gc);
+    fn update_shadow_tree_styles(&self, cx: &mut js::context::JSContext) {
+        let shadow_tree = self.shadow_tree(CanGc::from_cx(cx));
 
         // Manually update the list item style of the implicit summary element.
         // Unlike the other summaries, this summary is in the shadow tree and
@@ -291,7 +291,7 @@ impl HTMLDetailsElement {
         shadow_tree
             .implicit_summary
             .upcast::<Element>()
-            .set_string_attribute(&local_name!("style"), implicit_summary_style.into(), can_gc);
+            .set_string_attribute(cx, &local_name!("style"), implicit_summary_style.into());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#ensure-details-exclusivity-by-closing-the-given-element-if-needed>
@@ -441,7 +441,7 @@ impl VirtualMethods for HTMLDetailsElement {
         }
         // Step 3. If localName is open, then:
         else if attr.local_name() == &local_name!("open") {
-            self.update_shadow_tree_styles(CanGc::from_cx(cx));
+            self.update_shadow_tree_styles(cx);
 
             let counter = self.toggle_counter.get().wrapping_add(1);
             self.toggle_counter.set(counter);
@@ -455,7 +455,7 @@ impl VirtualMethods for HTMLDetailsElement {
             self.owner_global()
                 .task_manager()
                 .dom_manipulation_task_source()
-                .queue(task!(details_notification_task_steps: move || {
+                .queue(task!(details_notification_task_steps: move |cx| {
                     let this = this.root();
                     if counter == this.toggle_counter.get() {
                         let event = ToggleEvent::new(

@@ -1272,7 +1272,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#the-src-idl-attribute>
-    fn SetSrc(&self, value: TrustedScriptURLOrUSVString, can_gc: CanGc) -> Fallible<()> {
+    fn SetSrc(&self, cx: &mut JSContext, value: TrustedScriptURLOrUSVString) -> Fallible<()> {
         let element = self.upcast::<Element>();
         let local_name = &local_name!("src");
         let value = TrustedScriptURL::get_trusted_script_url_compliant_string(
@@ -1280,12 +1280,12 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             value,
             "HTMLScriptElement",
             local_name,
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
         element.set_attribute(
+            cx,
             local_name,
             AttrValue::String(value.str().to_owned()),
-            can_gc,
         );
         Ok(())
     }
@@ -1308,10 +1308,10 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-async>
-    fn SetAsync(&self, value: bool, can_gc: CanGc) {
+    fn SetAsync(&self, cx: &mut JSContext, value: bool) {
         self.non_blocking.set(false);
         self.upcast::<Element>()
-            .set_bool_attribute(&local_name!("async"), value, can_gc);
+            .set_bool_attribute(cx, &local_name!("async"), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-defer
@@ -1345,8 +1345,8 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-crossorigin>
-    fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
-        set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
+    fn SetCrossOrigin(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        set_cross_origin_attribute(cx, self.upcast::<Element>(), value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-referrerpolicy>
@@ -1364,18 +1364,18 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#the-innerText-idl-attribute>
-    fn SetInnerText(&self, input: TrustedScriptOrString, can_gc: CanGc) -> Fallible<()> {
+    fn SetInnerText(&self, cx: &mut JSContext, input: TrustedScriptOrString) -> Fallible<()> {
         // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
         // this's relevant global object, the given value, HTMLScriptElement innerText, and script.
         let value = TrustedScript::get_trusted_script_compliant_string(
             &self.owner_global(),
             input,
             "HTMLScriptElement innerText",
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
         *self.script_text.borrow_mut() = value.clone();
         // Step 3: Run set the inner text steps with this and value.
-        self.upcast::<HTMLElement>().set_inner_text(value, can_gc);
+        self.upcast::<HTMLElement>().set_inner_text(value, CanGc::from_cx(cx));
         Ok(())
     }
 
@@ -1385,19 +1385,19 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#the-text-idl-attribute>
-    fn SetText(&self, value: TrustedScriptOrString, can_gc: CanGc) -> Fallible<()> {
+    fn SetText(&self, cx: &mut JSContext, value: TrustedScriptOrString) -> Fallible<()> {
         // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
         // this's relevant global object, the given value, HTMLScriptElement text, and script.
         let value = TrustedScript::get_trusted_script_compliant_string(
             &self.owner_global(),
             value,
             "HTMLScriptElement text",
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
         // Step 2: Set this's script text value to the given value.
         *self.script_text.borrow_mut() = value.clone();
         // Step 3: String replace all with the given value within this.
-        Node::string_replace_all(value, self.upcast::<Node>(), can_gc);
+        Node::string_replace_all(value, self.upcast::<Node>(), CanGc::from_cx(cx));
         Ok(())
     }
 
@@ -1410,20 +1410,20 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#the-textContent-idl-attribute>
-    fn SetTextContent(&self, value: Option<TrustedScriptOrString>, can_gc: CanGc) -> Fallible<()> {
+    fn SetTextContent(&self, cx: &mut JSContext, value: Option<TrustedScriptOrString>) -> Fallible<()> {
         // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
         // this's relevant global object, the given value, HTMLScriptElement textContent, and script.
         let value = TrustedScript::get_trusted_script_compliant_string(
             &self.owner_global(),
             value.unwrap_or(TrustedScriptOrString::String(DOMString::from(""))),
             "HTMLScriptElement textContent",
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
         // Step 2: Set this's script text value to value.
         *self.script_text.borrow_mut() = value.clone();
         // Step 3: Run set text content with this and value.
         self.upcast::<Node>()
-            .set_text_content_for_element(Some(value), can_gc);
+            .set_text_content_for_element(Some(value), CanGc::from_cx(cx));
         Ok(())
     }
 

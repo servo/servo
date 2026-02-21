@@ -418,6 +418,11 @@ class Descriptor(DescriptorProvider):
                                              binaryName[0])
             self._internalNames.setdefault(member.identifier.name,
                                            member.identifier.name.replace('-', '_'))
+            if member.isAttr():
+                if not member.readonly:
+                    if member.getExtendedAttribute("CEReactions"):
+                        self.cxMethods.append("Set" + MakeNativeName(member.identifier.name.replace('-', '_')))
+
 
         # Build the prototype chain.
         self.prototypeChain = []

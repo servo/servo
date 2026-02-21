@@ -306,11 +306,11 @@ impl ColorInputShadowTree {
         }
     }
 
-    fn update(&self, input_element: &HTMLInputElement, can_gc: CanGc) {
+    fn update(&self, cx: &mut js::context::JSContext, input_element: &HTMLInputElement) {
         let value = input_element.Value();
         let style = format!("background-color: {value}");
         self.color_value
-            .set_string_attribute(&local_name!("style"), style.into(), can_gc);
+            .set_string_attribute(cx, &local_name!("style"), style.into());
     }
 }
 
@@ -1720,7 +1720,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-value>
-    fn SetValue(&self, mut value: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn SetValue(&self, cx: &mut js::context::JSContext, mut value: DOMString) -> ErrorResult {
         match self.value_mode() {
             ValueMode::Value => {
                 {
@@ -1753,12 +1753,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             },
             ValueMode::Default | ValueMode::DefaultOn => {
                 self.upcast::<Element>()
-                    .set_string_attribute(&local_name!("value"), value, can_gc);
+                    .set_string_attribute(cx, &local_name!("value"), value);
             },
             ValueMode::Filename => {
                 if value.is_empty() {
                     let window = self.owner_window();
-                    let fl = FileList::new(&window, vec![], can_gc);
+                    let fl = FileList::new(&window, vec![], CanGc::from_cx(cx));
                     self.filelist.set(Some(&fl));
                 } else {
                     return Err(Error::InvalidState(None));
@@ -1766,7 +1766,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             },
         }
 
-        self.value_changed(can_gc);
+        self.value_changed(CanGc::from_cx(cx));
         self.upcast::<Node>().dirty(NodeDamage::Other);
         Ok(())
     }
@@ -1805,16 +1805,15 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     #[expect(unsafe_code)]
     fn SetValueAsDate(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         value: *mut JSObject,
-        can_gc: CanGc,
     ) -> ErrorResult {
-        rooted!(in(*cx) let value = value);
+        rooted!(&in(cx) let value = value);
         if !self.does_value_as_date_apply() {
             return Err(Error::InvalidState(None));
         }
         if value.is_null() {
-            return self.SetValue(DOMString::from(""), can_gc);
+            return self.SetValue(cx, DOMString::from(""));
         }
         let mut msecs: f64 = 0.0;
         // We need to go through unsafe code to interrogate jsapi about a Date.
@@ -1832,14 +1831,14 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 return Err(Error::JSFailed);
             }
             if !msecs.is_finite() {
-                return self.SetValue(DOMString::from(""), can_gc);
+                return self.SetValue(cx, DOMString::from(""));
             }
         }
 
         let Ok(date_time) = OffsetDateTime::from_unix_timestamp_nanos((msecs * 1e6) as i128) else {
-            return self.SetValue(DOMString::from(""), can_gc);
+            return self.SetValue(cx, DOMString::from(""));
         };
-        self.SetValue(self.convert_datetime_to_dom_string(date_time), can_gc)
+        self.SetValue(cx, self.convert_datetime_to_dom_string(date_time))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-valueasnumber>
@@ -2912,7 +2911,7 @@ impl HTMLInputElement {
         }
     }
 
-    pub(crate) fn handle_color_picker_response(&self, response: Option<RgbColor>, can_gc: CanGc) {
+    pub(crate) fn handle_color_picker_response(&self, cx: &mut js::context::JSContext, response: Option<RgbColor>) {
         let Some(selected_color) = response else {
             return;
         };
@@ -2921,7 +2920,7 @@ impl HTMLInputElement {
             "#{:0>2x}{:0>2x}{:0>2x}",
             selected_color.red, selected_color.green, selected_color.blue
         );
-        let _ = self.SetValue(formatted_color.into(), can_gc);
+        let _ = self.SetValue(cx, formatted_color.into());
     }
 
     pub(crate) fn handle_file_picker_response(
@@ -3111,19 +3110,19 @@ impl VirtualMethods for HTMLInputElement {
                             // Step 1
                             (&ValueMode::Value, false, ValueMode::Default) |
                             (&ValueMode::Value, false, ValueMode::DefaultOn) => {
-                                self.SetValue(old_idl_value, CanGc::from_cx(cx))
+                                self.SetValue(cx, old_idl_value)
                                     .expect("Failed to set input value on type change to a default ValueMode.");
                             },
 
                             // Step 2
                             (_, _, ValueMode::Value) if old_value_mode != ValueMode::Value => {
                                 self.SetValue(
+                                    cx,
                                     self.upcast::<Element>()
                                         .get_attribute(&ns!(), &local_name!("value"))
                                         .map_or(DOMString::from(""), |a| {
                                             DOMString::from(a.summarize().value)
                                         }),
-                                    CanGc::from_cx(cx),
                                 )
                                 .expect(
                                     "Failed to set input value on type change to ValueMode::Value.",
@@ -3135,7 +3134,7 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Filename)
                                 if old_value_mode != ValueMode::Filename =>
                             {
-                                self.SetValue(DOMString::from(""), CanGc::from_cx(cx))
+                                self.SetValue(cx, DOMString::from(""))
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             },
                             _ => {},
@@ -3242,7 +3241,7 @@ impl VirtualMethods for HTMLInputElement {
                 }
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, can_gc);
+                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
             },
             local_name!("alpha") | local_name!("colorspace") => {
                 // https://html.spec.whatwg.org/multipage/#attr-input-colorspace

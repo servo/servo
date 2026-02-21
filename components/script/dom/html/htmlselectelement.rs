@@ -250,9 +250,9 @@ impl HTMLSelectElement {
         }
     }
 
-    fn create_shadow_tree(&self, can_gc: CanGc) {
+    fn create_shadow_tree(&self, cx: &mut js::context::JSContext) {
         let document = self.owner_document();
-        let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
+        let root = self.upcast::<Element>().attach_ua_shadow_root(true, CanGc::from_cx(cx));
 
         let select_box = Element::create(
             QualName::new(None, ns!(html), local_name!("div")),
@@ -261,9 +261,9 @@ impl HTMLSelectElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        select_box.set_string_attribute(&local_name!("style"), SELECT_BOX_STYLE.into(), can_gc);
+        select_box.set_string_attribute(cx, &local_name!("style"), SELECT_BOX_STYLE.into());
 
         let text_container = Element::create(
             QualName::new(None, ns!(html), local_name!("div")),
@@ -272,25 +272,25 @@ impl HTMLSelectElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         text_container.set_string_attribute(
+            cx,
             &local_name!("style"),
             TEXT_CONTAINER_STYLE.into(),
-            can_gc,
         );
         select_box
             .upcast::<Node>()
-            .AppendChild(text_container.upcast::<Node>(), can_gc)
+            .AppendChild(text_container.upcast::<Node>(), CanGc::from_cx(cx))
             .unwrap();
 
-        let text = Text::new(DOMString::new(), &document, can_gc);
+        let text = Text::new(DOMString::new(), &document, CanGc::from_cx(cx));
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
             selected_option: text.as_traced(),
         });
         text_container
             .upcast::<Node>()
-            .AppendChild(text.upcast::<Node>(), can_gc)
+            .AppendChild(text.upcast::<Node>(), CanGc::from_cx(cx))
             .unwrap();
 
         let chevron_container = Element::create(
@@ -300,29 +300,29 @@ impl HTMLSelectElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         chevron_container.set_string_attribute(
+            cx,
             &local_name!("style"),
             CHEVRON_CONTAINER_STYLE.into(),
-            can_gc,
         );
         chevron_container
             .upcast::<Node>()
-            .set_text_content_for_element(Some("▾".into()), can_gc);
+            .set_text_content_for_element(Some("▾".into()), CanGc::from_cx(cx));
         select_box
             .upcast::<Node>()
-            .AppendChild(chevron_container.upcast::<Node>(), can_gc)
+            .AppendChild(chevron_container.upcast::<Node>(), CanGc::from_cx(cx))
             .unwrap();
 
         root.upcast::<Node>()
-            .AppendChild(select_box.upcast::<Node>(), can_gc)
+            .AppendChild(select_box.upcast::<Node>(), CanGc::from_cx(cx))
             .unwrap();
     }
 
-    fn shadow_tree(&self, can_gc: CanGc) -> Ref<'_, ShadowTree> {
+    fn shadow_tree(&self, cx: &mut js::context::JSContext) -> Ref<'_, ShadowTree> {
         if !self.upcast::<Element>().is_shadow_host() {
-            self.create_shadow_tree(can_gc);
+            self.create_shadow_tree(cx);
         }
 
         Ref::filter_map(self.shadow_tree.borrow(), Option::as_ref)
@@ -330,8 +330,8 @@ impl HTMLSelectElement {
             .expect("UA shadow tree was not created")
     }
 
-    pub(crate) fn update_shadow_tree(&self, can_gc: CanGc) {
-        let shadow_tree = self.shadow_tree(can_gc);
+    pub(crate) fn update_shadow_tree(&self, cx: &mut js::context::JSContext, can_gc: CanGc) {
+        let shadow_tree = self.shadow_tree(cx);
 
         let selected_option_text = self
             .selected_option()
@@ -539,8 +539,8 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-length>
-    fn SetLength(&self, length: u32, can_gc: CanGc) {
-        self.Options().SetLength(length, can_gc)
+    fn SetLength(&self, cx: &mut js::context::JSContext, length: u32) {
+        self.Options().SetLength(cx, length)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-item>

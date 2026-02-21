@@ -145,24 +145,24 @@ impl HTMLCanvasElement {
         }
     }
 
-    pub(crate) fn set_natural_width(&self, value: u32, can_gc: CanGc) {
+    pub(crate) fn set_natural_width(&self, cx: &mut js::context::JSContext, value: u32) {
         let value = if value > UNSIGNED_LONG_MAX {
             DEFAULT_WIDTH
         } else {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("width"), value, can_gc);
+        element.set_uint_attribute(cx, &html5ever::local_name!("width"), value);
     }
 
-    pub(crate) fn set_natural_height(&self, value: u32, can_gc: CanGc) {
+    pub(crate) fn set_natural_height(&self, cx: &mut js::context::JSContext, value: u32) {
         let value = if value > UNSIGNED_LONG_MAX {
             DEFAULT_HEIGHT
         } else {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("height"), value, can_gc);
+        element.set_uint_attribute(cx, &html5ever::local_name!("height"), value);
     }
 }
 
@@ -426,7 +426,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     make_uint_getter!(Width, "width", DEFAULT_WIDTH);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-width>
-    fn SetWidth(&self, value: u32, can_gc: CanGc) -> Fallible<()> {
+    fn SetWidth(&self, cx: &mut js::context::JSContext, value: u32) -> Fallible<()> {
         // > When setting the value of the width or height attribute, if the context mode of the canvas element
         // > is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
         // > attribute's value unchanged.
@@ -440,7 +440,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("width"), value, can_gc);
+        element.set_uint_attribute(cx, &html5ever::local_name!("width"), value);
         Ok(())
     }
 
@@ -448,7 +448,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     make_uint_getter!(Height, "height", DEFAULT_HEIGHT);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-height>
-    fn SetHeight(&self, value: u32, can_gc: CanGc) -> Fallible<()> {
+    fn SetHeight(&self, cx: &mut js::context::JSContext, value: u32) -> Fallible<()> {
         // > When setting the value of the width or height attribute, if the context mode of the canvas element
         // > is set to placeholder, the user agent must throw an "InvalidStateError" DOMException and leave the
         // > attribute's value unchanged.
@@ -462,7 +462,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
             value
         };
         let element = self.upcast::<Element>();
-        element.set_uint_attribute(&html5ever::local_name!("height"), value, can_gc);
+        element.set_uint_attribute(cx, &html5ever::local_name!("height"), value);
         Ok(())
     }
 

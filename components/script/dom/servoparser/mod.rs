@@ -1826,13 +1826,13 @@ impl TreeSink for Sink {
 
 /// <https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token>
 fn create_element_for_token(
+    cx: &mut js::context::JSContext,
     name: QualName,
     attrs: Vec<ElementAttribute>,
     document: &Document,
     creator: ElementCreator,
     parsing_algorithm: ParsingAlgorithm,
     custom_element_reaction_stack: &CustomElementReactionStack,
-    can_gc: CanGc,
 ) -> DomRoot<Element> {
     // Step 1. If the active speculative HTML parser is not null, then return the result
     // of creating a speculative mock element given namespace, token's tag name, and
@@ -1875,7 +1875,7 @@ fn create_element_for_token(
         // Step 6.2. If the JavaScript execution context stack is empty, then perform a
         // microtask checkpoint.
         if is_execution_stack_empty() {
-            document.window().perform_a_microtask_checkpoint(can_gc);
+            document.window().perform_a_microtask_checkpoint(CanGc::from_cx(cx));
         }
         // Step 9.3. Push a new element queue onto document's relevant agent's custom
         // element reactions stack.
@@ -1889,11 +1889,11 @@ fn create_element_for_token(
     } else {
         CustomElementCreationMode::Asynchronous
     };
-    let element = Element::create(name, is, document, creator, creation_mode, None, can_gc);
+    let element = Element::create(name, is, document, creator, creation_mode, None, CanGc::from_cx(cx));
 
     // Step 11. Append each attribute in the given token to element.
     for attr in attrs {
-        element.set_attribute_from_parser(attr.name, attr.value, None, can_gc);
+        element.set_attribute_from_parser(cx, attr.name, attr.value, None);
     }
 
     // Step 12. If willExecuteScript is true:
@@ -1902,7 +1902,7 @@ fn create_element_for_token(
         // custom element reactions stack. (This will be the same element queue as was
         // pushed above.)
         // Step 12.2 Invoke custom element reactions in queue.
-        custom_element_reaction_stack.pop_current_element_queue(can_gc);
+        custom_element_reaction_stack.pop_current_element_queue(CanGc::from_cx(cx));
         // Step 12.3. Decrement document's throw-on-dynamic-markup-insertion counter.
         document.decrement_throw_on_dynamic_markup_insertion_counter();
     }
@@ -1918,7 +1918,7 @@ fn create_element_for_token(
     // checkedness based on the element's attributes.)
     if let Some(html_element) = element.downcast::<HTMLElement>() {
         if element.is_resettable() && !html_element.is_form_associated_custom_element() {
-            element.reset(can_gc);
+            element.reset(CanGc::from_cx(cx));
         }
     }
 

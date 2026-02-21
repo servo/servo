@@ -2163,11 +2163,11 @@ impl ScriptThread {
             },
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) => {
                 devtools::handle_modify_attribute(
+                    cx,
                     &documents,
                     id,
                     node_id,
                     modifications,
-                    CanGc::from_cx(cx),
                 )
             },
             DevtoolScriptControlMsg::ModifyRule(id, node_id, modifications) => {

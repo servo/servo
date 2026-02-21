@@ -29,10 +29,9 @@ macro_rules! make_bool_getter(
 #[macro_export]
 macro_rules! make_limited_int_setter(
     ($attr:ident, $htmlname:tt, $default:expr) => (
-        fn $attr(&self, value: i32) -> $crate::dom::bindings::error::ErrorResult {
+        fn $attr(&self, cx: &mut js::context::JSContext, value: i32) -> $crate::dom::bindings::error::ErrorResult {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
-            use $crate::script_runtime::CanGc;
 
             let value = if value < 0 {
                 return Err($crate::dom::bindings::error::Error::IndexSize(None));
@@ -41,7 +40,7 @@ macro_rules! make_limited_int_setter(
             };
 
             let element = self.upcast::<Element>();
-            element.set_int_attribute(&html5ever::local_name!($htmlname), value, CanGc::note());
+            element.set_int_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx));
             Ok(())
         }
     );
@@ -317,11 +316,10 @@ macro_rules! make_uint_setter(
 #[macro_export]
 macro_rules! make_clamped_uint_setter(
     ($attr:ident, $htmlname:tt, $min:expr, $max:expr, $default:expr) => (
-        fn $attr(&self, value: u32) {
+        fn $attr(&self, cx: &mut js::context::JSContext, value: u32) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use $crate::dom::values::UNSIGNED_LONG_MAX;
-            use $crate::script_runtime::CanGc;
             let value = if value > UNSIGNED_LONG_MAX {
                 $default
             } else {
@@ -329,7 +327,7 @@ macro_rules! make_clamped_uint_setter(
             };
 
             let element = self.upcast::<Element>();
-            element.set_uint_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+            element.set_uint_attribute(cx, &html5ever::local_name!($htmlname), value)
         }
     );
 );
@@ -400,13 +398,12 @@ macro_rules! make_dimension_setter(
 #[macro_export]
 macro_rules! make_nonzero_dimension_setter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, value: DOMString) {
+        fn $attr(&self, cx: &mut js::context::JSContext, value: DOMString) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
-            use $crate::script_runtime::CanGc;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_nonzero_dimension(value.into());
-            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::note())
+            element.set_attribute(&html5ever::local_name!($htmlname), value, CanGc::from_cx(cx))
         }
     );
 );

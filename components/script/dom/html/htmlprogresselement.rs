@@ -69,9 +69,9 @@ impl HTMLProgressElement {
         )
     }
 
-    fn create_shadow_tree(&self, can_gc: CanGc) {
+    fn create_shadow_tree(&self, cx: &mut js::context::JSContext) {
         let document = self.owner_document();
-        let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
+        let root = self.upcast::<Element>().attach_ua_shadow_root(true, CanGc::from_cx(cx));
 
         let progress_bar = Element::create(
             QualName::new(None, ns!(html), local_name!("div")),
@@ -80,13 +80,13 @@ impl HTMLProgressElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // FIXME: This should use ::-moz-progress-bar
-        progress_bar.SetId("-servo-progress-bar".into(), can_gc);
+        progress_bar.SetId(cx, "-servo-progress-bar".into());
         root.upcast::<Node>()
-            .AppendChild(progress_bar.upcast::<Node>(), can_gc)
+            .AppendChild(progress_bar.upcast::<Node>(), CanGc::from_cx(cx))
             .unwrap();
 
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
@@ -96,9 +96,9 @@ impl HTMLProgressElement {
             .dirty(crate::dom::node::NodeDamage::Other);
     }
 
-    fn shadow_tree(&self, can_gc: CanGc) -> Ref<'_, ShadowTree> {
+    fn shadow_tree(&self, cx: &mut js::context::JSContext) -> Ref<'_, ShadowTree> {
         if !self.upcast::<Element>().is_shadow_host() {
-            self.create_shadow_tree(can_gc);
+            self.create_shadow_tree(cx);
         }
 
         Ref::filter_map(self.shadow_tree.borrow(), Option::as_ref)
@@ -107,14 +107,14 @@ impl HTMLProgressElement {
     }
 
     /// Update the visual width of bar
-    fn update_state(&self, can_gc: CanGc) {
-        let shadow_tree = self.shadow_tree(can_gc);
+    fn update_state(&self, cx: &mut js::context::JSContext) {
+        let shadow_tree = self.shadow_tree(cx);
         let position = (*self.Value() / *self.Max()) * 100.0;
         let style = format!("width: {}%", position);
 
         shadow_tree
             .progress_bar
-            .set_string_attribute(&local_name!("style"), style.into(), can_gc);
+            .set_string_attribute(cx, &local_name!("style"), style.into());
     }
 }
 
@@ -143,16 +143,16 @@ impl HTMLProgressElementMethods<crate::DomTypeHolder> for HTMLProgressElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-progress-value>
-    fn SetValue(&self, new_val: Finite<f64>, can_gc: CanGc) {
+    fn SetValue(&self, cx: &mut js::context::JSContext, new_val: Finite<f64>) {
         if *new_val >= 0.0 {
             let mut string_value = DOMString::from_string((*new_val).to_string());
 
             string_value.set_best_representation_of_the_floating_point_number();
 
             self.upcast::<Element>().set_string_attribute(
+                cx,
                 &local_name!("value"),
                 string_value,
-                can_gc,
             );
         }
     }
@@ -175,16 +175,16 @@ impl HTMLProgressElementMethods<crate::DomTypeHolder> for HTMLProgressElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-progress-max>
-    fn SetMax(&self, new_val: Finite<f64>, can_gc: CanGc) {
+    fn SetMax(&self, cx: &mut js::context::JSContext, new_val: Finite<f64>) {
         if *new_val > 0.0 {
             let mut string_value = DOMString::from_string((*new_val).to_string());
 
             string_value.set_best_representation_of_the_floating_point_number();
 
             self.upcast::<Element>().set_string_attribute(
+                cx,
                 &local_name!("max"),
                 string_value,
-                can_gc,
             );
         }
     }
@@ -226,7 +226,7 @@ impl VirtualMethods for HTMLProgressElement {
             &local_name!("value") | &local_name!("max")
         );
         if is_important_attribute {
-            self.update_state(CanGc::from_cx(cx));
+            self.update_state(cx);
         }
     }
 

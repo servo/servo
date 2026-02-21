@@ -72,11 +72,11 @@ impl HTMLBodyElementMethods<crate::DomTypeHolder> for HTMLBodyElement {
     make_getter!(Background, "background");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-body-background>
-    fn SetBackground(&self, input: DOMString, can_gc: CanGc) {
+    fn SetBackground(&self, cx: &mut js::context::JSContext, input: DOMString) {
         let value =
             AttrValue::from_resolved_url(&self.owner_document().base_url().get_arc(), input.into());
         self.upcast::<Element>()
-            .set_attribute(&local_name!("background"), value, can_gc);
+            .set_attribute(cx, &local_name!("background"), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#windoweventhandlers

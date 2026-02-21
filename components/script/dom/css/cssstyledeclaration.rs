@@ -61,7 +61,7 @@ pub(crate) enum CSSStyleOwner {
 impl CSSStyleOwner {
     // Mutate the declaration block associated to this style owner, and
     // optionally indicate if it has changed (assumed to be true).
-    fn mutate_associated_block<F, R>(&self, f: F, can_gc: CanGc) -> R
+    fn mutate_associated_block<F, R>(&self, cx: &mut js::context::JSContext, f: F) -> R
     where
         F: FnOnce(&mut PropertyDeclarationBlock, &mut bool) -> R,
     {
@@ -107,9 +107,9 @@ impl CSSStyleOwner {
                         let mut serialization = String::new();
                         pdb.read_with(&guard).to_css(&mut serialization).unwrap();
                         el.set_attribute(
+                            cx,
                             &local_name!("style"),
                             AttrValue::Declaration(serialization, pdb),
-                            can_gc,
                         );
                     }
                 } else {
@@ -205,12 +205,12 @@ macro_rules! css_properties(
                 );
                 self.get_property_value($id)
             }
-            fn $setter(&self, value: DOMString) -> ErrorResult {
+            fn $setter(&self, cx: &mut js::context::JSContext, value: DOMString) -> ErrorResult {
                 debug_assert!(
                     $id.enabled_for_all_content(),
                     "Someone forgot a #[Pref] annotation"
                 );
-                self.set_property($id, value, DOMString::new(), CanGc::note())
+                self.set_property(cx, $id, value, DOMString::new())
             }
         )*
     );
@@ -318,16 +318,16 @@ impl CSSStyleDeclaration {
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty>
     fn set_property(
         &self,
+        cx: &mut js::context::JSContext,
         id: PropertyId,
         value: DOMString,
         priority: DOMString,
-        can_gc: CanGc,
     ) -> ErrorResult {
         self.set_property_inner(
+            cx,
             PotentiallyParsedPropertyId::Parsed(id),
             value,
             priority,
-            can_gc,
         )
     }
 
@@ -337,10 +337,10 @@ impl CSSStyleDeclaration {
     /// the caller already has a parsed property ID.
     fn set_property_inner(
         &self,
+        cx: &mut js::context::JSContext,
         id: PotentiallyParsedPropertyId,
         value: DOMString,
         priority: DOMString,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1. If the readonly flag is set, then throw a NoModificationAllowedError exception.
         if self.readonly {
@@ -363,7 +363,7 @@ impl CSSStyleDeclaration {
             },
         };
         let base_url = UrlExtraData(self.owner.base_url().get_arc());
-        self.owner.mutate_associated_block(
+        self.owner.mutate_associated_block(cx,
             |pdb, changed| {
                 // Step 3. If value is the empty string, invoke removeProperty()
                 // with property as argument and return.
@@ -421,7 +421,6 @@ impl CSSStyleDeclaration {
 
                 Ok(())
             },
-            can_gc,
         )
     }
 }
@@ -512,21 +511,21 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-setproperty>
     fn SetProperty(
         &self,
+        cx: &mut js::context::JSContext,
         property: DOMString,
         value: DOMString,
         priority: DOMString,
-        can_gc: CanGc,
     ) -> ErrorResult {
         self.set_property_inner(
+            cx,
             PotentiallyParsedPropertyId::NotParsed(property),
             value,
             priority,
-            can_gc,
         )
     }
 
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-removeproperty>
-    fn RemoveProperty(&self, property: DOMString, can_gc: CanGc) -> Fallible<DOMString> {
+    fn RemoveProperty(&self, cx: &mut js::context::JSContext, property: DOMString) -> Fallible<DOMString> {
         // Step 1
         if self.readonly {
             return Err(Error::NoModificationAllowed(None));
@@ -539,11 +538,11 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
 
         let mut string = String::new();
         self.owner.mutate_associated_block(
+            cx,
             |pdb, changed| {
                 pdb.property_value_to_css(&id, &mut string).unwrap();
                 *changed = remove_property(pdb, &id);
             },
-            can_gc,
         );
 
         // Step 6
@@ -556,12 +555,12 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyleproperties-cssfloat>
-    fn SetCssFloat(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn SetCssFloat(&self, cx: &mut js::context::JSContext, value: DOMString) -> ErrorResult {
         self.set_property(
+            cx,
             PropertyId::NonCustom(LonghandId::Float.into()),
             value,
             DOMString::new(),
-            can_gc,
         )
     }
 
@@ -596,7 +595,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext>
-    fn SetCssText(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn SetCssText(&self, cx: &mut js::context::JSContext, value: DOMString) -> ErrorResult {
         let window = self.owner.window();
 
         // Step 1
@@ -607,6 +606,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
         let quirks_mode = window.Document().quirks_mode();
         let base_url = UrlExtraData(self.owner.base_url().get_arc());
         self.owner.mutate_associated_block(
+            cx,
             |pdb, _changed| {
                 // Step 3
                 *pdb = parse_style_attribute(
@@ -617,7 +617,6 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
                     CssRuleType::Style,
                 );
             },
-            can_gc,
         );
 
         Ok(())

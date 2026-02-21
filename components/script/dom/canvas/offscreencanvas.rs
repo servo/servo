@@ -325,7 +325,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-width>
-    fn SetWidth(&self, value: u64, can_gc: CanGc) {
+    fn SetWidth(&self, cx: &mut js::context::JSContext, value: u64) {
         self.width.set(value);
 
         if let Some(canvas_context) = self.context() {
@@ -333,7 +333,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         }
 
         if let Some(canvas) = self.placeholder() {
-            canvas.set_natural_width(value as _, can_gc)
+            canvas.set_natural_width(cx, value as _)
         }
     }
 
@@ -343,7 +343,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-offscreencanvas-height>
-    fn SetHeight(&self, value: u64, can_gc: CanGc) {
+    fn SetHeight(&self, cx: &mut js::context::JSContext, value: u64) {
         self.height.set(value);
 
         if let Some(canvas_context) = self.context() {
@@ -351,7 +351,7 @@ impl OffscreenCanvasMethods<crate::DomTypeHolder> for OffscreenCanvas {
         }
 
         if let Some(canvas) = self.placeholder() {
-            canvas.set_natural_height(value as _, can_gc)
+            canvas.set_natural_height(cx, value as _)
         }
     }
 

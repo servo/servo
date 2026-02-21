@@ -3644,7 +3644,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-innerhtml>
-    fn SetInnerHTML(&self, value: TrustedHTMLOrNullIsEmptyString, can_gc: CanGc) -> ErrorResult {
+    fn SetInnerHTML(&self, cx: &mut js::context::JSContext, value: TrustedHTMLOrNullIsEmptyString) -> ErrorResult {
         // Step 1: Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, the given value, "Element innerHTML", and "script".
@@ -3652,13 +3652,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             &self.owner_global(),
             value.convert(),
             "Element innerHTML",
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
         // https://github.com/w3c/DOM-Parsing/issues/1
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
             // Step 4: If context is a template element, then set context to
             // the template element's template contents (a DocumentFragment).
-            DomRoot::upcast(template.Content(can_gc))
+            DomRoot::upcast(template.Content(CanGc::from_cx(cx)))
         } else {
             // Step 2: Let context be this.
             DomRoot::from_ref(self.upcast())
@@ -3673,15 +3673,15 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 .iter()
                 .any(|c| matches!(*c, b'&' | b'\0' | b'<' | b'\r'))
         {
-            return Node::SetTextContent(&target, Some(value), can_gc);
+            return Node::SetTextContent(&target, cx, Some(value));
         }
 
         // Step 3: Let fragment be the result of invoking the fragment parsing algorithm steps
         // with context and compliantString.
-        let frag = self.parse_fragment(value, can_gc)?;
+        let frag = self.parse_fragment(value, CanGc::from_cx(cx))?;
 
         // Step 5: Replace all with fragment within context.
-        Node::replace_all(Some(frag.upcast()), &target, can_gc);
+        Node::replace_all(Some(frag.upcast()), &target, CanGc::from_cx(cx));
         Ok(())
     }
 
@@ -3700,7 +3700,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-outerhtml>
-    fn SetOuterHTML(&self, value: TrustedHTMLOrNullIsEmptyString, can_gc: CanGc) -> ErrorResult {
+    fn SetOuterHTML(&self, cx: &mut js::context::JSContext, value: TrustedHTMLOrNullIsEmptyString) -> ErrorResult {
         // Step 1: Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, the given value, "Element outerHTML", and "script".
@@ -3708,7 +3708,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             &self.owner_global(),
             value.convert(),
             "Element outerHTML",
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
         let context_document = self.owner_document();
         let context_node = self.upcast::<Node>();
@@ -3736,7 +3736,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Synchronous,
                     None,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 DomRoot::upcast(body_elem)
             },
@@ -3745,9 +3745,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 6: Let fragment be the result of invoking the
         // fragment parsing algorithm steps given parent and compliantString.
-        let frag = parent.parse_fragment(value, can_gc)?;
+        let frag = parent.parse_fragment(value, CanGc::from_cx(cx))?;
         // Step 7: Replace this with fragment within this's parent.
-        context_parent.ReplaceChild(frag.upcast(), context_node, can_gc)?;
+        context_parent.ReplaceChild(frag.upcast(), context_node, CanGc::from_cx(cx))?;
         Ok(())
     }
 

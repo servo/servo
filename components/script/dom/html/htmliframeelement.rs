@@ -803,7 +803,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc>
-    fn SetSrcdoc(&self, value: TrustedHTMLOrString, can_gc: CanGc) -> Fallible<()> {
+    fn SetSrcdoc(&self, cx: &mut js::context::JSContext, value: TrustedHTMLOrString) -> Fallible<()> {
         // Step 1: Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, the given value, "HTMLIFrameElement srcdoc", and "script".
@@ -812,13 +812,13 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
             &element.owner_global(),
             value,
             "HTMLIFrameElement srcdoc",
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
         // Step 2: Set an attribute value given this, srcdoc's local name, and compliantString.
         element.set_attribute(
+            cx,
             &local_name!("srcdoc"),
             AttrValue::String(value.str().to_owned()),
-            can_gc,
         );
         Ok(())
     }
