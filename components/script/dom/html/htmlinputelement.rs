@@ -3037,12 +3037,12 @@ impl VirtualMethods for HTMLInputElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         let could_have_had_embedder_control = self.may_have_embedder_control();
 
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         match *attr.local_name() {
             local_name!("disabled") => {
@@ -3064,7 +3064,7 @@ impl VirtualMethods for HTMLInputElement {
                     el.set_read_write_state(read_write);
                 }
 
-                el.update_sequentially_focusable_status(can_gc);
+                el.update_sequentially_focusable_status(CanGc::from_cx(cx));
             },
             local_name!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
@@ -3075,7 +3075,7 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     AttributeMutation::Removed => false,
                 };
-                self.update_checked_state(checked_state, false, can_gc);
+                self.update_checked_state(checked_state, false, CanGc::from_cx(cx));
             },
             local_name!("size") => {
                 let size = mutation.new_value(attr).map(|value| value.as_uint());
@@ -3123,7 +3123,7 @@ impl VirtualMethods for HTMLInputElement {
                                         .map_or(DOMString::from(""), |a| {
                                             DOMString::from(a.summarize().value)
                                         }),
-                                    can_gc,
+                                    CanGc::from_cx(cx),
                                 )
                                 .expect(
                                     "Failed to set input value on type change to ValueMode::Value.",
@@ -3135,7 +3135,7 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Filename)
                                 if old_value_mode != ValueMode::Filename =>
                             {
-                                self.SetValue(DOMString::from(""), can_gc)
+                                self.SetValue(DOMString::from(""), CanGc::from_cx(cx))
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             },
                             _ => {},
@@ -3143,7 +3143,7 @@ impl VirtualMethods for HTMLInputElement {
 
                         // Step 5
                         if new_type == InputType::Radio {
-                            self.radio_group_updated(self.radio_group_name().as_ref(), can_gc);
+                            self.radio_group_updated(self.radio_group_name().as_ref(), CanGc::from_cx(cx));
                         }
 
                         // Step 6
@@ -3171,8 +3171,8 @@ impl VirtualMethods for HTMLInputElement {
                 }
 
                 self.update_placeholder_shown_state();
-                self.get_or_create_shadow_tree(can_gc)
-                    .update_placeholder_contents(self, can_gc);
+                self.get_or_create_shadow_tree(CanGc::from_cx(cx))
+                    .update_placeholder_contents(self, CanGc::from_cx(cx));
             },
             local_name!("value") if !self.value_dirty.get() => {
                 // This is only run when the `value` or `defaultValue` attribute is set. It
@@ -3188,7 +3188,7 @@ impl VirtualMethods for HTMLInputElement {
             local_name!("name") if self.input_type() == InputType::Radio => {
                 self.radio_group_updated(
                     mutation.new_value(attr).as_ref().map(|name| name.as_atom()),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             },
             local_name!("maxlength") => match *attr.value() {
@@ -3225,8 +3225,8 @@ impl VirtualMethods for HTMLInputElement {
                     }
                 }
                 self.update_placeholder_shown_state();
-                self.get_or_create_shadow_tree(can_gc)
-                    .update_placeholder_contents(self, can_gc);
+                self.get_or_create_shadow_tree(CanGc::from_cx(cx))
+                    .update_placeholder_contents(self, CanGc::from_cx(cx));
             },
             local_name!("readonly") => {
                 if self.input_type().is_textual() {
@@ -3256,7 +3256,7 @@ impl VirtualMethods for HTMLInputElement {
             _ => {},
         }
 
-        self.value_changed(can_gc);
+        self.value_changed(CanGc::from_cx(cx));
 
         if could_have_had_embedder_control && !self.may_have_embedder_control() {
             self.owner_document()

@@ -593,10 +593,10 @@ impl VirtualMethods for HTMLTextAreaElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
@@ -617,7 +617,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                         }
                     },
                 }
-                el.update_sequentially_focusable_status(CanGc::note());
+                el.update_sequentially_focusable_status(CanGc::from_cx(cx));
             },
             local_name!("maxlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {
@@ -651,7 +651,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                         placeholder.push_str(attr.value().as_ref());
                     }
                 }
-                self.handle_text_content_changed(can_gc);
+                self.handle_text_content_changed(CanGc::from_cx(cx));
             },
             local_name!("readonly") => {
                 let el = self.upcast::<Element>();
@@ -665,13 +665,13 @@ impl VirtualMethods for HTMLTextAreaElement {
                 }
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, can_gc);
+                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
             },
             _ => {},
         }
 
-        self.validity_state(can_gc)
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        self.validity_state(CanGc::from_cx(cx))
+            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
     }
 
     fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {

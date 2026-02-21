@@ -1201,14 +1201,14 @@ impl VirtualMethods for HTMLScriptElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         if *attr.local_name() == local_name!("src") {
             if let AttributeMutation::Set(..) = mutation {
                 if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
-                    self.prepare(Some(IntroductionType::INJECTED_SCRIPT), can_gc);
+                    self.prepare(Some(IntroductionType::INJECTED_SCRIPT), CanGc::from_cx(cx));
                 }
             }
         }

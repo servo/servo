@@ -619,14 +619,14 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-translate>
-    fn SetTranslate(&self, yesno: bool, can_gc: CanGc) {
+    fn SetTranslate(&self, cx: &mut js::context::JSContext, yesno: bool) {
         self.as_element().set_string_attribute(
+            cx,
             &html5ever::local_name!("translate"),
             match yesno {
                 true => DOMString::from("yes"),
                 false => DOMString::from("no"),
             },
-            can_gc,
         );
     }
 
@@ -641,20 +641,20 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     );
 
     /// <https://html.spec.whatwg.org/multipage/#dom-contenteditable>
-    fn SetContentEditable(&self, value: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn SetContentEditable(&self, cx: &mut js::context::JSContext, value: DOMString) -> ErrorResult {
         let lower_value = value.to_ascii_lowercase();
         let element = self.upcast::<Element>();
         let attr_name = &local_name!("contenteditable");
         match lower_value.as_ref() {
             // > On setting, if the new value is an ASCII case-insensitive match for the string "inherit", then the content attribute must be removed,
             "inherit" => {
-                element.remove_attribute_by_name(attr_name, can_gc);
+                element.remove_attribute_by_name(cx, attr_name);
             },
             // > if the new value is an ASCII case-insensitive match for the string "true", then the content attribute must be set to the string "true",
             // > if the new value is an ASCII case-insensitive match for the string "plaintext-only", then the content attribute must be set to the string "plaintext-only",
             // > if the new value is an ASCII case-insensitive match for the string "false", then the content attribute must be set to the string "false",
             "true" | "false" | "plaintext-only" => {
-                element.set_attribute(attr_name, AttrValue::String(lower_value), can_gc);
+                element.set_attribute(cx, attr_name, AttrValue::String(lower_value));
             },
             // > and otherwise the attribute setter must throw a "SyntaxError" DOMException.
             _ => return Err(Error::Syntax(None)),
@@ -735,9 +735,9 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
-    fn SetAutofocus(&self, autofocus: bool, can_gc: CanGc) {
+    fn SetAutofocus(&self, cx: &mut js::context::JSContext, autofocus: bool) {
         self.element
-            .set_bool_attribute(&local_name!("autofocus"), autofocus, can_gc);
+            .set_bool_attribute(cx, &local_name!("autofocus"), autofocus);
     }
 }
 
@@ -812,9 +812,9 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
 impl HTMLElement {
     pub(crate) fn set_custom_attr(
         &self,
+        cx: &mut js::context::JSContext,
         name: DOMString,
         value: DOMString,
-        can_gc: CanGc,
     ) -> ErrorResult {
         if name
             .str()
@@ -826,7 +826,7 @@ impl HTMLElement {
             return Err(Error::Syntax(None));
         }
         self.as_element()
-            .set_custom_attribute(to_snake_case(name), value, can_gc)
+            .set_custom_attribute(cx, to_snake_case(name), value)
     }
 
     pub(crate) fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
@@ -839,11 +839,11 @@ impl HTMLElement {
             })
     }
 
-    pub(crate) fn delete_custom_attr(&self, local_name: DOMString, can_gc: CanGc) {
+    pub(crate) fn delete_custom_attr(&self, cx: &mut js::context::JSContext, local_name: DOMString) {
         // FIXME(ajeffrey): Convert directly from DOMString to LocalName
         let local_name = LocalName::from(to_snake_case(local_name));
         self.as_element()
-            .remove_attribute(&ns!(), &local_name, can_gc);
+            .remove_attribute(cx, &ns!(), &local_name);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#category-label>
@@ -1179,10 +1179,10 @@ impl VirtualMethods for HTMLElement {
         Some(self.as_element() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         let element = self.as_element();
         match (attr.local_name(), mutation) {
             // https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3
@@ -1211,7 +1211,7 @@ impl VirtualMethods for HTMLElement {
             },
 
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
-                self.form_attribute_mutated(mutation, can_gc);
+                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
             },
             // Adding a "disabled" attribute disables an enabled form element.
             (&local_name!("disabled"), AttributeMutation::Set(..))

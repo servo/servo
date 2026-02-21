@@ -1854,10 +1854,10 @@ impl VirtualMethods for HTMLFormElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         match *attr.local_name() {
             local_name!("rel") | local_name!("rev") => {

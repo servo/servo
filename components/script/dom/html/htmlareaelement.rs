@@ -343,10 +343,10 @@ impl VirtualMethods for HTMLAreaElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         match *attr.local_name() {
             local_name!("href") => self
@@ -381,9 +381,9 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     make_getter!(Rel, "rel");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-rel>
-    fn SetRel(&self, rel: DOMString, can_gc: CanGc) {
+    fn SetRel(&self, cx: &mut js::context::JSContext, rel: DOMString) {
         self.upcast::<Element>()
-            .set_tokenlist_attribute(&local_name!("rel"), rel, can_gc);
+            .set_tokenlist_attribute(cx, &local_name!("rel"), rel);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-area-rellist>

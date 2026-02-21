@@ -681,15 +681,15 @@ impl VirtualMethods for HTMLSelectElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         let could_have_had_embedder_control = self.may_have_embedder_control();
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
             local_name!("required") => {
-                self.validity_state(can_gc)
-                    .perform_validation_and_update(ValidationFlags::VALUE_MISSING, can_gc);
+                self.validity_state(CanGc::from_cx(cx))
+                    .perform_validation_and_update(ValidationFlags::VALUE_MISSING, CanGc::from_cx(cx));
             },
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
@@ -705,11 +705,11 @@ impl VirtualMethods for HTMLSelectElement {
                     },
                 }
 
-                self.validity_state(can_gc)
-                    .perform_validation_and_update(ValidationFlags::VALUE_MISSING, can_gc);
+                self.validity_state(CanGc::from_cx(cx))
+                    .perform_validation_and_update(ValidationFlags::VALUE_MISSING, CanGc::from_cx(cx));
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, can_gc);
+                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
             },
             _ => {},
         }

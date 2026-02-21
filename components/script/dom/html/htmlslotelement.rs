@@ -465,10 +465,10 @@ impl VirtualMethods for HTMLSlotElement {
     }
 
     /// <https://dom.spec.whatwg.org/#shadow-tree-slots>
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         if attr.local_name() == &local_name!("name") && attr.namespace() == &ns!() {
             if let Some(shadow_root) = self.containing_shadow_root() {

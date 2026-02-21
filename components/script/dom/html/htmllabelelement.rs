@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 
@@ -156,12 +157,12 @@ impl VirtualMethods for HTMLLabelElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         if *attr.local_name() == local_name!("form") {
-            self.form_attribute_mutated(mutation, can_gc);
+            self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
         }
     }
 }

@@ -9,6 +9,7 @@ use std::default::Default;
 use base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
@@ -244,10 +245,10 @@ impl VirtualMethods for HTMLLinkElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         let local_name = attr.local_name();
         let is_removal = mutation.is_removal();

@@ -476,16 +476,17 @@ fn determine_auto_margins(node: &Node) -> AutoMargins {
 }
 
 pub(crate) fn handle_modify_attribute(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     modifications: Vec<AttrModification>,
-    can_gc: CanGc,
 ) {
     let Some(document) = documents.find_document(pipeline) else {
         return warn!("document for pipeline id {} is not found", &pipeline);
     };
-    let _realm = enter_realm(document.window());
+    let mut realm = enter_auto_realm(cx, document.window());
+    let cx = &mut realm;
 
     let node = match find_node_by_unique_id(documents, pipeline, &node_id) {
         None => {
@@ -505,12 +506,12 @@ pub(crate) fn handle_modify_attribute(
         match modification.new_value {
             Some(string) => {
                 elem.set_attribute(
+                    cx,
                     &LocalName::from(modification.attribute_name),
                     AttrValue::String(string),
-                    can_gc,
                 );
             },
-            None => elem.RemoveAttribute(DOMString::from(modification.attribute_name), can_gc),
+            None => elem.RemoveAttribute(DOMString::from(modification.attribute_name), CanGc::from_cx(cx)),
         }
     }
 }

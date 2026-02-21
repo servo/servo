@@ -394,10 +394,10 @@ impl VirtualMethods for HTMLDetailsElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-details-element:concept-element-attributes-change-ext>
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         // Step 1. If namespace is not null, then return.
         if *attr.namespace() != ns!() {
@@ -441,7 +441,7 @@ impl VirtualMethods for HTMLDetailsElement {
         }
         // Step 3. If localName is open, then:
         else if attr.local_name() == &local_name!("open") {
-            self.update_shadow_tree_styles(can_gc);
+            self.update_shadow_tree_styles(CanGc::from_cx(cx));
 
             let counter = self.toggle_counter.get().wrapping_add(1);
             self.toggle_counter.set(counter);
@@ -466,10 +466,10 @@ impl VirtualMethods for HTMLDetailsElement {
                             DOMString::from(old_state),
                             DOMString::from(new_state),
                             None,
-                            CanGc::note(),
+                            CanGc::from_cx(cx),
                         );
                         let event = event.upcast::<Event>();
-                        event.fire(this.upcast::<EventTarget>(), CanGc::note());
+                        event.fire(this.upcast::<EventTarget>(), CanGc::from_cx(cx));
                     }
                 }));
             self.upcast::<Node>().dirty(NodeDamage::Other);

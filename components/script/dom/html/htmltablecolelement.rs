@@ -97,9 +97,9 @@ impl VirtualMethods for HTMLTableColElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         if let Some(super_type) = self.super_type() {
-            super_type.attribute_mutated(attr, mutation, can_gc);
+            super_type.attribute_mutated(cx, attr, mutation);
         }
 
         if matches!(*attr.local_name(), local_name!("span")) {

@@ -73,10 +73,10 @@ impl VirtualMethods for HTMLSourceElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         match attr.local_name() {
             &local_name!("srcset") |
@@ -91,7 +91,7 @@ impl VirtualMethods for HTMLSourceElement {
                         let next_sibling_iterator = self.upcast::<Node>().following_siblings();
                         HTMLSourceElement::iterate_next_html_image_element_siblings(
                             next_sibling_iterator,
-                            |image| image.update_the_image_data(can_gc),
+                            |image| image.update_the_image_data(CanGc::from_cx(cx)),
                         );
                     }
                 }

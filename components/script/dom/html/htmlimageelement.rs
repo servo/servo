@@ -1994,10 +1994,10 @@ impl VirtualMethods for HTMLImageElement {
         self.update_the_image_data(can_gc);
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         match attr.local_name() {
             &local_name!("src") |
             &local_name!("srcset") |
@@ -2006,7 +2006,7 @@ impl VirtualMethods for HTMLImageElement {
                 // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
                 // The element's src, srcset, width, or sizes attributes are set, changed, or
                 // removed.
-                self.update_the_image_data(can_gc);
+                self.update_the_image_data(CanGc::from_cx(cx));
             },
             &local_name!("crossorigin") => {
                 // <https://html.spec.whatwg.org/multipage/#reacting-to-dom-mutations>
@@ -2023,7 +2023,7 @@ impl VirtualMethods for HTMLImageElement {
                 };
 
                 if cross_origin_state_changed {
-                    self.update_the_image_data(can_gc);
+                    self.update_the_image_data(CanGc::from_cx(cx));
                 }
             },
             &local_name!("referrerpolicy") => {
@@ -2039,7 +2039,7 @@ impl VirtualMethods for HTMLImageElement {
                 };
 
                 if referrer_policy_state_changed {
-                    self.update_the_image_data(can_gc);
+                    self.update_the_image_data(CanGc::from_cx(cx));
                 }
             },
             _ => {},

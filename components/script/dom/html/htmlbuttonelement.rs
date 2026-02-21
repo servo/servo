@@ -240,10 +240,10 @@ impl VirtualMethods for HTMLButtonElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
@@ -259,9 +259,9 @@ impl VirtualMethods for HTMLButtonElement {
                         el.check_ancestors_disabled_state_for_form_control();
                     },
                 }
-                el.update_sequentially_focusable_status(can_gc);
-                self.validity_state(can_gc)
-                    .perform_validation_and_update(ValidationFlags::all(), can_gc);
+                el.update_sequentially_focusable_status(CanGc::from_cx(cx));
+                self.validity_state(CanGc::from_cx(cx))
+                    .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
             },
             local_name!("type") => match mutation {
                 AttributeMutation::Set(..) => {
@@ -271,17 +271,17 @@ impl VirtualMethods for HTMLButtonElement {
                         _ => ButtonType::Submit,
                     };
                     self.button_type.set(value);
-                    self.validity_state(can_gc)
-                        .perform_validation_and_update(ValidationFlags::all(), can_gc);
+                    self.validity_state(CanGc::from_cx(cx))
+                        .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
                 },
                 AttributeMutation::Removed => {
                     self.button_type.set(ButtonType::Submit);
                 },
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, can_gc);
-                self.validity_state(can_gc)
-                    .perform_validation_and_update(ValidationFlags::empty(), can_gc);
+                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
+                self.validity_state(CanGc::from_cx(cx))
+                    .perform_validation_and_update(ValidationFlags::empty(), CanGc::from_cx(cx));
             },
             _ => {},
         }

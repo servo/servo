@@ -150,7 +150,7 @@ impl VirtualMethods for HTMLBodyElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         let do_super_mutate = match (attr.local_name(), mutation) {
             (name, AttributeMutation::Set(..)) if name.starts_with("on") => {
                 let window = self.owner_window();
@@ -200,7 +200,7 @@ impl VirtualMethods for HTMLBodyElement {
         if do_super_mutate {
             self.super_type()
                 .unwrap()
-                .attribute_mutated(attr, mutation, can_gc);
+                .attribute_mutated(cx, attr, mutation);
         }
     }
 }

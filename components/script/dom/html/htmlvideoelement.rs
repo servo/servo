@@ -348,16 +348,16 @@ impl VirtualMethods for HTMLVideoElement {
         Some(self.upcast::<HTMLMediaElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(&self, cx: &mut js::context::JSContext, attr: &Attr, mutation: AttributeMutation) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         if attr.local_name() == &local_name!("poster") {
             if let Some(new_value) = mutation.new_value(attr) {
-                self.update_poster_frame(Some(&new_value), CanGc::note())
+                self.update_poster_frame(Some(&new_value), CanGc::from_cx(cx))
             } else {
-                self.update_poster_frame(None, CanGc::note())
+                self.update_poster_frame(None, CanGc::from_cx(cx))
             }
         };
     }
