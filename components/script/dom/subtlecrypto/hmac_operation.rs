@@ -20,7 +20,6 @@ use crate::dom::subtlecrypto::{
     JwkStringField, KeyAlgorithmAndDerivatives, SubtleHmacImportParams, SubtleHmacKeyAlgorithm,
     SubtleHmacKeyGenParams, SubtleKeyAlgorithm,
 };
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
 pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
@@ -133,13 +132,13 @@ pub(crate) fn generate_key(
     // Step 14. Set the [[extractable]] internal slot of key to be extractable.
     // Step 15. Set the [[usages]] internal slot of key to be usages.
     let key = CryptoKey::new(
+        cx,
         global,
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm),
         usages,
         Handle::Hmac(key_data),
-        CanGc::from_cx(cx),
     );
 
     // Step 16. Return key.
@@ -308,13 +307,13 @@ pub(crate) fn import_key(
     // Step 14. Set the [[algorithm]] internal slot of key to algorithm.
     let truncated_data = data[..length as usize / 8].to_vec();
     let key = CryptoKey::new(
+        cx,
         global,
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm),
         usages,
         Handle::Hmac(truncated_data),
-        CanGc::from_cx(cx),
     );
 
     // Step 15. Return key.

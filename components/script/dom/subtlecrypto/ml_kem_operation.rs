@@ -27,7 +27,6 @@ use crate::dom::subtlecrypto::{
     ALG_ML_KEM_512, ALG_ML_KEM_768, ALG_ML_KEM_1024, ExportedKey, JsonWebKeyExt, JwkStringField,
     KeyAlgorithmAndDerivatives, SubtleAlgorithm, SubtleEncapsulatedBits, SubtleKeyAlgorithm,
 };
-use crate::script_runtime::CanGc;
 
 /// Object Identifier (OID) of MK-KEM-512
 /// Section 3 of <https://datatracker.ietf.org/doc/draft-ietf-lamps-kyber-certificates/>
@@ -338,6 +337,7 @@ pub(crate) fn generate_key(
     // Step 10. Set the [[usages]] internal slot of publicKey to be the usage intersection of
     // usages and [ "encapsulateKey", "encapsulateBits" ].
     let public_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Public,
         true,
@@ -348,7 +348,6 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         public_key_handle,
-        CanGc::from_cx(cx),
     );
 
     // Step 11. Let privateKey be a new CryptoKey representing the decapsulation key of the
@@ -359,6 +358,7 @@ pub(crate) fn generate_key(
     // Step 15. Set the [[usages]] internal slot of privateKey to be the usage intersection of
     // usages and [ "decapsulateKey", "decapsulateBits" ].
     let private_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Private,
         extractable,
@@ -369,7 +369,6 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         private_key_handle,
-        CanGc::from_cx(cx),
     );
 
     // Step 16. Let result be a new CryptoKeyPair dictionary.
@@ -478,13 +477,13 @@ pub(crate) fn import_key(
                 name: normalized_algorithm.name.clone(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 public_key,
-                CanGc::from_cx(cx),
             )
         },
         // If format is "pkcs8":
@@ -610,13 +609,13 @@ pub(crate) fn import_key(
                 name: normalized_algorithm.name.clone(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 ml_kem_private_key,
-                CanGc::from_cx(cx),
             )
         },
         // If format is "raw-public":
@@ -648,13 +647,13 @@ pub(crate) fn import_key(
                 name: normalized_algorithm.name.clone(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 public_key_handle,
-                CanGc::from_cx(cx),
             )
         },
         // If format is "raw-seed":
@@ -694,13 +693,13 @@ pub(crate) fn import_key(
                 name: normalized_algorithm.name.clone(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 private_key_handle,
-                CanGc::from_cx(cx),
             )
         },
         // If format is "jwk":
@@ -867,13 +866,13 @@ pub(crate) fn import_key(
                 name: normalized_algorithm.name.clone(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 key_type,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 key_handle,
-                CanGc::from_cx(cx),
             )
         },
         // Otherwise:

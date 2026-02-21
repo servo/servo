@@ -19,7 +19,6 @@ use crate::dom::subtlecrypto::{
     ALG_CHACHA20_POLY1305, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
     SubtleAeadParams, SubtleKeyAlgorithm,
 };
-use crate::script_runtime::CanGc;
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-encrypt>
 pub(crate) fn encrypt(
@@ -184,13 +183,13 @@ pub(crate) fn generate_key(
         name: ALG_CHACHA20_POLY1305.to_string(),
     };
     let key = CryptoKey::new(
+        cx,
         global,
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages,
         Handle::ChaCha20Poly1305Key(generated_key),
-        CanGc::from_cx(cx),
     );
 
     // Step 11. Return key.
@@ -312,13 +311,13 @@ pub(crate) fn import_key(
         name: ALG_CHACHA20_POLY1305.to_string(),
     };
     let key = CryptoKey::new(
+        cx,
         global,
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages,
         handle,
-        CanGc::from_cx(cx),
     );
 
     // Step 9. Return key.

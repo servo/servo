@@ -15,7 +15,6 @@ use crate::dom::subtlecrypto::{
     ALG_ARGON2D, ALG_ARGON2I, ALG_ARGON2ID, KeyAlgorithmAndDerivatives, SubtleAlgorithm,
     SubtleArgon2Params, SubtleKeyAlgorithm,
 };
-use crate::script_runtime::CanGc;
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#argon2-operations-derive-bits>
 pub(crate) fn derive_bits(
@@ -172,13 +171,13 @@ pub(crate) fn import_key(
         name: normalized_algorithm.name.clone(),
     };
     let key = CryptoKey::new(
+        cx,
         global,
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages,
         Handle::Argon2Password(key_data.to_vec()),
-        CanGc::from_cx(cx),
     );
 
     // Step 10. Return key.

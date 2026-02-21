@@ -1243,7 +1243,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 result.set_extractable(extractable);
 
                 // Step 12. Set the [[usages]] internal slot of result to the normalized value of usages.
-                result.set_usages(&key_usages);
+                result.set_usages(cx, &key_usages);
 
                 // Step 13. Queue a global task on the crypto task source, given realm's global
                 // object, to perform the remaining steps.

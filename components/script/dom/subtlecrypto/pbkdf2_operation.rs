@@ -17,7 +17,6 @@ use crate::dom::subtlecrypto::{
     ALG_PBKDF2, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, KeyAlgorithmAndDerivatives,
     SubtleKeyAlgorithm, SubtlePbkdf2Params,
 };
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/webcrypto/#pbkdf2-operations-derive-bits>
 pub(crate) fn derive_bits(
@@ -115,13 +114,13 @@ pub(crate) fn import_key(
         name: ALG_PBKDF2.to_string(),
     };
     let key = CryptoKey::new(
+        cx,
         global,
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
         usages,
         Handle::Pbkdf2(key_data.to_vec()),
-        CanGc::from_cx(cx),
     );
 
     // Step 9. Return key.

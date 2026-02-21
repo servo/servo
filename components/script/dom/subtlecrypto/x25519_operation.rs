@@ -23,7 +23,6 @@ use crate::dom::subtlecrypto::{
     ALG_X25519, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
     SubtleEcdhKeyDeriveParams, SubtleKeyAlgorithm,
 };
-use crate::script_runtime::CanGc;
 
 /// `id-X25519` object identifier defined in [RFC8410]
 const X25519_OID_STRING: &str = "1.3.101.110";
@@ -142,13 +141,13 @@ pub(crate) fn generate_key(
     // Step 8. Set the [[extractable]] internal slot of publicKey to true.
     // Step 9. Set the [[usages]] internal slot of publicKey to be the empty list.
     let public_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Public,
         true,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.clone()),
         Vec::new(),
         Handle::X25519PublicKey(public_key),
-        CanGc::from_cx(cx),
     );
 
     // Step 10. Let privateKey be a new CryptoKey representing the private key of the generated key pair.
@@ -158,6 +157,7 @@ pub(crate) fn generate_key(
     // Step 14. Set the [[usages]] internal slot of privateKey to be the usage intersection of
     // usages and [ "deriveKey", "deriveBits" ].
     let private_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Private,
         extractable,
@@ -168,7 +168,6 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         Handle::X25519PrivateKey(private_key),
-        CanGc::from_cx(cx),
     );
 
     // Step 15. Let result be a new CryptoKeyPair dictionary.
@@ -241,13 +240,13 @@ pub(crate) fn import_key(
                 name: ALG_X25519.to_string(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::X25519PublicKey(public_key),
-                CanGc::from_cx(cx),
             )
         },
         // If format is "pkcs8":
@@ -304,13 +303,13 @@ pub(crate) fn import_key(
                 name: ALG_X25519.to_string(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::X25519PrivateKey(private_key),
-                CanGc::from_cx(cx),
             )
         },
         // If format is "jwk":
@@ -419,13 +418,13 @@ pub(crate) fn import_key(
                 name: ALG_X25519.to_string(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 key_type,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 handle,
-                CanGc::from_cx(cx),
             )
         },
         // If format is "raw":
@@ -452,13 +451,13 @@ pub(crate) fn import_key(
                 name: ALG_X25519.to_string(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::X25519PublicKey(public_key),
-                CanGc::from_cx(cx),
             )
         },
         // Otherwise:

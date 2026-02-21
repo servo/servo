@@ -25,7 +25,6 @@ use crate::dom::subtlecrypto::{
     ALG_ML_DSA_44, ALG_ML_DSA_65, ALG_ML_DSA_87, ExportedKey, JsonWebKeyExt, JwkStringField,
     KeyAlgorithmAndDerivatives, SubtleAlgorithm, SubtleContextParams, SubtleKeyAlgorithm,
 };
-use crate::script_runtime::CanGc;
 
 /// Object Identifier (OID) of ML-DSA-44
 /// Section 2 of <https://datatracker.ietf.org/doc/html/rfc9881>
@@ -324,6 +323,7 @@ pub(crate) fn generate_key(
     // Step 10. Set the [[usages]] internal slot of publicKey to be the usage intersection of
     // usages and [ "verify" ].
     let public_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Public,
         true,
@@ -334,7 +334,6 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         public_key_handle,
-        CanGc::from_cx(cx),
     );
 
     // Step 11. Let privateKey be a new CryptoKey representing the private key of the generated key
@@ -345,6 +344,7 @@ pub(crate) fn generate_key(
     // Step 15. Set the [[usages]] internal slot of privateKey to be the usage intersection of
     // usages and [ "sign" ].
     let private_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Private,
         extractable,
@@ -355,7 +355,6 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         private_key_handle,
-        CanGc::from_cx(cx),
     );
 
     // Step 16. Let result be a new CryptoKeyPair dictionary.
@@ -458,13 +457,13 @@ pub(crate) fn import_key(
                 name: normalized_algorithm.name.clone(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 public_key,
-                CanGc::from_cx(cx),
             )
         },
         // If format is "pkcs8":
@@ -584,13 +583,13 @@ pub(crate) fn import_key(
                 name: normalized_algorithm.name.clone(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 ml_dsa_private_key,
-                CanGc::from_cx(cx),
             )
         },
         // If format is "raw-public":
@@ -614,13 +613,13 @@ pub(crate) fn import_key(
                 name: normalized_algorithm.name.clone(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 public_key_handle,
-                CanGc::from_cx(cx),
             )
         },
         // If format is "raw-seed":
@@ -653,13 +652,13 @@ pub(crate) fn import_key(
                 name: normalized_algorithm.name.clone(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 private_key_handle,
-                CanGc::from_cx(cx),
             )
         },
         // If format is "jwk":
@@ -758,13 +757,13 @@ pub(crate) fn import_key(
                     name: normalized_algorithm.name.clone(),
                 };
                 CryptoKey::new(
+                    cx,
                     global,
                     KeyType::Private,
                     extractable,
                     KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                     usages,
                     private_key_handle,
-                    CanGc::from_cx(cx),
                 )
             }
             // Otherwise:
@@ -783,13 +782,13 @@ pub(crate) fn import_key(
                     name: normalized_algorithm.name.clone(),
                 };
                 CryptoKey::new(
+                    cx,
                     global,
                     KeyType::Public,
                     extractable,
                     KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                     usages,
                     public_key_handle,
-                    CanGc::from_cx(cx),
                 )
             }
         },

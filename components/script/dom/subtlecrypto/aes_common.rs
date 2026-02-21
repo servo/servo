@@ -21,7 +21,6 @@ use crate::dom::subtlecrypto::{
     JwkStringField, KeyAlgorithmAndDerivatives, SubtleAesDerivedKeyParams, SubtleAesKeyAlgorithm,
     SubtleAesKeyGenParams,
 };
-use crate::script_runtime::CanGc;
 
 #[expect(clippy::enum_variant_names)]
 pub(crate) enum AesAlgorithm {
@@ -145,13 +144,13 @@ pub(crate) fn generate_key(
         length: normalized_algorithm.length,
     };
     let key = CryptoKey::new(
+        cx,
         global,
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm),
         usages,
         handle,
-        CanGc::from_cx(cx),
     );
 
     // Step 13. Return key.
@@ -499,13 +498,13 @@ pub(crate) fn import_key(
         length: data.len() as u16 * 8,
     };
     let key = CryptoKey::new(
+        cx,
         global,
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm),
         usages,
         handle,
-        CanGc::from_cx(cx),
     );
 
     // Step 9. Return key.

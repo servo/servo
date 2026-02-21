@@ -21,7 +21,6 @@ use crate::dom::subtlecrypto::{
     ALG_ED25519, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
     SubtleKeyAlgorithm,
 };
-use crate::script_runtime::CanGc;
 
 const ED25519_SEED_LENGTH: usize = 32;
 
@@ -125,6 +124,7 @@ pub(crate) fn generate_key(
     // Step 9. Set the [[usages]] internal slot of publicKey to be the usage intersection of usages
     // and [ "verify" ].
     let public_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Public,
         true,
@@ -135,7 +135,6 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         Handle::Ed25519(key_pair.public_key().as_ref().to_vec()),
-        CanGc::from_cx(cx),
     );
 
     // Step 10. Let privateKey be a new CryptoKey representing the private key of the generated key pair.
@@ -145,6 +144,7 @@ pub(crate) fn generate_key(
     // Step 14. Set the [[usages]] internal slot of privateKey to be the usage intersection of
     // usages and [ "sign" ].
     let private_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Private,
         extractable,
@@ -155,7 +155,6 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         Handle::Ed25519(seed),
-        CanGc::from_cx(cx),
     );
 
     // Step 16. Let result be a new CryptoKeyPair dictionary.
@@ -219,13 +218,13 @@ pub(crate) fn import_key(
             // Step 2.8. Set the [[type]] internal slot of key to "public"
             // Step 2.11. Set the [[algorithm]] internal slot of key to algorithm.
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::Ed25519(public_key.as_ref().to_vec()),
-                CanGc::from_cx(cx),
             )
         },
         // If format is "pkcs8":
@@ -282,13 +281,13 @@ pub(crate) fn import_key(
             // Step 2.9. Set the [[type]] internal slot of key to "private"
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::Ed25519(curve_private_key),
-                CanGc::from_cx(cx),
             )
         },
         // If format is "jwk":
@@ -383,13 +382,13 @@ pub(crate) fn import_key(
                 // 2 of [RFC8037]
                 // Step 2.9.3. Set the [[type]] internal slot of Key to "private".
                 CryptoKey::new(
+                    cx,
                     global,
                     KeyType::Private,
                     extractable,
                     KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                     usages,
                     Handle::Ed25519(d),
-                    CanGc::from_cx(cx),
                 )
             }
             // Otherwise:
@@ -402,13 +401,13 @@ pub(crate) fn import_key(
                 // key identified by interpreting jwk according to Section 2 of [RFC8037].
                 // Step 2.9.3. Set the [[type]] internal slot of Key to "public".
                 CryptoKey::new(
+                    cx,
                     global,
                     KeyType::Public,
                     extractable,
                     KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                     usages,
                     Handle::Ed25519(x),
-                    CanGc::from_cx(cx),
                 )
             }
 
@@ -439,13 +438,13 @@ pub(crate) fn import_key(
             // Step 2.6. Set the [[type]] internal slot of key to "public"
             // Step 2.7. Set the [[algorithm]] internal slot of key to algorithm.
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
                 Handle::Ed25519(key_data.to_vec()),
-                CanGc::from_cx(cx),
             )
         },
         // Otherwise:

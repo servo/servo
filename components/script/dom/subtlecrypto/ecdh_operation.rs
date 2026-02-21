@@ -29,7 +29,6 @@ use crate::dom::subtlecrypto::{
     NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521, SUPPORTED_CURVES, SubtleEcKeyAlgorithm,
     SubtleEcKeyGenParams, SubtleEcKeyImportParams, SubtleEcdhKeyDeriveParams,
 };
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-generate-key>
 pub(crate) fn generate_key(
@@ -109,13 +108,13 @@ pub(crate) fn generate_key(
     // Step 10. Set the [[extractable]] internal slot of publicKey to true.
     // Step 11. Set the [[usages]] internal slot of publicKey to be the empty list.
     let public_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Public,
         true,
         KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm.clone()),
         Vec::new(),
         public_key_handle,
-        CanGc::from_cx(cx),
     );
 
     // Step 12. Let privateKey be a new CryptoKey representing the private key of the generated key pair.
@@ -125,6 +124,7 @@ pub(crate) fn generate_key(
     // Step 16. Set the [[usages]] internal slot of privateKey to be the usage intersection of
     // usages and [ "deriveKey", "deriveBits" ].
     let private_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Private,
         extractable,
@@ -135,7 +135,6 @@ pub(crate) fn generate_key(
             .cloned()
             .collect(),
         private_key_handle,
-        CanGc::from_cx(cx),
     );
 
     // Step 17. Let result be a new CryptoKeyPair dictionary.
@@ -451,13 +450,13 @@ pub(crate) fn import_key(
                     .to_string(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
                 usages,
                 handle,
-                CanGc::from_cx(cx),
             )
         },
         KeyFormat::Pkcs8 => {
@@ -619,13 +618,13 @@ pub(crate) fn import_key(
                     .to_string(),
             };
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
                 usages,
                 handle,
-                CanGc::from_cx(cx),
             )
         },
         KeyFormat::Jwk => {
@@ -875,13 +874,13 @@ pub(crate) fn import_key(
                 named_curve,
             };
             CryptoKey::new(
+                cx,
                 global,
                 key_type,
                 extractable,
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
                 usages,
                 handle,
-                CanGc::from_cx(cx),
             )
         },
         KeyFormat::Raw | KeyFormat::Raw_public => {
@@ -962,13 +961,13 @@ pub(crate) fn import_key(
             // Step 2.7. Set the [[type]] internal slot of key to "public"
             // Step 2.8. Set the [[algorithm]] internal slot of key to algorithm.
             CryptoKey::new(
+                cx,
                 global,
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm),
                 usages,
                 handle,
-                CanGc::from_cx(cx),
             )
         },
         // Otherwise:

@@ -35,7 +35,6 @@ use crate::dom::subtlecrypto::{
     SubtleRsaHashedImportParams, SubtleRsaHashedKeyAlgorithm, SubtleRsaHashedKeyGenParams,
     normalize_algorithm,
 };
-use crate::script_runtime::CanGc;
 
 pub(crate) enum RsaAlgorithm {
     RsassaPkcs1v1_5,
@@ -156,13 +155,13 @@ pub(crate) fn generate_key(
         },
     };
     let public_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Public,
         true,
         KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm.clone()),
         intersected_usages,
         Handle::RsaPublicKey(public_key),
-        CanGc::from_cx(cx),
     );
 
     // Step 14. Let privateKey be a new CryptoKey representing the private key of the generated key
@@ -191,13 +190,13 @@ pub(crate) fn generate_key(
         },
     };
     let private_key = CryptoKey::new(
+        cx,
         global,
         KeyType::Private,
         extractable,
         KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm),
         intersected_usages,
         Handle::RsaPrivateKey(private_key),
-        CanGc::from_cx(cx),
     );
 
     // Step 19. Let result be a new CryptoKeyPair dictionary.
@@ -717,13 +716,13 @@ pub(crate) fn import_key(
         hash: normalized_algorithm.hash.clone(),
     };
     let key = CryptoKey::new(
+        cx,
         global,
         key_type,
         extractable,
         KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm),
         usages,
         key_handle,
-        CanGc::from_cx(cx),
     );
 
     // Step 9. Return key.

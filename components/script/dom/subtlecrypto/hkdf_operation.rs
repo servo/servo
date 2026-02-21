@@ -17,7 +17,6 @@ use crate::dom::subtlecrypto::{
     ALG_HKDF, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, KeyAlgorithmAndDerivatives,
     SubtleHkdfParams, SubtleKeyAlgorithm,
 };
-use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/webcrypto/#hkdf-operations-derive-bits>
 pub(crate) fn derive_bits(
@@ -114,13 +113,13 @@ pub(crate) fn import_key(
             name: ALG_HKDF.to_string(),
         };
         let key = CryptoKey::new(
+            cx,
             global,
             KeyType::Secret,
             extractable,
             KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
             usages,
             Handle::HkdfSecret(key_data.to_vec()),
-            CanGc::from_cx(cx),
         );
 
         // Step 2.8. Return key.
