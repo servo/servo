@@ -306,6 +306,17 @@ codegen-units = 1
 # xml5ever = { path = "../html5ever/xml5ever" }
 # tendril = { path = "../html5ever/tendril" }
 #
+# Or for mozjs:
+#
+# mozjs = { path = "../mozjs/mozjs" }
+# mozjs_sys = { path = "../mozjs/mozjs-sys" }
+#
+# Pending egui bumping their accesskit version: https://github.com/emilk/egui/pull/7850
+# This is only used in servoshell.
+# TODO: When these are no longer needed remove the exception in deny.toml as well.
+egui = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e051785b4fd3af9ef92eda5b61177f" }
+egui-winit = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e051785b4fd3af9ef92eda5b61177f" }
+#
 # Or for Stylo:
 #
 # [patch."https://github.com/servo/stylo"]
@@ -332,14 +343,3 @@ codegen-units = 1
 #
 # [patch."https://github.com/servo/rust-content-security-policy"]
 # content-security-policy = { path = "../rust-content-security-policy" }
-#
-# Or for mozjs:
-#
-# mozjs = { path = "../mozjs/mozjs" }
-# mozjs_sys = { path = "../mozjs/mozjs-sys" }
-
-# Pending egui bumping their accesskit version: https://github.com/emilk/egui/pull/7850
-# This is only used in servoshell.
-# TODO: When these are no longer needed remove the exception in deny.toml as well.
-egui = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e051785b4fd3af9ef92eda5b61177f" }
-egui-winit = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e051785b4fd3af9ef92eda5b61177f" }
