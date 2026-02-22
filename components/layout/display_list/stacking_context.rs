@@ -300,6 +300,48 @@ impl StackingContextTree {
         // Use that to find the offset from the fragment origin.
         Some(transformed_point - fragment_origin)
     }
+
+    /// For each top-level box fragment in the stacking context tree, transform the
+    /// viewport point into the box's local coordinate space and invoke the callback.
+    /// The callback receives the box fragment and the transformed point. This enables
+    /// document-wide text selection queries without being scoped to a single DOM node.
+    pub(crate) fn for_each_box_at_viewport_point(
+        &self,
+        point_in_viewport: PhysicalPoint<Au>,
+        callback: &mut impl FnMut(&Fragment, Point2D<Au, CSSPixel>),
+    ) {
+        self.walk_stacking_context(
+            &self.root_stacking_context,
+            point_in_viewport,
+            callback,
+        );
+    }
+
+    fn walk_stacking_context(
+        &self,
+        sc: &StackingContext,
+        point_in_viewport: PhysicalPoint<Au>,
+        callback: &mut impl FnMut(&Fragment, Point2D<Au, CSSPixel>),
+    ) {
+        for content in &sc.contents {
+            if let StackingContextContent::Fragment { fragment, .. } = content {
+                if let Some(point_in_box) =
+                    self.offset_in_fragment(fragment, point_in_viewport)
+                {
+                    callback(fragment, point_in_box);
+                }
+            }
+        }
+        for child_sc in &sc.real_stacking_contexts_and_positioned_stacking_containers {
+            self.walk_stacking_context(child_sc, point_in_viewport, callback);
+        }
+        for child_sc in &sc.float_stacking_containers {
+            self.walk_stacking_context(child_sc, point_in_viewport, callback);
+        }
+        for child_sc in &sc.atomic_inline_stacking_containers {
+            self.walk_stacking_context(child_sc, point_in_viewport, callback);
+        }
+    }
 }
 
 /// The text decorations for a Fragment, collecting during [`StackingContextTree`] construction.

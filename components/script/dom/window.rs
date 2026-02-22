@@ -165,7 +165,9 @@ use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::navigator::Navigator;
-use crate::dom::node::{Node, NodeDamage, NodeTraits, from_untrusted_node_address};
+use crate::dom::node::{
+    Node, NodeDamage, NodeTraits, ShadowIncluding, from_untrusted_node_address,
+};
 use crate::dom::performance::performance::Performance;
 use crate::dom::promise::Promise;
 use crate::dom::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
@@ -2629,13 +2631,15 @@ impl Window {
 
                 // Collect OpaqueNodes for all text nodes fully inside the range.
                 let mut interior_nodes = HashSet::new();
-                let doc_node = document.upcast::<Node>();
-                for node in start_node.following_nodes(doc_node) {
-                    if *node == *end_node {
-                        break;
-                    }
-                    if node.is::<crate::dom::text::Text>() {
-                        interior_nodes.insert(node.to_opaque());
+                if *start_node != *end_node {
+                    let doc_node = document.upcast::<Node>();
+                    for node in start_node.following_nodes(doc_node) {
+                        if *node == *end_node {
+                            break;
+                        }
+                        if node.is::<crate::dom::text::Text>() {
+                            interior_nodes.insert(node.to_opaque());
+                        }
                     }
                 }
 
@@ -3055,51 +3059,76 @@ impl Window {
             .query_text_index(node.to_trusted_node_address(), point_in_viewport)
     }
 
-    /// Find the text node and character offset at a viewport point, searching within
-    /// descendants of the given node. Returns (Node, offset).
+    /// Walk descendant text nodes to find the one matching the given OpaqueNode.
+    /// This avoids unsafe pointer-to-Node conversion for the fast path.
+    fn find_text_node_by_opaque(node: &Node, target: style::dom::OpaqueNode) -> Option<DomRoot<Node>> {
+        if node.is::<crate::dom::text::Text>() && node.to_opaque() == target {
+            return Some(DomRoot::from_ref(node));
+        }
+        for child in node.children() {
+            if let Some(found) = Self::find_text_node_by_opaque(&child, target) {
+                return Some(found);
+            }
+        }
+        None
+    }
+
+    /// Find the text node and character offset at a viewport point.
     ///
-    /// Layout returns an `OpaqueNode` identifying the text fragment's DOM node.
-    /// Rather than unsafely converting that pointer back to a `Node`, we iterate
-    /// the element's descendant text nodes and match by `OpaqueNode` identity.
+    /// First tries a fast path scoped to the hit-test node's fragments. When that
+    /// fails (hit-test returned a container element like `<section>` or `<body>`),
+    /// falls back to a document-wide search across all text fragments in the
+    /// stacking context tree.
+    #[expect(unsafe_code)]
     pub(crate) fn text_node_at_point(
         &self,
         node: &Node,
         point_in_viewport: Point2D<f32, CSSPixel>,
     ) -> Option<(DomRoot<Node>, usize)> {
-        // Text nodes don't have their own layout box — their text fragments
-        // live under the parent element's box. Use the parent element for the
-        // layout query so fragments_for_pseudo finds the text fragments.
-        let query_node = if node.is::<crate::dom::text::Text>() {
-            use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
-            node.GetParentNode()?
-        } else {
-            DomRoot::from_ref(node)
-        };
-
         let point = point_in_viewport.map(Au::from_f32_px);
         self.layout_reflow(QueryMsg::TextIndexQuery);
+
+        // Fast path: query the hit-test node directly (works when node is a leaf element).
+        let query_node = if node.is::<crate::dom::text::Text>() {
+            use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
+            node.GetParentNode()
+        } else {
+            Some(DomRoot::from_ref(node))
+        };
+        if let Some(ref qn) = query_node {
+            if let Some((opaque, offset)) = self
+                .layout
+                .borrow()
+                .query_text_node_at_point(qn.to_trusted_node_address(), point)
+            {
+                if let Some(text_node) = Self::find_text_node_by_opaque(qn, opaque) {
+                    return Some((text_node, offset));
+                }
+            }
+        }
+
+        // Slow path: search all text fragments in the document.
         let (opaque, offset) = self
             .layout
             .borrow()
-            .query_text_node_at_point(query_node.to_trusted_node_address(), point)?;
+            .query_text_at_viewport_point(point)?;
 
-        // Walk descendant text nodes to find the one matching the OpaqueNode
-        // returned by layout. This avoids unsafe pointer-to-Node conversion.
-        use style::dom::OpaqueNode;
-        fn find_text_node(node: &Node, target: OpaqueNode) -> Option<DomRoot<Node>> {
-            if node.is::<crate::dom::text::Text>() && node.to_opaque() == target {
-                return Some(DomRoot::from_ref(node));
-            }
-            for child in node.children() {
-                if let Some(found) = find_text_node(&child, target) {
-                    return Some(found);
-                }
-            }
+        // Resolve OpaqueNode to a DOM text node. Walk from document root since
+        // the text may be anywhere in the tree.
+        let doc = self.Document();
+        let doc_node = doc.upcast::<Node>();
+        let addr = UntrustedNodeAddress(opaque.0 as *const c_void);
+        let text_node = unsafe { from_untrusted_node_address(addr) };
+        // Verify it's actually a text node descendant of the document.
+        if text_node.is::<crate::dom::text::Text>()
+            && text_node
+                .inclusive_ancestors(ShadowIncluding::No)
+                .any(|a| *a == *doc_node)
+        {
+            Some((text_node, offset))
+        } else {
             None
         }
-
-        let text_node = find_text_node(&query_node, opaque)?;
-        Some((text_node, offset))
     }
 
     pub(crate) fn elements_from_point_query(

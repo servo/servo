@@ -390,6 +390,12 @@ pub trait Layout {
         node: TrustedNodeAddress,
         point: Point2D<Au, CSSPixel>,
     ) -> Option<(OpaqueNode, usize)>;
+    /// Find the closest text node and character offset to a viewport point,
+    /// searching all text fragments in the document. Returns (opaque_node, offset).
+    fn query_text_at_viewport_point(
+        &self,
+        point: Point2D<Au, CSSPixel>,
+    ) -> Option<(OpaqueNode, usize)>;
     fn query_elements_from_point(
         &self,
         point: LayoutPoint,

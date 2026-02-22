@@ -88,6 +88,7 @@ use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::query::{
     find_character_offset_in_fragment_descendants, find_text_node_and_offset_in_fragment_descendants,
+    find_text_node_at_viewport_point,
     get_the_text_steps, process_box_area_request,
     process_box_areas_request, process_client_rect_request, process_current_css_zoom_query,
     process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
@@ -518,6 +519,16 @@ impl Layout for LayoutThread {
         let stacking_context_tree = self.stacking_context_tree.borrow_mut();
         let stacking_context_tree = stacking_context_tree.as_ref()?;
         find_text_node_and_offset_in_fragment_descendants(&node, stacking_context_tree, point)
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn query_text_at_viewport_point(
+        &self,
+        point: Point2D<Au, CSSPixel>,
+    ) -> Option<(OpaqueNode, usize)> {
+        let stacking_context_tree = self.stacking_context_tree.borrow_mut();
+        let stacking_context_tree = stacking_context_tree.as_ref()?;
+        find_text_node_at_viewport_point(stacking_context_tree, point)
     }
 
     #[servo_tracing::instrument(skip_all)]

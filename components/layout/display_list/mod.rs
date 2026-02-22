@@ -127,6 +127,10 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// The current document-level text selection, if any.
     document_selection: Option<layout_api::DocumentSelection>,
+
+    /// Tracks accumulated character count per text node for document selection rendering.
+    /// Each text node may produce multiple text fragments; this maps node → chars seen so far.
+    selection_char_acc: std::collections::HashMap<style::dom::OpaqueNode, usize>,
 }
 
 struct InspectorHighlight {
@@ -207,6 +211,7 @@ impl DisplayListBuilder<'_> {
             device_pixel_ratio,
             paint_timing_handler,
             document_selection,
+            selection_char_acc: Default::default(),
         };
 
         builder.add_all_spatial_nodes();
@@ -1093,38 +1098,47 @@ impl Fragment {
         };
         let node = tag.node;
 
-        // Determine if this fragment's node is within the selection range.
-        // For simplicity, we check if the node matches start or end, or is fully selected.
-        let (start_node, start_offset) = selection.start;
-        let (end_node, end_offset) = selection.end;
-
         // Count total characters in this fragment.
-        let total_chars: usize = fragment
+        let frag_chars: usize = fragment
             .glyphs
             .iter()
             .map(|gs| gs.total_characters())
             .sum();
 
-        // Determine the selection range within this fragment.
-        let (sel_start, sel_end) = if node == start_node && node == end_node {
-            // Selection starts and ends in this node.
+        // Get this fragment's starting character offset within its text node,
+        // then advance the accumulator for the next fragment of this node.
+        let acc = builder.selection_char_acc.entry(node).or_insert(0);
+        let frag_char_start = *acc;
+        *acc += frag_chars;
+        let frag_char_end = frag_char_start + frag_chars;
+
+        // Determine if this fragment's node is within the selection range.
+        let (start_node, start_offset) = selection.start;
+        let (end_node, end_offset) = selection.end;
+
+        // Compute the node-level selection range that applies to this fragment.
+        let (node_sel_start, node_sel_end) = if node == start_node && node == end_node {
             (start_offset as usize, end_offset as usize)
         } else if node == start_node {
-            // Selection starts here, extends to end.
-            (start_offset as usize, total_chars)
+            (start_offset as usize, usize::MAX)
         } else if node == end_node {
-            // Selection ends here, starts from beginning.
             (0, end_offset as usize)
         } else if selection.interior_nodes.contains(&node) {
-            // Fully selected interior node.
-            (0, total_chars)
+            (0, usize::MAX)
         } else {
             return;
         };
 
-        if sel_start >= sel_end || sel_end == 0 {
+        // Intersect node-level selection with this fragment's character range.
+        let sel_start = node_sel_start.max(frag_char_start);
+        let sel_end = node_sel_end.min(frag_char_end);
+        if sel_start >= sel_end {
             return;
         }
+
+        // Convert to fragment-local offsets.
+        let local_start = sel_start - frag_char_start;
+        let local_end = sel_end - frag_char_start;
 
         // Walk glyphs to find start and end advances.
         let mut current_char = 0usize;
@@ -1133,7 +1147,7 @@ impl Fragment {
         let mut end_advance = None;
         for glyph_store in fragment.glyphs.iter() {
             for glyph in glyph_store.glyphs() {
-                if current_char >= sel_start {
+                if current_char >= local_start {
                     start_advance = start_advance.or(Some(current_advance));
                 }
                 current_char += glyph.character_count();
@@ -1141,7 +1155,7 @@ impl Fragment {
                 if glyph.char_is_word_separator() {
                     current_advance += justification_adjustment;
                 }
-                if current_char <= sel_end {
+                if current_char <= local_end {
                     end_advance = Some(current_advance);
                 }
             }

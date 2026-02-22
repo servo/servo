@@ -1895,12 +1895,12 @@ impl DocumentEventHandler {
             .text_node_at_point(&hit_test_result.node, hit_test_result.point_in_frame)
         {
             let _ = selection.Collapse(Some(&text_node), offset as u32, can_gc);
-            self.selection_active.set(true);
         } else {
-            // Clicked on a non-text area — collapse selection.
+            // No text at this point. Clear previous selection but still activate —
+            // the anchor will be set when extend first finds text during drag.
             selection.RemoveAllRanges();
-            self.selection_active.set(false);
         }
+        self.selection_active.set(true);
     }
 
     /// Extend document text selection to the current mouse position.
@@ -1913,7 +1913,12 @@ impl DocumentEventHandler {
             .window
             .text_node_at_point(&hit_test_result.node, hit_test_result.point_in_frame)
         {
-            let _ = selection.Extend(&text_node, offset as u32, can_gc);
+            if selection.RangeCount() == 0 {
+                // No anchor yet (drag started off-text). Set anchor here.
+                let _ = selection.Collapse(Some(&text_node), offset as u32, can_gc);
+            } else {
+                let _ = selection.Extend(&text_node, offset as u32, can_gc);
+            }
         }
     }
 }
