@@ -23,7 +23,7 @@ use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapseValue;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
-use style::dom::{NodeInfo, TElement, TNode};
+use style::dom::{NodeInfo, OpaqueNode, TElement, TNode};
 use style::properties::style_structs::Font;
 use style::properties::{
     ComputedValues, Importance, LonghandId, PropertyDeclarationBlock, PropertyDeclarationId,
@@ -1354,6 +1354,70 @@ pub fn find_character_offset_in_fragment_descendants(
 
     closest_relative_fragment.map(|(_, point_in_parent, text_fragment)| {
         text_fragment.borrow().character_offset(point_in_parent)
+    })
+}
+
+/// Like `find_character_offset_in_fragment_descendants`, but returns the OpaqueNode
+/// of the text fragment and a 0-based character offset within that fragment's glyphs.
+/// Used for document text selection where we need to identify the DOM text node.
+pub fn find_text_node_and_offset_in_fragment_descendants(
+    node: &ServoThreadSafeLayoutNode,
+    stacking_context_tree: &StackingContextTree,
+    point_in_viewport: Point2D<Au, CSSPixel>,
+) -> Option<(OpaqueNode, usize)> {
+    type ClosestFragment = Option<(Au, Point2D<Au, CSSPixel>, ArcRefCell<TextFragment>)>;
+
+    fn maybe_update_closest(
+        fragment: &Fragment,
+        point_in_fragment: Point2D<Au, CSSPixel>,
+        closest: &mut ClosestFragment,
+    ) {
+        let Fragment::Text(text_fragment) = fragment else {
+            return;
+        };
+        let Some(new_distance) = text_fragment
+            .borrow()
+            .distance_to_point_for_glyph_offset(point_in_fragment)
+        else {
+            return;
+        };
+        if matches!(closest, Some((old_distance, _, _)) if *old_distance < new_distance) {
+            return;
+        }
+        *closest = Some((new_distance, point_in_fragment, text_fragment.clone()));
+    }
+
+    fn collect_from_children(
+        fragment: &Fragment,
+        point: Point2D<Au, CSSPixel>,
+        closest: &mut ClosestFragment,
+    ) {
+        maybe_update_closest(fragment, point, closest);
+        if let Some(children) = fragment.children() {
+            for child in children.iter() {
+                let offset = child
+                    .base()
+                    .map(|base| base.rect.origin)
+                    .unwrap_or_default();
+                collect_from_children(child, point - offset.to_vector(), closest);
+            }
+        }
+    }
+
+    let mut closest: ClosestFragment = None;
+    for fragment in &node.fragments_for_pseudo(None) {
+        if let Some(point_in_fragment) =
+            stacking_context_tree.offset_in_fragment(fragment, point_in_viewport)
+        {
+            collect_from_children(fragment, point_in_fragment, &mut closest);
+        }
+    }
+
+    closest.map(|(_, point_in_parent, text_fragment)| {
+        let frag = text_fragment.borrow();
+        let node = frag.base.tag.map(|t| t.node).unwrap_or(OpaqueNode(0));
+        let offset = frag.glyph_character_offset(point_in_parent);
+        (node, offset)
     })
 }
 

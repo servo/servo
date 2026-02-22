@@ -87,7 +87,8 @@ use webrender_api::units::{DevicePixel, LayoutVector2D};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::query::{
-    find_character_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
+    find_character_offset_in_fragment_descendants, find_text_node_and_offset_in_fragment_descendants,
+    get_the_text_steps, process_box_area_request,
     process_box_areas_request, process_client_rect_request, process_current_css_zoom_query,
     process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
     process_resolved_font_style_query, process_resolved_style_request,
@@ -205,6 +206,12 @@ pub struct LayoutThread {
     ///
     /// If this changed, then we need to create a new display list.
     previously_highlighted_dom_node: Cell<Option<OpaqueNode>>,
+
+    /// Tracks the document selection fingerprint from the last display list build.
+    /// (start_node, start_offset, end_node, end_offset) — if this changes, we
+    /// need a new display list.
+    previous_selection_key:
+        Cell<Option<(OpaqueNode, u32, OpaqueNode, u32)>>,
 
     /// Handler for all Paint Timings
     paint_timing_handler: RefCell<Option<PaintTimingHandler>>,
@@ -502,6 +509,18 @@ impl Layout for LayoutThread {
     }
 
     #[servo_tracing::instrument(skip_all)]
+    fn query_text_node_at_point(
+        &self,
+        node: TrustedNodeAddress,
+        point: Point2D<Au, CSSPixel>,
+    ) -> Option<(OpaqueNode, usize)> {
+        let node = unsafe { ServoLayoutNode::new(&node).to_threadsafe() };
+        let stacking_context_tree = self.stacking_context_tree.borrow_mut();
+        let stacking_context_tree = stacking_context_tree.as_ref()?;
+        find_text_node_and_offset_in_fragment_descendants(&node, stacking_context_tree, point)
+    }
+
+    #[servo_tracing::instrument(skip_all)]
     fn query_elements_from_point(
         &self,
         point: webrender_api::units::LayoutPoint,
@@ -774,6 +793,7 @@ impl LayoutThread {
             resolved_images_cache: Default::default(),
             debug: opts::get().debug.clone(),
             previously_highlighted_dom_node: Cell::new(None),
+            previous_selection_key: Cell::new(None),
             paint_timing_handler: Default::default(),
             user_stylesheets: config.user_stylesheets,
             accessibility_active: Cell::new(config.accessibility_active),
@@ -1063,6 +1083,13 @@ impl LayoutThread {
             self.need_new_display_list.set(true);
         }
 
+        let new_selection_key = reflow_request.selection.as_ref().map(|s| {
+            (s.start.0, s.start.1, s.end.0, s.end.1)
+        });
+        if self.previous_selection_key.get() != new_selection_key {
+            self.need_new_display_list.set(true);
+        }
+
         let layout_context = LayoutContext {
             style_context: self.build_shared_style_context(
                 guards,
@@ -1330,6 +1357,7 @@ impl LayoutThread {
             reflow_request.highlighted_dom_node,
             &self.debug,
             paint_timing_handler,
+            reflow_request.selection.clone(),
         );
         self.paint_api.send_display_list(
             self.webview_id,
@@ -1359,6 +1387,11 @@ impl LayoutThread {
         self.need_new_display_list.set(false);
         self.previously_highlighted_dom_node
             .set(reflow_request.highlighted_dom_node);
+        self.previous_selection_key.set(
+            reflow_request.selection.as_ref().map(|s| {
+                (s.start.0, s.start.1, s.end.0, s.end.1)
+            }),
+        );
         true
     }
 

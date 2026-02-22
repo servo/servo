@@ -124,6 +124,9 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// Handler for all Paint Timings
     paint_timing_handler: &'a mut PaintTimingHandler,
+
+    /// The current document-level text selection, if any.
+    document_selection: Option<layout_api::DocumentSelection>,
 }
 
 struct InspectorHighlight {
@@ -173,6 +176,7 @@ impl DisplayListBuilder<'_> {
         highlighted_dom_node: Option<OpaqueNode>,
         debug: &DiagnosticsLogging,
         paint_timing_handler: &mut PaintTimingHandler,
+        document_selection: Option<layout_api::DocumentSelection>,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let paint_info = &mut stacking_context_tree.paint_info;
@@ -202,6 +206,7 @@ impl DisplayListBuilder<'_> {
             image_resolver,
             device_pixel_ratio,
             paint_timing_handler,
+            document_selection,
         };
 
         builder.add_all_spatial_nodes();
@@ -837,6 +842,14 @@ impl Fragment {
             fragment.justification_adjustment,
         );
 
+        self.build_display_list_for_document_selection(
+            fragment,
+            builder,
+            containing_block,
+            fragment.base.rect.min_x(),
+            fragment.justification_adjustment,
+        );
+
         builder.wr().push_text(
             &common,
             glyph_bounds,
@@ -1056,6 +1069,104 @@ impl Fragment {
             insertion_point_rect,
             rgba(caret_color),
         );
+    }
+
+    /// Render document-level text selection highlights for text fragments
+    /// that are within the document selection range.
+    fn build_display_list_for_document_selection(
+        &self,
+        fragment: &TextFragment,
+        builder: &mut DisplayListBuilder<'_>,
+        containing_block_rect: &PhysicalRect<Au>,
+        fragment_x_offset: Au,
+        justification_adjustment: Au,
+    ) {
+        // Skip if there's no document selection or this fragment already has input selection.
+        let Some(ref selection) = builder.document_selection else {
+            return;
+        };
+        if fragment.offsets.is_some() {
+            return;
+        }
+        let Some(tag) = fragment.base.tag else {
+            return;
+        };
+        let node = tag.node;
+
+        // Determine if this fragment's node is within the selection range.
+        // For simplicity, we check if the node matches start or end, or is fully selected.
+        let (start_node, start_offset) = selection.start;
+        let (end_node, end_offset) = selection.end;
+
+        // Count total characters in this fragment.
+        let total_chars: usize = fragment
+            .glyphs
+            .iter()
+            .map(|gs| gs.total_characters())
+            .sum();
+
+        // Determine the selection range within this fragment.
+        let (sel_start, sel_end) = if node == start_node && node == end_node {
+            // Selection starts and ends in this node.
+            (start_offset as usize, end_offset as usize)
+        } else if node == start_node {
+            // Selection starts here, extends to end.
+            (start_offset as usize, total_chars)
+        } else if node == end_node {
+            // Selection ends here, starts from beginning.
+            (0, end_offset as usize)
+        } else if selection.interior_nodes.contains(&node) {
+            // Fully selected interior node.
+            (0, total_chars)
+        } else {
+            return;
+        };
+
+        if sel_start >= sel_end || sel_end == 0 {
+            return;
+        }
+
+        // Walk glyphs to find start and end advances.
+        let mut current_char = 0usize;
+        let mut current_advance = Au::zero();
+        let mut start_advance = None;
+        let mut end_advance = None;
+        for glyph_store in fragment.glyphs.iter() {
+            for glyph in glyph_store.glyphs() {
+                if current_char >= sel_start {
+                    start_advance = start_advance.or(Some(current_advance));
+                }
+                current_char += glyph.character_count();
+                current_advance += glyph.advance();
+                if glyph.char_is_word_separator() {
+                    current_advance += justification_adjustment;
+                }
+                if current_char <= sel_end {
+                    end_advance = Some(current_advance);
+                }
+            }
+        }
+
+        let start_x = start_advance.unwrap_or(Au::zero());
+        let end_x = end_advance.unwrap_or(current_advance);
+        if end_x <= start_x {
+            return;
+        }
+
+        let selection_rect = Rect::new(
+            containing_block_rect.origin
+                + Vector2D::new(fragment_x_offset + start_x, Au::zero()),
+            Size2D::new(end_x - start_x, containing_block_rect.height()),
+        )
+        .to_webrender();
+
+        // Use a default selection highlight color (blue).
+        let selection_color = wr::ColorF::new(0.69, 0.84, 1.0, 1.0);
+        let parent_style = fragment.base.style();
+        let selection_common = builder.common_properties(selection_rect, &parent_style);
+        builder
+            .wr()
+            .push_rect(&selection_common, selection_rect, selection_color);
     }
 }
 

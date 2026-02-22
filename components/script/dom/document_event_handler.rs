@@ -27,10 +27,9 @@ use js::jsapi::JSAutoRealm;
 use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{ScrollContainerQueryFlags, node_id_from_scroll_id};
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
-use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
-use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 use script_bindings::codegen::GenericBindings::TouchBinding::TouchMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, WindowMethods};
 use script_bindings::inheritance::Castable;
@@ -168,6 +167,8 @@ pub(crate) struct DocumentEventHandler {
     active_pointer_ids: DomRefCell<HashMap<i32, i32>>,
     /// Counter for generating unique pointer IDs for touch inputs
     next_touch_pointer_id: Cell<i32>,
+    /// Whether a text selection drag is in progress.
+    selection_active: Cell<bool>,
 }
 
 impl DocumentEventHandler {
@@ -187,6 +188,7 @@ impl DocumentEventHandler {
             active_keyboard_modifiers: Default::default(),
             active_pointer_ids: Default::default(),
             next_touch_pointer_id: Cell::new(1),
+            selection_active: Cell::new(false),
         }
     }
 
@@ -448,6 +450,11 @@ impl DocumentEventHandler {
         // Update the cursor when the mouse moves, if it has changed.
         self.set_cursor(Some(hit_test_result.cursor));
 
+        // Extend document text selection during drag.
+        if self.selection_active.get() {
+            self.extend_document_selection(&hit_test_result, can_gc);
+        }
+
         let Some(new_target) = hit_test_result
             .node
             .inclusive_ancestors(ShadowIncluding::Yes)
@@ -692,6 +699,11 @@ impl DocumentEventHandler {
                 self.last_mouse_button_down_point
                     .set(Some(hit_test_result.point_in_frame));
 
+                // Start document text selection on left mousedown.
+                if event.button == MouseButton::Left {
+                    self.begin_document_selection(&hit_test_result, can_gc);
+                }
+
                 if let Some(a) = activatable {
                     a.enter_formal_activation_state();
                 }
@@ -748,6 +760,11 @@ impl DocumentEventHandler {
             },
             // https://w3c.github.io/uievents/#handle-native-mouse-up
             MouseButtonAction::Up => {
+                // End document text selection on left mouseup.
+                if event.button == MouseButton::Left {
+                    self.selection_active.set(false);
+                }
+
                 if let Some(a) = activatable {
                     a.exit_formal_activation_state();
                 }
@@ -1518,6 +1535,22 @@ impl DocumentEventHandler {
             )
         }
 
+        // Default copy action: if the event was not cancelled, copy the selection text
+        // to the clipboard.
+        if !event.DefaultPrevented() {
+            if matches!(action, EditingActionEvent::Copy | EditingActionEvent::Cut) {
+                if let Some(selection) = self.window.Document().GetSelection(can_gc) {
+                    let text = selection.Stringifier();
+                    if !text.is_empty() {
+                        self.window.send_to_embedder(EmbedderMsg::SetClipboardText(
+                            self.window.webview_id(),
+                            text.to_string(),
+                        ));
+                    }
+                }
+            }
+        }
+
         // Step 5: Return true from the action.
         // In this case we are returning the `InputEventResult` instead of true or false.
         event.flags().into()
@@ -1836,5 +1869,51 @@ impl DocumentEventHandler {
             .values()
             .min()
             .is_some_and(|primary_pointer| *primary_pointer == pointer_id)
+    }
+
+    /// Begin document text selection at the hit test point.
+    fn begin_document_selection(&self, hit_test_result: &HitTestResult, can_gc: CanGc) {
+        // Don't start document selection on input/textarea elements — they handle their own.
+        if hit_test_result
+            .node
+            .inclusive_ancestors(ShadowIncluding::Yes)
+            .any(|n| {
+                n.is::<crate::dom::html::htmlinputelement::HTMLInputElement>()
+                    || n.is::<crate::dom::html::htmltextareaelement::HTMLTextAreaElement>()
+            })
+        {
+            return;
+        }
+
+        let Some(selection) = self.window.Document().GetSelection(can_gc) else {
+            return;
+        };
+
+        // Find the text node and offset at the click point.
+        if let Some((text_node, offset)) = self
+            .window
+            .text_node_at_point(&hit_test_result.node, hit_test_result.point_in_frame)
+        {
+            let _ = selection.Collapse(Some(&text_node), offset as u32, can_gc);
+            self.selection_active.set(true);
+        } else {
+            // Clicked on a non-text area — collapse selection.
+            selection.RemoveAllRanges();
+            self.selection_active.set(false);
+        }
+    }
+
+    /// Extend document text selection to the current mouse position.
+    fn extend_document_selection(&self, hit_test_result: &HitTestResult, can_gc: CanGc) {
+        let Some(selection) = self.window.Document().GetSelection(can_gc) else {
+            return;
+        };
+
+        if let Some((text_node, offset)) = self
+            .window
+            .text_node_at_point(&hit_test_result.node, hit_test_result.point_in_frame)
+        {
+            let _ = selection.Extend(&text_node, offset as u32, can_gc);
+        }
     }
 }

@@ -409,6 +409,27 @@ impl TextFragment {
 
         current_character
     }
+
+    /// Compute character offset from glyphs without requiring TextRunOffsets.
+    /// Returns a 0-based offset within this fragment's glyph content.
+    pub(crate) fn glyph_character_offset(&self, point_in_fragment: Point2D<Au, CSSPixel>) -> usize {
+        let mut current_character = 0usize;
+        let mut current_offset = Au::zero();
+        for glyph_store in &self.glyphs {
+            for glyph in glyph_store.glyphs() {
+                let mut advance = glyph.advance();
+                if glyph.char_is_word_separator() {
+                    advance += self.justification_adjustment;
+                }
+                if current_offset + advance.scale_by(0.5) >= point_in_fragment.x {
+                    return current_character;
+                }
+                current_offset += advance;
+                current_character += glyph.character_count();
+            }
+        }
+        current_character
+    }
 }
 
 impl ImageFragment {

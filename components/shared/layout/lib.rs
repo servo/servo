@@ -383,6 +383,13 @@ pub trait Layout {
         node: TrustedNodeAddress,
         point: Point2D<Au, CSSPixel>,
     ) -> Option<usize>;
+    /// Find the text node and character offset at a viewport point, searching within
+    /// descendants of the given node. Returns (opaque_node, offset).
+    fn query_text_node_at_point(
+        &self,
+        node: TrustedNodeAddress,
+        point: Point2D<Au, CSSPixel>,
+    ) -> Option<(OpaqueNode, usize)>;
     fn query_elements_from_point(
         &self,
         point: LayoutPoint,
@@ -642,6 +649,20 @@ pub struct ReflowRequest {
     pub highlighted_dom_node: Option<OpaqueNode>,
     /// The current font context.
     pub document_context: WebFontDocumentContext,
+    /// The current document text selection, if any.
+    pub selection: Option<DocumentSelection>,
+}
+
+/// A document-level text selection (not input/textarea selection).
+#[derive(Clone, Debug, MallocSizeOf)]
+pub struct DocumentSelection {
+    /// The start (range start) node and character offset.
+    pub start: (OpaqueNode, u32),
+    /// The end (range end) node and character offset.
+    pub end: (OpaqueNode, u32),
+    /// OpaqueNodes of text nodes fully contained within the selection range.
+    #[ignore_malloc_size_of = "HashSet<OpaqueNode>"]
+    pub interior_nodes: std::collections::HashSet<OpaqueNode>,
 }
 
 impl ReflowRequest {

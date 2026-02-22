@@ -2611,6 +2611,41 @@ impl Window {
 
         let document_context = self.web_font_context();
 
+        // Build document selection for layout rendering.
+        // Collect start/end nodes plus all fully-selected interior text nodes.
+        let selection = document
+            .GetSelection(CanGc::note())
+            .and_then(|sel| {
+                use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
+                use std::collections::HashSet;
+                if sel.IsCollapsed() {
+                    return None;
+                }
+                let range = sel.GetRangeAt(0).ok()?;
+                let start_node = range.start_container();
+                let start_offset = range.start_offset();
+                let end_node = range.end_container();
+                let end_offset = range.end_offset();
+
+                // Collect OpaqueNodes for all text nodes fully inside the range.
+                let mut interior_nodes = HashSet::new();
+                let doc_node = document.upcast::<Node>();
+                for node in start_node.following_nodes(doc_node) {
+                    if *node == *end_node {
+                        break;
+                    }
+                    if node.is::<crate::dom::text::Text>() {
+                        interior_nodes.insert(node.to_opaque());
+                    }
+                }
+
+                Some(layout_api::DocumentSelection {
+                    start: (start_node.to_opaque(), start_offset),
+                    end: (end_node.to_opaque(), end_offset),
+                    interior_nodes,
+                })
+            });
+
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
             document: document.upcast::<Node>().to_trusted_node_address(),
@@ -2625,6 +2660,7 @@ impl Window {
             animating_images: document.image_animation_manager().animating_images(),
             highlighted_dom_node: document.highlighted_dom_node().map(|node| node.to_opaque()),
             document_context,
+            selection,
         };
 
         let Some(reflow_result) = self.layout.borrow_mut().reflow(reflow) else {
@@ -3017,6 +3053,53 @@ impl Window {
         self.layout
             .borrow()
             .query_text_index(node.to_trusted_node_address(), point_in_viewport)
+    }
+
+    /// Find the text node and character offset at a viewport point, searching within
+    /// descendants of the given node. Returns (Node, offset).
+    ///
+    /// Layout returns an `OpaqueNode` identifying the text fragment's DOM node.
+    /// Rather than unsafely converting that pointer back to a `Node`, we iterate
+    /// the element's descendant text nodes and match by `OpaqueNode` identity.
+    pub(crate) fn text_node_at_point(
+        &self,
+        node: &Node,
+        point_in_viewport: Point2D<f32, CSSPixel>,
+    ) -> Option<(DomRoot<Node>, usize)> {
+        // Text nodes don't have their own layout box — their text fragments
+        // live under the parent element's box. Use the parent element for the
+        // layout query so fragments_for_pseudo finds the text fragments.
+        let query_node = if node.is::<crate::dom::text::Text>() {
+            use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
+            node.GetParentNode()?
+        } else {
+            DomRoot::from_ref(node)
+        };
+
+        let point = point_in_viewport.map(Au::from_f32_px);
+        self.layout_reflow(QueryMsg::TextIndexQuery);
+        let (opaque, offset) = self
+            .layout
+            .borrow()
+            .query_text_node_at_point(query_node.to_trusted_node_address(), point)?;
+
+        // Walk descendant text nodes to find the one matching the OpaqueNode
+        // returned by layout. This avoids unsafe pointer-to-Node conversion.
+        use style::dom::OpaqueNode;
+        fn find_text_node(node: &Node, target: OpaqueNode) -> Option<DomRoot<Node>> {
+            if node.is::<crate::dom::text::Text>() && node.to_opaque() == target {
+                return Some(DomRoot::from_ref(node));
+            }
+            for child in node.children() {
+                if let Some(found) = find_text_node(&child, target) {
+                    return Some(found);
+                }
+            }
+            None
+        }
+
+        let text_node = find_text_node(&query_node, opaque)?;
+        Some((text_node, offset))
     }
 
     pub(crate) fn elements_from_point_query(
