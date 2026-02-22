@@ -308,7 +308,6 @@ pub(crate) struct WorkerGlobalScope {
     #[no_trace]
     navigation_start: CrossProcessInstant,
     performance: MutNullableDom<Performance>,
-    indexeddb: MutNullableDom<IDBFactory>,
     trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
 
     /// A [`TimerScheduler`] used to schedule timers for this [`WorkerGlobalScope`].
@@ -386,7 +385,6 @@ impl WorkerGlobalScope {
             _devtools_sender: init.from_devtools_sender,
             navigation_start: CrossProcessInstant::now(),
             performance: Default::default(),
-            indexeddb: Default::default(),
             timer_scheduler: RefCell::default(),
             insecure_requests_policy,
             trusted_types: Default::default(),
@@ -639,10 +637,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
 
     /// <https://w3c.github.io/IndexedDB/#factory-interface>
     fn IndexedDB(&self) -> DomRoot<IDBFactory> {
-        self.indexeddb.or_init(|| {
-            let global_scope = self.upcast::<GlobalScope>();
-            IDBFactory::new(global_scope, CanGc::note())
-        })
+        self.upcast::<GlobalScope>().get_indexeddb()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-location>
@@ -1028,7 +1023,7 @@ impl WorkerGlobalScope {
         self.upcast::<GlobalScope>()
             .task_manager()
             .cancel_all_tasks_and_ignore_future_tasks();
-        if let Some(factory) = self.indexeddb.get() {
+        if let Some(factory) = self.upcast::<GlobalScope>().get_existing_indexeddb() {
             factory.abort_pending_upgrades();
         }
     }

@@ -229,6 +229,9 @@ pub(crate) struct GlobalScope {
     /// <https://cookiestore.spec.whatwg.org/#globals>
     cookie_store: MutNullableDom<CookieStore>,
 
+    /// <https://w3c.github.io/IndexedDB/#factory-interface>
+    indexeddb: MutNullableDom<IDBFactory>,
+
     /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-object-map>
     worker_map: DomRefCell<HashMapTracedValues<ServiceWorkerId, Dom<ServiceWorker>, FxBuildHasher>>,
 
@@ -775,6 +778,7 @@ impl GlobalScope {
             crypto: Default::default(),
             registration_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             cookie_store: Default::default(),
+            indexeddb: Default::default(),
             worker_map: DomRefCell::new(HashMapTracedValues::new_fx()),
             pipeline_id,
             devtools_wants_updates: Default::default(),
@@ -2951,14 +2955,13 @@ impl GlobalScope {
     }
 
     /// Returns the idb factory for this global.
-    /// TODO: move the idb to the global itself.
     pub(crate) fn get_indexeddb(&self) -> DomRoot<IDBFactory> {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.IndexedDB();
-        } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.IndexedDB();
-        }
-        unreachable!("IndexedDB is only exposed on Window and WorkerGlobalScope.");
+        self.indexeddb
+            .or_init(|| IDBFactory::new(self, CanGc::note()))
+    }
+
+    pub(crate) fn get_existing_indexeddb(&self) -> Option<DomRoot<IDBFactory>> {
+        self.indexeddb.get()
     }
 
     /// Perform a microtask checkpoint.
