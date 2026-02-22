@@ -734,11 +734,13 @@ impl ContentEditableRange for HTMLElement {
     }
 }
 
-pub(crate) trait BaseCommand {
-    fn execute(&self, selection: &Selection, value: DOMString) -> bool;
+pub(crate) trait SelectionExecCommandSupport {
+    fn delete_the_selection(&self, active_range: &Range);
+}
 
+impl SelectionExecCommandSupport for Selection {
     /// <https://w3c.github.io/editing/docs/execCommand/#delete-the-selection>
-    fn delete_the_selection(&self, _selection: &Selection, active_range: &Range) {
+    fn delete_the_selection(&self, active_range: &Range) {
         // Step 1. If the active range is null, abort these steps and do nothing.
         //
         // Always passed in as argument
@@ -886,4 +888,24 @@ pub(crate) trait BaseCommand {
         // Step 41. Restore states and values from overrides.
         // TODO
     }
+}
+
+pub(crate) trait BaseCommand {
+    /// <https://w3c.github.io/editing/docs/execCommand/#indeterminate>
+    fn is_indeterminate(&self) -> bool {
+        false
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#state>
+    fn current_state(&self) -> Option<bool> {
+        None
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#value>
+    fn current_value(&self) -> Option<DOMString> {
+        None
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#action>
+    fn execute(&self, selection: &Selection, value: DOMString) -> bool;
 }

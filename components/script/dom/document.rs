@@ -626,6 +626,12 @@ pub(crate) struct Document {
 
     /// Reflect the value of that preferences to prevent paying the cost of a RwLock access.
     layout_animations_test_enabled: bool,
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#state-override>
+    state_override: Cell<bool>,
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
+    value_override: DomRefCell<Option<DOMString>>,
 }
 
 impl Document {
@@ -3917,6 +3923,8 @@ impl Document {
             details_name_groups: Default::default(),
             protocol_handler_automation_mode: Default::default(),
             layout_animations_test_enabled: pref!(layout_animations_test_enabled),
+            state_override: Default::default(),
+            value_override: Default::default(),
         }
     }
 
@@ -5023,6 +5031,16 @@ impl Document {
 
     pub(crate) fn fullscreen_element(&self) -> Option<DomRoot<Element>> {
         self.fullscreen_element.get()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#state-override>
+    pub(crate) fn state_override(&self) -> bool {
+        self.state_override.get()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
+    pub(crate) fn value_override(&self) -> Option<DOMString> {
+        self.value_override.borrow().clone()
     }
 }
 
@@ -6476,12 +6494,27 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         self.check_support_and_enabled(command_id, can_gc).is_some()
     }
 
-    /// <https://w3c.github.io/editing/ActiveDocuments/execCommand.html#querycommandsupported()>
+    /// <https://w3c.github.io/editing/docs/execCommand/#querycommandsupported()>
     fn QueryCommandSupported(&self, command_id: DOMString) -> bool {
         // > When the queryCommandSupported(command) method on the Document interface is invoked,
         // the user agent must return true if command is supported and available
         // within the current script on the current site, and false otherwise.
         self.is_command_supported(command_id)
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#querycommandindeterm()>
+    fn QueryCommandIndeterm(&self, command_id: DOMString) -> bool {
+        self.is_command_indeterminate(command_id)
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#querycommandstate()>
+    fn QueryCommandState(&self, command_id: DOMString) -> bool {
+        self.command_state_for_command(command_id)
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#querycommandvalue()>
+    fn QueryCommandValue(&self, command_id: DOMString) -> DOMString {
+        self.command_value_for_command(command_id)
     }
 
     // https://fullscreen.spec.whatwg.org/#handler-document-onfullscreenerror

@@ -42,7 +42,9 @@ impl Document {
         &self,
         command_id: DOMString,
     ) -> Option<Box<dyn BaseCommand>> {
-        Some(Box::new(match &*command_id.str() {
+        // https://w3c.github.io/editing/docs/execCommand/#methods-to-query-and-execute-commands
+        // > All of these methods must treat their command argument ASCII case-insensitively.
+        Some(Box::new(match &*command_id.str().to_lowercase() {
             "delete" => DeleteCommand {},
             _ => return None,
         }))
@@ -51,6 +53,9 @@ impl Document {
 
 pub(crate) trait ExecCommandsSupport {
     fn is_command_supported(&self, command_id: DOMString) -> bool;
+    fn is_command_indeterminate(&self, command_id: DOMString) -> bool;
+    fn command_state_for_command(&self, command_id: DOMString) -> bool;
+    fn command_value_for_command(&self, command_id: DOMString) -> DOMString;
     fn check_support_and_enabled(
         &self,
         command_id: DOMString,
@@ -68,6 +73,52 @@ impl ExecCommandsSupport for Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandsupported()>
     fn is_command_supported(&self, command_id: DOMString) -> bool {
         self.command_if_command_is_supported(command_id).is_some()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#querycommandindeterm()>
+    fn is_command_indeterminate(&self, command_id: DOMString) -> bool {
+        // Step 1. If command is not supported or has no indeterminacy, return false.
+        // Step 2. Return true if command is indeterminate, otherwise false.
+        self.command_if_command_is_supported(command_id)
+            .is_some_and(|command| command.is_indeterminate())
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#querycommandstate()>
+    fn command_state_for_command(&self, command_id: DOMString) -> bool {
+        // Step 1. If command is not supported or has no state, return false.
+        let Some(command) = self.command_if_command_is_supported(command_id) else {
+            return false;
+        };
+        let Some(state) = command.current_state() else {
+            return false;
+        };
+        // Step 2. If the state override for command is set, return it.
+        if self.state_override() {
+            return true;
+        }
+        // Step 3. Return true if command's state is true, otherwise false.
+        state
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#querycommandvalue()>
+    fn command_value_for_command(&self, command_id: DOMString) -> DOMString {
+        // Step 1. If command is not supported or has no value, return the empty string.
+        let Some(command) = self.command_if_command_is_supported(command_id) else {
+            return DOMString::new();
+        };
+        let Some(value) = command.current_value() else {
+            return DOMString::new();
+        };
+        // Step 2. If command is "fontSize" and its value override is set,
+        // convert the value override to an integer number of pixels and return the legacy font size for the result.
+        // TODO
+
+        // Step 3. If the value override for command is set, return it.
+        if let Some(value_override) = self.value_override() {
+            return value_override;
+        }
+        // Step 4. Return command's value.
+        value
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandenabled()>

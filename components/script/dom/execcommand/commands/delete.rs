@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::str::DOMString;
-use crate::dom::execcommand::basecommand::BaseCommand;
+use crate::dom::execcommand::basecommand::{BaseCommand, SelectionExecCommandSupport};
 use crate::dom::selection::Selection;
 
 pub(crate) struct DeleteCommand {}
@@ -16,7 +16,7 @@ impl BaseCommand for DeleteCommand {
             .expect("Must always have an active range");
         // Step 1. If the active range is not collapsed, delete the selection and return true.
         if !active_range.collapsed() {
-            self.delete_the_selection(selection, &active_range);
+            selection.delete_the_selection(&active_range);
             return true;
         }
         // Step 2. Canonicalize whitespace at the active range's start.
