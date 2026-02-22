@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+const controls = ["textarea", "input"];
+
+function setupControl(control, value) {
+  document.body.innerHTML = (control === "input") ? '<input type="text">' : '<textarea></textarea>';
+  const element = document.body.firstElementChild;
+  element.value = value;
+  return element;
+}
+
+controls.forEach(control => {
+  test(() => {
+    const element = setupControl(control, "A");
+
+    [[0, 0, true], [0, 1, false], [1, 1, true]].forEach(([start, end, collapsed]) => {
+      const range = element.getValueRange(start, end);
+      assert_equals(range.startOffset, start, `[${start}, ${end}] startOffset`);
+      assert_equals(range.endOffset, end, `[${start}, ${end}] endOffset`);
+      assert_equals(range.collapsed, collapsed, `[${start}, ${end}] collapsed`);
+    });
+  }, `getValueRange with single character in ${control}.`);
+
+  test(() => {
+    const element = setupControl(control, "");
+    const range = element.getValueRange(0, 0);
+
+    assert_equals(range.startOffset, 0);
+    assert_equals(range.endOffset, 0);
+    assert_true(range.collapsed);
+  }, `getValueRange with empty control in ${control}.`);
+
+  test(() => {
+    const element = setupControl(control, "Hello World");
+
+    [[0, 5, false], [5, 6, false], [6, 11, false], [11, 11, true]].forEach(([start, end, collapsed]) => {
+      const range = element.getValueRange(start, end);
+      assert_equals(range.startOffset, start, `[${start}, ${end}] startOffset`);
+      assert_equals(range.endOffset, end, `[${start}, ${end}] endOffset`);
+      assert_equals(range.collapsed, collapsed, `[${start}, ${end}] collapsed`);
+    });
+  }, `getValueRange boundary positions in ${control}.`);
+
+  test(() => {
+    const testCases = [
+      {
+        // Emoji 😊 with length 2 in UTF-16 ('\uD83D\uDE0A').
+        text: '\u{1F60A}',
+        ranges: [[0, 0, true], [0, 2, false], [2, 2, true], [0, 1, false], [1, 2, false]]
+      },
+      {
+        // ZWJ emoji (👨‍👩‍👧) with length 8 in UTF-16 ('\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67').
+        text: '\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}',
+        ranges: [[0, 0, true], [0, 8, false], [8, 8, true], [0, 2, false], [3, 5, false], [6, 8, false]]
+      },
+      {
+        // Mixed ASCII and emoji 😊.
+        text: 'Hello\u{1F60A}World',
+        ranges: [[0, 5, false], [5, 7, false], [7, 12, false], [0, 12, false]]
+      }
+    ];
+
+    testCases.forEach(testCase => {
+      const element = setupControl(control, testCase.text);
+      testCase.ranges.forEach(([start, end, collapsed]) => {
+        const range = element.getValueRange(start, end);
+        assert_equals(range.startOffset, start, `[${start}, ${end}] startOffset`);
+        assert_equals(range.endOffset, end, `[${start}, ${end}] endOffset`);
+        assert_equals(range.collapsed, collapsed, `[${start}, ${end}] collapsed`);
+      });
+    });
+  }, `getValueRange with Unicode characters in ${control}.`);
+});
+
+
+test(() => {
+  // Test textarea with mixed whitespace in light DOM.
+  document.body.innerHTML = '<textarea>  \n\t  Line1\n  Line2  \t\n  </textarea>';
+  const textarea = document.body.firstElementChild;
+
+  // Whitespace is preserved in textarea.value.
+  const range = textarea.getValueRange(0, textarea.value.length);
+  assert_equals(range.startOffset, 0);
+  assert_equals(range.endOffset, textarea.value.length);
+  assert_false(range.collapsed);
+}, "getValueRange on textarea with whitespace in light DOM.");
+
+test(() => {
+  document.body.innerHTML = '<textarea>Hello World</textarea>';
+  const textarea = document.body.firstElementChild;
+
+  // Create a complex DOM structure inside the textarea.
+  // Child nodes don't affect the textarea's .value, only text content does.
+  textarea.append(document.createElement("video"));
+  textarea.append(document.createElement("iframe"));
+
+  const span = document.createElement("span");
+  span.innerHTML = "more text";
+  textarea.append(span);
+
+  textarea.append(document.createTextNode("Some rendered content"));
+  textarea.append(document.createTextNode("Some more rendered content"));
+
+  // getValueRange uses element.value, which includes text nodes but ignores element children.
+  const range = textarea.getValueRange(0, textarea.value.length);
+  assert_equals(range.startOffset, 0);
+  assert_equals(range.endOffset, textarea.value.length);
+  assert_false(range.collapsed);
+}, "getValueRange works correctly with weirdly formed light DOM structure.");
+
+test(() => {
+  // Test input with child nodes (which shouldn't exist but might)
+  document.body.innerHTML = '<input type="text" value="Original">';
+  const input = document.body.firstElementChild;
+
+  // Malformed: add child nodes to input (shouldn't affect value).
+  input.appendChild(document.createTextNode("Ignored"));
+  input.appendChild(document.createElement("span")).textContent = "AlsoIgnored";
+
+  const range = input.getValueRange(0, input.value.length);
+
+  // Input.value is unaffected by child nodes.
+  assert_equals(range.startOffset, 0);
+  assert_equals(range.endOffset, 8); // "Original".length
+  assert_false(range.collapsed);
+}, "getValueRange ignores malformed input child nodes.");
+</script>

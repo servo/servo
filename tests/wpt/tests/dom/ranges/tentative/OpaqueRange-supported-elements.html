@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+[
+  { html: '<textarea>Hello world</textarea>', name: 'textarea' },
+  { html: '<input type="text" value="Sample text">', name: 'input[type=text]' },
+  { html: '<input type="search" value="search query">', name: 'input[type=search]' },
+  { html: '<input type="password" value="secret123">', name: 'input[type=password]' },
+  { html: '<input type="url" value="https://example.com">', name: 'input[type=url]' },
+  { html: '<input type="tel" value="+1-555-123-4567">', name: 'input[type=tel]' }
+].forEach(({ html, name }) => {
+  test(() => {
+    document.body.innerHTML = html;
+    const element = document.body.firstElementChild;
+    const value = element.value || element.textContent;
+
+    const range = element.getValueRange(0, value.length);
+
+    // Opaque range: containers are null.
+    assert_equals(range.startContainer, null, 'startContainer should be null');
+    assert_equals(range.endContainer, null, 'endContainer should be null');
+    assert_equals(range.startOffset, 0);
+    assert_equals(range.endOffset, value.length);
+    assert_false(range.collapsed);
+  }, `getValueRange should work on ${name}.`);
+});
+</script>

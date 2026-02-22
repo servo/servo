@@ -1,3 +1,4 @@
+import os
 import tempfile
 
 import pytest
@@ -54,12 +55,14 @@ def opposite_download_behavior(is_download_allowed_invariant, temp_dir):
 
 @pytest.fixture
 def trigger_download(bidi_session, subscribe_events, wait_for_event,
-        wait_for_future_safe, inline):
+        wait_for_future_safe, inline, temp_dir):
     """
     Triggers download and returns either `browsingContext.downloadEnd` event or
     None if the download was not ended (e.g. if User Agent showed file save
     dialog).
     """
+
+    downloaded_files = []
 
     async def trigger_download(context):
         page_with_download_link = inline(
@@ -81,13 +84,28 @@ def trigger_download(bidi_session, subscribe_events, wait_for_event,
 
         try:
             print("Wait for browsingContext.downloadEnd event")
-            return await wait_for_future_safe(
+            event = await wait_for_future_safe(
                 on_download_end, timeout=2.0)
+
+            # Save only file paths that are saved not in the temporary folder to remove them
+            # at the end of the test. Files in the temporary folder will be cleaned up
+            # automatically.
+            if event["status"] != "canceled" and not event["filepath"].startswith(temp_dir):
+                downloaded_files.append(event["filepath"])
+
+            return event
         except TimeoutException:
             print("User Agent showed file save dialog")
             return None
 
-    return trigger_download
+    yield trigger_download
+
+    for file_path in downloaded_files:
+        try:
+            os.remove(file_path)
+        except FileNotFoundError:
+            print(f"File with path: {file_path} is not found")
+            pass
 
 
 @pytest.fixture

@@ -623,6 +623,8 @@ class SourceFile:
                     positional_args.append(range_value)
                 else:
                     arg_values[name] = range_value
+            if key in rv:
+                raise ValueError("Got multiple fuzzy values for key %s" % (key,))
             rv[key] = []
             for arg_name in args:
                 if arg_values.get(arg_name):

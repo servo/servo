@@ -30,13 +30,11 @@ promise_test(async t => {
 
   // After destroying the session, the properties should be still accessible.
   assert_equals(
-    typeof session.inputQuota, "number",
-    "inputQuota must be accessible."
-  );
+      typeof session.contextWindow, 'number',
+      'contextWindow must be accessible.');
   assert_equals(
-    typeof session.inputUsage, "number",
-    "inputUsage must be accessible."
-  );
+      typeof session.contextUsage, 'number',
+      'contextUsage must be accessible.');
   assert_equals(
       typeof session.temperature, 'undefined', 'temperature is deprecated.');
   assert_equals(typeof session.topK, 'undefined', 'topK is deprecated.');

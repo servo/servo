@@ -950,4 +950,152 @@ test(() => {
   }
 }, `random() values should not be allowed as initial values in @property`);
 
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    var allHaveSameScale = true;
+    for (i = 0; i < iterations; ++i) {
+      const el1 = document.createElement('div');
+      el1.style.setProperty('--unregistered1', 'random(element-shared, 10, 30)');
+      el1.style.setProperty('scale', 'var(--unregistered1)');
+      holder.appendChild(el1);
+      const el2 = document.createElement('div');
+      el2.style.setProperty('--unregistered2', 'random(element-shared, 10, 30)');
+      el2.style.setProperty('scale', 'var(--unregistered2)');
+      holder.appendChild(el2);
+
+      const el1ComputedScale= getComputedStyle(el1)['scale'];
+      const el2ComputedScale = getComputedStyle(el2)['scale'];
+      if (el1ComputedScale != el2ComputedScale) {
+        allHaveSameScale = false;
+      }
+    }
+
+    assert_true(allHaveSameScale);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() shared by property in var()`);
+
+test(() => {
+  const holder = document.createElement('div');
+  holder.style.setProperty('--unregistered', 'random(element-shared, 10, 30)');
+  document.body.appendChild(holder);
+
+  try {
+    var allHaveSameX = true;
+    var allHaveSameXandY = true;
+    for (i = 0; i < iterations; ++i) {
+      const el1 = document.createElement('div');
+      el1.style.setProperty('--x', 'var(--unregistered)');
+      holder.appendChild(el1);
+      const el2 = document.createElement('div');
+      el2.style.setProperty('--x', 'random(element-shared, 10, 30)');
+      holder.appendChild(el2);
+      const el3 = document.createElement('div');
+      el3.style.setProperty('--y', 'var(--unregistered)');
+      holder.appendChild(el3);
+
+      const el1ComputedX= getComputedStyle(el1).getPropertyValue('--x');
+      const el2ComputedX = getComputedStyle(el2).getPropertyValue('--x');
+      const el3ComputedY = getComputedStyle(el3).getPropertyValue('--y');
+      if (el1ComputedX != el2ComputedX) {
+        allHaveSameX = false;
+      }
+      if (el1ComputedX != el3ComputedY) {
+        allHaveSameXandY = false;
+      }
+    }
+    assert_true(allHaveSameX);
+    assert_false(allHaveSameXandY);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() shared by custom property in var()`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    var allHaveSameMarginTopAndLeft = true;
+    for (i = 0; i < iterations; ++i) {
+      const el = document.createElement('div');
+      el.style.setProperty('--unregistered', 'random(10px, 30px)');
+      el.style.setProperty('margin', 'var(--unregistered) var(--unregistered)');
+      holder.appendChild(el);
+
+      const elComputedMarginTop = getComputedStyle(el)['margin-top'];
+      const elComputedMarginLeft = getComputedStyle(el)['margin-left'];
+      if (elComputedMarginTop != elComputedMarginLeft) {
+        allHaveSameMarginTopAndLeft = false;
+      }
+    }
+
+    assert_false(allHaveSameMarginTopAndLeft);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() shared by shorthand property in var(), test random() value index`);
+
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    var allHaveSameScale = true;
+    for (i = 0; i < iterations; ++i) {
+      const el1 = document.createElement('div');
+      el1.setAttribute("data-foo", 'random(element-shared, 10, 30)');
+      el1.style.setProperty('scale', 'attr(data-foo)');
+      holder.appendChild(el1);
+      const el2 = document.createElement('div');
+      el2.setAttribute("data-foo", 'random(element-shared, 10, 30)');
+      el2.style.setProperty('scale', 'attr(data-foo)');
+      holder.appendChild(el2);
+
+      const el1ComputedScale = getComputedStyle(el1)['scale'];
+      const el2ComputedScale = getComputedStyle(el2)['scale'];
+      if (el1ComputedScale != el2ComputedScale) {
+        allHaveSameScale = false;
+      }
+    }
+
+    assert_true(allHaveSameScale);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() shared by property in attr()`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    var allHaveSameScale = true;
+    for (i = 0; i < iterations; ++i) {
+      const el1 = document.createElement('div');
+      el1.setAttribute("data-foo", 'random(element-shared, 10, 30)');
+      el1.style.setProperty('scale', 'attr(data-foo type(<number>))');
+      holder.appendChild(el1);
+      const el2 = document.createElement('div');
+      el2.setAttribute("data-foo", 'random(element-shared, 10, 30)');
+      el2.style.setProperty('scale', 'attr(data-foo type(<number>))');
+      holder.appendChild(el2);
+
+      const el1ComputedScale = getComputedStyle(el1)['scale'];
+      const el2ComputedScale = getComputedStyle(el2)['scale'];
+      if (el1ComputedScale != el2ComputedScale) {
+        allHaveSameScale = false;
+      }
+    }
+    assert_true(allHaveSameScale);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() shared by property in typed attr()`);
+
 </script>

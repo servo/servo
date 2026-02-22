@@ -17,12 +17,12 @@ promise_test(async t => {
   assert_equals(typeof session.prompt, 'function');
   assert_equals(typeof session.promptStreaming, 'function');
   assert_equals(typeof session.append, 'function');
-  assert_equals(typeof session.measureInputUsage, 'function');
+  assert_equals(typeof session.measureContextUsage, 'function');
   assert_equals(typeof session.clone, 'function');
   assert_equals(typeof session.destroy, 'function');
 
-  assert_equals(typeof session.inputUsage, 'number');
-  assert_equals(typeof session.inputQuota, 'number');
+  assert_equals(typeof session.contextUsage, 'number');
+  assert_equals(typeof session.contextWindow, 'number');
   assert_equals(typeof session.topK, 'undefined');  // topK is deprecated.
   assert_equals(
       typeof session.temperature, 'undefined');  // temperature is deprecated.

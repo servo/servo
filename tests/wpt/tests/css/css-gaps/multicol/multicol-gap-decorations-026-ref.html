@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  body {
+    margin: 0;
+    font: Ahem;
+  }
+
+  .col {
+    height: 100px;
+    column-count: auto;
+    border: 2px solid red;
+    column-width: 50px;
+    gap: 5px;
+  }
+
+  .column-rule {
+    height: 100px;
+    width: 5px;
+    background: gold;
+    position: absolute;
+    top: 2px;
+    left: 54px;
+  }
+</style>
+<body>
+<div class="column-rule"></div>
+<div class="column-rule" style="left: 111px;"></div>
+<div class="col">
+  Hello<br>
+  Hello<br>
+  <div style="column-span: all; background: cyan; height: 20px; opacity: 0.5;"></div>
+  Hello<br>
+  Hello<br>
+  Hello<br>
+  Hello<br>
+  Hello<br>
+  Hello<br>
+</div>

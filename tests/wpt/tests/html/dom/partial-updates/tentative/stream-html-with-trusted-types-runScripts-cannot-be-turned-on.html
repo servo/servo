@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/helper.sub.js"></script>
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      var container = document.querySelector("#container");
+      const cleanupPolicy = trustedTypes.createPolicy("cleanup", {
+        createHTML: (_) => "",
+      });
+      trustedTypes.createPolicy("default", {
+        createHTML: (_) => "",
+        createScript: (s) => s,
+        createParserOptions: (_) => ({
+          runScripts: true,
+        }),
+      });
+      function cleanup() {
+        container.innerHTML = cleanupPolicy.createHTML("");
+      }
+
+      promise_test(async (t) => {
+        t.add_cleanup(cleanup);
+        let d = document.createElement("div");
+        document.querySelector("#container").appendChild(d);
+        t.add_cleanup(() => d.remove());
+        const writer = d.streamHTMLUnsafe({ runScripts: false }).getWriter();
+        window.did_run = false;
+        await writer.write("<script>window.did_run = true;<" + "/script>");
+        await writer.close();
+        assert_false(window.did_run);
+      }, "The default TT policy cannot turn runScripts on if they are off in the options");
+    </script>
+  </body>
+</html>

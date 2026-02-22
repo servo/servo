@@ -6,6 +6,15 @@
 <link rel="author" href="mailto:bokan@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+
+<style>
+@view-transition {
+  navigation: auto;
+}
+::view-transition-group(*) {
+  animation-duration: 300s;
+}
+</style>
 <script>
 const params = new URLSearchParams(location.search);
 const mode = params.get("mode") || "test";
@@ -22,10 +31,14 @@ case "test":
   });
   break;
 case "old":
-  onload = () => { location.replace("?mode=new"); };
+  onload = () => requestAnimationFrame(() => { location.replace("?mode=new"); });
   break;
 case "new":
   addEventListener('pagereveal', e => {
+    if (!e.viewTransition) {
+      window.opener.did_reveal("fail: no view transition");
+      return;
+    }
     e.viewTransition.finished.then(() => {
       window.opener.did_reveal("pass");
     }, err => {
@@ -36,11 +49,3 @@ case "new":
   break;
 }
 </script>
-<style>
-@view-transition {
-  navigation: auto;
-}
-::view-transition-group(*) {
-  animation-duration: 300s;
-}
-</style>

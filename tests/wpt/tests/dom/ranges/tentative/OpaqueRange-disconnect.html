@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+test(() => {
+  document.body.innerHTML = '<textarea>Hello</textarea>';
+  const textarea = document.body.firstElementChild;
+  const range = textarea.getValueRange(1, 4);
+
+  range.disconnect();
+
+  assert_equals(range.startOffset, 0, "startOffset resets to 0");
+  assert_equals(range.endOffset, 0, "endOffset resets to 0");
+  assert_true(range.collapsed, "range is collapsed");
+  assert_equals(range.startContainer, null, "startContainer remains null");
+  assert_equals(range.endContainer, null, "endContainer remains null");
+  assert_equals(range.getClientRects().length, 0, "no client rects");
+  assert_equals(range.getBoundingClientRect().width, 0, "bounding rect width is 0");
+  assert_equals(range.getBoundingClientRect().height, 0, "bounding rect height is 0");
+}, "disconnect() resets range state and geometry.");
+
+test(() => {
+  document.body.innerHTML = '<textarea>Hello</textarea>';
+  const textarea = document.body.firstElementChild;
+  const range = textarea.getValueRange(1, 4);
+
+  range.disconnect();
+  range.disconnect();
+
+  assert_equals(range.startOffset, 0);
+  assert_equals(range.endOffset, 0);
+}, "disconnect() is idempotent.");
+
+test(() => {
+  document.body.innerHTML = '<textarea>Hello</textarea>';
+  const textarea = document.body.firstElementChild;
+  const range = textarea.getValueRange(1, 4);
+
+  range.disconnect();
+  textarea.value = "World!";
+
+  assert_equals(range.startOffset, 0, "disconnected range ignores value change");
+  assert_equals(range.endOffset, 0);
+}, "disconnect() stops live offset updates.");
+
+test(() => {
+  document.body.innerHTML = '<textarea>Hello</textarea>';
+  const textarea = document.body.firstElementChild;
+  const range1 = textarea.getValueRange(0, 3);
+  const range2 = textarea.getValueRange(2, 5);
+
+  range1.disconnect();
+
+  assert_equals(range2.startOffset, 2, "sibling range unaffected by disconnect");
+  assert_equals(range2.endOffset, 5);
+
+  textarea.value = "Modified";
+  assert_equals(range1.startOffset, 0, "disconnected range stays at 0");
+  assert_equals(range2.startOffset, 0, "sibling range still receives updates");
+}, "disconnect() only affects the target range.");
+
+test(() => {
+  document.body.innerHTML = '<textarea>Hello</textarea>';
+  const textarea = document.body.firstElementChild;
+  const range = textarea.getValueRange(1, 4);
+  range.disconnect();
+
+  const newRange = textarea.getValueRange(0, 5);
+  assert_equals(newRange.startOffset, 0);
+  assert_equals(newRange.endOffset, 5);
+  assert_false(newRange.collapsed);
+}, "Element accepts new ranges after a prior range is disconnected.");
+</script>

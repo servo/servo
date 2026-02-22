@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>CSS Animations: revert-rule in keyframes</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-rule-keyword">
+<link rel="help" href="https://drafts.csswg.org/css-animations/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @property --x {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+  }
+  @keyframes anim {
+    from {
+      width: revert-rule;
+      --x: revert-rule;
+    }
+    to {
+      width: 200px;
+      --x: 200px;
+    }
+  }
+  #target {
+    width: 100px;
+    --x: 100px;
+    animation: anim 3600s steps(2, start);
+  }
+</style>
+<div id="target"></div>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color', 'revert-rule'));
+    assert_equals(getComputedStyle(target).width, '150px');
+  }, 'revert-rule in keyframes (width)');
+
+  test(() => {
+    assert_true(CSS.supports('color', 'revert-rule'));
+    assert_equals(getComputedStyle(target).getPropertyValue('--x'), '150px');
+  }, 'revert-rule in keyframes (--x)');
+</script>

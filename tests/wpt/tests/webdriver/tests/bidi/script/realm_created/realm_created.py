@@ -1,7 +1,10 @@
 # META: timeout=long
 
 import pytest
-from webdriver.bidi.modules.script import RealmTarget
+from webdriver.bidi.modules.script import (
+    ContextTarget,
+    RealmTarget,
+)
 from webdriver.error import TimeoutException
 
 from tests.bidi import wait_for_bidi_events
@@ -230,79 +233,67 @@ async def test_script_when_realm_is_created(
 
 
 async def test_dedicated_worker(
-    wait_for_future_safe,
     bidi_session,
     subscribe_events,
     top_context,
     inline,
-    event_loop,
 ):
     await subscribe_events(events=[REALM_CREATED_EVENT])
 
-    window_realm = None
-    worker_realm = event_loop.create_future()
+    events = []
 
     async def on_event(method, data):
         if data["type"] == "dedicated-worker":
-            if worker_realm.done():
-                raise "More than one dedicated worker"
-            else:
-                worker_realm.set_result(data)
-        elif data["type"] == "window":
-            nonlocal window_realm
-            window_realm = data
+            events.append(data)
 
     remove_listener = bidi_session.add_event_listener(
         REALM_CREATED_EVENT, on_event)
 
-    worker_url = inline("while(true){}", doctype="js")
+    worker_url = inline("console.log('dedicated worker')", doctype="js")
     url = inline(
         f"<script>const worker = new Worker('{worker_url}');</script>")
     await bidi_session.browsing_context.navigate(
         url=url, context=top_context["context"], wait="complete"
     )
 
-    realm = await wait_for_future_safe(worker_realm)
+    await wait_for_bidi_events(bidi_session, events, 1)
     remove_listener()
+
+    assert len(events) == 1
+
+    window_realms = await bidi_session.script.get_realms(
+        context=top_context["context"], type="window"
+    )
 
     recursive_compare(
         {
             "type": "dedicated-worker",
             "realm": any_string,
             "origin": worker_url,
-            "owners": [window_realm["realm"]],
+            "owners": [window_realms[0]["realm"]],
         },
-        realm,
+        events[0],
     )
 
 
 async def test_shared_worker(
-    wait_for_future_safe,
     bidi_session,
     subscribe_events,
     top_context,
     inline,
-    event_loop,
 ):
     await subscribe_events(events=[REALM_CREATED_EVENT])
 
-    window_realm = None
-    worker_realm = event_loop.create_future()
+    events = []
 
     async def on_event(method, data):
         if data["type"] == "shared-worker":
-            if worker_realm.done():
-                raise "More than one shared worker"
-            else:
-                worker_realm.set_result(data)
-        elif data["type"] == "window":
-            nonlocal window_realm
-            window_realm = data
+            events.append(data)
 
     remove_listener = bidi_session.add_event_listener(
         REALM_CREATED_EVENT, on_event)
 
-    worker_url = inline("while(true){}", doctype="js")
+    worker_url = inline("console.log('shared worker')", doctype="js")
     url = inline(
         f"""<script>
         const worker = new SharedWorker('{worker_url}');
@@ -312,8 +303,10 @@ async def test_shared_worker(
         url=url, context=top_context["context"], wait="complete"
     )
 
-    realm = await wait_for_future_safe(worker_realm)
+    await wait_for_bidi_events(bidi_session, events, 1)
     remove_listener()
+
+    assert len(events) == 1
 
     recursive_compare(
         {
@@ -321,40 +314,32 @@ async def test_shared_worker(
             "realm": any_string,
             "origin": worker_url,
         },
-        realm,
+        events[0],
     )
 
 
 async def test_service_worker(
-    wait_for_future_safe,
     bidi_session,
     subscribe_events,
     top_context,
     inline,
-    event_loop,
 ):
     await subscribe_events(events=[REALM_CREATED_EVENT])
 
-    window_realm = None
-    worker_realm = event_loop.create_future()
+    events = []
 
     async def on_event(method, data):
         if data["type"] == "service-worker":
-            if worker_realm.done():
-                raise "More than one service worker"
-            else:
-                worker_realm.set_result(data)
-        elif data["type"] == "window":
-            nonlocal window_realm
-            window_realm = data
+            events.append(data)
 
     remove_listener = bidi_session.add_event_listener(
         REALM_CREATED_EVENT, on_event)
 
-    worker_url = inline("while(true){}", doctype="js")
+    worker_url = inline("console.log('service worker')", doctype="js")
     url = inline(
         f"""<script>
-        navigator.serviceWorker.register('{worker_url}');
+        window.onRegistration =
+          navigator.serviceWorker.register('{worker_url}');
         navigator.serviceWorker.startMessages();
     </script>"""
     )
@@ -362,8 +347,10 @@ async def test_service_worker(
         url=url, context=top_context["context"], wait="complete"
     )
 
-    realm = await wait_for_future_safe(worker_realm)
+    await wait_for_bidi_events(bidi_session, events, 1)
     remove_listener()
+
+    assert len(events) == 1
 
     recursive_compare(
         {
@@ -371,7 +358,14 @@ async def test_service_worker(
             "realm": any_string,
             "origin": worker_url,
         },
-        realm,
+        events[0],
+    )
+
+    # Unregister the service worker registration.
+    await bidi_session.script.evaluate(
+        expression="""window.onRegistration.then(r => r.unregister())""",
+        await_promise=True,
+        target=ContextTarget(top_context["context"]),
     )
 
 
@@ -398,3 +392,143 @@ async def test_existing_realm(bidi_session, wait_for_event, wait_for_future_safe
         },
         realm,
     )
+
+
+async def test_dedicated_worker_subscribe_to_one_context(
+    bidi_session,
+    subscribe_events,
+    new_tab,
+    top_context,
+    inline,
+):
+    await bidi_session.browsing_context.navigate(
+        context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
+    )
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"], url=inline("<div>bar</div>"), wait="complete"
+    )
+
+    await subscribe_events(events=[REALM_CREATED_EVENT], contexts=[new_tab["context"]])
+
+    events = []
+
+    async def on_event(method, data):
+        if data["type"] == "dedicated-worker":
+            events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(
+        REALM_CREATED_EVENT, on_event)
+
+    worker_url = inline("console.log('dedicated worker')", doctype="js")
+    url = inline(
+        f"<script>const worker = new Worker('{worker_url}');</script>")
+    await bidi_session.browsing_context.navigate(
+        url=url, context=new_tab["context"], wait="complete"
+    )
+
+    await wait_for_bidi_events(bidi_session, events, 1)
+
+    assert len(events) == 1
+
+    window_realms = await bidi_session.script.get_realms(
+        context=new_tab["context"], type="window"
+    )
+
+    recursive_compare(
+        {
+            "type": "dedicated-worker",
+            "realm": any_string,
+            "origin": worker_url,
+            "owners": [window_realms[0]["realm"]],
+        },
+        events[0],
+    )
+
+    # Empty the events array
+    events = []
+
+    # Create a worker in the second browsing context
+    worker_url_2 = inline("console.log('dedicated worker 2')", doctype="js")
+    url_2 = inline(
+        f"<script>const worker = new Worker('{worker_url_2}');</script>")
+    await bidi_session.browsing_context.navigate(
+        url=url_2, context=top_context["context"], wait="complete"
+    )
+
+    # Check that no realm created event was emitted.
+    with pytest.raises(TimeoutException):
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
+
+    remove_listener()
+
+
+async def test_dedicated_worker_subscribe_to_user_context(
+    bidi_session,
+    subscribe_events,
+    create_user_context,
+    inline,
+):
+    user_context_a = await create_user_context()
+    context_a = await bidi_session.browsing_context.create(
+        type_hint="tab", user_context=user_context_a
+    )
+
+    await bidi_session.browsing_context.navigate(
+        context=context_a["context"], url=inline("<div>foo</div>"), wait="complete"
+    )
+
+    await subscribe_events(events=[REALM_CREATED_EVENT], user_contexts=[user_context_a])
+
+    events = []
+
+    async def on_event(method, data):
+        if data["type"] == "dedicated-worker":
+            events.append(data)
+
+    remove_listener = bidi_session.add_event_listener(
+        REALM_CREATED_EVENT, on_event)
+
+    worker_url = inline("console.log('dedicated worker')", doctype="js")
+    url = inline(
+        f"<script>const worker = new Worker('{worker_url}');</script>")
+    await bidi_session.browsing_context.navigate(
+        url=url, context=context_a["context"], wait="complete"
+    )
+
+    await wait_for_bidi_events(bidi_session, events, 1)
+
+    assert len(events) == 1
+
+    window_realms = await bidi_session.script.get_realms(
+        context=context_a["context"], type="window"
+    )
+
+    recursive_compare(
+        {
+            "type": "dedicated-worker",
+            "realm": any_string,
+            "origin": worker_url,
+            "owners": [window_realms[0]["realm"]],
+        },
+        events[0],
+    )
+
+    # Empty the events array
+    events = []
+
+    # Create a context in the default user context
+    context_b = await bidi_session.browsing_context.create(type_hint="tab")
+
+    # Create a worker owned by the context in the default user context.
+    worker_url_2 = inline("console.log('dedicated worker 2')", doctype="js")
+    url_2 = inline(
+        f"<script>const worker = new Worker('{worker_url_2}');</script>")
+    await bidi_session.browsing_context.navigate(
+        url=url_2, context=context_b["context"], wait="complete"
+    )
+
+    # Check that no realm created event was emitted.
+    with pytest.raises(TimeoutException):
+        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
+
+    remove_listener()

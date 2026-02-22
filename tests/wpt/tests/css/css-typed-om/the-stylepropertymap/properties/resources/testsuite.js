@@ -9,11 +9,32 @@ function assert_is_calc_sum(result) {
     'specified calc must be a CSSMathSum');
 }
 
-function assert_is_equal_with_range_handling(input, result) {
-  if (input instanceof CSSUnitValue && input.value < 0)
+// Compares a result against the expected input value, taking into account
+// that the value is associated with a property.
+//
+// During association, some engines simplify and canonicalize numeric values
+// (e.g. collapsing equivalent CSSMathSum entries), while others preserve the
+// original structure. The CSS Typed OM specification is still discussing the
+// exact requirements for simplification at this stage:
+// https://github.com/w3c/csswg-drafts/issues/9451
+//
+// This helper temporarily allows either the original input or an optional
+// simplified form to match, to avoid interop failures until the
+// specification is clarified and implementations are updated.
+function assert_is_equal_with_range_handling(input, result, alternateExpected) {
+  // Invalid (out-of-range) numeric values must be wrapped in a CSSMathSum.
+  if (input instanceof CSSUnitValue && input.value < 0) {
     assert_style_value_equals(result, new CSSMathSum(input));
-  else
-    assert_style_value_equals(result, input);
+  } else {
+    try {
+      assert_style_value_equals(result, input);
+    } catch(e) {
+      if (alternateExpected === undefined) {
+        throw e;
+      }
+      assert_style_value_equals(result, alternateExpected);
+    }
+  }
 }
 
 function assert_is_unsupported(result) {
@@ -94,37 +115,14 @@ const gTestSyntaxExamples = {
       {
         description: "a calc percent",
         input: new CSSMathSum(new CSSUnitValue(0, 'percent'), new CSSUnitValue(0, 'percent')),
+        // TODO: Consider merging specifiedAlternateExpected with
+        // specifiedExpected once all engines do simplification during
+        // association.
+        specifiedAlternateExpected: new CSSMathSum(new CSSUnitValue(0, 'percent')),
         // Specified/computed calcs are usually simplified.
         // FIXME: Test this properly
         defaultSpecified: (_, result) => assert_is_calc_sum(result),
         defaultComputed: (_, result) => assert_is_unit('percent', result)
-      }
-    ],
-  },
-  '<time>': {
-    description: 'a time',
-    examples: [
-      {
-        description: "zero seconds",
-        input: new CSSUnitValue(0, 's')
-      },
-      {
-        description: "negative milliseconds",
-        input: new CSSUnitValue(-3.14, 'ms'),
-        // Computed values use canonical units
-        defaultComputed: (_, result) => assert_style_value_equals(result, new CSSUnitValue(-0.00314, 's'))
-      },
-      {
-        description: "positive seconds",
-        input: new CSSUnitValue(3.14, 's')
-      },
-      {
-        description: "a calc time",
-        input: new CSSMathSum(new CSSUnitValue(0, 's'), new CSSUnitValue(0, 'ms')),
-        // Specified/computed calcs are usually simplified.
-        // FIXME: Test this properly
-        defaultSpecified: (_, result) => assert_is_calc_sum(result),
-        defaultComputed: (_, result) => assert_is_unit('s', result)
       }
     ],
   },
@@ -310,7 +308,7 @@ function testPropertyValid(propertyName, examples, specified, computed, descript
         'Specified value must be a CSSStyleValue');
 
       if (specified || example.defaultSpecified) {
-        (specified || example.defaultSpecified)(example.specifiedExpected || example.input, specifiedResult);
+        (specified || example.defaultSpecified)(example.specifiedExpected || example.input, specifiedResult, example.specifiedAlternateExpected);
       } else {
         assert_style_value_equals(specifiedResult, example.input);
       }

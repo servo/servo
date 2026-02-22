@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<!-- This test verifies that mutating a select's options during mousedown
+  does not prevent the picker from opening. This is a regression test for
+  a bug where DOM mutations during mousedown would tear down the select's
+  renderer, preventing the picker popup from showing. -->
+
+<select id="test-select">
+  <option value="a">Option A</option>
+  <option value="b">Option B</option>
+  <option value="c">Option C</option>
+</select>
+
+<style>
+  select, ::picker(select) {
+    appearance: base-select;
+  }
+</style>
+
+<script>
+  const select = document.getElementById('test-select');
+
+  // Mutate the select's options on mousedown, similar to what
+  // Web Inspector's HierarchicalPathComponent does.
+  // Only mutate when the select is closed (opening click), not when
+  // clicking options inside the open picker.
+  select.addEventListener('mousedown', function(event) {
+    // Don't mutate if already open (clicking inside the picker)
+    if (this.matches(':open')) {
+      return;
+    }
+
+    // Save current options
+    const options = Array.from(this.options).map(opt => ({
+      value: opt.value,
+      text: opt.textContent
+    }));
+
+    // Remove all children
+    while (this.firstChild) {
+      this.removeChild(this.firstChild);
+    }
+
+    // Re-add options
+    options.forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt.value;
+      option.textContent = opt.text;
+      this.appendChild(option);
+    });
+  });
+
+  promise_test(async (t) => {
+    assert_false(select.matches(':open'), 'select should be closed initially');
+
+    // Click the select - it should open despite the mousedown mutation
+    await test_driver.click(select);
+
+    assert_true(select.matches(':open'), 'select should be open after click despite mousedown mutation');
+
+    // Clean up - close the select
+    await test_driver.send_keys(select, '\uE00C'); // Escape
+  }, 'Select opens when options are mutated during mousedown');
+
+  promise_test(async (t) => {
+    assert_false(select.matches(':open'), 'select should be closed initially');
+
+    // Verify options are still accessible after mutation
+    assert_equals(select.options.length, 3, 'should have 3 options');
+    assert_equals(select.options[0].value, 'a', 'first option should be "a"');
+    assert_equals(select.options[1].value, 'b', 'second option should be "b"');
+    assert_equals(select.options[2].value, 'c', 'third option should be "c"');
+
+    // Click to open
+    await test_driver.click(select);
+    assert_true(select.matches(':open'), 'select should be open');
+
+    // Verify options still work after mutation - click second option
+    const option2 = select.options[1];
+    await test_driver.click(option2);
+
+    assert_false(select.matches(':open'), 'select should be closed after selection');
+    assert_equals(select.value, 'b', 'selected value should be "b"');
+  }, 'Select options work correctly after mousedown mutation');
+</script>

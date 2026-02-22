@@ -133,6 +133,25 @@ select.appendChild(optionThree);
 select.value = 'one';
 </script>
 
+<div id=test8>
+  <script>
+    startTest('test8');
+  </script>
+  <div class=container></div>
+  <select>
+    <button>
+      <selectedcontent></selectedcontent>
+    </button>
+    <option>one</option>
+    <option>two</option>
+  </select>
+</div>
+<script>
+const container = document.querySelector('#test8 .container');
+const select8 = document.querySelector('#test8 select');
+container.appendChild(select8);
+</script>
+
 <script>
 function getNodeRepresentation(node) {
   if (!node) {
@@ -302,6 +321,7 @@ const testIdToExpectations = {
       "Type: childList | Target: button | Added: [#text: \"\"] | After: selectedcontent",
       "Type: childList | Target: button | Added: [selectedcontent] | After: #text: \"\"",
       "Type: childList | Target: selectedcontent | Removed: [#text: \"outer1\", selectedcontent, #text: \"\"]",
+      "Type: childList | Target: selectedcontent | Removed: [#text: \"inner1\"]",
       "Type: childList | Target: selectedcontent | Added: [#text: \"outer2\"]",
       "Type: childList | Target: selectedcontent | Added: [selectedcontent] | After: #text: \"outer2\"",
       "Type: childList | Target: selectedcontent | Added: [#text: \"inner2\"]",
@@ -446,6 +466,39 @@ const testIdToExpectations = {
       "Type: childList | Target: select | Added: [option] | After: option",
       "Type: childList | Target: selectedcontent | Added: [#text: \"one\"] | Removed: [#text: \"three\"]"
     ]
+  },
+  test8: {
+    html:
+    `<div class="container"><select>
+    <button>
+      <selectedcontent>one</selectedcontent>
+    </button>
+    <option>one</option>
+    <option>two</option>
+  </select></div>`,
+    mutations: [
+      "Type: childList | Target: div#test8 | Added: [#text: \"\"] | After: script",
+      "Type: childList | Target: div#test8 | Added: [div.container] | After: #text: \"\"",
+      "Type: childList | Target: div#test8 | Added: [#text: \"\"] | After: div.container",
+      "Type: childList | Target: div#test8 | Added: [select] | After: #text: \"\"",
+      "Type: childList | Target: select | Added: [#text: \"\"]",
+      "Type: childList | Target: select | Added: [button] | After: #text: \"\"",
+      "Type: childList | Target: button | Added: [#text: \"\"]",
+      "Type: childList | Target: button | Added: [selectedcontent] | After: #text: \"\"",
+      "Type: childList | Target: button | Added: [#text: \"\"] | After: selectedcontent",
+      "Type: childList | Target: select | Added: [#text: \"\"] | After: button",
+      "Type: childList | Target: select | Added: [option] | After: #text: \"\"",
+      "Type: childList | Target: option | Added: [#text: \"one\"]",
+      "Type: childList | Target: selectedcontent | Added: [#text: \"one\"]",
+      "Type: childList | Target: select | Added: [#text: \"\"] | After: option",
+      "Type: childList | Target: select | Added: [option] | After: #text: \"\"",
+      "Type: childList | Target: option | Added: [#text: \"two\"]",
+      "Type: childList | Target: select | Added: [#text: \"\"] | After: option",
+      "Type: childList | Target: div#test8 | Added: [#text: \"\"] | After: select",
+      "Type: childList | Target: div#test8 | Removed: [select] | After: #text: \"\" | Before: #text: \"\"",
+      "Type: childList | Target: div.container | Added: [select]",
+      "Type: childList | Target: selectedcontent | Added: [#text: \"one\"] | Removed: [#text: \"one\"]"
+    ]
   }
 };
 
@@ -459,6 +512,19 @@ for (const testId of Object.keys(testIdToExpectations)) {
 
     const expectedHtml = testIdToExpectations[testId].html.trim();
     const expectedMutations = testIdToExpectations[testId].mutations;
+
+    // To rebaseline this test, uncomment the following code:
+    /*
+    const log = console;
+    if (expectedHtml != actualHtml) {
+      log.error(`${testId} actual html:\n${actualHtml}`);
+    }
+    let expectedMutationsString = JSON.stringify(expectedMutations, null, 2);
+    let actualMutationsString = JSON.stringify(actualMutations, null, 2);
+    if (expectedMutationsString != actualMutationsString) {
+      log.error(`${testId} actual mutations:\n${actualMutationsString}`);
+    }
+    */
 
     assert_equals(actualHtml, expectedHtml, testId);
     assert_array_equals(actualMutations, expectedMutations, testId);

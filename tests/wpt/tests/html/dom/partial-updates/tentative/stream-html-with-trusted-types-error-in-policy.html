@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/helper.sub.js"></script>
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      const container = document.querySelector("#container");
+      // We have to replace this global because we are overriding the default policy from within the test.
+
+      const policy = trustedTypes.createPolicy("default", {
+        createHTML: (_) => "",
+        createParserOptions: (options) => {
+          throw new Error("oops");
+        },
+      });
+
+      promise_test(async (t) => {
+        let d = document.createElement("div");
+        assert_throws_js(
+          Error,
+          () => d.streamHTMLUnsafe().getWriter(),
+          "error in createParserOptions is rethrown",
+        );
+      }, "error in createParserOptions is rethrown from default policy");
+
+      promise_test(async (t) => {
+        assert_throws_js(
+          Error,
+          () => policy.createParserOptions({ runScripts: true }),
+          "error in createParserOptions is rethrown",
+        );
+      }, "error in createParserOptions is rethrown from named policy");
+    </script>
+  </body>
+</html>

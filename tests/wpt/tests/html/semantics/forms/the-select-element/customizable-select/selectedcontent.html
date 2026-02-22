@@ -161,8 +161,9 @@ promise_test(async () => {
     '<selectedcontent> should not be updated when appending to a disconnected select.');
 
   select.value = 'two';
-  assert_equals(selectedcontent.textContent, '',
-    '<selectedcontent> should not be updated when changing value of a disconnected select.');
+  assert_equals(selectedcontent.textContent, 'two',
+    '<selectedcontent> should be updated when changing value of a disconnected select.');
+  selectedcontent.innerHTML = '';
 
   document.body.appendChild(select);
   assert_equals(selectedcontent.textContent, 'two',

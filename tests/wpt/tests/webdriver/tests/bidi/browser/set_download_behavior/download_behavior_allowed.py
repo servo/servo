@@ -26,3 +26,5 @@ async def test_destination_folder(bidi_session, new_tab, temp_dir,
     assert event["status"] == "complete"
     # Assert `destinationFolder` is respected.
     assert event["filepath"].startswith(temp_dir)
+
+    await bidi_session.browser.set_download_behavior(download_behavior=None)

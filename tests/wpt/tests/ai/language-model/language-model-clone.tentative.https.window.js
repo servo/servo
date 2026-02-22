@@ -17,13 +17,11 @@ promise_test(async () => {
   // Clone a session and test it.
   const cloned_session = await session.clone();
   assert_equals(
-    cloned_session.inputQuota, session.inputQuota,
-    'cloned session should have the same inputQuota as the original session.'
-  );
+      cloned_session.contextWindow, session.contextWindow,
+      'cloned session should have the same contextWindow as the original session.');
   assert_equals(
-    cloned_session.inputUsage, session.inputUsage,
-    'cloned session should have the same inputUsage as the original session.'
-  );
+      cloned_session.contextUsage, session.contextUsage,
+      'cloned session should have the same contextUsage as the original session.');
   assert_equals(
     cloned_session.topK, session.topK,
     'cloned session should have the same topK as the original session.'
@@ -36,6 +34,6 @@ promise_test(async () => {
   const clone_result = await cloned_session.prompt(kTestPrompt);
   assert_equals(typeof clone_result, 'string');
   assert_greater_than(
-      cloned_session.inputUsage, session.inputUsage,
-      'cloned session should have increased inputUsage after prompting.');
+      cloned_session.contextUsage, session.contextUsage,
+      'cloned session should have increased contextUsage after prompting.');
 });

@@ -171,7 +171,7 @@ test(() => {
 
 test(() => {
   const expectedProperties = {
-    'content': `"${String.fromCodePoint(10003)}"`
+    'content': `"${String.fromCodePoint(10003)}" / ""`
   }
   testProperties(getComputedStyle(option, '::checkmark'), expectedProperties);
 }, 'UA styles of base appearance option::checkmark.');

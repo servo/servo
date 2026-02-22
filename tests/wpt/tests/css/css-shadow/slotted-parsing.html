@@ -44,9 +44,12 @@
   test_valid_selector("::slotted(*)::file-selector-button");
   test_valid_selector("::slotted(*)::placeholder");
   test_valid_selector("::slotted(*)::marker");
+  test_valid_selector("::slotted(select)::picker(select)");
+  test_valid_selector("::slotted(*)::picker-icon");
 
   // Other pseudo elements not valid after ::slotted
   test_invalid_selector("::slotted(*)::first-line");
   test_invalid_selector("::slotted(*)::first-letter");
   test_invalid_selector("::slotted(*)::selection");
+  test_invalid_selector("::slotted(select)::picker");
 </script>

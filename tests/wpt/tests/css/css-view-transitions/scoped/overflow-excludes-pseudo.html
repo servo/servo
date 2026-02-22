@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="overflow-excludes-pseudo-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+
+#scope { width: 200px; height: 100px;
+  background: #def; contain: strict; overflow: scroll;
+  border: 20px solid #acf; margin: 20px; padding: 50px; }
+
+::view-transition-group(*) { animation-play-state: paused; }
+::view-transition-new(*) { animation: unset; opacity: 1; }
+::view-transition-old(*) { animation: unset; opacity: 0; }
+
+</style>
+</head>
+<body>
+<div id=scope></div>
+<script>
+
+const scope = document.querySelector("#scope");
+failIfNot(scope.startViewTransition, "Missing element.startViewTransition");
+
+async function runTest() {
+  await waitForCompositorReady();
+  scope.startViewTransition(() => {
+    // Scope should not have overflow.
+    scope.scrollBy(100, 100);
+    scope.innerText = `${scope.scrollLeft},${scope.scrollTop}`;
+    requestAnimationFrame(takeScreenshot);
+  });
+}
+onload = () => runTest();
+
+</script>
+</body>
+</html>

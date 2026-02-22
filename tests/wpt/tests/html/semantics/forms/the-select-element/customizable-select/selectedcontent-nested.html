@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/11880">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<select>
+  <button>
+    <selectedcontent id=main></selectedcontent>
+  </button>
+  <option>option</option>
+</select>
+
+<script>
+test(() => {
+  const mainSelectedcontent = document.querySelector('selectedcontent');
+  const button = document.querySelector('button');
+
+  const parentSelectedcontent = document.createElement('selectedcontent');
+  parentSelectedcontent.id = 'parent';
+  parentSelectedcontent.textContent = 'parent';
+  const childSelectedcontent = document.createElement('selectedcontent');
+  childSelectedcontent.id = 'child';
+  childSelectedcontent.textContent = 'child';
+
+  parentSelectedcontent.appendChild(childSelectedcontent);
+  button.appendChild(parentSelectedcontent);
+
+  assert_equals(parentSelectedcontent.childNodes.length, 0,
+    'parent selectedcontent should get cleared.');
+  assert_equals(childSelectedcontent.childNodes.length, 0,
+    'child selectedcontent should get cleared.');
+}, 'Modification behavior when nesting selectedcontent elements.');
+</script>

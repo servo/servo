@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/helper.sub.js"></script>
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      const container = document.querySelector("#container");
+      // We have to replace this global because we are overriding the default policy from within the test.
+      let createParserOptions = (options) => options;
+      const cleanupPolicy = trustedTypes.createPolicy("cleanup", {
+        createHTML: (_) => "",
+      });
+
+      trustedTypes.createPolicy("default", {
+        createHTML: (_) => "",
+        createParserOptions: (options) => createParserOptions(options),
+      });
+      function cleanup() {
+        container.innerHTML = cleanupPolicy.createHTML("");
+        createParserOptions = (options) => options;
+      }
+
+      promise_test(async (t) => {
+        t.add_cleanup(cleanup);
+        let d = document.createElement("div");
+        document.querySelector("#container").appendChild(d);
+        t.add_cleanup(() => d.remove());
+        createParserOptions = (options) => ({
+          ...options,
+          sanitizer: { removeElements: ["span"] },
+        });
+        const writer = d.streamHTMLUnsafe().getWriter();
+        await writer.write(
+          "<div id='allowed'><span id=forbidden></span></div>",
+        );
+        await writer.close();
+        assert_equals(d.querySelector("#forbidden"), null);
+        assert_not_equals(d.querySelector("#allowed"), null);
+      }, "createParserOptions can inject a sanitizer config");
+
+      promise_test(async (t) => {
+        t.add_cleanup(cleanup);
+        let d = document.createElement("div");
+        document.querySelector("#container").appendChild(d);
+        t.add_cleanup(() => d.remove());
+        createParserOptions = (options) => ({
+          ...options,
+          sanitizer: new Sanitizer({ removeElements: ["span"] }),
+        });
+        const writer = d.streamHTMLUnsafe().getWriter();
+        await writer.write("<div id=allowed><span id=forbidden></span></div>");
+        await writer.close();
+        assert_equals(d.querySelector("#forbidden"), null);
+        assert_not_equals(d.querySelector("#allowed"), null);
+      }, "createParserOptions can inject a sanitizer");
+
+      promise_test(async (t) => {
+        t.add_cleanup(cleanup);
+        let d = document.createElement("div");
+        document.querySelector("#container").appendChild(d);
+        t.add_cleanup(() => d.remove());
+        createParserOptions = (options) => ({
+          sanitizer: { removeElements: ["span"] },
+        });
+        const writer = d
+          .streamHTMLUnsafe({ sanitizer: { removeElements: ["div"] } })
+          .getWriter();
+        await writer.write("<div id=allowed><span id=forbidden></span></div>");
+        await writer.close();
+        assert_equals(d.querySelector("#forbidden"), null);
+        assert_not_equals(d.querySelector("#allowed"), null);
+      }, "createParserOptions can override a sanitizer config");
+
+      promise_test(async (t) => {
+        t.add_cleanup(cleanup);
+        let d = document.createElement("div");
+        document.querySelector("#container").appendChild(d);
+        t.add_cleanup(() => d.remove());
+        window.did_run = false;
+        t.add_cleanup(() => {
+          window.did_run = false;
+        });
+        createParserOptions = (options) => ({
+          runScripts: false,
+        });
+        const writer = d
+          .streamHTMLUnsafe({ sanitizer: { removeElements: ["div"] } })
+          .getWriter();
+        await writer.write(
+          "<div id=allowed><script>window.did_run = true;<" + "/script></div>",
+        );
+        await writer.close();
+        assert_false(window.did_run);
+        assert_not_equals(d.querySelector("#allowed"), null);
+      }, "createParserOptions can remove a sanitizer");
+</script>
+  </body>
+</html>

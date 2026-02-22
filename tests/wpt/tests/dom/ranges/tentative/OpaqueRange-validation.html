@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <textarea>Hello</textarea>
+</body>
+<script>
+test(() => {
+  const textarea = document.querySelector('textarea');
+
+  // Out-of-bounds offsets should throw.
+  assert_throws_dom("IndexSizeError", () => textarea.getValueRange(10, 15));
+}, "getValueRange throws IndexSizeError for out-of-bounds offsets.");
+
+test(() => {
+  const textarea = document.querySelector('textarea');
+
+  // [start, end, shouldThrow, expectedStart, expectedEnd, expectedCollapsed].
+  [
+    // Valid forward ranges.
+    [0, 5, false, 0, 5, false],
+    [1, 4, false, 1, 4, false],
+    [0, 0, false, 0, 0, true],
+    [5, 5, false, 5, 5, true],
+
+    // Backwards ranges that auto-collapse, but don't throw.
+    [5, 2, false, 5, 5, true],
+    [4, 1, false, 4, 4, true],
+    [3, 0, false, 3, 3, true],
+
+    // Ranges that are out-of-bounds and should throw.
+    [0, 6, true],
+    [6, 6, true],
+    [10, 5, true],
+    [10, 15, true],
+  ].forEach(([start, end, shouldThrow, expectedStart, expectedEnd, expectedCollapsed]) => {
+    if (shouldThrow) {
+      assert_throws_dom("IndexSizeError", () => textarea.getValueRange(start, end),
+                       `[${start}, ${end}] should throw`);
+    } else {
+      const range = textarea.getValueRange(start, end);
+      assert_equals(range.startOffset, expectedStart, `[${start}, ${end}] startOffset`);
+      assert_equals(range.endOffset, expectedEnd, `[${start}, ${end}] endOffset`);
+      assert_equals(range.collapsed, expectedCollapsed, `[${start}, ${end}] collapsed`);
+    }
+  });
+}, "getValueRange handles all range types correctly: forward, backwards, and out-of-bounds.");
+</script>

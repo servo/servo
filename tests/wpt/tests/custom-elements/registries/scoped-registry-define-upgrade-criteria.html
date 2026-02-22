@@ -39,6 +39,17 @@ function insertNewElementIntoShadow(shadow, name) {
 
 test(t => {
   const name = nextCustomElementName();
+
+  const registry = new CustomElementRegistry;
+  const candidate = document.body.appendChild(document.createElement(name, {customElementRegistry: registry}));
+
+  class TestElement extends HTMLElement {};
+  registry.define(name, TestElement);
+  assert_true(candidate instanceof TestElement);
+}, 'Adding definition to scoped registry should upgrade nodes associated with the registry.')
+
+test(t => {
+  const name = nextCustomElementName();
   document.body.appendChild(document.createElement(name));
 
   const registry = new CustomElementRegistry;

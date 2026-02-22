@@ -10,6 +10,7 @@ CONTEXT_LOAD_EVENT = "browsingContext.load"
 @pytest.mark.asyncio
 @pytest.mark.parametrize("access_type", [
     "current_context_with_url",
+    "current_context_with_non_blank_url",
     "current_context_without_url",
     "opener_context_with_url",
     "opener_context_without_url",
@@ -17,7 +18,7 @@ CONTEXT_LOAD_EVENT = "browsingContext.load"
 ])
 @pytest.mark.parametrize("create_type", ["popup", "iframe"])
 async def test_preload_script_properties_available_immediately(
-    bidi_session, add_preload_script, new_tab, subscribe_events, wait_for_event, wait_for_future_safe, create_type, access_type
+    bidi_session, add_preload_script, new_tab, subscribe_events, wait_for_event, wait_for_future_safe, inline, create_type, access_type
 ):
     await add_preload_script(function_declaration="() => { window.foo = 'bar'; }")
 
@@ -26,9 +27,12 @@ async def test_preload_script_properties_available_immediately(
     if access_type == "data_url":
         on_loaded = wait_for_event(CONTEXT_LOAD_EVENT)
 
+    url = inline('<div>in window open</div>')
     if create_type == "popup":
         if access_type == "current_context_with_url":
             script = "window.open('about:blank')"
+        elif access_type == "current_context_with_non_blank_url":
+            script = f"""window.open("{url}")"""
         elif access_type == "current_context_without_url":
             script = "window.open()"
         elif access_type == "opener_context_with_url":
@@ -41,6 +45,8 @@ async def test_preload_script_properties_available_immediately(
         script = "const iframe = document.createElement('iframe');"
         if access_type == "current_context_with_url":
             script += "iframe.src='about:blank'; document.body.appendChild(iframe)"
+        if access_type == "current_context_with_non_blank_url":
+            script += f"iframe.src='{url}'; document.body.appendChild(iframe)"
         elif access_type == "current_context_without_url":
             script += "document.body.appendChild(iframe)"
         elif access_type == "opener_context_with_url":
@@ -67,7 +73,7 @@ async def test_preload_script_properties_available_immediately(
             # currently this times out in Chrome when create_type is "popup"
             await wait_for_future_safe(on_loaded)
 
-        if access_type == "current_context_with_url" or access_type == "current_context_without_url":
+        if access_type == "current_context_with_url" or access_type == "current_context_without_url" or access_type == "current_context_with_non_blank_url":
             result = await bidi_session.script.evaluate(
                 expression="window.foo",
                 target=ContextTarget(new_context_info["context"]),

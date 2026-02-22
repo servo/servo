@@ -54,6 +54,36 @@ async def test_find_by_locator(bidi_session, inline, top_context, type, value):
     recursive_compare(expected, result["nodes"])
 
 
+@pytest.mark.asyncio
+async def test_find_by_locator_select(bidi_session, inline, top_context):
+    url = inline("""<select></select>""")
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"], url=url, wait="complete"
+    )
+
+    result = await bidi_session.browsing_context.locate_nodes(
+        context=top_context["context"],
+        locator={ "type": "css", "value": "select" }
+    )
+
+    node_result = result["nodes"][0]
+    expected = {
+        "type": "node",
+        "sharedId": any_string,
+        "value": {
+            "attributes": {},
+            "childNodeCount": 0,
+            "localName": "select",
+            "namespaceURI": "http://www.w3.org/1999/xhtml",
+            "nodeType": 1,
+            # Make sure user-agent shadow roots are not leaked by locateNodes
+            # (eg Firefox uses shadow dom to implement the select widget).
+            "shadowRoot": None,
+        }
+    }
+    recursive_compare(expected, node_result)
+
+
 @pytest.mark.parametrize("locator,expected_nodes_values", [
     ({
          "type": "innerText",

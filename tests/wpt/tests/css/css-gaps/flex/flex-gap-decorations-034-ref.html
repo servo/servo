@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Sam Davis Omekara Jr." href="mailto:samomekarajr@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+
+    .flex {
+        display: flex;
+        flex-wrap: wrap;
+        width: 600px;
+        gap: 90px;
+    }
+
+    .item {
+        height: 100px;
+        background: lightgray;
+    }
+
+    .a { width: 60px; }
+    .b { width: 80px; }
+    .c { width: 70px; }
+    .d { width: 120px; }
+    .e { width: 240px; }
+    .f { width: 270px; }
+
+    .col-rule {
+        position: absolute;
+        width: 5px;
+        background: rgba(0, 0, 255, 0.5);
+        z-index: -1;
+    }
+
+    .row-rule {
+        position: absolute;
+        height: 5px;
+        background: rgba(255, 0, 0, 0.5);
+        z-index: -1;
+    }
+</style>
+
+<!-- Column rules -->
+<div class="col-rule" style="left: 102.5px; top: 0px; height: 100px;"></div>
+<div class="col-rule" style="left: 272.5px; top: 0px; height: 100px;"></div>
+<div class="col-rule" style="left: 432.5px; top: 0px; height: 100px;"></div>
+<div class="col-rule" style="left: 282.5px; top: 190px; height: 100px;"></div>
+
+<!-- Row rule segments -->
+<div class="row-rule" style="left: 0px; top: 142.5px; width: 60px;"></div>
+<div class="row-rule" style="left: 150px; top: 142.5px; width: 80px;"></div>
+<div class="row-rule" style="left: 330px; top: 142.5px; width: 60px;"></div>
+<div class="row-rule" style="left: 480px; top: 142.5px; width: 120px;"></div>
+
+<div class="flex">
+    <div class="item a"></div>
+    <div class="item b"></div>
+    <div class="item c"></div>
+    <div class="item d"></div>
+    <div class="item e"></div>
+    <div class="item f"></div>
+</div>

@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM: getComputedStyle with ::picker(select)</title>
+
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-values">
+
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<style>
+select,
+select::picker(select) {
+  appearance: base-select;
+}
+
+#test-select::picker(select) {
+  background-color: rgb(0, 128, 0);
+}
+</style>
+
+<select id="test-select">
+  <option>The only option</option>
+</select>
+
+<div id="test-div"></div>
+
+<script>
+test(() => {
+  const select = document.getElementById('test-select');
+  const style = getComputedStyle(select, '::picker(select)');
+  assert_equals(style.backgroundColor, 'rgb(0, 128, 0)');
+}, '::picker(select) returns picker element style');
+
+test(() => {
+  const div = document.getElementById('test-div');
+  const style = getComputedStyle(div, '::picker(select)');
+  assert_equals(style.length, 0);
+}, '::picker(select) on non-select element returns empty style');
+
+[
+  "::picker",
+  "::picker()",
+  "::picker(div)",
+  ":picker(select)",
+  "::picker(select)a",
+  "::picker( )",
+].forEach(pseudo => {
+  test(() => {
+    const select = document.getElementById('test-select');
+    const style = getComputedStyle(select, pseudo);
+    assert_equals(style.length, 0);
+  }, `Invalid pseudo-element should return empty style: ${pseudo}`);
+});
+</script>

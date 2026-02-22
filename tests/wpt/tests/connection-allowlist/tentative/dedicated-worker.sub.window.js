@@ -27,9 +27,9 @@ function worker_fetch_test(origin, expectation, description) {
 
     worker.postMessage(fetch_url);
 
-    const msgEvent = await new Promise((resolve) => {
+    const msgEvent = await new Promise((resolve, reject) => {
       worker.onmessage = resolve;
-      worker.onerror = (e) => resolve({ data: { success: false, error: "Worker Error" } });
+      worker.onerror = (e) => reject(new Error("Worker Error"));
     });
 
     if (expectation === SUCCESS) {
@@ -65,11 +65,11 @@ function worker_script_fetch_test(origin, expectation, description) {
       return;
     }
 
-    const result = await new Promise((resolve) => {
+    const promise = new Promise((resolve, reject) => {
       worker.onmessage = () => resolve(SUCCESS);
       worker.onerror = (e) => {
         e.preventDefault();
-        resolve(FAILURE);
+        reject(new Error("Worker Load Error"));
       };
       // Send a message to the worker. If it loaded successfully, it will
       // respond and onmessage will fire. If it failed to load, onerror
@@ -77,7 +77,12 @@ function worker_script_fetch_test(origin, expectation, description) {
       worker.postMessage(`${get_host_info().HTTP_ORIGIN}/common/blank-with-cors.html`);
     });
 
-    assert_equals(result, expectation, description);
+    if (expectation === SUCCESS) {
+      const result = await promise;
+      assert_equals(result, expectation, description);
+    } else {
+      await promise_rejects_js(t, Error, promise, description);
+    }
   }, description);
 }
 
@@ -103,9 +108,9 @@ promise_test(async t => {
   const fetch_url = `${get_host_info().HTTP_ORIGIN}/common/blank-with-cors.html`;
   worker.postMessage(fetch_url);
 
-  const msgEvent = await new Promise((resolve) => {
+  const msgEvent = await new Promise((resolve, reject) => {
     worker.onmessage = resolve;
-    worker.onerror = (e) => resolve({ data: { success: false, error: "Worker Error" } });
+    worker.onerror = (e) => reject(new Error("Worker Error"));
   });
 
   assert_false(msgEvent.data.success, "Fetch from worker with empty allowlist should be blocked.");

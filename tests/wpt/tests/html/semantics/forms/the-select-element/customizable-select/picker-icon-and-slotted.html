@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta name=fuzzy content="maxDifference=0-41;totalPixels=0-6">
+<link rel=match href="picker-icon-and-slotted-ref.html">
+
+<div id="host">
+  <select>
+    <option>option</option>
+  </select>
+</div>
+
+<script>
+let host = document.getElementById("host");
+let shadow = host.attachShadow({mode: "open"});
+shadow.innerHTML = `
+  <style>
+    ::slotted(select) {
+      appearance: base-select;
+    }
+    ::slotted(select)::picker-icon {
+      color: red;
+    }
+  </style>
+  <slot></slot>
+`;
+</script>

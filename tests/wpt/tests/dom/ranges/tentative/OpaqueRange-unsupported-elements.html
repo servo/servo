@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/resources/common.js"></script>
+<body></body>
+<script>
+// Test all HTML5_INPUT_TYPES.
+// Only these input types support the Selection API: text, search, url, tel, password.
+// https://html.spec.whatwg.org/multipage/input.html#do-not-apply
+
+test(() => {
+  const supportedInputTypes = ['text', 'search', 'url', 'tel', 'password'];
+
+  HTML5_INPUT_TYPES.forEach(inputType => {
+    if (supportedInputTypes.includes(inputType)) {
+      return;
+    }
+    var doc = newHTMLDocument();
+    var input = doc.createElement('input');
+    input.type = inputType;
+    // File inputs can only be set to empty string programmatically.
+    if (inputType !== 'file') {
+      input.value = 'test';
+    }
+    doc.body.appendChild(input);
+
+    assert_throws_dom("NotSupportedError", () => {
+      input.getValueRange(0, 0);
+    }, `getValueRange should throw NotSupportedError for ${input.outerHTML}`);
+  });
+}, "getValueRange throws NotSupportedError for unsupported input types.");
+</script>

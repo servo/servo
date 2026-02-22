@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Gaps: parsing rule-inset-start/end shorthands with valid values</title>
+  <link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#inset">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+  <script>
+    const properties = ['column-rule-inset-start', 'column-rule-inset-end',
+                         'row-rule-inset-start', 'row-rule-inset-end',
+                         'rule-inset-start', 'rule-inset-end'];
+    for (const property of properties) {
+      test_valid_value(property, '0', '0px');
+      test_valid_value(property, '-20px', '-20px');
+      test_valid_value(property, '5%', '5%');
+      test_valid_value(property, '10vmin', '10vmin');
+      test_valid_value(property, 'calc(8em + 4ex)', 'calc(8em + 4ex)');
+    }
+  </script>
+</body>
+</html>

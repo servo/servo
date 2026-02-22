@@ -45,7 +45,7 @@
 
 
     <style>
-      #container {
+      #container2 {
         container-type: size;
         width: 100px;
         height: 50px;
@@ -71,7 +71,7 @@
         @apply --m2;
       }
     </style>
-    <div id="container"><div id="e2">This text should be green.</div></div>
+    <div id="container2"><div id="e2">This text should be green.</div></div>
     <script>
       test(() => {
         let e2 = document.getElementById('e2');
@@ -108,6 +108,132 @@
         assert_equals(getComputedStyle(e3).color, 'rgb(0, 128, 0)');
         assert_equals(getComputedStyle(e3).getPropertyValue('--custom-property'), 'blue');
       }, '@media and @supports wrapping locals');
+    </script>
+
+
+    <style>
+      #container4 {
+        container-type: size;
+        width: 100px;
+        height: 50px;
+      }
+      @mixin --m4() {
+        --some-color: red;
+        @container (width = 50px) {
+          --some-color: pink;
+        }
+        @container (width = 100px) {
+          --some-color: pink;
+        }
+        @container (width = 100px) {
+          --some-color: green;
+        }
+        @container (width = 400px) {
+          --some-color: blue;
+        }
+        @result {
+          color: var(--some-color);
+        }
+      }
+      #e4 {
+        @apply --m4;
+      }
+    </style>
+    <div id="container4"><div id="e4">This text should be green.</div></div>
+    <script>
+      test(() => {
+        let e4 = document.getElementById('e4');
+        assert_equals(getComputedStyle(e4).color, 'rgb(0, 128, 0)');
+      }, '@container wrapping locals');
+    </script>
+
+
+    <style>
+      #container4b {
+        container-type: size;
+        width: 400px;
+        height: 50px;
+      }
+      #e4b {
+        @apply --m4;
+      }
+    </style>
+    <div id="container4b"><div id="e4b">This text should be blue (not green).</div></div>
+    <script>
+      test(() => {
+        let e4b = document.getElementById('e4b');
+        assert_equals(getComputedStyle(e4b).color, 'rgb(0, 0, 255)');
+      }, '@container wrapping locals with different container is not cached');
+    </script>
+
+
+    <style>
+      @mixin --m5() {
+        @media (screen) {
+          --some-color: pink;
+        }
+        @supports (color: green) {
+          --some-color: fuchsia;
+        }
+        --some-color: green;
+        @result {
+          color: var(--some-color);
+        }
+      }
+      #e5 {
+        @apply --m5;
+      }
+    </style>
+    <div id="container5"><div id="e5">This text should be green.</div></div>
+    <script>
+      test(() => {
+        let e5 = document.getElementById('e5');
+        assert_equals(getComputedStyle(e5).color, 'rgb(0, 128, 0)');
+      }, 'Bare locals overriding earlier conditional-wrapped locals');
+    </script>
+
+
+    <style>
+      #container6 {
+        container-type: size;
+        width: 100px;
+        height: 50px;
+      }
+      @mixin --m6() {
+        --some-color: red;
+        @media (width < 3000px) {
+          @container (width = 50px) {
+            --some-color: pink;
+          }
+        }
+        @container (width = 100px) {
+          @media (width > 3000px) {
+            --some-color: violet;
+          }
+        }
+        @container (width = 100px) {
+          @media (width < 4000px) {
+            --some-color: green;
+          }
+        }
+        @media (width < 2000px) {
+          @container (width = 100px) {
+            @result {
+              color: var(--some-color);
+            }
+          }
+        }
+      }
+      #e6 {
+        @apply --m6;
+      }
+    </style>
+    <div id="container6"><div id="e6">This text should be green.</div></div>
+    <script>
+      test(() => {
+        let e6 = document.getElementById('e6');
+        assert_equals(getComputedStyle(e6).color, 'rgb(0, 128, 0)');
+      }, 'Nested @media and @container locals');
     </script>
 
   </body>
