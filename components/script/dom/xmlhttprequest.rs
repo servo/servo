@@ -917,7 +917,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-response-attribute>
-    fn Response(&self, cx: JSContext, can_gc: CanGc, mut rval: MutableHandleValue) {
+    fn Response(&self, cx: &mut js::context::JSContext, mut rval: MutableHandleValue) {
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Text => {
                 let ready_state = self.ready_state.get();
@@ -925,10 +925,11 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 if ready_state == XMLHttpRequestState::Done ||
                     ready_state == XMLHttpRequestState::Loading
                 {
-                    self.text_response().safe_to_jsval(cx, rval, can_gc);
+                    self.text_response()
+                        .safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx));
                 } else {
                     // Step 1
-                    "".safe_to_jsval(cx, rval, can_gc);
+                    "".safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx));
                 }
             },
             // Step 1
@@ -937,15 +938,17 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             },
             // Step 2
             XMLHttpRequestResponseType::Document => self
-                .document_response(can_gc)
-                .safe_to_jsval(cx, rval, can_gc),
-            XMLHttpRequestResponseType::Json => self.json_response(cx, rval),
-            XMLHttpRequestResponseType::Blob => {
-                self.blob_response(can_gc).safe_to_jsval(cx, rval, can_gc)
-            },
+                .document_response(CanGc::from_cx(cx))
+                .safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx)),
+            XMLHttpRequestResponseType::Json => self.json_response(cx.into(), rval),
+            XMLHttpRequestResponseType::Blob => self
+                .blob_response(CanGc::from_cx(cx))
+                .safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx)),
             XMLHttpRequestResponseType::Arraybuffer => {
-                match self.arraybuffer_response(cx, can_gc) {
-                    Some(array_buffer) => array_buffer.safe_to_jsval(cx, rval, can_gc),
+                match self.arraybuffer_response(cx.into(), CanGc::from_cx(cx)) {
+                    Some(array_buffer) => {
+                        array_buffer.safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx))
+                    },
                     None => rval.set(NullValue()),
                 }
             },
@@ -971,12 +974,15 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#the-responsexml-attribute>
-    fn GetResponseXML(&self, can_gc: CanGc) -> Fallible<Option<DomRoot<Document>>> {
+    fn GetResponseXML(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Fallible<Option<DomRoot<Document>>> {
         match self.response_type.get() {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Document => {
                 // Step 3
                 if let XMLHttpRequestState::Done = self.ready_state.get() {
-                    Ok(self.document_response(can_gc))
+                    Ok(self.document_response(CanGc::from_cx(cx)))
                 } else {
                     // Step 2
                     Ok(None)

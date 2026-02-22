@@ -22,6 +22,7 @@ use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc::{self};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSAutoRealm;
+use js::realm::CurrentRealm;
 use layout_api::MediaFrame;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::request::{Destination, RequestId};
@@ -104,7 +105,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::{FetchCanceller, RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::task_source::SendableTaskSource;
@@ -3037,9 +3038,9 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-srcobject>
-    fn SetSrcObject(&self, value: Option<MediaStreamOrBlob>, can_gc: CanGc) {
+    fn SetSrcObject(&self, cx: &mut js::context::JSContext, value: Option<MediaStreamOrBlob>) {
         *self.src_object.borrow_mut() = value.map(|value| value.into());
-        self.media_element_load_algorithm(can_gc);
+        self.media_element_load_algorithm(CanGc::from_cx(cx));
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-media-preload
@@ -3061,8 +3062,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-load>
-    fn Load(&self, can_gc: CanGc) {
-        self.media_element_load_algorithm(can_gc);
+    fn Load(&self, cx: &mut js::context::JSContext) {
+        self.media_element_load_algorithm(CanGc::from_cx(cx));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype>
@@ -3080,8 +3081,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-play>
-    fn Play(&self, comp: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(comp, can_gc);
+    fn Play(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_realm(cx);
 
         // TODO Step 1. If the media element is not allowed to play, then return a promise rejected
         // with a "NotAllowedError" DOMException.
@@ -3094,7 +3095,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
             .get()
             .is_some_and(|e| e.Code() == MEDIA_ERR_SRC_NOT_SUPPORTED)
         {
-            promise.reject_error(Error::NotSupported(None), can_gc);
+            promise.reject_error(Error::NotSupported(None), CanGc::from_cx(cx));
             return promise;
         }
 
@@ -3103,18 +3104,18 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         self.push_pending_play_promise(&promise);
 
         // Step 4. Run the internal play steps for the media element.
-        self.internal_play_steps(can_gc);
+        self.internal_play_steps(CanGc::from_cx(cx));
 
         // Step 5. Return promise.
         promise
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-pause>
-    fn Pause(&self, can_gc: CanGc) {
+    fn Pause(&self, cx: &mut js::context::JSContext) {
         // Step 1. If the media element's networkState attribute has the value NETWORK_EMPTY, invoke
         // the media element's resource selection algorithm.
         if self.network_state.get() == NetworkState::Empty {
-            self.invoke_resource_selection_algorithm(can_gc);
+            self.invoke_resource_selection_algorithm(CanGc::from_cx(cx));
         }
 
         // Step 2. Run the internal pause steps for the media element.

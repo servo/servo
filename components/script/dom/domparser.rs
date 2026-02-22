@@ -61,9 +61,9 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
     /// <https://html.spec.whatwg.org/multipage/#dom-domparser-parsefromstring>
     fn ParseFromString(
         &self,
+        cx: &mut js::context::JSContext,
         s: TrustedHTMLOrString,
         ty: DOMParserBinding::SupportedType,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Document>> {
         // Step 1. Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
@@ -72,7 +72,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
             self.window.as_global_scope(),
             s,
             "DOMParser parseFromString",
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
         let url = self.window.get_url();
         let content_type = ty
@@ -107,7 +107,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     doc.has_trustworthy_ancestor_or_current_origin(),
                     doc.custom_element_reaction_stack(),
                     doc.creation_sandboxing_flag_set(),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 // Step switch-1. Parse HTML from a string given document and compliantString.
                 ServoParser::parse_html_document(
@@ -116,7 +116,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     url,
                     None,
                     None,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 document
             },
@@ -144,7 +144,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     doc.has_trustworthy_ancestor_or_current_origin(),
                     doc.custom_element_reaction_stack(),
                     doc.creation_sandboxing_flag_set(),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 // Step switch-1. Create an XML parser parser, associated with document,
                 // and with XML scripting support disabled.
@@ -153,13 +153,13 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     Some(compliant_string),
                     url,
                     None,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 document
             },
         };
         // Step 4. Return document.
-        document.set_ready_state(DocumentReadyState::Complete, can_gc);
+        document.set_ready_state(DocumentReadyState::Complete, CanGc::from_cx(cx));
         Ok(document)
     }
 }

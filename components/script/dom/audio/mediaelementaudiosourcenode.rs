@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::MediaElementAudioSourceNodeBinding:
     MediaElementAudioSourceNodeMethods, MediaElementAudioSourceOptions,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::window::Window;
@@ -32,7 +32,7 @@ impl MediaElementAudioSourceNode {
     fn new_inherited(
         context: &AudioContext,
         media_element: &HTMLMediaElement,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<MediaElementAudioSourceNode> {
         let node = AudioNode::new_inherited(
             AudioNodeInit::MediaElementSourceNode,
@@ -46,7 +46,7 @@ impl MediaElementAudioSourceNode {
             MediaElementSourceNodeMessage::GetAudioRenderer(sender),
         ));
         let audio_renderer = receiver.recv();
-        media_element.set_audio_renderer(audio_renderer.ok(), can_gc);
+        media_element.set_audio_renderer(audio_renderer.ok(), CanGc::from_cx(cx));
         let media_element = Dom::from_ref(media_element);
         Ok(MediaElementAudioSourceNode {
             node,
@@ -58,9 +58,9 @@ impl MediaElementAudioSourceNode {
         window: &Window,
         context: &AudioContext,
         media_element: &HTMLMediaElement,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
-        Self::new_with_proto(window, None, context, media_element, can_gc)
+        Self::new_with_proto(window, None, context, media_element, cx)
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
@@ -69,14 +69,14 @@ impl MediaElementAudioSourceNode {
         proto: Option<HandleObject>,
         context: &AudioContext,
         media_element: &HTMLMediaElement,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
-        let node = MediaElementAudioSourceNode::new_inherited(context, media_element, can_gc)?;
-        Ok(reflect_dom_object_with_proto(
+        let node = MediaElementAudioSourceNode::new_inherited(context, media_element, cx)?;
+        Ok(reflect_dom_object_with_proto_and_cx(
             Box::new(node),
             window,
             proto,
-            can_gc,
+            cx,
         ))
     }
 }
@@ -84,9 +84,9 @@ impl MediaElementAudioSourceNode {
 impl MediaElementAudioSourceNodeMethods<crate::DomTypeHolder> for MediaElementAudioSourceNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-mediaelementaudiosourcenode-mediaelementaudiosourcenode>
     fn Constructor(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         context: &AudioContext,
         options: &MediaElementAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaElementAudioSourceNode>> {
@@ -95,7 +95,7 @@ impl MediaElementAudioSourceNodeMethods<crate::DomTypeHolder> for MediaElementAu
             proto,
             context,
             &options.mediaElement,
-            can_gc,
+            cx,
         )
     }
 

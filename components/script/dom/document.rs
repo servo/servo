@@ -3497,11 +3497,11 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#document-write-steps>
     fn write(
         &self,
+        cx: &mut js::context::JSContext,
         text: Vec<TrustedHTMLOrString>,
         line_feed: bool,
         containing_class: &str,
         field: &str,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1: Let string be the empty string.
         let mut strings: Vec<String> = Vec::with_capacity(text.len());
@@ -3531,7 +3531,7 @@ impl Document {
                 &self.global(),
                 TrustedHTMLOrString::String(string.into()),
                 &format!("{} {}", containing_class, field),
-                can_gc,
+                CanGc::from_cx(cx),
             )?
             .str()
             .to_owned();
@@ -3568,13 +3568,13 @@ impl Document {
                     return Ok(());
                 }
                 // Step 9.2: Run the document open steps with document.
-                self.Open(None, None, can_gc)?;
+                self.Open(cx, None, None)?;
                 self.get_current_parser().unwrap()
             },
         };
 
         // Steps 10-11.
-        parser.write(string.into(), can_gc);
+        parser.write(string.into(), CanGc::from_cx(cx));
 
         Ok(())
     }
@@ -5060,9 +5060,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-parsehtmlunsafe>
     fn ParseHTMLUnsafe(
+        cx: &mut js::context::JSContext,
         window: &Window,
         s: TrustedHTMLOrString,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Self>> {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML, the current global object,
@@ -5071,7 +5071,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             window.as_global_scope(),
             s,
             "Document parseHTMLUnsafe",
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
 
         let url = window.get_url();
@@ -5104,12 +5104,19 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             doc.has_trustworthy_ancestor_or_current_origin(),
             doc.custom_element_reaction_stack(),
             doc.creation_sandboxing_flag_set(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
-        ServoParser::parse_html_document(&document, Some(compliant_html), url, None, None, can_gc);
+        ServoParser::parse_html_document(
+            &document,
+            Some(compliant_html),
+            url,
+            None,
+            None,
+            CanGc::from_cx(cx),
+        );
         // Step 5. Return document.
-        document.set_ready_state(DocumentReadyState::Complete, can_gc);
+        document.set_ready_state(DocumentReadyState::Complete, CanGc::from_cx(cx));
         Ok(document)
     }
 
@@ -6273,9 +6280,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-open>
     fn Open(
         &self,
+        cx: &mut js::context::JSContext,
         _unused1: Option<DOMString>,
         _unused2: Option<DOMString>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Document>> {
         // Step 1
         if !self.is_html_document() {
@@ -6323,7 +6330,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         if self.has_browsing_context() {
             // spec says "stop document loading",
             // which is a process that does more than just abort
-            self.abort(can_gc);
+            self.abort(CanGc::from_cx(cx));
         }
 
         // Step 9
@@ -6340,7 +6347,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         // Step 11. Replace all with null within document.
-        Node::replace_all(None, self.upcast::<Node>(), can_gc);
+        Node::replace_all(None, self.upcast::<Node>(), CanGc::from_cx(cx));
 
         // Specs and tests are in a state of flux about whether
         // we want to clear the selection when we remove the contents;
@@ -6396,32 +6403,40 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-open-window>
     fn Open_(
         &self,
+        cx: &mut js::context::JSContext,
         url: USVString,
         target: DOMString,
         features: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         self.browsing_context()
             .ok_or(Error::InvalidAccess(None))?
-            .open(url, target, features, can_gc)
+            .open(url, target, features, CanGc::from_cx(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-write>
-    fn Write(&self, text: Vec<TrustedHTMLOrString>, can_gc: CanGc) -> ErrorResult {
+    fn Write(
+        &self,
+        cx: &mut js::context::JSContext,
+        text: Vec<TrustedHTMLOrString>,
+    ) -> ErrorResult {
         // The document.write(...text) method steps are to run the document write steps
         // with this, text, false, and "Document write".
-        self.write(text, false, "Document", "write", can_gc)
+        self.write(cx, text, false, "Document", "write")
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-writeln>
-    fn Writeln(&self, text: Vec<TrustedHTMLOrString>, can_gc: CanGc) -> ErrorResult {
+    fn Writeln(
+        &self,
+        cx: &mut js::context::JSContext,
+        text: Vec<TrustedHTMLOrString>,
+    ) -> ErrorResult {
         // The document.writeln(...text) method steps are to run the document write steps
         // with this, text, true, and "Document writeln".
-        self.write(text, true, "Document", "writeln", can_gc)
+        self.write(cx, text, true, "Document", "writeln")
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-close>
-    fn Close(&self, can_gc: CanGc) -> ErrorResult {
+    fn Close(&self, cx: &mut js::context::JSContext) -> ErrorResult {
         if !self.is_html_document() {
             // Step 1.
             return Err(Error::InvalidState(None));
@@ -6441,7 +6456,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         };
 
         // Step 4-6.
-        parser.close(can_gc);
+        parser.close(CanGc::from_cx(cx));
 
         Ok(())
     }

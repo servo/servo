@@ -32,7 +32,7 @@ use crate::dom::bindings::weakref::MutableWeakRef;
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::media::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -73,11 +73,18 @@ impl MediaSession {
         self.media_instance.set(Some(media_instance));
     }
 
-    pub(crate) fn handle_action(&self, action: MediaSessionActionType, can_gc: CanGc) {
+    pub(crate) fn handle_action(
+        &self,
+        cx: &mut js::context::JSContext,
+        action: MediaSessionActionType,
+    ) {
         debug!("Handle media session action {:?}", action);
 
         if let Some(handler) = self.action_handlers.borrow().get(&action) {
-            if handler.Call__(ExceptionHandling::Report, can_gc).is_err() {
+            if handler
+                .Call__(ExceptionHandling::Report, CanGc::from_cx(cx))
+                .is_err()
+            {
                 warn!("Error calling MediaSessionActionHandler callback");
             }
             return;
@@ -87,11 +94,12 @@ impl MediaSession {
         if let Some(media) = self.media_instance.root() {
             match action {
                 MediaSessionActionType::Play => {
-                    let realm = enter_realm(self);
-                    media.Play(InRealm::Entered(&realm), can_gc);
+                    let mut realm = enter_auto_realm(cx, self);
+                    let mut realm = realm.current_realm();
+                    media.Play(&mut realm);
                 },
                 MediaSessionActionType::Pause => {
-                    media.Pause(can_gc);
+                    media.Pause(cx);
                 },
                 MediaSessionActionType::SeekBackward => {},
                 MediaSessionActionType::SeekForward => {},

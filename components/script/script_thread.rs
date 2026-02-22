@@ -1883,7 +1883,7 @@ impl ScriptThread {
                 CanGc::from_cx(cx),
             ),
             ScriptThreadMessage::MediaSessionAction(pipeline_id, action) => {
-                self.handle_media_session_action(pipeline_id, action, CanGc::from_cx(cx))
+                self.handle_media_session_action(cx, pipeline_id, action)
             },
             ScriptThreadMessage::SendInputEvent(webview_id, id, event) => {
                 self.handle_input_event(webview_id, id, event)
@@ -4057,13 +4057,13 @@ impl ScriptThread {
 
     fn handle_media_session_action(
         &self,
+        cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
         action: MediaSessionActionType,
-        can_gc: CanGc,
     ) {
         if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
             let media_session = window.Navigator().MediaSession();
-            media_session.handle_action(action, can_gc);
+            media_session.handle_action(cx, action);
         } else {
             warn!("No MediaSession for this pipeline ID");
         };

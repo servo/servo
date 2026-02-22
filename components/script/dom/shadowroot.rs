@@ -487,14 +487,18 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-innerhtml>
-    fn SetInnerHTML(&self, value: TrustedHTMLOrNullIsEmptyString, can_gc: CanGc) -> ErrorResult {
+    fn SetInnerHTML(
+        &self,
+        cx: &mut js::context::JSContext,
+        value: TrustedHTMLOrNullIsEmptyString,
+    ) -> ErrorResult {
         // Step 1. Let compliantString be the result of invoking the Get Trusted Type compliant string algorithm
         // with TrustedHTML, this's relevant global object, the given value, "ShadowRoot innerHTML", and "script".
         let value = TrustedHTML::get_trusted_script_compliant_string(
             &self.owner_global(),
             value.convert(),
             "ShadowRoot innerHTML",
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
 
         // Step 2. Let context be this's host.
@@ -505,10 +509,10 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         //
         // NOTE: The spec doesn't strictly tell us to bail out here, but
         // we can't continue if parsing failed
-        let frag = context.parse_fragment(value, can_gc)?;
+        let frag = context.parse_fragment(value, CanGc::from_cx(cx))?;
 
         // Step 4. Replace all with fragment within this.
-        Node::replace_all(Some(frag.upcast()), self.upcast(), can_gc);
+        Node::replace_all(Some(frag.upcast()), self.upcast(), CanGc::from_cx(cx));
         Ok(())
     }
 
@@ -518,7 +522,11 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-sethtmlunsafe>
-    fn SetHTMLUnsafe(&self, value: TrustedHTMLOrString, can_gc: CanGc) -> ErrorResult {
+    fn SetHTMLUnsafe(
+        &self,
+        cx: &mut js::context::JSContext,
+        value: TrustedHTMLOrString,
+    ) -> ErrorResult {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, html, "ShadowRoot setHTMLUnsafe", and "script".
@@ -526,13 +534,13 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
             &self.owner_global(),
             value,
             "ShadowRoot setHTMLUnsafe",
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
         // Step 2. Unsafely set HTMl given this, this's shadow host, and complaintHTML
         let target = self.upcast::<Node>();
         let context_element = self.Host();
 
-        Node::unsafely_set_html(target, &context_element, value, can_gc);
+        Node::unsafely_set_html(target, &context_element, value, CanGc::from_cx(cx));
         Ok(())
     }
 
