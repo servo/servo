@@ -456,7 +456,7 @@ impl RunningAppState {
 
     pub(crate) fn window_for_webview_id(&self, webview_id: WebViewId) -> Rc<ServoShellWindow> {
         self.maybe_window_for_webview_id(webview_id)
-            .expect("Looking for unexpected WebView: {webview_id:?}")
+            .expect(format!("Looking for unexpected WebView: {webview_id:?}"))
     }
 
     pub(crate) fn platform_window_for_webview_id(
