@@ -934,7 +934,6 @@ impl HTMLScriptElement {
                         ModuleOwner::Window(Trusted::new(self)),
                         Rc::clone(&text_rc),
                         base_url.clone(),
-                        can_gc,
                     );
                     let script = Script::ImportMap(ScriptOrigin::internal(
                         text_rc,

@@ -1707,7 +1707,6 @@ pub(crate) fn parse_an_import_map_string(
     module_owner: ModuleOwner,
     input: Rc<DOMString>,
     base_url: ServoUrl,
-    can_gc: CanGc,
 ) -> Fallible<ImportMap> {
     // Step 1. Let parsed be the result of parsing a JSON string to an Infra value given input.
     let parsed: JsonValue = serde_json::from_str(&input.str())
@@ -1733,12 +1732,8 @@ pub(crate) fn parse_an_import_map_string(
         };
         // Step 4.2 Set sortedAndNormalizedImports to the result of sorting and
         // normalizing a module specifier map given parsed["imports"] and baseURL.
-        sorted_and_normalized_imports = sort_and_normalize_module_specifier_map(
-            &module_owner.global(),
-            imports,
-            &base_url,
-            can_gc,
-        );
+        sorted_and_normalized_imports =
+            sort_and_normalize_module_specifier_map(&module_owner.global(), imports, &base_url);
     }
 
     // Step 5. Let sortedAndNormalizedScopes be an empty ordered map.
@@ -1755,7 +1750,7 @@ pub(crate) fn parse_an_import_map_string(
         // Step 6.2 Set sortedAndNormalizedScopes to the result of sorting and
         // normalizing scopes given parsed["scopes"] and baseURL.
         sorted_and_normalized_scopes =
-            sort_and_normalize_scopes(&module_owner.global(), scopes, &base_url, can_gc)?;
+            sort_and_normalize_scopes(&module_owner.global(), scopes, &base_url)?;
     }
 
     // Step 7. Let normalizedIntegrity be an empty ordered map.
@@ -1772,7 +1767,7 @@ pub(crate) fn parse_an_import_map_string(
         // Step 8.2 Set normalizedIntegrity to the result of normalizing
         // a module integrity map given parsed["integrity"] and baseURL.
         normalized_integrity =
-            normalize_module_integrity_map(&module_owner.global(), integrity, &base_url, can_gc);
+            normalize_module_integrity_map(&module_owner.global(), integrity, &base_url);
     }
 
     // Step 9. If parsed's keys contains any items besides "imports", "scopes", or "integrity",
@@ -1802,7 +1797,6 @@ fn sort_and_normalize_module_specifier_map(
     global: &GlobalScope,
     original_map: &JsonMap<String, JsonValue>,
     base_url: &ServoUrl,
-    can_gc: CanGc,
 ) -> ModuleSpecifierMap {
     // Step 1. Let normalized be an empty ordered map.
     let mut normalized = ModuleSpecifierMap::new();
@@ -1812,7 +1806,7 @@ fn sort_and_normalize_module_specifier_map(
         // Step 2.1 Let normalized_specifier_key be the result of
         // normalizing a specifier key given specifier_key and base_url.
         let Some(normalized_specifier_key) =
-            normalize_specifier_key(global, specifier_key, base_url, can_gc)
+            normalize_specifier_key(global, specifier_key, base_url)
         else {
             // Step 2.2 If normalized_specifier_key is null, then continue.
             continue;
@@ -1885,7 +1879,6 @@ fn sort_and_normalize_scopes(
     global: &GlobalScope,
     original_map: &JsonMap<String, JsonValue>,
     base_url: &ServoUrl,
-    can_gc: CanGc,
 ) -> Fallible<IndexMap<ServoUrl, ModuleSpecifierMap>> {
     // Step 1. Let normalized be an empty ordered map.
     let mut normalized: IndexMap<ServoUrl, ModuleSpecifierMap> = IndexMap::new();
@@ -1921,12 +1914,8 @@ fn sort_and_normalize_scopes(
 
         // Step 2.5 Set normalized[normalizedScopePrefix] to the result of sorting and
         // normalizing a module specifier map given potentialSpecifierMap and baseURL.
-        let normalized_specifier_map = sort_and_normalize_module_specifier_map(
-            global,
-            potential_specifier_map,
-            base_url,
-            can_gc,
-        );
+        let normalized_specifier_map =
+            sort_and_normalize_module_specifier_map(global, potential_specifier_map, base_url);
         normalized.insert(normalized_scope_prefix, normalized_specifier_map);
     }
 
@@ -1941,7 +1930,6 @@ fn normalize_module_integrity_map(
     global: &GlobalScope,
     original_map: &JsonMap<String, JsonValue>,
     base_url: &ServoUrl,
-    _can_gc: CanGc,
 ) -> ModuleIntegrityMap {
     // Step 1. Let normalized be an empty ordered map.
     let mut normalized = ModuleIntegrityMap::new();
@@ -1989,7 +1977,6 @@ fn normalize_specifier_key(
     global: &GlobalScope,
     specifier_key: &str,
     base_url: &ServoUrl,
-    _can_gc: CanGc,
 ) -> Option<String> {
     // step 1. If specifierKey is the empty string, then:
     if specifier_key.is_empty() {
