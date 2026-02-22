@@ -672,8 +672,9 @@ impl Handler {
         action: &WheelScrollAction,
         tick_duration: u64,
     ) -> Result<(), ErrorStatus> {
-        // TODO: We should verify each variable when processing a wheel action.
         // <https://w3c.github.io/webdriver/#dfn-process-a-wheel-action>
+        // The validation is normally done already by webdriver crate,
+        // but it is not the case for this action currently.
 
         let tick_start = Instant::now();
 
@@ -684,6 +685,16 @@ impl Handler {
 
         // Step 2. Let y offset be equal to the y property of action object.
         let Some(y_offset) = action.y else {
+            return Err(ErrorStatus::InvalidArgument);
+        };
+
+        // Step 7. Let delta x be equal to the deltaX property of action object.
+        let Some(delta_x) = action.deltaX else {
+            return Err(ErrorStatus::InvalidArgument);
+        };
+
+        // Step 8. Let delta y be equal to the deltaY property of action object.
+        let Some(delta_y) = action.deltaY else {
             return Err(ErrorStatus::InvalidArgument);
         };
 
@@ -707,16 +718,6 @@ impl Handler {
         // Step 6. If y is less than 0 or greater than the height of the viewport in CSS pixels,
         // then return error with error code move target out of bounds.
         self.check_viewport_bound(x, y)?;
-
-        // Step 7. Let delta x be equal to the deltaX property of action object.
-        let Some(delta_x) = action.deltaX else {
-            return Err(ErrorStatus::InvalidArgument);
-        };
-
-        // Step 8. Let delta y be equal to the deltaY property of action object.
-        let Some(delta_y) = action.deltaY else {
-            return Err(ErrorStatus::InvalidArgument);
-        };
 
         // Step 9. Let duration be equal to action object's duration property
         // if it is not undefined, or tick duration otherwise.
