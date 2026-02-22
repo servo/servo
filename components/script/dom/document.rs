@@ -139,8 +139,8 @@ use crate::dom::element::{
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::execcommand::basecommand::ContentEditableRange;
-use crate::dom::execcommand::execcommands::ExecCommandsSupport;
+use crate::dom::execcommand::contenteditable::ContentEditableRange;
+use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 use crate::dom::focusevent::FocusEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;

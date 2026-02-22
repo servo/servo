@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::str::DOMString;
-use crate::dom::execcommand::basecommand::{BaseCommand, SelectionExecCommandSupport};
+use crate::dom::execcommand::basecommand::BaseCommand;
+use crate::dom::execcommand::contenteditable::SelectionExecCommandSupport;
 use crate::dom::selection::Selection;
 
 pub(crate) struct DeleteCommand {}

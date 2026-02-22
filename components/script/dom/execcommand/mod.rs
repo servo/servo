@@ -4,4 +4,5 @@
 
 pub(crate) mod basecommand;
 mod commands;
+pub(crate) mod contenteditable;
 pub(crate) mod execcommands;
