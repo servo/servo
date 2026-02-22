@@ -84,7 +84,7 @@ impl Console {
 
         let arguments = messages
             .iter()
-            .map(|msg| console_argument_from_handle_value(cx, *msg))
+            .map(|msg| console_argument_from_handle_value(cx, *msg, &mut Vec::new()))
             .collect();
         let stacktrace = (include_stacktrace == IncludeStackTrace::Yes)
             .then_some(get_js_stack(*GlobalScope::get_cx()));
@@ -137,7 +137,11 @@ unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) 
 }
 
 #[expect(unsafe_code)]
-fn console_argument_from_handle_value(cx: JSContext, handle_value: HandleValue) -> ConsoleArgument {
+fn console_argument_from_handle_value(
+    cx: JSContext,
+    handle_value: HandleValue,
+    seen: &mut Vec<u64>,
+) -> ConsoleArgument {
     if handle_value.is_string() {
         let js_string = ptr::NonNull::new(handle_value.to_string()).unwrap();
         let dom_string = unsafe { jsstr_to_string(*cx, js_string) };
@@ -160,13 +164,25 @@ fn console_argument_from_handle_value(cx: JSContext, handle_value: HandleValue) 
     }
 
     if handle_value.is_object() {
-        if let Some(console_argument_object) = console_object_from_handle_value(cx, handle_value) {
+        // JS objects can create circular reference, and we want to avoid recursing infinitely
+        if seen.contains(&handle_value.asBits_) {
+            // FIXME: Handle this properly
+            return ConsoleArgument::String("[circular]".into());
+        }
+
+        seen.push(handle_value.asBits_);
+        let maybe_argument_object = console_object_from_handle_value(cx, handle_value, seen);
+        let js_value = seen.pop();
+        debug_assert_eq!(js_value, Some(handle_value.asBits_));
+
+        if let Some(console_argument_object) = maybe_argument_object {
             return ConsoleArgument::Object(console_argument_object);
         }
     }
 
     // FIXME: Handle more complex argument types here
     let stringified_value = stringify_handle_value(handle_value);
+
     ConsoleArgument::String(stringified_value.into())
 }
 
@@ -174,6 +190,7 @@ fn console_argument_from_handle_value(cx: JSContext, handle_value: HandleValue) 
 fn console_object_from_handle_value(
     cx: JSContext,
     handle_value: HandleValue,
+    seen: &mut Vec<u64>,
 ) -> Option<ConsoleArgumentObject> {
     rooted!(in(*cx) let object = handle_value.to_object());
 
@@ -242,7 +259,7 @@ fn console_object_from_handle_value(
             configurable: descriptor.hasConfigurable_() && descriptor.configurable_(),
             enumerable: descriptor.hasEnumerable_() && descriptor.enumerable_(),
             writable: descriptor.hasWritable_() && descriptor.writable_(),
-            value: console_argument_from_handle_value(cx, property.handle()),
+            value: console_argument_from_handle_value(cx, property.handle(), seen),
         });
     }
 

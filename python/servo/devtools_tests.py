@@ -913,6 +913,16 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                 [{"attributeName": "foo", "newValue": "baz", "type": "attributes", "target": target["actor"]}],
             )
 
+    def test_console_actor_can_handle_self_referential_objects(self):
+        self.run_servoshell(url="data:text/html,")
+
+        js = open(self.get_test_path("console/log_object_containing_itself.js")).read()
+        self.evaluate_and_capture_console_log_output(js)
+
+        # We don't run any assertions on the result because we don't implement these circular references
+        # properly yet. The important part is that we didn't crash and didn't time out waiting for
+        # a console notification (meaning we got *something*).
+
     # Sets `base_url` and `web_server` and `web_server_thread`.
     @classmethod
     def setUpClass(cls):
