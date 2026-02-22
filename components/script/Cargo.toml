@@ -128,7 +128,7 @@ script_traits = { workspace = true }
 sec1 = { workspace = true }
 selectors = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
+serde_json = { workspace = true, features = ["preserve_order"] }
 servo-media = { workspace = true }
 servo_arc = { workspace = true }
 servo_config = { path = "../config" }
