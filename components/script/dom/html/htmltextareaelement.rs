@@ -187,7 +187,8 @@ impl HTMLTextAreaElement {
                         text: self.Value().to_string(),
                         insertion_point: self.GetSelectionEnd(),
                         multiline: false,
-                        has_sticky_activation: self.owner_window().has_sticky_activation(),
+                        // We follow chromium's heuristic to show the virtual keyboard only if user had interacted before.
+                        allow_virtual_keyboard: self.owner_window().has_sticky_activation(),
                     }),
                     None,
                 );

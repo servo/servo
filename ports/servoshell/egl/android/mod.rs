@@ -666,7 +666,7 @@ impl HostTrait for HostCallbacks {
         .unwrap();
     }
 
-    fn on_ime_show(&self, control: InputMethodControl) {
+    fn on_ime_show(&self, _: InputMethodControl) {
         let mut env = self.jvm.get_env().unwrap();
         env.call_method(self.callbacks.as_obj(), "onImeShow", "()V", &[])
             .unwrap();

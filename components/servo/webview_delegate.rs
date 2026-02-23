@@ -594,7 +594,7 @@ impl InputMethodControl {
     }
 
     /// Whether the UAs allows virtual keyboard to be shown, we currently allow keyboard to be shown
-    /// onlu if user has interacted with the document.
+    /// only if user has interacted with the document to cause this input method event.
     pub fn allow_virtual_keyboard(&self) -> bool {
         self.allow_virtual_keyboard
     }
