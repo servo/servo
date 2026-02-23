@@ -25,7 +25,9 @@ use crate::dom_traversal::{
 };
 use crate::flow::float::FloatBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
-use crate::formatting_contexts::IndependentFormattingContext;
+use crate::formatting_contexts::{
+    IndependentFormattingContext, IndependentFormattingContextContents,
+};
 use crate::fragment_tree::FragmentFlags;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::AbsolutelyPositionedBox;
@@ -772,8 +774,11 @@ impl BlockLevelJob<'_> {
                     contains_floats: false,
                 };
                 ArcRefCell::new(BlockLevelBox::OutsideMarker(OutsideMarker {
-                    base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                    block_formatting_context,
+                    context: IndependentFormattingContext::new(
+                        LayoutBoxBase::new(info.into(), info.style.clone()),
+                        IndependentFormattingContextContents::Flow(block_formatting_context),
+                        self.propagated_data,
+                    ),
                     list_item_style,
                 }))
             },

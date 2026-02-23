@@ -111,10 +111,6 @@ impl BlockLevelBox {
         node: &ServoThreadSafeLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
-        self.with_base_mut(|base| {
-            base.repair_style(new_style);
-        });
-
         match self {
             BlockLevelBox::Independent(independent_formatting_context) => {
                 independent_formatting_context.repair_style(context, node, new_style)
@@ -145,7 +141,7 @@ impl BlockLevelBox {
                 callback(&positioned_box.borrow().context.base)
             },
             BlockLevelBox::OutOfFlowFloatBox(float_box) => callback(&float_box.contents.base),
-            BlockLevelBox::OutsideMarker(outside_marker) => callback(&outside_marker.base),
+            BlockLevelBox::OutsideMarker(outside_marker) => callback(&outside_marker.context.base),
             BlockLevelBox::SameFormattingContextBlock { base, .. } => callback(base),
         }
     }
@@ -159,7 +155,9 @@ impl BlockLevelBox {
                 callback(&mut positioned_box.borrow_mut().context.base)
             },
             BlockLevelBox::OutOfFlowFloatBox(float_box) => callback(&mut float_box.contents.base),
-            BlockLevelBox::OutsideMarker(outside_marker) => callback(&mut outside_marker.base),
+            BlockLevelBox::OutsideMarker(outside_marker) => {
+                callback(&mut outside_marker.context.base)
+            },
             BlockLevelBox::SameFormattingContextBlock { base, .. } => callback(base),
         }
     }
@@ -173,10 +171,9 @@ impl BlockLevelBox {
                 positioned_box.borrow().context.attached_to_tree(layout_box)
             },
             Self::OutOfFlowFloatBox(float_box) => float_box.contents.attached_to_tree(layout_box),
-            Self::OutsideMarker(outside_marker) => outside_marker
-                .block_formatting_context
-                .contents
-                .attached_to_tree(layout_box),
+            Self::OutsideMarker(outside_marker) => {
+                outside_marker.context.attached_to_tree(layout_box)
+            },
             Self::SameFormattingContextBlock { contents, .. } => {
                 contents.attached_to_tree(layout_box)
             },
@@ -301,49 +298,41 @@ pub(crate) struct CollapsibleWithParentStartMargin(bool);
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct OutsideMarker {
     pub list_item_style: Arc<ComputedValues>,
-    pub base: LayoutBoxBase,
-    pub block_formatting_context: BlockFormattingContext,
+    pub context: IndependentFormattingContext,
 }
 
 impl OutsideMarker {
-    fn inline_content_sizes(
-        &self,
-        layout_context: &LayoutContext,
-        constraint_space: &ConstraintSpace,
-    ) -> InlineContentSizesResult {
-        self.base.inline_content_sizes(
-            layout_context,
-            constraint_space,
-            &self.block_formatting_context.contents,
-        )
-    }
-
     fn layout(
         &self,
         layout_context: &LayoutContext<'_>,
         containing_block: &ContainingBlock<'_>,
         positioning_context: &mut PositioningContext,
     ) -> Fragment {
-        let constraint_space = ConstraintSpace::new_for_style_and_ratio(
-            &self.base.style,
-            None, /* TODO: support preferred aspect ratios on non-replaced boxes */
-        );
-        let content_sizes = self.inline_content_sizes(layout_context, &constraint_space);
+        let style = &self.context.base.style;
+        let preferred_aspect_ratio = self.context.preferred_aspect_ratio(&LogicalVec2::zero());
+        let constraint_space =
+            ConstraintSpace::new(SizeConstraint::default(), style, preferred_aspect_ratio);
+        let content_sizes = self
+            .context
+            .inline_content_sizes(layout_context, &constraint_space);
         let containing_block_for_children = ContainingBlock {
             size: ContainingBlockSize {
                 inline: content_sizes.sizes.max_content,
                 block: SizeConstraint::default(),
             },
-            style: &self.base.style,
+            style,
         };
 
-        let flow_layout = self.block_formatting_context.layout(
+        let layout = self.context.layout(
             layout_context,
             positioning_context,
             &containing_block_for_children,
+            containing_block,
+            preferred_aspect_ratio,
+            &LazySize::intrinsic(),
         );
 
-        let max_inline_size = flow_layout
+        let max_inline_size = layout
             .fragments
             .iter()
             .map(|fragment| {
@@ -377,7 +366,7 @@ impl OutsideMarker {
             },
             size: LogicalVec2 {
                 inline: max_inline_size,
-                block: flow_layout.content_block_size,
+                block: layout.content_block_size,
             },
         };
 
@@ -386,13 +375,13 @@ impl OutsideMarker {
 
         Fragment::Box(ArcRefCell::new(BoxFragment::new(
             base_fragment_info,
-            self.base.style.clone(),
-            flow_layout.fragments,
+            style.clone(),
+            layout.fragments,
             content_rect.as_physical(Some(containing_block)),
             PhysicalSides::zero(),
             PhysicalSides::zero(),
             PhysicalSides::zero(),
-            flow_layout.specific_layout_info,
+            layout.specific_layout_info,
         )))
     }
 
@@ -403,8 +392,7 @@ impl OutsideMarker {
         new_style: &Arc<ComputedValues>,
     ) {
         self.list_item_style = node.parent_style(context);
-        self.base.repair_style(new_style);
-        // FIXME(#42779): repair the style of the block formatting context.
+        self.context.repair_style(context, node, new_style);
     }
 }
 
@@ -946,9 +934,7 @@ impl BlockLevelBox {
             BlockLevelBox::Independent(independent) => independent,
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => &box_.borrow().context,
             BlockLevelBox::OutOfFlowFloatBox(float_box) => &float_box.contents,
-            BlockLevelBox::OutsideMarker(outside_marker) => {
-                return outside_marker.inline_content_sizes(layout_context, constraint_space);
-            },
+            BlockLevelBox::OutsideMarker(outside_marker) => &outside_marker.context,
             BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => {
                 return base.inline_content_sizes(layout_context, constraint_space, contents);
             },
