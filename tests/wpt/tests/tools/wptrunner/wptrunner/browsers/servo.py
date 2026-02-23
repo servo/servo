@@ -138,7 +138,8 @@ class ServoBrowser(WebDriverBrowser):
         try:
             requests.get(f"http://{self.host}:{self.port}/status", timeout=3)
         except requests.exceptions.Timeout:
-            # FIXME: This indicates a hanged browser. Reasons need to be investigated further.
+            # FIXME: This indicates a hanged browser. 
+            # Server is waiting for response of the previous command.
             # It happens with ~0.1% probability in our CI runs.
             self.logger.debug("Servo webdriver status request timed out.")
             return True
@@ -149,29 +150,34 @@ class ServoBrowser(WebDriverBrowser):
         return True
 
     def stop(self, force=False):
-        retry_cnt = 0
-        while self.is_alive():
+        for _ in range(self.shutdown_retry_attempts):
+            if not self.is_alive():
+                return
+
             self.logger.info("Trying to shut down gracefully by extension command")
             try:
+                # If no exception, we check status in is_alive in next loop
                 requests.delete(
                     f"http://{self.host}:{self.port}/session/dummy-session-id/servo/shutdown",
                     timeout=3
                 )
             except requests.exceptions.ConnectionError:
                 self.logger.debug("Browser already shut down (connection refused)")
+                return
+            except requests.exceptions.RequestException as exception:
+                self.logger.debug(
+                    f"Request exception: {exception}. "
+                    "This normally means webdriver server is waiting synchronously "
+                    "for response of the previous command.\n"
+                    "This always follows 'Servo webdriver status request timed out.'"
+                )
+                self.logger.warning("Hanged server. Killing instead.")
                 break
-            except requests.exceptions.RequestException as exeception:
-                self.logger.debug(f"Request exception: {exeception}")
-                break
-            except requests.exceptions.Timeout:
-                self.logger.debug("Request timed out")
-                break
-
-            retry_cnt += 1
-            if retry_cnt >= self.shutdown_retry_attempts:
-                self.logger.warning("Max retry exceeded to normally shut down. Killing instead.")
-                break
+ 
             time.sleep(1)
+        else:
+            self.logger.warning("Max retry exceeded to normally shut down. Killing instead.")
+
         super().stop(force)
 
     def find_wpt_prefs(self, logger):
