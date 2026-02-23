@@ -626,7 +626,10 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                     true
                 },
                 TableLevelBox::Cell(table_cell) => {
-                    table_cell.borrow_mut().rebuild(layout_context, &info);
+                    table_cell
+                        .borrow_mut()
+                        .context
+                        .rebuild(layout_context, &info);
                     true
                 },
                 _ => false,

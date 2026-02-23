@@ -984,8 +984,13 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
 
         let block_container = builder.finish();
         let new_table_cell = ArcRefCell::new(TableSlotCell {
-            base: LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
-            contents: BlockFormattingContext::from_block_container(block_container),
+            context: IndependentFormattingContext::new(
+                LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
+                IndependentFormattingContextContents::Flow(
+                    BlockFormattingContext::from_block_container(block_container),
+                ),
+                propagated_data,
+            ),
             colspan: 1,
             rowspan: 1,
         });
@@ -1060,8 +1065,11 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                         );
 
                         ArcRefCell::new(TableSlotCell {
-                            base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                            contents,
+                            context: IndependentFormattingContext::new(
+                                LayoutBoxBase::new(info.into(), info.style.clone()),
+                                IndependentFormattingContextContents::Flow(contents),
+                                propagated_data,
+                            ),
                             colspan,
                             rowspan,
                         })
@@ -1171,27 +1179,4 @@ fn add_column(
     });
     collection.extend(repeat_n(column.clone(), span as usize));
     column
-}
-
-impl TableSlotCell {
-    pub(crate) fn rebuild(
-        &mut self,
-        layout_context: &LayoutContext,
-        node_and_style_info: &NodeAndStyleInfo,
-    ) {
-        self.contents = BlockFormattingContext::construct(
-            layout_context,
-            node_and_style_info,
-            NonReplacedContents::OfElement,
-            // TODO: This only works because currently PropagatedBoxTreeData only stores
-            // this single bit of information. If we ever add more information to
-            // PropagatedBoxTreeData, this will need to be stored on the table cell
-            // and reused.
-            PropagatedBoxTreeData::default().disallowing_percentage_table_columns(),
-            false, /* is_list_item */
-        );
-        self.base.clear_fragments_and_fragment_cache();
-        *self.base.cached_inline_content_size.borrow_mut() = None;
-        self.base.repair_style(&node_and_style_info.style);
-    }
 }
