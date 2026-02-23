@@ -269,6 +269,11 @@ impl<T: DomObject> MutNullableDom<T> {
         unsafe { ptr::read(self.ptr.get()).map(|o| DomRoot::from_ref(&*o)) }
     }
 
+    pub(crate) fn get_unsafe(&self) -> Option<Dom<T>> {
+        assert_in_script();
+        unsafe { ptr::read(self.ptr.get()).map(|o| Dom::from_ref(&*o)) }
+    }
+
     /// Set this `MutNullableDom` to the given value.
     pub(crate) fn set(&self, val: Option<&T>) {
         assert_in_script();

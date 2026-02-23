@@ -1154,7 +1154,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // Step 8. For each script of fragment node's script element descendants:
         for node in fragment_node
             .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::No)
+            .traverse_preorder_efficient_gc(ShadowIncluding::No, cx)
         {
             if let Some(script) = node.downcast::<HTMLScriptElement>() {
                 // Step 8.1. Set script's already started to false.

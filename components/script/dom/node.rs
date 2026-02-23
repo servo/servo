@@ -8,6 +8,8 @@ use std::borrow::Cow;
 use std::cell::{Cell, LazyCell, UnsafeCell};
 use std::default::Default;
 use std::f64::consts::PI;
+use std::marker::PhantomData;
+use std::ops::Deref;
 use std::slice::from_ref;
 use std::{cmp, fmt, iter};
 
@@ -21,6 +23,7 @@ use euclid::default::Size2D;
 use euclid::{Point2D, Rect};
 use html5ever::serialize::HtmlSerializer;
 use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
+use js::context::JSContext;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
@@ -837,6 +840,30 @@ impl Node {
     /// Iterates over this node and all its descendants, in preorder.
     pub(crate) fn traverse_preorder(&self, shadow_including: ShadowIncluding) -> TreeIterator {
         TreeIterator::new(self, shadow_including)
+    }
+
+    /// Iterates over this node and all its descendants, in preorder.
+    pub(crate) fn traverse_preorder_efficient<'a, 'b>(
+        &'a self,
+        cx: &'b JSContext,
+        shadow_including: ShadowIncluding,
+    ) -> EfficientTreeIterator<'a, 'b>
+    where
+        'b: 'a,
+    {
+        EfficientTreeIterator::new(self, shadow_including, cx)
+    }
+
+    /// Iterates over this node and all its descendants, in preorder.
+    pub(crate) fn traverse_preorder_efficient_gc<'a, 'b>(
+        &'a self,
+        shadow_including: ShadowIncluding,
+        cx: &'b mut JSContext,
+    ) -> EfficientTreeIterator<'a, 'b>
+    where
+        'b: 'a,
+    {
+        EfficientTreeIterator::new_can_gc(self, shadow_including, cx)
     }
 
     pub(crate) fn inclusively_following_siblings(
@@ -2267,6 +2294,209 @@ impl Iterator for TreeIterator {
     }
 }
 
+#[derive(Clone)]
+/// Either a DomRoot or a Dom. Do not construct this type. See more on `EfficientTreeIterator`.
+pub(crate) enum DomNodeVariant {
+    Gc(DomRoot<Node>),
+    NonGc(Dom<Node>),
+}
+
+impl DomNodeVariant {
+    pub(crate) fn rooted(self) -> DomRoot<Node> {
+        match self {
+            DomNodeVariant::Gc(root) => root,
+            DomNodeVariant::NonGc(dom) => DomRoot::from_ref(&dom),
+        }
+    }
+}
+
+impl Deref for DomNodeVariant {
+    type Target = Node;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            DomNodeVariant::Gc(root) => root,
+            DomNodeVariant::NonGc(dom) => dom,
+        }
+    }
+}
+
+impl AsRef<Node> for DomNodeVariant {
+    fn as_ref(&self) -> &Node {
+        match self {
+            DomNodeVariant::Gc(root) => root,
+            DomNodeVariant::NonGc(dom) => dom,
+        }
+    }
+}
+
+impl From<DomRoot<Node>> for DomNodeVariant {
+    fn from(value: DomRoot<Node>) -> Self {
+        DomNodeVariant::Gc(value)
+    }
+}
+
+impl From<Dom<Node>> for DomNodeVariant {
+    fn from(value: Dom<Node>) -> Self {
+        DomNodeVariant::NonGc(value)
+    }
+}
+
+enum JSContextType<'a> {
+    Gc(&'a mut JSContext),
+    NonGc(&'a JSContext),
+}
+
+/// An efficient TreeIterator.
+/// Normally we need to root every `Node` we come across as we do not know if we will have a Gc pause.
+/// This can be constructed in two ways, either via a `&mut JSContext` to be the normal `TreeIterator` or
+/// via a `&JSContext` to not root the required children.
+/// This is safe as a `&JSContext` ensures that Gc will not run while used.
+pub(crate) struct EfficientTreeIterator<'a, 'b> {
+    current: Option<DomNodeVariant>,
+    depth: usize,
+    shadow_including: bool,
+    use_gc_methods: bool,
+    /// This is unused and only used to make sure you give us the right JSContext.
+    js_context: JSContextType<'a>,
+    phantom: PhantomData<&'b Node>,
+}
+
+impl<'a, 'b> EfficientTreeIterator<'a, 'b>
+where
+    'b: 'a,
+{
+    pub(crate) fn new(
+        root: &'a Node,
+        shadow_including: ShadowIncluding,
+        cx: &'b JSContext,
+    ) -> EfficientTreeIterator<'a, 'b> {
+        EfficientTreeIterator {
+            current: Some(Dom::from_ref(root).into()),
+            depth: 0,
+            shadow_including: shadow_including == ShadowIncluding::Yes,
+            use_gc_methods: true,
+            js_context: JSContextType::NonGc(cx),
+            phantom: PhantomData,
+        }
+    }
+
+    pub(crate) fn new_can_gc(
+        root: &'a Node,
+        shadow_including: ShadowIncluding,
+        cx: &'b mut JSContext,
+    ) -> EfficientTreeIterator<'a, 'b> {
+        EfficientTreeIterator {
+            current: Some(DomRoot::from_ref(root).into()),
+            depth: 0,
+            shadow_including: shadow_including == ShadowIncluding::Yes,
+            use_gc_methods: false,
+            js_context: JSContextType::Gc(cx),
+            phantom: PhantomData,
+        }
+    }
+
+    /*
+    pub(crate) fn new_non_gc(root: &Node, shadow_including: ShadowIncluding, cx: &JSContext) -> TreeIterator {
+        TreeIterator {
+            current: Some(Dom::new(root)),
+            depth: 0,
+            shadow_including: shadow_including == ShadowIncluding::Yes,
+        }
+    }
+    */
+
+    pub(crate) fn next_skipping_children(&mut self) -> Option<DomNodeVariant> {
+        let current = self.current.take()?;
+
+        let iter = current.inclusive_ancestors(if self.shadow_including {
+            ShadowIncluding::Yes
+        } else {
+            ShadowIncluding::No
+        });
+
+        for ancestor in iter {
+            if self.depth == 0 {
+                break;
+            }
+
+            if self.use_gc_methods {
+                if let Some(next_sibling) = ancestor.GetNextSibling() {
+                    self.current = Some(next_sibling.into());
+                    return Some(current);
+                }
+            } else {
+                if let Some(next_sibling) = ancestor.get_next_sibling_unsafe() {
+                    self.current = Some(next_sibling.into());
+                    return Some(current);
+                }
+            }
+
+            if let Some(shadow_root) = ancestor.downcast::<ShadowRoot>() {
+                // Shadow roots don't have sibling, so after we're done traversing
+                // one we jump to the first child of the host
+                if self.use_gc_methods {
+                    if let Some(child) = shadow_root.Host().upcast::<Node>().GetFirstChild() {
+                        self.current = Some(child.into());
+                        return Some(current);
+                    }
+                } else {
+                    if let Some(child) =
+                        shadow_root.Host().upcast::<Node>().get_first_child_unsafe()
+                    {
+                        self.current = Some(child.into());
+                        return Some(current);
+                    }
+                }
+            }
+            self.depth -= 1;
+        }
+        debug_assert_eq!(self.depth, 0);
+        self.current = None;
+        Some(current)
+    }
+}
+
+impl<'a, 'b> Iterator for EfficientTreeIterator<'a, 'b>
+where
+    'b: 'a,
+{
+    type Item = DomNodeVariant;
+
+    /// <https://dom.spec.whatwg.org/#concept-tree-order>
+    /// <https://dom.spec.whatwg.org/#concept-shadow-including-tree-order>
+    fn next(&mut self) -> Option<DomNodeVariant> {
+        let current = self.current.take()?;
+
+        // Handle a potential shadow root on the element
+        if let Some(element) = current.downcast::<Element>() {
+            if let Some(shadow_root) = element.shadow_root() {
+                if self.shadow_including {
+                    self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()).into());
+                    self.depth += 1;
+                    return Some(current);
+                }
+            }
+        }
+
+        if self.use_gc_methods {
+            if let Some(first_child) = current.GetFirstChild() {
+                self.current = Some(first_child.into());
+                self.depth += 1;
+                return Some(current);
+            };
+        } else {
+            if let Some(first_child) = current.get_first_child_unsafe() {
+                self.current = Some(first_child.into());
+                self.depth += 1;
+                return Some(current);
+            };
+        }
+
+        self.next_skipping_children()
+    }
+}
+
 /// Specifies whether children must be recursively cloned or not.
 #[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub(crate) enum CloneChildrenFlag {
@@ -3358,6 +3588,15 @@ impl Node {
         // TODO: xml5ever doesn't seem to want require_well_formed
         let _ = require_well_formed;
         self.xml_serialize(xml_serialize::TraversalScope::ChildrenOnly(None))
+    }
+
+    /// Do not call this unless you know that we will not have a gc or you root this value immediately.
+    fn get_next_sibling_unsafe(&self) -> Option<Dom<Node>> {
+        self.next_sibling.get_unsafe()
+    }
+
+    fn get_first_child_unsafe(&self) -> Option<Dom<Node>> {
+        self.first_child.get_unsafe()
     }
 }
 
