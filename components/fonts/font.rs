@@ -550,6 +550,14 @@ impl Font {
     pub fn baseline(&self) -> Option<FontBaseline> {
         self.shaper.get_or_init(|| Shaper::new(self)).baseline()
     }
+
+    #[cfg(not(target_os = "macos"))]
+    pub(crate) fn find_fallback_using_system_font_api(
+        &self,
+        _: &FallbackFontSelectionOptions,
+    ) -> Option<FontRef> {
+        None
+    }
 }
 
 #[derive(Clone, Debug, MallocSizeOf)]
@@ -677,7 +685,7 @@ impl FontGroup {
             }
         }
 
-        if let Some(font) = self.find_fallback(
+        if let Some(font) = self.find_fallback_using_system_font_list(
             font_context,
             options.clone(),
             &char_in_template,
@@ -690,7 +698,17 @@ impl FontGroup {
             return fallback;
         }
 
-        self.first(font_context)
+        let first_font = self.first(font_context);
+        if let Some(fallback) = first_font
+            .as_ref()
+            .and_then(|font| font.find_fallback_using_system_font_api(&options))
+        {
+            if font_has_glyph_and_presentation(&fallback) {
+                return Some(fallback);
+            }
+        }
+
+        first_font
     }
 
     /// Find the first available font in the group, or the first available fallback font.
@@ -706,7 +724,7 @@ impl FontGroup {
         let font_predicate = |_: &FontRef| true;
         self.find(font_context, &space_in_template, &font_predicate)
             .or_else(|| {
-                self.find_fallback(
+                self.find_fallback_using_system_font_list(
                     font_context,
                     FallbackFontSelectionOptions::default(),
                     &space_in_template,
@@ -738,10 +756,11 @@ impl FontGroup {
     }
 
     /// Attempts to find a suitable fallback font which matches the given `template_predicate` and
-    /// `font_predicate`. The default family (i.e. "serif") will be tried first, followed by
-    /// platform-specific family names. If a `codepoint` is provided, then its Unicode block may be
-    /// used to refine the list of family names which will be tried.
-    fn find_fallback(
+    /// `font_predicate` using the system font list. The default family (i.e. "serif") will be tried
+    /// first, followed by platform-specific family names. If a `codepoint` is provided, then its
+    /// Unicode block may be used to refine
+    /// the list of family names which will be tried.
+    fn find_fallback_using_system_font_list(
         &self,
         font_context: &FontContext,
         options: FallbackFontSelectionOptions,

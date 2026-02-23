@@ -35,7 +35,7 @@ where
     }
 }
 
-fn font_template_for_local_font_descriptor(
+pub(crate) fn font_template_for_local_font_descriptor(
     family_descriptor: CFRetained<CTFontDescriptor>,
 ) -> Option<FontTemplate> {
     let url = unsafe {
