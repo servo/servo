@@ -82,7 +82,7 @@ impl Serialize for GenericSharedMemory {
                 s.serialize_newtype_variant("GenericSharedMemory", 0, "Ipc", memory)
             },
             GenericSharedMemoryVariant::InProcess(arc) => {
-                if opts::get().multiprocess {
+                if opts::get().multiprocess || opts::get().force_ipc {
                     return Err(serde::ser::Error::custom(
                         "Arc<Vec<u8>> found in multiprocess mode!",
                     ));
