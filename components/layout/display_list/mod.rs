@@ -521,7 +521,20 @@ impl DisplayListBuilder<'_> {
         }
     }
 
-    fn check_for_contentful_paint(&mut self, bounds: LayoutRect, clip_rect: LayoutRect) {
+    fn check_for_contentful_paint(
+        &mut self,
+        bounds: LayoutRect,
+        clip_rect: LayoutRect,
+        opacity: f32,
+    ) {
+        // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+        // An element el is paintable when all of the following apply:
+        // > el and all of its ancestors' used opacity is greater than zero.
+        if opacity <= 0.0 {
+            return;
+        }
+
+        // > el’s paintable bounding rect intersects with the scrolling area of the document.
         if self
             .paint_timing_handler
             .check_bounding_rect(bounds, clip_rect)
@@ -666,7 +679,11 @@ impl Fragment {
                             // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
                             // An element target is contentful when one or more of the following apply:
                             // > target is a replaced element representing an available image.
-                            builder.check_for_contentful_paint(rect, common.clip_rect);
+                            builder.check_for_contentful_paint(
+                                rect,
+                                common.clip_rect,
+                                style.clone_opacity(),
+                            );
                         }
 
                         if image.showing_broken_image_icon {
@@ -849,8 +866,11 @@ impl Fragment {
         // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
         // An element target is contentful when one or more of the following apply:
         // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
-        // TODO(shubhamg13): Consider opacity in separate PR
-        builder.check_for_contentful_paint(glyph_bounds, common.clip_rect);
+        builder.check_for_contentful_paint(
+            glyph_bounds,
+            common.clip_rect,
+            parent_style.clone_opacity(),
+        );
 
         for text_decoration in text_decorations.iter() {
             if text_decoration
@@ -1414,7 +1434,11 @@ impl<'a> BuilderForBoxFragment<'a> {
                         // An element target is contentful when one or more of the following apply:
                         // > target has a background-image which is a contentful image, and its used
                         // > background-size has non-zero width and height values.
-                        builder.check_for_contentful_paint(layer.bounds, layer.common.clip_rect);
+                        builder.check_for_contentful_paint(
+                            layer.bounds,
+                            layer.common.clip_rect,
+                            style.clone_opacity(),
+                        );
 
                         let lcp_candidate_id = self
                             .fragment
@@ -1599,6 +1623,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 builder.check_for_contentful_paint(
                     Box2D::from_size(size.cast_unit()),
                     common.clip_rect,
+                    style.clone_opacity(),
                 );
                 width = size.width;
                 height = size.height;
