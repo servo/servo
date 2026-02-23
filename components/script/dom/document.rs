@@ -3920,7 +3920,7 @@ impl Document {
 
     /// Returns a policy value that should be used for fetches initiated by this document.
     pub(crate) fn insecure_requests_policy(&self) -> InsecureRequestsPolicy {
-        if let Some(csp_list) = &*self.get_csp_list() {
+        if let Some(csp_list) = self.get_csp_list().as_ref() {
             for policy in &csp_list.0 {
                 if policy.contains_a_directive_whose_name_is("upgrade-insecure-requests") &&
                     policy.disposition == PolicyDisposition::Enforce
