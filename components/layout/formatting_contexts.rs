@@ -43,7 +43,7 @@ pub(crate) struct IndependentFormattingContext {
     contents: IndependentFormattingContextContents,
     /// Data that was originally propagated down to this [`IndependentFormattingContext`]
     /// during creation. This is used during incremental layout.
-    propagated_data: PropagatedBoxTreeData,
+    pub propagated_data: PropagatedBoxTreeData,
 }
 
 #[derive(Debug, MallocSizeOf)]

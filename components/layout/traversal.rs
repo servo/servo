@@ -239,13 +239,13 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
     let descendant_needs_rebuild =
         damage_from_children.contains(LayoutDamage::descendant_has_box_damage());
     if element_or_ancestors_need_rebuild || descendant_needs_rebuild {
-        if element_or_ancestors_need_rebuild ||
+        if damage_from_parent.contains(LayoutDamage::descendant_has_box_damage()) ||
             !node.rebuild_box_tree_from_independent_formatting_context(layout_context)
         {
             // In this case:
-            //  - this node or an ancestor needs to be completely rebuilt.
+            //  - an ancestor needs to be completely rebuilt, or
             //  - a descendant needs to be rebuilt, but we are still propagating the rebuild
-            //    damage to an independent formatting context.
+            //    damage to an independent formatting context with a compatible box level.
             //
             // This means that this box is no longer valid and also needs to be rebuilt
             // (perhaps some of its descendants do not though). In this case, unset all existing

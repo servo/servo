@@ -65,7 +65,7 @@ struct BlockLevelJob<'dom> {
     kind: BlockLevelCreator,
 }
 
-enum BlockLevelCreator {
+pub(crate) enum BlockLevelCreator {
     SameFormattingContextBlock(IntermediateBlockContainer),
     Independent {
         display_inside: DisplayInside,
@@ -88,6 +88,45 @@ enum BlockLevelCreator {
     },
 }
 
+impl BlockLevelCreator {
+    pub(crate) fn new_for_inflow_block_level_element<'dom>(
+        info: &NodeAndStyleInfo<'dom>,
+        display_inside: DisplayInside,
+        contents: Contents,
+        propagated_data: PropagatedBoxTreeData,
+    ) -> Self {
+        match contents {
+            Contents::NonReplaced(contents) => match display_inside {
+                DisplayInside::Flow { is_list_item }
+                    // Fragment flags are just used to indicate whether the element is replaced or a widget,
+                    // and whether it's a body or root propagating its `overflow` to the viewport. We have
+                    // already checked that the former is not the case.
+                    // TODO(#39932): empty flags are wrong when propagating `overflow` to the viewport.
+                    if !info.style.establishes_block_formatting_context(
+                        FragmentFlags::empty()
+                    ) =>
+                {
+                    Self::SameFormattingContextBlock(
+                        IntermediateBlockContainer::Deferred {
+                            contents,
+                            propagated_data,
+                            is_list_item,
+                        },
+                    )
+                },
+                _ => Self::Independent {
+                    display_inside,
+                    contents: Contents::NonReplaced(contents),
+                },
+            },
+            Contents::Replaced(_) | Contents::Widget(_) => Self::Independent {
+                display_inside,
+                contents,
+            },
+        }
+    }
+}
+
 /// A block container that may still have to be constructed.
 ///
 /// Represents either the inline formatting context of an anonymous block
@@ -95,7 +134,7 @@ enum BlockLevelCreator {
 /// of a given element.
 ///
 /// Deferring allows using rayon’s `into_par_iter`.
-enum IntermediateBlockContainer {
+pub(crate) enum IntermediateBlockContainer {
     InlineFormattingContext(BlockContainer),
     Deferred {
         contents: NonReplacedContents,
@@ -511,33 +550,12 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         box_slot: BoxSlot<'dom>,
     ) {
         let propagated_data = self.propagated_data;
-        let kind = match contents {
-            Contents::NonReplaced(contents) => match display_inside {
-                DisplayInside::Flow { is_list_item }
-                    // Fragment flags are just used to indicate that the element is not replaced, so empty
-                    // flags are okay here.
-                    if !info.style.establishes_block_formatting_context(
-                        FragmentFlags::empty()
-                    ) =>
-                {
-                    BlockLevelCreator::SameFormattingContextBlock(
-                        IntermediateBlockContainer::Deferred {
-                            contents,
-                            propagated_data,
-                            is_list_item,
-                        },
-                    )
-                },
-                _ => BlockLevelCreator::Independent {
-                    display_inside,
-                    contents: Contents::NonReplaced(contents),
-                },
-            },
-            Contents::Replaced(_) | Contents::Widget(_) => BlockLevelCreator::Independent {
-                display_inside,
-                contents,
-            },
-        };
+        let kind = BlockLevelCreator::new_for_inflow_block_level_element(
+            info,
+            display_inside,
+            contents,
+            propagated_data,
+        );
         let job = BlockLevelJob {
             info: info.clone(),
             box_slot,

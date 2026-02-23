@@ -51,7 +51,7 @@ pub mod float;
 pub mod inline;
 mod root;
 
-pub(crate) use construct::BlockContainerBuilder;
+pub(crate) use construct::{BlockContainerBuilder, BlockLevelCreator};
 pub(crate) use root::BoxTree;
 
 #[derive(Debug, MallocSizeOf)]
