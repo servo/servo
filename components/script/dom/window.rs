@@ -58,8 +58,8 @@ use layout_api::{
     BoxAreaType, CSSPixelRectIterator, ElementsFromPointFlags, ElementsFromPointResult,
     FragmentType, Layout, LayoutImageDestination, PendingImage, PendingImageState,
     PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestRestyle, RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse,
-    TrustedNodeAddress, combine_id_with_fragment_type,
+    ReflowRequestRestyle, ReflowStatistics, RestyleReason, ScrollContainerQueryFlags,
+    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -2504,7 +2504,7 @@ impl Window {
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
-        let reflow_phases_run =
+        let (reflow_phases_run, _) =
             self.reflow(ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)));
         if reflow_phases_run.needs_frame() {
             self.paint_api()
@@ -2550,12 +2550,12 @@ impl Window {
     ///
     /// NOTE: This method should almost never be called directly! Layout and rendering updates should
     /// happen as part of the HTML event loop via *update the rendering*.
-    pub(crate) fn reflow(&self, reflow_goal: ReflowGoal) -> ReflowPhasesRun {
+    pub(crate) fn reflow(&self, reflow_goal: ReflowGoal) -> (ReflowPhasesRun, ReflowStatistics) {
         let document = self.Document();
 
         // Never reflow inactive Documents.
         if !document.is_fully_active() {
-            return ReflowPhasesRun::empty();
+            return Default::default();
         }
 
         self.Document().ensure_safe_to_run_script_or_layout();
@@ -2568,7 +2568,7 @@ impl Window {
             self.layout_blocker.get().layout_blocked()
         {
             debug!("Suppressing pre-load-event reflow pipeline {pipeline_id}");
-            return ReflowPhasesRun::empty();
+            return Default::default();
         }
 
         debug!("script: performing reflow for goal {reflow_goal:?}");
@@ -2624,7 +2624,7 @@ impl Window {
         };
 
         let Some(reflow_result) = self.layout.borrow_mut().reflow(reflow) else {
-            return ReflowPhasesRun::empty();
+            return Default::default();
         };
 
         debug!("script: layout complete");
@@ -2646,7 +2646,10 @@ impl Window {
 
         document.update_animations_post_reflow();
 
-        reflow_result.reflow_phases_run
+        (
+            reflow_result.reflow_phases_run,
+            reflow_result.reflow_statistics,
+        )
     }
 
     pub(crate) fn request_screenshot_readiness(&self, can_gc: CanGc) {
@@ -2764,7 +2767,7 @@ impl Window {
         // iframe size updates.
         //
         // See <https://github.com/servo/servo/issues/14719>
-        if self.Document().update_the_rendering().needs_frame() {
+        if self.Document().update_the_rendering().0.needs_frame() {
             self.paint_api()
                 .generate_frame(vec![self.webview_id().into()]);
         }

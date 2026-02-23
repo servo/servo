@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+div, p, section {
+  display: flow-root;
+}
+#section2 {
+  width: 50px;
+}
+</style>
+
+<div id="div1">
+  <p id="p1">Example1</p>
+</div>
+
+<div id="div2">
+  <section id="section2">
+    <p id="p2">Example2</p>
+  </section>
+</div>
+
+<div id="div3">
+  <section id="section3">
+    <p id="p3">Example2</p>
+  </section>
+</div>
+
+<script>
+setup({explicit_done:true});
+window.onload = () => {
+    test((t) => {
+        ServoTestUtils.forceLayout();
+        div1.style.backgroundColor = 'green';
+        t.add_cleanup(() => {
+            div1.style.cssText = '';
+        });
+
+        let result = ServoTestUtils.forceLayout();
+        assert_equals(result.rebuiltFragmentCount, 0, "rebuiltFragmentCount");
+        assert_equals(result.restyleFragmentCount, 1, "restyleFragmentCount");
+    }, "Updating div1's background-color property restyles but doesn't rebuild");
+
+    test((t) => {
+        ServoTestUtils.forceLayout();
+        div1.style.width = '100px';
+        t.add_cleanup(() => {
+            div1.style.cssText = '';
+        });
+
+        let result = ServoTestUtils.forceLayout();
+        // We rebuild these fragments:
+        // - html
+        // - body
+        // - #div1
+        // - #div1 > #p1
+        // - #div1 > #p1::text("Example1")
+        // - #div2
+        // - #div3
+        assert_equals(result.rebuiltFragmentCount, 7, "rebuiltFragmentCount");
+        assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
+    }, "Updating div1's width property rebuilds some fragments");
+
+   test((t) => {
+        ServoTestUtils.forceLayout();
+        div2.style.width = '100px';
+        t.add_cleanup(() => {
+            div2.style.cssText = '';
+        });
+
+        let result = ServoTestUtils.forceLayout();
+        // We rebuild these fragments:
+        // - html
+        // - body
+        // - #div1
+        // - #div2
+        // - #div2 > #section2
+        // - #div2 > #section2 > #p2
+        // - #div3
+        assert_equals(result.rebuiltFragmentCount, 7, "rebuiltFragmentCount");
+        assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
+    }, "Updating div2's width property rebuilds some fragments");
+
+   test((t) => {
+        ServoTestUtils.forceLayout();
+        div3.style.width = '100px';
+        t.add_cleanup(() => {
+            div3.style.cssText = '';
+        });
+
+        let result = ServoTestUtils.forceLayout();
+        // We rebuild these fragments:
+        // - html
+        // - body
+        // - #div1
+        // - #div2
+        // - #div3
+        // - #div3 > #section3
+        // - #div3 > #section3 > #p3
+        // - #div3 > #p3::text("Example3")
+        assert_equals(result.rebuiltFragmentCount, 8, "rebuiltFragmentCount");
+        assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
+    }, "Updating div3's width property rebuilds some fragments");
+
+   test((t) => {
+        ServoTestUtils.forceLayout();
+        div3.style.height = '100px';
+        t.add_cleanup(() => {
+            div3.style.cssText = '';
+        });
+
+        let result = ServoTestUtils.forceLayout();
+        // We rebuild these fragments:
+        // - html
+        // - body
+        // - #div1
+        // - #div2
+        // - #div3
+        // - #div3 > #section3
+        // - #div3 > #section3 > #p3
+        assert_equals(result.rebuiltFragmentCount, 7, "rebuiltFragmentCount");
+        assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
+    }, "Updating div3's height property rebuilds some fragments");
+
+    done();
+}
+</script>

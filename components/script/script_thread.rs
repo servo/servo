@@ -1261,7 +1261,7 @@ impl ScriptThread {
 
             // > Step 22: For each doc of docs, update the rendering or user interface of
             // > doc and its node navigable to reflect the current state.
-            if document.update_the_rendering().needs_frame() {
+            if document.update_the_rendering().0.needs_frame() {
                 painters_generating_frames.insert(document.webview_id().into());
             }
 

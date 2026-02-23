@@ -25,4 +25,6 @@ namespace ServoTestUtils {
 [Exposed=Window, Pref="dom_servo_helpers_enabled"]
 interface LayoutResult {
     readonly attribute /* FrozenArray<DOMString> */ any phases;
+    readonly attribute unsigned long rebuiltFragmentCount;
+    readonly attribute unsigned long restyleFragmentCount;
 };

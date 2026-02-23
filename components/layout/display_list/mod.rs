@@ -11,6 +11,7 @@ use clip::{Clip, ClipId};
 use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
+use layout_api::ReflowStatistics;
 use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
@@ -53,8 +54,8 @@ use crate::context::{ImageResolver, ResolvedImage};
 pub(crate) use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
-    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
-    TextFragment,
+    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentStatus, FragmentTree,
+    SpecificLayoutInfo, Tag, TextFragment,
 };
 use crate::geom::{
     LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
@@ -124,6 +125,9 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// Handler for all Paint Timings
     paint_timing_handler: &'a mut PaintTimingHandler,
+
+    /// Statistics collected about the reflow, in order to write tests for incremental layout.
+    reflow_statistics: &'a mut ReflowStatistics,
 }
 
 struct InspectorHighlight {
@@ -165,6 +169,7 @@ impl InspectorHighlight {
 }
 
 impl DisplayListBuilder<'_> {
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn build(
         stacking_context_tree: &mut StackingContextTree,
         fragment_tree: &FragmentTree,
@@ -173,6 +178,7 @@ impl DisplayListBuilder<'_> {
         highlighted_dom_node: Option<OpaqueNode>,
         debug: &DiagnosticsLogging,
         paint_timing_handler: &mut PaintTimingHandler,
+        reflow_statistics: &mut ReflowStatistics,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let paint_info = &mut stacking_context_tree.paint_info;
@@ -202,6 +208,7 @@ impl DisplayListBuilder<'_> {
             image_resolver,
             device_pixel_ratio,
             paint_timing_handler,
+            reflow_statistics,
         };
 
         builder.add_all_spatial_nodes();
@@ -619,6 +626,20 @@ impl Fragment {
         is_collapsed_table_borders: bool,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
     ) {
+        if let Some(mut base) = self.base_mut() {
+            match base.status {
+                FragmentStatus::New => {
+                    builder.reflow_statistics.rebuilt_fragment_count += 1;
+                    base.status = FragmentStatus::Clean;
+                },
+                FragmentStatus::StyleChanged => {
+                    builder.reflow_statistics.restyle_fragment_count += 1;
+                    base.status = FragmentStatus::Clean;
+                },
+                FragmentStatus::Clean => {},
+            }
+        }
+
         let spatial_id = builder.spatial_id(builder.current_scroll_node_id);
         let clip_chain_id = builder.clip_chain_id(builder.current_clip_id);
         if let Some(inspector_highlight) = &mut builder.inspector_highlight {

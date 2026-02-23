@@ -36,8 +36,8 @@ use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use layout_api::{
-    PendingRestyle, ReflowGoal, ReflowPhasesRun, RestyleReason, ScrollContainerQueryFlags,
-    TrustedNodeAddress,
+    PendingRestyle, ReflowGoal, ReflowPhasesRun, ReflowStatistics, RestyleReason,
+    ScrollContainerQueryFlags, TrustedNodeAddress,
 };
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
@@ -3136,18 +3136,18 @@ impl Document {
     // > doc and its node navigable to reflect the current state.
     //
     // Returns the set of reflow phases run as a [`ReflowPhasesRun`].
-    pub(crate) fn update_the_rendering(&self) -> ReflowPhasesRun {
+    pub(crate) fn update_the_rendering(&self) -> (ReflowPhasesRun, ReflowStatistics) {
         if self.render_blocking_element_count() > 0 {
             return Default::default();
         }
 
-        let mut results = ReflowPhasesRun::empty();
+        let mut phases = ReflowPhasesRun::empty();
         if self.has_pending_animated_image_update.get() {
             self.image_animation_manager
                 .borrow()
                 .update_active_frames(&self.window, self.current_animation_timeline_value());
             self.has_pending_animated_image_update.set(false);
-            results.insert(ReflowPhasesRun::UpdatedImageData);
+            phases.insert(ReflowPhasesRun::UpdatedImageData);
         }
 
         self.current_rendering_epoch
@@ -3166,7 +3166,7 @@ impl Document {
         // uploaded. This allows canvas image uploading to happen asynchronously.
         let pipeline_id = self.window().pipeline_id();
         if !image_keys.is_empty() {
-            results.insert(ReflowPhasesRun::UpdatedImageData);
+            phases.insert(ReflowPhasesRun::UpdatedImageData);
             self.waiting_on_canvas_image_updates.set(true);
             self.window().paint_api().delay_new_frame_for_canvas(
                 self.webview_id(),
@@ -3176,7 +3176,8 @@ impl Document {
             );
         }
 
-        let results = results.union(self.window().reflow(ReflowGoal::UpdateTheRendering));
+        let (reflow_phases, statistics) = self.window().reflow(ReflowGoal::UpdateTheRendering);
+        let phases = phases.union(reflow_phases);
 
         self.window().paint_api().update_epoch(
             self.webview_id(),
@@ -3184,7 +3185,7 @@ impl Document {
             current_rendering_epoch,
         );
 
-        results
+        (phases, statistics)
     }
 
     pub(crate) fn handle_no_longer_waiting_on_asynchronous_image_updates(&self) {

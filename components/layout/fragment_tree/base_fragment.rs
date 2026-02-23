@@ -67,6 +67,17 @@ impl std::fmt::Debug for BaseFragmentStyle {
     }
 }
 
+#[derive(Clone, Debug, Default, MallocSizeOf)]
+pub(crate) enum FragmentStatus {
+    /// This is a brand new fragment.
+    #[default]
+    New,
+    /// The style of the fragment has changed.
+    StyleChanged,
+    /// The fragment hasn't changed.
+    Clean,
+}
+
 /// This data structure stores fields that are common to all non-base
 /// Fragment types and should generally be the first member of all
 /// concrete fragments.
@@ -89,6 +100,8 @@ pub(crate) struct BaseFragment {
     /// does not include padding, border, or margin -- it only includes content. This is
     /// relative to the parent containing block.
     pub rect: PhysicalRect<Au>,
+
+    pub status: FragmentStatus,
 }
 
 impl BaseFragment {
@@ -102,6 +115,7 @@ impl BaseFragment {
             flags: base_fragment_info.flags,
             style,
             rect,
+            status: Default::default(),
         }
     }
 
@@ -111,6 +125,7 @@ impl BaseFragment {
 
     pub(crate) fn repair_style(&mut self, style: &ServoArc<ComputedValues>) {
         self.style = style.clone().into();
+        self.status = FragmentStatus::StyleChanged;
     }
 
     pub(crate) fn style<'a>(&'a self) -> BaseFragmentStyleRef<'a> {

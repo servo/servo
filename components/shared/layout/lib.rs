@@ -561,6 +561,7 @@ impl RestyleReason {
 pub struct ReflowResult {
     /// The phases that were run during this reflow.
     pub reflow_phases_run: ReflowPhasesRun,
+    pub reflow_statistics: ReflowStatistics,
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
     /// The list of vector images that were encountered that still need to be rasterized.
@@ -599,6 +600,12 @@ impl ReflowPhasesRun {
             Self::BuiltDisplayList | Self::UpdatedScrollNodeOffset | Self::UpdatedImageData,
         )
     }
+}
+
+#[derive(Debug, Default)]
+pub struct ReflowStatistics {
+    pub rebuilt_fragment_count: u32,
+    pub restyle_fragment_count: u32,
 }
 
 /// Information needed for a script-initiated reflow that requires a restyle
