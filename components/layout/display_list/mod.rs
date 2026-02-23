@@ -16,7 +16,6 @@ use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DiagnosticsLogging;
-use servo_config::pref;
 use servo_geometry::MaxRect;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
@@ -536,21 +535,8 @@ impl DisplayListBuilder<'_> {
         clip_rect: LayoutRect,
         bounds: LayoutRect,
     ) {
-        if !pref!(largest_contentful_paint_enabled) {
-            return;
-        }
-
-        let transform = self
-            .paint_info
-            .scroll_tree
-            .cumulative_node_to_root_transform(self.current_scroll_node_id);
-
-        self.paint_timing_handler.update_lcp_candidate(
-            lcp_candidate_id,
-            bounds,
-            clip_rect,
-            transform,
-        );
+        self.paint_timing_handler
+            .update_lcp_candidate(lcp_candidate_id, bounds, clip_rect);
     }
 }
 
