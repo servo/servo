@@ -652,7 +652,8 @@ impl DedicatedWorkerGlobalScope {
                     devtools::handle_evaluate_js(self.upcast(), string, sender, cx)
                 },
                 DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
-                    devtools::handle_wants_live_notifications(self.upcast(), bool_val)
+                    self.upcast::<GlobalScope>()
+                        .set_devtools_wants_updates(bool_val);
                 },
                 _ => debug!("got an unusable devtools control message inside the worker!"),
             },

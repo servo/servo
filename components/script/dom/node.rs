@@ -1353,6 +1353,17 @@ impl Node {
         }
     }
 
+    /// Returns the node's `unique_id` if it has been computed before and `None` otherwise.
+    pub(crate) fn unique_id_if_already_present(&self) -> Option<String> {
+        Ref::filter_map(self.rare_data(), |rare_data| {
+            rare_data
+                .as_ref()
+                .and_then(|rare_data| rare_data.unique_id.as_ref())
+        })
+        .ok()
+        .map(|unique_id| unique_id.borrow().simple().to_string())
+    }
+
     pub(crate) fn unique_id(&self, pipeline: PipelineId) -> String {
         let mut rare_data = self.ensure_rare_data();
 

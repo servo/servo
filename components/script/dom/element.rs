@@ -4584,15 +4584,17 @@ impl VirtualMethods for Element {
         if global.live_devtools_updates() {
             if let Some(sender) = global.devtools_chan() {
                 let pipeline_id = global.pipeline_id();
-                let devtools_message = ScriptToDevtoolsControlMsg::DomMutation(
-                    pipeline_id,
-                    DomMutation::AttributeModified {
-                        node: self.upcast::<Node>().unique_id(pipeline_id),
-                        attribute_name: attr.local_name().to_string(),
-                        new_value: mutation.new_value(attr).map(|value| value.to_string()),
-                    },
-                );
-                sender.send(devtools_message).unwrap();
+                if ScriptThread::devtools_want_updates_for_node(pipeline_id, self.upcast()) {
+                    let devtools_message = ScriptToDevtoolsControlMsg::DomMutation(
+                        pipeline_id,
+                        DomMutation::AttributeModified {
+                            node: self.upcast::<Node>().unique_id(pipeline_id),
+                            attribute_name: attr.local_name().to_string(),
+                            new_value: mutation.new_value(attr).map(|value| value.to_string()),
+                        },
+                    );
+                    sender.send(devtools_message).unwrap();
+                }
             }
         }
     }
