@@ -87,7 +87,7 @@ impl Serialize for GenericSharedMemory {
                         "Arc<Vec<u8>> found in multiprocess mode!",
                     ));
                 } // We know everything is in one address-space, so we can "serialize" the receiver by
-                // sending a leaked Box pointer.
+                // sending a leaked Arc pointer.
                 let address = Arc::into_raw(arc.clone()) as *mut Vec<u8> as usize;
                 s.serialize_newtype_variant("GenericSharedMemory", 1, "InProcess", &address)
             },
@@ -121,15 +121,15 @@ impl<'de> serde::de::Visitor<'de> for GenericSharedMemoryVisitor {
                 .newtype_variant::<IpcSharedMemory>()
                 .map(|receiver| GenericSharedMemory(GenericSharedMemoryVariant::Ipc(receiver))),
             GenericSharedMemoryVariantNames::InProcess => {
-                if opts::get().multiprocess {
+                if opts::get().multiprocess || servo_config::opts::get().force_ipc {
                     return Err(serde::de::Error::custom(
-                        "Crossbeam channel found in multiprocess mode!",
+                        "Arc data found in multiprocess mode!",
                     ));
                 }
                 let addr = variant_data.newtype_variant::<usize>()?;
                 let ptr = addr as *mut Vec<u8>;
                 // SAFETY: We know we are in the same address space as the sender, so we can safely
-                // reconstruct the Box.
+                // reconstruct the Arc.
                 #[expect(unsafe_code)]
                 let arc = unsafe { Arc::from_raw(ptr) };
                 Ok(GenericSharedMemory(GenericSharedMemoryVariant::InProcess(
@@ -154,7 +154,7 @@ impl<'a> Deserialize<'a> for GenericSharedMemory {
 }
 
 #[cfg(test)]
-mod single_process_callback_test {
+mod single_process_shared_memory_test {
     use std::sync::Arc;
 
     use ipc_channel::ipc::IpcSharedMemory;
