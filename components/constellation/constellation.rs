@@ -3779,6 +3779,7 @@ where
                     new_browsing_context_info: None,
                     viewport_details,
                 });
+                #[cfg(feature = "largest_contentful_paint")]
                 self.paint_proxy
                     .send(PaintMessage::EnableLCPCalculation(webview_id));
                 Some(new_pipeline_id)
@@ -4240,6 +4241,7 @@ where
             ScriptThreadMessage::Reload(pipeline_id),
             "Got reload event after closure",
         );
+        #[cfg(feature = "largest_contentful_paint")]
         self.paint_proxy
             .send(PaintMessage::EnableLCPCalculation(webview_id));
     }

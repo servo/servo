@@ -15,6 +15,7 @@ path = "lib.rs"
 default = []
 bluetooth = ["bluetooth_traits"]
 gamepad = ["embedder_traits/gamepad"]
+largest_contentful_paint = []
 tracing = ["dep:tracing", "canvas/tracing"]
 vello = ["canvas/vello"]
 webgpu = ["script_traits/webgpu"]
