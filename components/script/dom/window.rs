@@ -3285,7 +3285,10 @@ impl Window {
         if changes.intersects(VisualViewportChanges::DimensionChanged) {
             self.has_changed_visual_viewport_dimension.set(true);
         }
-        // TODO(stevennovaryo): additionally handle the visual viewport scroll event here
+        if changes.intersects(VisualViewportChanges::OffsetChanged) {
+            self.Document()
+                .handle_visual_viewport_scroll_event(&visual_viewport);
+        }
     }
 
     /// Get the theme of this [`Window`].
