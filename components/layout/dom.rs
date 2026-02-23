@@ -167,7 +167,7 @@ impl LayoutBox {
         match self {
             LayoutBox::DisplayContents(inline_shared_styles) => {
                 *inline_shared_styles.style.borrow_mut() = new_style.clone();
-                *inline_shared_styles.selected.borrow_mut() = node.selected_style();
+                *inline_shared_styles.selected.borrow_mut() = node.selected_style(context);
             },
             LayoutBox::BlockLevel(block_level_box) => {
                 block_level_box

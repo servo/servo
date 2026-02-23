@@ -10,6 +10,7 @@ use fonts::{FontMetrics, FontRef};
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_arc::Arc as ServoArc;
+use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 
 use super::{
@@ -38,10 +39,10 @@ pub(crate) struct InlineBox {
 }
 
 impl InlineBox {
-    pub(crate) fn new(info: &NodeAndStyleInfo) -> Self {
+    pub(crate) fn new(info: &NodeAndStyleInfo, context: &LayoutContext) -> Self {
         Self {
             base: LayoutBoxBase::new(info.into(), info.style.clone()),
-            shared_inline_styles: info.into(),
+            shared_inline_styles: SharedInlineStyles::from_info_and_context(info, context),
             // This will be assigned later, when the box is actually added to the IFC.
             identifier: InlineBoxIdentifier::default(),
             default_font: None,
@@ -55,12 +56,13 @@ impl InlineBox {
 
     pub(crate) fn repair_style(
         &mut self,
+        context: &SharedStyleContext,
         node: &ServoThreadSafeLayoutNode,
         new_style: &ServoArc<ComputedValues>,
     ) {
         self.base.repair_style(new_style);
         *self.shared_inline_styles.style.borrow_mut() = new_style.clone();
-        *self.shared_inline_styles.selected.borrow_mut() = node.selected_style();
+        *self.shared_inline_styles.selected.borrow_mut() = node.selected_style(context);
     }
 }
 

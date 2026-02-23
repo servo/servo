@@ -198,13 +198,11 @@ impl SharedInlineStyles {
     pub(crate) fn ptr_eq(&self, other: &Self) -> bool {
         self.style.ptr_eq(&other.style) && self.selected.ptr_eq(&other.selected)
     }
-}
 
-impl From<&NodeAndStyleInfo<'_>> for SharedInlineStyles {
-    fn from(info: &NodeAndStyleInfo) -> Self {
+    pub(crate) fn from_info_and_context(info: &NodeAndStyleInfo, context: &LayoutContext) -> Self {
         Self {
             style: SharedStyle::new(info.style.clone()),
-            selected: SharedStyle::new(info.node.selected_style()),
+            selected: SharedStyle::new(info.node.selected_style(&context.style_context)),
         }
     }
 }
@@ -305,7 +303,9 @@ impl InlineItem {
     ) {
         match self {
             InlineItem::StartInlineBox(inline_box) => {
-                inline_box.borrow_mut().repair_style(node, new_style);
+                inline_box
+                    .borrow_mut()
+                    .repair_style(context, node, new_style);
             },
             InlineItem::EndInlineBox => {},
             // TextRun holds a handle the `InlineSharedStyles` which is updated when repairing inline box
@@ -325,7 +325,7 @@ impl InlineItem {
             InlineItem::AnonymousBlock(block_box) => {
                 let mut block_box = block_box.borrow_mut();
                 block_box.base.repair_style(new_style);
-                block_box.contents.repair_style(node, new_style);
+                block_box.contents.repair_style(context, node, new_style);
             },
         }
     }
@@ -1889,11 +1889,12 @@ impl InlineFormattingContext {
 
     pub(crate) fn repair_style(
         &self,
+        context: &SharedStyleContext,
         node: &ServoThreadSafeLayoutNode,
         new_style: &ServoArc<ComputedValues>,
     ) {
         *self.shared_inline_styles.style.borrow_mut() = new_style.clone();
-        *self.shared_inline_styles.selected.borrow_mut() = node.selected_style();
+        *self.shared_inline_styles.selected.borrow_mut() = node.selected_style(context);
     }
 
     fn inline_start_for_first_line(&self, containing_block: IndefiniteContainingBlock) -> Au {

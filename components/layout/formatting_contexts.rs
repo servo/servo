@@ -326,7 +326,7 @@ impl IndependentFormattingContext {
                 }
             },
             IndependentFormattingContextContents::Flow(block_formatting_context) => {
-                block_formatting_context.repair_style(node, new_style);
+                block_formatting_context.repair_style(context, node, new_style);
             },
             IndependentFormattingContextContents::Flex(flex_container) => {
                 flex_container.repair_style(new_style)

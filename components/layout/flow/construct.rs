@@ -255,7 +255,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
     fn ensure_inline_formatting_context_builder(&mut self) -> &mut InlineFormattingContextBuilder {
         self.inline_formatting_context_builder
             .get_or_insert_with(|| {
-                let mut builder = InlineFormattingContextBuilder::new(self.info);
+                let mut builder = InlineFormattingContextBuilder::new(self.info, self.context);
                 for shared_inline_styles in self.display_contents_shared_styles.iter() {
                     builder.enter_display_contents(shared_inline_styles.clone());
                 }
@@ -483,6 +483,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
+        let context = self.context;
         let old_layout_box = box_slot.take_layout_box();
         let (is_list_item, non_replaced_contents) = match (display_inside, contents) {
             (
@@ -491,7 +492,6 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             ) => (is_list_item, non_replaced_contents),
             (_, contents) => {
                 // If this inline element is an atomic, handle it and return.
-                let context = self.context;
                 let propagated_data = self.propagated_data;
 
                 let construction_callback = || {
@@ -515,7 +515,10 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         // Otherwise, this is just a normal inline box. Whatever happened before, all we need to do
         // before recurring is to remember this ongoing inline level box.
         let inline_builder = self.ensure_inline_formatting_context_builder();
-        inline_builder.start_inline_box(|| ArcRefCell::new(InlineBox::new(info)), old_layout_box);
+        inline_builder.start_inline_box(
+            || ArcRefCell::new(InlineBox::new(info, context)),
+            old_layout_box,
+        );
         box_slot.set(LayoutBox::InlineLevel(
             inline_builder.inline_items.last().unwrap().clone(),
         ));

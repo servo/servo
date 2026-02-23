@@ -78,13 +78,14 @@ impl BlockContainer {
 
     pub(crate) fn repair_style(
         &mut self,
+        context: &SharedStyleContext,
         node: &ServoThreadSafeLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
         match self {
             BlockContainer::BlockLevelBoxes(..) => {},
             BlockContainer::InlineFormattingContext(inline_formatting_context) => {
-                inline_formatting_context.repair_style(node, new_style)
+                inline_formatting_context.repair_style(context, node, new_style)
             },
         }
     }
@@ -130,7 +131,7 @@ impl BlockLevelBox {
             },
             BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => {
                 base.repair_style(new_style);
-                contents.repair_style(node, new_style);
+                contents.repair_style(context, node, new_style);
             },
         }
     }
@@ -401,8 +402,9 @@ impl OutsideMarker {
         node: &ServoThreadSafeLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
-        self.list_item_style = node.style(context);
+        self.list_item_style = node.parent_style(context);
         self.base.repair_style(new_style);
+        // FIXME(#42779): repair the style of the block formatting context.
     }
 }
 
@@ -465,10 +467,11 @@ impl BlockFormattingContext {
 
     pub(crate) fn repair_style(
         &mut self,
+        context: &SharedStyleContext,
         node: &ServoThreadSafeLayoutNode,
         new_style: &Arc<ComputedValues>,
     ) {
-        self.contents.repair_style(node, new_style);
+        self.contents.repair_style(context, node, new_style);
     }
 
     pub(crate) fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
