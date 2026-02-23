@@ -19,13 +19,13 @@ use servo::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
     ContextMenuItem, CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType,
     JSValue, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
-    MouseMoveEvent, RenderingContext, SimpleDialog, Theme, WebView, WebViewBuilder,
-    WebViewDelegate,
+    MouseMoveEvent, RenderingContext, Scroll, SimpleDialog, Theme, WebView, WebViewBuilder,
+    WebViewDelegate, WebViewPoint, WebViewVector,
 };
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
 use url::Url;
-use webrender_api::units::{DeviceIntSize, DevicePoint};
+use webrender_api::units::{DeviceIntSize, DevicePoint, DeviceVector2D};
 
 use crate::common::{
     ServoTest, WebViewDelegateImpl, click_at_point, evaluate_javascript,
@@ -846,28 +846,43 @@ fn test_pinch_zoom_update_dom_visual_viewport() {
         .build();
 
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-    let eval_visual_viewport = |attr: &str| {
-        evaluate_javascript(
-            &servo_test,
-            webview.clone(),
-            format!("window.visualViewport.{}", attr),
-        )
+    let eval_visual_viewport = |attr: &str| match evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        format!("window.visualViewport.{}", attr),
+    ) {
+        Ok(JSValue::Number(num)) => Some(num),
+        _ => None,
     };
 
     // Default value of the DOM visual viewport is initialized correctly.
-    assert_eq!(eval_visual_viewport("scale"), Ok(JSValue::Number(1.)));
-    assert_eq!(eval_visual_viewport("width"), Ok(JSValue::Number(500.)));
-    assert_eq!(eval_visual_viewport("height"), Ok(JSValue::Number(500.)));
-    assert_eq!(eval_visual_viewport("offsetLeft"), Ok(JSValue::Number(0.)));
-    assert_eq!(eval_visual_viewport("offsetTop"), Ok(JSValue::Number(0.)));
+    assert_eq!(eval_visual_viewport("scale"), Some(1.));
+    assert_eq!(eval_visual_viewport("width"), Some(500.));
+    assert_eq!(eval_visual_viewport("height"), Some(500.));
+    assert_eq!(eval_visual_viewport("offsetLeft"), Some(0.));
+    assert_eq!(eval_visual_viewport("offsetTop"), Some(0.));
 
     webview.pinch_zoom(5., DevicePoint::new(100., 100.));
     wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
 
-    // The visual viewport dimension is correct after a pinch zoom.
-    assert_eq!(eval_visual_viewport("scale"), Ok(JSValue::Number(5.)));
-    assert_eq!(eval_visual_viewport("width"), Ok(JSValue::Number(100.)));
-    assert_eq!(eval_visual_viewport("height"), Ok(JSValue::Number(100.)));
-    assert_eq!(eval_visual_viewport("offsetLeft"), Ok(JSValue::Number(80.)));
-    assert_eq!(eval_visual_viewport("offsetTop"), Ok(JSValue::Number(80.)));
+    // The visual viewport size and offset is correct after a pinch zoom.
+    assert_eq!(eval_visual_viewport("scale"), Some(5.));
+    assert_eq!(eval_visual_viewport("width"), Some(100.));
+    assert_eq!(eval_visual_viewport("height"), Some(100.));
+    assert_eq!(eval_visual_viewport("offsetLeft"), Some(80.));
+    assert_eq!(eval_visual_viewport("offsetTop"), Some(80.));
+
+    // Note that the scroll vector will be affected by the pinch zoom scale.
+    webview.notify_scroll_event(
+        Scroll::Delta(WebViewVector::Device(DeviceVector2D::new(100., 100.))),
+        WebViewPoint::Device(DevicePoint::zero()),
+    );
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    // The visual viewport size and offset is correct after the scroll event.
+    assert_eq!(eval_visual_viewport("scale"), Some(5.));
+    assert_eq!(eval_visual_viewport("width"), Some(100.));
+    assert_eq!(eval_visual_viewport("height"), Some(100.));
+    assert_eq!(eval_visual_viewport("offsetLeft"), Some(100.));
+    assert_eq!(eval_visual_viewport("offsetTop"), Some(100.));
 }
