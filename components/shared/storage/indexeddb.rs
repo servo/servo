@@ -391,6 +391,9 @@ pub enum ConnectionMsg {
         id: Uuid,
         version: u64,
         upgraded: bool,
+        // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
+        // Step 3. Set transaction’s scope to connection’s object store set.
+        object_store_names: Vec<String>,
     },
     /// An upgrade transaction for a version started.
     Upgrade {
@@ -399,6 +402,9 @@ pub enum ConnectionMsg {
         version: u64,
         old_version: u64,
         transaction: u64,
+        // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
+        // Step 3. Set transaction’s scope to connection’s object store set.
+        object_store_names: Vec<String>,
     },
     /// A `versionchange` event should be fired for a connection.
     VersionChange {
