@@ -58,6 +58,10 @@ skipped_tests = [
     "contain-content-style-change.html",
 ]
 
+# Theses tests do pass and contribute "ms" or "runs/s" to `results`
+# but they also freeze the phone when trying to fetch memory report
+# So, the tests in this list are not skipped in general, but the
+# memory report for them is not included in the `results.json`
 tests_that_hang_memory_report = [
     "large-grid.html",
     "layer-overhead.html",
@@ -66,48 +70,10 @@ tests_that_hang_memory_report = [
     "css-contain-change-text-without-subtree-root.html",
 ]
 
-### Failed tests
-# subtree-detaching.html,error
-# abspos.html,error
-# flexbox-row-stretch-height-definite.html,error
-
-
-class LocalFileServe:
-    def __init__(self, port: int, *args, **kwargs):
-        self.local_server = None
-        self.port = port
-
-    def __enter__(self):
-        print(f"Serving local test files on port {self.port}")
-
-        class StaticHandler(SimpleHTTPRequestHandler):
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, directory=DIRECTORY, **kwargs)
-
-        self.local_server = ThreadingHTTPServer(
-            ("0.0.0.0", self.port),
-            StaticHandler,
-        )
-
-        thread = threading.Thread(target=self.local_server.serve_forever, daemon=True)
-        thread.start()
-
-    def __exit__(self, *args):
-        self.local_server.server_close()
-
-
-@dataclass(frozen=True)
-class TestResult:
-    value: float
-    lower_value: float
-    upper_value: float
-    unit: str
-
-
-class AbortReason(Enum):
-    NotFound = 1
-    Panic = 2
-
+### Failing tests (They do run, but produce no results)
+# subtree-detaching.html
+# abspos.html
+# flexbox-row-stretch-height-definite.html
 
 MAX_WAIT_TIME = 60
 
@@ -125,17 +91,54 @@ max\s+(?P<max>[0-9.]+)\s+(?P=unit)
 )
 
 
+@dataclass(frozen=True)
+class TestResult:
+    value: float
+    lower_value: float
+    upper_value: float
+    unit: str
+
+
+class AbortReason(Enum):
+    NotFound = 1
+    Panic = 2
+
+
+class LocalFileServe:
+    def __init__(self, port: int, *args, **kwargs):
+        self.local_server = None
+        self.port = port
+
+    def __enter__(self):
+        print(f"Serving local test files on port {self.port}")
+
+        class StaticHandler(SimpleHTTPRequestHandler):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, directory=DIRECTORY, **kwargs)
+
+        self.local_server = ThreadingHTTPServer(
+            ("127.0.0.1", self.port),
+            StaticHandler,
+        )
+
+        thread = threading.Thread(target=self.local_server.serve_forever, daemon=True)
+        thread.start()
+
+    def __exit__(self, *args):
+        if self.local_server is not None:
+            self.local_server.server_close()
+
+
 def get_serve_path_for_file(root: str, file: str) -> str:
     return root.split("tests/blink_perf_tests/perf_tests/")[1]
 
 
-def test(s: str, driver: webdriver.Remote, port: int, serve_path, cli_args=None) -> TestResult | AbortReason:
+def run_single_test(s: str, driver: webdriver.Remote, port: int, serve_path, cli_args) -> TestResult | AbortReason:
     """Run a test by loading a website, and returning (avg, min, max).
     This will run for MAX_WAIT_TIME seconds and return as soon as the avg line exists in the log element"""
 
-    # s = f"http://127.0.0.1:{port}/layout/{s}"
     s = f"http://127.0.0.1:{port}/{serve_path}/{s}"
-    print(f">>> testing url: {s}")
+    print(f"Testing url: {s}")
     text = None
     try:
         before_get = time.perf_counter()
@@ -151,7 +154,6 @@ def test(s: str, driver: webdriver.Remote, port: int, serve_path, cli_args=None)
                 element = driver.find_element(By.ID, "log")
                 latest_time = time.perf_counter()
                 text = element.text
-                # print(f">>> text:\n{text}\n<<<")
             except NoSuchElementException:
                 time.sleep(1)
                 continue
@@ -308,7 +310,7 @@ def verbose_print(str_to_print: str, is_verbose: bool = False):
         print(str_to_print)
 
 
-def run_tests(port, cli_args=None):
+def run_tests(port, cli_args):
     skip_until = cli_args.skip_until
 
     final_result = {}
@@ -338,7 +340,7 @@ def run_tests(port, cli_args=None):
                             continue
 
                         try:
-                            result = test(
+                            result = run_single_test(
                                 filePath, webdriver, port, get_serve_path_for_file(root, filePath), cli_args=cli_args
                             )
 
