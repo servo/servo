@@ -78,23 +78,23 @@ futures = { version = "0.3", default-features = false }
 futures-core = { version = "0.3", default-features = false }
 futures-util = { version = "0.3", default-features = false }
 gleam = "0.15"
-glib = "0.21"
-glib-sys = "0.21"
+glib = "0.22"
+glib-sys = "0.22"
 glow = "0.16.0"
-gstreamer = { version = "0.24", features = ["v1_18"] }
-gstreamer-app = "0.24"
-gstreamer-audio = "0.24"
-gstreamer-base = "0.24"
-gstreamer-gl = "0.24"
-gstreamer-gl-egl = "0.24"
-gstreamer-gl-sys = "0.24"
-gstreamer-gl-wayland = "0.24"
-gstreamer-gl-x11 = "0.24"
-gstreamer-play = "0.24"
-gstreamer-sdp = "0.24"
-gstreamer-sys = "0.24"
-gstreamer-video = "0.24"
-gstreamer-webrtc = { version = "0.24", features = ["v1_18"] }
+gstreamer = { version = "0.25", features = ["v1_18"] }
+gstreamer-app = "0.25"
+gstreamer-audio = "0.25"
+gstreamer-base = "0.25"
+gstreamer-gl = "0.25"
+gstreamer-gl-egl = "0.25"
+gstreamer-gl-sys = "0.25"
+gstreamer-gl-wayland = "0.25"
+gstreamer-gl-x11 = "0.25"
+gstreamer-play = "0.25"
+gstreamer-sdp = "0.25"
+gstreamer-sys = "0.25"
+gstreamer-video = "0.25"
+gstreamer-webrtc = { version = "0.25", features = ["v1_18"] }
 harfbuzz-sys = "0.6.1"
 headers = "0.4"
 hitrace = { version = "0.1.6", features = ["api-19", "tracing-rs"] }
