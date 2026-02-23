@@ -27,6 +27,14 @@ function walkScriptTree(script, callback) {
     }
 }
 
+// Find a key by a value in a map
+function findKeyByValue(map, search) {
+    for (const [key, value] of map) {
+        if (value === search) return key;
+    }
+    return undefined;
+}
+
 dbg.uncaughtExceptionHook = function(error) {
     console.error(`[debugger] Uncaught exception at ${error.fileName}:${error.lineNumber}:${error.columnNumber}: ${error.name}: ${error.message}`);
 };
@@ -45,11 +53,14 @@ dbg.onNewScript = function(script) {
     });
 };
 
+// Track a new debuggee global
 addEventListener("addDebuggee", event => {
-    const {global, pipelineId: {namespaceId, index}, workerId} = event;
+    const {global, pipelineId, workerId} = event;
     const debuggerObject = dbg.addDebuggee(global);
-    debuggeesToPipelineIds.set(debuggerObject, { namespaceId, index });
-    debuggeesToWorkerIds.set(debuggerObject, workerId);
+    debuggeesToPipelineIds.set(debuggerObject, pipelineId);
+    if (workerId !== undefined) {
+        debuggeesToWorkerIds.set(debuggerObject, workerId);
+    }
 });
 
 // Create a result value object from a debuggee value.
@@ -78,13 +89,16 @@ function createValueResult(value) {
     }
 }
 
+// Evaluate some javascript code in the global context of the debuggee
 // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Object.html#executeinglobal-code-options>
 addEventListener("eval", event => {
-    const {code, pipelineId: {namespaceId, index}, workerId} = event;
-    let object = debuggeesToPipelineIds.keys().next().value;
-    let completionValue = object.executeInGlobal(code);
+    const {code, pipelineId, workerId} = event;
+    const object = workerId !== undefined ?
+        findKeyByValue(debuggeesToWorkerIds, workerId) :
+        findKeyByValue(debuggeesToPipelineIds, pipelineId);
 
     // Completion values: <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#completion-values>
+    const completionValue = object.executeInGlobal(code);
     let resultValue;
 
     if (completionValue === null) {
