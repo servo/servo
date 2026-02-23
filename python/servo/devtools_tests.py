@@ -161,7 +161,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(response1["breakpointList"]["actor"], response2["breakpointList"]["actor"])
 
     def test_breakpoint_pause(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/breakpoint/breakpoint_hit.html")
+        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:
             thread_actor = devtools.targets[0]["threadActor"]
             devtools.client.send_receive({"to": thread_actor, "type": "attach"})
@@ -173,7 +173,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                 for [resource_type, sources] in data.get("array", []):
                     if resource_type == "source":
                         for source in sources:
-                            if "breakpoint/breakpoint_hit.html" in source.get("url", ""):
+                            if "debugger/loop.html" in source.get("url", ""):
                                 source_future.set_result(source["actor"])
 
             devtools.client.add_event_listener(
@@ -191,14 +191,14 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             line_str = min(positions.keys(), key=int)
             line, column = int(line_str), positions[line_str][0]
 
-            # Set breakpoint
+            # Set breakpoint at the first available position
             breakpoint_list = devtools.watcher.get_breakpoint_list_actor()
             devtools.client.send_receive(
                 {
                     "to": breakpoint_list["breakpointList"]["actor"],
                     "type": "setBreakpoint",
                     "location": {
-                        "sourceUrl": f"{self.base_urls[0]}/breakpoint/breakpoint_hit.html",
+                        "sourceUrl": f"{self.base_urls[0]}/debugger/loop.html",
                         "line": line,
                         "column": column,
                     },
@@ -213,17 +213,13 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
 
             devtools.client.add_event_listener(thread_actor, "paused", on_paused)
 
-            # Trigger breakpoint
-            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
-            console.evaluate_js_async("testBreakpointHit()")
-
             # Verify pause
             paused_data = paused_future.result(3)
             self.assertEqual(paused_data.get("type"), "paused")
             self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
 
     def test_manual_pause(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/breakpoint/manual_pause.html")
+        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:
             thread_actor = devtools.targets[0]["threadActor"]
             devtools.client.send_receive({"to": thread_actor, "type": "attach"})
