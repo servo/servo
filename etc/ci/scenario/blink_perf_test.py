@@ -46,6 +46,7 @@ SERVO_URL = f"http://127.0.0.1:{WEBDRIVER_PORT}"
 ABOUT_BLANK = "about:blank"
 DIRECTORY = "tests/blink_perf_tests/perf_tests"
 
+# Tests we will skip because they are currently broken.
 skipped_tests = [
     "large-table-with-collapsed-borders-and-no-colspans.html",  # RAM
     "large-table-with-collapsed-borders-and-colspans-wider-than-table.html",  # RAM
