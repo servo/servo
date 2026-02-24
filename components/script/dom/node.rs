@@ -2332,7 +2332,7 @@ where
             let next_sibling_option = unsafe { ancestor.get_next_sibling_unsafe(self.js_context) };
 
             if let Some(next_sibling) = next_sibling_option {
-                self.current = Some(next_sibling.into());
+                self.current = Some(next_sibling);
                 return Some(current);
             }
 
@@ -2344,11 +2344,11 @@ where
                     shadow_root
                         .Host()
                         .upcast::<Node>()
-                        .get_first_child_unsafe(&self.js_context)
+                        .get_first_child_unsafe(self.js_context)
                 };
 
                 if let Some(child) = child_option {
-                    self.current = Some(child.into());
+                    self.current = Some(child);
                     return Some(current);
                 }
             }
@@ -2386,7 +2386,7 @@ where
         // SAFETY: Using unsafe methods is ok, as we have a reference to a JSContext, hence, disallowing any mutable reference which would imply Gc happening.
         let first_child_option = unsafe { current.get_first_child_unsafe(self.js_context) };
         if let Some(first_child) = first_child_option {
-            self.current = Some(first_child.into());
+            self.current = Some(first_child);
             self.depth += 1;
             return Some(current);
         };
