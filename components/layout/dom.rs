@@ -532,6 +532,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
             LayoutBox::BlockLevel(block_level) => matches!(
                 &*block_level.borrow(),
                 BlockLevelBox::Independent(..) |
+                    BlockLevelBox::OutOfFlowFloatBox(..) |
                     BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(..)
             ),
             LayoutBox::InlineLevel(inline_level) => matches!(
@@ -574,9 +575,10 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         };
 
         let info = NodeAndStyleInfo::new(*self, self.style(&layout_context.style_context));
-        let is_display_contents = || info.style.clone_display().is_contents();
-        let has_abspos_style = || info.style.clone_position().is_absolutely_positioned();
-        let is_abspos_level = || has_abspos_style() && !is_display_contents();
+        let display = info.style.clone_display();
+        if display.is_contents() {
+            return false;
+        }
         let contents = || {
             assert!(
                 self.pseudo_element_chain().is_empty(),
@@ -593,7 +595,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                         let Display::GeneratingBox(DisplayGeneratingBox::OutsideInside {
                             inside: display_inside,
                             ..
-                        }) = info.style.clone_display().into()
+                        }) = display.into()
                         else {
                             return false;
                         };
@@ -611,8 +613,15 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                         independent_formatting_context.rebuild(layout_context, &info);
                         true
                     },
+                    BlockLevelBox::OutOfFlowFloatBox(float_box) => {
+                        if !info.style.clone_float().is_floating() {
+                            return false;
+                        }
+                        float_box.contents.rebuild(layout_context, &info);
+                        true
+                    },
                     BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
-                        if !is_abspos_level() {
+                        if !info.style.clone_position().is_absolutely_positioned() {
                             return false;
                         }
                         positioned_box
@@ -626,7 +635,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
             },
             LayoutBox::InlineLevel(inline_level) => match inline_level {
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
-                    if !is_abspos_level() {
+                    if !info.style.clone_position().is_absolutely_positioned() {
                         return false;
                     }
                     positioned_box
@@ -653,7 +662,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                 let mut flex_level_box = flex_level_box.borrow_mut();
                 match &mut *flex_level_box {
                     FlexLevelBox::FlexItem(flex_item_box) => {
-                        if has_abspos_style() || is_display_contents() {
+                        if info.style.clone_position().is_absolutely_positioned() {
                             return false;
                         }
                         flex_item_box
@@ -661,7 +670,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                             .rebuild(layout_context, &info)
                     },
                     FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
-                        if !is_abspos_level() {
+                        if !info.style.clone_position().is_absolutely_positioned() {
                             return false;
                         }
                         positioned_box
@@ -674,14 +683,14 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
             },
             LayoutBox::TableLevelBox(table_level_box) => match table_level_box {
                 TableLevelBox::Caption(caption) => {
-                    if info.style.clone_display().outside() != DisplayOutside::TableCaption {
+                    if display.outside() != DisplayOutside::TableCaption {
                         return false;
                     }
                     caption.borrow_mut().context.rebuild(layout_context, &info);
                     true
                 },
                 TableLevelBox::Cell(table_cell) => {
-                    if info.style.clone_display().inside() != DisplayInside::TableCell {
+                    if display.inside() != DisplayInside::TableCell {
                         return false;
                     }
                     table_cell
