@@ -17,6 +17,7 @@ libfreetype6-dev
 libgl1-mesa-dri
 libgles2-mesa-dev
 libglib2.0-dev
+JUST_TESTING
 gstreamer1.0-plugins-good
 gstreamer1.0-plugins-bad
 libgstreamer-plugins-bad1.0-dev
