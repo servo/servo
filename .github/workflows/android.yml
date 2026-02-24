@@ -63,6 +63,8 @@ jobs:
           fetch-depth: 2
       - name: Install crown
         run: cargo install --path support/crown
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies

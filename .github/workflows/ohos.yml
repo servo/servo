@@ -68,6 +68,8 @@ jobs:
         run: cargo install --path support/crown
       - name: Setup Python
         uses: ./.github/actions/setup-python
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
       - name: Bootstrap dependencies
         timeout-minutes: 30
         run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest

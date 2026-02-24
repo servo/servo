@@ -34,6 +34,8 @@ jobs:
           name: wpt-full-logs-linux
       - name: Setup Python
         uses: ./.github/actions/setup-python
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
       - name: Prep environment
         run: |
           sudo apt update

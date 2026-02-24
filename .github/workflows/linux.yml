@@ -380,6 +380,8 @@ jobs:
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 1
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
       - name: Install Dependencies
         run: |
           sudo bash -c 'apt-add-repository -y https://mirrors.kernel.org/ubuntu'
