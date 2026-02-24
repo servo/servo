@@ -4706,7 +4706,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b0f83760fb341a774ed326568e19f5a863af4a952def8c39f9ab92fd95b88e5"
 dependencies = [
  "equivalent",
- "hashbrown 0.15.5",
+ "hashbrown 0.16.0",
  "serde",
  "serde_core",
 ]
@@ -6421,9 +6421,9 @@ dependencies = [
 
 [[package]]
 name = "ohos-abilitykit-sys"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a3914cb6cdee5301068c14a86a14a03b12aa91fd17ae354c08322fb2ccbeff2"
+checksum = "c0167341cd90525a16f23203064810014bb1143e44c8c6c122345881e5a4f2df"
 dependencies = [
  "ohos-sys-opaque-types",
 ]
