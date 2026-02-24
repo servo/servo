@@ -61,7 +61,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, serialize_jsval_to_json_utf8};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -204,8 +204,11 @@ impl SubtleCrypto {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<SubtleCrypto> {
-        reflect_dom_object(Box::new(SubtleCrypto::new_inherited()), global, can_gc)
+    pub(crate) fn new(
+        cx: &mut js::context::JSContext,
+        global: &GlobalScope,
+    ) -> DomRoot<SubtleCrypto> {
+        reflect_dom_object_with_cx(Box::new(SubtleCrypto::new_inherited()), global, cx)
     }
 
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
