@@ -593,8 +593,9 @@ impl InputMethodControl {
         self.multiline
     }
 
-    /// Whether the UAs allows virtual keyboard to be shown, we currently allow keyboard to be shown
-    /// only if user has interacted with the document to cause this input method event.
+    /// Whether the virtual keyboard should be shown for this input method event.
+    /// This is currently true for input method events that happen after the user has
+    /// interacted with page contents via an input event.
     pub fn allow_virtual_keyboard(&self) -> bool {
         self.allow_virtual_keyboard
     }
