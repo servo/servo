@@ -9,7 +9,6 @@ use std::cell::{Cell, LazyCell, UnsafeCell};
 use std::default::Default;
 use std::f64::consts::PI;
 use std::marker::PhantomData;
-use std::ops::Deref;
 use std::slice::from_ref;
 use std::{cmp, fmt, iter};
 
@@ -2282,67 +2281,15 @@ impl Iterator for TreeIterator {
     }
 }
 
-#[derive(Clone)]
-#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
-/// Either a DomRoot or a Dom. This type should only be constructed while extreme care is taken.
-/// We allow unrooted interior because we will make sure in `EfficientTreeIterator` that only methods that
-/// do not use Gc will be used by capturing a `&JSContext`.
-pub(crate) enum DomNodeVariant {
-    Gc(DomRoot<Node>),
-    NonGc(Dom<Node>),
-}
-
-impl DomNodeVariant {
-    /// Returns the rooted version of the interior.
-    pub(crate) fn rooted(self) -> DomRoot<Node> {
-        match self {
-            DomNodeVariant::Gc(root) => root,
-            DomNodeVariant::NonGc(dom) => DomRoot::from_ref(&dom),
-        }
-    }
-}
-
-impl Deref for DomNodeVariant {
-    type Target = Node;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            DomNodeVariant::Gc(root) => root,
-            DomNodeVariant::NonGc(dom) => dom,
-        }
-    }
-}
-
-impl AsRef<Node> for DomNodeVariant {
-    fn as_ref(&self) -> &Node {
-        match self {
-            DomNodeVariant::Gc(root) => root,
-            DomNodeVariant::NonGc(dom) => dom,
-        }
-    }
-}
-
-impl From<DomRoot<Node>> for DomNodeVariant {
-    fn from(value: DomRoot<Node>) -> Self {
-        DomNodeVariant::Gc(value)
-    }
-}
-
-impl From<Dom<Node>> for DomNodeVariant {
-    fn from(value: Dom<Node>) -> Self {
-        DomNodeVariant::NonGc(value)
-    }
-}
-
 /// An efficient TreeIterator.
 /// Normally we need to root every `Node` we come across as we do not know if we will have a Gc pause.
 /// via a `&JSContext` to not root the required children. Taking a &JSContext ensures that we will never have
 /// a method needing `&mut JSContext`, hence, no Gc is happening while this is alive.
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 pub(crate) struct EfficientTreeIterator<'a, 'b> {
-    current: Option<DomNodeVariant>,
+    current: Option<Dom<Node>>,
     depth: usize,
     shadow_including: bool,
-    use_gc_methods: bool,
     /// This is unused and only used to make sure you give us the right JSContext.
     js_context: &'a JSContext,
     phantom: PhantomData<&'b Node>,
@@ -2358,17 +2305,16 @@ where
         cx: &'b JSContext,
     ) -> EfficientTreeIterator<'a, 'b> {
         EfficientTreeIterator {
-            current: Some(Dom::from_ref(root).into()),
+            current: Some(Dom::from_ref(root)),
             depth: 0,
             shadow_including: shadow_including == ShadowIncluding::Yes,
-            use_gc_methods: true,
             js_context: cx,
             phantom: PhantomData,
         }
     }
 
     #[expect(unsafe_code)]
-    pub(crate) fn next_skipping_children(&mut self) -> Option<DomNodeVariant> {
+    pub(crate) fn next_skipping_children(&mut self) -> Option<Dom<Node>> {
         let current = self.current.take()?;
 
         let iter = current.inclusive_ancestors(if self.shadow_including {
@@ -2382,43 +2328,28 @@ where
                 break;
             }
 
-            if self.use_gc_methods {
-                if let Some(next_sibling) = ancestor.GetNextSibling() {
-                    self.current = Some(next_sibling.into());
-                    return Some(current);
-                }
-            } else {
-                /// SAFETY: Using unsafe methods is ok, as we have a reference to a JSContext, hence, disallowing any mutable reference which would imply Gc happening.
-                let next_sibling_option =
-                    unsafe { ancestor.get_next_sibling_unsafe(self.js_context) };
+            // SAFETY: Using unsafe methods is ok, as we have a reference to a JSContext, hence, disallowing any mutable reference which would imply Gc happening.
+            let next_sibling_option = unsafe { ancestor.get_next_sibling_unsafe(self.js_context) };
 
-                if let Some(next_sibling) = next_sibling_option {
-                    self.current = Some(next_sibling.into());
-                    return Some(current);
-                }
+            if let Some(next_sibling) = next_sibling_option {
+                self.current = Some(next_sibling.into());
+                return Some(current);
             }
 
             if let Some(shadow_root) = ancestor.downcast::<ShadowRoot>() {
                 // Shadow roots don't have sibling, so after we're done traversing
                 // one we jump to the first child of the host
-                if self.use_gc_methods {
-                    if let Some(child) = shadow_root.Host().upcast::<Node>().GetFirstChild() {
-                        self.current = Some(child.into());
-                        return Some(current);
-                    }
-                } else {
-                    /// SAFETY: Using unsafe methods is ok, as we have a reference to a JSContext, hence, disallowing any mutable reference which would imply Gc happening.
-                    let child_option = unsafe {
-                        shadow_root
-                            .Host()
-                            .upcast::<Node>()
-                            .get_first_child_unsafe(&self.js_context)
-                    };
+                // SAFETY: Using unsafe methods is ok, as we have a reference to a JSContext, hence, disallowing any mutable reference which would imply Gc happening.
+                let child_option = unsafe {
+                    shadow_root
+                        .Host()
+                        .upcast::<Node>()
+                        .get_first_child_unsafe(&self.js_context)
+                };
 
-                    if let Some(child) = child_option {
-                        self.current = Some(child.into());
-                        return Some(current);
-                    }
+                if let Some(child) = child_option {
+                    self.current = Some(child.into());
+                    return Some(current);
                 }
             }
             self.depth -= 1;
@@ -2433,40 +2364,32 @@ impl<'a, 'b> Iterator for EfficientTreeIterator<'a, 'b>
 where
     'b: 'a,
 {
-    type Item = DomNodeVariant;
+    type Item = Dom<Node>;
 
     /// <https://dom.spec.whatwg.org/#concept-tree-order>
     /// <https://dom.spec.whatwg.org/#concept-shadow-including-tree-order>
     #[expect(unsafe_code)]
-    fn next(&mut self) -> Option<DomNodeVariant> {
+    fn next(&mut self) -> Option<Dom<Node>> {
         let current = self.current.take()?;
 
         // Handle a potential shadow root on the element
         if let Some(element) = current.downcast::<Element>() {
             if let Some(shadow_root) = element.shadow_root() {
                 if self.shadow_including {
-                    self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()).into());
+                    self.current = Some(Dom::from_ref(shadow_root.upcast::<Node>()));
                     self.depth += 1;
                     return Some(current);
                 }
             }
         }
 
-        if self.use_gc_methods {
-            if let Some(first_child) = current.GetFirstChild() {
-                self.current = Some(first_child.into());
-                self.depth += 1;
-                return Some(current);
-            };
-        } else {
-            /// SAFETY: Using unsafe methods is ok, as we have a reference to a JSContext, hence, disallowing any mutable reference which would imply Gc happening.
-            let first_child_option = unsafe { current.get_first_child_unsafe(self.js_context) };
-            if let Some(first_child) = first_child_option {
-                self.current = Some(first_child.into());
-                self.depth += 1;
-                return Some(current);
-            };
-        }
+        // SAFETY: Using unsafe methods is ok, as we have a reference to a JSContext, hence, disallowing any mutable reference which would imply Gc happening.
+        let first_child_option = unsafe { current.get_first_child_unsafe(self.js_context) };
+        if let Some(first_child) = first_child_option {
+            self.current = Some(first_child.into());
+            self.depth += 1;
+            return Some(current);
+        };
 
         self.next_skipping_children()
     }
