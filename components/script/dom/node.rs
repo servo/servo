@@ -22,7 +22,7 @@ use euclid::default::Size2D;
 use euclid::{Point2D, Rect};
 use html5ever::serialize::HtmlSerializer;
 use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
-use js::context::JSContext;
+use js::context::NoGC;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
@@ -841,16 +841,16 @@ impl Node {
         TreeIterator::new(self, shadow_including)
     }
 
-    /// Iterates over this node and all its descendants, in preorder.
+    /// Iterates over this node and all its descendants, in preorder. Does not root.
     pub(crate) fn traverse_preorder_non_rooting<'a, 'b>(
         &'a self,
-        cx: &'b JSContext,
+        no_gc: &'b NoGC,
         shadow_including: ShadowIncluding,
     ) -> EfficientTreeIterator<'a, 'b>
     where
         'b: 'a,
     {
-        EfficientTreeIterator::new(self, shadow_including, cx)
+        EfficientTreeIterator::new(self, shadow_including, no_gc)
     }
 
     pub(crate) fn inclusively_following_siblings(
@@ -2281,18 +2281,21 @@ impl Iterator for TreeIterator {
     }
 }
 
-/// An efficient TreeIterator.
-/// Normally we need to root every `Node` we come across as we do not know if we will have a Gc pause.
-/// via a `&JSContext` to not root the required children. Taking a &JSContext ensures that we will never have
-/// a method needing `&mut JSContext`, hence, no Gc is happening while this is alive.
+/// An efficient TreeIterator because it skips rooting if there are no GC pauses.
+///
+/// Use this if you have a `&JSContext` or `NoGC`.
+///
+/// Normally we need to root every `Node` we come across as we do not know if we will have a GC pause.
+/// This does not root the required children. Taking a `&NoGC` enforces that there is no `&mut JSContext`
+/// while this iterator is alive.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 pub(crate) struct EfficientTreeIterator<'a, 'b> {
     current: Option<Dom<Node>>,
     depth: usize,
     shadow_including: bool,
-    /// This is unused and only used to make sure you give us the right JSContext.
-    js_context: &'a JSContext,
-    phantom: PhantomData<&'b Node>,
+    /// This is unused and only used for lifetime guarantee of NoGC
+    no_gc: &'b NoGC,
+    phantom: PhantomData<&'a Node>,
 }
 
 impl<'a, 'b> EfficientTreeIterator<'a, 'b>
@@ -2302,13 +2305,13 @@ where
     pub(crate) fn new(
         root: &'a Node,
         shadow_including: ShadowIncluding,
-        cx: &'b JSContext,
+        no_gc: &'b NoGC,
     ) -> EfficientTreeIterator<'a, 'b> {
         EfficientTreeIterator {
             current: Some(Dom::from_ref(root)),
             depth: 0,
             shadow_including: shadow_including == ShadowIncluding::Yes,
-            js_context: cx,
+            no_gc,
             phantom: PhantomData,
         }
     }
@@ -2328,8 +2331,8 @@ where
                 break;
             }
 
-            // SAFETY: Using unsafe methods is ok, as we have a reference to a JSContext, hence, disallowing any mutable reference which would imply Gc happening.
-            let next_sibling_option = unsafe { ancestor.get_next_sibling_unsafe(self.js_context) };
+            // SAFETY: Using unsafe methods is ok, as we have a reference to a NoGC, hence, disallowing any mutable reference which would imply Gc happening.
+            let next_sibling_option = unsafe { ancestor.get_next_sibling_unsafe(self.no_gc) };
 
             if let Some(next_sibling) = next_sibling_option {
                 self.current = Some(next_sibling);
@@ -2339,12 +2342,12 @@ where
             if let Some(shadow_root) = ancestor.downcast::<ShadowRoot>() {
                 // Shadow roots don't have sibling, so after we're done traversing
                 // one we jump to the first child of the host
-                // SAFETY: Using unsafe methods is ok, as we have a reference to a JSContext, hence, disallowing any mutable reference which would imply Gc happening.
+                // SAFETY: Using unsafe methods is ok, as we have a reference to NoGC, hence, disallowing any mutable reference which would imply Gc happening.
                 let child_option = unsafe {
                     shadow_root
                         .Host()
                         .upcast::<Node>()
-                        .get_first_child_unsafe(self.js_context)
+                        .get_first_child_unsafe(self.no_gc)
                 };
 
                 if let Some(child) = child_option {
@@ -2384,7 +2387,7 @@ where
         }
 
         // SAFETY: Using unsafe methods is ok, as we have a reference to a JSContext, hence, disallowing any mutable reference which would imply Gc happening.
-        let first_child_option = unsafe { current.get_first_child_unsafe(self.js_context) };
+        let first_child_option = unsafe { current.get_first_child_unsafe(self.no_gc) };
         if let Some(first_child) = first_child_option {
             self.current = Some(first_child);
             self.depth += 1;
@@ -3490,14 +3493,14 @@ impl Node {
 
     /// SAFETY: Only call this if you know that there will be no Gc ffor the lifetime of this reference.
     #[expect(unsafe_code)]
-    unsafe fn get_next_sibling_unsafe(&self, cx: &JSContext) -> Option<Dom<Node>> {
-        unsafe { self.next_sibling.get_unsafe(cx) }
+    unsafe fn get_next_sibling_unsafe(&self, no_gc: &NoGC) -> Option<Dom<Node>> {
+        unsafe { self.next_sibling.get_unsafe(no_gc) }
     }
 
     /// SAFETY: Only call this if you know that there will be no Gc ffor the lifetime of this reference.
     #[expect(unsafe_code)]
-    unsafe fn get_first_child_unsafe(&self, cx: &JSContext) -> Option<Dom<Node>> {
-        unsafe { self.first_child.get_unsafe(cx) }
+    unsafe fn get_first_child_unsafe(&self, no_gc: &NoGC) -> Option<Dom<Node>> {
+        unsafe { self.first_child.get_unsafe(no_gc) }
     }
 }
 

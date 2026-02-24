@@ -29,7 +29,7 @@ use std::default::Default;
 use std::hash::{Hash, Hasher};
 use std::{mem, ptr};
 
-use js::context::JSContext;
+use js::context::NoGC;
 use js::jsapi::{Heap, JSObject, JSTracer, Value};
 use js::rust::HandleValue;
 use layout_api::TrustedNodeAddress;
@@ -271,7 +271,7 @@ impl<T: DomObject> MutNullableDom<T> {
     }
 
     /// Get the `DomObject` without rooting it. You need to make sure that no Gc takes place.
-    pub(crate) unsafe fn get_unsafe(&self, _cx: &JSContext) -> Option<Dom<T>> {
+    pub(crate) unsafe fn get_unsafe(&self, _no_gc: &NoGC) -> Option<Dom<T>> {
         assert_in_script();
         unsafe { ptr::read(self.ptr.get()).map(|o| Dom::from_ref(&*o)) }
     }
