@@ -186,6 +186,7 @@ mod from_script {
                 Self::RespondToScreenshotReadinessRequest(..) => {
                     target!("RespondToScreenshotReadinessRequest")
                 },
+                Self::TriggerGarbageCollection => target!("TriggerGarbageCollection"),
             }
         }
     }

@@ -724,6 +724,8 @@ pub enum ScriptToConstellationMessage {
     ForwardKeyboardScroll(PipelineId, KeyboardScroll),
     /// Notify the Constellation of the screenshot readiness of a given pipeline.
     RespondToScreenshotReadinessRequest(ScreenshotReadinessResponse),
+    /// Request the constellation to force garbage collection in all `ScriptThread`'s.
+    TriggerGarbageCollection,
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {

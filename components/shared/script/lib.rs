@@ -308,6 +308,8 @@ pub enum ScriptThreadMessage {
     UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
     /// Activate or deactivate accessibility features.
     SetAccessibilityActive(bool),
+    /// Force a garbage collection in this script thread.
+    TriggerGarbageCollection,
 }
 
 impl fmt::Debug for ScriptThreadMessage {

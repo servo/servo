@@ -2054,6 +2054,11 @@ where
             ScriptToConstellationMessage::RespondToScreenshotReadinessRequest(response) => {
                 self.handle_screenshot_readiness_response(source_pipeline_id, response);
             },
+            ScriptToConstellationMessage::TriggerGarbageCollection => {
+                for event_loop in self.event_loops() {
+                    let _ = event_loop.send(ScriptThreadMessage::TriggerGarbageCollection);
+                }
+            },
         }
     }
 

@@ -65,7 +65,7 @@ use hyper_serde::Serde;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
-use js::jsapi::JSContext as UnsafeJSContext;
+use js::jsapi::{GCReason, JS_GC, JSContext as UnsafeJSContext};
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
 use js::rust::wrappers2::{JS_AddInterruptCallback, SetWindowProxyClass};
@@ -1971,6 +1971,9 @@ impl ScriptThread {
             },
             ScriptThreadMessage::SetAccessibilityActive(active) => {
                 self.set_accessibility_active(active);
+            },
+            ScriptThreadMessage::TriggerGarbageCollection => unsafe {
+                JS_GC(*GlobalScope::get_cx(), GCReason::API);
             },
         }
     }

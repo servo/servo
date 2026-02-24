@@ -84,6 +84,15 @@ impl ServoInternalsMethods<crate::DomTypeHolder> for ServoInternals {
     }
 
     /// <https://servo.org/internal-no-spec>
+    fn GarbageCollectAllContexts(&self) {
+        let global = &self.global();
+
+        let script_to_constellation_chan = global.script_to_constellation_chan();
+        let _ = script_to_constellation_chan
+            .send(ScriptToConstellationMessage::TriggerGarbageCollection);
+    }
+
+    /// <https://servo.org/internal-no-spec>
     fn PreferenceList(&self) -> Vec<USVString> {
         Preferences::all_fields()
             .into_iter()
