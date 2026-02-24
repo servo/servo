@@ -73,7 +73,6 @@ enum ParseOperation {
         target: ParseNodeId,
         contents: ParseNodeId,
     },
-
     CreateElement {
         node: ParseNodeId,
         #[no_trace]
@@ -81,7 +80,6 @@ enum ParseOperation {
         attrs: Vec<Attribute>,
         current_line: u64,
     },
-
     CreateComment {
         text: String,
         node: ParseNodeId,
@@ -99,13 +97,11 @@ enum ParseOperation {
         parent: ParseNodeId,
         node: NodeOrText,
     },
-
     AppendDoctypeToDocument {
         name: String,
         public_id: String,
         system_id: String,
     },
-
     AddAttrsIfMissing {
         target: ParseNodeId,
         attrs: Vec<Attribute>,
@@ -120,30 +116,25 @@ enum ParseOperation {
         parent: ParseNodeId,
         new_parent: ParseNodeId,
     },
-
     AssociateWithForm {
         target: ParseNodeId,
         form: ParseNodeId,
         element: ParseNodeId,
         prev_element: Option<ParseNodeId>,
     },
-
     CreatePI {
         node: ParseNodeId,
         target: String,
         data: String,
     },
-
     Pop {
         node: ParseNodeId,
     },
-
     SetQuirksMode {
         #[ignore_malloc_size_of = "Defined in style"]
         #[no_trace]
         mode: ServoQuirksMode,
     },
-
     AttachDeclarativeShadowRoot {
         location: ParseNodeId,
         template: ParseNodeId,
@@ -155,8 +146,7 @@ enum ParseOperation {
 }
 
 #[derive(MallocSizeOf)]
-enum ToTokenizerMsg {
-    // From HtmlTokenizer
+enum FromParserThreadMsg {
     TokenizerResultDone {
         updated_input: VecDeque<SendTendril<UTF8>>,
     },
@@ -165,13 +155,13 @@ enum ToTokenizerMsg {
         updated_input: VecDeque<SendTendril<UTF8>>,
     },
     EncodingIndicator(SendTendril<UTF8>),
-    End, // Sent to Tokenizer to signify HtmlTokenizer's end method has returned
-    // From Sink
+    /// Sent to main thread to signify that the parser thread's end method has returned.
+    End,
     ProcessOperation(ParseOperation),
 }
 
 #[derive(MallocSizeOf)]
-enum ToHtmlTokenizerMsg {
+enum ToParserThreadMsg {
     Feed { input: VecDeque<SendTendril<UTF8>> },
     End,
     SetPlainTextState,
@@ -185,27 +175,27 @@ fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue 
     buffer_queue
 }
 
-// The async HTML Tokenizer consists of two separate types working together: the Tokenizer
-// (defined below), which lives on the main thread, and the HtmlTokenizer, defined in html5ever, which
-// lives on the parser thread.
+// The async HTML Tokenizer consists of two separate types threads working together:
+// the main thread, which communicates with the rest of script, and the parser thread, which
+// feeds input to the tokenizer from html5ever.
+//
 // Steps:
-// 1. A call to Tokenizer::new will spin up a new parser thread, creating an HtmlTokenizer instance,
-//    which starts listening for messages from Tokenizer.
-// 2. Upon receiving an input from ServoParser, the Tokenizer forwards it to HtmlTokenizer, where it starts
+// 1. A call to Tokenizer::new will spin up a new parser thread, which starts listening for messages from Tokenizer.
+// 2. Upon receiving an input from ServoParser, the tokenizer forwards it to the parser thread, where it starts
 //    creating the necessary tree actions based on the input.
-// 3. HtmlTokenizer sends these tree actions to the Tokenizer as soon as it creates them. The Tokenizer
+// 3. The parser thread sends these tree actions to the main thread as soon as it creates them. The main thread
 //    then executes the received actions.
 //
 //    _____________                           _______________
 //   |             |                         |               |
 //   |             |                         |               |
-//   |             |   ToHtmlTokenizerMsg    |               |
-//   |             |------------------------>| HtmlTokenizer |
-//   |             |                         |               |
-//   |  Tokenizer  |     ToTokenizerMsg      |               |
+//   |             |   ToParserThreadMsg     |               |
+//   |             |------------------------>| Parser Thread |
+//   |    Main     |                         |               |
+//   |   Thread    |   FromParserThreadMsg   |               |
 //   |             |<------------------------|    ________   |
 //   |             |                         |   |        |  |
-//   |             |     ToTokenizerMsg      |   |  Sink  |  |
+//   |             |   FromParserThreadMsg   |   |  Sink  |  |
 //   |             |<------------------------|---|        |  |
 //   |             |                         |   |________|  |
 //   |_____________|                         |_______________|
@@ -214,13 +204,11 @@ fn create_buffer_queue(mut buffers: VecDeque<SendTendril<UTF8>>) -> BufferQueue 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct Tokenizer {
     document: Dom<Document>,
-    #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
-    receiver: Receiver<ToTokenizerMsg>,
-    #[ignore_malloc_size_of = "Defined in std"]
+    from_parser_thread_receiver: Receiver<FromParserThreadMsg>,
+    /// Sender from the main thread to the parser thread.
     #[no_trace]
-    html_tokenizer_sender: Sender<ToHtmlTokenizerMsg>,
-    //#[ignore_malloc_size_of = "Defined in std"]
+    to_parser_thread_sender: Sender<ToParserThreadMsg>,
     nodes: RefCell<FxHashMap<ParseNodeId, Dom<Node>>>,
     #[no_trace]
     url: ServoUrl,
@@ -236,10 +224,10 @@ impl Tokenizer {
         url: ServoUrl,
         fragment_context: Option<super::FragmentContext>,
     ) -> Self {
-        // Messages from the Tokenizer (main thread) to HtmlTokenizer (parser thread)
-        let (to_html_tokenizer_sender, html_tokenizer_receiver) = unbounded();
-        // Messages from HtmlTokenizer and Sink (parser thread) to Tokenizer (main thread)
-        let (to_tokenizer_sender, tokenizer_receiver) = unbounded();
+        // Messages from the main thread to the parser thread
+        let (to_parser_thread_sender, from_main_thread_receiver) = unbounded();
+        // Messages from the parser thread to the main thread
+        let (to_main_thread_sender, from_parser_thread_receiver) = unbounded();
 
         let algorithm = match fragment_context {
             Some(_) => ParsingAlgorithm::Fragment,
@@ -249,8 +237,8 @@ impl Tokenizer {
         let custom_element_reaction_stack = document.custom_element_reaction_stack();
         let tokenizer = Tokenizer {
             document: Dom::from_ref(document),
-            receiver: tokenizer_receiver,
-            html_tokenizer_sender: to_html_tokenizer_sender,
+            from_parser_thread_receiver,
+            to_parser_thread_sender,
             nodes: RefCell::new(FxHashMap::default()),
             url,
             parsing_algorithm: algorithm,
@@ -260,7 +248,7 @@ impl Tokenizer {
         tokenizer.insert_node(0, Dom::from_ref(document.upcast()));
 
         let sink = Sink::new(
-            to_tokenizer_sender.clone(),
+            to_main_thread_sender.clone(),
             document.allow_declarative_shadow_roots(),
         );
         let mut form_parse_node = None;
@@ -278,7 +266,7 @@ impl Tokenizer {
             });
         };
 
-        // Create new thread for HtmlTokenizer. This is where parser actions
+        // Create new thread for parser. This is where parser actions
         // will be generated from the input provided. These parser actions are then passed
         // onto the main thread to be executed.
         let scripting_enabled = document.has_browsing_context();
@@ -289,8 +277,8 @@ impl Tokenizer {
                     sink,
                     parser_fragment_context,
                     form_parse_node,
-                    to_tokenizer_sender,
-                    html_tokenizer_receiver,
+                    to_main_thread_sender,
+                    from_main_thread_receiver,
                     scripting_enabled,
                 );
             })
@@ -311,27 +299,27 @@ impl Tokenizer {
 
         // Send message to parser thread, asking it to start reading from the input.
         // Parser operation messages will be sent to main thread as they are evaluated.
-        self.html_tokenizer_sender
-            .send(ToHtmlTokenizerMsg::Feed {
+        self.to_parser_thread_sender
+            .send(ToParserThreadMsg::Feed {
                 input: send_tendrils,
             })
             .unwrap();
 
         loop {
             match self
-                .receiver
+                .from_parser_thread_receiver
                 .recv()
                 .expect("Unexpected channel panic in main thread.")
             {
-                ToTokenizerMsg::ProcessOperation(parse_op) => {
+                FromParserThreadMsg::ProcessOperation(parse_op) => {
                     self.process_operation(parse_op, can_gc)
                 },
-                ToTokenizerMsg::TokenizerResultDone { updated_input } => {
+                FromParserThreadMsg::TokenizerResultDone { updated_input } => {
                     let buffer_queue = create_buffer_queue(updated_input);
                     input.replace_with(buffer_queue);
                     return TokenizerResult::Done;
                 },
-                ToTokenizerMsg::TokenizerResultScript {
+                FromParserThreadMsg::TokenizerResultScript {
                     script,
                     updated_input,
                 } => {
@@ -340,31 +328,32 @@ impl Tokenizer {
                     let script = self.get_node(&script.id);
                     return TokenizerResult::Script(DomRoot::from_ref(script.downcast().unwrap()));
                 },
+                FromParserThreadMsg::EncodingIndicator(_) => continue,
                 _ => unreachable!(),
             };
         }
     }
 
     pub(crate) fn end(&self, can_gc: CanGc) {
-        self.html_tokenizer_sender
-            .send(ToHtmlTokenizerMsg::End)
+        self.to_parser_thread_sender
+            .send(ToParserThreadMsg::End)
             .unwrap();
         loop {
             match self
-                .receiver
+                .from_parser_thread_receiver
                 .recv()
                 .expect("Unexpected channel panic in main thread.")
             {
-                ToTokenizerMsg::ProcessOperation(parse_op) => {
+                FromParserThreadMsg::ProcessOperation(parse_op) => {
                     self.process_operation(parse_op, can_gc)
                 },
-                ToTokenizerMsg::TokenizerResultDone { updated_input: _ } |
-                ToTokenizerMsg::TokenizerResultScript {
+                FromParserThreadMsg::TokenizerResultDone { updated_input: _ } |
+                FromParserThreadMsg::TokenizerResultScript {
                     script: _,
                     updated_input: _,
                 } |
-                ToTokenizerMsg::EncodingIndicator(_) => continue,
-                ToTokenizerMsg::End => return,
+                FromParserThreadMsg::EncodingIndicator(_) => continue,
+                FromParserThreadMsg::End => return,
             };
         }
     }
@@ -374,8 +363,8 @@ impl Tokenizer {
     }
 
     pub(crate) fn set_plaintext_state(&self) {
-        self.html_tokenizer_sender
-            .send(ToHtmlTokenizerMsg::SetPlainTextState)
+        self.to_parser_thread_sender
+            .send(ToParserThreadMsg::SetPlainTextState)
             .unwrap();
     }
 
@@ -632,8 +621,8 @@ fn run(
     sink: Sink,
     fragment_context: Option<(ParseNode, bool)>,
     form_parse_node: Option<ParseNode>,
-    sender: Sender<ToTokenizerMsg>,
-    receiver: Receiver<ToHtmlTokenizerMsg>,
+    sender: Sender<FromParserThreadMsg>,
+    receiver: Receiver<ToParserThreadMsg>,
     scripting_enabled: bool,
 ) {
     let options = TreeBuilderOpts {
@@ -662,7 +651,7 @@ fn run(
             .recv()
             .expect("Unexpected channel panic in html parser thread")
         {
-            ToHtmlTokenizerMsg::Feed { input } => {
+            ToParserThreadMsg::Feed { input } => {
                 let input = create_buffer_queue(input);
                 let res = html_tokenizer.feed(&input);
 
@@ -674,23 +663,25 @@ fn run(
                 }
 
                 let res = match res {
-                    TokenizerResult::Done => ToTokenizerMsg::TokenizerResultDone { updated_input },
-                    TokenizerResult::Script(script) => ToTokenizerMsg::TokenizerResultScript {
+                    TokenizerResult::Done => {
+                        FromParserThreadMsg::TokenizerResultDone { updated_input }
+                    },
+                    TokenizerResult::Script(script) => FromParserThreadMsg::TokenizerResultScript {
                         script,
                         updated_input,
                     },
                     TokenizerResult::EncodingIndicator(encoding) => {
-                        ToTokenizerMsg::EncodingIndicator(SendTendril::from(encoding))
+                        FromParserThreadMsg::EncodingIndicator(SendTendril::from(encoding))
                     },
                 };
                 sender.send(res).unwrap();
             },
-            ToHtmlTokenizerMsg::End => {
+            ToParserThreadMsg::End => {
                 html_tokenizer.end();
-                sender.send(ToTokenizerMsg::End).unwrap();
+                sender.send(FromParserThreadMsg::End).unwrap();
                 break;
             },
-            ToHtmlTokenizerMsg::SetPlainTextState => html_tokenizer.set_plaintext_state(),
+            ToParserThreadMsg::SetPlainTextState => html_tokenizer.set_plaintext_state(),
         };
     }
 }
@@ -706,12 +697,12 @@ pub(crate) struct Sink {
     parse_node_data: RefCell<FxHashMap<ParseNodeId, ParseNodeData>>,
     next_parse_node_id: Cell<ParseNodeId>,
     document_node: ParseNode,
-    sender: Sender<ToTokenizerMsg>,
+    sender: Sender<FromParserThreadMsg>,
     allow_declarative_shadow_roots: bool,
 }
 
 impl Sink {
-    fn new(sender: Sender<ToTokenizerMsg>, allow_declarative_shadow_roots: bool) -> Sink {
+    fn new(sender: Sender<FromParserThreadMsg>, allow_declarative_shadow_roots: bool) -> Sink {
         let sink = Sink {
             current_line: Cell::new(1),
             parse_node_data: RefCell::new(FxHashMap::default()),
@@ -741,7 +732,7 @@ impl Sink {
 
     fn send_op(&self, op: ParseOperation) {
         self.sender
-            .send(ToTokenizerMsg::ProcessOperation(op))
+            .send(FromParserThreadMsg::ProcessOperation(op))
             .unwrap();
     }
 
