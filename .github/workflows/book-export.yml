@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main
+      # Todo: remove this line before merging
+      - mach-linux-pkgs2
 
 jobs:
   upstream:
