@@ -68,4 +68,4 @@ jobs:
           )
           gh pr create \
             --title "Sync Linux packages with servo/servo (${GITHUB_SHA::7})" \
-            --body "$BODY" --head ${{ env.UPDATE_BRANCH }}
+            --body "$BODY" --head servo-bot:${{ env.UPDATE_BRANCH }}
