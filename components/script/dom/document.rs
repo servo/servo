@@ -6351,7 +6351,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 9
         for node in self
             .upcast::<Node>()
-            .traverse_preorder_efficient_gc(ShadowIncluding::Yes, cx)
+            .traverse_preorder(ShadowIncluding::Yes)
         {
             node.upcast::<EventTarget>().remove_all_listeners();
         }
