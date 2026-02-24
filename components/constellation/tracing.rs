@@ -106,7 +106,6 @@ mod from_embedder {
                 InputEvent::MouseLeftViewport(..) => target_variant!("MouseLeftViewport"),
                 InputEvent::Touch(..) => target_variant!("Touch"),
                 InputEvent::Wheel(..) => target_variant!("Wheel"),
-                InputEvent::Scroll(..) => target_variant!("Scroll"),
             }
         }
     }

@@ -7,13 +7,12 @@ use std::collections::hash_map::Entry;
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
-use constellation_traits::{EmbedderToConstellationMessage, WindowSizeType};
+use constellation_traits::{EmbedderToConstellationMessage, ScrollStatesUpdate, WindowSizeType};
 use crossbeam_channel::Sender;
 use embedder_traits::{
     AnimationState, InputEvent, InputEventAndId, InputEventId, InputEventResult, MouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, PaintHitTestResult, Scroll,
-    ScrollEvent as EmbedderScrollEvent, TouchEvent, TouchEventType, ViewportDetails, WebViewPoint,
-    WheelEvent,
+    MouseButtonAction, MouseButtonEvent, MouseMoveEvent, PaintHitTestResult, Scroll, TouchEvent,
+    TouchEventType, ViewportDetails, WebViewPoint, WheelEvent,
 };
 use euclid::{Scale, Vector2D};
 use log::{debug, warn};
@@ -230,23 +229,35 @@ impl WebViewRenderer {
         self.set_frame_tree_on_pipeline_details(frame_tree, None);
     }
 
-    pub(crate) fn send_scroll_positions_to_layout_for_pipeline(&self, pipeline_id: PipelineId) {
+    // FIXME: For now, we are sending the whole scroll offsets, but ideally we should consider the one that is
+    //        actually scrolled. This is quite tricky due to the possibility of race.
+    pub(crate) fn send_scroll_positions_to_layout_for_pipeline(
+        &self,
+        pipeline_id: PipelineId,
+        scrolled_node: ExternalScrollId,
+    ) {
         let Some(details) = self.pipelines.get(&pipeline_id) else {
             return;
         };
 
-        let scroll_offsets = details.scroll_tree.scroll_offsets();
+        let offsets = details.scroll_tree.scroll_offsets();
 
         // This might be true if we have not received a display list from the layout
         // associated with this pipeline yet. In that case, the layout is not ready to
         // receive scroll offsets anyway, so just save time and prevent other issues by
         // not sending them.
-        if scroll_offsets.is_empty() {
+        if offsets.is_empty() {
             return;
         }
 
         let _ = self.embedder_to_constellation_sender.send(
-            EmbedderToConstellationMessage::SetScrollStates(pipeline_id, scroll_offsets),
+            EmbedderToConstellationMessage::SetScrollStates(
+                pipeline_id,
+                ScrollStatesUpdate {
+                    scrolled_node,
+                    offsets,
+                },
+            ),
         );
     }
 
@@ -774,10 +785,7 @@ impl WebViewRenderer {
         if let Some(ref scroll_result) = scroll_result {
             self.send_scroll_positions_to_layout_for_pipeline(
                 scroll_result.hit_test_result.pipeline_id,
-            );
-            self.dispatch_scroll_event(
                 scroll_result.external_scroll_id,
-                scroll_result.hit_test_result.clone(),
             );
         } else {
             self.touch_handler.stop_fling_if_needed();
@@ -901,8 +909,7 @@ impl WebViewRenderer {
             external_scroll_id,
         };
 
-        self.send_scroll_positions_to_layout_for_pipeline(root_pipeline_id);
-        self.dispatch_scroll_event(external_scroll_id, hit_test_result.clone());
+        self.send_scroll_positions_to_layout_for_pipeline(root_pipeline_id, external_scroll_id);
 
         if pinch_zoom_result == PinchZoomResult::DidNotPinchZoom {
             self.send_pinch_zoom_infos_to_script();
@@ -930,22 +937,6 @@ impl WebViewRenderer {
         let _ = self.embedder_to_constellation_sender.send(
             EmbedderToConstellationMessage::UpdatePinchZoomInfos(pipeline_id, pinch_zoom_infos),
         );
-    }
-
-    fn dispatch_scroll_event(
-        &self,
-        external_id: ExternalScrollId,
-        hit_test_result: PaintHitTestResult,
-    ) {
-        let event = InputEvent::Scroll(EmbedderScrollEvent { external_id }).into();
-        let msg = EmbedderToConstellationMessage::ForwardInputEvent(
-            self.id,
-            event,
-            Some(hit_test_result),
-        );
-        if let Err(e) = self.embedder_to_constellation_sender.send(msg) {
-            warn!("Sending scroll event to constellation failed ({:?}).", e);
-        }
     }
 
     pub(crate) fn pinch_zoom(&self) -> PinchZoom {

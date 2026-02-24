@@ -95,7 +95,7 @@ pub enum EmbedderToConstellationMessage {
     SetWebViewThrottled(WebViewId, bool),
     /// The Servo renderer scrolled and is updating the scroll states of the nodes in the
     /// given pipeline via the constellation.
-    SetScrollStates(PipelineId, FxHashMap<ExternalScrollId, LayoutVector2D>),
+    SetScrollStates(PipelineId, ScrollStatesUpdate),
     /// Notify the constellation that a particular paint metric event has happened for the given pipeline.
     PaintMetric(PipelineId, PaintMetricEvent),
     /// Evaluate a JavaScript string in the context of a `WebView`. When execution is complete or an
@@ -208,4 +208,13 @@ pub enum MessagePortMsg {
     CompleteDisentanglement(MessagePortId),
     /// Handle a new port-message-task.
     NewTask(MessagePortId, PortMessageTask),
+}
+
+/// If renderer is scrolled, we need to send these states to update the scroll tree in the constellation.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ScrollStatesUpdate {
+    /// Which node that is scrolled. This is required for JS scroll event.
+    pub scrolled_node: ExternalScrollId,
+    /// The whole scroll offsets from the renderer's scroll tree.
+    pub offsets: FxHashMap<ExternalScrollId, LayoutVector2D>,
 }

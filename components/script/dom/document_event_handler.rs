@@ -14,8 +14,8 @@ use constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventAndId,
     InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseLeftViewportEvent, ScrollEvent, TouchEvent as EmbedderTouchEvent,
-    TouchEventType, TouchId, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+    MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
+    TouchId, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
 };
 #[cfg(feature = "gamepad")]
 use embedder_traits::{
@@ -43,6 +43,7 @@ use script_bindings::str::DOMString;
 use script_traits::ConstellationInputEvent;
 use servo_config::pref;
 use style_traits::CSSPixel;
+use webrender_api::ExternalScrollId;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::refcounted::Trusted;
@@ -277,10 +278,6 @@ impl DocumentEventHandler {
                 },
                 InputEvent::EditingAction(editing_action_event) => {
                     self.handle_editing_action(None, editing_action_event, can_gc)
-                },
-                InputEvent::Scroll(scroll_event) => {
-                    self.handle_embedder_scroll_event(scroll_event);
-                    InputEventResult::default()
                 },
             };
 
@@ -1661,17 +1658,17 @@ impl DocumentEventHandler {
         }
     }
 
-    /// Handle scroll event triggered by user interactions from embedder side.
+    /// Handle scroll triggered by user interactions from embedder side.
     /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
     #[expect(unsafe_code)]
-    fn handle_embedder_scroll_event(&self, event: ScrollEvent) {
+    pub(crate) fn handle_embedder_scroll(&self, scrolled_node: ExternalScrollId) {
         // If it is a viewport scroll.
         let document = self.window.Document();
-        if event.external_id.is_root() {
+        if scrolled_node.is_root() {
             document.handle_viewport_scroll_event();
         } else {
             // Otherwise, check whether it is for a relevant element within the document.
-            let Some(node_id) = node_id_from_scroll_id(event.external_id.0 as usize) else {
+            let Some(node_id) = node_id_from_scroll_id(scrolled_node.0 as usize) else {
                 return;
             };
             let node = unsafe {
