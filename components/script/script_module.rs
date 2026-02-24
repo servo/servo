@@ -547,15 +547,18 @@ impl ModuleTree {
                 {
                     // Step 10.1.1 Let scopeImportsMatch be the result of resolving an imports match
                     // given normalizedSpecifier, asURL, and scopeImports.
-                    // Step 10.1.2 If scopeImportsMatch is not null, then set result to scopeImportsMatch,
-                    // and break.
-                    result = resolve_imports_match(
+                    let scope_imports_match = resolve_imports_match(
                         normalized_specifier,
                         as_url.as_ref(),
                         imports,
                         can_gc,
                     )?;
-                    break;
+
+                    // Step 10.1.2 If scopeImportsMatch is not null, then set result to scopeImportsMatch, and break.
+                    if scope_imports_match.is_some() {
+                        result = scope_imports_match;
+                        break;
+                    }
                 }
             }
 
