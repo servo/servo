@@ -75,9 +75,8 @@ window.onload = () => {
         // - #div1
         // - #div2
         // - #div2 > #section2
-        // - #div2 > #section2 > #p2
         // - #div3
-        assert_equals(result.rebuiltFragmentCount, 7, "rebuiltFragmentCount");
+        assert_equals(result.rebuiltFragmentCount, 6, "rebuiltFragmentCount");
         assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
     }, "Updating div2's width property rebuilds some fragments");
 
@@ -117,8 +116,7 @@ window.onload = () => {
         // - #div2
         // - #div3
         // - #div3 > #section3
-        // - #div3 > #section3 > #p3
-        assert_equals(result.rebuiltFragmentCount, 7, "rebuiltFragmentCount");
+        assert_equals(result.rebuiltFragmentCount, 6, "rebuiltFragmentCount");
         assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
     }, "Updating div3's height property rebuilds some fragments");
 

@@ -521,6 +521,15 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
     }
 
     fn isolates_damage_for_damage_propagation(&self) -> bool {
+        // Do not run incremental box and fragment tree layout at the `<body>` or root element as
+        // there is some special processing that must happen for these elements and it currently
+        // only happens when doing a full box tree construction traversal.
+        if self.as_element().is_some_and(|element| {
+            element.is_body_element_of_html_element_root() || element.is_root()
+        }) {
+            return false;
+        }
+
         let Some(inner_layout_data) = self.inner_layout_data() else {
             return false;
         };

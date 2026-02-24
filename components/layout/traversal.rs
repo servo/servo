@@ -191,7 +191,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
         )
     };
 
-    let element_and_parent_damage = element_damage | damage_from_parent;
+    let mut element_and_parent_damage = element_damage | damage_from_parent;
     if is_display_none {
         node.unset_all_boxes();
         return element_and_parent_damage;
@@ -208,7 +208,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
             !node.isolates_damage_for_damage_propagation());
     if rebuild_children {
         damage_for_children.insert(LayoutDamage::box_damage());
-    } else if damage_for_children.contains(RestyleDamage::RELAYOUT) &&
+    } else if element_and_parent_damage.contains(RestyleDamage::RELAYOUT) &&
         !element_damage.contains(RestyleDamage::RELAYOUT) &&
         node.isolates_damage_for_damage_propagation()
     {
@@ -216,6 +216,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
         // only because of an ancestor, fragment layout caches should still be valid when
         // crossing down into new independent formatting contexts.
         damage_for_children.remove(RestyleDamage::RELAYOUT);
+        element_and_parent_damage.remove(RestyleDamage::RELAYOUT);
     }
 
     let mut damage_from_children = RestyleDamage::empty();
