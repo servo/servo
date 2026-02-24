@@ -13,7 +13,6 @@ use fonts::GlyphStore;
 use gradient::WebRenderGradient;
 use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
-use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DiagnosticsLogging;
 use servo_config::pref;
@@ -545,9 +544,9 @@ impl DisplayListBuilder<'_> {
 
     fn check_for_lcp_candidate(
         &mut self,
-        lcp_candidate_id: LCPCandidateID,
         clip_rect: LayoutRect,
         bounds: LayoutRect,
+        tag: Option<Tag>,
     ) {
         if !pref!(largest_contentful_paint_enabled) {
             return;
@@ -558,12 +557,8 @@ impl DisplayListBuilder<'_> {
             .scroll_tree
             .cumulative_node_to_root_transform(self.current_scroll_node_id);
 
-        self.paint_timing_handler.update_lcp_candidate(
-            lcp_candidate_id,
-            bounds,
-            clip_rect,
-            transform,
-        );
+        self.paint_timing_handler
+            .update_lcp_candidate(tag, bounds, clip_rect, transform);
     }
 }
 
@@ -694,12 +689,7 @@ impl Fragment {
                             );
                         }
 
-                        let lcp_candidate_id = image
-                            .base
-                            .tag
-                            .map(|tag| LCPCandidateID(tag.node.id()))
-                            .unwrap_or(LCPCandidateID(0));
-                        builder.check_for_lcp_candidate(lcp_candidate_id, common.clip_rect, rect);
+                        builder.check_for_lcp_candidate(common.clip_rect, rect, image.base.tag);
                     },
                     Visibility::Hidden => (),
                     Visibility::Collapse => (),
@@ -1440,16 +1430,10 @@ impl<'a> BuilderForBoxFragment<'a> {
                             style.clone_opacity(),
                         );
 
-                        let lcp_candidate_id = self
-                            .fragment
-                            .base
-                            .tag
-                            .map(|tag| LCPCandidateID(tag.node.id()))
-                            .unwrap_or(LCPCandidateID(0));
                         builder.check_for_lcp_candidate(
-                            lcp_candidate_id,
                             layer.common.clip_rect,
                             layer.bounds,
+                            self.fragment.base.tag,
                         );
                     }
                 },

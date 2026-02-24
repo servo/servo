@@ -8,6 +8,7 @@ use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_re
 use style_traits::CSSPixel;
 use webrender_api::units::{LayoutRect, LayoutSize};
 
+use crate::fragment_tree::Tag;
 use crate::query::transform_au_rectangle;
 
 pub(crate) struct PaintTimingHandler {
@@ -72,7 +73,7 @@ impl PaintTimingHandler {
 
     pub(crate) fn update_lcp_candidate(
         &mut self,
-        lcp_candidate_id: LCPCandidateID,
+        tag: Option<Tag>,
         bounds: LayoutRect,
         clip_rect: LayoutRect,
         transform: FastLayoutTransform,
@@ -89,8 +90,12 @@ impl PaintTimingHandler {
             return;
         }
 
+        let id = tag
+            .map(|tag| LCPCandidateID(tag.node.id()))
+            .unwrap_or(LCPCandidateID(0));
+
         // Set newCandidate to be a new largest contentful paint candidate
-        self.lcp_candidate = Some(LCPCandidate::new(lcp_candidate_id, size as usize));
+        self.lcp_candidate = Some(LCPCandidate::new(id, size as usize));
         self.lcp_size = size;
         self.lcp_candidate_updated = true;
     }
