@@ -432,6 +432,17 @@ def check_ruff_lints() -> Iterator[tuple[str, int, str]]:
             )
 
 
+def check_flake8_lints() -> Iterator[tuple[str, int, str]]:
+    try:
+        args = ["uv", "run", "flake8", "--append-config=flake8.ini"]
+        subprocess.check_output(args, universal_newlines=True, cwd="tests/wpt/tests/tools")
+    except subprocess.CalledProcessError as e:
+        output = e.output
+        for error in output.splitlines():
+            filename, line_num, _, message = error.split(":", 3)
+            yield filename, line_num, message.strip()
+
+
 @dataclass
 class PyreflyDiagnostic:
     """
@@ -731,6 +742,7 @@ def run_wpt_lints(only_changed_files: bool) -> Iterator[tuple[str, int, str]]:
 
     yield from check_that_manifests_are_clean()
     yield from lint_wpt_test_files()
+    yield from check_flake8_lints()
 
 
 def check_spec(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
