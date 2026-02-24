@@ -18,6 +18,11 @@ use crate::common::{
     show_webview_and_wait_for_rendering_to_be_ready,
 };
 
+// Page with a single 50x50 red square image using a data URL.
+static DATA_URL_FOR_PAGE_WITH_SINGLE_RED_SQUARE: &str = "data:text/html,<!DOCTYPE html>\
+<div><img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEklEQVQIW2P8z8AARAwMjDAGACwBA/+8RVWvAAAAAElFTkSuQmCC'\
+style='width: 50px; height: 50px;'></div>";
+
 #[test]
 fn test_largest_contentful_paint_js_api() {
     let servo_test = ServoTest::new_with_builder(|builder| {
@@ -29,16 +34,11 @@ fn test_largest_contentful_paint_js_api() {
     let delegate = Rc::new(WebViewDelegateImpl::default());
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
         .delegate(delegate.clone())
-        .url(
-            Url::parse(
-                "data:text/html,<!DOCTYPE html>\
-                <a href=\"https://servo.org\"><div style=\"width: 50px; height: 50px;\">Link</div></a> \
-                <div><img src=\"data:image/svg+xml,<svg width='50' height='50'><circle cx='25' cy='25' r='20' fill='green'/></svg>\"\
-                style=\"width: 50px; height: 50px;\"></div>"
-            )
-            .unwrap(),
-        )
+        .url(Url::parse(DATA_URL_FOR_PAGE_WITH_SINGLE_RED_SQUARE).unwrap())
         .build();
+
+    // Wait for the page to load and render before evaluating the LCP to ensure we don't miss LCP candidate.
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
     let lcp_script = "(async () => {
         window.lcp = await new Promise(resolve => {
@@ -52,8 +52,6 @@ fn test_largest_contentful_paint_js_api() {
     if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), lcp_script) {
         panic!("Failed to evaluate LCP setup script: {:?}", err);
     }
-
-    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
     // Read from a global variable used to store the result since evaluate_javascript doesn't handle Promises
     let lcp = evaluate_javascript(&servo_test, webview.clone(), "window.lcp.toJSON();");
