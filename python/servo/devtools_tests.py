@@ -218,6 +218,23 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(paused_data.get("type"), "paused")
             self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
 
+    def test_breakpoint_at_invalid_entry_point_does_not_crash(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
+        with Devtools.connect() as devtools:
+            breakpoint_list = devtools.watcher.get_breakpoint_list_actor()
+            response = devtools.client.send_receive(
+                {
+                    "to": breakpoint_list["breakpointList"]["actor"],
+                    "type": "setBreakpoint",
+                    "location": {
+                        "sourceUrl": f"{self.base_urls[0]}/debugger/loop.html",
+                        "line": 1,
+                        "column": 0,
+                    },
+                }
+            )
+            self.assertIn("from", response)
+
     def test_manual_pause(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:
