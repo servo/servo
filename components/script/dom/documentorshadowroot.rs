@@ -153,33 +153,25 @@ impl DocumentOrShadowRoot {
             return None;
         }
 
-        match self
+        let results = self
             .window
-            .elements_from_point_query(LayoutPoint::new(x, y), ElementsFromPointFlags::empty())
-            .first()
-        {
-            Some(result) => {
-                // SAFETY: This is safe because `Self::query_elements_from_point` has ensured that
-                // layout has run and any OpaqueNodes that no longer refer to real nodes are gone.
-                let address = UntrustedNodeAddress(result.node.0 as *const c_void);
-                let node = unsafe { node::from_untrusted_node_address(address) };
-                let parent_node = node.GetParentNode().unwrap();
-                let shadow_host = parent_node
-                    .downcast::<ShadowRoot>()
-                    .map(ShadowRootMethods::Host);
-                let element_ref = node
-                    .downcast::<Element>()
-                    .or(shadow_host.as_deref())
-                    .unwrap_or_else(|| {
-                        parent_node
-                            .downcast::<Element>()
-                            .expect("Hit node should have an element or shadowroot parent")
-                    });
+            .elements_from_point_query(LayoutPoint::new(x, y), ElementsFromPointFlags::empty());
+        let Some(result) = results.first() else {
+            return document_element;
+        };
 
-                Some(DomRoot::from_ref(element_ref))
-            },
-            None => document_element,
-        }
+        // SAFETY: This is safe because `Self::query_elements_from_point` has ensured that
+        // layout has run and any OpaqueNodes that no longer refer to real nodes are gone.
+        let address = UntrustedNodeAddress(result.node.0 as *const c_void);
+        let node = unsafe { node::from_untrusted_node_address(address) };
+        DomRoot::downcast::<Element>(node.clone()).or_else(|| {
+            let parent_node = node.GetParentNode()?;
+            if let Some(shadow_root) = parent_node.downcast::<ShadowRoot>() {
+                Some(shadow_root.Host())
+            } else {
+                node.GetParentElement()
+            }
+        })
     }
 
     #[expect(unsafe_code)]
