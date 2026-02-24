@@ -464,7 +464,6 @@ pub(crate) fn host_load_imported_module(
         &global_scope,
         referencing_script,
         DOMString::from_string(specifier.clone()),
-        CanGc::from_cx(cx),
     );
 
     // Step 9 If the previous step threw an exception, then:

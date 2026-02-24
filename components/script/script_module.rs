@@ -496,7 +496,6 @@ impl ModuleTree {
         global: &GlobalScope,
         script: Option<&ModuleScript>,
         specifier: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<ServoUrl> {
         // Step 1~3 to get settingsObject and baseURL
         let script_global = script.and_then(|s| s.owner.as_ref().map(|o| o.global()));
@@ -547,12 +546,8 @@ impl ModuleTree {
                 {
                     // Step 10.1.1 Let scopeImportsMatch be the result of resolving an imports match
                     // given normalizedSpecifier, asURL, and scopeImports.
-                    let scope_imports_match = resolve_imports_match(
-                        normalized_specifier,
-                        as_url.as_ref(),
-                        imports,
-                        can_gc,
-                    )?;
+                    let scope_imports_match =
+                        resolve_imports_match(normalized_specifier, as_url.as_ref(), imports)?;
 
                     // Step 10.1.2 If scopeImportsMatch is not null, then set result to scopeImportsMatch, and break.
                     if scope_imports_match.is_some() {
@@ -565,12 +560,8 @@ impl ModuleTree {
             // Step 11. If result is null, set result to the result of resolving an imports match given
             // normalizedSpecifier, asURL, and importMap's imports.
             if result.is_none() {
-                result = resolve_imports_match(
-                    normalized_specifier,
-                    as_url.as_ref(),
-                    &map.imports,
-                    can_gc,
-                )?;
+                result =
+                    resolve_imports_match(normalized_specifier, as_url.as_ref(), &map.imports)?;
             }
         }
 
@@ -1020,7 +1011,6 @@ unsafe extern "C" fn HostResolveImportedModule(
         &global_scope,
         module_data,
         DOMString::from(specifier),
-        CanGc::from_cx(cx),
     );
 
     // Step 6.
@@ -1145,12 +1135,7 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
     };
 
     // Step 4.2. Let url be the result of resolving a module specifier given moduleScript and specifier.
-    let url = ModuleTree::resolve_module_specifier(
-        &global_scope,
-        module_data,
-        specifier,
-        CanGc::from_cx(cx),
-    );
+    let url = ModuleTree::resolve_module_specifier(&global_scope, module_data, specifier);
 
     match url {
         Ok(url) => {
@@ -2012,7 +1997,6 @@ fn resolve_imports_match(
     normalized_specifier: &str,
     as_url: Option<&ServoUrl>,
     specifier_map: &ModuleSpecifierMap,
-    _can_gc: CanGc,
 ) -> Fallible<Option<ServoUrl>> {
     // Step 1. For each specifierKey → resolutionResult of specifierMap:
     for (specifier_key, resolution_result) in specifier_map {
