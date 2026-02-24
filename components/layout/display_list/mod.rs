@@ -661,7 +661,9 @@ impl Fragment {
                             .to_webrender();
                         let common = builder.common_properties(clip, &style);
 
-                        if let Some(image_key) = image.image_key {
+                        if let (Some(image_key), showing_broken_image_icon) =
+                            (image.image_key, image.showing_broken_image_icon)
+                        {
                             builder.wr().push_image(
                                 &common,
                                 rect,
@@ -679,14 +681,14 @@ impl Fragment {
                                 common.clip_rect,
                                 style.clone_opacity(),
                             );
-                        }
 
-                        if image.showing_broken_image_icon {
-                            self.build_display_list_for_broken_image_border(
-                                builder,
-                                containing_block,
-                                &common,
-                            );
+                            if showing_broken_image_icon {
+                                self.build_display_list_for_broken_image_border(
+                                    builder,
+                                    containing_block,
+                                    &common,
+                                );
+                            }
                         }
 
                         builder.check_for_lcp_candidate(common.clip_rect, rect, image.base.tag);
