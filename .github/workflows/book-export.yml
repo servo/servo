@@ -21,6 +21,7 @@ jobs:
         with:
           path: book
           repository: 'servo/book'
+          token: ${{ secrets.BOOK_SYNC_TOKEN }}
       - name: Check for changes
         working-directory: python/servo/platform/linux_packages
         id: changes
@@ -45,7 +46,6 @@ jobs:
           git config --local user.name "Book Sync Bot"
           git add src/building/linux_packages/
           git commit -m "linux: Update dependency list based on servo@${GITHUB_SHA::7}"
-          git remote add servo-bot-fork https://github.com/servo-bot/book.git
       - name: Push changes
         if: ${{ steps.changes.outputs.CHANGES == 'true'}}
         # Pin to SHA of v1.0.0 to reduce supply chain attack risk.
