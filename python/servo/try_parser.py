@@ -131,7 +131,7 @@ def handle_preset(s: str) -> Optional[JobConfig]:
                 ]
             ),
             unit_tests=False,
-            number_of_wpt_chunks=2,
+            number_of_wpt_chunks=1,
         )
     elif any(word in s for word in ["vello"]):
         return JobConfig(
