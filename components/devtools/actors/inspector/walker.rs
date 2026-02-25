@@ -317,7 +317,6 @@ impl WalkerActor {
             } => old_node != node || old_attribute_name != attribute_name,
         });
 
-        log::warn!("notified of dom mutation: {dom_mutation:?}");
         pending_mutations.push(dom_mutation);
 
         stream.write_json_packet(&NewMutationsNotification {
