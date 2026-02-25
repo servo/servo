@@ -1915,7 +1915,7 @@ impl Handler {
         self.handle_any_user_prompts(self.webview_id()?)?;
         let (sender, receiver) = generic_channel::channel().unwrap();
         let cmd = WebDriverScriptCommand::DeleteCookies(sender);
-        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::Yes)?;
+        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
         wait_for_ipc_response_flatten(receiver)?;
         Ok(WebDriverResponse::Void)
     }
