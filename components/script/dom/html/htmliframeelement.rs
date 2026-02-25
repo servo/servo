@@ -927,6 +927,7 @@ impl VirtualMethods for HTMLIFrameElement {
 
     #[expect(unsafe_code)]
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, _can_gc: CanGc) {
+        // TODO: https://github.com/servo/servo/issues/42812
         let mut cx = unsafe { temp_cx() };
         let cx = &mut cx;
         self.super_type()
@@ -1040,6 +1041,7 @@ impl VirtualMethods for HTMLIFrameElement {
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
         self.super_type().unwrap().unbind_from_tree(context, can_gc);
 
+        // TODO: https://github.com/servo/servo/issues/42837
         let mut cx = unsafe { temp_cx() };
 
         // The iframe HTML element removing steps, given removedNode, are to destroy a child navigable given removedNode

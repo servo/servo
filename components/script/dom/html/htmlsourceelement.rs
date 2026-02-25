@@ -88,6 +88,7 @@ impl VirtualMethods for HTMLSourceElement {
 
     #[expect(unsafe_code)]
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, _can_gc: CanGc) {
+        // TODO: https://github.com/servo/servo/issues/42812
         let mut cx = unsafe { temp_cx() };
         let cx = &mut cx;
         self.super_type()
@@ -147,6 +148,7 @@ impl VirtualMethods for HTMLSourceElement {
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:html-element-insertion-steps>
     fn bind_to_tree(&self, context: &BindContext, _can_gc: CanGc) {
+        // TODO: https://github.com/servo/servo/issues/42838
         let mut cx = unsafe { temp_cx() };
         let cx = &mut cx;
         self.super_type()
@@ -180,6 +182,7 @@ impl VirtualMethods for HTMLSourceElement {
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:html-element-removing-steps>
     fn unbind_from_tree(&self, context: &UnbindContext, _can_gc: CanGc) {
+        // TODO: https://github.com/servo/servo/issues/42837
         let mut cx = unsafe { temp_cx() };
         let cx = &mut cx;
         self.super_type()

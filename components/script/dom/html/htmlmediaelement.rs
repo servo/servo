@@ -3374,6 +3374,7 @@ impl VirtualMethods for HTMLMediaElement {
 
     #[expect(unsafe_code)]
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, _can_gc: CanGc) {
+        // TODO: https://github.com/servo/servo/issues/42812
         let mut cx = unsafe { temp_cx() };
         let cx = &mut cx;
         self.super_type()
@@ -3716,6 +3717,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     #[expect(unsafe_code)]
     fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
+        // TODO: https://github.com/servo/servo/issues/42840
         let mut cx = unsafe { temp_cx() };
         let cx = &mut cx;
         let element = self.element.root();

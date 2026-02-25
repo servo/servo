@@ -1231,6 +1231,7 @@ impl FetchResponseListener for ParserContext {
 
     #[expect(unsafe_code)]
     fn process_response(&mut self, _: RequestId, meta_result: Result<FetchMetadata, NetworkError>) {
+        // TODO: https://github.com/servo/servo/issues/42840
         let mut cx = unsafe { temp_cx() };
         let cx = &mut cx;
         let (metadata, error) = match meta_result {
@@ -1385,6 +1386,7 @@ impl FetchResponseListener for ParserContext {
 
     #[expect(unsafe_code)]
     fn process_response_chunk(&mut self, _: RequestId, payload: Vec<u8>) {
+        // TODO: https://github.com/servo/servo/issues/42841
         let mut cx = unsafe { temp_cx() };
         let cx = &mut cx;
         if self.is_synthesized_document {
@@ -1604,7 +1606,7 @@ impl TreeSink for Sink {
         attrs: Vec<Attribute>,
         flags: ElementFlags,
     ) -> Dom<Node> {
-        // We need to add ability to pass custom data to trait calls.
+        // TODO: https://github.com/servo/servo/issues/42839
         let mut cx = unsafe { temp_cx() };
         let cx = &mut cx;
         let attrs = attrs
