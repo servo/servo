@@ -124,12 +124,7 @@ def handle_preset(s: str) -> Optional[JobConfig]:
             "WebDriver",
             Workflow.LINUX,
             wpt=True,
-            wpt_args=" ".join(
-                [
-                    "./tests/wpt/tests/webdriver/tests/classic/",
-                    "--processes 1",
-                ]
-            ),
+            wpt_args="./tests/wpt/tests/webdriver/tests/classic/",
             unit_tests=False,
             number_of_wpt_chunks=1,
         )
