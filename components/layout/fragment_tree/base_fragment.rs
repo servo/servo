@@ -101,6 +101,7 @@ pub(crate) struct BaseFragment {
     /// relative to the parent containing block.
     pub rect: PhysicalRect<Au>,
 
+    /// A [`FragmentStatus`] used to track fragment reuse when collecting reflow statistics.
     pub status: FragmentStatus,
 }
 
