@@ -2395,6 +2395,8 @@ where
             return Some(current);
         };
 
+        // current is empty.
+        let _ = self.current.insert(current);
         self.next_skipping_children()
     }
 }
