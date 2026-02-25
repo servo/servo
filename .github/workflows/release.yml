@@ -114,6 +114,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     env:
       ARTIFACT_BASENAME: "servo-${{ needs.create-draft-release.outputs.release-tag }}-src-vendor"
       ARTIFACT_FILENAME: "servo-${{ needs.create-draft-release.outputs.release-tag }}-src-vendor.tar.gz"
