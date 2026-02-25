@@ -20,7 +20,7 @@ use smallvec::SmallVec;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
-use style::values::specified::box_::{DisplayInside, DisplayOutside};
+use style::values::specified::box_::DisplayOutside as StyloDisplayOutside;
 
 use crate::cell::{ArcRefCell, WeakRefCell};
 use crate::context::LayoutContext;
@@ -32,7 +32,9 @@ use crate::fragment_tree::{Fragment, FragmentFlags};
 use crate::geom::PhysicalSize;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::replaced::{CanvasInfo, VideoInfo};
-use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox};
+use crate::style_ext::{
+    ComputedValuesExt, Display, DisplayGeneratingBox, DisplayLayoutInternal, DisplayOutside,
+};
 use crate::table::{TableLevelBox, WeakTableLevelBox};
 use crate::taffy::TaffyItemBox;
 
@@ -586,10 +588,10 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         };
 
         let info = NodeAndStyleInfo::new(*self, self.style(&layout_context.style_context));
-        let display = info.style.clone_display();
-        if display.is_contents() {
+        let box_style = info.style.get_box();
+        let Display::GeneratingBox(display) = box_style.display.into() else {
             return false;
-        }
+        };
         let contents = || {
             assert!(
                 self.pseudo_element_chain().is_empty(),
@@ -603,10 +605,10 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                 let mut block_level = block_level.borrow_mut();
                 match &mut *block_level {
                     BlockLevelBox::Independent(independent_formatting_context) => {
-                        let Display::GeneratingBox(DisplayGeneratingBox::OutsideInside {
+                        let DisplayGeneratingBox::OutsideInside {
+                            outside: DisplayOutside::Block,
                             inside: display_inside,
-                            ..
-                        }) = display.into()
+                        } = display
                         else {
                             return false;
                         };
@@ -632,7 +634,13 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                         true
                     },
                     BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
-                        if !info.style.clone_position().is_absolutely_positioned() {
+                        // Even if absolute positioning blockifies the outer display type, if the
+                        // original display was inline-level, then the box needs to be handled as
+                        // an inline-level in order to compute the static position correctly.
+                        // See `BlockContainerBuilder::handle_absolutely_positioned_element()`.
+                        if !info.style.clone_position().is_absolutely_positioned() ||
+                            box_style.original_display.outside() != StyloDisplayOutside::Block
+                        {
                             return false;
                         }
                         positioned_box
@@ -673,7 +681,9 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                 let mut flex_level_box = flex_level_box.borrow_mut();
                 match &mut *flex_level_box {
                     FlexLevelBox::FlexItem(flex_item_box) => {
-                        if info.style.clone_position().is_absolutely_positioned() {
+                        if info.style.clone_position().is_absolutely_positioned() ||
+                            flex_item_box.style().clone_order() != info.style.clone_order()
+                        {
                             return false;
                         }
                         flex_item_box
@@ -694,14 +704,18 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
             },
             LayoutBox::TableLevelBox(table_level_box) => match table_level_box {
                 TableLevelBox::Caption(caption) => {
-                    if display.outside() != DisplayOutside::TableCaption {
+                    if display !=
+                        DisplayGeneratingBox::LayoutInternal(DisplayLayoutInternal::TableCaption)
+                    {
                         return false;
                     }
                     caption.borrow_mut().context.rebuild(layout_context, &info);
                     true
                 },
                 TableLevelBox::Cell(table_cell) => {
-                    if display.inside() != DisplayInside::TableCell {
+                    if display !=
+                        DisplayGeneratingBox::LayoutInternal(DisplayLayoutInternal::TableCell)
+                    {
                         return false;
                     }
                     table_cell

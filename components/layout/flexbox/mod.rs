@@ -228,7 +228,7 @@ impl FlexItemBox {
         }
     }
 
-    fn style(&self) -> &ServoArc<ComputedValues> {
+    pub(crate) fn style(&self) -> &ServoArc<ComputedValues> {
         self.independent_formatting_context.style()
     }
 

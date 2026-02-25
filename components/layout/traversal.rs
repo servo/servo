@@ -258,6 +258,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
         } else {
             // In this case, we have rebuilt the box tree from this point and we do not
             // have to propagate rebuild box tree damage up the tree any further.
+            layout_damage_for_parent.remove(LayoutDamage::box_damage());
             layout_damage_for_parent
                 .insert(RestyleDamage::RELAYOUT | LayoutDamage::recompute_inline_content_sizes());
         }
