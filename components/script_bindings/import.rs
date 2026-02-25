@@ -28,8 +28,8 @@ pub(crate) mod base {
     };
 
     pub(crate) use crate::callback::{
-        CallSetup, CallbackContainer, CallbackFunction, CallbackInterface, CallbackObject,
-        ExceptionHandling, ThisReflector, wrap_call_this_value,
+        CallbackContainer, CallbackFunction, CallbackInterface, CallbackObject, ExceptionHandling,
+        ThisReflector, call_setup, wrap_call_this_value,
     };
     pub(crate) use crate::codegen::DomTypes::DomTypes;
     pub(crate) use crate::codegen::GenericUnionTypes;

@@ -34,8 +34,10 @@ use net_traits::CoreResourceMsg::{
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
 use script_bindings::num::Finite;
+use script_bindings::settings_stack::run_a_script;
 use webdriver::error::ErrorStatus;
 
+use crate::DomTypeHolder;
 use crate::document_collection::DocumentCollection;
 use crate::dom::attr::is_boolean_attribute;
 use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
@@ -67,7 +69,6 @@ use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exc
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::domrect::DOMRect;
@@ -372,17 +373,18 @@ pub(crate) fn jsval_to_webdriver(
     global_scope: &GlobalScope,
     val: HandleValue,
 ) -> WebDriverJSResult {
-    let _aes = AutoEntryScript::new(global_scope);
-    let mut seen = HashSet::new();
-    let result = jsval_to_webdriver_inner(cx.into(), global_scope, val, &mut seen);
+    run_a_script::<DomTypeHolder, _>(global_scope, || {
+        let mut seen = HashSet::new();
+        let result = jsval_to_webdriver_inner(cx.into(), global_scope, val, &mut seen);
 
-    let in_realm_proof = cx.into();
-    let in_realm = InRealm::Already(&in_realm_proof);
+        let in_realm_proof = cx.into();
+        let in_realm = InRealm::Already(&in_realm_proof);
 
-    if result.is_err() {
-        report_pending_exception(cx.into(), true, in_realm, CanGc::from_cx(cx));
-    }
-    result
+        if result.is_err() {
+            report_pending_exception(cx.into(), true, in_realm, CanGc::from_cx(cx));
+        }
+        result
+    })
 }
 
 #[expect(unsafe_code)]

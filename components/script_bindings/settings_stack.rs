@@ -10,7 +10,7 @@ use js::rust::Runtime;
 
 use crate::DomTypes;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
-use crate::root::{Dom, DomRoot};
+use crate::root::Dom;
 use crate::script_runtime::temp_cx;
 
 #[derive(Debug, Eq, JSTraceable, PartialEq)]
@@ -26,64 +26,46 @@ pub struct StackEntry<D: DomTypes> {
     pub kind: StackEntryKind,
 }
 
-/// RAII struct that pushes and pops entries from the script settings stack.
-pub struct GenericAutoEntryScript<D: DomTypes> {
-    global: DomRoot<D::GlobalScope>,
-    #[cfg(feature = "tracing")]
-    #[expect(dead_code)]
-    span: tracing::span::EnteredSpan,
-}
-
-impl<D: DomTypes> GenericAutoEntryScript<D> {
-    /// <https://html.spec.whatwg.org/multipage/#prepare-to-run-script>
-    pub fn new(global: &D::GlobalScope) -> Self {
-        let settings_stack = <D as DomHelpers<D>>::settings_stack();
-        settings_stack.with(|stack| {
-            trace!("Prepare to run script with {:p}", global);
-            let mut stack = stack.borrow_mut();
-            stack.push(StackEntry {
-                global: Dom::from_ref(global),
-                kind: StackEntryKind::Entry,
-            });
-            Self {
-                global: DomRoot::from_ref(global),
-                #[cfg(feature = "tracing")]
-                span: tracing::info_span!(
-                    "ScriptEvaluate",
-                    servo_profiling = true,
-                    url = global.get_url().to_string(),
-                )
-                .entered(),
-            }
-        })
-    }
-}
-
-impl<D: DomTypes> Drop for GenericAutoEntryScript<D> {
-    /// <https://html.spec.whatwg.org/multipage/#clean-up-after-running-script>
-    fn drop(&mut self) {
-        let settings_stack = <D as DomHelpers<D>>::settings_stack();
-        let mut stack_is_empty = false;
-        settings_stack.with(|stack| {
-            let mut stack = stack.borrow_mut();
-            let entry = stack.pop().unwrap();
-            assert_eq!(
-                &*entry.global as *const D::GlobalScope, &*self.global as *const D::GlobalScope,
-                "Dropped AutoEntryScript out of order."
-            );
-            assert_eq!(entry.kind, StackEntryKind::Entry);
-            trace!("Clean up after running script with {:p}", &*entry.global);
-            stack_is_empty = stack.is_empty();
+/// Wrapper that pushes and pops entries from the script settings stack.
+///
+/// <https://html.spec.whatwg.org/multipage/#prepare-to-run-script>
+/// <https://html.spec.whatwg.org/multipage/#clean-up-after-running-script>
+pub fn run_a_script<D: DomTypes, R>(global: &D::GlobalScope, f: impl FnOnce() -> R) -> R {
+    let settings_stack = <D as DomHelpers<D>>::settings_stack();
+    settings_stack.with(|stack| {
+        trace!("Prepare to run script with {:p}", global);
+        let mut stack = stack.borrow_mut();
+        stack.push(StackEntry {
+            global: Dom::from_ref(global),
+            kind: StackEntryKind::Entry,
         });
+        #[cfg(feature = "tracing")]
+        tracing::info_span!(
+            "ScriptEvaluate",
+            servo_profiling = true,
+            url = global.get_url().to_string(),
+        )
+        .entered()
+    });
+    let r = f();
+    let stack_is_empty = settings_stack.with(|stack| {
+        let mut stack = stack.borrow_mut();
+        let entry = stack.pop().unwrap();
+        assert_eq!(
+            &*entry.global as *const D::GlobalScope, global as *const D::GlobalScope,
+            "Dropped AutoEntryScript out of order."
+        );
+        assert_eq!(entry.kind, StackEntryKind::Entry);
+        trace!("Clean up after running script with {:p}", &*entry.global);
+        stack.is_empty()
+    });
 
-        // Step 5
-        if !thread::panicking() && stack_is_empty {
-            // To remove this we would need to refactor this whole type.
-            // Instead of RAII we should have use callback pattern.
-            let mut cx = unsafe { temp_cx() };
-            self.global.perform_a_microtask_checkpoint(&mut cx);
-        }
+    // Step 5
+    if !thread::panicking() && stack_is_empty {
+        let mut cx = unsafe { temp_cx() };
+        global.perform_a_microtask_checkpoint(&mut cx);
     }
+    r
 }
 
 /// RAII struct that pushes and pops entries from the script settings stack.

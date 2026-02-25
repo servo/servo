@@ -10,7 +10,7 @@ use std::mem::drop;
 use std::rc::Rc;
 
 use js::jsapi::{
-    AddRawValueRoot, EnterRealm, Heap, IsCallable, JSObject, LeaveRealm, Realm, RemoveRawValueRoot,
+    AddRawValueRoot, EnterRealm, Heap, IsCallable, JSObject, LeaveRealm, RemoveRawValueRoot,
 };
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
@@ -22,9 +22,9 @@ use crate::inheritance::Castable;
 use crate::interfaces::{DocumentHelpers, DomHelpers, GlobalScopeHelpers};
 use crate::realms::{InRealm, enter_realm};
 use crate::reflector::DomObject;
-use crate::root::{Dom, DomRoot};
+use crate::root::Dom;
 use crate::script_runtime::{CanGc, JSContext};
-use crate::settings_stack::{GenericAutoEntryScript, GenericAutoIncumbentScript};
+use crate::settings_stack::{GenericAutoIncumbentScript, run_a_script};
 use crate::{DomTypes, cformat};
 
 pub trait ThisReflector {
@@ -254,68 +254,46 @@ pub(crate) fn wrap_call_this_value<T: ThisReflector>(
     true
 }
 
-/// A class that performs whatever setup we need to safely make a call while
-/// this class is on the stack. After `new` returns, the call is safe to make.
-pub struct CallSetup<D: DomTypes> {
-    /// The global for reporting exceptions. This is the global object of the
-    /// (possibly wrapped) callback object.
-    exception_global: DomRoot<D::GlobalScope>,
-    /// The `JSContext` used for the call.
-    cx: JSContext,
-    /// The realm we were in before the call.
-    old_realm: *mut Realm,
-    /// The exception handling used for the call.
+/// A function wrapper that performs whatever setup we need to safely make a call.
+///
+/// <https://webidl.spec.whatwg.org/#es-invoking-callback-functions>
+pub fn call_setup<D: DomTypes, T: CallbackContainer<D>, R>(
+    callback: &T,
     handling: ExceptionHandling,
-    /// <https://heycam.github.io/webidl/#es-invoking-callback-functions>
-    /// steps 8 and 18.2.
-    entry_script: Option<GenericAutoEntryScript<D>>,
-    /// <https://heycam.github.io/webidl/#es-invoking-callback-functions>
-    /// steps 9 and 18.1.
-    incumbent_script: Option<GenericAutoIncumbentScript<D>>,
-}
-
-impl<D: DomTypes> CallSetup<D> {
-    /// Performs the setup needed to make a call.
-    pub fn new<T: CallbackContainer<D>>(callback: &T, handling: ExceptionHandling) -> Self {
-        let global = unsafe { D::GlobalScope::from_object(callback.callback()) };
-        if let Some(window) = global.downcast::<D::Window>() {
-            window.Document().ensure_safe_to_run_script_or_layout();
-        }
-        let cx = D::GlobalScope::get_cx();
-
-        let aes = GenericAutoEntryScript::<D>::new(&global);
-        let ais = callback.incumbent().map(GenericAutoIncumbentScript::new);
-        CallSetup {
-            exception_global: global,
-            cx,
-            old_realm: unsafe { EnterRealm(*cx, callback.callback()) },
-            handling,
-            entry_script: Some(aes),
-            incumbent_script: ais,
-        }
+    f: impl FnOnce(JSContext) -> R,
+) -> R {
+    // The global for reporting exceptions. This is the global object of the
+    // (possibly wrapped) callback object.
+    let global = unsafe { D::GlobalScope::from_object(callback.callback()) };
+    if let Some(window) = global.downcast::<D::Window>() {
+        window.Document().ensure_safe_to_run_script_or_layout();
     }
+    let cx = D::GlobalScope::get_cx();
 
-    /// Returns the `JSContext` used for the call.
-    pub fn get_context(&self) -> JSContext {
-        self.cx
-    }
-}
+    let global = &global;
 
-impl<D: DomTypes> Drop for CallSetup<D> {
-    fn drop(&mut self) {
+    // Step 8: Prepare to run script with relevant settings.
+    run_a_script::<D, R>(global, move || {
+        // Step 9: Prepare to run a callback with stored settings.
+        let ais = callback
+            .incumbent()
+            .map(GenericAutoIncumbentScript::<D>::new);
+        let old_realm = unsafe { EnterRealm(*cx, callback.callback()) };
+        let r = f(cx);
         unsafe {
-            LeaveRealm(*self.cx, self.old_realm);
+            LeaveRealm(*cx, old_realm);
         }
-        if self.handling == ExceptionHandling::Report {
-            let ar = enter_realm::<D>(&*self.exception_global);
+        if handling == ExceptionHandling::Report {
+            let ar = enter_realm::<D>(&**global);
             <D as DomHelpers<D>>::report_pending_exception(
-                self.cx,
+                cx,
                 true,
                 InRealm::Entered(&ar),
                 CanGc::note(),
             );
         }
-        drop(self.incumbent_script.take());
-        drop(self.entry_script.take().unwrap());
-    }
+        // Step 14.1: Clean up after running a callback with stored settings.
+        drop(ais);
+        r
+    }) // Step 14.2: Clean up after running script with relevant settings.
 }

@@ -17,8 +17,10 @@ use js::rust::wrappers::{Construct1, JS_GetProperty, SameValue};
 use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::FxBuildHasher;
 use script_bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
+use script_bindings::settings_stack::run_a_script;
 
 use super::bindings::trace::HashMapTracedValues;
+use crate::DomTypeHolder;
 use crate::dom::bindings::callback::{CallbackContainer, ExceptionHandling};
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CustomElementRegistryBinding::{
@@ -34,7 +36,7 @@ use crate::dom::bindings::error::{
 use crate::dom::bindings::inheritance::{Castable, NodeTypeId};
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
-use crate::dom::bindings::settings_stack::{AutoEntryScript, AutoIncumbentScript};
+use crate::dom::bindings::settings_stack::AutoIncumbentScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::domexception::{DOMErrorName, DOMException};
@@ -792,12 +794,15 @@ impl CustomElementDefinition {
             let _ac = JSAutoRealm::new(*cx, self.constructor.callback());
             // Step 5.3.1. Set result to the result of constructing C, with no arguments.
             // https://webidl.spec.whatwg.org/#construct-a-callback-function
-            let _script_guard = AutoEntryScript::new(window.upcast());
-            let _callback_guard = AutoIncumbentScript::new(window.upcast());
-            let args = HandleValueArray::empty();
-            if unsafe { !Construct1(*cx, constructor.handle(), &args, element.handle_mut()) } {
-                return Err(Error::JSFailed);
-            }
+            run_a_script::<DomTypeHolder, _>(window.upcast(), || {
+                let _callback_guard = AutoIncumbentScript::new(window.upcast());
+                let args = HandleValueArray::empty();
+                if unsafe { !Construct1(*cx, constructor.handle(), &args, element.handle_mut()) } {
+                    Err(Error::JSFailed)
+                } else {
+                    Ok(())
+                }
+            })?;
         }
 
         rooted!(in(*cx) let element_val = ObjectValue(element.get()));
@@ -993,8 +998,7 @@ fn run_upgrade_constructor(
 
         // Step 9.3. Let constructResult be the result of constructing C, with no arguments.
         // https://webidl.spec.whatwg.org/#construct-a-callback-function
-        {
-            let _script_guard = AutoEntryScript::new(window.upcast());
+        run_a_script::<DomTypeHolder, _>(window.upcast(), || {
             let _callback_guard = AutoIncumbentScript::new(window.upcast());
             if unsafe {
                 !Construct1(
@@ -1004,9 +1008,11 @@ fn run_upgrade_constructor(
                     construct_result.handle_mut(),
                 )
             } {
-                return Err(Error::JSFailed);
+                Err(Error::JSFailed)
+            } else {
+                Ok(())
             }
-        }
+        })?;
 
         let mut same = false;
         rooted!(in(*cx) let construct_result_val = ObjectValue(construct_result.get()));

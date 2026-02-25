@@ -86,6 +86,7 @@ use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::script_runtime::{JSContext, temp_cx};
+use script_bindings::settings_stack::run_a_script;
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewPipelineInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage,
@@ -125,7 +126,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
 use crate::dom::customelementregistry::{
@@ -165,7 +165,7 @@ use crate::script_runtime::{
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::task_queue::TaskQueue;
 use crate::webdriver_handlers::jsval_to_webdriver;
-use crate::{devtools, webdriver_handlers};
+use crate::{DomTypeHolder, devtools, webdriver_handlers};
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = const { Cell::new(None) });
 
@@ -2103,8 +2103,9 @@ impl ScriptThread {
             DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => match documents.find_window(id) {
                 Some(window) => {
                     let global = window.as_global_scope();
-                    let _aes = AutoEntryScript::new(global);
-                    devtools::handle_evaluate_js(global, s, reply, cx)
+                    run_a_script::<DomTypeHolder, _>(global, || {
+                        devtools::handle_evaluate_js(global, s, reply, cx)
+                    });
                 },
                 None => warn!("Message sent to closed pipeline {}.", id),
             },
