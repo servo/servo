@@ -1658,10 +1658,10 @@ impl DocumentEventHandler {
         }
     }
 
-    /// Handle scroll triggered by user interactions from embedder side.
+    /// Handle scroll events triggered by user interactions from embedder-side.
     /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
     #[expect(unsafe_code)]
-    pub(crate) fn handle_embedder_scroll(&self, scrolled_node: ExternalScrollId) {
+    pub(crate) fn handle_embedder_scroll_event(&self, scrolled_node: ExternalScrollId) {
         // If it is a viewport scroll.
         let document = self.window.Document();
         if scrolled_node.is_root() {

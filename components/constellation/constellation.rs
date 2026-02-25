@@ -119,9 +119,8 @@ use constellation_traits::{
     EmbedderToConstellationMessage, IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSizeMsg, Job,
     LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
     PortMessageTask, PortTransferInfo, SWManagerMsg, SWManagerSenders, ScreenshotReadinessResponse,
-    ScriptToConstellationMessage, ScrollStatesUpdate, ServiceWorkerManagerFactory,
-    ServiceWorkerMsg, StructuredSerializedData, TraversalDirection, UserContentManagerAction,
-    WindowSizeType,
+    ScriptToConstellationMessage, ScrollStateUpdate, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    StructuredSerializedData, TraversalDirection, UserContentManagerAction, WindowSizeType,
 };
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use crossbeam_channel::{Receiver, Select, Sender, unbounded};
@@ -5650,7 +5649,7 @@ where
     }
 
     #[servo_tracing::instrument(skip_all)]
-    fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: ScrollStatesUpdate) {
+    fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: ScrollStateUpdate) {
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
             warn!("Discarding scroll offset update for unknown pipeline");
             return;

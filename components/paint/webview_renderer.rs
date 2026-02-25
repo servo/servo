@@ -7,7 +7,7 @@ use std::collections::hash_map::Entry;
 use std::rc::Rc;
 
 use base::id::{PipelineId, WebViewId};
-use constellation_traits::{EmbedderToConstellationMessage, ScrollStatesUpdate, WindowSizeType};
+use constellation_traits::{EmbedderToConstellationMessage, ScrollStateUpdate, WindowSizeType};
 use crossbeam_channel::Sender;
 use embedder_traits::{
     AnimationState, InputEvent, InputEventAndId, InputEventId, InputEventResult, MouseButton,
@@ -229,8 +229,6 @@ impl WebViewRenderer {
         self.set_frame_tree_on_pipeline_details(frame_tree, None);
     }
 
-    // FIXME: For now, we are sending the whole scroll offsets, but ideally we should consider the one that is
-    //        actually scrolled. This is quite tricky due to the possibility of race.
     pub(crate) fn send_scroll_positions_to_layout_for_pipeline(
         &self,
         pipeline_id: PipelineId,
@@ -253,7 +251,7 @@ impl WebViewRenderer {
         let _ = self.embedder_to_constellation_sender.send(
             EmbedderToConstellationMessage::SetScrollStates(
                 pipeline_id,
-                ScrollStatesUpdate {
+                ScrollStateUpdate {
                     scrolled_node,
                     offsets,
                 },

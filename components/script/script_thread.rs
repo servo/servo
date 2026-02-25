@@ -42,7 +42,7 @@ use canvas_traits::webgl::WebGLPipeline;
 use chrono::{DateTime, Local};
 use constellation_traits::{
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
-    ScriptToConstellationChan, ScriptToConstellationMessage, ScrollStatesUpdate,
+    ScriptToConstellationChan, ScriptToConstellationMessage, ScrollStateUpdate,
     StructuredSerializedData, WindowSizeType,
 };
 use crossbeam_channel::unbounded;
@@ -1975,16 +1975,11 @@ impl ScriptThread {
         }
     }
 
-    fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: ScrollStatesUpdate) {
+    fn handle_set_scroll_states(&self, pipeline_id: PipelineId, scroll_states: ScrollStateUpdate) {
         let Some(window) = self.documents.borrow().find_window(pipeline_id) else {
             warn!("Received scroll states for closed pipeline {pipeline_id}");
             return;
         };
-
-        window
-            .Document()
-            .event_handler()
-            .handle_embedder_scroll(scroll_states.scrolled_node);
 
         self.profile_event(
             ScriptThreadEventCategory::SetScrollState,
@@ -1994,7 +1989,12 @@ impl ScriptThread {
                     .layout_mut()
                     .set_scroll_offsets_from_renderer(&scroll_states.offsets);
             },
-        )
+        );
+
+        window
+            .Document()
+            .event_handler()
+            .handle_embedder_scroll_event(scroll_states.scrolled_node);
     }
 
     #[cfg(feature = "webgpu")]

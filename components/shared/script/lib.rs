@@ -22,7 +22,7 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use constellation_traits::{
     KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationSender,
-    ScrollStatesUpdate, StructuredSerializedData, WindowSizeType,
+    ScrollStateUpdate, StructuredSerializedData, WindowSizeType,
 };
 use crossbeam_channel::RecvTimeoutError;
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -273,7 +273,7 @@ pub enum ScriptThreadMessage {
     SetWebGPUPort(GenericReceiver<WebGPUMsg>),
     /// `Paint` scrolled and is updating the scroll states of the nodes in the given
     /// pipeline via the Constellation.
-    SetScrollStates(PipelineId, ScrollStatesUpdate),
+    SetScrollStates(PipelineId, ScrollStateUpdate),
     /// Evaluate the given JavaScript and return a result via a corresponding message
     /// to the Constellation.
     EvaluateJavaScript(WebViewId, PipelineId, JavaScriptEvaluationId, String),
