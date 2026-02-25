@@ -626,8 +626,13 @@ impl ReflowPhasesRun {
 
 #[derive(Debug, Default)]
 pub struct ReflowStatistics {
+    /// A count of the number of fragments that have been completely rebuilt.
     pub rebuilt_fragment_count: u32,
+    /// A count of the number of fragments that are reused, but have had their style change.
     pub restyle_fragment_count: u32,
+    /// A count of the number of fragments that are reused, but may have had their final
+    /// position change.
+    pub possibly_moved_fragment_count: u32,
 }
 
 /// Information needed for a script-initiated reflow that requires a restyle
