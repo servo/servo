@@ -634,11 +634,11 @@ impl ScriptThread {
                     .pipeline_to_constellation_sender
                     .clone();
                 load_data.about_base_url = window.Document().about_base_url();
-                let task = task!(navigate_javascript: move || {
+                let task = task!(navigate_javascript: move |cx| {
                     // Important re security. See https://github.com/servo/servo/issues/23373
                     if trusted_global.root().is::<Window>() {
                         let global = &trusted_global.root();
-                        if Self::navigate_to_javascript_url(global, global, &mut load_data, None, CanGc::note()) {
+                        if Self::navigate_to_javascript_url(cx, global, global, &mut load_data, None) {
                             sender
                                 .send((webview_id, pipeline_id, ScriptToConstellationMessage::LoadUrl(load_data, history_handling)))
                                 .unwrap();
@@ -692,25 +692,25 @@ impl ScriptThread {
     }
 
     pub(crate) fn navigate_to_javascript_url(
+        cx: &mut js::context::JSContext,
         initiator_global: &GlobalScope,
         target_global: &GlobalScope,
         load_data: &mut LoadData,
         container: Option<&Element>,
-        can_gc: CanGc,
     ) -> bool {
         if !Self::can_navigate_to_javascript_url(
             initiator_global,
             target_global,
             load_data,
             container,
-            can_gc,
+            CanGc::from_cx(cx),
         ) {
             return false;
         }
 
         // Step 6. Let newDocument be the result of evaluating a javascript: URL given targetNavigable,
         // url, initiatorOrigin, and userInvolvement.
-        Self::eval_js_url(target_global, load_data, can_gc);
+        Self::eval_js_url(cx, target_global, load_data);
         true
     }
 
@@ -3727,7 +3727,11 @@ impl ScriptThread {
 
     /// Turn javascript: URL into JS code to eval, according to the steps in
     /// <https://html.spec.whatwg.org/multipage/#javascript-protocol>
-    pub(crate) fn eval_js_url(global_scope: &GlobalScope, load_data: &mut LoadData, can_gc: CanGc) {
+    fn eval_js_url(
+        cx: &mut js::context::JSContext,
+        global_scope: &GlobalScope,
+        load_data: &mut LoadData,
+    ) {
         // This slice of the URL’s serialization is equivalent to (5.) to (7.):
         // Start with the scheme data of the parsed URL;
         // append question mark and query component, if any;
@@ -3738,22 +3742,24 @@ impl ScriptThread {
         let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
 
         // Script source is ready to be evaluated (11.)
-        let _ac = enter_realm(global_scope);
-        rooted!(in(*GlobalScope::get_cx()) let mut jsval = UndefinedValue());
+        let mut realm = enter_auto_realm(cx, global_scope);
+        let cx = &mut realm.current_realm();
+
+        rooted!(&in(cx) let mut jsval = UndefinedValue());
         _ = global_scope.evaluate_js_on_global(
+            cx,
             script_source,
             "",
             Some(IntroductionType::JAVASCRIPT_URL),
             jsval.handle_mut(),
-            can_gc,
         );
 
         load_data.js_eval_result = if jsval.get().is_string() {
             let strval = DOMString::safe_from_jsval(
-                GlobalScope::get_cx(),
+                cx.into(),
                 jsval.handle(),
                 StringificationBehavior::Empty,
-                can_gc,
+                CanGc::from_cx(cx),
             );
             match strval {
                 Ok(ConversionResult::Success(s)) => {
@@ -4168,11 +4174,11 @@ impl ScriptThread {
 
         rooted!(&in(cx) let mut return_value = UndefinedValue());
         if let Err(err) = global_scope.evaluate_js_on_global(
+            cx,
             script.into(),
             "",
             None, // No known `introductionType` for JS code from embedder
             return_value.handle_mut(),
-            CanGc::from_cx(cx),
         ) {
             _ = self.senders.pipeline_to_constellation_sender.send((
                 webview_id,

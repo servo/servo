@@ -131,16 +131,16 @@ pub(crate) fn handle_evaluate_js(
 ) {
     let result = unsafe {
         let mut realm = enter_auto_realm(cx, global);
-        let cx = &mut realm;
+        let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut rval = UndefinedValue());
         // TODO: run code with SpiderMonkey Debugger API, like Firefox does
         // <https://searchfox.org/mozilla-central/rev/f6a806c38c459e0e0d797d264ca0e8ad46005105/devtools/server/actors/webconsole/eval-with-debugger.js#270>
         _ = global.evaluate_js_on_global(
+            cx,
             eval.into(),
             "<eval>",
             Some(IntroductionType::DEBUGGER_EVAL),
             rval.handle_mut(),
-            CanGc::from_cx(cx),
         );
 
         if rval.is_undefined() {

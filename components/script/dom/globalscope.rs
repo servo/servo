@@ -2845,32 +2845,42 @@ impl GlobalScope {
     /// Evaluate JS code on this global scope.
     pub(crate) fn evaluate_js_on_global(
         &self,
+        cx: &mut CurrentRealm,
         code: Cow<'_, str>,
         filename: &str,
         introduction_type: Option<&'static CStr>,
         rval: MutableHandleValue,
-        can_gc: CanGc,
     ) -> Result<(), JavaScriptEvaluationError> {
-        let cx = GlobalScope::get_cx();
-        let ar = enter_realm(self);
+        let in_realm_proof = cx.into();
+        let in_realm = InRealm::Already(&in_realm_proof);
+
         run_a_script::<DomTypeHolder, _>(self, || {
             let url = self.api_base_url();
             let fetch_options = ScriptFetchOptions::default_classic_script(self);
 
-            rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
-            compiled_script.set(compile_script(cx, &code, filename, 1, introduction_type));
+            rooted!(&in(cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
+            compiled_script.set(compile_script(
+                cx.into(),
+                &code,
+                filename,
+                1,
+                introduction_type,
+            ));
 
             if compiled_script.is_null() {
                 debug!("error compiling Dom string");
-                report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+                report_pending_exception(cx.into(), true, in_realm, CanGc::from_cx(cx));
                 return Err(JavaScriptEvaluationError::CompilationFailure);
             }
 
             let script = NonNull::new(*compiled_script).expect("Can't be null");
 
-            if !evaluate_script(cx, script, url, fetch_options, rval) {
-                let error_info =
-                    take_and_report_pending_exception_for_api(cx, InRealm::Entered(&ar), can_gc);
+            if !evaluate_script(cx.into(), script, url, fetch_options, rval) {
+                let error_info = take_and_report_pending_exception_for_api(
+                    cx.into(),
+                    in_realm,
+                    CanGc::from_cx(cx),
+                );
                 return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
             }
 

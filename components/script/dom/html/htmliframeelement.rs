@@ -193,11 +193,11 @@ impl HTMLIFrameElement {
             let window_proxy = self.GetContentWindow();
             if let Some(window_proxy) = window_proxy {
                 if !ScriptThread::navigate_to_javascript_url(
+                    cx,
                     &document.global(),
                     &window_proxy.global(),
                     &mut load_data,
                     Some(self.upcast()),
-                    CanGc::from_cx(cx),
                 ) {
                     return;
                 }

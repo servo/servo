@@ -34,7 +34,7 @@ use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::{CanGc, IntroductionType, JSContext};
+use crate::script_runtime::{IntroductionType, JSContext};
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
@@ -142,14 +142,17 @@ impl WorkletGlobalScope {
         script: Cow<'_, str>,
         cx: &mut js::context::JSContext,
     ) -> Result<(), JavaScriptEvaluationError> {
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
+
         debug!("Evaluating Dom in a worklet.");
         rooted!(&in(cx) let mut rval = UndefinedValue());
         self.globalscope.evaluate_js_on_global(
+            cx,
             script,
             "",
             Some(IntroductionType::WORKLET),
             rval.handle_mut(),
-            CanGc::from_cx(cx),
         )
     }
 

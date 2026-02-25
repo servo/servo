@@ -641,12 +641,15 @@ pub(crate) fn handle_execute_async_script(
             rooted!(&in(cx) let mut rval = UndefinedValue());
 
             let global_scope = window.as_global_scope();
+
+            let mut realm = enter_auto_realm(cx, global_scope);
+            let mut realm = realm.current_realm();
             if let Err(error) = global_scope.evaluate_js_on_global(
+                &mut realm,
                 eval.into(),
                 "",
                 None, // No known `introductionType` for JS code from WebDriver
                 rval.handle_mut(),
-                CanGc::from_cx(cx),
             ) {
                 reply_sender.send(Err(error)).unwrap_or_else(|error| {
                     error!("ExecuteAsyncScript Failed to send reply: {error}");
