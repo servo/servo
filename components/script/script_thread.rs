@@ -2116,28 +2116,51 @@ impl ScriptThread {
                 },
                 None => warn!("Message sent to closed pipeline {}.", id),
             },
-            DevtoolScriptControlMsg::GetEventListenerInfo(id, node, reply) => self
-                .devtools_state
-                .handle_get_event_listener_info(id, &node, reply),
-            DevtoolScriptControlMsg::GetRootNode(id, reply) => self
-                .devtools_state
-                .handle_get_root_node(&documents, id, reply, CanGc::from_cx(cx)),
-            DevtoolScriptControlMsg::GetDocumentElement(id, reply) => self
-                .devtools_state
-                .handle_get_document_element(&documents, id, reply, CanGc::from_cx(cx)),
-            DevtoolScriptControlMsg::GetChildren(id, node_id, reply) => self
-                .devtools_state
-                .handle_get_children(id, &node_id, reply, CanGc::from_cx(cx)),
-            DevtoolScriptControlMsg::GetAttributeStyle(id, node_id, reply) => self
-                .devtools_state
-                .handle_get_attribute_style(id, &node_id, reply, CanGc::from_cx(cx)),
+            DevtoolScriptControlMsg::GetEventListenerInfo(id, node, reply) => {
+                devtools::handle_get_event_listener_info(&self.devtools_state, id, &node, reply)
+            },
+            DevtoolScriptControlMsg::GetRootNode(id, reply) => devtools::handle_get_root_node(
+                &self.devtools_state,
+                &documents,
+                id,
+                reply,
+                CanGc::from_cx(cx),
+            ),
+            DevtoolScriptControlMsg::GetDocumentElement(id, reply) => {
+                devtools::handle_get_document_element(
+                    &self.devtools_state,
+                    &documents,
+                    id,
+                    reply,
+                    CanGc::from_cx(cx),
+                )
+            },
+            DevtoolScriptControlMsg::GetChildren(id, node_id, reply) => {
+                devtools::handle_get_children(
+                    &self.devtools_state,
+                    id,
+                    &node_id,
+                    reply,
+                    CanGc::from_cx(cx),
+                )
+            },
+            DevtoolScriptControlMsg::GetAttributeStyle(id, node_id, reply) => {
+                devtools::handle_get_attribute_style(
+                    &self.devtools_state,
+                    id,
+                    &node_id,
+                    reply,
+                    CanGc::from_cx(cx),
+                )
+            },
             DevtoolScriptControlMsg::GetStylesheetStyle(
                 id,
                 node_id,
                 selector,
                 stylesheet,
                 reply,
-            ) => self.devtools_state.handle_get_stylesheet_style(
+            ) => devtools::handle_get_stylesheet_style(
+                &self.devtools_state,
                 &documents,
                 id,
                 &node_id,
@@ -2146,20 +2169,32 @@ impl ScriptThread {
                 reply,
                 CanGc::from_cx(cx),
             ),
-            DevtoolScriptControlMsg::GetSelectors(id, node_id, reply) => self
-                .devtools_state
-                .handle_get_selectors(&documents, id, &node_id, reply, CanGc::from_cx(cx)),
-            DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => self
-                .devtools_state
-                .handle_get_computed_style(id, &node_id, reply),
-            DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => self
-                .devtools_state
-                .handle_get_layout(id, &node_id, reply, CanGc::from_cx(cx)),
+            DevtoolScriptControlMsg::GetSelectors(id, node_id, reply) => {
+                devtools::handle_get_selectors(
+                    &self.devtools_state,
+                    &documents,
+                    id,
+                    &node_id,
+                    reply,
+                    CanGc::from_cx(cx),
+                )
+            },
+            DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => {
+                devtools::handle_get_computed_style(&self.devtools_state, id, &node_id, reply)
+            },
+            DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => devtools::handle_get_layout(
+                &self.devtools_state,
+                id,
+                &node_id,
+                reply,
+                CanGc::from_cx(cx),
+            ),
             DevtoolScriptControlMsg::GetXPath(id, node_id, reply) => {
-                self.devtools_state.handle_get_xpath(id, &node_id, reply)
+                devtools::handle_get_xpath(&self.devtools_state, id, &node_id, reply)
             },
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) => {
-                self.devtools_state.handle_modify_attribute(
+                devtools::handle_modify_attribute(
+                    &self.devtools_state,
                     &documents,
                     id,
                     &node_id,
@@ -2167,9 +2202,16 @@ impl ScriptThread {
                     CanGc::from_cx(cx),
                 )
             },
-            DevtoolScriptControlMsg::ModifyRule(id, node_id, modifications) => self
-                .devtools_state
-                .handle_modify_rule(&documents, id, &node_id, modifications, CanGc::from_cx(cx)),
+            DevtoolScriptControlMsg::ModifyRule(id, node_id, modifications) => {
+                devtools::handle_modify_rule(
+                    &self.devtools_state,
+                    &documents,
+                    id,
+                    &node_id,
+                    modifications,
+                    CanGc::from_cx(cx),
+                )
+            },
             DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => {
                 match documents.find_window(id) {
                     Some(window) => {
@@ -2201,9 +2243,14 @@ impl ScriptThread {
                     None => warn!("Message sent to closed pipeline {}.", id),
                 }
             },
-            DevtoolScriptControlMsg::HighlightDomNode(id, node_id) => self
-                .devtools_state
-                .handle_highlight_dom_node(&documents, id, node_id.as_deref()),
+            DevtoolScriptControlMsg::HighlightDomNode(id, node_id) => {
+                devtools::handle_highlight_dom_node(
+                    &self.devtools_state,
+                    &documents,
+                    id,
+                    node_id.as_deref(),
+                )
+            },
             DevtoolScriptControlMsg::Eval(code, id, reply) => {
                 self.debugger_global
                     .fire_eval(CanGc::from_cx(cx), code.into(), id, None, reply);
