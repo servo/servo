@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container" style="position: relative;">
+    <div>
+        <div>
+            <div>
+                <div>
+                    Inner
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+setup({explicit_done:true});
+window.onload = () => {
+    test((t) => {
+        ServoTestUtils.forceLayout();
+
+        container.style.top = '100px';
+        t.add_cleanup(() => {
+            container.style.cssText = '';
+        });
+
+        let result = ServoTestUtils.forceLayout();
+
+        // This should rebuild:
+        // <html>
+        // <body>
+        // <div id=container>
+        assert_equals(result.rebuiltFragmentCount, 3, "rebuiltFragmentCount");
+        assert_equals(result.restyleFragmentCount, 0, "restyleFragmentCount");
+    }, "Updating container's top does not cause a layout in same formatting context contents");
+
+    done();
+}
+</script>

@@ -191,7 +191,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
         )
     };
 
-    let mut element_and_parent_damage = element_damage | damage_from_parent;
+    let element_and_parent_damage = element_damage | damage_from_parent;
     if is_display_none {
         node.unset_all_boxes();
         return element_and_parent_damage;
@@ -201,22 +201,13 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
     // needs to be completely rebuilt. In that case, descendants are rebuilt down to the
     // first independent formatting context, which should isolate that tree from further
     // box damage.
-    let mut damage_for_children = element_and_parent_damage;
+    let mut damage_for_children = RestyleDamage::empty();
     damage_for_children.truncate();
     let rebuild_children = element_damage.contains(LayoutDamage::box_damage()) ||
         (damage_from_parent.contains(LayoutDamage::box_damage()) &&
             !node.isolates_damage_for_damage_propagation());
     if rebuild_children {
         damage_for_children.insert(LayoutDamage::box_damage());
-    } else if element_and_parent_damage.contains(RestyleDamage::RELAYOUT) &&
-        !element_damage.contains(RestyleDamage::RELAYOUT) &&
-        node.isolates_damage_for_damage_propagation()
-    {
-        // If not rebuilding the boxes for this node, but fragments need to be rebuilt
-        // only because of an ancestor, fragment layout caches should still be valid when
-        // crossing down into new independent formatting contexts.
-        damage_for_children.remove(RestyleDamage::RELAYOUT);
-        element_and_parent_damage.remove(RestyleDamage::RELAYOUT);
     }
 
     let mut damage_from_children = RestyleDamage::empty();
@@ -231,7 +222,8 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
     }
 
     // Only propagate up layout phases from children. Other types of damage can be
-    // propagated from children but via the `LayoutBoxBase::add_damage` return value.
+    // propagated from children but via the `LayoutBoxBase::add_damage` return value
+    // or by being inserted manually below.
     let mut layout_damage_for_parent =
         element_and_parent_damage | (damage_from_children & RestyleDamage::RELAYOUT);
 
@@ -267,7 +259,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
         // to run fragment tree layout in this subtree due to an ancestor, this node, or a
         // descendant changing style. In that case, we ask the `LayoutBoxBase` to clear
         // any cached information that cannot be used.
-        if (element_and_parent_damage | damage_from_children).contains(RestyleDamage::RELAYOUT) {
+        if (element_damage | damage_from_children).contains(RestyleDamage::RELAYOUT) {
             let extra_layout_damage_for_parent = Cell::new(LayoutDamage::empty());
             node.with_layout_box_base_including_pseudos(|base| {
                 extra_layout_damage_for_parent.set(

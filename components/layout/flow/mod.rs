@@ -290,7 +290,7 @@ impl BlockLevelBox {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, MallocSizeOf, PartialEq)]
 pub(crate) struct CollapsibleWithParentStartMargin(bool);
 
 /// The contentes of a BlockContainer created to render a list marker
@@ -858,23 +858,16 @@ impl BlockLevelBox {
     ) -> Fragment {
         let fragment = match self {
             BlockLevelBox::SameFormattingContextBlock { base, contents, .. } => Fragment::Box(
-                ArcRefCell::new(positioning_context.layout_maybe_position_relative_fragment(
+                layout_in_flow_non_replaced_block_level_same_formatting_context_cached(
                     layout_context,
+                    positioning_context,
                     containing_block,
+                    sequential_layout_state,
+                    collapsible_with_parent_start_margin,
+                    ignore_block_margins_for_stretch,
                     base,
-                    |positioning_context| {
-                        layout_in_flow_non_replaced_block_level_same_formatting_context(
-                            layout_context,
-                            positioning_context,
-                            containing_block,
-                            base,
-                            contents,
-                            sequential_layout_state,
-                            collapsible_with_parent_start_margin,
-                            ignore_block_margins_for_stretch,
-                        )
-                    },
-                )),
+                    contents,
+                ),
             ),
             BlockLevelBox::Independent(independent) => Fragment::Box(ArcRefCell::new(
                 positioning_context.layout_maybe_position_relative_fragment(
@@ -941,6 +934,73 @@ impl BlockLevelBox {
         };
         independent_formatting_context.inline_content_sizes(layout_context, constraint_space)
     }
+}
+
+/// Lay out a normal flow non-replaced block that does not establish a new formatting
+/// context, properly taking into account relative positioning. This version also handles
+/// caching the layout results and fetching the results from the cache, if they are still valid.
+///
+/// - <https://drafts.csswg.org/css2/visudet.html#blockwidth>
+/// - <https://drafts.csswg.org/css2/visudet.html#normal-block>
+#[allow(clippy::too_many_arguments)]
+fn layout_in_flow_non_replaced_block_level_same_formatting_context_cached(
+    layout_context: &LayoutContext<'_>,
+    positioning_context: &mut PositioningContext,
+    containing_block: &ContainingBlock<'_>,
+    sequential_layout_state: Option<&mut SequentialLayoutState>,
+    collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
+    ignore_block_margins_for_stretch: LogicalSides1D<bool>,
+    base: &LayoutBoxBase,
+    contents: &BlockContainer,
+) -> ArcRefCell<BoxFragment> {
+    let mut allows_caching = sequential_layout_state.is_none();
+    if allows_caching {
+        if let Some(cached_result) = base.cached_same_formatting_context_block_if_valid(
+            containing_block,
+            collapsible_with_parent_start_margin,
+            ignore_block_margins_for_stretch,
+        ) {
+            return cached_result;
+        };
+    }
+
+    let positioning_context_length = positioning_context.len();
+    let fragment = ArcRefCell::new(positioning_context.layout_maybe_position_relative_fragment(
+        layout_context,
+        containing_block,
+        base,
+        |positioning_context| {
+            layout_in_flow_non_replaced_block_level_same_formatting_context(
+                layout_context,
+                positioning_context,
+                containing_block,
+                base,
+                contents,
+                sequential_layout_state,
+                collapsible_with_parent_start_margin,
+                ignore_block_margins_for_stretch,
+            )
+        },
+    ));
+
+    // We currently do not allow caching `SameFormattingContextBlock` box layout results if they
+    // contain absolutely positioned children.
+    //
+    // TODO: It would be good to find a way to allow this, without having to create and store a
+    // PositioningContext for every single SameFormattingContextBlock.
+    allows_caching = allows_caching && positioning_context_length == positioning_context.len();
+    if allows_caching {
+        base.cache_same_formatting_context_block_layout(
+            containing_block,
+            collapsible_with_parent_start_margin,
+            ignore_block_margins_for_stretch,
+            fragment.clone(),
+        );
+    } else {
+        base.clear_fragments_and_fragment_cache();
+    }
+
+    fragment
 }
 
 /// Lay out a normal flow non-replaced block that does not establish a new formatting
