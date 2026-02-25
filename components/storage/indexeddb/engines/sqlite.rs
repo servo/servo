@@ -8,7 +8,7 @@ use base::threadpool::ThreadPool;
 use log::{error, info};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rusqlite::{Connection, Error, OptionalExtension, params};
-use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
+use sea_query::{Condition, Expr, ExprTrait, IntoColumnRef, IntoCondition, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
 use storage_traits::indexeddb::{
     AsyncOperation, AsyncReadOnlyOperation, AsyncReadWriteOperation, BackendError,
@@ -22,34 +22,34 @@ use crate::shared::{DB_INIT_PRAGMAS, DB_PRAGMAS};
 
 mod create;
 mod database_model;
+mod index_data_model;
 mod object_data_model;
 mod object_store_index_model;
 mod object_store_model;
+mod unique_index_data_model;
 
-fn range_to_query(range: IndexedDBKeyRange) -> Condition {
+fn range_to_query<T: Copy + IntoColumnRef>(range: &IndexedDBKeyRange, column: T) -> Condition {
     // Special case for optimization
     if let Some(singleton) = range.as_singleton() {
         let encoded = postcard::to_stdvec(singleton).unwrap();
-        return Expr::column(object_data_model::Column::Key)
-            .eq(encoded)
-            .into_condition();
+        return Expr::column(column).eq(encoded).into_condition();
     }
     let mut parts = vec![];
     if let Some(upper) = range.upper.as_ref() {
         let upper_bytes = postcard::to_stdvec(upper).unwrap();
         let query = if range.upper_open {
-            Expr::column(object_data_model::Column::Key).lt(upper_bytes)
+            Expr::column(column).clone().lt(upper_bytes)
         } else {
-            Expr::column(object_data_model::Column::Key).lte(upper_bytes)
+            Expr::column(column).clone().lte(upper_bytes)
         };
         parts.push(query);
     }
     if let Some(lower) = range.lower.as_ref() {
         let lower_bytes = postcard::to_stdvec(lower).unwrap();
         let query = if range.lower_open {
-            Expr::column(object_data_model::Column::Key).gt(lower_bytes)
+            Expr::column(column).gt(lower_bytes)
         } else {
-            Expr::column(object_data_model::Column::Key).gte(lower_bytes)
+            Expr::column(column).gte(lower_bytes)
         };
         parts.push(query);
     }
@@ -135,12 +135,24 @@ impl SqliteEngine {
         Ok(connection)
     }
 
+    fn get_index(
+        connection: &Connection,
+        store: &object_store_model::Model,
+        index_name: String,
+    ) -> Result<object_store_index_model::Model, Error> {
+        connection
+            .prepare("SELECT * FROM object_store_index WHERE name = ? AND object_store_id = ?")?
+            .query_row(params![index_name.to_string(), store.id], |row| {
+                object_store_index_model::Model::try_from(row)
+            })
+    }
+
     fn get(
         connection: &Connection,
         store: object_store_model::Model,
         key_range: IndexedDBKeyRange,
     ) -> Result<Option<object_data_model::Model>, Error> {
-        let query = range_to_query(key_range);
+        let query = range_to_query(&key_range, object_data_model::Column::Key);
         let (sql, values) = sea_query::Query::select()
             .from(object_data_model::Column::Table)
             .columns(vec![
@@ -159,12 +171,67 @@ impl SqliteEngine {
             .optional()
     }
 
+    fn index_get(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index: String,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Option<index_data_model::Model>, Error> {
+        let index = Self::get_index(connection, &store, index)?;
+        let (sql, values) = if index.unique_index {
+            let query = range_to_query(&key_range, unique_index_data_model::Column::ObjectDataKey);
+            sea_query::Query::select()
+                .from(unique_index_data_model::Column::Table)
+                .columns(vec![
+                    unique_index_data_model::Column::IndexId,
+                    unique_index_data_model::Column::Value,
+                    unique_index_data_model::Column::ObjectDataKey,
+                    unique_index_data_model::Column::ObjectStoreId,
+                    unique_index_data_model::Column::ValueLocale,
+                ])
+                .and_where(
+                    query.and(Expr::col(unique_index_data_model::Column::IndexId).is(index.id)),
+                )
+                .limit(1)
+                .build_rusqlite(SqliteQueryBuilder)
+        } else {
+            let query = range_to_query(&key_range, index_data_model::Column::Value);
+            sea_query::Query::select()
+                .from(index_data_model::Column::Table)
+                .columns(vec![
+                    index_data_model::Column::IndexId,
+                    index_data_model::Column::Value,
+                    index_data_model::Column::ObjectDataKey,
+                    index_data_model::Column::ObjectStoreId,
+                    index_data_model::Column::ValueLocale,
+                ])
+                .and_where(query.and(Expr::col(index_data_model::Column::IndexId).is(index.id)))
+                .limit(1)
+                .build_rusqlite(SqliteQueryBuilder)
+        };
+        connection
+            .prepare(&sql)?
+            .query_one(&*values.as_params(), |row| {
+                index_data_model::Model::try_from(row)
+            })
+            .optional()
+    }
+
     fn get_key(
         connection: &Connection,
         store: object_store_model::Model,
         key_range: IndexedDBKeyRange,
     ) -> Result<Option<Vec<u8>>, Error> {
         Self::get(connection, store, key_range).map(|opt| opt.map(|model| model.key))
+    }
+
+    fn get_index_key(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index: String,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Option<Vec<u8>>, Error> {
+        Self::index_get(connection, store, index, key_range).map(|opt| opt.map(|model| model.value))
     }
 
     fn get_item(
@@ -175,13 +242,23 @@ impl SqliteEngine {
         Self::get(connection, store, key_range).map(|opt| opt.map(|model| model.data))
     }
 
+    fn get_index_item(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index: String,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Option<Vec<u8>>, Error> {
+        Self::index_get(connection, store, index, key_range)
+            .map(|opt| opt.map(|model| model.object_data_key))
+    }
+
     fn get_all(
         connection: &Connection,
         store: object_store_model::Model,
         key_range: IndexedDBKeyRange,
         count: Option<u32>,
     ) -> Result<Vec<object_data_model::Model>, Error> {
-        let query = range_to_query(key_range);
+        let query = range_to_query(&key_range, object_data_model::Column::Key);
         let mut sql_query = sea_query::Query::select();
         sql_query
             .from(object_data_model::Column::Table)
@@ -204,6 +281,55 @@ impl SqliteEngine {
         Ok(models)
     }
 
+    fn index_get_all(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index: String,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    ) -> Result<Vec<index_data_model::Model>, Error> {
+        let index = Self::get_index(connection, &store, index)?;
+        let mut select = sea_query::Query::select();
+        if index.unique_index {
+            let query = range_to_query(&key_range, unique_index_data_model::Column::ObjectDataKey);
+            select
+                .from(unique_index_data_model::Column::Table)
+                .columns(vec![
+                    unique_index_data_model::Column::IndexId,
+                    unique_index_data_model::Column::Value,
+                    unique_index_data_model::Column::ObjectDataKey,
+                    unique_index_data_model::Column::ObjectStoreId,
+                    unique_index_data_model::Column::ValueLocale,
+                ])
+                .and_where(
+                    query.and(Expr::col(unique_index_data_model::Column::IndexId).is(index.id)),
+                )
+        } else {
+            let query = range_to_query(&key_range, index_data_model::Column::Value);
+            select
+                .from(index_data_model::Column::Table)
+                .columns(vec![
+                    index_data_model::Column::IndexId,
+                    index_data_model::Column::Value,
+                    index_data_model::Column::ObjectDataKey,
+                    index_data_model::Column::ObjectStoreId,
+                    index_data_model::Column::ValueLocale,
+                ])
+                .and_where(query.and(Expr::col(index_data_model::Column::IndexId).is(index.id)))
+        };
+        if let Some(count) = count {
+            select.limit(count as u64);
+        }
+        let (sql, values) = select.build_rusqlite(SqliteQueryBuilder);
+        let mut stmt = connection.prepare(&sql)?;
+        let models = stmt
+            .query_and_then(&*values.as_params(), |row| {
+                index_data_model::Model::try_from(row)
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(models)
+    }
+
     fn get_all_keys(
         connection: &Connection,
         store: object_store_model::Model,
@@ -212,6 +338,17 @@ impl SqliteEngine {
     ) -> Result<Vec<Vec<u8>>, Error> {
         Self::get_all(connection, store, key_range, count)
             .map(|models| models.into_iter().map(|m| m.key).collect())
+    }
+
+    fn index_get_all_keys(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index: String,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    ) -> Result<Vec<Vec<u8>>, Error> {
+        Self::index_get_all(connection, store, index, key_range, count)
+            .map(|models| models.into_iter().map(|m| m.value).collect())
     }
 
     fn get_all_items(
@@ -224,6 +361,17 @@ impl SqliteEngine {
             .map(|models| models.into_iter().map(|m| m.data).collect())
     }
 
+    fn index_get_all_items(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index: String,
+        key_range: IndexedDBKeyRange,
+        count: Option<u32>,
+    ) -> Result<Vec<Vec<u8>>, Error> {
+        Self::index_get_all(connection, store, index, key_range, count)
+            .map(|models| models.into_iter().map(|m| m.object_data_key).collect())
+    }
+
     #[expect(clippy::type_complexity)]
     fn get_all_records(
         connection: &Connection,
@@ -234,13 +382,32 @@ impl SqliteEngine {
             .map(|models| models.into_iter().map(|m| (m.key, m.data)).collect())
     }
 
+    #[expect(unused, clippy::type_complexity)]
+    fn index_get_all_records(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index: String,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<Vec<(Vec<u8>, Vec<u8>)>, Error> {
+        Self::index_get_all(connection, store, index, key_range, None).map(|models| {
+            models
+                .into_iter()
+                .map(|m| (m.value, m.object_data_key))
+                .collect()
+        })
+    }
+
+    /// <https://www.w3.org/TR/IndexedDB/#store-a-record-into-an-object-store>
     fn put_item(
         connection: &Connection,
         store: object_store_model::Model,
-        serialized_key: Vec<u8>,
+        key: IndexedDBKeyType,
         value: Vec<u8>,
+        index_keys: Vec<(String, bool, IndexedDBKeyType)>,
         should_overwrite: bool,
     ) -> Result<PutItemResult, Error> {
+        let serialized_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
+        // TODO: Step 1
         let existing_item = connection
             .prepare("SELECT * FROM object_data WHERE key = ? AND object_store_id = ?")
             .and_then(|mut stmt| {
@@ -249,11 +416,55 @@ impl SqliteEngine {
                 })
                 .optional()
             })?;
+        // Step 2. If the no-overwrite flag was given to these steps and is true, and a record already exists in store with its key equal to key,
+        // then this operation failed with a "ConstraintError" DOMException.
+        // Abort this algorithm without taking any further steps.
         if should_overwrite || existing_item.is_none() {
+            // TODO: Step 3. If a record already exists in store with its key equal to key, then remove the record from store using delete records from an object store.
+            // Step 4. Store a record in store containing key as its key and ! StructuredSerializeForStorage(value) as its value.
+            // The record is stored in the object store’s list of records such that the list is sorted according to the key of the records in ascending order.
             connection.execute(
                 "INSERT INTO object_data (object_store_id, key, data) VALUES (?, ?, ?)",
                 params![store.id, serialized_key, value],
             )?;
+
+            // Step 5. For each index which references store:
+            for (index_name, unique, key_type) in index_keys {
+                // Step 1, 2 already done.
+                // Get index id
+                let index_id: i64 = connection.query_row(
+                    "SELECT id FROM object_store_index WHERE name = ? AND object_store_id = ?",
+                    params![index_name.to_string(), store.id],
+                    |row| row.get(0),
+                )?;
+                if unique {
+                    // TODO: Step 3.
+                    // Step 5.
+                    let serialized_index_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
+                    connection.execute(
+                            "INSERT INTO unique_index_data (index_id, object_data_key, value, object_store_id) VALUES (?, ?, ?, ?)",
+                            params![index_id, serialized_index_key, serialized_key, store.id],
+                        )?;
+                } else if let IndexedDBKeyType::Array(array) = key_type {
+                    // TODO: Step 4.
+                    // Step 6.
+                    for key in array {
+                        let serialized_index_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
+                        connection.execute(
+                                    "INSERT INTO index_data (index_id, object_data_key, value, object_store_id) VALUES (?, ?, ?, ?)",
+                                    params![index_id, serialized_index_key, serialized_key, store.id],
+                                )?;
+                    }
+                } else {
+                    // TODO: Step 3.
+                    // Step 5.
+                    let serialized_index_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
+                    connection.execute(
+                            "INSERT INTO index_data (index_id, object_data_key, value, object_store_id) VALUES (?, ?, ?, ?)",
+                            params![index_id, serialized_index_key, serialized_key, store.id],
+                        )?;
+                }
+            }
             Ok(PutItemResult::Success)
         } else {
             Ok(PutItemResult::CannotOverwrite)
@@ -265,20 +476,54 @@ impl SqliteEngine {
         store: object_store_model::Model,
         key_range: IndexedDBKeyRange,
     ) -> Result<(), Error> {
-        let query = range_to_query(key_range);
+        // Object Store
+        let query = range_to_query(&key_range, object_data_model::Column::Key);
         let (sql, values) = sea_query::Query::delete()
             .from_table(object_data_model::Column::Table)
             .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)))
             .build_rusqlite(SqliteQueryBuilder);
         connection.prepare(&sql)?.execute(&*values.as_params())?;
+
+        // Index
+        let query = range_to_query(&key_range, index_data_model::Column::Value);
+        let (sql, values) = sea_query::Query::delete()
+            .from_table(index_data_model::Column::Table)
+            .and_where(query.and(Expr::col(index_data_model::Column::ObjectStoreId).is(store.id)))
+            .build_rusqlite(SqliteQueryBuilder);
+        connection.prepare(&sql)?.execute(&*values.as_params())?;
+
+        // Unique Index
+        let query = range_to_query(&key_range, unique_index_data_model::Column::Value);
+        let (sql, values) = sea_query::Query::delete()
+            .from_table(unique_index_data_model::Column::Table)
+            .and_where(
+                query.and(Expr::col(unique_index_data_model::Column::ObjectStoreId).is(store.id)),
+            )
+            .build_rusqlite(SqliteQueryBuilder);
+        connection.prepare(&sql)?.execute(&*values.as_params())?;
+
         Ok(())
     }
 
     fn clear(connection: &Connection, store: object_store_model::Model) -> Result<(), Error> {
+        // Object Store
         connection.execute(
             "DELETE FROM object_data WHERE object_store_id = ?",
             params![store.id],
         )?;
+
+        // Index
+        connection.execute(
+            "DELETE FROM index_data WHERE object_store_id = ?",
+            params![store.id],
+        )?;
+
+        // Unique Index
+        connection.execute(
+            "DELETE FROM unique_index_data WHERE object_store_id = ?",
+            params![store.id],
+        )?;
+
         Ok(())
     }
 
@@ -287,12 +532,42 @@ impl SqliteEngine {
         store: object_store_model::Model,
         key_range: IndexedDBKeyRange,
     ) -> Result<usize, Error> {
-        let query = range_to_query(key_range);
+        let query = range_to_query(&key_range, object_data_model::Column::Key);
         let (sql, values) = sea_query::Query::select()
             .expr(Expr::col(object_data_model::Column::Key).count())
             .from(object_data_model::Column::Table)
             .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)))
             .build_rusqlite(SqliteQueryBuilder);
+        connection
+            .prepare(&sql)?
+            .query_row(&*values.as_params(), |row| row.get(0))
+            .map(|count: i64| count as usize)
+    }
+
+    fn index_count(
+        connection: &Connection,
+        store: object_store_model::Model,
+        index: String,
+        key_range: IndexedDBKeyRange,
+    ) -> Result<usize, Error> {
+        let index = Self::get_index(connection, &store, index)?;
+        let (sql, values) = if index.unique_index {
+            let query = range_to_query(&key_range, unique_index_data_model::Column::ObjectDataKey);
+            sea_query::Query::select()
+                .expr(Expr::col(unique_index_data_model::Column::ObjectDataKey).count())
+                .from(unique_index_data_model::Column::Table)
+                .and_where(
+                    query.and(Expr::col(unique_index_data_model::Column::IndexId).is(index.id)),
+                )
+                .build_rusqlite(SqliteQueryBuilder)
+        } else {
+            let query = range_to_query(&key_range, index_data_model::Column::Value);
+            sea_query::Query::select()
+                .expr(Expr::col(index_data_model::Column::Value).count())
+                .from(index_data_model::Column::Table)
+                .and_where(query.and(Expr::col(index_data_model::Column::IndexId).is(index.id)))
+                .build_rusqlite(SqliteQueryBuilder)
+        };
         connection
             .prepare(&sql)?
             .query_row(&*values.as_params(), |row| row.get(0))
@@ -426,6 +701,7 @@ impl KvsEngine for SqliteEngine {
                         callback,
                         key,
                         value,
+                        index_keys,
                         should_overwrite,
                     }) => {
                         let key = match key
@@ -438,13 +714,13 @@ impl KvsEngine for SqliteEngine {
                                 continue;
                             },
                         };
-                        let serialized_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
                         let _ = callback.send(
                             Self::put_item(
                                 &connection,
                                 object_store,
-                                serialized_key,
+                                key,
                                 value,
+                                index_keys,
                                 should_overwrite,
                             )
                             .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
@@ -538,6 +814,77 @@ impl KvsEngine for SqliteEngine {
                                 .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::IndexGetKey {
+                        callback,
+                        index_name,
+                        key_range,
+                    }) => {
+                        let _ = callback.send(
+                            Self::get_index_key(&connection, object_store, index_name, key_range)
+                                .map(|key| key.map(|k| postcard::from_bytes(&k).unwrap()))
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::IndexGetItem {
+                        callback,
+                        index_name,
+                        key_range,
+                    }) => {
+                        let _ = callback.send(
+                            Self::get_index_item(&connection, object_store, index_name, key_range)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::IndexGetAllKeys {
+                        callback,
+                        index_name,
+                        key_range,
+                        count,
+                    }) => {
+                        let _ = callback.send(
+                            Self::index_get_all_keys(
+                                &connection,
+                                object_store,
+                                index_name,
+                                key_range,
+                                count,
+                            )
+                            .map(|keys| {
+                                keys.into_iter()
+                                    .map(|k| postcard::from_bytes(&k).unwrap())
+                                    .collect()
+                            })
+                            .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::IndexGetAllItems {
+                        callback,
+                        index_name,
+                        key_range,
+                        count,
+                    }) => {
+                        let _ = callback.send(
+                            Self::index_get_all_items(
+                                &connection,
+                                object_store,
+                                index_name,
+                                key_range,
+                                count,
+                            )
+                            .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
+                    AsyncOperation::ReadOnly(AsyncReadOnlyOperation::IndexCount {
+                        callback,
+                        index_name,
+                        key_range,
+                    }) => {
+                        let _ = callback.send(
+                            Self::index_count(&connection, object_store, index_name, key_range)
+                                .map(|r| r as u64)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                        );
+                    },
                 }
             }
             on_complete();
@@ -623,25 +970,25 @@ impl KvsEngine for SqliteEngine {
         )?;
 
         let index_exists: bool = self.connection.query_row(
-            "SELECT EXISTS(SELECT * FROM object_store_index WHERE name = ? AND object_store_id = ?)",
-            params![index_name.to_string(), object_store.id],
-            |row| row.get(0),
-        )?;
+                "SELECT EXISTS(SELECT * FROM object_store_index WHERE name = ? AND object_store_id = ?)",
+                params![index_name.to_string(), object_store.id],
+                |row| row.get(0),
+            )?;
         if index_exists {
             return Ok(CreateObjectResult::AlreadyExists);
         }
 
         self.connection.execute(
-            "INSERT INTO object_store_index (object_store_id, name, key_path, unique_index, multi_entry_index)\
-            VALUES (?, ?, ?, ?, ?)",
-            params![
-                object_store.id,
-                index_name.to_string(),
-                postcard::to_stdvec(&key_path).unwrap(),
-                unique,
-                multi_entry,
-            ],
-        )?;
+                "INSERT INTO object_store_index (object_store_id, name, key_path, unique_index, multi_entry_index)\
+                VALUES (?, ?, ?, ?, ?)",
+                params![
+                    object_store.id,
+                    index_name.to_string(),
+                    postcard::to_stdvec(&key_path).unwrap(),
+                    unique,
+                    multi_entry,
+                ],
+            )?;
         Ok(CreateObjectResult::Created)
     }
 
@@ -947,6 +1294,7 @@ mod tests {
                             callback: get_callback(put.0),
                             key: Some(IndexedDBKeyType::Number(1.0)),
                             value: vec![1, 2, 3],
+                            index_keys: vec![],
                             should_overwrite: false,
                         }),
                     },
@@ -956,6 +1304,7 @@ mod tests {
                             callback: get_callback(put2.0),
                             key: Some(IndexedDBKeyType::String("2.0".to_string())),
                             value: vec![4, 5, 6],
+                            index_keys: vec![],
                             should_overwrite: false,
                         }),
                     },
@@ -968,6 +1317,7 @@ mod tests {
                                 IndexedDBKeyType::Number(0.0),
                             ])),
                             value: vec![7, 8, 9],
+                            index_keys: vec![],
                             should_overwrite: false,
                         }),
                     },
@@ -978,6 +1328,7 @@ mod tests {
                             callback: get_callback(put_dup.0),
                             key: Some(IndexedDBKeyType::Number(1.0)),
                             value: vec![10, 11, 12],
+                            index_keys: vec![],
                             should_overwrite: false,
                         }),
                     },

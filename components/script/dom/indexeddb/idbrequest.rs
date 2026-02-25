@@ -19,10 +19,12 @@ use storage_traits::indexeddb::{
 };
 use stylo_atoms::Atom;
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::IDBRequestBinding::{
     IDBRequestMethods, IDBRequestReadyState,
 };
 use crate::dom::bindings::codegen::Bindings::IDBTransactionBinding::IDBTransactionMode;
+use crate::dom::bindings::codegen::UnionTypes::IDBObjectStoreOrIDBIndexOrIDBCursor;
 use crate::dom::bindings::error::{Error, Fallible, create_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -35,9 +37,8 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbcursor::{IterationParam, iterate_cursor};
 use crate::dom::indexeddb::idbcursorwithvalue::IDBCursorWithValue;
-use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
-use crate::indexeddb::key_type_to_jsval;
+use crate::indexeddb::{IDBSource, key_type_to_jsval};
 use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
@@ -373,7 +374,8 @@ pub struct IDBRequest {
     #[ignore_malloc_size_of = "mozjs"]
     result: Heap<JSVal>,
     error: MutNullableDom<DOMException>,
-    source: MutNullableDom<IDBObjectStore>,
+    #[ignore_malloc_size_of = "refcell"]
+    source: DomRefCell<Option<IDBObjectStoreOrIDBIndexOrIDBCursor>>,
     transaction: MutNullableDom<IDBTransaction>,
     ready_state: Cell<IDBRequestReadyState>,
 }
@@ -395,8 +397,8 @@ impl IDBRequest {
         reflect_dom_object(Box::new(IDBRequest::new_inherited()), global, can_gc)
     }
 
-    pub fn set_source(&self, source: Option<&IDBObjectStore>) {
-        self.source.set(source);
+    pub fn set_source(&self, source: Option<IDBObjectStoreOrIDBIndexOrIDBCursor>) {
+        *self.source.borrow_mut() = source;
     }
 
     pub fn set_ready_state_done(&self) {
@@ -430,16 +432,17 @@ impl IDBRequest {
     }
 
     // https://www.w3.org/TR/IndexedDB-2/#asynchronously-execute-a-request
-    pub fn execute_async<T, F>(
-        source: &IDBObjectStore,
+    pub fn execute_async<S, F, T>(
+        source: &S,
         operation_fn: F,
         request: Option<DomRoot<IDBRequest>>,
         iteration_param: Option<IterationParam>,
         can_gc: CanGc,
     ) -> Fallible<DomRoot<IDBRequest>>
     where
-        T: Into<IdbResult> + for<'a> Deserialize<'a> + Serialize + Send + Sync + 'static,
+        S: IDBSource,
         F: FnOnce(GenericCallback<BackendResult<T>>) -> AsyncOperation,
+        T: Into<IdbResult> + for<'a> Deserialize<'a> + Serialize + Send + Sync + 'static,
     {
         // Step 1: Let transaction be the transaction associated with source.
         let transaction = source.transaction();
@@ -454,7 +457,7 @@ impl IDBRequest {
         // Step 3: If request was not given, let request be a new request with source as source.
         let request = request.unwrap_or_else(|| {
             let new_request = IDBRequest::new(&global, can_gc);
-            new_request.set_source(Some(source));
+            new_request.set_source(Some(source.as_source()));
             new_request.set_transaction(&transaction);
             new_request
         });
@@ -521,7 +524,7 @@ impl IDBRequest {
             .send(IndexedDBThreadMsg::Async(
                 global.origin().immutable().clone(),
                 transaction.get_db_name().to_string(),
-                source.get_name().to_string(),
+                source.object_store_name().to_string(),
                 transaction.get_serial_number(),
                 request_id,
                 transaction_mode,
@@ -546,8 +549,20 @@ impl IDBRequestMethods<crate::DomTypeHolder> for IDBRequest {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-source>
-    fn GetSource(&self) -> Option<DomRoot<IDBObjectStore>> {
-        self.source.get()
+    fn GetSource(&self) -> Option<IDBObjectStoreOrIDBIndexOrIDBCursor> {
+        // IDBObjectStoreOrIDBIndexOrIDBCursor doesn't implement Copy
+        match &*self.source.borrow() {
+            Some(IDBObjectStoreOrIDBIndexOrIDBCursor::IDBObjectStore(store)) => Some(
+                IDBObjectStoreOrIDBIndexOrIDBCursor::IDBObjectStore(DomRoot::from_ref(store)),
+            ),
+            Some(IDBObjectStoreOrIDBIndexOrIDBCursor::IDBIndex(index)) => Some(
+                IDBObjectStoreOrIDBIndexOrIDBCursor::IDBIndex(DomRoot::from_ref(index)),
+            ),
+            Some(IDBObjectStoreOrIDBIndexOrIDBCursor::IDBCursor(cursor)) => Some(
+                IDBObjectStoreOrIDBIndexOrIDBCursor::IDBCursor(DomRoot::from_ref(cursor)),
+            ),
+            None => None,
+        }
     }
 
     /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-transaction>
