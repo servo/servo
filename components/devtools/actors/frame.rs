@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::PausedFrame;
+use devtools_traits::FrameInfo;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -58,7 +58,7 @@ pub(crate) struct FrameActor {
     name: String,
     object_actor: String,
     source_actor: String,
-    frame_result: PausedFrame,
+    frame_result: FrameInfo,
 }
 
 impl Actor for FrameActor {
@@ -100,7 +100,7 @@ impl FrameActor {
     pub fn register(
         registry: &ActorRegistry,
         source_actor: String,
-        frame_result: PausedFrame,
+        frame_result: FrameInfo,
     ) -> String {
         let object_actor = ObjectActor::register(registry, None);
 

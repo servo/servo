@@ -6,6 +6,7 @@ const dbg = new Debugger;
 const debuggeesToPipelineIds = new Map;
 const debuggeesToWorkerIds = new Map;
 const sourceIdsToScripts = new Map;
+const frameActorsToFrames = new Map;
 
 // Find script by scriptId within a script tree
 function findScriptById(script, scriptId) {
@@ -131,7 +132,7 @@ addEventListener("getPossibleBreakpoints", event => {
     getPossibleBreakpointsResult(event, result);
 });
 
-function handlePauseAndRespond(frame, is_breakpoint) {
+function handlePauseAndRespond(frame, isBreakpoint) {
     // Get the pipeline ID for this debuggee
     const pipelineId = debuggeesToPipelineIds.get(frame.script.global);
     if (!pipelineId) {
@@ -139,8 +140,8 @@ function handlePauseAndRespond(frame, is_breakpoint) {
         return undefined;
     }
 
-    // TODO: Some properties throw if terminated is true
-    const result = {
+    const frameActorId = registerFrameActor(pipelineId, {
+        // TODO: Some properties throw if terminated is true
         // TODO: arguments: frame.arguments,
         column: frame.script.startColumn,
         displayName: frame.script.displayName,
@@ -150,10 +151,15 @@ function handlePauseAndRespond(frame, is_breakpoint) {
         terminated: frame.terminated,
         type_: frame.type,
         url: frame.script.url,
-    };
+    });
+    if (!frameActorId) {
+        console.error("[debugger] Couldn't create frame");
+        return undefined;
+    }
+    frameActorsToFrames.set(frameActorId, frame);
 
     // Notify devtools and enter pause loop. This blocks until Resume.
-    pauseAndRespond(pipelineId, result, is_breakpoint);
+    pauseAndRespond(pipelineId, frameActorId, isBreakpoint);
 
     // <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
     // Return undefined to continue execution normally after resume.

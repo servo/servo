@@ -24,8 +24,9 @@ use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,
-    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation, NavigationState,
-    NetworkEvent, PausedFrame, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId, get_time_stamp,
+    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation, FrameInfo,
+    NavigationState, NetworkEvent, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
+    get_time_stamp,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use log::{trace, warn};
@@ -365,9 +366,14 @@ impl DevtoolsInstance {
                 },
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::DebuggerPause(
                     pipeline_id,
-                    frame_result,
+                    frame_actor_id,
                     is_breakpoint,
-                )) => self.handle_breakpoint_hit(pipeline_id, frame_result, is_breakpoint),
+                )) => self.handle_debugger_pause(pipeline_id, frame_actor_id, is_breakpoint),
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::CreateFrameActor(
+                    result_sender,
+                    pipeline_id,
+                    frame_info,
+                )) => self.handle_create_frame_actor(result_sender, pipeline_id, frame_info),
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                     request_id,
                     network_event,
@@ -752,10 +758,10 @@ impl DevtoolsInstance {
         actors.set_inline_source_content(pipeline_id, source_content);
     }
 
-    fn handle_breakpoint_hit(
+    fn handle_debugger_pause(
         &mut self,
         pipeline_id: PipelineId,
-        frame: PausedFrame,
+        frame_actor_id: String,
         is_breakpoint: bool,
     ) {
         let actors = &self.registry;
@@ -771,22 +777,10 @@ impl DevtoolsInstance {
         let browsing_context = actors.find::<BrowsingContextActor>(browsing_context);
         let thread = actors.find::<ThreadActor>(&browsing_context.thread);
 
-        // Find the source actor for this URL
-        let source = match thread.source_manager.find_source(actors, &frame.url) {
-            Some(source) => source.name(),
-            None => {
-                warn!("No source actor found for URL: {}", frame.url);
-                return;
-            },
-        };
-
         let pause = actors.new_name::<PauseActor>();
         actors.register(PauseActor {
             name: pause.clone(),
         });
-
-        let frame = FrameActor::register(actors, source, frame);
-        thread.frames.borrow_mut().insert(frame.clone());
 
         // <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1662>
         let why = if is_breakpoint {
@@ -805,13 +799,46 @@ impl DevtoolsInstance {
             from: thread.name(),
             type_: "paused".to_owned(),
             actor: pause,
-            frame: actors.encode::<FrameActor, _>(&frame),
+            frame: actors.encode::<FrameActor, _>(&frame_actor_id),
             why,
         };
 
         for stream in self.connections.lock().unwrap().values_mut() {
             let _ = stream.write_json_packet(&msg);
         }
+    }
+
+    fn handle_create_frame_actor(
+        &mut self,
+        result_sender: GenericSender<String>,
+        pipeline_id: PipelineId,
+        frame: FrameInfo,
+    ) {
+        let actors = &self.registry;
+
+        let Some(browsing_context) = self
+            .pipelines
+            .get(&pipeline_id)
+            .and_then(|id| self.browsing_contexts.get(id))
+        else {
+            return;
+        };
+
+        let browsing_context = actors.find::<BrowsingContextActor>(browsing_context);
+        let thread = actors.find::<ThreadActor>(&browsing_context.thread);
+
+        let source = match thread.source_manager.find_source(actors, &frame.url) {
+            Some(source) => source.name(),
+            None => {
+                warn!("No source actor found for URL: {}", frame.url);
+                return;
+            },
+        };
+
+        let frame = FrameActor::register(actors, source, frame);
+        thread.frames.borrow_mut().insert(frame.clone());
+
+        let _ = result_sender.send(frame);
     }
 }
 

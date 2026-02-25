@@ -133,7 +133,10 @@ pub enum ScriptToDevtoolsControlMsg {
     DomMutation(PipelineId, DomMutation),
 
     /// The debugger is paused, sending frame information.
-    DebuggerPause(PipelineId, PausedFrame, bool),
+    DebuggerPause(PipelineId, String, bool),
+
+    /// Get frame information from script
+    CreateFrameActor(GenericSender<String>, PipelineId, FrameInfo),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -569,7 +572,7 @@ pub struct RecommendedBreakpointLocation {
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PausedFrame {
+pub struct FrameInfo {
     pub column: u32,
     pub display_name: String,
     pub line: u32,
