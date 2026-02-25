@@ -250,34 +250,34 @@ impl GlobalScope {
         // TODO
 
         // Step 4. Prepare to run script given settings.
-        let _aes = AutoEntryScript::new(self);
-
-        // Step 6. If script's error to rethrow is not null, then set evaluationPromise to a
-        // promise rejected with script's error to rethrow.
-        {
-            let module_error = module_tree.get_rethrow_error().borrow();
-            if module_error.is_some() {
-                module_tree.report_error(self, can_gc);
-                return;
+        run_a_script::<DomTypeHolder, _>(self, || {
+            // Step 6. If script's error to rethrow is not null, then set evaluationPromise to a
+            // promise rejected with script's error to rethrow.
+            {
+                let module_error = module_tree.get_rethrow_error().borrow();
+                if module_error.is_some() {
+                    module_tree.report_error(self, can_gc);
+                    return;
+                }
             }
-        }
 
-        // Step 7.1. Otherwise: Let record be script's record.
-        let record = module_tree.get_record().map(|record| record.handle());
+            // Step 7.1. Otherwise: Let record be script's record.
+            let record = module_tree.get_record().map(|record| record.handle());
 
-        if let Some(record) = record {
-            // Step 7.2. Set evaluationPromise to record.Evaluate().
-            rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
-            let evaluated = module_tree.execute_module(self, record, rval.handle_mut(), can_gc);
+            if let Some(record) = record {
+                // Step 7.2. Set evaluationPromise to record.Evaluate().
+                rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
+                let evaluated = module_tree.execute_module(self, record, rval.handle_mut(), can_gc);
 
-            // Step 8. If preventErrorReporting is false, then upon rejection of evaluationPromise
-            // with reason, report an exception given by reason for script's settings object's
-            // global object.
-            if let Err(exception) = evaluated {
-                module_tree.set_rethrow_error(exception);
-                module_tree.report_error(self, can_gc);
+                // Step 8. If preventErrorReporting is false, then upon rejection of evaluationPromise
+                // with reason, report an exception given by reason for script's settings object's
+                // global object.
+                if let Err(exception) = evaluated {
+                    module_tree.set_rethrow_error(exception);
+                    module_tree.report_error(self, can_gc);
+                }
             }
-        }
+        });
     }
 
     /// <https://html.spec.whatwg.org/multipage/#check-if-we-can-run-script>
