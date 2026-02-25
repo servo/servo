@@ -1780,18 +1780,15 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         }
     }
 
-    fn WebdriverException(&self, cx: SafeJSContext, value: HandleValue, can_gc: CanGc) {
+    fn WebdriverException(&self, cx: &mut JSContext, value: HandleValue) {
         let webdriver_script_sender = self.webdriver_script_chan.borrow_mut().take();
         if let Some(webdriver_script_sender) = webdriver_script_sender {
-            let _ =
-                webdriver_script_sender.send(Err(JavaScriptEvaluationError::EvaluationFailure(
-                    Some(javascript_error_info_from_error_info(
-                        cx,
-                        &ErrorInfo::from_value(value, cx, can_gc),
-                        value,
-                        can_gc,
-                    )),
-                )));
+            let error_info = ErrorInfo::from_value(value, cx.into(), CanGc::from_cx(cx));
+            let _ = webdriver_script_sender.send(Err(
+                JavaScriptEvaluationError::EvaluationFailure(Some(
+                    javascript_error_info_from_error_info(cx, &error_info, value),
+                )),
+            ));
         }
     }
 

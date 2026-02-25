@@ -2876,11 +2876,7 @@ impl GlobalScope {
             let script = NonNull::new(*compiled_script).expect("Can't be null");
 
             if !evaluate_script(cx.into(), script, url, fetch_options, rval) {
-                let error_info = take_and_report_pending_exception_for_api(
-                    cx.into(),
-                    in_realm,
-                    CanGc::from_cx(cx),
-                );
+                let error_info = take_and_report_pending_exception_for_api(cx);
                 return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
             }
 
