@@ -58,7 +58,7 @@ jobs:
       - name: Open PR
         if: ${{ steps.changes.outputs.CHANGES == 'true'}}
         env:
-          GH_TOKEN: ${{ secrets.BOOK_SYNC_TOKEN }}
+          GH_TOKEN: ${{ secrets.BOOK_SYNC_CREATE_PR_TOKEN }}
           UPDATE_BRANCH: linux_pkgs_sync_${{ github.sha }}
         working-directory: book
         run: |
