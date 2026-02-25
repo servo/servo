@@ -27,6 +27,7 @@
 use std::cell::{OnceCell, UnsafeCell};
 use std::default::Default;
 use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 use std::{mem, ptr};
 
 use js::context::NoGC;
@@ -219,6 +220,33 @@ pub(crate) fn assert_in_layout() {
     debug_assert!(thread_state::get().is_layout());
 }
 
+/// A struct to make Unrooted Dom objects work. By taking a no_gc as reference, we ensure that the lifetime of this object
+/// is bounded by the lifetime of NoGC which enforces no gc happening.
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+pub(crate) struct UnrootedDom<'a, T: DomObject> {
+    inner: Dom<T>,
+    _no_gc: &'a NoGC,
+}
+
+impl<'a, T: DomObject> UnrootedDom<'a, T> {
+    /// Construct an `UnrootedDom` with the lifetime of `NoGC`. This is safe, as `NoGC` implies no garbage collection will happen
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    pub(crate) fn from_dom(object: Dom<T>, no_gc: &'a NoGC) -> UnrootedDom<'a, T> {
+        UnrootedDom {
+            inner: object,
+            _no_gc: no_gc,
+        }
+    }
+}
+
+impl<'a, T: DomObject> Deref for UnrootedDom<'a, T> {
+    type Target = Dom<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
 /// A holder that provides interior mutability for GC-managed values such as
 /// `Dom<T>`, with nullability represented by an enclosing Option wrapper.
 /// Essentially a `Cell<Option<Dom<T>>>`, but safer.
@@ -270,10 +298,17 @@ impl<T: DomObject> MutNullableDom<T> {
         unsafe { ptr::read(self.ptr.get()).map(|o| DomRoot::from_ref(&*o)) }
     }
 
-    /// Get the `DomObject` without rooting it. You need to make sure that no Gc takes place.
-    pub(crate) unsafe fn get_unsafe(&self, _no_gc: &NoGC) -> Option<Dom<T>> {
+    /// Get the `DomObject` without rooting it. Constructing an UnrootedDom. This is safe
+    /// as we take a reference to NoGC and bound the lifetime by NoGC bound. This implies that
+    /// while the `UnrootedDom` is alive we do not have a GC run.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    pub(crate) fn get_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, T>> {
         assert_in_script();
-        unsafe { ptr::read(self.ptr.get()).map(|o| Dom::from_ref(&*o)) }
+        let ptr = unsafe { ptr::read(self.ptr.get()) };
+        ptr.map(|o| Dom::from_ref(&*o)).map(|dom| UnrootedDom {
+            inner: dom,
+            _no_gc: no_gc,
+        })
     }
 
     /// Set this `MutNullableDom` to the given value.

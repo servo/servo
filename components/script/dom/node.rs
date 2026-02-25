@@ -84,7 +84,9 @@ use crate::dom::bindings::inheritance::{
     SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId,
 };
 use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto};
-use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout};
+use crate::dom::bindings::root::{
+    Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout, UnrootedDom,
+};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
@@ -2290,7 +2292,7 @@ impl Iterator for TreeIterator {
 /// while this iterator is alive.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 pub(crate) struct EfficientTreeIterator<'a, 'b> {
-    current: Option<Dom<Node>>,
+    current: Option<UnrootedDom<'b, Node>>,
     depth: usize,
     shadow_including: bool,
     /// This is unused and only used for lifetime guarantee of NoGC
@@ -2308,7 +2310,7 @@ where
         no_gc: &'b NoGC,
     ) -> EfficientTreeIterator<'a, 'b> {
         EfficientTreeIterator {
-            current: Some(Dom::from_ref(root)),
+            current: Some(UnrootedDom::from_dom(Dom::from_ref(root), no_gc)),
             depth: 0,
             shadow_including: shadow_including == ShadowIncluding::Yes,
             no_gc,
@@ -2316,8 +2318,7 @@ where
         }
     }
 
-    #[expect(unsafe_code)]
-    pub(crate) fn next_skipping_children(&mut self) -> Option<Dom<Node>> {
+    pub(crate) fn next_skipping_children(&mut self) -> Option<UnrootedDom<'b, Node>> {
         let current = self.current.take()?;
 
         let iter = current.inclusive_ancestors(if self.shadow_including {
@@ -2332,7 +2333,7 @@ where
             }
 
             // SAFETY: Using unsafe methods is ok, as we have a reference to a NoGC, hence, disallowing any mutable reference which would imply Gc happening.
-            let next_sibling_option = unsafe { ancestor.get_next_sibling_unsafe(self.no_gc) };
+            let next_sibling_option = ancestor.get_next_sibling_unrooted(self.no_gc);
 
             if let Some(next_sibling) = next_sibling_option {
                 self.current = Some(next_sibling);
@@ -2343,12 +2344,10 @@ where
                 // Shadow roots don't have sibling, so after we're done traversing
                 // one we jump to the first child of the host
                 // SAFETY: Using unsafe methods is ok, as we have a reference to NoGC, hence, disallowing any mutable reference which would imply Gc happening.
-                let child_option = unsafe {
-                    shadow_root
-                        .Host()
-                        .upcast::<Node>()
-                        .get_first_child_unsafe(self.no_gc)
-                };
+                let child_option = shadow_root
+                    .Host()
+                    .upcast::<Node>()
+                    .get_first_child_unrooted(self.no_gc);
 
                 if let Some(child) = child_option {
                     self.current = Some(child);
@@ -2367,19 +2366,21 @@ impl<'a, 'b> Iterator for EfficientTreeIterator<'a, 'b>
 where
     'b: 'a,
 {
-    type Item = Dom<Node>;
+    type Item = UnrootedDom<'b, Node>;
 
     /// <https://dom.spec.whatwg.org/#concept-tree-order>
     /// <https://dom.spec.whatwg.org/#concept-shadow-including-tree-order>
-    #[expect(unsafe_code)]
-    fn next(&mut self) -> Option<Dom<Node>> {
+    fn next(&mut self) -> Option<UnrootedDom<'b, Node>> {
         let current = self.current.take()?;
 
         // Handle a potential shadow root on the element
         if let Some(element) = current.downcast::<Element>() {
             if let Some(shadow_root) = element.shadow_root() {
                 if self.shadow_including {
-                    self.current = Some(Dom::from_ref(shadow_root.upcast::<Node>()));
+                    self.current = Some(UnrootedDom::from_dom(
+                        Dom::from_ref(shadow_root.upcast::<Node>()),
+                        self.no_gc,
+                    ));
                     self.depth += 1;
                     return Some(current);
                 }
@@ -2387,7 +2388,7 @@ where
         }
 
         // SAFETY: Using unsafe methods is ok, as we have a reference to a JSContext, hence, disallowing any mutable reference which would imply Gc happening.
-        let first_child_option = unsafe { current.get_first_child_unsafe(self.no_gc) };
+        let first_child_option = current.get_first_child_unrooted(self.no_gc);
         if let Some(first_child) = first_child_option {
             self.current = Some(first_child);
             self.depth += 1;
@@ -3491,16 +3492,12 @@ impl Node {
         self.xml_serialize(xml_serialize::TraversalScope::ChildrenOnly(None))
     }
 
-    /// SAFETY: Only call this if you know that there will be no Gc ffor the lifetime of this reference.
-    #[expect(unsafe_code)]
-    unsafe fn get_next_sibling_unsafe(&self, no_gc: &NoGC) -> Option<Dom<Node>> {
-        unsafe { self.next_sibling.get_unsafe(no_gc) }
+    fn get_next_sibling_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Node>> {
+        self.next_sibling.get_unrooted(no_gc)
     }
 
-    /// SAFETY: Only call this if you know that there will be no Gc ffor the lifetime of this reference.
-    #[expect(unsafe_code)]
-    unsafe fn get_first_child_unsafe(&self, no_gc: &NoGC) -> Option<Dom<Node>> {
-        unsafe { self.first_child.get_unsafe(no_gc) }
+    fn get_first_child_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Node>> {
+        self.first_child.get_unrooted(no_gc)
     }
 }
 
