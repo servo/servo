@@ -359,10 +359,10 @@ impl RequestBody {
         self.body_chunk_request_channel.clone()
     }
 
-    /// This needs to be called the last time the `self.chan` is used to not leak resources.
+    /// This needs to be called the last time the body stream sender is used to not leak resources.
     /// Can be called multiple times.
     pub fn close_stream(&self) {
-        let _ = self.body_chunk_request_channel.lock().take();
+        self.body_chunk_request_channel.lock().take();
     }
 
     pub fn source_is_null(&self) -> bool {
