@@ -26,7 +26,7 @@ use serde::de::VariantAccess;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_config::opts;
 
-use crate::generic_channel::{GenericCallback, SendError, SendResult};
+use crate::generic_channel::{GenericCallback, SendError, SendResult, use_ipc};
 
 /// Basic struct for [LazyCallback]
 #[derive(MallocSizeOf)]
@@ -119,7 +119,7 @@ where
             // Long-term we can remove this branch in the code again and replace it with
             // unreachable, since likely all IPC channels would be GenericChannels.
             CallbackSetterVariants::InProcess(wrapped_callback) => {
-                if opts::get().multiprocess {
+                if use_ipc() {
                     return Err(serde::ser::Error::custom(
                         "InProcess callback setter can't be serialized in multiprocess mode",
                     ));
@@ -166,7 +166,7 @@ where
                 .newtype_variant::<IpcReceiver<T>>()
                 .map(|receiver| CallbackSetter(CallbackSetterVariants::Ipc(receiver))),
             LazyCallbackSetterVariantNames::InProcess => {
-                if opts::get().multiprocess {
+                if use_ipc() {
                     return Err(serde::de::Error::custom(
                         "InProcess callback found in multiprocess mode",
                     ));
@@ -174,7 +174,7 @@ where
                 let addr = variant_data.newtype_variant::<usize>()?;
                 let ptr = addr as *mut _;
                 // SAFETY: We know we are in the same address space as the sender, so we can safely
-                // reconstruct the Arc, that we previously leaked with `into_raw` during
+                // reconstruct the Box, that we previously leaked with `into_raw` during
                 // serialization.
                 // Attention: Code reviewers should carefully compare the deserialization here
                 // with the serialization above.
@@ -224,7 +224,9 @@ where
         match self.0 {
             CallbackSetterVariants::InProcess(sender) => {
                 let callback = GenericCallback::new(callback).expect("Could not create callback");
-                sender.send(callback).expect("Could not send callback");
+                if sender.send(callback).is_err() {
+                    log::error!("Could not send callback, sender was already dropped");
+                }
             },
             CallbackSetterVariants::Ipc(ipc_receiver) => {
                 let new_callback = move |msg: Result<T, ipc_channel::SerDeError>| {
@@ -281,10 +283,7 @@ where
 mod single_process_callback_test {
     use crate::generic_channel::lazy_callback::{lazy_callback_inprocess, lazy_callback_ipc};
 
-    #[test]
-    fn lazy_callback_simple_inprocess() {
-        let (callback, callback_setter) = lazy_callback_inprocess();
-
+    fn test_lazy_callback(callback: LazyCallback<bool>, callback_setter: CallbackSetter<bool>) {
         let t1 = std::thread::spawn(move || {
             callback.send(true).expect("Could not send");
         });
@@ -303,23 +302,14 @@ mod single_process_callback_test {
     }
 
     #[test]
+    fn lazy_callback_simple_inprocess() {
+        let (callback, callback_setter) = lazy_callback_inprocess();
+        test_lazy_callback(callback, callback_setter);
+    }
+
+    #[test]
     fn lazy_callback_simple_ipc() {
         let (callback, callback_setter) = lazy_callback_ipc();
-
-        let t1 = std::thread::spawn(move || {
-            callback.send(true).expect("Could not send");
-        });
-
-        let (sender, receiver) = crossbeam_channel::bounded(1);
-        let t2 = std::thread::spawn(move || {
-            std::thread::sleep(std::time::Duration::from_secs(1));
-            callback_setter.set_callback(move |value| {
-                sender.send(value).expect("Could not send");
-            });
-        });
-
-        t1.join().expect("error joining thread");
-        t2.join().expect("error joining thread");
-        assert_eq!(receiver.recv().unwrap().unwrap(), true);
+        test_lazy_callback(callback, callback_setter);
     }
 }
