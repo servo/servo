@@ -145,12 +145,12 @@ impl IDBVersionChangeEventMethods<crate::DomTypeHolder> for IDBVersionChangeEven
         )
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbversionchangeevent-oldversion>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbversionchangeevent-oldversion>
     fn OldVersion(&self) -> u64 {
         self.old_version
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbversionchangeevent-newversion>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbversionchangeevent-newversion>
     fn GetNewVersion(&self) -> Option<u64> {
         self.new_version
     }

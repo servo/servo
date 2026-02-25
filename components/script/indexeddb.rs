@@ -35,7 +35,7 @@ use crate::dom::file::File;
 use crate::dom::idbkeyrange::IDBKeyRange;
 use crate::dom::idbobjectstore::KeyPath;
 
-// https://www.w3.org/TR/IndexedDB-2/#convert-key-to-value
+// https://www.w3.org/TR/IndexedDB-3/#convert-key-to-value
 #[expect(unsafe_code)]
 pub fn key_type_to_jsval(
     cx: &mut JSContext,
@@ -61,7 +61,7 @@ pub fn key_type_to_jsval(
     }
 }
 
-/// <https://www.w3.org/TR/IndexedDB-2/#valid-key-path>
+/// <https://www.w3.org/TR/IndexedDB-3/#valid-key-path>
 pub(crate) fn is_valid_key_path(
     cx: &mut JSContext,
     key_path: &StrOrStringSequence,
@@ -135,7 +135,7 @@ impl ConversionResult {
     }
 }
 
-// https://www.w3.org/TR/IndexedDB-2/#convert-value-to-key
+// https://www.w3.org/TR/IndexedDB-3/#convert-value-to-key
 #[expect(unsafe_code)]
 pub fn convert_value_to_key(
     cx: &mut JSContext,
@@ -238,7 +238,7 @@ pub fn convert_value_to_key(
     Ok(ConversionResult::Invalid)
 }
 
-/// <https://www.w3.org/TR/IndexedDB-2/#convert-a-value-to-a-key-range>
+/// <https://www.w3.org/TR/IndexedDB-3/#convert-a-value-to-a-key-range>
 #[expect(unsafe_code)]
 pub fn convert_value_to_key_range(
     cx: &mut JSContext,
@@ -296,13 +296,13 @@ pub(crate) fn map_backend_error_to_dom_error(error: BackendError) -> Error {
 }
 
 /// The result of steps in
-/// <https://www.w3.org/TR/IndexedDB-2/#evaluate-a-key-path-on-a-value>
+/// <https://www.w3.org/TR/IndexedDB-3/#evaluate-a-key-path-on-a-value>
 pub(crate) enum EvaluationResult {
     Success,
     Failure,
 }
 
-/// <https://www.w3.org/TR/IndexedDB-2/#evaluate-a-key-path-on-a-value>
+/// <https://www.w3.org/TR/IndexedDB-3/#evaluate-a-key-path-on-a-value>
 #[expect(unsafe_code)]
 pub(crate) fn evaluate_key_path_on_value(
     cx: &mut JSContext,
@@ -515,14 +515,14 @@ pub(crate) fn evaluate_key_path_on_value(
 }
 
 /// The result of steps in
-/// <https://www.w3.org/TR/IndexedDB-2/#extract-a-key-from-a-value-using-a-key-path>
+/// <https://www.w3.org/TR/IndexedDB-3/#extract-a-key-from-a-value-using-a-key-path>
 pub(crate) enum ExtractionResult {
     Key(IndexedDBKeyType),
     Invalid,
     Failure,
 }
 
-/// <https://www.w3.org/TR/IndexedDB-2/#extract-a-key-from-a-value-using-a-key-path>
+/// <https://www.w3.org/TR/IndexedDB-3/#extract-a-key-from-a-value-using-a-key-path>
 pub(crate) fn extract_key(
     cx: &mut JSContext,
     value: HandleValue,

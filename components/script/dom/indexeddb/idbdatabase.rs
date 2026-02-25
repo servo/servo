@@ -50,7 +50,7 @@ pub struct IDBDatabase {
 
     // Flags
     /// <https://w3c.github.io/IndexedDB/#connection-close-pending-flag>
-    closing: Cell<bool>,
+    close_pending: Cell<bool>,
 }
 
 impl IDBDatabase {
@@ -62,7 +62,7 @@ impl IDBDatabase {
             version: Cell::new(version),
             object_store_names: Default::default(),
             upgrade_transaction: Default::default(),
-            closing: Cell::new(false),
+            close_pending: Cell::new(false),
         }
     }
 
@@ -162,8 +162,8 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // Step 1: Check if upgrade transaction is running
         // FIXME:(rasviitanen)
 
-        // Step 2: if close flag is set, throw error
-        if self.closing.get() {
+        // Step 2: if close pending flag is set, throw error
+        if self.close_pending.get() {
             return Err(Error::InvalidState(None));
         }
 
@@ -211,7 +211,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         Ok(transaction)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-createobjectstore>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-createobjectstore>
     fn CreateObjectStore(
         &self,
         cx: &mut JSContext,
@@ -306,7 +306,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         Ok(object_store)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-deleteobjectstore>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-deleteobjectstore>
     fn DeleteObjectStore(&self, name: DOMString) -> Fallible<()> {
         // Steps 1 & 2
         let transaction = self.upgrade_transaction.get();
@@ -358,17 +358,17 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         Ok(())
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-name>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-name>
     fn Name(&self) -> DOMString {
         self.name.clone()
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-version>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-version>
     fn Version(&self) -> u64 {
         self.version()
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-objectstorenames>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-objectstorenames>
     fn ObjectStoreNames(&self, can_gc: CanGc) -> DomRoot<DOMStringList> {
         DOMStringList::new_sorted(&self.global(), &*self.object_store_names.borrow(), can_gc)
     }
@@ -379,7 +379,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
         // <https://w3c.github.io/IndexedDB/#close-a-database-connection>
         // Step 1: Set connection’s close pending flag to true.
-        self.closing.set(true);
+        self.close_pending.set(true);
 
         // Note: rest of algo runs in-parallel.
         let operation = SyncOperation::CloseDatabase(
@@ -392,15 +392,15 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             .send(IndexedDBThreadMsg::Sync(operation));
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-onabort
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-onabort
     event_handler!(abort, GetOnabort, SetOnabort);
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-onclose
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-onclose
     event_handler!(close, GetOnclose, SetOnclose);
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-onerror
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-onerror
     event_handler!(error, GetOnerror, SetOnerror);
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbdatabase-onversionchange
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-onversionchange
     event_handler!(versionchange, GetOnversionchange, SetOnversionchange);
 }

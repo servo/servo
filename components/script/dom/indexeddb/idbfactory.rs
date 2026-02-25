@@ -43,7 +43,7 @@ pub(crate) struct DBName(pub(crate) String);
 #[dom_struct]
 pub struct IDBFactory {
     reflector_: Reflector,
-    /// <https://www.w3.org/TR/IndexedDB-2/#connection>
+    /// <https://www.w3.org/TR/IndexedDB-3/#connection>
     /// The connections opened through this factory.
     /// We store the open request, which contains the connection.
     /// TODO: remove when we are sure they are not needed anymore.
@@ -618,7 +618,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         p
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-cmp>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbfactory-cmp>
     fn Cmp(&self, cx: &mut JSContext, first: HandleValue, second: HandleValue) -> Fallible<i16> {
         let first_key = convert_value_to_key(cx, first, None)?.into_result()?;
         let second_key = convert_value_to_key(cx, second, None)?.into_result()?;

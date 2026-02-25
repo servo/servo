@@ -38,7 +38,7 @@ impl DOMStringList {
         )
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#sorted-name-list>
+    /// <https://www.w3.org/TR/IndexedDB-3/#sorted-name-list>
     pub(crate) fn new_sorted<'a>(
         global: &GlobalScope,
         strings: impl IntoIterator<Item = &'a DOMString>,

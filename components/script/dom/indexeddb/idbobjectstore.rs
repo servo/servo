@@ -175,7 +175,7 @@ impl IDBObjectStore {
         receiver.recv().unwrap().unwrap().has_key_generator
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#object-store-in-line-keys>
+    /// <https://www.w3.org/TR/IndexedDB-3/#object-store-in-line-keys>
     fn uses_inline_keys(&self) -> bool {
         self.key_path.is_some()
     }
@@ -219,7 +219,7 @@ impl IDBObjectStore {
         Ok(())
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-put>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-put>
     fn put(
         &self,
         cx: &mut JSContext,
@@ -310,8 +310,8 @@ impl IDBObjectStore {
         )
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-opencursor>
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-openkeycursor>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-opencursor>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-openkeycursor>
     fn open_cursor(
         &self,
         cx: &mut JSContext,
@@ -415,7 +415,7 @@ impl IDBObjectStore {
 }
 
 impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-put>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-put>
     fn Put(
         &self,
         cx: &mut JSContext,
@@ -425,7 +425,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.put(cx, value, key, true)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-add>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-add>
     fn Add(
         &self,
         cx: &mut JSContext,
@@ -435,7 +435,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.put(cx, value, key, false)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-delete>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-delete>
     fn Delete(&self, cx: &mut JSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -466,7 +466,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-clear>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-clear>
     fn Clear(&self, cx: &mut JSContext) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -488,7 +488,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         )
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-get>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-get>
     fn Get(&self, cx: &mut JSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -519,7 +519,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getkey>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-getkey>
     fn GetKey(&self, cx: &mut JSContext, query: HandleValue) -> Result<DomRoot<IDBRequest>, Error> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -551,7 +551,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getall>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-getall>
     fn GetAll(
         &self,
         cx: &mut JSContext,
@@ -589,7 +589,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-getallkeys>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-getallkeys>
     fn GetAllKeys(
         &self,
         cx: &mut JSContext,
@@ -627,7 +627,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-count>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-count>
     fn Count(&self, cx: &mut JSContext, query: HandleValue) -> Fallible<DomRoot<IDBRequest>> {
         // Step 1. Let transaction be this’s transaction.
         // Step 2. Let store be this's object store.
@@ -658,7 +658,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         })
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-opencursor>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-opencursor>
     fn OpenCursor(
         &self,
         cx: &mut JSContext,
@@ -668,7 +668,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.open_cursor(cx, query, direction, false)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-openkeycursor>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-openkeycursor>
     fn OpenKeyCursor(
         &self,
         cx: &mut JSContext,
@@ -678,12 +678,12 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         self.open_cursor(cx, query, direction, true)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-name>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-name>
     fn Name(&self) -> DOMString {
         self.name.borrow().clone()
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-setname>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-setname>
     fn SetName(&self, value: DOMString) -> ErrorResult {
         // Step 2. Let transaction be this’s transaction.
         let transaction = &self.transaction;
@@ -703,7 +703,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         Ok(())
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-keypath>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-keypath>
     fn KeyPath(&self, cx: &mut JSContext, mut ret_val: MutableHandleValue) {
         match &self.key_path {
             Some(KeyPath::String(path)) => path.safe_to_jsval(cx, ret_val),
@@ -712,22 +712,22 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         }
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-indexnames>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-indexnames>
     fn IndexNames(&self, can_gc: CanGc) -> DomRoot<DOMStringList> {
         DOMStringList::new_sorted(&self.global(), self.index_set.borrow().keys(), can_gc)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-transaction>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-transaction>
     fn Transaction(&self) -> DomRoot<IDBTransaction> {
         self.transaction()
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-autoincrement>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-autoincrement>
     fn AutoIncrement(&self) -> bool {
         self.has_key_generator()
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-createindex>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-createindex>
     fn CreateIndex(
         &self,
         name: DOMString,
@@ -786,7 +786,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
         Ok(index)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbobjectstore-deleteindex>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-deleteindex>
     fn DeleteIndex(&self, name: DOMString) -> Fallible<()> {
         // Step 3. If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
         if self.transaction.Mode() != IDBTransactionMode::Versionchange {

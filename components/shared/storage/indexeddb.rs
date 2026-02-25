@@ -64,7 +64,7 @@ pub enum KeyPath {
     Sequence(Vec<String>),
 }
 
-// https://www.w3.org/TR/IndexedDB-2/#enumdef-idbtransactionmode
+// https://www.w3.org/TR/IndexedDB-3/#enumdef-idbtransactionmode
 #[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum IndexedDBTxnMode {
     Readonly,
@@ -72,7 +72,7 @@ pub enum IndexedDBTxnMode {
     Versionchange,
 }
 
-/// <https://www.w3.org/TR/IndexedDB-2/#key-type>
+/// <https://www.w3.org/TR/IndexedDB-3/#key-type>
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum IndexedDBKeyType {
     Number(f64),
@@ -83,7 +83,7 @@ pub enum IndexedDBKeyType {
     // FIXME:(arihant2math) implment ArrayBuffer
 }
 
-/// <https://www.w3.org/TR/IndexedDB-2/#compare-two-keys>
+/// <https://www.w3.org/TR/IndexedDB-3/#compare-two-keys>
 impl PartialOrd for IndexedDBKeyType {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         // 1. Let ta be the type of a.
@@ -163,7 +163,7 @@ impl PartialEq for IndexedDBKeyType {
     }
 }
 
-// <https://www.w3.org/TR/IndexedDB-2/#key-range>
+// <https://www.w3.org/TR/IndexedDB-3/#key-range>
 #[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct IndexedDBKeyRange {
     pub lower: Option<IndexedDBKeyType>,
@@ -219,7 +219,7 @@ impl IndexedDBKeyRange {
         }
     }
 
-    // <https://www.w3.org/TR/IndexedDB-2/#in>
+    // <https://www.w3.org/TR/IndexedDB-3/#in>
     pub fn contains(&self, key: &IndexedDBKeyType) -> bool {
         // A key is in a key range if both of the following conditions are fulfilled:
         // The lower bound is null, or it is less than key,

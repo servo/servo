@@ -617,8 +617,10 @@ enum OpenRequest {
         /// Note: when the open algorithm starts, this will be mutated and set to something as per the algo.
         version: Option<u64>,
 
+        /// <https://w3c.github.io/IndexedDB/#request-processed-flag>
+        processed: bool,
+
         /// Optionnaly, a version pending upgrade.
-        /// Used as <https://w3c.github.io/IndexedDB/#request-processed-flag>
         pending_upgrade: Option<VersionUpgrade>,
 
         /// This request is pending on these connections to close.
@@ -659,6 +661,7 @@ impl OpenRequest {
                 sender: _,
                 db_name: _,
                 version: _,
+                processed: _,
                 pending_upgrade: _,
                 pending_close: _,
                 pending_versionchange: _,
@@ -681,6 +684,7 @@ impl OpenRequest {
                 sender: _,
                 db_name: _,
                 version: _,
+                processed: _,
                 pending_upgrade: _,
                 pending_close: _,
                 pending_versionchange: _,
@@ -696,20 +700,22 @@ impl OpenRequest {
         }
     }
 
-    /// An open request can be pending either an upgrade,
-    /// or the closing of other connections.
+    /// An open request remains pending until it has been processed,
+    /// and while waiting on upgrade completion or other connections.
     fn is_pending(&self) -> bool {
         match self {
             OpenRequest::Open {
                 sender: _,
                 db_name: _,
                 version: _,
+                processed,
                 pending_upgrade,
                 pending_close,
                 pending_versionchange,
                 id: _,
             } => {
-                pending_upgrade.is_some() ||
+                !processed ||
+                    pending_upgrade.is_some() ||
                     !pending_close.is_empty() ||
                     !pending_versionchange.is_empty()
             },
@@ -731,6 +737,7 @@ impl OpenRequest {
                 sender,
                 db_name,
                 version: _,
+                processed: _,
                 pending_close: _,
                 pending_versionchange: _,
                 pending_upgrade,
@@ -1009,6 +1016,7 @@ impl IndexedDBManager {
                 sender,
                 db_name,
                 version: _,
+                processed: _,
                 pending_upgrade: Some(pending_upgrade),
                 pending_close: _,
                 pending_versionchange: _,
@@ -1255,6 +1263,7 @@ impl IndexedDBManager {
             sender,
             db_name,
             version,
+            processed: false,
             pending_close: Default::default(),
             pending_versionchange: Default::default(),
             pending_upgrade: None,
@@ -1316,6 +1325,7 @@ impl IndexedDBManager {
             sender,
             db_name,
             version: _,
+            processed,
             id,
             pending_close: _,
             pending_versionchange: _,
@@ -1358,6 +1368,7 @@ impl IndexedDBManager {
             .expect("Setting the version should not fail");
 
         // Step 9: Set request’s processed flag to true.
+        *processed = true;
         let _ = pending_upgrade.insert(VersionUpgrade {
             old: old_version,
             new: new_version,
@@ -1407,6 +1418,7 @@ impl IndexedDBManager {
                 version,
                 id,
                 pending_upgrade: _,
+                processed: _,
                 pending_versionchange,
                 pending_close,
             } = open_request
@@ -1481,6 +1493,7 @@ impl IndexedDBManager {
             db_name,
             version,
             id,
+            processed,
             pending_upgrade: _pending_upgrade,
             pending_close,
             pending_versionchange,
@@ -1517,6 +1530,7 @@ impl IndexedDBManager {
                         }) {
                             debug!("Script exit during indexeddb database open {:?}", e);
                         }
+                        *processed = true;
                         return;
                     },
                 };
@@ -1533,6 +1547,7 @@ impl IndexedDBManager {
                         }) {
                             debug!("Script exit during indexeddb database open {:?}", e);
                         }
+                        *processed = true;
                         return;
                     },
                 };
@@ -1558,6 +1573,7 @@ impl IndexedDBManager {
                         }) {
                             debug!("Script exit during indexeddb database open {:?}", e);
                         }
+                        *processed = true;
                         return;
                     },
                 };
@@ -1587,6 +1603,7 @@ impl IndexedDBManager {
             {
                 debug!("Script exit during indexeddb database open");
             }
+            *processed = true;
             return;
         }
 
@@ -1636,6 +1653,7 @@ impl IndexedDBManager {
         }
 
         // Step 11:
+        *processed = true;
         if sender
             .send(ConnectionMsg::Connection {
                 name: db_name.clone(),
@@ -1719,6 +1737,7 @@ impl IndexedDBManager {
             // Step 10: Let version be db’s version.
             let res = db.version();
             let Ok(version) = res else {
+                *processed = true;
                 if sender
                     .send(BackendResult::Err(BackendError::DbErr(
                         res.unwrap_err().to_string(),
@@ -1734,6 +1753,7 @@ impl IndexedDBManager {
             // If this fails for any reason,
             // return an appropriate error (e.g. a QuotaExceededError, or an "UnknownError" DOMException).
             if let Err(err) = db.delete_database() {
+                *processed = true;
                 if sender
                     .send(BackendResult::Err(BackendError::DbErr(err.to_string())))
                     .is_err()
@@ -1789,6 +1809,7 @@ impl IndexedDBManager {
                 db_name: _,
                 version,
                 id: _,
+                processed: _,
                 pending_upgrade,
                 pending_versionchange,
                 pending_close,

@@ -48,11 +48,11 @@ pub struct IDBTransaction {
     error: MutNullableDom<DOMException>,
 
     store_handles: DomRefCell<HashMap<String, Dom<IDBObjectStore>>>,
-    // https://www.w3.org/TR/IndexedDB-2/#transaction-request-list
+    // https://www.w3.org/TR/IndexedDB-3/#transaction-request-list
     requests: DomRefCell<Vec<Dom<IDBRequest>>>,
-    // https://www.w3.org/TR/IndexedDB-2/#transaction-active-flag
+    // https://www.w3.org/TR/IndexedDB-3/#transaction-active-flag
     active: Cell<bool>,
-    // https://www.w3.org/TR/IndexedDB-2/#transaction-finish
+    // https://www.w3.org/TR/IndexedDB-3/#transaction-finish
     finished: Cell<bool>,
     abort_initiated: Cell<bool>,
     abort_requested: Cell<bool>,
@@ -626,12 +626,12 @@ impl IDBTransaction {
 }
 
 impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-db>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-db>
     fn Db(&self) -> DomRoot<IDBDatabase> {
         DomRoot::from_ref(&*self.db)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstore>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-objectstore>
     fn ObjectStore(&self, name: DOMString, can_gc: CanGc) -> Fallible<DomRoot<IDBObjectStore>> {
         // Step 1: If transaction has finished, throw an "InvalidStateError" DOMException.
         if self.finished.get() || self.abort_initiated.get() {
@@ -685,7 +685,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         Ok(store)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#commit-transaction>
+    /// <https://www.w3.org/TR/IndexedDB-3/#commit-transaction>
     fn Commit(&self) -> Fallible<()> {
         // Step 1
         if self.finished.get() {
@@ -705,7 +705,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         Ok(())
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-abort>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-abort>
     fn Abort(&self) -> Fallible<()> {
         if self.finished.get() || self.committing.get() {
             return Err(Error::InvalidState(None));
@@ -717,7 +717,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         Ok(())
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstorenames>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-objectstorenames>
     fn ObjectStoreNames(&self) -> DomRoot<DOMStringList> {
         if self.mode == IDBTransactionMode::Versionchange {
             self.db.object_stores()
@@ -726,28 +726,28 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         }
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-mode>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-mode>
     fn Mode(&self) -> IDBTransactionMode {
         self.mode
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-mode
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-mode
     // fn Durability(&self) -> IDBTransactionDurability {
     //     // FIXME:(arihant2math) Durability is not implemented at all
     //     unimplemented!();
     // }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-error>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-error>
     fn GetError(&self) -> Option<DomRoot<DOMException>> {
         self.error.get()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-onabort
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-onabort
     event_handler!(abort, GetOnabort, SetOnabort);
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-oncomplete
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-oncomplete
     event_handler!(complete, GetOncomplete, SetOncomplete);
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-onerror
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-onerror
     event_handler!(error, GetOnerror, SetOnerror);
 }
