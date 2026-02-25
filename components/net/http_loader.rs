@@ -1056,10 +1056,6 @@ pub async fn http_fetch(
         };
     }
 
-    if let Some(ref body) = fetch_params.request.body {
-        body.close_stream();
-    }
-
     // set back to default
     response.return_internal = true;
     context

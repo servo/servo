@@ -239,6 +239,15 @@ pub async fn fetch_with_cors_cache(
             .retain(|record| record.request_id != request_id);
     }
 
+    if fetch_params.request.mode != RequestMode::Navigate {
+        // Lifecycle: Non-Navigate fetches complete redirect/body replay within this
+        // function, so no later `extract_source()` can occur after this return.
+        // we can close the stream.
+        if let Some(body) = fetch_params.request.body.as_ref() {
+            body.close_stream();
+        }
+    }
+
     // Step 18: Return fetchParams’s controller.
     // TODO: We don't implement fetchParams as defined in the spec
     response
