@@ -8053,6 +8053,7 @@ dependencies = [
  "phf",
  "phf_codegen",
  "phf_shared",
+ "profile_traits",
  "regex",
  "serde_json",
  "servo_arc",

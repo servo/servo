@@ -32,20 +32,14 @@ pub struct StackEntry<D: DomTypes> {
 /// <https://html.spec.whatwg.org/multipage/#clean-up-after-running-script>
 pub fn run_a_script<D: DomTypes, R>(global: &D::GlobalScope, f: impl FnOnce() -> R) -> R {
     let settings_stack = <D as DomHelpers<D>>::settings_stack();
-    settings_stack.with(|stack| {
+    let _span = settings_stack.with(|stack| {
         trace!("Prepare to run script with {:p}", global);
         let mut stack = stack.borrow_mut();
         stack.push(StackEntry {
             global: Dom::from_ref(global),
             kind: StackEntryKind::Entry,
         });
-        #[cfg(feature = "tracing")]
-        tracing::info_span!(
-            "ScriptEvaluate",
-            servo_profiling = true,
-            url = global.get_url().to_string(),
-        )
-        .entered()
+        profile_traits::info_span!("ScriptEvaluate", url = global.get_url().to_string()).entered()
     });
     let r = f();
     let stack_is_empty = settings_stack.with(|stack| {
