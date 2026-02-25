@@ -1658,7 +1658,7 @@ impl DocumentEventHandler {
         }
     }
 
-    /// Handle scroll events triggered by user interactions from embedder-side.
+    /// Handle a scroll event triggered by user interactions from the embedder.
     /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
     #[expect(unsafe_code)]
     pub(crate) fn handle_embedder_scroll_event(&self, scrolled_node: ExternalScrollId) {

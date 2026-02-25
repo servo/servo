@@ -211,7 +211,7 @@ pub enum MessagePortMsg {
 }
 
 /// A data structure which contains information for the pipeline after a scroll happens in the
-/// embedder-side of a `WebView`.
+/// embedder-side `WebView`.
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ScrollStateUpdate {
     /// The [`ExternalScrollId`] of the node that that was scrolled.
