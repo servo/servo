@@ -13,12 +13,15 @@ use crate::script_runtime::CanGc;
 
 impl Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#enabled>
-    fn selection_if_command_is_enabled(&self, can_gc: CanGc) -> Option<DomRoot<Selection>> {
+    fn selection_if_command_is_enabled(
+        &self,
+        cx: &mut js::context::JSContext,
+    ) -> Option<DomRoot<Selection>> {
         // > Among commands defined in this specification, those listed in Miscellaneous commands are always enabled,
         // > except for the cut command and the paste command.
         // TODO
         // > The other commands defined here are enabled if the active range is not null,
-        let selection = self.GetSelection(can_gc)?;
+        let selection = self.GetSelection(CanGc::from_cx(cx))?;
         let range = selection.active_range()?;
         // > its start node is either editable or an editing host,
         if !range.start_container().is_editable_or_editing_host() {
@@ -58,14 +61,14 @@ pub(crate) trait DocumentExecCommandSupport {
     fn command_value_for_command(&self, command_id: DOMString) -> DOMString;
     fn check_support_and_enabled(
         &self,
+        cx: &mut js::context::JSContext,
         command_id: DOMString,
-        can_gc: CanGc,
     ) -> Option<(Box<dyn BaseCommand>, DomRoot<Selection>)>;
     fn exec_command_for_command_id(
         &self,
+        cx: &mut js::context::JSContext,
         command_id: DOMString,
         value: DOMString,
-        can_gc: CanGc,
     ) -> bool;
 }
 
@@ -124,23 +127,23 @@ impl DocumentExecCommandSupport for Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandenabled()>
     fn check_support_and_enabled(
         &self,
+        cx: &mut js::context::JSContext,
         command_id: DOMString,
-        can_gc: CanGc,
     ) -> Option<(Box<dyn BaseCommand>, DomRoot<Selection>)> {
         // Step 2. Return true if command is both supported and enabled, false otherwise.
         self.command_if_command_is_supported(command_id)
-            .zip(self.selection_if_command_is_enabled(can_gc))
+            .zip(self.selection_if_command_is_enabled(cx))
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#execcommand()>
     fn exec_command_for_command_id(
         &self,
+        cx: &mut js::context::JSContext,
         command_id: DOMString,
         value: DOMString,
-        can_gc: CanGc,
     ) -> bool {
         // Step 3. If command is not supported or not enabled, return false.
-        let Some((command, selection)) = self.check_support_and_enabled(command_id, can_gc) else {
+        let Some((command, selection)) = self.check_support_and_enabled(cx, command_id) else {
             return false;
         };
         // Step 4. If command is not in the Miscellaneous commands section:
@@ -167,7 +170,7 @@ impl DocumentExecCommandSupport for Document {
         // TODO
 
         // Step 5. Take the action for command, passing value to the instructions as an argument.
-        let result = command.execute(&selection, value);
+        let result = command.execute(cx, &selection, value);
         // Step 6. If the previous step returned false, return false.
         if !result {
             return false;

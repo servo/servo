@@ -22,5 +22,10 @@ pub(crate) trait BaseCommand {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#action>
-    fn execute(&self, selection: &Selection, value: DOMString) -> bool;
+    fn execute(
+        &self,
+        cx: &mut js::context::JSContext,
+        selection: &Selection,
+        value: DOMString,
+    ) -> bool;
 }
