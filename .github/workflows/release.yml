@@ -136,8 +136,7 @@ jobs:
         run: |
           gh release upload "${{ needs.create-draft-release.outputs.release-tag }}" \
             "${ARTIFACT_FILENAME}" \
-            --repo "${RELEASE_REPO}" \
-            --clobber
+            --repo "${RELEASE_REPO}"
         env:
           GITHUB_TOKEN: ${{ inputs.regular_release && github.token || secrets.NIGHTLY_REPO_TOKEN }}
 
