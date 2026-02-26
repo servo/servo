@@ -1105,7 +1105,15 @@ pub(crate) fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         }
     }
 
-    let tentative_block_size = &containing_block_for_children.size.block;
+    let is_anonymous = matches!(base.style.pseudo(), Some(PseudoElement::ServoAnonymousBox));
+    let tentative_block_size = if is_anonymous {
+        // Anonymous blocks do not establish a containing block for their children,
+        // so we can't use that. However, they always have their sizing properties
+        // set to their initial values, so it's fine to use the default.
+        &Default::default()
+    } else {
+        &containing_block_for_children.size.block
+    };
     let collapsed_through = collapsible_margins_in_children.collapsed_through &&
         pbm.padding_border_sums.block.is_zero() &&
         tentative_block_size.definite_or_min().is_zero();
@@ -1194,7 +1202,6 @@ pub(crate) fn layout_in_flow_non_replaced_block_level_same_formatting_context(
     // An anonymous block doesn't establish a containing block for its contents. Therefore,
     // if its contents depend on block constraints, its block size (which is intrinsic) also
     // depends on block constraints.
-    let is_anonymous = matches!(base.style.pseudo(), Some(PseudoElement::ServoAnonymousBox));
     if depends_on_block_constraints || (is_anonymous && flow_layout.depends_on_block_constraints) {
         base_fragment_info
             .flags
