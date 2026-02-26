@@ -8,6 +8,13 @@ const debuggeesToWorkerIds = new Map;
 const sourceIdsToScripts = new Map;
 const frameActorsToFrames = new Map;
 
+// <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#155>
+// Possible values for the `why.type` attribute in "paused" event
+const PAUSE_REASONS = {
+  INTERRUPTED: "interrupted", // Associated with why.onNext attribute
+  RESUME_LIMIT: "resumeLimit",
+};
+
 // Find script by scriptId within a script tree
 function findScriptById(script, scriptId) {
     if (script.sourceStart === scriptId) {
@@ -132,7 +139,7 @@ addEventListener("getPossibleBreakpoints", event => {
     getPossibleBreakpointsResult(event, result);
 });
 
-function handlePauseAndRespond(frame, isBreakpoint) {
+function handlePauseAndRespond(frame, pause_reason) {
     // Get the pipeline ID for this debuggee
     const pipelineId = debuggeesToPipelineIds.get(frame.script.global);
     if (!pipelineId) {
@@ -141,8 +148,8 @@ function handlePauseAndRespond(frame, isBreakpoint) {
     }
 
     // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#getoffsetmetadata-offset>
-    let offset = frame.offset;
-    let offsetMetadata = frame.script.getOffsetMetadata(offset);
+    const offset = frame.offset;
+    const offsetMetadata = frame.script.getOffsetMetadata(offset);
 
     const frameActorId = registerFrameActor(pipelineId, {
         // TODO: Some properties throw if terminated is true
@@ -164,7 +171,10 @@ function handlePauseAndRespond(frame, isBreakpoint) {
     frameActorsToFrames.set(frameActorId, frame);
 
     // Notify devtools and enter pause loop. This blocks until Resume.
-    pauseAndRespond(pipelineId, frameActorId, isBreakpoint);
+    pauseAndRespond(pipelineId,
+        frameActorId,
+        pause_reason,
+    );
 
     // <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
     // Return undefined to continue execution normally after resume.
@@ -179,7 +189,7 @@ addEventListener("setBreakpoint", event => {
         target.setBreakpoint(offset, {
             // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#setbreakpoint-offset-handler>
             // The hit handler receives a Debugger.Frame instance representing the currently executing stack frame.
-            hit: (frame) => handlePauseAndRespond(frame, true)
+            hit: (frame) => handlePauseAndRespond(frame, {type_: "breakpoint"})
         });
     }
 });
@@ -188,7 +198,7 @@ addEventListener("setBreakpoint", event => {
 addEventListener("interrupt", event => {
     dbg.onEnterFrame = function(frame) {
         dbg.onEnterFrame = undefined;
-        handlePauseAndRespond(frame, false);
+        handlePauseAndRespond(frame, { type_:PAUSE_REASONS.INTERRUPTED, onNext: true});
     };
 });
 

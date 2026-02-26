@@ -11,11 +11,16 @@ partial interface DebuggerGlobalScope {
     undefined pauseAndRespond(
         PipelineIdInit pipelineId,
         DOMString frameActorId,
-        boolean isBreakpoint);
+        PauseReason pauseReason);
 
     DOMString? registerFrameActor(
         PipelineIdInit pipelineId,
         FrameInfo result);
+};
+
+dictionary PauseReason {
+    required DOMString type_;
+    boolean onNext;
 };
 
 dictionary FrameInfo {

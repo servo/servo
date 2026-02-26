@@ -31,7 +31,9 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
-use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::FrameInfo;
+use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::{
+    FrameInfo, PauseReason,
+};
 use crate::dom::bindings::error::report_pending_exception;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -455,18 +457,23 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         &self,
         pipeline_id: &PipelineIdInit,
         frame_actor_id: DOMString,
-        is_breakpoint: bool,
+        pause_reason: &PauseReason,
     ) {
         let pipeline_id = PipelineId {
             namespace_id: PipelineNamespaceId(pipeline_id.namespaceId),
             index: Index::new(pipeline_id.index).expect("`pipelineId.index` must not be zero"),
         };
 
+        let pause_reason = devtools_traits::PauseReason {
+            type_: pause_reason.type_.clone().into(),
+            on_next: pause_reason.onNext,
+        };
+
         if let Some(chan) = self.upcast::<GlobalScope>().devtools_chan() {
             let msg = ScriptToDevtoolsControlMsg::DebuggerPause(
                 pipeline_id,
                 frame_actor_id.into(),
-                is_breakpoint,
+                pause_reason,
             );
             let _ = chan.send(msg);
         }

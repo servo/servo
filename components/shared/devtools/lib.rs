@@ -133,7 +133,7 @@ pub enum ScriptToDevtoolsControlMsg {
     DomMutation(PipelineId, DomMutation),
 
     /// The debugger is paused, sending frame information.
-    DebuggerPause(PipelineId, String, bool),
+    DebuggerPause(PipelineId, String, PauseReason),
 
     /// Get frame information from script
     CreateFrameActor(GenericSender<String>, PipelineId, FrameInfo),
@@ -588,4 +588,12 @@ pub struct FrameInfo {
 pub struct EventListenerInfo {
     pub event_type: String,
     pub capturing: bool,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PauseReason {
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub on_next: Option<bool>,
 }

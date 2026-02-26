@@ -25,7 +25,7 @@ use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,
     DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation, FrameInfo,
-    NavigationState, NetworkEvent, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
+    NavigationState, NetworkEvent, PauseReason, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
     get_time_stamp,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
@@ -50,7 +50,7 @@ use crate::actors::network_event::NetworkEventActor;
 use crate::actors::pause::PauseActor;
 use crate::actors::root::RootActor;
 use crate::actors::source::SourceActor;
-use crate::actors::thread::{ThreadActor, ThreadInterruptedReply, WhyMsg};
+use crate::actors::thread::{ThreadActor, ThreadInterruptedReply};
 use crate::actors::watcher::WatcherActor;
 use crate::actors::worker::{WorkerActor, WorkerType};
 use crate::id::IdMap;
@@ -367,8 +367,8 @@ impl DevtoolsInstance {
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::DebuggerPause(
                     pipeline_id,
                     frame_actor_id,
-                    is_breakpoint,
-                )) => self.handle_debugger_pause(pipeline_id, frame_actor_id, is_breakpoint),
+                    pause_reason,
+                )) => self.handle_debugger_pause(pipeline_id, frame_actor_id, pause_reason),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::CreateFrameActor(
                     result_sender,
                     pipeline_id,
@@ -762,7 +762,7 @@ impl DevtoolsInstance {
         &mut self,
         pipeline_id: PipelineId,
         frame_actor_id: String,
-        is_breakpoint: bool,
+        pause_reason: PauseReason,
     ) {
         let actors = &self.registry;
 
@@ -782,25 +782,12 @@ impl DevtoolsInstance {
             name: pause.clone(),
         });
 
-        // <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1662>
-        let why = if is_breakpoint {
-            WhyMsg {
-                type_: "breakpoint".into(),
-                on_next: None,
-            }
-        } else {
-            WhyMsg {
-                type_: "interrupted".into(),
-                on_next: Some(true),
-            }
-        };
-
         let msg = ThreadInterruptedReply {
             from: thread.name(),
             type_: "paused".to_owned(),
             actor: pause,
             frame: actors.encode::<FrameActor, _>(&frame_actor_id),
-            why,
+            why: pause_reason,
         };
 
         for stream in self.connections.lock().unwrap().values_mut() {

@@ -6,7 +6,7 @@ use std::collections::HashSet;
 
 use atomic_refcell::AtomicRefCell;
 use base::generic_channel::GenericSender;
-use devtools_traits::DevtoolScriptControlMsg;
+use devtools_traits::{DevtoolScriptControlMsg, PauseReason};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -30,20 +30,11 @@ struct ThreadAttached {
     recording_endpoint: u32,
     execution_point: u32,
     popped_frames: Vec<PoppedFrameMsg>,
-    why: WhyMsg,
+    why: PauseReason,
 }
 
 #[derive(Serialize)]
 enum PoppedFrameMsg {}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct WhyMsg {
-    #[serde(rename = "type")]
-    pub type_: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub on_next: Option<bool>,
-}
 
 #[derive(Serialize)]
 struct ThreadResumedReply {
@@ -59,7 +50,7 @@ pub(crate) struct ThreadInterruptedReply {
     pub type_: String,
     pub actor: String,
     pub frame: FrameActorMsg,
-    pub why: WhyMsg,
+    pub why: PauseReason,
 }
 
 #[derive(Serialize)]
@@ -121,7 +112,7 @@ impl Actor for ThreadActor {
                     recording_endpoint: 0,
                     execution_point: 0,
                     popped_frames: vec![],
-                    why: WhyMsg {
+                    why: PauseReason {
                         type_: "attached".to_owned(),
                         on_next: None,
                     },
