@@ -2284,7 +2284,7 @@ pub(crate) struct SubtleRsaHashedKeyGenParams {
     public_exponent: Vec<u8>,
 
     /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyGenParams-hash>
-    hash: Box<DigestAlgorithm>,
+    hash: DigestAlgorithm,
 }
 
 impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedKeyGenParams {
@@ -2301,10 +2301,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedKeyGenParams {
             name: dictionary.parent.parent.name.to_string(),
             modulus_length: dictionary.parent.modulusLength,
             public_exponent: dictionary.parent.publicExponent.to_vec(),
-            hash: Box::new(normalize_algorithm::<DigestOperation>(
-                cx,
-                &dictionary.hash,
-            )?),
+            hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
         })
     }
 }
@@ -2322,7 +2319,7 @@ pub(crate) struct SubtleRsaHashedKeyAlgorithm {
     public_exponent: Vec<u8>,
 
     /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyAlgorithm-hash>
-    hash: Box<DigestAlgorithm>,
+    hash: DigestAlgorithm,
 }
 
 impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
@@ -2356,7 +2353,7 @@ struct SubtleRsaHashedImportParams {
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams-hash>
-    hash: Box<DigestAlgorithm>,
+    hash: DigestAlgorithm,
 }
 
 impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedImportParams {
@@ -2371,10 +2368,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedImportParams {
 
         Ok(SubtleRsaHashedImportParams {
             name: dictionary.parent.name.to_string(),
-            hash: Box::new(normalize_algorithm::<DigestOperation>(
-                cx,
-                &dictionary.hash,
-            )?),
+            hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
         })
     }
 }
@@ -2442,7 +2436,7 @@ struct SubtleEcdsaParams {
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-EcdsaParams-hash>
-    hash: Box<DigestAlgorithm>,
+    hash: DigestAlgorithm,
 }
 
 impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcdsaParams {
@@ -2456,10 +2450,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcdsaParams {
 
         Ok(SubtleEcdsaParams {
             name: dictionary.parent.name.to_string(),
-            hash: Box::new(normalize_algorithm::<DigestOperation>(
-                cx,
-                &dictionary.hash,
-            )?),
+            hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
         })
     }
 }
@@ -2756,7 +2747,7 @@ struct SubtleHmacImportParams {
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams-hash>
-    hash: Box<DigestAlgorithm>,
+    hash: DigestAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams-length>
     length: Option<u32>,
@@ -2773,10 +2764,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHmacImportParams {
 
         Ok(SubtleHmacImportParams {
             name: dictionary.parent.name.to_string(),
-            hash: Box::new(normalize_algorithm::<DigestOperation>(
-                cx,
-                &dictionary.hash,
-            )?),
+            hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
             length: dictionary.length,
         })
     }
@@ -2819,7 +2807,7 @@ struct SubtleHmacKeyGenParams {
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-hash>
-    hash: Box<DigestAlgorithm>,
+    hash: DigestAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-length>
     length: Option<u32>,
@@ -2836,10 +2824,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHmacKeyGenParams {
 
         Ok(SubtleHmacKeyGenParams {
             name: dictionary.parent.name.to_string(),
-            hash: Box::new(normalize_algorithm::<DigestOperation>(
-                cx,
-                &dictionary.hash,
-            )?),
+            hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
             length: dictionary.length,
         })
     }
@@ -2852,7 +2837,7 @@ pub(crate) struct SubtleHkdfParams {
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HkdfParams-hash>
-    hash: Box<DigestAlgorithm>,
+    hash: DigestAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HkdfParams-salt>
     salt: Vec<u8>,
@@ -2881,10 +2866,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHkdfParams {
 
         Ok(SubtleHkdfParams {
             name: dictionary.parent.name.to_string(),
-            hash: Box::new(normalize_algorithm::<DigestOperation>(
-                cx,
-                &dictionary.hash,
-            )?),
+            hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
             salt,
             info,
         })
@@ -2904,7 +2886,7 @@ pub(crate) struct SubtlePbkdf2Params {
     iterations: u32,
 
     /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params-hash>
-    hash: Box<DigestAlgorithm>,
+    hash: DigestAlgorithm,
 }
 
 impl<'a> TryFromWithCx<HandleValue<'a>> for SubtlePbkdf2Params {
@@ -2925,10 +2907,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtlePbkdf2Params {
             name: dictionary.parent.name.to_string(),
             salt,
             iterations: dictionary.iterations,
-            hash: Box::new(normalize_algorithm::<DigestOperation>(
-                cx,
-                &dictionary.hash,
-            )?),
+            hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
         })
     }
 }

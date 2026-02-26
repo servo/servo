@@ -179,7 +179,7 @@ pub(crate) fn import_key(
             data = key_data.to_vec();
 
             // Step 4.2. Set hash to equal the hash member of normalizedAlgorithm.
-            hash = normalized_algorithm.hash.as_ref();
+            hash = &normalized_algorithm.hash;
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
@@ -201,7 +201,7 @@ pub(crate) fn import_key(
             data = jwk.decode_required_string_field(JwkStringField::K)?;
 
             // Step 2.5. Set the hash to equal the hash member of normalizedAlgorithm.
-            hash = normalized_algorithm.hash.as_ref();
+            hash = &normalized_algorithm.hash;
 
             // Step 2.6.
             match hash.name() {
