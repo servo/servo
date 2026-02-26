@@ -167,7 +167,11 @@ impl CspReporting for Option<CspList> {
             return false;
         };
         let element = CspElement {
-            nonce: el.nonce_value_if_nonceable().map(Cow::Owned),
+            nonce: if el.is_nonceable() {
+                Some(Cow::Owned(el.nonce_value().trim().to_owned()))
+            } else {
+                None
+            },
         };
         let (result, violations) =
             csp_list.should_elements_inline_type_behavior_be_blocked(&element, type_, source);

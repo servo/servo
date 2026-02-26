@@ -725,7 +725,15 @@ impl HTMLScriptElement {
         };
 
         // Step 24. Let cryptographic nonce be el's [[CryptographicNonce]] internal slot's value.
-        let cryptographic_nonce = self.upcast::<Element>().nonce_value();
+        // If the element has a nonce content attribute but is not nonceable strip the nonce to prevent injection attacks.
+        // Elements without a nonce content attribute (e.g. JS-created with .nonce = "abc")
+        // use the internal slot directly — the nonceable check only applies to parser-created elements.
+        let el = self.upcast::<Element>();
+        let cryptographic_nonce = if el.is_nonceable() || !el.has_attribute(&local_name!("nonce")) {
+            el.nonce_value().trim().to_owned()
+        } else {
+            String::new()
+        };
 
         // Step 25. If el has an integrity attribute, then let integrity metadata be that attribute's value.
         // Otherwise, let integrity metadata be the empty string.

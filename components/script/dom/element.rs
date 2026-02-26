@@ -2626,10 +2626,10 @@ impl Element {
     }
 
     /// <https://www.w3.org/TR/CSP/#is-element-nonceable>
-    pub(crate) fn nonce_value_if_nonceable(&self) -> Option<String> {
+    pub(crate) fn is_nonceable(&self) -> bool {
         // Step 1: If element does not have an attribute named "nonce", return "Not Nonceable".
         if !self.has_attribute(&local_name!("nonce")) {
-            return None;
+            return false;
         }
         // Step 2: If element is a script element, then for each attribute of element’s attribute list:
         if self.downcast::<HTMLScriptElement>().is_some() {
@@ -2638,13 +2638,13 @@ impl Element {
                 // for "<script" or "<style", return "Not Nonceable".
                 let attr_name = attr.name().to_ascii_lowercase();
                 if attr_name.contains("<script") || attr_name.contains("<style") {
-                    return None;
+                    return false;
                 }
                 // Step 2.2: If attribute’s value contains an ASCII case-insensitive match
                 // for "<script" or "<style", return "Not Nonceable".
                 let attr_value = attr.value().to_ascii_lowercase();
                 if attr_value.contains("<script") || attr_value.contains("<style") {
-                    return None;
+                    return false;
                 }
             }
         }
@@ -2652,7 +2652,7 @@ impl Element {
         // TODO(https://github.com/servo/servo/issues/4577 and https://github.com/whatwg/html/issues/3257):
         // Figure out how to retrieve this information from the parser
         // Step 4: Return "Nonceable".
-        Some(self.nonce_value().trim().to_owned())
+        true
     }
 
     // https://dom.spec.whatwg.org/#insert-adjacent
