@@ -31,7 +31,7 @@ use crate::flow::{BlockLevelBox, BlockLevelCreator};
 use crate::fragment_tree::{Fragment, FragmentFlags};
 use crate::geom::PhysicalSize;
 use crate::layout_box_base::LayoutBoxBase;
-use crate::replaced::CanvasInfo;
+use crate::replaced::{CanvasInfo, VideoInfo};
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox};
 use crate::table::{TableLevelBox, WeakTableLevelBox};
 use crate::taffy::TaffyItemBox;
@@ -310,7 +310,7 @@ pub(crate) trait NodeExt<'dom> {
     fn as_image(&self) -> Option<(Option<Image>, PhysicalSize<f64>)>;
     fn as_canvas(&self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
     fn as_iframe(&self) -> Option<(PipelineId, BrowsingContextId)>;
-    fn as_video(&self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)>;
+    fn as_video(&self) -> Option<(VideoInfo, Option<PhysicalSize<f64>>)>;
     fn as_svg(&self) -> Option<SVGElementData<'dom>>;
     fn as_typeless_object_with_data_attribute(&self) -> Option<String>;
 
@@ -368,7 +368,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         self.svg_data()
     }
 
-    fn as_video(&self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)> {
+    fn as_video(&self) -> Option<(VideoInfo, Option<PhysicalSize<f64>>)> {
         let data = self.media_data()?;
         let natural_size = if let Some(frame) = data.current_frame {
             Some(PhysicalSize::new(frame.width.into(), frame.height.into()))
@@ -377,7 +377,9 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                 .map(|meta| PhysicalSize::new(meta.width.into(), meta.height.into()))
         };
         Some((
-            data.current_frame.map(|frame| frame.image_key),
+            VideoInfo {
+                image_key: data.current_frame.map(|frame| frame.image_key),
+            },
             natural_size,
         ))
     }

@@ -125,7 +125,7 @@ pub(crate) struct IFrameInfo {
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct VideoInfo {
-    pub image_key: webrender_api::ImageKey,
+    pub image_key: Option<ImageKey>,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -133,7 +133,7 @@ pub(crate) enum ReplacedContentKind {
     Image(Option<Image>, bool /* showing_broken_image_icon */),
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
-    Video(Option<VideoInfo>),
+    Video(VideoInfo),
     SVGElement(Option<VectorImage>),
     Audio,
 }
@@ -175,9 +175,9 @@ impl ReplacedContents {
                     }),
                     NaturalSizes::empty(),
                 )
-            } else if let Some((image_key, natural_size_in_dots)) = node.as_video() {
+            } else if let Some((video_info, natural_size_in_dots)) = node.as_video() {
                 (
-                    ReplacedContentKind::Video(image_key.map(|key| VideoInfo { image_key: key })),
+                    ReplacedContentKind::Video(video_info),
                     natural_size_in_dots
                         .map_or_else(NaturalSizes::empty, NaturalSizes::from_natural_size_in_dots),
                 )
@@ -500,11 +500,11 @@ impl ReplacedContents {
                 })
                 .into_iter()
                 .collect(),
-            ReplacedContentKind::Video(video) => {
+            ReplacedContentKind::Video(video_info) => {
                 vec![Fragment::Image(ArcRefCell::new(ImageFragment {
                     base,
                     clip,
-                    image_key: video.as_ref().map(|video| video.image_key),
+                    image_key: video_info.image_key,
                     showing_broken_image_icon: false,
                 }))]
             },
