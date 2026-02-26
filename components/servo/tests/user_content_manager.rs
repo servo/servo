@@ -27,8 +27,6 @@ fn test_user_content_manager_empty() {
         .url(Url::parse("data:text/html,Hello World").unwrap())
         .build();
 
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
     let result = evaluate_javascript(&servo_test, webview.clone(), "window.fromUserContentScript");
     assert_eq!(result, Ok(JSValue::Undefined));
 }
@@ -52,8 +50,6 @@ fn test_user_content_manager_user_script() {
         .url(url.into_url())
         .build();
 
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
     let result = evaluate_javascript(&servo_test, webview.clone(), "window.fromUserContentScript");
     assert_eq!(result, Ok(JSValue::Number(42.0)));
 
@@ -66,8 +62,7 @@ fn test_user_content_manager_user_script() {
         .user_content_manager(user_content_manager.clone())
         .url(Url::parse("data:text/html,<!DOCTYPE html>").unwrap())
         .build();
-    let load_webview = new_webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+
     let result = evaluate_javascript(
         &servo_test,
         new_webview,
@@ -86,8 +81,6 @@ fn test_user_content_manager_user_script() {
     // Now trigger a reload and ensure the second user script has effect on the page.
     webview.reload();
 
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
     let result = evaluate_javascript(
         &servo_test,
         webview.clone(),
@@ -101,8 +94,6 @@ fn test_user_content_manager_user_script() {
     user_content_manager.remove_script(second_user_script);
     webview.reload();
 
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
     let result = evaluate_javascript(&servo_test, webview, "window.fromSecondUserContentScript");
 
     assert_eq!(result, Ok(JSValue::Undefined));
@@ -235,9 +226,6 @@ fn test_user_content_manager_for_user_stylesheets() {
         )
         .build();
 
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-
     let result = evaluate_javascript(
         &servo_test,
         webview.clone(),
@@ -260,9 +248,6 @@ fn test_user_content_manager_for_user_stylesheets() {
     // Test that removing the stylesheet works.
     user_content_manager.remove_stylesheet(user_stylesheet);
     webview.reload();
-
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
 
     let result = evaluate_javascript(&servo_test, webview.clone(), "div1.offsetHeight");
 
