@@ -620,7 +620,7 @@ enum OpenRequest {
         /// <https://w3c.github.io/IndexedDB/#request-processed-flag>
         processed: bool,
 
-        /// Optionnaly, a version pending upgrade.
+        /// Optionally, a version pending upgrade.
         pending_upgrade: Option<VersionUpgrade>,
 
         /// This request is pending on these connections to close.
