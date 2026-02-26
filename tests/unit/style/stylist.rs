@@ -13,7 +13,9 @@ use style::properties::style_structs::Font;
 use style::properties::{
     ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock, longhands,
 };
-use style::queries::values::PrefersColorScheme;
+use style::queries::values::{
+    PrefersColorScheme, PrefersContrast, PrefersReducedMotion, PrefersReducedTransparency,
+};
 use style::rule_tree::StyleSource;
 use style::selector_map::SelectorMap;
 use style::selector_parser::{SelectorImpl, SelectorParser};
@@ -260,6 +262,9 @@ fn mock_stylist() -> Stylist {
         Box::new(DummyMetricsProvider),
         initial_style,
         PrefersColorScheme::Light,
+        PrefersContrast::NoPreference,
+        PrefersReducedMotion::NoPreference,
+        PrefersReducedTransparency::NoPreference,
     );
     Stylist::new(device, QuirksMode::NoQuirks)
 }
