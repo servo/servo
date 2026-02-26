@@ -23,7 +23,6 @@ use script_bindings::codegen::GenericBindings::DebuggerGetPossibleBreakpointsEve
 use script_bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::{
     DebuggerGlobalScopeMethods, NotifyNewSource, PipelineIdInit,
 };
-use script_bindings::realms::InRealm;
 use script_bindings::reflector::DomObject;
 use script_bindings::str::DOMString;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -33,7 +32,6 @@ use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::{
     FrameInfo, PauseReason,
 };
-use crate::dom::bindings::error::report_pending_exception;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
@@ -130,23 +128,16 @@ impl DebuggerGlobalScope {
 
     pub(crate) fn execute(&self, cx: &mut JSContext) {
         let mut realm = enter_auto_realm(cx, self);
-        let mut realm = realm.current_realm();
-        let in_realm_proof = (&mut realm).into();
-        let in_realm = InRealm::Already(&in_realm_proof);
+        let cx = &mut realm.current_realm();
 
-        let cx = &mut realm;
         rooted!(&in(cx) let mut rval = UndefinedValue());
-        let result = self.global_scope.evaluate_js_on_global(
+        let _ = self.global_scope.evaluate_js_on_global(
             cx,
             resources::read_string(Resource::DebuggerJS).into(),
             "",
             None,
             rval.handle_mut(),
         );
-
-        if result.is_err() {
-            report_pending_exception(cx.into(), true, in_realm, CanGc::from_cx(cx));
-        }
     }
 
     pub(crate) fn fire_add_debuggee(
