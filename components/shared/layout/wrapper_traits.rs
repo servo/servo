@@ -442,31 +442,11 @@ impl PseudoElementChain {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
-pub enum SelectionDirection {
-    Forward,
-    Backward,
-    #[default]
-    None,
-}
-
-impl From<&str> for SelectionDirection {
-    fn from(direction: &str) -> SelectionDirection {
-        match direction {
-            "forward" => SelectionDirection::Forward,
-            "backward" => SelectionDirection::Backward,
-            _ => SelectionDirection::None,
-        }
-    }
-}
-
 /// A selection shared between script and layout. This selection is managed by the DOM
 /// node that maintains it, and can be modified from script. Once modified, layout is
 /// expected to reflect the new selection visual on the next display list update.
 #[derive(Clone, Debug, Default, MallocSizeOf, PartialEq)]
 pub struct ScriptSelection {
-    /// The direction of this text selection.
-    pub direction: SelectionDirection,
     /// The range of this selection in the DOM node that manages it.
     pub range: TextByteRange,
     /// The character range of this selection in the DOM node that manages it.
@@ -477,14 +457,3 @@ pub struct ScriptSelection {
 }
 
 pub type SharedSelection = std::sync::Arc<AtomicRefCell<ScriptSelection>>;
-
-impl ScriptSelection {
-    pub fn is_equivalent_to(
-        &self,
-        range: &TextByteRange,
-        enabled: bool,
-        direction: SelectionDirection,
-    ) -> bool {
-        self.range == *range && self.enabled == enabled && self.direction == direction
-    }
-}

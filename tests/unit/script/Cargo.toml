@@ -16,6 +16,5 @@ base = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
 keyboard-types = { workspace = true }
-layout_api = { workspace = true }
-script = { path = "../../../components/script" }
-servo_url = { path = "../../../components/url" }
+script = {path = "../../../components/script"}
+servo_url = {path = "../../../components/url"}
