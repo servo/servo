@@ -3616,6 +3616,30 @@ fn normalize_algorithm<Op: Operation>(
 // inner type [`SubtleAesCtrParams`] since the desired input IDL dictionary type for "encrypt"
 // operation of AES-CTR algorithm is the `AesCtrParams` dictionary. The [`EncryptAlgorithm`] enum
 // also implements the [`NormalizedAlgorithm`] trait accordingly.
+//
+// The algorithm registrations are specified in:
+// RSASSA-PKCS1-v1_5: <https://w3c.github.io/webcrypto/#rsassa-pkcs1-registration>
+// RSA-PSS:           <https://w3c.github.io/webcrypto/#rsa-pss-registration>
+// RSA-OAEP:          <https://w3c.github.io/webcrypto/#rsa-oaep-registration>
+// ECDSA:             <https://w3c.github.io/webcrypto/#ecdsa-registration>
+// ECDH:              <https://w3c.github.io/webcrypto/#ecdh-registration>
+// Ed25519:           <https://w3c.github.io/webcrypto/#ed25519-registration>
+// X25519:            <https://w3c.github.io/webcrypto/#x25519-registration>
+// AES-CTR:           <https://w3c.github.io/webcrypto/#aes-ctr-registration>
+// AES-CBC:           <https://w3c.github.io/webcrypto/#aes-cbc-registration>
+// AES-GCM:           <https://w3c.github.io/webcrypto/#aes-gcm-registration>
+// AES-KW:            <https://w3c.github.io/webcrypto/#aes-kw-registration>
+// HMAC:              <https://w3c.github.io/webcrypto/#hmac-registration>
+// SHA:               <https://w3c.github.io/webcrypto/#sha-registration>
+// HKDF:              <https://w3c.github.io/webcrypto/#hkdf-registration>
+// PBKDF2:            <https://w3c.github.io/webcrypto/#pbkdf2-registration>
+// ML-KEM:            <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-registration>
+// ML-DSA:            <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-registration>
+// AES-OCB:           <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-registration>
+// ChaCha20-Poly1305: <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-registration>
+// SHA-3:             <https://wicg.github.io/webcrypto-modern-algos/#sha3-registration>
+// cSHAKE:            <https://wicg.github.io/webcrypto-modern-algos/#cshake-registration>
+// Argon2:            <https://wicg.github.io/webcrypto-modern-algos/#argon2-registration>
 
 trait Operation {
     type RegisteredAlgorithm: NormalizedAlgorithm;
