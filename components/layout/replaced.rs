@@ -269,11 +269,9 @@ impl ReplacedContents {
                     .queue_svg_element_for_serialization(node);
                 None
             },
-            Some(Err(_)) => {
-                // Don't attempt to serialize if previous attempt had errored.
-                None
-            },
-            Some(Ok(svg_source)) => Some(svg_source),
+            // If `svg_source_result` is `Err()`, it means that the previous attempt
+            // had errored, then don't attempt to serialize again.
+            Some(svg_source_result) => svg_source_result.ok(),
         };
 
         let cached_image = svg_source.and_then(|svg_source| {
