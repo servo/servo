@@ -225,10 +225,6 @@ impl HTMLLinkElement {
         }
         self.cssom_stylesheet.set(None);
     }
-
-    pub(crate) fn line_number(&self) -> u32 {
-        self.line_number as u32
-    }
 }
 
 fn get_attr(element: &Element, local_name: &LocalName) -> Option<String> {
@@ -1138,11 +1134,7 @@ impl FetchResponseListener for FaviconFetchContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        let link = self.link.root();
-        let source_position = link
-            .upcast::<Element>()
-            .compute_source_position(link.line_number as u32);
-        global.report_csp_violations(violations, None, Some(source_position));
+        global.report_csp_violations(violations, None, None);
     }
 }
 

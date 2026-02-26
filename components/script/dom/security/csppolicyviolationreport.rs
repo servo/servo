@@ -82,6 +82,15 @@ impl Convert<SecurityPolicyViolationEventInit> for SecurityPolicyViolationReport
 
 impl Convert<CSPViolationReportBody> for SecurityPolicyViolationReport {
     fn convert(self) -> CSPViolationReportBody {
+        let (source_file, line_number, column_number) = if !self.source_file.is_empty() {
+            (
+                Some(self.source_file.into()),
+                Some(self.line_number),
+                Some(self.column_number),
+            )
+        } else {
+            (None, None, None)
+        };
         CSPViolationReportBody {
             sample: self.sample.map(|s| s.into()),
             blockedURL: Some(self.blocked_url.into()),
@@ -91,10 +100,10 @@ impl Convert<CSPViolationReportBody> for SecurityPolicyViolationReport {
             referrer: Some("".to_owned().into()),
             statusCode: self.status_code,
             documentURL: self.document_url.into(),
-            sourceFile: Some(self.source_file.into()),
+            sourceFile: source_file,
             effectiveDirective: self.effective_directive.into(),
-            lineNumber: Some(self.line_number),
-            columnNumber: Some(self.column_number),
+            lineNumber: line_number,
+            columnNumber: column_number,
             originalPolicy: self.original_policy.into(),
             disposition: self.disposition,
             parent: ReportBody::empty(),
