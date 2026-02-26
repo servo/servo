@@ -18,10 +18,10 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::rsa_common::{self, RsaAlgorithm};
-use crate::dom::subtlecrypto::NormalizedAlgorithm;
 use crate::dom::subtlecrypto::{
     ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, KeyAlgorithmAndDerivatives,
-    SubtleRsaHashedImportParams, SubtleRsaHashedKeyGenParams, SubtleRsaPssParams,
+    NormalizedAlgorithm, SubtleRsaHashedImportParams, SubtleRsaHashedKeyGenParams,
+    SubtleRsaPssParams,
 };
 
 /// <https://w3c.github.io/webcrypto/#rsa-pss-operations-sign>

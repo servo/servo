@@ -15,11 +15,10 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::NormalizedAlgorithm;
 use crate::dom::subtlecrypto::{
     ALG_HMAC, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, JsonWebKeyExt,
-    JwkStringField, KeyAlgorithmAndDerivatives, SubtleHmacImportParams, SubtleHmacKeyAlgorithm,
-    SubtleHmacKeyGenParams, SubtleKeyAlgorithm,
+    JwkStringField, KeyAlgorithmAndDerivatives, NormalizedAlgorithm, SubtleHmacImportParams,
+    SubtleHmacKeyAlgorithm, SubtleHmacKeyGenParams, SubtleKeyAlgorithm,
 };
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
