@@ -818,7 +818,7 @@ class CommandBase(object):
 
         self.context.target = self.target
         if self.target.is_cross_build() and not suppress_log:
-            print(f"Targeting '{self.target.triple()}' for cross-compilation")
+            print(f"Targeting '{self.target.triple()}' for cross-compilation", file=sys.stderr)
 
     def is_media_enabled(self, media_stack: Optional[str]) -> bool:
         """Determine whether media is enabled based on the value of the build target
