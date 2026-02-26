@@ -6452,24 +6452,25 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-close>
     fn Close(&self, cx: &mut js::context::JSContext) -> ErrorResult {
         if !self.is_html_document() {
-            // Step 1.
+            // Step 1. If this is an XML document, then throw an "InvalidStateError" DOMException.
             return Err(Error::InvalidState(None));
         }
 
-        // Step 2.
+        // Step 2. If this's throw-on-dynamic-markup-insertion counter is greater than zero,
+        // then throw an "InvalidStateError" DOMException.
         if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
             return Err(Error::InvalidState(None));
         }
 
+        // Step 3. If there is no script-created parser associated with this, then return.
         let parser = match self.get_current_parser() {
             Some(ref parser) if parser.is_script_created() => DomRoot::from_ref(&**parser),
             _ => {
-                // Step 3.
                 return Ok(());
             },
         };
 
-        // Step 4-6.
+        // parser.close implements the remainder of this algorithm
         parser.close(cx);
 
         Ok(())

@@ -454,19 +454,20 @@ impl ServoParser {
         assert!(input.is_empty());
     }
 
-    // Steps 4-6 of https://html.spec.whatwg.org/multipage/#dom-document-close
+    /// Steps 4-6 of <https://html.spec.whatwg.org/multipage/#dom-document-close>
     pub(crate) fn close(&self, cx: &mut js::context::JSContext) {
         assert!(self.script_created_parser);
 
-        // Step 4.
+        // Step 4. Insert an explicit "EOF" character at the end of the parser's input stream.
         self.last_chunk_received.set(true);
 
+        // Step 5. If this's pending parsing-blocking script is not null, then return.
         if self.suspended.get() {
-            // Step 5.
             return;
         }
 
-        // Step 6.
+        // Step 6. Run the tokenizer, processing resulting tokens as they are emitted,
+        // and stopping when the tokenizer reaches the explicit "EOF" character or spins the event loop.
         self.parse_sync(cx);
     }
 

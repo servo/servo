@@ -47,27 +47,27 @@ use crate::script_runtime::CanGc;
 
 type ParseNodeId = usize;
 
-#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[derive(Clone, Debug, JSTraceable, MallocSizeOf)]
 pub(crate) struct ParseNode {
     id: ParseNodeId,
     #[no_trace]
     qual_name: Option<QualName>,
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Debug, JSTraceable, MallocSizeOf)]
 enum NodeOrText {
     Node(ParseNode),
     Text(String),
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Debug, JSTraceable, MallocSizeOf)]
 struct Attribute {
     #[no_trace]
     name: QualName,
     value: String,
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Debug, JSTraceable, MallocSizeOf)]
 enum ParseOperation {
     GetTemplateContents {
         target: ParseNodeId,
@@ -216,6 +216,7 @@ pub(crate) struct Tokenizer {
     #[conditional_malloc_size_of]
     custom_element_reaction_stack: Rc<CustomElementReactionStack>,
     current_line: Cell<u64>,
+    has_ended: Cell<bool>,
 }
 
 impl Tokenizer {
@@ -244,6 +245,7 @@ impl Tokenizer {
             parsing_algorithm: algorithm,
             custom_element_reaction_stack,
             current_line: Cell::new(1),
+            has_ended: Cell::new(false),
         };
         tokenizer.insert_node(0, Dom::from_ref(document.upcast()));
 
@@ -306,13 +308,21 @@ impl Tokenizer {
             .unwrap();
 
         loop {
+            debug_assert!(!self.has_ended.get());
+
             match self
                 .from_parser_thread_receiver
                 .recv()
                 .expect("Unexpected channel panic in main thread.")
             {
                 FromParserThreadMsg::ProcessOperation(parse_op) => {
-                    self.process_operation(parse_op, cx)
+                    self.process_operation(parse_op, cx);
+
+                    // The parser might have been aborted during the execution
+                    // of `parse_op`.
+                    if self.has_ended.get() {
+                        return TokenizerResult::Done;
+                    }
                 },
                 FromParserThreadMsg::TokenizerResultDone { updated_input } => {
                     let buffer_queue = create_buffer_queue(updated_input);
@@ -335,9 +345,14 @@ impl Tokenizer {
     }
 
     pub(crate) fn end(&self, cx: &mut js::context::JSContext) {
+        if self.has_ended.replace(true) {
+            return;
+        }
+
         self.to_parser_thread_sender
             .send(ToParserThreadMsg::End)
             .unwrap();
+
         loop {
             match self
                 .from_parser_thread_receiver
@@ -345,7 +360,7 @@ impl Tokenizer {
                 .expect("Unexpected channel panic in main thread.")
             {
                 FromParserThreadMsg::ProcessOperation(parse_op) => {
-                    self.process_operation(parse_op, cx)
+                    self.process_operation(parse_op, cx);
                 },
                 FromParserThreadMsg::TokenizerResultDone { updated_input: _ } |
                 FromParserThreadMsg::TokenizerResultScript {
