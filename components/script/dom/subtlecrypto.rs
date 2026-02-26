@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+/// <https://w3c.github.io/webcrypto/#dfn-supportedAlgorithms>
+mod supported_algorithms;
+
+// Algorithm operation
 mod aes_cbc_operation;
 mod aes_common;
 mod aes_ctr_operation;
@@ -41,6 +45,7 @@ use js::realm::CurrentRealm;
 use js::rust::wrappers2::JS_ParseJSON;
 use js::rust::{HandleValue, MutableHandleValue};
 use js::typedarray::ArrayBufferU8;
+use strum::{EnumString, IntoStaticStr, VariantArray};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
@@ -69,6 +74,7 @@ use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
+use crate::dom::subtlecrypto::supported_algorithms::{DecapsulateOperation, DecryptOperation, DeriveBitsOperation, DigestAlgorithm, DigestOperation, EncapsulateOperation, EncryptOperation, ExportKeyOperation, GenerateKeyOperation, GetKeyLengthOperation, ImportKeyOperation, NormalizedAlgorithm as _, SignOperation, UnwrapKeyOperation, VerifyOperation, WrapKeyOperation};
 use crate::script_runtime::{CanGc, JSContext};
 
 // Regconized algorithm name from <https://w3c.github.io/webcrypto/>
@@ -153,42 +159,89 @@ const NAMED_CURVE_P521: &str = "P-521";
 
 static SUPPORTED_CURVES: &[&str] = &[NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521];
 
-/// <https://w3c.github.io/webcrypto/#supported-operation>
-enum Operation {
-    Encrypt,
-    Decrypt,
-    Sign,
-    Verify,
-    Digest,
-    DeriveBits,
-    WrapKey,
-    UnwrapKey,
-    GenerateKey,
-    ImportKey,
-    ExportKey,
-    GetKeyLength,
-    Encapsulate,
-    Decapsulate,
+#[derive(EnumString, VariantArray, IntoStaticStr, Clone, Copy)]
+pub(super) enum CryptoAlgorithm {
+    #[strum(serialize = "RSASSA-PKCS1-v1_5")]
+    RsassaPkcs1V1_5,
+    #[strum(serialize = "RSA-PSS")]
+    RsaPss,
+    #[strum(serialize = "RSA-OAEP")]
+    RsaOaep,
+    #[strum(serialize = "ECDSA")]
+    Ecdsa,
+    #[strum(serialize = "ECDH")]
+    Ecdh,
+    #[strum(serialize = "Ed25519")]
+    Ed25519,
+    #[strum(serialize = "X25519")]
+    X25519,
+    #[strum(serialize = "AES-CTR")]
+    AesCtr,
+    #[strum(serialize = "AES-CBC")]
+    AesCbc,
+    #[strum(serialize = "AES-GCM")]
+    AesGcm,
+    #[strum(serialize = "AES-KW")]
+    AesKw,
+    #[strum(serialize = "HMAC")]
+    Hmac,
+    #[strum(serialize = "SHA-1")]
+    Sha1,
+    #[strum(serialize = "SHA-256")]
+    Sha256,
+    #[strum(serialize = "SHA-384")]
+    Sha384,
+    #[strum(serialize = "SHA-512")]
+    Sha512,
+    #[strum(serialize = "HKDF")]
+    Hkdf,
+    #[strum(serialize = "PBKDF2")]
+    Pbkdf2,
+    #[strum(serialize = "ML-KEM-512")]
+    MlKem512,
+    #[strum(serialize = "ML-KEM-768")]
+    MlKem768,
+    #[strum(serialize = "ML-KEM-1024")]
+    MlKem1024,
+    #[strum(serialize = "ML-DSA-44")]
+    MlDsa44,
+    #[strum(serialize = "ML-DSA-65")]
+    MlDsa65,
+    #[strum(serialize = "ML-DSA-87")]
+    MlDsa87,
+    #[strum(serialize = "AES-OCB")]
+    AesOcb,
+    #[strum(serialize = "ChaCha20-Poly1305")]
+    ChaCha20Poly1305,
+    #[strum(serialize = "SHA3-256")]
+    Sha3_256,
+    #[strum(serialize = "SHA3-384")]
+    Sha3_384,
+    #[strum(serialize = "SHA3-512")]
+    Sha3_512,
+    #[strum(serialize = "cSHAKE128")]
+    CShake128,
+    #[strum(serialize = "cSHAKE256")]
+    CShake256,
+    #[strum(serialize = "Argon2d")]
+    Argon2D,
+    #[strum(serialize = "Argon2i")]
+    Argon2I,
+    #[strum(serialize = "Argon2id")]
+    Argon2ID,
 }
 
-impl Operation {
-    fn as_str(&self) -> &'static str {
-        match self {
-            Operation::Encrypt => "encrypt",
-            Operation::Decrypt => "decrypt",
-            Operation::Sign => "sign",
-            Operation::Verify => "verify",
-            Operation::Digest => "digest",
-            Operation::DeriveBits => "deriveBits",
-            Operation::WrapKey => "wrapKey",
-            Operation::UnwrapKey => "unwrapKey",
-            Operation::GenerateKey => "generateKey",
-            Operation::ImportKey => "importKey",
-            Operation::ExportKey => "exportKey",
-            Operation::GetKeyLength => "get key length",
-            Operation::Encapsulate => "encapsulate",
-            Operation::Decapsulate => "decapsulate",
-        }
+impl CryptoAlgorithm {
+    /// <https://w3c.github.io/webcrypto/#recognized-algorithm-name>
+    pub(super) fn as_str(&self) -> &'static str {
+        (*self).into()
+    }
+
+    pub(super) fn from_str_ignore_case(algo_name: &str) -> Fallible<CryptoAlgorithm> {
+        Self::VARIANTS.iter()
+            .find(|algo| algo.as_str().eq_ignore_ascii_case(algo_name))
+            .cloned()
+            .ok_or(Error::NotSupported(Some(format!("Unsupported algorithm: {}", algo_name))))
     }
 }
 
@@ -391,7 +444,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // to algorithm and op set to "encrypt".
         // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm(cx, Operation::Encrypt, &algorithm) {
+        let normalized_algorithm = match normalize_algorithm::<EncryptOperation>(cx, &algorithm) {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 promise.reject_error(error, CanGc::from_cx(cx));
@@ -478,7 +531,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // to algorithm and op set to "decrypt".
         // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm(cx, Operation::Decrypt, &algorithm) {
+        let normalized_algorithm = match normalize_algorithm::<DecryptOperation>(cx, &algorithm) {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 promise.reject_error(error, CanGc::from_cx(cx));
@@ -565,7 +618,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // to algorithm and op set to "sign".
         // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm(cx, Operation::Sign, &algorithm) {
+        let normalized_algorithm = match normalize_algorithm::<SignOperation>(cx, &algorithm) {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 promise.reject_error(error, CanGc::from_cx(cx));
@@ -659,7 +712,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // algorithm and op set to "verify".
         // Step 5. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm(cx, Operation::Verify, &algorithm) {
+        let normalized_algorithm = match normalize_algorithm::<VerifyOperation>(cx, &algorithm) {
             Ok(algorithm) => algorithm,
             Err(error) => {
                 promise.reject_error(error, CanGc::from_cx(cx));
@@ -742,7 +795,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // with alg set to algorithm and op set to "digest".
         // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm(cx, Operation::Digest, &algorithm) {
+        let normalized_algorithm = match normalize_algorithm::<DigestOperation>(cx, &algorithm) {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
                 promise.reject_error(error, CanGc::from_cx(cx));
@@ -803,7 +856,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // to algorithm and op set to "generateKey".
         // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm(cx, Operation::GenerateKey, &algorithm)
+        let normalized_algorithm = match normalize_algorithm::<GenerateKeyOperation>(cx, &algorithm)
         {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
@@ -906,7 +959,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // to algorithm and op set to "deriveBits".
         // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm(cx, Operation::DeriveBits, &algorithm)
+        let normalized_algorithm = match normalize_algorithm::<DeriveBitsOperation>(cx, &algorithm)
         {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
@@ -920,7 +973,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 5. If an error occurred, return a Promise rejected with
         // normalizedDerivedKeyAlgorithmImport.
         let normalized_derived_key_algorithm_import =
-            match normalize_algorithm(cx, Operation::ImportKey, &derived_key_type) {
+            match normalize_algorithm::<ImportKeyOperation>(cx, &derived_key_type) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
                     promise.reject_error(error, CanGc::from_cx(cx));
@@ -933,7 +986,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 7. If an error occurred, return a Promise rejected with
         // normalizedDerivedKeyAlgorithmLength.
         let normalized_derived_key_algorithm_length =
-            match normalize_algorithm(cx, Operation::GetKeyLength, &derived_key_type) {
+            match normalize_algorithm::<GetKeyLengthOperation>(cx, &derived_key_type) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
                     promise.reject_error(error, CanGc::from_cx(cx));
@@ -1053,7 +1106,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // to algorithm and op set to "deriveBits".
         // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm(cx, Operation::DeriveBits, &algorithm)
+        let normalized_algorithm = match normalize_algorithm::<DeriveBitsOperation>(cx, &algorithm)
         {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
@@ -1195,7 +1248,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
         // to algorithm and op set to "importKey".
         // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-        let normalized_algorithm = match normalize_algorithm(cx, Operation::ImportKey, &algorithm) {
+        let normalized_algorithm = match normalize_algorithm::<ImportKeyOperation>(cx, &algorithm) {
             Ok(algorithm) => algorithm,
             Err(error) => {
                 promise.reject_error(error, CanGc::from_cx(cx));
@@ -1288,16 +1341,12 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 6. If the name member of the [[algorithm]] internal slot of key does not
                 // identify a registered algorithm that supports the export key operation, then
                 // throw a NotSupportedError.
-                let registered_algorithm = match SupportedAlgorithm::try_from(key.algorithm().name()) {
-                    Ok(registered_algorithm) => registered_algorithm,
+                match normalize_algorithm::<ExportKeyOperation>(cx, &AlgorithmIdentifier::String(DOMString::from(key.algorithm().name()))) {
+                    Ok(_) => {},
                     Err(error) => {
                         subtle.reject_promise_with_error(promise, error);
                         return;
-                    },
-                };
-                if registered_algorithm.support(Operation::ExportKey).is_err() {
-                    subtle.reject_promise_with_error(promise, Error::NotSupported(None));
-                    return;
+                    }
                 }
 
                 // Step 7. If the [[extractable]] internal slot of key is false, then throw an
@@ -1356,24 +1405,28 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
         // to algorithm and op set to "wrapKey".
-        let mut normalized_algorithm_result =
-            normalize_algorithm(cx, Operation::WrapKey, &algorithm);
+        let wrap_key_normalized_algorithm =
+            normalize_algorithm::<WrapKeyOperation>(cx, &algorithm);
 
         // Step 3. If an error occurred, let normalizedAlgorithm be the result of normalizing an
         // algorithm, with alg set to algorithm and op set to "encrypt".
-        if normalized_algorithm_result.is_err() {
-            normalized_algorithm_result = normalize_algorithm(cx, Operation::Encrypt, &algorithm);
-        }
+        let encrypt_normalized_algorithm = match &wrap_key_normalized_algorithm {
+            Err(_) => normalize_algorithm::<EncryptOperation>(cx, &algorithm),
+            Ok(_) => {
+                // This is a placeholder. When wrap_key_normalized_algorithm is an Ok(_),
+                // encrypt_normalized_algorithm won't be used.
+                Err(Error::NotSupported(None))
+            },
+        };
 
         // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalized_algorithm_result {
-            Ok(normalized_algorithm) => normalized_algorithm,
-            Err(error) => {
+        if wrap_key_normalized_algorithm.is_err() {
+            if let Err(error) = encrypt_normalized_algorithm {
                 promise.reject_error(error, CanGc::from_cx(cx));
                 return promise;
-            },
-        };
+            }
+        }
 
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
@@ -1400,7 +1453,15 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 9. If the name member of normalizedAlgorithm is not equal to the name
                 // attribute of the [[algorithm]] internal slot of wrappingKey then throw an
                 // InvalidAccessError.
-                if normalized_algorithm.name() != wrapping_key.algorithm().name() {
+                let normalized_algorithm_name = if let Ok(normalized_algorithm) = &wrap_key_normalized_algorithm {
+                    normalized_algorithm.name()
+                } else if let Ok(normalized_algorithm) = &encrypt_normalized_algorithm {
+                    normalized_algorithm.name()
+                } else {
+                    // Guarantee unreachable by Step 4.
+                    unreachable!()
+                };
+                if normalized_algorithm_name != wrapping_key.algorithm().name() {
                     subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
@@ -1414,16 +1475,12 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
                 // Step 11. If the algorithm identified by the [[algorithm]] internal slot of key
                 // does not support the export key operation, then throw a NotSupportedError.
-                let registered_algorithm = match SupportedAlgorithm::try_from(key.algorithm().name()) {
-                    Ok(registered_algorithm) => registered_algorithm,
+                match normalize_algorithm::<ExportKeyOperation>(cx, &AlgorithmIdentifier::String(DOMString::from(key.algorithm().name()))) {
+                    Ok(_) => {},
                     Err(error) => {
                         subtle.reject_promise_with_error(promise, error);
                         return;
-                    },
-                };
-                if registered_algorithm.support(Operation::ExportKey).is_err() {
-                    subtle.reject_promise_with_error(promise, Error::NotSupported(None));
-                    return;
+                    }
                 }
 
                 // Step 12. If the [[extractable]] internal slot of key is false, then throw an
@@ -1476,10 +1533,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 //     plaintext.
                 // Otherwise:
                 //     throw a NotSupportedError.
-                let mut result = normalized_algorithm.wrap_key(&wrapping_key, &bytes);
-                if result.is_err() {
-                    result = normalized_algorithm.encrypt(&wrapping_key, &bytes);
-                }
+                let result = if let Ok(normalized_algorithm) = wrap_key_normalized_algorithm {
+                    normalized_algorithm.wrap_key(&wrapping_key, &bytes)
+                } else if let Ok(normalized_algorithm) = encrypt_normalized_algorithm {
+                    normalized_algorithm.encrypt(&wrapping_key, &bytes)
+                } else {
+                    // Guarantee unreachable by Step 4.
+                    unreachable!()
+                };
                 let result = match result {
                     Ok(result) => result,
                     Err(error) => {
@@ -1524,29 +1585,34 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
         // to algorithm and op set to "unwrapKey".
-        let mut normalized_algorithm = normalize_algorithm(cx, Operation::UnwrapKey, &algorithm);
+        let unwrap_key_normalized_algorithm =
+            normalize_algorithm::<UnwrapKeyOperation>(cx, &algorithm);
 
         // Step 4. If an error occurred, let normalizedAlgorithm be the result of normalizing an
         // algorithm, with alg set to algorithm and op set to "decrypt".
-        if normalized_algorithm.is_err() {
-            normalized_algorithm = normalize_algorithm(cx, Operation::Decrypt, &algorithm);
-        }
+        let decrypt_normalized_algorithm = match &unwrap_key_normalized_algorithm {
+            Err(_) => normalize_algorithm::<DecryptOperation>(cx, &algorithm),
+            Ok(_) => {
+                // This is a placeholder. When unwrap_key_normalized_algorithm is an Ok(_),
+                // decrypt_normalized_algorithm won't be used.
+                Err(Error::NotSupported(None))
+            },
+        };
 
         // Step 5. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalized_algorithm {
-            Ok(algorithm) => algorithm,
-            Err(error) => {
+        if unwrap_key_normalized_algorithm.is_err() {
+            if let Err(error) = decrypt_normalized_algorithm {
                 promise.reject_error(error, CanGc::from_cx(cx));
                 return promise;
-            },
-        };
+            }
+        }
 
         // Step 6. Let normalizedKeyAlgorithm be the result of normalizing an algorithm, with alg
         // set to unwrappedKeyAlgorithm and op set to "importKey".
         // Step 7. If an error occurred, return a Promise rejected with normalizedKeyAlgorithm.
         let normalized_key_algorithm =
-            match normalize_algorithm(cx, Operation::ImportKey, &unwrapped_key_algorithm) {
+            match normalize_algorithm::<ImportKeyOperation>(cx, &unwrapped_key_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
                     promise.reject_error(error, CanGc::from_cx(cx));
@@ -1575,7 +1641,15 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 12. If the name member of normalizedAlgorithm is not equal to the name
                 // attribute of the [[algorithm]] internal slot of unwrappingKey then throw an
                 // InvalidAccessError.
-                if normalized_algorithm.name() != unwrapping_key.algorithm().name() {
+                let normalized_algorithm_name = if let Ok(normalized_algorithm) = &unwrap_key_normalized_algorithm {
+                    normalized_algorithm.name()
+                } else if let Ok(normalized_algorithm) = &decrypt_normalized_algorithm {
+                    normalized_algorithm.name()
+                } else {
+                    // Guarantee unreachable by Step 5.
+                    unreachable!()
+                };
+                if normalized_algorithm_name != unwrapping_key.algorithm().name() {
                     subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
                 }
@@ -1598,10 +1672,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 //     ciphertext.
                 // Otherwise:
                 //     throw a NotSupportedError.
-                let mut bytes = normalized_algorithm.unwrap_key(&unwrapping_key, &wrapped_key);
-                if bytes.is_err() {
-                    bytes = normalized_algorithm.decrypt(&unwrapping_key, &wrapped_key);
-                }
+                let bytes = if let Ok(normalized_algorithm) = unwrap_key_normalized_algorithm {
+                    normalized_algorithm.unwrap_key(&unwrapping_key, &wrapped_key)
+                } else if let Ok(normalized_algorithm) = decrypt_normalized_algorithm {
+                    normalized_algorithm.decrypt(&unwrapping_key, &wrapped_key)
+                } else {
+                    // Guarantee unreachable by Step 5.
+                    unreachable!()
+                };
                 let bytes = match bytes {
                     Ok(bytes) => bytes,
                     Err(error) => {
@@ -1690,7 +1768,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // normalizedEncapsulationAlgorithm.
         let promise = Promise::new_in_realm(cx);
         let normalized_encapsulation_algorithm =
-            match normalize_algorithm(cx, Operation::Encapsulate, &encapsulation_algorithm) {
+            match normalize_algorithm::<EncapsulateOperation>(cx, &encapsulation_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
                     promise.reject_error(error, CanGc::from_cx(cx));
@@ -1703,7 +1781,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 5. If an error occurred, return a Promise rejected with
         // normalizedSharedKeyAlgorithm.
         let normalized_shared_key_algorithm =
-            match normalize_algorithm(cx, Operation::ImportKey, &shared_key_algorithm) {
+            match normalize_algorithm::<ImportKeyOperation>(cx, &shared_key_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
                     promise.reject_error(error, CanGc::from_cx(cx));
@@ -1831,7 +1909,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // normalizedEncapsulationAlgorithm.
         let promise = Promise::new_in_realm(cx);
         let normalized_encapsulation_algorithm =
-            match normalize_algorithm(cx, Operation::Encapsulate, &encapsulation_algorithm) {
+            match normalize_algorithm::<EncapsulateOperation>(cx, &encapsulation_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
                     promise.reject_error(error, CanGc::from_cx(cx));
@@ -1931,7 +2009,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // normalizedDecapsulationAlgorithm.
         let promise = Promise::new_in_realm(cx);
         let normalized_decapsulation_algorithm =
-            match normalize_algorithm(cx, Operation::Decapsulate, &decapsulation_algorithm) {
+            match normalize_algorithm::<DecapsulateOperation>(cx, &decapsulation_algorithm) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
                     promise.reject_error(error, CanGc::from_cx(cx));
@@ -1944,7 +2022,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 6. If an error occurred, return a Promise rejected with
         // normalizedSharedKeyAlgorithm.
         let normalized_shared_key_algorithm =
-            match normalize_algorithm(cx, Operation::ImportKey, &shared_key_algorithm) {
+            match normalize_algorithm::<ImportKeyOperation>(cx, &shared_key_algorithm) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
                     promise.reject_error(error, CanGc::from_cx(cx));
@@ -2067,7 +2145,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // normalizedDecapsulationAlgorithm.
         let promise = Promise::new_in_realm(cx);
         let normalized_decapsulation_algorithm =
-            match normalize_algorithm(cx, Operation::Decapsulate, &decapsulation_algorithm) {
+            match normalize_algorithm::<DecapsulateOperation>(cx, &decapsulation_algorithm) {
                 Ok(normalized_algorithm) => normalized_algorithm,
                 Err(error) => {
                     promise.reject_error(error, CanGc::from_cx(cx));
@@ -2221,7 +2299,7 @@ pub(crate) struct SubtleRsaHashedKeyGenParams {
     public_exponent: Vec<u8>,
 
     /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyGenParams-hash>
-    hash: Box<NormalizedAlgorithm>,
+    hash: Box<DigestAlgorithm>,
 }
 
 impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedKeyGenParams {
@@ -2238,11 +2316,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedKeyGenParams {
             name: dictionary.parent.parent.name.to_string(),
             modulus_length: dictionary.parent.modulusLength,
             public_exponent: dictionary.parent.publicExponent.to_vec(),
-            hash: Box::new(normalize_algorithm(
-                cx,
-                Operation::Digest,
-                &dictionary.hash,
-            )?),
+            hash: Box::new(normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?),
         })
     }
 }
@@ -2260,7 +2334,7 @@ pub(crate) struct SubtleRsaHashedKeyAlgorithm {
     public_exponent: Vec<u8>,
 
     /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedKeyAlgorithm-hash>
-    hash: Box<NormalizedAlgorithm>,
+    hash: Box<DigestAlgorithm>,
 }
 
 impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
@@ -2294,7 +2368,7 @@ struct SubtleRsaHashedImportParams {
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams-hash>
-    hash: Box<NormalizedAlgorithm>,
+    hash: Box<DigestAlgorithm>,
 }
 
 impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedImportParams {
@@ -2309,11 +2383,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedImportParams {
 
         Ok(SubtleRsaHashedImportParams {
             name: dictionary.parent.name.to_string(),
-            hash: Box::new(normalize_algorithm(
-                cx,
-                Operation::Digest,
-                &dictionary.hash,
-            )?),
+            hash: Box::new(normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?),
         })
     }
 }
@@ -2381,7 +2451,7 @@ struct SubtleEcdsaParams {
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-EcdsaParams-hash>
-    hash: Box<NormalizedAlgorithm>,
+    hash: Box<DigestAlgorithm>,
 }
 
 impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcdsaParams {
@@ -2395,11 +2465,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcdsaParams {
 
         Ok(SubtleEcdsaParams {
             name: dictionary.parent.name.to_string(),
-            hash: Box::new(normalize_algorithm(
-                cx,
-                Operation::Digest,
-                &dictionary.hash,
-            )?),
+            hash: Box::new(normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?),
         })
     }
 }
@@ -2696,7 +2762,7 @@ struct SubtleHmacImportParams {
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams-hash>
-    hash: Box<NormalizedAlgorithm>,
+    hash: Box<DigestAlgorithm>,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams-length>
     length: Option<u32>,
@@ -2713,11 +2779,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHmacImportParams {
 
         Ok(SubtleHmacImportParams {
             name: dictionary.parent.name.to_string(),
-            hash: Box::new(normalize_algorithm(
-                cx,
-                Operation::Digest,
-                &dictionary.hash,
-            )?),
+            hash: Box::new(normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?),
             length: dictionary.length,
         })
     }
@@ -2760,7 +2822,7 @@ struct SubtleHmacKeyGenParams {
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-hash>
-    hash: Box<NormalizedAlgorithm>,
+    hash: Box<DigestAlgorithm>,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-length>
     length: Option<u32>,
@@ -2777,11 +2839,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHmacKeyGenParams {
 
         Ok(SubtleHmacKeyGenParams {
             name: dictionary.parent.name.to_string(),
-            hash: Box::new(normalize_algorithm(
-                cx,
-                Operation::Digest,
-                &dictionary.hash,
-            )?),
+            hash: Box::new(normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?),
             length: dictionary.length,
         })
     }
@@ -2794,7 +2852,7 @@ pub(crate) struct SubtleHkdfParams {
     name: String,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HkdfParams-hash>
-    hash: Box<NormalizedAlgorithm>,
+    hash: Box<DigestAlgorithm>,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HkdfParams-salt>
     salt: Vec<u8>,
@@ -2823,11 +2881,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHkdfParams {
 
         Ok(SubtleHkdfParams {
             name: dictionary.parent.name.to_string(),
-            hash: Box::new(normalize_algorithm(
-                cx,
-                Operation::Digest,
-                &dictionary.hash,
-            )?),
+            hash: Box::new(normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?),
             salt,
             info,
         })
@@ -2847,7 +2901,7 @@ pub(crate) struct SubtlePbkdf2Params {
     iterations: u32,
 
     /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params-hash>
-    hash: Box<NormalizedAlgorithm>,
+    hash: Box<DigestAlgorithm>,
 }
 
 impl<'a> TryFromWithCx<HandleValue<'a>> for SubtlePbkdf2Params {
@@ -2868,11 +2922,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtlePbkdf2Params {
             name: dictionary.parent.name.to_string(),
             salt,
             iterations: dictionary.iterations,
-            hash: Box::new(normalize_algorithm(
-                cx,
-                Operation::Digest,
-                &dictionary.hash,
-            )?),
+            hash: Box::new(normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?),
         })
     }
 }
@@ -3590,283 +3640,6 @@ impl Argon2Algorithm {
     }
 }
 
-/// <https://w3c.github.io/webcrypto/#dfn-supportedAlgorithms>
-enum SupportedAlgorithm {
-    RsassaPkcs1V1_5,
-    RsaPss,
-    RsaOaep,
-    Ecdsa,
-    Ecdh,
-    Ed25519,
-    X25519,
-    AesCtr,
-    AesCbc,
-    AesGcm,
-    AesKw,
-    Hmac,
-    Sha(ShaAlgorithm),
-    Hkdf,
-    Pbkdf2,
-    MlKem(MlKemAlgorithm),
-    MlDsa(MlDsaAlgorithm),
-    AesOcb,
-    ChaCha20Poly1305,
-    Sha3(Sha3Algorithm),
-    CShake(CShakeAlgorithm),
-    Argon2(Argon2Algorithm),
-}
-
-impl SupportedAlgorithm {
-    fn as_str(&self) -> &'static str {
-        match self {
-            SupportedAlgorithm::RsassaPkcs1V1_5 => ALG_RSASSA_PKCS1_V1_5,
-            SupportedAlgorithm::RsaPss => ALG_RSA_PSS,
-            SupportedAlgorithm::RsaOaep => ALG_RSA_OAEP,
-            SupportedAlgorithm::Ecdsa => ALG_ECDSA,
-            SupportedAlgorithm::Ecdh => ALG_ECDH,
-            SupportedAlgorithm::Ed25519 => ALG_ED25519,
-            SupportedAlgorithm::X25519 => ALG_X25519,
-            SupportedAlgorithm::AesCtr => ALG_AES_CTR,
-            SupportedAlgorithm::AesCbc => ALG_AES_CBC,
-            SupportedAlgorithm::AesGcm => ALG_AES_GCM,
-            SupportedAlgorithm::AesKw => ALG_AES_KW,
-            SupportedAlgorithm::Hmac => ALG_HMAC,
-            SupportedAlgorithm::Sha(sha_algorithm) => sha_algorithm.as_str(),
-            SupportedAlgorithm::Hkdf => ALG_HKDF,
-            SupportedAlgorithm::Pbkdf2 => ALG_PBKDF2,
-            SupportedAlgorithm::MlKem(ml_kem_algorithm) => ml_kem_algorithm.as_str(),
-            SupportedAlgorithm::MlDsa(ml_dsa_algorithm) => ml_dsa_algorithm.as_str(),
-            SupportedAlgorithm::AesOcb => ALG_AES_OCB,
-            SupportedAlgorithm::ChaCha20Poly1305 => ALG_CHACHA20_POLY1305,
-            SupportedAlgorithm::Sha3(sha3_algorithm) => sha3_algorithm.as_str(),
-            SupportedAlgorithm::CShake(cshake_algorithm) => cshake_algorithm.as_str(),
-            SupportedAlgorithm::Argon2(argon2_algorithm) => argon2_algorithm.as_str(),
-        }
-    }
-
-    fn from_ignore_case(alg_name: &str) -> Result<SupportedAlgorithm, Error> {
-        let Some(&alg_name) = SUPPORTED_ALGORITHMS
-            .iter()
-            .find(|supported_algorithm| supported_algorithm.eq_ignore_ascii_case(alg_name))
-        else {
-            return Err(Error::NotSupported(Some(format!(
-                "Unsupported algorithm: {}",
-                alg_name
-            ))));
-        };
-        SupportedAlgorithm::try_from(alg_name)
-    }
-
-    /// Check whether the cryptographic algorithm supports the specified operation. If the
-    /// algorithm supports the operation, then return the desired IDL dictionary type for the
-    /// operation of the algorithm. Otherwise, throw a NotSupportedError.
-    ///
-    /// This function is also used as the "define an algorithm" algorithm, by adding algorithms,
-    /// operations and desired IDL dictionary types, to the `match` block.
-    /// <https://w3c.github.io/webcrypto/#concept-define-an-algorithm>
-    fn support(&self, op: Operation) -> Result<ParameterType, Error> {
-        let desired_type = match (self, &op) {
-            // <https://w3c.github.io/webcrypto/#rsassa-pkcs1-registration>
-            (Self::RsassaPkcs1V1_5, Operation::Sign) => ParameterType::None,
-            (Self::RsassaPkcs1V1_5, Operation::Verify) => ParameterType::None,
-            (Self::RsassaPkcs1V1_5, Operation::GenerateKey) => ParameterType::RsaHashedKeyGenParams,
-            (Self::RsassaPkcs1V1_5, Operation::ImportKey) => ParameterType::RsaHashedImportParams,
-            (Self::RsassaPkcs1V1_5, Operation::ExportKey) => ParameterType::None,
-
-            // <https://w3c.github.io/webcrypto/#rsa-pss-registration>
-            (Self::RsaPss, Operation::Sign) => ParameterType::RsaPssParams,
-            (Self::RsaPss, Operation::Verify) => ParameterType::RsaPssParams,
-            (Self::RsaPss, Operation::GenerateKey) => ParameterType::RsaHashedKeyGenParams,
-            (Self::RsaPss, Operation::ImportKey) => ParameterType::RsaHashedImportParams,
-            (Self::RsaPss, Operation::ExportKey) => ParameterType::None,
-
-            // <https://w3c.github.io/webcrypto/#rsa-oaep-registration>
-            (Self::RsaOaep, Operation::Encrypt) => ParameterType::RsaOaepParams,
-            (Self::RsaOaep, Operation::Decrypt) => ParameterType::RsaOaepParams,
-            (Self::RsaOaep, Operation::GenerateKey) => ParameterType::RsaHashedKeyGenParams,
-            (Self::RsaOaep, Operation::ImportKey) => ParameterType::RsaHashedImportParams,
-            (Self::RsaOaep, Operation::ExportKey) => ParameterType::None,
-
-            // <https://w3c.github.io/webcrypto/#ecdsa-registration>
-            (Self::Ecdsa, Operation::Sign) => ParameterType::EcdsaParams,
-            (Self::Ecdsa, Operation::Verify) => ParameterType::EcdsaParams,
-            (Self::Ecdsa, Operation::GenerateKey) => ParameterType::EcKeyGenParams,
-            (Self::Ecdsa, Operation::ImportKey) => ParameterType::EcKeyImportParams,
-            (Self::Ecdsa, Operation::ExportKey) => ParameterType::None,
-
-            // <https://w3c.github.io/webcrypto/#ecdh-registration>
-            (Self::Ecdh, Operation::GenerateKey) => ParameterType::EcKeyGenParams,
-            (Self::Ecdh, Operation::DeriveBits) => ParameterType::EcdhKeyDeriveParams,
-            (Self::Ecdh, Operation::ImportKey) => ParameterType::EcKeyImportParams,
-            (Self::Ecdh, Operation::ExportKey) => ParameterType::None,
-
-            // <https://w3c.github.io/webcrypto/#ed25519-registration>
-            (Self::Ed25519, Operation::Sign) => ParameterType::None,
-            (Self::Ed25519, Operation::Verify) => ParameterType::None,
-            (Self::Ed25519, Operation::GenerateKey) => ParameterType::None,
-            (Self::Ed25519, Operation::ImportKey) => ParameterType::None,
-            (Self::Ed25519, Operation::ExportKey) => ParameterType::None,
-
-            // <https://w3c.github.io/webcrypto/#x25519-registration>
-            (Self::X25519, Operation::DeriveBits) => ParameterType::EcdhKeyDeriveParams,
-            (Self::X25519, Operation::GenerateKey) => ParameterType::None,
-            (Self::X25519, Operation::ImportKey) => ParameterType::None,
-            (Self::X25519, Operation::ExportKey) => ParameterType::None,
-
-            // <https://w3c.github.io/webcrypto/#aes-ctr-registration>
-            (Self::AesCtr, Operation::Encrypt) => ParameterType::AesCtrParams,
-            (Self::AesCtr, Operation::Decrypt) => ParameterType::AesCtrParams,
-            (Self::AesCtr, Operation::GenerateKey) => ParameterType::AesKeyGenParams,
-            (Self::AesCtr, Operation::ImportKey) => ParameterType::None,
-            (Self::AesCtr, Operation::ExportKey) => ParameterType::None,
-            (Self::AesCtr, Operation::GetKeyLength) => ParameterType::AesDerivedKeyParams,
-
-            // <https://w3c.github.io/webcrypto/#aes-cbc-registration>
-            (Self::AesCbc, Operation::Encrypt) => ParameterType::AesCbcParams,
-            (Self::AesCbc, Operation::Decrypt) => ParameterType::AesCbcParams,
-            (Self::AesCbc, Operation::GenerateKey) => ParameterType::AesKeyGenParams,
-            (Self::AesCbc, Operation::ImportKey) => ParameterType::None,
-            (Self::AesCbc, Operation::ExportKey) => ParameterType::None,
-            (Self::AesCbc, Operation::GetKeyLength) => ParameterType::AesDerivedKeyParams,
-
-            // <https://w3c.github.io/webcrypto/#aes-gcm-registration>
-            (Self::AesGcm, Operation::Encrypt) => ParameterType::AesGcmParams,
-            (Self::AesGcm, Operation::Decrypt) => ParameterType::AesGcmParams,
-            (Self::AesGcm, Operation::GenerateKey) => ParameterType::AesKeyGenParams,
-            (Self::AesGcm, Operation::ImportKey) => ParameterType::None,
-            (Self::AesGcm, Operation::ExportKey) => ParameterType::None,
-            (Self::AesGcm, Operation::GetKeyLength) => ParameterType::AesDerivedKeyParams,
-
-            // <https://w3c.github.io/webcrypto/#aes-kw-registration>
-            (Self::AesKw, Operation::WrapKey) => ParameterType::None,
-            (Self::AesKw, Operation::UnwrapKey) => ParameterType::None,
-            (Self::AesKw, Operation::GenerateKey) => ParameterType::AesKeyGenParams,
-            (Self::AesKw, Operation::ImportKey) => ParameterType::None,
-            (Self::AesKw, Operation::ExportKey) => ParameterType::None,
-            (Self::AesKw, Operation::GetKeyLength) => ParameterType::AesDerivedKeyParams,
-
-            // <https://w3c.github.io/webcrypto/#hmac-registration>
-            (Self::Hmac, Operation::Sign) => ParameterType::None,
-            (Self::Hmac, Operation::Verify) => ParameterType::None,
-            (Self::Hmac, Operation::GenerateKey) => ParameterType::HmacKeyGenParams,
-            (Self::Hmac, Operation::ImportKey) => ParameterType::HmacImportParams,
-            (Self::Hmac, Operation::ExportKey) => ParameterType::None,
-            (Self::Hmac, Operation::GetKeyLength) => ParameterType::HmacImportParams,
-
-            // <https://w3c.github.io/webcrypto/#sha-registration>
-            (Self::Sha(_), Operation::Digest) => ParameterType::None,
-
-            // <https://w3c.github.io/webcrypto/#hkdf-registration>
-            (Self::Hkdf, Operation::DeriveBits) => ParameterType::HkdfParams,
-            (Self::Hkdf, Operation::ImportKey) => ParameterType::None,
-            (Self::Hkdf, Operation::GetKeyLength) => ParameterType::None,
-
-            // <https://w3c.github.io/webcrypto/#pbkdf2-registration>
-            (Self::Pbkdf2, Operation::DeriveBits) => ParameterType::Pbkdf2Params,
-            (Self::Pbkdf2, Operation::ImportKey) => ParameterType::None,
-            (Self::Pbkdf2, Operation::GetKeyLength) => ParameterType::None,
-
-            // <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-registration>
-            (Self::MlKem(_), Operation::Encapsulate) => ParameterType::None,
-            (Self::MlKem(_), Operation::Decapsulate) => ParameterType::None,
-            (Self::MlKem(_), Operation::GenerateKey) => ParameterType::None,
-            (Self::MlKem(_), Operation::ImportKey) => ParameterType::None,
-            (Self::MlKem(_), Operation::ExportKey) => ParameterType::None,
-
-            // <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-registration>
-            (Self::MlDsa(_), Operation::Sign) => ParameterType::ContextParams,
-            (Self::MlDsa(_), Operation::Verify) => ParameterType::ContextParams,
-            (Self::MlDsa(_), Operation::GenerateKey) => ParameterType::None,
-            (Self::MlDsa(_), Operation::ImportKey) => ParameterType::None,
-            (Self::MlDsa(_), Operation::ExportKey) => ParameterType::None,
-
-            // <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-registration>
-            (Self::AesOcb, Operation::Encrypt) => ParameterType::AeadParams,
-            (Self::AesOcb, Operation::Decrypt) => ParameterType::AeadParams,
-            (Self::AesOcb, Operation::GenerateKey) => ParameterType::AesKeyGenParams,
-            (Self::AesOcb, Operation::ImportKey) => ParameterType::None,
-            (Self::AesOcb, Operation::ExportKey) => ParameterType::None,
-            (Self::AesOcb, Operation::GetKeyLength) => ParameterType::AesDerivedKeyParams,
-
-            // <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-registration>
-            (Self::ChaCha20Poly1305, Operation::Encrypt) => ParameterType::AeadParams,
-            (Self::ChaCha20Poly1305, Operation::Decrypt) => ParameterType::AeadParams,
-            (Self::ChaCha20Poly1305, Operation::GenerateKey) => ParameterType::None,
-            (Self::ChaCha20Poly1305, Operation::ImportKey) => ParameterType::None,
-            (Self::ChaCha20Poly1305, Operation::ExportKey) => ParameterType::None,
-            (Self::ChaCha20Poly1305, Operation::GetKeyLength) => ParameterType::None,
-
-            // <https://wicg.github.io/webcrypto-modern-algos/#sha3-registration>
-            (Self::Sha3(_), Operation::Digest) => ParameterType::None,
-
-            // <https://wicg.github.io/webcrypto-modern-algos/#cshake-registration>
-            (Self::CShake(_), Operation::Digest) => ParameterType::CShakeParams,
-
-            // <https://wicg.github.io/webcrypto-modern-algos/#argon2-registration>
-            (Self::Argon2(_), Operation::DeriveBits) => ParameterType::Argon2Params,
-            (Self::Argon2(_), Operation::ImportKey) => ParameterType::None,
-            (Self::Argon2(_), Operation::GetKeyLength) => ParameterType::None,
-
-            _ => {
-                return Err(Error::NotSupported(Some(format!(
-                    "{} does not support {} operation",
-                    self.as_str(),
-                    op.as_str()
-                ))));
-            },
-        };
-
-        Ok(desired_type)
-    }
-}
-
-impl TryFrom<&str> for SupportedAlgorithm {
-    type Error = Error;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value {
-            ALG_RSASSA_PKCS1_V1_5 => Ok(SupportedAlgorithm::RsassaPkcs1V1_5),
-            ALG_RSA_PSS => Ok(SupportedAlgorithm::RsaPss),
-            ALG_RSA_OAEP => Ok(SupportedAlgorithm::RsaOaep),
-            ALG_ECDSA => Ok(SupportedAlgorithm::Ecdsa),
-            ALG_ECDH => Ok(SupportedAlgorithm::Ecdh),
-            ALG_ED25519 => Ok(SupportedAlgorithm::Ed25519),
-            ALG_X25519 => Ok(SupportedAlgorithm::X25519),
-            ALG_AES_CTR => Ok(SupportedAlgorithm::AesCtr),
-            ALG_AES_CBC => Ok(SupportedAlgorithm::AesCbc),
-            ALG_AES_GCM => Ok(SupportedAlgorithm::AesGcm),
-            ALG_AES_KW => Ok(SupportedAlgorithm::AesKw),
-            ALG_HMAC => Ok(SupportedAlgorithm::Hmac),
-            ALG_SHA1 => Ok(SupportedAlgorithm::Sha(ShaAlgorithm::Sha1)),
-            ALG_SHA256 => Ok(SupportedAlgorithm::Sha(ShaAlgorithm::Sha256)),
-            ALG_SHA384 => Ok(SupportedAlgorithm::Sha(ShaAlgorithm::Sha384)),
-            ALG_SHA512 => Ok(SupportedAlgorithm::Sha(ShaAlgorithm::Sha512)),
-            ALG_HKDF => Ok(SupportedAlgorithm::Hkdf),
-            ALG_PBKDF2 => Ok(SupportedAlgorithm::Pbkdf2),
-            ALG_ML_KEM_512 => Ok(SupportedAlgorithm::MlKem(MlKemAlgorithm::MlKem512)),
-            ALG_ML_KEM_768 => Ok(SupportedAlgorithm::MlKem(MlKemAlgorithm::MlKem768)),
-            ALG_ML_KEM_1024 => Ok(SupportedAlgorithm::MlKem(MlKemAlgorithm::MlKem1024)),
-            ALG_ML_DSA_44 => Ok(SupportedAlgorithm::MlDsa(MlDsaAlgorithm::MlDsa44)),
-            ALG_ML_DSA_65 => Ok(SupportedAlgorithm::MlDsa(MlDsaAlgorithm::MlDsa65)),
-            ALG_ML_DSA_87 => Ok(SupportedAlgorithm::MlDsa(MlDsaAlgorithm::MlDsa87)),
-            ALG_AES_OCB => Ok(SupportedAlgorithm::AesOcb),
-            ALG_CHACHA20_POLY1305 => Ok(SupportedAlgorithm::ChaCha20Poly1305),
-            ALG_SHA3_256 => Ok(SupportedAlgorithm::Sha3(Sha3Algorithm::Sha3_256)),
-            ALG_SHA3_384 => Ok(SupportedAlgorithm::Sha3(Sha3Algorithm::Sha3_384)),
-            ALG_SHA3_512 => Ok(SupportedAlgorithm::Sha3(Sha3Algorithm::Sha3_512)),
-            ALG_CSHAKE_128 => Ok(SupportedAlgorithm::CShake(CShakeAlgorithm::CShake128)),
-            ALG_CSHAKE_256 => Ok(SupportedAlgorithm::CShake(CShakeAlgorithm::CShake256)),
-            ALG_ARGON2D => Ok(SupportedAlgorithm::Argon2(Argon2Algorithm::Argon2D)),
-            ALG_ARGON2I => Ok(SupportedAlgorithm::Argon2(Argon2Algorithm::Argon2I)),
-            ALG_ARGON2ID => Ok(SupportedAlgorithm::Argon2(Argon2Algorithm::Argon2ID)),
-            _ => Err(Error::NotSupported(Some(format!(
-                "Unsupported algorithm: {}",
-                value
-            )))),
-        }
-    }
-}
-
 enum ParameterType {
     None,
     RsaHashedKeyGenParams,
@@ -3923,11 +3696,10 @@ enum NormalizedAlgorithm {
 }
 
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
-fn normalize_algorithm(
+fn normalize_algorithm<Op: supported_algorithms::Operation>(
     cx: &mut js::context::JSContext,
-    op: Operation,
     alg: &AlgorithmIdentifier,
-) -> Result<NormalizedAlgorithm, Error> {
+) -> Result<Op::RegisteredAlgorithm, Error> {
     match alg {
         // If alg is an instance of a DOMString:
         ObjectOrString::String(name) => {
@@ -3941,21 +3713,18 @@ fn normalize_algorithm(
             alg.safe_to_jsval(cx.into(), alg_value.handle_mut(), CanGc::from_cx(cx));
             let alg_obj = RootedTraceableBox::new(Heap::default());
             alg_obj.set(alg_value.to_object());
-            normalize_algorithm(cx, op, &ObjectOrString::Object(alg_obj))
+            normalize_algorithm::<Op>(cx, &ObjectOrString::Object(alg_obj))
         },
         // If alg is an object:
         ObjectOrString::Object(obj) => {
-            // Step 1. Let registeredAlgorithms be the associative container stored at the op key
-            // of supportedAlgorithms.
-            // NOTE: The supportedAlgorithms and registeredAlgorithms are expressed as match arms
-            // in Step 5.2 - Step 10.
-
             // Stpe 2. Let initialAlg be the result of converting the ECMAScript object represented
             // by alg to the IDL dictionary type Algorithm, as defined by [WebIDL].
             // Step 3. If an error occurred, return the error and terminate this algorithm.
             rooted!(&in(cx) let value = ObjectValue(obj.get()));
             let initial_alg = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
 
+            // Step 1. Let registeredAlgorithms be the associative container stored at the op key
+            // of supportedAlgorithms.
             // Step 4. Let algName be the value of the name attribute of initialAlg.
             // Step 5.
             //     If registeredAlgorithms contains a key that is a case-insensitive string match
@@ -3965,9 +3734,6 @@ fn normalize_algorithm(
             //         registeredAlgorithms.
             //     Otherwise:
             //         Return a new NotSupportedError and terminate this algorithm.
-            let alg_name = SupportedAlgorithm::from_ignore_case(&initial_alg.name.str())?;
-            let desired_type = alg_name.support(op)?;
-
             // Step 6. Let normalizedAlgorithm be the result of converting the ECMAScript object
             // represented by alg to the IDL dictionary type desiredType, as defined by [WebIDL].
             // Step 7. Set the name attribute of normalizedAlgorithm to algName.
@@ -3995,8 +3761,9 @@ fn normalize_algorithm(
             //                 idlValue and the op set to the operation defined by the
             //                 specification that defines the algorithm identified by algName.
             //
-            // NOTE: We do Step 7 first, by setting algName to the name attribute of the JS object
-            // before IDL dictionary conversion, in order to simplify our implementation.
+            // NOTE: Step 5.2 is done by writing algName back to the name attribute of the JS
+            // object to streamlining our dictionary conversion.
+            let alg_name = CryptoAlgorithm::from_str_ignore_case(&initial_alg.name.str())?;
             rooted!(&in(cx) let mut alg_name_ptr = UndefinedValue());
             alg_name.as_str().safe_to_jsval(
                 cx.into(),
@@ -4006,7 +3773,7 @@ fn normalize_algorithm(
             set_dictionary_property(cx.into(), obj.handle(), c"name", alg_name_ptr.handle())
                 .map_err(|_| Error::JSFailed)?;
             let normalized_algorithm =
-                NormalizedAlgorithm::from_object_value(cx, value.handle(), desired_type)?;
+                Op::RegisteredAlgorithm::from_object_value(cx, alg_name, value.handle())?;
 
             // Step 11. Return normalizedAlgorithm.
             Ok(normalized_algorithm)

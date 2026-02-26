@@ -13,6 +13,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::subtlecrypto::supported_algorithms::NormalizedAlgorithm;
 use crate::dom::subtlecrypto::{
     ALG_HKDF, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, KeyAlgorithmAndDerivatives,
     SubtleHkdfParams, SubtleKeyAlgorithm,

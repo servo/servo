@@ -29,9 +29,10 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::subtlecrypto::supported_algorithms::{DigestOperation, NormalizedAlgorithm};
 use crate::dom::subtlecrypto::{
     ALG_RSA_OAEP, ALG_RSA_PSS, ALG_RSASSA_PKCS1_V1_5, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512,
-    ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives, Operation,
+    ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
     SubtleRsaHashedImportParams, SubtleRsaHashedKeyAlgorithm, SubtleRsaHashedKeyGenParams,
     normalize_algorithm,
 };
@@ -579,9 +580,8 @@ pub(crate) fn import_key(
             if let Some(hash) = hash {
                 // Step 2.8.1. Let normalizedHash be the result of normalize an algorithm with alg
                 // set to hash and op set to digest.
-                let normalized_hash = normalize_algorithm(
+                let normalized_hash = normalize_algorithm::<DigestOperation>(
                     cx,
-                    Operation::Digest,
                     &AlgorithmIdentifier::String(DOMString::from(hash)),
                 )?;
 
