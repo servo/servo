@@ -3378,10 +3378,17 @@ impl Node {
             return false;
         };
 
+        // Element that has scrolling box must have a box as well.
+        if !element.has_css_layout_box() {
+            return true;
+        }
+
         // > Elements and viewports have an associated scrolling box if the element or viewport has a scrolling mechanism,
+        // TODO: Handle checks for scrolling mechanism as required by spec.
+
         // > or it overflows its content area and the used value of the overflow-x or overflow-y property is not
         // > overflow/hidden or overflow/clip. [CSS3-BOX]
-        // TODO: handle scrolling mechanism.
+        // The overflow-x and overflow-y scrolls is guaranteed as long as the element is a scroll container.
         element.establishes_scroll_container() && element.has_overflow()
     }
 }

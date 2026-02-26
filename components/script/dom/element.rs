@@ -2736,10 +2736,7 @@ impl Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() ||
-            !self.upcast::<Node>().establishes_scrolling_box() ||
-            !self.has_overflow()
-        {
+        if !self.upcast::<Node>().establishes_scrolling_box() {
             return;
         }
 
@@ -3475,10 +3472,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() ||
-            !self.upcast::<Node>().establishes_scrolling_box() ||
-            !self.has_overflow()
-        {
+        if !self.upcast::<Node>().establishes_scrolling_box() {
             return;
         }
 
@@ -3575,10 +3569,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() ||
-            !self.upcast::<Node>().establishes_scrolling_box() ||
-            !self.has_overflow()
-        {
+        if !self.upcast::<Node>().establishes_scrolling_box() {
             return;
         }
 
