@@ -140,18 +140,23 @@ function handlePauseAndRespond(frame, isBreakpoint) {
         return undefined;
     }
 
+    // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#getoffsetmetadata-offset>
+    let offset = frame.offset;
+    let offsetMetadata = frame.script.getOffsetMetadata(offset);
+
     const frameActorId = registerFrameActor(pipelineId, {
         // TODO: Some properties throw if terminated is true
         // TODO: arguments: frame.arguments,
-        column: frame.script.startColumn,
+        column: offsetMetadata.columnNumber - 1,
         displayName: frame.script.displayName,
-        line: frame.script.startLine,
+        line: offsetMetadata.lineNumber,
         onStack: frame.onStack,
         oldest: frame.older == null,
         terminated: frame.terminated,
         type_: frame.type,
         url: frame.script.url,
     });
+
     if (!frameActorId) {
         console.error("[debugger] Couldn't create frame");
         return undefined;
