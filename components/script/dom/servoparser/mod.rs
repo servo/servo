@@ -192,30 +192,24 @@ impl ServoParser {
         assert!(document.is_html_document());
 
         // Step 2. Create an HTML parser parser, associated with document.
-        let parser = if pref!(dom_servoparser_async_html_tokenizer_enabled) {
-            ServoParser::new(
-                document,
-                Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None)),
-                ParserKind::Normal,
-                encoding_hint_from_content_type,
-                encoding_of_container_document,
-                CanGc::from_cx(cx),
-            )
-        } else {
-            ServoParser::new(
-                document,
+        let parser = ServoParser::new(
+            document,
+            if pref!(dom_servoparser_async_html_tokenizer_enabled) {
+                Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None))
+            } else {
                 Tokenizer::Html(self::html::Tokenizer::new(
                     document,
                     url,
                     None,
                     ParsingAlgorithm::Normal,
-                )),
-                ParserKind::Normal,
-                encoding_hint_from_content_type,
-                encoding_of_container_document,
-                CanGc::from_cx(cx),
-            )
-        };
+                ))
+            },
+            ParserKind::Normal,
+            encoding_hint_from_content_type,
+            encoding_of_container_document,
+            CanGc::from_cx(cx),
+        );
+
         // Step 3. Place html into the input stream for parser. The encoding confidence is irrelevant.
         // Step 4. Start parser and let it run until it has consumed all the
         // characters just inserted into the input stream.
@@ -315,12 +309,16 @@ impl ServoParser {
     pub(crate) fn parse_html_script_input(document: &Document, url: ServoUrl) {
         let parser = ServoParser::new(
             document,
-            Tokenizer::Html(self::html::Tokenizer::new(
-                document,
-                url,
-                None,
-                ParsingAlgorithm::Normal,
-            )),
+            if pref!(dom_servoparser_async_html_tokenizer_enabled) {
+                Tokenizer::AsyncHtml(self::async_html::Tokenizer::new(document, url, None))
+            } else {
+                Tokenizer::Html(self::html::Tokenizer::new(
+                    document,
+                    url,
+                    None,
+                    ParsingAlgorithm::Normal,
+                ))
+            },
             ParserKind::ScriptCreated,
             None,
             None,
