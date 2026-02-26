@@ -124,13 +124,19 @@ pub(crate) struct IFrameInfo {
 }
 
 #[derive(Debug, MallocSizeOf)]
+pub(crate) struct ImageInfo {
+    pub image: Option<Image>,
+    pub showing_broken_image_icon: bool,
+}
+
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct VideoInfo {
     pub image_key: webrender_api::ImageKey,
 }
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) enum ReplacedContentKind {
-    Image(Option<Image>, bool /* showing_broken_image_icon */),
+    Image(ImageInfo),
     IFrame(IFrameInfo),
     Canvas(CanvasInfo),
     Video(Option<VideoInfo>),
@@ -159,7 +165,10 @@ impl ReplacedContents {
                     return Some(content_image);
                 }
                 (
-                    ReplacedContentKind::Image(image, node.showing_broken_image_icon()),
+                    ReplacedContentKind::Image(ImageInfo {
+                        image,
+                        showing_broken_image_icon: node.showing_broken_image_icon(),
+                    }),
                     NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
                 )
             } else if let Some((canvas_info, natural_size_in_dots)) = node.as_canvas() {
@@ -200,7 +209,11 @@ impl ReplacedContents {
             }
         };
 
-        if let ReplacedContentKind::Image(Some(Image::Raster(ref image)), _) = kind {
+        if let ReplacedContentKind::Image(ImageInfo {
+            image: Some(Image::Raster(ref image)),
+            ..
+        }) = kind
+        {
             context
                 .image_resolver
                 .handle_animated_image(node.opaque(), image.clone());
@@ -349,7 +362,10 @@ impl ReplacedContents {
             };
 
             return Some(Self {
-                kind: ReplacedContentKind::Image(image, false /* showing_broken_image_icon */),
+                kind: ReplacedContentKind::Image(ImageInfo {
+                    image,
+                    showing_broken_image_icon: false,
+                }),
                 natural_size: NaturalSizes::from_width_and_height(width, height),
                 base_fragment_info: node.into(),
             });
@@ -370,7 +386,10 @@ impl ReplacedContents {
 
     pub(crate) fn zero_sized_invalid_image(node: ServoThreadSafeLayoutNode<'_>) -> Self {
         Self {
-            kind: ReplacedContentKind::Image(None, false /* showing_broken_image_icon */),
+            kind: ReplacedContentKind::Image(ImageInfo {
+                image: None,
+                showing_broken_image_icon: false,
+            }),
             natural_size: NaturalSizes::from_width_and_height(0., 0.),
             base_fragment_info: node.into(),
         }
@@ -378,7 +397,7 @@ impl ReplacedContents {
 
     #[inline]
     fn is_broken_image(&self) -> bool {
-        matches!(self.kind, ReplacedContentKind::Image(_, true))
+        matches!(&self.kind, ReplacedContentKind::Image(image_info) if image_info.showing_broken_image_icon)
     }
 
     #[inline]
@@ -405,7 +424,11 @@ impl ReplacedContents {
         style: &ServoArc<ComputedValues>,
         size: PhysicalSize<Au>,
     ) -> (PhysicalSize<Au>, PhysicalRect<Au>) {
-        if let ReplacedContentKind::Image(Some(Image::Raster(image)), true) = &self.kind {
+        if let ReplacedContentKind::Image(ImageInfo {
+            image: Some(Image::Raster(image)),
+            showing_broken_image_icon: true,
+        }) = &self.kind
+        {
             let size = Size2D::new(
                 Au::from_f32_px(image.metadata.width as f32),
                 Au::from_f32_px(image.metadata.height as f32),
@@ -469,7 +492,8 @@ impl ReplacedContents {
 
         let mut base = BaseFragment::new(self.base_fragment_info, style.clone().into(), rect);
         match &self.kind {
-            ReplacedContentKind::Image(image, showing_broken_image_icon) => image
+            ReplacedContentKind::Image(image_info) => image_info
+                .image
                 .as_ref()
                 .and_then(|image| match image {
                     Image::Raster(raster_image) => raster_image.id,
@@ -495,7 +519,7 @@ impl ReplacedContents {
                         base,
                         clip,
                         image_key: Some(image_key),
-                        showing_broken_image_icon: *showing_broken_image_icon,
+                        showing_broken_image_icon: image_info.showing_broken_image_icon,
                     }))
                 })
                 .into_iter()
