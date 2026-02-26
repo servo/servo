@@ -10802,6 +10802,14 @@
       []
      ]
     },
+    "csp": {
+     "support": {
+      "nonce-should-be-blocked.js": [
+       "501f7a92088ec4dfd5197c5378e207d9007abe2f",
+       []
+      ]
+     }
+    },
     "details_ui_closed_ref.html": [
      "b7db1ce810c09c9169142db4333f2648ed098239",
      []
@@ -13442,6 +13450,15 @@
      ],
      "cross-origin-postMessage.html": [
       "143240c97aa60b52c8d2e0067c25e4509bf6481d",
+      [
+       null,
+       {}
+      ]
+     ]
+    },
+    "csp": {
+     "nonce-external-script-malformed-blocked.html": [
+      "845a7d7aba109769add506290aac1ce42eff2699",
       [
        null,
        {}
