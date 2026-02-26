@@ -6,9 +6,11 @@
 # <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
-
-from subprocess import CompletedProcess
+import argparse
 import json
+import os
+import shlex
+from subprocess import CompletedProcess
 from typing import Any
 
 from mach.decorators import (
@@ -23,6 +25,43 @@ from servo.command_base import CommandBase, call
 
 @CommandProvider
 class MachCommands(CommandBase):
+    @Command(
+        "print-env",
+        description="Print (POSIX) shell export statements for environment variables set by mach when building servo",
+        category="devenv",
+    )
+    @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
+    def print_env(self, **_kwargs: Any) -> int:
+        env = self.build_env()
+        for key in sorted(env):
+            value = env[key]
+            # The build_env command also reads environment variables from the env it copies,
+            # so we can't build a "clean" env and need to filter here instead.
+            if os.environ.get(key) != value:
+                print(f"export {key}={shlex.quote(value)}")
+        return 0
+
+    @Command(
+        "exec",
+        description="Execute a command in the build environment",
+        category="devenv",
+    )
+    @CommandArgument(
+        "command",
+        nargs=argparse.REMAINDER,
+        help="Command to execute in the build environment. \
+            Use `--` to delimit the start of the command, \
+            if arguments to the command are falsely interpreted as mach arguments",
+    )
+    @CommandBase.common_command_arguments(build_configuration=True, build_type=False)
+    def exec_command(self, command: list[str], **_kwargs: Any) -> int:
+        if not command:
+            print("No command provided. Pass a command to execute.")
+            return 1
+
+        self.ensure_bootstrapped()
+        return call(command, env=self.build_env())
+
     @Command("check", description='Run "cargo check"', category="devenv")
     @CommandArgument(
         "params", default=None, nargs="...", help="Command-line arguments to be passed through to cargo check"
