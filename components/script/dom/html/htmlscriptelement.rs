@@ -16,9 +16,7 @@ use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::{HandleObject, Stencil};
 use net_traits::http_status::HttpStatus;
-use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder, RequestId,
-};
+use net_traits::request::{CorsSettings, Destination, ParserMetadata, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -47,8 +45,8 @@ use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
-    referrer_policy_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute,
-    set_cross_origin_attribute,
+    cors_settings_attribute_credential_mode, referrer_policy_for_element,
+    reflect_cross_origin_attribute, reflect_referrer_policy_attribute, set_cross_origin_attribute,
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::global_scope_script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
@@ -743,19 +741,8 @@ impl HTMLScriptElement {
         // Step 22. CORS setting.
         let cors_setting = cors_setting_for_element(element);
 
-        // Step 23. Module script credentials mode.
-        let module_credentials_mode = match script_type {
-            ScriptType::Classic => CredentialsMode::CredentialsSameOrigin,
-            ScriptType::Module | ScriptType::ImportMap => reflect_cross_origin_attribute(element)
-                .map_or(
-                    CredentialsMode::CredentialsSameOrigin,
-                    |attr| match &*attr.str() {
-                        "use-credentials" => CredentialsMode::Include,
-                        "anonymous" => CredentialsMode::CredentialsSameOrigin,
-                        _ => CredentialsMode::CredentialsSameOrigin,
-                    },
-                ),
-        };
+        // Step 23. Let module script credentials mode be the CORS settings attribute credentials mode for el's crossorigin content attribute.
+        let module_credentials_mode = cors_settings_attribute_credential_mode(element);
 
         // Step 24. Let cryptographic nonce be el's [[CryptographicNonce]] internal slot's value.
         // If the element has a nonce content attribute but is not nonceable strip the nonce to prevent injection attacks.
@@ -893,7 +880,7 @@ impl HTMLScriptElement {
                     // Step 31.11. Fetch an external module script graph.
                     fetch_an_external_module_script(
                         url,
-                        ModuleOwner::Window(Trusted::new(self)),
+                        ModuleOwner::Window(Trusted::new(self.upcast())),
                         options,
                         can_gc,
                     );
@@ -959,7 +946,7 @@ impl HTMLScriptElement {
                     };
 
                     fetch_inline_module_script(
-                        ModuleOwner::Window(Trusted::new(self)),
+                        ModuleOwner::Window(Trusted::new(self.upcast())),
                         text_rc,
                         base_url,
                         options,
@@ -971,7 +958,7 @@ impl HTMLScriptElement {
                     // Step 32.1 Let result be the result of creating an import map
                     // parse result given source text and base URL.
                     let import_map_result = parse_an_import_map_string(
-                        ModuleOwner::Window(Trusted::new(self)),
+                        ModuleOwner::Window(Trusted::new(self.upcast())),
                         Rc::clone(&text_rc),
                         base_url.clone(),
                     );

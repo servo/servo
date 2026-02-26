@@ -5,6 +5,7 @@
 use std::borrow::{Borrow, ToOwned};
 use std::cell::Cell;
 use std::default::Default;
+use std::str::FromStr;
 
 use base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
@@ -15,7 +16,7 @@ use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
     ImageOrMetadataAvailable, ImageResponse, PendingImageId,
 };
-use net_traits::request::{Destination, Initiator, RequestBuilder, RequestId};
+use net_traits::request::{Destination, Initiator, ParserMetadata, RequestBuilder, RequestId};
 use net_traits::{
     FetchMetadata, FetchResponseMsg, NetworkError, ReferrerPolicy, ResourceFetchTiming,
 };
@@ -46,8 +47,8 @@ use crate::dom::documentorshadowroot::StylesheetSource;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
-    referrer_policy_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute,
-    set_cross_origin_attribute,
+    cors_settings_attribute_credential_mode, referrer_policy_for_element,
+    reflect_cross_origin_attribute, reflect_referrer_policy_attribute, set_cross_origin_attribute,
 };
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::medialist::MediaList;
@@ -60,6 +61,7 @@ use crate::dom::types::{EventTarget, GlobalScope};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::LinkRelations;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
+use crate::script_module::{ModuleOwner, ScriptFetchOptions, fetch_a_modulepreload_module};
 use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::{ElementStylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
@@ -321,6 +323,11 @@ impl VirtualMethods for HTMLLinkElement {
                 if self.relations.get().contains(LinkRelations::PRELOAD) {
                     self.handle_preload_url();
                 }
+
+                // https://html.spec.whatwg.org/multipage/#link-type-modulepreload
+                if self.relations.get().contains(LinkRelations::MODULE_PRELOAD) {
+                    self.fetch_and_process_modulepreload(can_gc);
+                }
             },
             local_name!("sizes") if self.relations.get().contains(LinkRelations::ICON) => {
                 self.handle_favicon_url(&attr.value());
@@ -452,6 +459,16 @@ impl VirtualMethods for HTMLLinkElement {
 
                 if relations.contains(LinkRelations::PRELOAD) {
                     self.handle_preload_url();
+                }
+
+                // https://html.spec.whatwg.org/multipage/#link-type-modulepreload
+                if relations.contains(LinkRelations::MODULE_PRELOAD) {
+                    let link = DomRoot::from_ref(self);
+                    self.owner_document().add_delayed_task(
+                        task!(FetchModulePreload: |cx, link: DomRoot<HTMLLinkElement>| {
+                            link.fetch_and_process_modulepreload(CanGc::from_cx(cx));
+                        }),
+                    );
                 }
             }
         }
@@ -920,6 +937,94 @@ impl HTMLLinkElement {
             self.upcast::<EventTarget>()
                 .fire_event(atom!("load"), can_gc);
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#link-type-modulepreload:fetch-and-process-the-linked-resource-2>
+    fn fetch_and_process_modulepreload(&self, can_gc: CanGc) {
+        let el = self.upcast::<Element>();
+        let href_attribute_value = el.get_string_attribute(&local_name!("href"));
+
+        // Step 1. If el's href attribute's value is the empty string, then return.
+        if href_attribute_value.is_empty() {
+            return;
+        }
+
+        // Step 2. Let destination be the current state of el's as attribute (a destination), or "script" if it is in no state.
+        let destination = el
+            .get_attribute(&ns!(), &local_name!("as"))
+            .filter(|attr| !attr.value().is_empty())
+            .map(|attr| attr.value().to_ascii_lowercase())
+            .and_then(|attribute_value| Destination::from_str(&attribute_value).ok())
+            .unwrap_or(Destination::Script);
+
+        let document = self.owner_document();
+        let global = document.global();
+
+        // Step 3. If destination is not a module preload destination, then queue an element task on the
+        // networking task source given el to fire an event named error at el, and return.
+        //
+        // A module preload destination is "json", "style", or a script-like destination.
+        if !matches!(destination, Destination::Json | Destination::Style) &&
+            !destination.is_script_like()
+        {
+            return global
+                .task_manager()
+                .networking_task_source()
+                .queue_simple_event(self.upcast(), atom!("error"));
+        }
+
+        // Step 4. Let url be the result of encoding-parsing a URL given el's href attribute's value, relative to el's node document.
+        // Step 5. If url is failure, then return.
+        let Ok(url) = document.encoding_parse_a_url(&href_attribute_value.str()) else {
+            return;
+        };
+
+        // Step 6. Let settings object be el's node document's relevant settings object.
+
+        // Step 7. Let credentials mode be the CORS settings attribute credentials mode for el's crossorigin attribute.
+        let credentials_mode = cors_settings_attribute_credential_mode(el);
+
+        // Step 8. Let cryptographic nonce be el.[[CryptographicNonce]].
+        let cryptographic_nonce = el.nonce_value();
+
+        // Step 9. Let integrity metadata be the value of el's integrity attribute, if it is specified, or the empty string otherwise.
+        let integrity_attribute = el.get_attribute(&ns!(), &local_name!("integrity"));
+        let integrity_value = integrity_attribute.as_ref().map(|attr| attr.value());
+        let integrity_metadata = match integrity_value {
+            Some(ref value) => (***value).to_owned(),
+            // Step 10. If el does not have an integrity attribute, then set integrity metadata to
+            // the result of resolving a module integrity metadata with url and settings object.
+            None => global
+                .import_map()
+                .resolve_a_module_integrity_metadata(&url),
+        };
+
+        // Step 11. Let referrer policy be the current state of el's referrerpolicy attribute.
+        let referrer_policy = referrer_policy_for_element(el);
+
+        // TODO Step 12. Let fetch priority be the current state of el's fetchpriority attribute.
+
+        // Step 13. Let options be a script fetch options whose cryptographic nonce is cryptographic nonce,
+        // integrity metadata is integrity metadata, parser metadata is "not-parser-inserted",
+        // credentials mode is credentials mode, referrer policy is referrer policy, and fetch priority is fetch priority.
+        let options = ScriptFetchOptions {
+            cryptographic_nonce,
+            integrity_metadata,
+            parser_metadata: ParserMetadata::NotParserInserted,
+            credentials_mode,
+            referrer_policy,
+            referrer: global.get_referrer(),
+        };
+
+        // Step 14. Fetch a modulepreload module script graph given url, destination, settings object, options,
+        // and with the following steps given result:
+        fetch_a_modulepreload_module(
+            url,
+            destination,
+            ModuleOwner::Window(Trusted::new(self.upcast())),
+            options,
+            can_gc,
+        );
     }
 }
 

@@ -28,7 +28,7 @@ use js::jsval::JSVal;
 use js::rust::HandleObject;
 use layout_api::{LayoutDamage, ScrollContainerQueryFlags};
 use net_traits::ReferrerPolicy;
-use net_traits::request::CorsSettings;
+use net_traits::request::{CorsSettings, CredentialsMode};
 use selectors::Element as SelectorsElement;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::{BLOOM_HASH_MASK, BloomFilter};
@@ -5785,6 +5785,22 @@ pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings
     element
         .get_attribute(&local_name!("crossorigin"))
         .map(|attribute| CorsSettings::from_enumerated_attribute(&attribute.value()))
+}
+
+/// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute-credentials-mode>
+pub(crate) fn cors_settings_attribute_credential_mode(element: &Element) -> CredentialsMode {
+    element
+        .get_attribute(&ns!(), &local_name!("crossorigin"))
+        .map(|attr| {
+            if attr.value().eq_ignore_ascii_case("use-credentials") {
+                CredentialsMode::Include
+            } else {
+                // The attribute's invalid value default and empty value default are both the Anonymous state.
+                CredentialsMode::CredentialsSameOrigin
+            }
+        })
+        // The attribute's missing value default is the No CORS state, which defaults to "same-origin"
+        .unwrap_or(CredentialsMode::CredentialsSameOrigin)
 }
 
 pub(crate) fn is_element_affected_by_legacy_background_presentational_hint(

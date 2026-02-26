@@ -73,9 +73,12 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::html::htmlscriptelement::{HTMLScriptElement, SCRIPT_JS_MIMES, Script};
-use crate::dom::htmlscriptelement::substitute_with_local_script;
+use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlscriptelement::{
+    HTMLScriptElement, SCRIPT_JS_MIMES, Script, substitute_with_local_script,
+};
 use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
@@ -625,7 +628,7 @@ impl Callback for ModuleHandler {
 pub(crate) enum ModuleOwner {
     #[expect(dead_code)]
     Worker(TrustedWorkerAddress),
-    Window(Trusted<HTMLScriptElement>),
+    Window(Trusted<HTMLElement>),
     DynamicModule(Trusted<GlobalScope>),
 }
 
@@ -633,7 +636,7 @@ impl ModuleOwner {
     pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
         match &self {
             ModuleOwner::Worker(worker) => (*worker.root()).global(),
-            ModuleOwner::Window(script) => (*script.root()).global(),
+            ModuleOwner::Window(element) => (*element.root()).global(),
             ModuleOwner::DynamicModule(dynamic_module) => (*dynamic_module.root()).global(),
         }
     }
@@ -642,26 +645,27 @@ impl ModuleOwner {
         match &self {
             ModuleOwner::Worker(_) => unimplemented!(),
             ModuleOwner::DynamicModule(_) => unimplemented!(),
-            ModuleOwner::Window(script) => {
-                let document = script.root().owner_document();
+            ModuleOwner::Window(html_element) => {
+                if let Some(script) = html_element.root().downcast::<HTMLScriptElement>() {
+                    let document = script.owner_document();
 
-                let load = match module_tree {
-                    Some(module_tree) => Ok(Script::Module(module_tree)),
-                    None => Err(()),
-                };
+                    let load = match module_tree {
+                        Some(module_tree) => Ok(Script::Module(module_tree)),
+                        None => Err(()),
+                    };
 
-                let asynch = script
-                    .root()
-                    .upcast::<Element>()
-                    .has_attribute(&local_name!("async"));
+                    let asynch = script
+                        .upcast::<Element>()
+                        .has_attribute(&local_name!("async"));
 
-                if !asynch && (*script.root()).get_parser_inserted() {
-                    document.deferred_script_loaded(&script.root(), load, can_gc);
-                } else if !asynch && !(*script.root()).get_non_blocking() {
-                    document.asap_in_order_script_loaded(&script.root(), load, can_gc);
-                } else {
-                    document.asap_script_loaded(&script.root(), load, can_gc);
-                };
+                    if !asynch && script.get_parser_inserted() {
+                        document.deferred_script_loaded(script, load, can_gc);
+                    } else if !asynch && !script.get_non_blocking() {
+                        document.asap_in_order_script_loaded(script, load, can_gc);
+                    } else {
+                        document.asap_script_loaded(script, load, can_gc);
+                    };
+                }
             },
         }
     }
@@ -1183,6 +1187,54 @@ pub(crate) fn fetch_an_external_module_script(
 
             // Step 1.2. Fetch the descendants of and link result given settingsObject, "script", and onComplete.
             fetch_the_descendants_and_link_module_script(module, Destination::Script, owner);
+        },
+    );
+}
+
+/// <https://html.spec.whatwg.org/multipage/#fetch-a-modulepreload-module-script-graph>
+pub(crate) fn fetch_a_modulepreload_module(
+    url: ServoUrl,
+    destination: Destination,
+    owner: ModuleOwner,
+    options: ScriptFetchOptions,
+    can_gc: CanGc,
+) {
+    let referrer = owner.global().get_referrer();
+
+    // Step 1. Fetch a single module script given url, settingsObject, destination, options, settingsObject,
+    // "client", true, and with the following steps given result:
+    fetch_a_single_module_script(
+        url,
+        owner.clone(),
+        destination,
+        options,
+        referrer,
+        None,
+        true,
+        Some(IntroductionType::SRC_SCRIPT),
+        move |module_tree| {
+            // Step 1. Run onComplete given result.
+            let ModuleOwner::Window(ref element) = owner else {
+                return;
+            };
+
+            // Step 1. If result is null, then fire an event named error at el, and return.
+            // Step 2. Fire an event named load at el.
+            let event = match module_tree.is_none() {
+                true => atom!("error"),
+                false => atom!("load"),
+            };
+
+            element
+                .root()
+                .upcast::<EventTarget>()
+                .fire_event(event, can_gc);
+
+            // Step 2. Assert: settingsObject's global object implements Window.
+            assert!(owner.global().is::<Window>());
+
+            // TODO Step 3. If result is not null, optionally fetch the descendants of and link result
+            // given settingsObject, destination, and an empty algorithm.
         },
     );
 }
