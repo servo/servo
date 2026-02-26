@@ -58,7 +58,7 @@ skipped_tests = [
     "contain-content-style-change.html",
 ]
 
-# Theses tests do pass and contribute "ms" or "runs/s" to `results`
+# `tests_that_hang_memory_report` do pass and contribute "ms" or "runs/s" to `results`
 # but they also freeze the phone when trying to fetch memory report
 # So, the tests in this list are not skipped in general, but the
 # memory report for them is not included in the `results.json`
@@ -70,10 +70,13 @@ tests_that_hang_memory_report = [
     "css-contain-change-text-without-subtree-root.html",
 ]
 
-### Failing tests (They do run, but produce no results)
-# subtree-detaching.html
-# abspos.html
-# flexbox-row-stretch-height-definite.html
+### `tests_that_take_extra_time_to_load` tests take several seconds to load instead of default 0.05s - 2s
+# can be overriden using `--page_loading_timeout` (in seconds)
+tests_that_take_extra_time_to_load = [
+    ("subtree-detaching.html", 20),
+    ("abspos.html", 5),
+    ("flexbox-row-stretch-height-definite.html", 18),
+]
 
 MAX_WAIT_TIME = 60
 
@@ -133,19 +136,32 @@ def get_serve_path_for_file(root: str, file: str) -> str:
     return root.split("tests/blink_perf_tests/perf_tests/")[1]
 
 
-def run_single_test(s: str, driver: webdriver.Remote, port: int, serve_path, cli_args) -> TestResult | AbortReason:
+def run_single_test(
+    test_file_name: str, driver: webdriver.Remote, port: int, serve_path, cli_args
+) -> TestResult | AbortReason:
     """Run a test by loading a website, and returning (avg, min, max).
     This will run for MAX_WAIT_TIME seconds and return as soon as the avg line exists in the log element"""
 
-    s = f"http://127.0.0.1:{port}/{serve_path}/{s}"
-    print(f"Testing url: {s}")
+    url = f"http://127.0.0.1:{port}/{serve_path}/{test_file_name}"
+    print(f"Testing url: {url}")
     text = None
     try:
         before_get = time.perf_counter()
-        driver.get(s)
+        driver.get(url)
         after_get = time.perf_counter()
+        if cli_args.page_loading_timeout is None:
+            special_case_time = next(
+                (value for s, value in tests_that_take_extra_time_to_load if test_file_name in s), None
+            )
+            if special_case_time is not None:
+                cli_args.page_loading_timeout = special_case_time
+            else:
+                cli_args.page_loading_timeout = 2
         if after_get - before_get > cli_args.page_loading_timeout:
-            raise TimeoutError(f"Page loading took {(after_get - before_get):.2f}s (> 2s limit)")
+            raise TimeoutError(
+                f"Page loading took {(after_get - before_get):.2f}s (> {cli_args.page_loading_timeout}s limit)"
+            )
+        print(f">>> Page loading took {(after_get - before_get):.2f}s")
 
         avg_line, min_line, max_line = None, None, None
         start_time, latest_time = time.perf_counter(), 0
@@ -154,6 +170,7 @@ def run_single_test(s: str, driver: webdriver.Remote, port: int, serve_path, cli
                 element = driver.find_element(By.ID, "log")
                 latest_time = time.perf_counter()
                 text = element.text
+                # print(f">>> Text: \n{text}\n<<<\n")
             except NoSuchElementException:
                 time.sleep(1)
                 continue
@@ -447,7 +464,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--page_loading_timeout",
         type=int,
-        default=2,
+        default=None,
         help="Pages should load very fast, but if takes longer (than default 2s or specified), the result parsing is skipped",
     )
     args = parser.parse_args()
