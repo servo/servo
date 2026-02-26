@@ -3055,7 +3055,7 @@ impl GlobalScope {
     /// Returns the ["incumbent"] global object.
     ///
     /// ["incumbent"]: https://html.spec.whatwg.org/multipage/#incumbent
-    pub(crate) fn incumbent() -> Option<DomRoot<Self>> {
+    pub(crate) fn incumbent() -> DomRoot<Self> {
         incumbent_global()
     }
 
@@ -3591,7 +3591,7 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
         GlobalScope::origin(self)
     }
 
-    fn incumbent() -> Option<DomRoot<Self>> {
+    fn incumbent() -> DomRoot<Self> {
         GlobalScope::incumbent()
     }
 

@@ -157,10 +157,7 @@ impl MessagePort {
 
         // Step 6, done in MessagePortImpl.
 
-        let incumbent = match GlobalScope::incumbent() {
-            None => unreachable!("postMessage called with no incumbent global"),
-            Some(incumbent) => incumbent,
-        };
+        let incumbent = GlobalScope::incumbent();
 
         // Step 7
         let task = PortMessageTask {

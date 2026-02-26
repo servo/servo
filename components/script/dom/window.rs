@@ -1721,7 +1721,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         target_origin: USVString,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
-        let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
+        let incumbent = GlobalScope::incumbent();
         let source = incumbent.as_window();
         let source_origin = source.Document().origin().immutable().clone();
 
@@ -1746,7 +1746,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         #[expect(unsafe_code)]
         let transfer = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
 
-        let incumbent = GlobalScope::incumbent().expect("no incumbent global?");
+        let incumbent = GlobalScope::incumbent();
         let source = incumbent.as_window();
 
         let source_origin = source.Document().origin().immutable().clone();

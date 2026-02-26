@@ -79,7 +79,7 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
 
     fn origin(&self) -> &MutableOrigin;
 
-    fn incumbent() -> Option<DomRoot<D::GlobalScope>>;
+    fn incumbent() -> DomRoot<D::GlobalScope>;
 
     fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext);
 

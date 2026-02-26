@@ -3616,7 +3616,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
         self.toJSONMethod = toJSONMethod
 
     def definition_body(self) -> CGThing:
-        ret = """let incumbent_global = D::GlobalScope::incumbent().expect("no incumbent global");
+        ret = """let incumbent_global = D::GlobalScope::incumbent();
 let global = incumbent_global.reflector().get_jsobject();\n"""
         interface = self.descriptor.interface
         for m in interface.members:
