@@ -425,13 +425,14 @@ impl ReplacedContents {
         size: PhysicalSize<Au>,
     ) -> (PhysicalSize<Au>, PhysicalRect<Au>) {
         if let ReplacedContentKind::Image(ImageInfo {
-            image: Some(Image::Raster(image)),
+            image: Some(image),
             showing_broken_image_icon: true,
         }) = &self.kind
         {
+            let metadata = image.metadata();
             let size = Size2D::new(
-                Au::from_f32_px(image.metadata.width as f32),
-                Au::from_f32_px(image.metadata.height as f32),
+                Au::from_f32_px(metadata.width as f32),
+                Au::from_f32_px(metadata.height as f32),
             )
             .min(size);
             return (PhysicalSize::zero(), size.into());
