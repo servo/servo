@@ -29,7 +29,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::supported_algorithms::{DigestOperation, NormalizedAlgorithm};
+use crate::dom::subtlecrypto::{DigestOperation, NormalizedAlgorithm};
 use crate::dom::subtlecrypto::{
     ALG_RSA_OAEP, ALG_RSA_PSS, ALG_RSASSA_PKCS1_V1_5, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512,
     ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
