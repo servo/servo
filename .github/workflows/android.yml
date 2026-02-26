@@ -46,9 +46,8 @@ jobs:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:
-          tool-cache: false
+          tool-cache: true
           android: false
-          large-packages: false
           swap-storage: false
       - uses: actions/checkout@v5
         if: github.event_name != 'pull_request_target'
