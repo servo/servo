@@ -3680,7 +3680,7 @@ trait NormalizedAlgorithm: Sized {
     fn name(&self) -> &str;
 }
 
-// The value of the key "encrypt" in the internal object supportedAlgorithms
+/// The value of the key "encrypt" in the internal object supportedAlgorithms
 struct EncryptOperation {}
 
 impl Operation for EncryptOperation {
@@ -3747,7 +3747,7 @@ impl EncryptAlgorithm {
     }
 }
 
-// The value of the key "decrypt" in the internal object supportedAlgorithms
+/// The value of the key "decrypt" in the internal object supportedAlgorithms
 struct DecryptOperation {}
 
 impl Operation for DecryptOperation {
@@ -3814,7 +3814,7 @@ impl DecryptAlgorithm {
     }
 }
 
-// The value of the key "sign" in the internal object supportedAlgorithms
+/// The value of the key "sign" in the internal object supportedAlgorithms
 struct SignOperation {}
 
 impl Operation for SignOperation {
@@ -3883,7 +3883,7 @@ impl SignAlgorithm {
     }
 }
 
-// The value of the key "verify" in the internal object supportedAlgorithms
+/// The value of the key "verify" in the internal object supportedAlgorithms
 struct VerifyOperation {}
 
 impl Operation for VerifyOperation {
@@ -3954,7 +3954,7 @@ impl VerifyAlgorithm {
     }
 }
 
-// The value of the key "digest" in the internal object supportedAlgorithms
+/// The value of the key "digest" in the internal object supportedAlgorithms
 struct DigestOperation {}
 
 impl Operation for DigestOperation {
@@ -4013,7 +4013,7 @@ impl DigestAlgorithm {
     }
 }
 
-// The value of the key "deriveBits" in the internal object supportedAlgorithms
+/// The value of the key "deriveBits" in the internal object supportedAlgorithms
 struct DeriveBitsOperation {}
 
 impl Operation for DeriveBitsOperation {
@@ -4074,7 +4074,7 @@ impl DeriveBitsAlgorithm {
     }
 }
 
-// The value of the key "wrapKey" in the internal object supportedAlgorithms
+/// The value of the key "wrapKey" in the internal object supportedAlgorithms
 struct WrapKeyOperation {}
 
 impl Operation for WrapKeyOperation {
@@ -4117,7 +4117,7 @@ impl WrapKeyAlgorithm {
     }
 }
 
-// The value of the key "unwrapKey" in the internal object supportedAlgorithms
+/// The value of the key "unwrapKey" in the internal object supportedAlgorithms
 struct UnwrapKeyOperation {}
 
 impl Operation for UnwrapKeyOperation {
@@ -4160,7 +4160,7 @@ impl UnwrapKeyAlgorithm {
     }
 }
 
-// The value of the key "unwrapKey" in the internal object supportedAlgorithms
+/// The value of the key "unwrapKey" in the internal object supportedAlgorithms
 struct GenerateKeyOperation {}
 
 impl Operation for GenerateKeyOperation {
@@ -4341,7 +4341,7 @@ impl GenerateKeyAlgorithm {
     }
 }
 
-// The value of the key "importKey" in the internal object supportedAlgorithms
+/// The value of the key "importKey" in the internal object supportedAlgorithms
 struct ImportKeyOperation {}
 
 impl Operation for ImportKeyOperation {
@@ -4557,7 +4557,7 @@ impl ImportKeyAlgorithm {
     }
 }
 
-// The value of the key "exportKey" in the internal object supportedAlgorithms
+/// The value of the key "exportKey" in the internal object supportedAlgorithms
 struct ExportKeyOperation {}
 
 impl Operation for ExportKeyOperation {
@@ -4676,7 +4676,7 @@ impl ExportKeyAlgorithm {
     }
 }
 
-// The value of the key "get key length" in the internal object supportedAlgorithms
+/// The value of the key "get key length" in the internal object supportedAlgorithms
 struct GetKeyLengthOperation {}
 
 impl Operation for GetKeyLengthOperation {
@@ -4771,7 +4771,7 @@ impl GetKeyLengthAlgorithm {
     }
 }
 
-// The value of the key "encapsulate" in the internal object supportedAlgorithms
+/// The value of the key "encapsulate" in the internal object supportedAlgorithms
 struct EncapsulateOperation {}
 
 impl Operation for EncapsulateOperation {
