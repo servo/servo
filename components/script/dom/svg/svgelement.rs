@@ -145,4 +145,15 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
             CanGc::note(),
         );
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
+    fn TabIndex(&self) -> i32 {
+        self.element.tab_index()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
+    fn SetTabIndex(&self, tab_index: i32, can_gc: CanGc) {
+        self.element
+            .set_int_attribute(&local_name!("tabindex"), tab_index, can_gc);
+    }
 }

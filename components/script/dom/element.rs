@@ -2926,6 +2926,48 @@ impl Element {
             column_number: 0,
         }
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
+    pub(crate) fn tab_index(&self) -> i32 {
+        // > The tabIndex getter steps are:
+        // > 1. Let attribute be this's tabindex attribute.
+        // > 2. If attribute is not null:
+        // >    1. Let parsedValue be the result of integer parsing attribute's value.
+        // >    2. If parsedValue is not an error and is within the long range, then return parsedValue.
+        if self.has_attribute(&local_name!("tabindex")) {
+            return self.get_int_attribute(&local_name!("tabindex"), 0);
+        }
+
+        // > 3. Return 0 if this is an a, area, button, frame, iframe, input, object, select, textarea,
+        // > or SVG a element, or is a summary element that is a summary for its parent details;
+        // > otherwise -1.
+        //
+        // Note: We do not currently support SVG `a` elements.
+        if matches!(
+            self.upcast::<Node>().type_id(),
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLAnchorElement |
+                    HTMLElementTypeId::HTMLAreaElement |
+                    HTMLElementTypeId::HTMLButtonElement |
+                    HTMLElementTypeId::HTMLFrameElement |
+                    HTMLElementTypeId::HTMLIFrameElement |
+                    HTMLElementTypeId::HTMLInputElement |
+                    HTMLElementTypeId::HTMLObjectElement |
+                    HTMLElementTypeId::HTMLSelectElement |
+                    HTMLElementTypeId::HTMLTextAreaElement
+            ))
+        ) {
+            return 0;
+        }
+        if self
+            .downcast::<HTMLElement>()
+            .is_some_and(|html_element| html_element.is_a_summary_for_its_parent_details())
+        {
+            return 0;
+        }
+
+        -1
+    }
 }
 
 impl ElementMethods<crate::DomTypeHolder> for Element {
@@ -4610,6 +4652,7 @@ impl VirtualMethods for Element {
                 AttrValue::from_serialized_tokenlist(value.into())
             },
             local_name!("exportparts") => AttrValue::from_shadow_parts(value.into()),
+            local_name!("tabindex") => AttrValue::from_i32(value.into(), -1),
             _ => self
                 .super_type()
                 .unwrap()
