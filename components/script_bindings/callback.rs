@@ -6,7 +6,6 @@
 
 use std::default::Default;
 use std::ffi::CString;
-use std::mem::drop;
 use std::rc::Rc;
 
 use js::jsapi::{
@@ -24,7 +23,7 @@ use crate::realms::{InRealm, enter_realm};
 use crate::reflector::DomObject;
 use crate::root::Dom;
 use crate::script_runtime::{CanGc, JSContext};
-use crate::settings_stack::{GenericAutoIncumbentScript, run_a_script};
+use crate::settings_stack::{run_a_callback, run_a_script};
 use crate::{DomTypes, cformat};
 
 pub trait ThisReflector {
@@ -274,26 +273,28 @@ pub fn call_setup<D: DomTypes, T: CallbackContainer<D>, R>(
 
     // Step 8: Prepare to run script with relevant settings.
     run_a_script::<D, R>(global, move || {
-        // Step 9: Prepare to run a callback with stored settings.
-        let ais = callback
-            .incumbent()
-            .map(GenericAutoIncumbentScript::<D>::new);
-        let old_realm = unsafe { EnterRealm(*cx, callback.callback()) };
-        let r = f(cx);
-        unsafe {
-            LeaveRealm(*cx, old_realm);
+        let g = || {
+            let old_realm = unsafe { EnterRealm(*cx, callback.callback()) };
+            let r = f(cx);
+            unsafe {
+                LeaveRealm(*cx, old_realm);
+            }
+            if handling == ExceptionHandling::Report {
+                let ar = enter_realm::<D>(&**global);
+                <D as DomHelpers<D>>::report_pending_exception(
+                    cx,
+                    true,
+                    InRealm::Entered(&ar),
+                    CanGc::note(),
+                );
+            }
+            r
+        };
+        if let Some(incumbent_global) = callback.incumbent() {
+            // Step 9: Prepare to run a callback with stored settings.
+            run_a_callback::<D, R>(incumbent_global, g)
+        } else {
+            g()
         }
-        if handling == ExceptionHandling::Report {
-            let ar = enter_realm::<D>(&**global);
-            <D as DomHelpers<D>>::report_pending_exception(
-                cx,
-                true,
-                InRealm::Entered(&ar),
-                CanGc::note(),
-            );
-        }
-        // Step 14.1: Clean up after running a callback with stored settings.
-        drop(ais);
-        r
     }) // Step 14.2: Clean up after running script with relevant settings.
 }

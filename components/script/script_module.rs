@@ -51,10 +51,12 @@ use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, Resource
 use script_bindings::cformat;
 use script_bindings::domstring::BytesView;
 use script_bindings::error::Fallible;
+use script_bindings::settings_stack::run_a_callback;
 use script_bindings::trace::CustomTraceable;
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use servo_url::ServoUrl;
 
+use crate::DomTypeHolder;
 use crate::document_loader::LoadType;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
@@ -66,7 +68,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::settings_stack::AutoIncumbentScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
@@ -1317,9 +1318,9 @@ fn fetch_the_descendants_and_link_module_script(
 
     let realm = enter_realm(&*global);
     let comp = InRealm::Entered(&realm);
-    let _ais = AutoIncumbentScript::new(&global);
-
-    loading_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+    run_a_callback::<DomTypeHolder, _>(&global, || {
+        loading_promise.append_native_handler(&handler, comp, CanGc::from_cx(cx));
+    });
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script>
@@ -1376,81 +1377,83 @@ pub(crate) fn fetch_a_single_module_script(
 
     let realm = enter_realm(&*global);
     let comp = InRealm::Entered(&realm);
-    let _ais = AutoIncumbentScript::new(&global);
+    run_a_callback::<DomTypeHolder, _>(&global, || {
+        let has_pending_fetch = pending.borrow().is_some();
+        pending
+            .borrow_mut()
+            .get_or_insert_with(|| Promise::new_in_current_realm(comp, CanGc::note()))
+            .append_native_handler(&handler, comp, CanGc::note());
 
-    let has_pending_fetch = pending.borrow().is_some();
-    pending
-        .borrow_mut()
-        .get_or_insert_with(|| Promise::new_in_current_realm(comp, CanGc::note()))
-        .append_native_handler(&handler, comp, CanGc::note());
+        // Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
+        // then queue a task on the networking task source to proceed with running the following steps.
+        if has_pending_fetch {
+            return;
+        }
 
-    // Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
-    // then queue a task on the networking task source to proceed with running the following steps.
-    if has_pending_fetch {
-        return;
-    }
+        // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
+        global.set_module_map(module_request.clone(), ModuleStatus::Fetching(pending));
 
-    // Step 7. Set moduleMap[(url, moduleType)] to "fetching".
-    global.set_module_map(module_request.clone(), ModuleStatus::Fetching(pending));
+        let document: Option<DomRoot<Document>> = match &owner {
+            ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
+            ModuleOwner::Window(script) => Some(script.root().owner_document()),
+        };
+        let webview_id = document.as_ref().map(|document| document.webview_id());
 
-    let document: Option<DomRoot<Document>> = match &owner {
-        ModuleOwner::Worker(_) | ModuleOwner::DynamicModule(_) => None,
-        ModuleOwner::Window(script) => Some(script.root().owner_document()),
-    };
-    let webview_id = document.as_ref().map(|document| document.webview_id());
+        // Step 8. Let request be a new request whose URL is url, mode is "cors", referrer is referrer, and client is fetchClient.
 
-    // Step 8. Let request be a new request whose URL is url, mode is "cors", referrer is referrer, and client is fetchClient.
+        // Step 10. If destination is "worker", "sharedworker", or "serviceworker", and isTopLevel is true,
+        // then set request's mode to "same-origin".
+        let mode = match destination {
+            Destination::Worker | Destination::SharedWorker if is_top_level => {
+                RequestMode::SameOrigin
+            },
+            _ => RequestMode::CorsMode,
+        };
 
-    // Step 10. If destination is "worker", "sharedworker", or "serviceworker", and isTopLevel is true,
-    // then set request's mode to "same-origin".
-    let mode = match destination {
-        Destination::Worker | Destination::SharedWorker if is_top_level => RequestMode::SameOrigin,
-        _ => RequestMode::CorsMode,
-    };
+        // Step 9. Set request's destination to the result of running the fetch destination from module type steps given destination and moduleType.
+        let destination = match module_type {
+            ModuleType::JSON => Destination::Json,
+            ModuleType::JavaScript | ModuleType::Unknown => destination,
+        };
 
-    // Step 9. Set request's destination to the result of running the fetch destination from module type steps given destination and moduleType.
-    let destination = match module_type {
-        ModuleType::JSON => Destination::Json,
-        ModuleType::JavaScript | ModuleType::Unknown => destination,
-    };
+        // TODO Step 11. Set request's initiator type to "script".
 
-    // TODO Step 11. Set request's initiator type to "script".
+        // Step 12. Set up the module script request given request and options.
+        let request = RequestBuilder::new(webview_id, url.clone(), referrer)
+            .destination(destination)
+            .parser_metadata(options.parser_metadata)
+            .integrity_metadata(options.integrity_metadata.clone())
+            .credentials_mode(options.credentials_mode)
+            .referrer_policy(options.referrer_policy)
+            .mode(mode)
+            .with_global_scope(&global)
+            .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
 
-    // Step 12. Set up the module script request given request and options.
-    let request = RequestBuilder::new(webview_id, url.clone(), referrer)
-        .destination(destination)
-        .parser_metadata(options.parser_metadata)
-        .integrity_metadata(options.integrity_metadata.clone())
-        .credentials_mode(options.credentials_mode)
-        .referrer_policy(options.referrer_policy)
-        .mode(mode)
-        .with_global_scope(&global)
-        .cryptographic_nonce_metadata(options.cryptographic_nonce.clone());
+        let context = ModuleContext {
+            owner,
+            data: vec![],
+            metadata: None,
+            module_request,
+            options,
+            status: Ok(()),
+            introduction_type,
+        };
 
-    let context = ModuleContext {
-        owner,
-        data: vec![],
-        metadata: None,
-        module_request,
-        options,
-        status: Ok(()),
-        introduction_type,
-    };
-
-    let network_listener = NetworkListener::new(
-        context,
-        global.task_manager().networking_task_source().to_sendable(),
-    );
-    match document {
-        Some(document) => {
-            document.loader_mut().fetch_async_with_callback(
-                LoadType::Script(url),
-                request,
-                network_listener.into_callback(),
-            );
-        },
-        None => global.fetch_with_network_listener(request, network_listener),
-    };
+        let network_listener = NetworkListener::new(
+            context,
+            global.task_manager().networking_task_source().to_sendable(),
+        );
+        match document {
+            Some(document) => {
+                document.loader_mut().fetch_async_with_callback(
+                    LoadType::Script(url),
+                    request,
+                    network_listener.into_callback(),
+                );
+            },
+            None => global.fetch_with_network_listener(request, network_listener),
+        };
+    })
 }
 
 pub(crate) type ModuleSpecifierMap = IndexMap<String, Option<ServoUrl>>;

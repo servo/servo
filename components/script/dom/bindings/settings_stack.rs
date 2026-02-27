@@ -44,8 +44,6 @@ pub(crate) fn entry_global() -> DomRoot<GlobalScope> {
         .unwrap()
 }
 
-pub type AutoIncumbentScript = GenericAutoIncumbentScript<crate::DomTypeHolder>;
-
 /// Returns the ["incumbent"] global object.
 ///
 /// ["incumbent"]: https://html.spec.whatwg.org/multipage/#incumbent

@@ -22,14 +22,15 @@ use js::rust::wrappers2::{
 };
 use js::rust::{HandleValue, IntoHandle};
 use net_traits::request::{Destination, Referrer};
+use script_bindings::settings_stack::run_a_callback;
 use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
 
+use crate::DomTypeHolder;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::settings_stack::AutoIncumbentScript;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
@@ -396,21 +397,20 @@ fn continue_dynamic_import(
 
     let mut realm = enter_auto_realm(cx, &*global);
     let mut realm = realm.current_realm();
-    let _ais = AutoIncumbentScript::new(&global);
-
-    // Step 8. Perform PerformPromiseThen(loadPromise, linkAndEvaluate, onRejected).
-    let handler = PromiseNativeHandler::new(
-        &global,
-        Some(link_and_evaluate),
-        Some(Box::new(OnRejectedHandler {
-            promise: promise.clone(),
-        })),
-        CanGc::from_cx(&mut realm),
-    );
-    let in_realm_proof = (&mut realm).into();
-    let in_realm = InRealm::Already(&in_realm_proof);
-    load_promise.append_native_handler(&handler, in_realm, CanGc::from_cx(&mut realm));
-
+    run_a_callback::<DomTypeHolder, _>(&*global, || {
+        // Step 8. Perform PerformPromiseThen(loadPromise, linkAndEvaluate, onRejected).
+        let handler = PromiseNativeHandler::new(
+            &global,
+            Some(link_and_evaluate),
+            Some(Box::new(OnRejectedHandler {
+                promise: promise.clone(),
+            })),
+            CanGc::from_cx(&mut realm),
+        );
+        let in_realm_proof = (&mut realm).into();
+        let in_realm = InRealm::Already(&in_realm_proof);
+        load_promise.append_native_handler(&handler, in_realm, CanGc::from_cx(&mut realm));
+    });
     // Step 9. Return unused.
 }
 
