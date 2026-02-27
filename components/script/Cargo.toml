@@ -130,6 +130,7 @@ selectors = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["preserve_order"] }
 servo-media = { workspace = true }
+servo-tracing = { workspace = true }
 servo_arc = { workspace = true }
 servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }

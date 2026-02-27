@@ -4,12 +4,15 @@
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
-use proc_macro2::Punct;
+use proc_macro2::{Ident, Punct, Span};
 use quote::{ToTokens, TokenStreamExt, quote};
 use syn::parse::{Parse, Parser};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
-use syn::{Expr, ItemFn, Meta, MetaList, Token, parse_quote, parse2};
+use syn::{
+    Expr, ImplItem, ImplItemFn, Item, ItemFn, Meta, MetaList, Token, parse_macro_input,
+    parse_quote, parse2,
+};
 
 struct Fields(MetaList);
 impl From<MetaList> for Fields {
@@ -196,6 +199,67 @@ pub fn instrument(attr: TokenStream, item: TokenStream) -> TokenStream {
     match instrument_internal(attr.into(), item.into()) {
         Ok(stream) => stream.into(),
         Err(err) => err.to_compile_error().into(),
+    }
+}
+
+#[proc_macro_attribute]
+/// This is only useful for `#[servo_tracing::instrument_all]` and has no
+/// functionality except in that context.`
+pub fn skip(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    item
+}
+
+fn should_apply_instrument_method(method: &mut ImplItemFn) -> bool {
+    let ident = Ident::new("servo_tracing", Span::call_site());
+    // Test empty
+    method.attrs.is_empty() ||
+    // Test not already have servo_tracing macro
+        ! method
+            .attrs
+            .iter()
+            .any(|attr| {
+                attr.path().segments.first().map(|segment| &segment.ident) == Some(&ident)
+            })
+}
+
+#[proc_macro_attribute]
+/// Instruments a whole impl block with the default servo tracing.
+/// See the documentation for `#[servo_tracing::instrument]`.
+/// If you want special treatment of a specific function you can override it
+/// with the normal tracing macro
+/// ```
+/// struct Foo {}
+/// #[servo_tracing::instrument_all(skip_all))]
+/// impl Foo {
+///     fn bar(&self) {}
+///
+///     #[servo_tracing::instrument(name="Do baz")]
+///     fn baz(&self) {}
+///
+///     fn bazz(&self) {}
+/// }
+/// ```
+pub fn instrument_all(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let attr: proc_macro2::TokenStream = attr.into();
+    let parsed_item = parse_macro_input!(item as Item);
+    match parsed_item {
+        Item::Impl(mut impl_block) => {
+            for item in impl_block.items.iter_mut() {
+                if let ImplItem::Fn(method) = item {
+                    if should_apply_instrument_method(method) {
+                        let transformed =
+                            instrument_internal(attr.clone(), method.to_token_stream())
+                                .unwrap()
+                                .into();
+                        *method = syn::parse_macro_input!(transformed as syn::ImplItemFn)
+                    }
+                }
+            }
+            TokenStream::from(quote!(#impl_block))
+        },
+        _ => {
+            panic!("can only be applied to impl block");
+        },
     }
 }
 
