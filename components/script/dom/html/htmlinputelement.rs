@@ -316,12 +316,138 @@ impl ColorInputShadowTree {
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct RangeInputShadowTree {
+    slider_fill: Dom<Element>,
+    slider_thumb: Dom<Element>,
+    slider_track: Dom<Element>,
+}
+
+impl RangeInputShadowTree {
+    fn new(shadow_root: &Node, can_gc: CanGc) -> Self {
+        Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc); //TODO: what isi this
+
+        let slider_fill = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &shadow_root.owner_document(),
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+
+        let slider_thumb = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &shadow_root.owner_document(),
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+
+        let slider_track = Element::create(
+            QualName::new(None, ns!(html), local_name!("div")),
+            None,
+            &shadow_root.owner_document(),
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+            can_gc,
+        );
+
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(slider_track.upcast::<Node>(), can_gc)
+            .unwrap();
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(slider_fill.upcast::<Node>(), can_gc)
+            .unwrap();
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(slider_thumb.upcast::<Node>(), can_gc)
+            .unwrap();
+
+        slider_fill
+            .upcast::<Node>()
+            .set_implemented_pseudo_element(PseudoElement::ServoSliderFill);
+        slider_thumb
+            .upcast::<Node>()
+            .set_implemented_pseudo_element(PseudoElement::ServoSliderThumb);
+        slider_track
+            .upcast::<Node>()
+            .set_implemented_pseudo_element(PseudoElement::ServoSliderTrack);
+
+        Self {
+            slider_fill: slider_fill.as_traced(),
+            slider_thumb: slider_thumb.as_traced(),
+            slider_track: slider_track.as_traced(),
+        }
+    }
+
+    fn update(&self, input_element: &HTMLInputElement, can_gc: CanGc) {
+        if input_element.owner_document().has_script_or_layout_blocker() {
+            let range_input_element = DomRoot::from_ref(input_element);
+            input_element.owner_document().add_delayed_task(task!(
+                ThumbPositionUpdate: |range_input_element: DomRoot<HTMLInputElement>| {
+                    range_input_element.get_or_create_shadow_tree(CanGc::note()).update(&range_input_element, CanGc::note());
+                }
+            ));
+            return;
+        }
+        self.update_range_position(input_element, can_gc);
+    }
+
+    fn update_range_position(&self, input_element: &HTMLInputElement, can_gc: CanGc) {
+        let value = input_element.Value();
+        let min = input_element.minimum().unwrap_or(0.0);
+        let max = input_element.maximum().unwrap_or(100.0);
+        let value_num = input_element.convert_string_to_number(&value.str()).unwrap_or(0.0);
+        let percent = if (max - min) < f64::EPSILON {
+            0.0
+        } else {
+            let clamped_value = value_num.clamp(min, max);
+            (clamped_value - min) / (max - min) * 100.0
+        };
+
+        let thumb_rect_width: f64 = self
+            .slider_thumb
+            .upcast::<Node>()
+            .border_box()
+            .unwrap_or_default()
+            .width()
+            .to_f64_px();
+
+        let thumb_style = format!(
+            "inset-inline-start: calc({}% - {}px)",
+            percent,
+            thumb_rect_width * percent / 100.0
+        );
+        let progress_style = format!("width: {percent}%;");
+
+        self.slider_thumb.set_string_attribute(
+            &local_name!("style"),
+            thumb_style.into(),
+            can_gc,
+        );
+        self.slider_fill.set_string_attribute(
+            &local_name!("style"),
+            progress_style.into(),
+            can_gc,
+        );
+    }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[non_exhaustive]
 enum InputElementShadowTree {
     ColorInput(ColorInputShadowTree),
+    RangeInput(RangeInputShadowTree),
     TextInput(TextInputWidgetShadowTree),
     TextValue(TextValueShadowTree),
-    // TODO: Add shadow trees for other input types (range etc) here
+    // TODO: Add shadow trees for other input types here
 }
 
 impl InputElementShadowTree {
@@ -335,6 +461,9 @@ impl InputElementShadowTree {
         if input_element.input_type() == InputType::Color {
             return Self::ColorInput(ColorInputShadowTree::new(shadow_root, can_gc));
         }
+        if input_element.input_type() == InputType::Range {
+            return Self::RangeInput(RangeInputShadowTree::new(shadow_root, can_gc));
+        }
         if input_element.renders_as_text_input_widget() {
             return Self::TextInput(TextInputWidgetShadowTree::new(shadow_root, can_gc));
         }
@@ -344,6 +473,9 @@ impl InputElementShadowTree {
     fn is_valid_for_element(&self, input_element: &HTMLInputElement) -> bool {
         if input_element.input_type() == InputType::Color {
             return matches!(self, InputElementShadowTree::ColorInput(_));
+        }
+        if input_element.input_type() == InputType::Range {
+            return matches!(self, InputElementShadowTree::RangeInput(_));
         }
         if input_element.renders_as_text_input_widget() {
             return matches!(self, InputElementShadowTree::TextInput(_));
@@ -360,6 +492,9 @@ impl InputElementShadowTree {
     fn update(&self, input_element: &HTMLInputElement, can_gc: CanGc) {
         match self {
             InputElementShadowTree::ColorInput(shadow_tree) => {
+                shadow_tree.update(input_element, can_gc)
+            },
+            InputElementShadowTree::RangeInput(shadow_tree) => {
                 shadow_tree.update(input_element, can_gc)
             },
             InputElementShadowTree::TextInput(shadow_tree) => shadow_tree.update(input_element),
@@ -496,7 +631,6 @@ impl InputType {
                 InputType::Hidden |
                 InputType::Month |
                 InputType::Number |
-                InputType::Range |
                 InputType::Search |
                 InputType::Tel |
                 InputType::Text |
@@ -1420,7 +1554,6 @@ impl HTMLInputElement {
                 InputType::Month |
                 InputType::Number |
                 InputType::Password |
-                InputType::Range |
                 InputType::Search |
                 InputType::Tel |
                 InputType::Text |
