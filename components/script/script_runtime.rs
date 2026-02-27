@@ -993,16 +993,6 @@ impl Runtime {
             if let Some(val) = in_range(pref!(js_mem_gc_high_frequency_high_limit_mb), 0, 10_000) {
                 JS_SetGCParameter(cx, JSGCParamKey::JSGC_LARGE_HEAP_SIZE_MIN, val as u32);
             }
-            /*if let Some(val) = in_range(pref!(js_mem_gc_allocation_threshold_factor), 0, 10_000) {
-                JS_SetGCParameter(cx, JSGCParamKey::JSGC_NON_INCREMENTAL_FACTOR, val as u32);
-            }*/
-            /*
-                // JSGC_SMALL_HEAP_INCREMENTAL_LIMIT
-                pref("javascript.options.mem.gc_small_heap_incremental_limit", 140);
-
-                // JSGC_LARGE_HEAP_INCREMENTAL_LIMIT
-                pref("javascript.options.mem.gc_large_heap_incremental_limit", 110);
-            */
             if let Some(val) = in_range(pref!(js_mem_gc_empty_chunk_count_min), 0, 10_000) {
                 JS_SetGCParameter(cx, JSGCParamKey::JSGC_MIN_EMPTY_CHUNK_COUNT, val as u32);
             }
