@@ -12,9 +12,9 @@ use cookie::Cookie;
 use headers::ContentType;
 use http::header::HeaderMap;
 use hyper::{Method, StatusCode, Uri};
-use hyper_serde::{De, Ser, Serde};
 use mime::Mime;
 use serde::{Deserialize, Serialize};
+use servo_hyper_serde::{De, Ser, Serde};
 
 fn is_supported<T>()
 where
