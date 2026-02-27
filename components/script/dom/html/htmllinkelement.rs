@@ -952,21 +952,31 @@ impl HTMLLinkElement {
         // Step 2. Let destination be the current state of el's as attribute (a destination), or "script" if it is in no state.
         let destination = el
             .get_attribute(&ns!(), &local_name!("as"))
-            .filter(|attr| !attr.value().is_empty())
             .map(|attr| attr.value().to_ascii_lowercase())
-            .and_then(|attribute_value| Destination::from_str(&attribute_value).ok())
+            .and_then(|value| match value.as_str() {
+                // `Destination::from_str` will map an empty string to `Destination::None`
+                "" => None,
+                // "fetch" is a valid preload destination, but not for modules
+                "fetch" => Some(Destination::None),
+                _ => Destination::from_str(&value).ok(),
+            })
             .unwrap_or(Destination::Script);
 
         let document = self.owner_document();
         let global = document.global();
 
+        // A module preload destination is "json", "style", or a script-like destination.
+        let is_a_modulepreload_destination = match destination {
+            Destination::Json | Destination::Style => true,
+            // https://fetch.spec.whatwg.org/#ref-for-request-destination-script-like
+            // While "xslt" can cause script execution, it is not relevant here.
+            Destination::Xslt => false,
+            d => d.is_script_like(),
+        };
+
         // Step 3. If destination is not a module preload destination, then queue an element task on the
         // networking task source given el to fire an event named error at el, and return.
-        //
-        // A module preload destination is "json", "style", or a script-like destination.
-        if !matches!(destination, Destination::Json | Destination::Style) &&
-            !destination.is_script_like()
-        {
+        if !is_a_modulepreload_destination {
             return global
                 .task_manager()
                 .networking_task_source()
