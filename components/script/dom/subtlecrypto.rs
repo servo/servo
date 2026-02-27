@@ -3624,7 +3624,7 @@ fn normalize_algorithm<Op: Operation>(
 // represent it, which acts a key of the internal object supportedAlgorithms.
 //
 // We then implement the [`Operation`] trait for these structs. When implementing the trait for
-// each of these strcuts, we set the associated type [`RegisteredAlgorithm`] of [`Operation`] to an
+// each of these structs, we set the associated type [`RegisteredAlgorithm`] of [`Operation`] to an
 // enum as the value of the operation v in supportedAlgorithms. The enum lists all algorithhms
 // supporting the operation v as its variants.
 //
