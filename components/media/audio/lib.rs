@@ -56,7 +56,7 @@ pub trait AudioBackend {
     fn make_streamreader(
         id: servo_media_streams::MediaStreamId,
         sample_rate: f32,
-    ) -> Box<dyn AudioStreamReader + Send>;
+    ) -> Result<Box<dyn AudioStreamReader + Send>, sink::AudioSinkError>;
 }
 
 pub trait AudioStreamReader {

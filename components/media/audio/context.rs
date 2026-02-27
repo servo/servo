@@ -219,7 +219,7 @@ impl AudioContext {
         let _ = self
             .sender
             .send(AudioRenderThreadMsg::CreateNode(node_type, tx, ch));
-        rx.recv().ok()
+        rx.recv().ok().flatten()
     }
 
     // Resume audio processing.

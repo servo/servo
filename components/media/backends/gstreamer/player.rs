@@ -354,26 +354,28 @@ impl PlayerInner {
 
     fn set_stream(&mut self, stream: &MediaStreamId, only_stream: bool) -> Result<(), PlayerError> {
         debug_assert!(self.stream_type == StreamType::Stream);
-        if let Some(PlayerSource::Stream(ref source)) = self.source {
-            let stream =
-                get_stream(stream).expect("Media streams registry does not contain such ID");
-            let mut stream = stream.lock().unwrap();
-            if let Some(stream) = stream.as_mut_any().downcast_mut::<GStreamerMediaStream>() {
-                let playbin = self
-                    .player
-                    .pipeline()
-                    .dynamic_cast::<gstreamer::Pipeline>()
-                    .unwrap();
-                let clock = gstreamer::SystemClock::obtain();
-                playbin.set_base_time(*BACKEND_BASE_TIME);
-                playbin.set_start_time(gstreamer::ClockTime::NONE);
-                playbin.use_clock(Some(&clock));
+        let Some(PlayerSource::Stream(ref source)) = self.source else {
+            return Err(PlayerError::SetStreamFailed);
+        };
 
-                source.set_stream(stream, only_stream);
-                return Ok(());
-            }
-        }
-        Err(PlayerError::SetStreamFailed)
+        let stream = get_stream(stream).expect("Media streams registry does not contain such ID");
+        let mut stream = stream.lock().unwrap();
+        let Some(stream) = stream.as_mut_any().downcast_mut::<GStreamerMediaStream>() else {
+            return Err(PlayerError::SetStreamFailed);
+        };
+
+        let playbin = self
+            .player
+            .pipeline()
+            .dynamic_cast::<gstreamer::Pipeline>()
+            .unwrap();
+        let clock = gstreamer::SystemClock::obtain();
+        playbin.set_base_time(*BACKEND_BASE_TIME);
+        playbin.set_start_time(gstreamer::ClockTime::NONE);
+        playbin.use_clock(Some(&clock));
+        source
+            .set_stream(stream, only_stream)
+            .map_err(|_| PlayerError::SetStreamFailed)
     }
 
     fn set_audio_track(&mut self, stream_index: i32, enabled: bool) -> Result<(), PlayerError> {
