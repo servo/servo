@@ -15,20 +15,32 @@ import subprocess
 
 import common_function_for_servo_test
 import common_function_for_mossel
-
+from memory_usage_plotter import NonBlockingMemoryLogging, MemoryLoggingOptions
 
 def operator():
+    memory_logging_options = MemoryLoggingOptions(
+        log_to_file=True,
+        plot=True,
+        pre_time=2,
+        post_time=20,
+        verbose=True
+    )
+    memory_logging = NonBlockingMemoryLogging(memory_logging_options)
+    memory_logging.start()
     IMPLICIT_WAIT_TIME = 6
     driver = common_function_for_servo_test.create_driver()
     # This is used to wait for element retrieval if not found
     # and certain element click, element send key exceptions.
     driver.implicitly_wait(IMPLICIT_WAIT_TIME)
+    memory_logging.event("load mossel")
     common_function_for_mossel.load_mossel(driver)
 
     # Step 2. Click to close the pop-up
+    memory_logging.event("close popup")
     common_function_for_mossel.close_popup(driver)
 
     # Step 3. Click to page: Categories
+    memory_logging.event("click category")
     common_function_for_mossel.click_category(driver)
 
     # Step 4. Find components which indicates the page has loaded, before sliding.
@@ -41,6 +53,7 @@ def operator():
     time.sleep(1)
 
     print("swiping...")
+    memory_logging.event("swiping")
     cmd = ["hdc", "shell", "uinput -T -m 770 2000 770 930"]
     subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     time.sleep(5)
@@ -50,7 +63,7 @@ def operator():
 
     if before == after:
         raise RuntimeError("The screenshots before and after sliding are the same; the slide failed.")
-
+    memory_logging.stop()
 
 if __name__ == "__main__":
-    common_function_for_servo_test.run_test(operator, "mossel_slide")
+    common_function_for_servo_test.run_test(operator, "mossel_slide", minimal_history_mode = True)
