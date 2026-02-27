@@ -1019,7 +1019,7 @@ macro_rules! match_domstring_ascii_inner {
         } == $input {
           $then
         } else {
-            match_domstring_ascii_inner!($variant, $input, $($rest)*)
+            $crate::match_domstring_ascii_inner!($variant, $input, $($rest)*)
         }
 
     };
