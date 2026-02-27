@@ -201,8 +201,7 @@ impl CryptoAlgorithm {
             .find(|algo| algo.as_str().eq_ignore_ascii_case(algo_name))
             .cloned()
             .ok_or(Error::NotSupported(Some(format!(
-                "Unsupported algorithm: {}",
-                algo_name
+                "Unsupported algorithm: {algo_name}"
             ))))
     }
 }
