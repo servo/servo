@@ -1209,6 +1209,14 @@ pub(crate) fn fetch_a_modulepreload_module(
 ) {
     let referrer = owner.global().get_referrer();
 
+    // Note: There is a specification inconsistency, `fetch_a_single_module_script` doesn't allow
+    // fetching top level JSON/CSS module scripts, but should be possible when preloading.
+    let module_type = if let Destination::Json = destination {
+        Some(ModuleType::JSON)
+    } else {
+        None
+    };
+
     // Step 1. Fetch a single module script given url, settingsObject, destination, options, settingsObject,
     // "client", true, and with the following steps given result:
     fetch_a_single_module_script(
@@ -1217,7 +1225,7 @@ pub(crate) fn fetch_a_modulepreload_module(
         destination,
         options,
         referrer,
-        None,
+        module_type,
         true,
         Some(IntroductionType::SRC_SCRIPT),
         move |module_tree| {
