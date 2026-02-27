@@ -1384,30 +1384,31 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
         // to algorithm and op set to "wrapKey".
-        let wrap_key_normalized_algorithm = normalize_algorithm::<WrapKeyOperation>(cx, &algorithm);
-
         // Step 3. If an error occurred, let normalizedAlgorithm be the result of normalizing an
         // algorithm, with alg set to algorithm and op set to "encrypt".
-        let encrypt_normalized_algorithm = match &wrap_key_normalized_algorithm {
-            Err(_) => normalize_algorithm::<EncryptOperation>(cx, &algorithm),
-            Ok(_) => {
-                // This is a placeholder. When wrap_key_normalized_algorithm is an Ok(_),
-                // encrypt_normalized_algorithm won't be used.
-                Err(Error::NotSupported(None))
-            },
+        // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+        enum WrapKeyAlgorithmOrEncryptAlgorithm {
+            WrapKeyAlgorithm(WrapKeyAlgorithm),
+            EncryptAlgorithm(EncryptAlgorithm),
+        }
+        let normalized_algorithm = if let Ok(algorithm) =
+            normalize_algorithm::<WrapKeyOperation>(cx, &algorithm)
+        {
+            WrapKeyAlgorithmOrEncryptAlgorithm::WrapKeyAlgorithm(algorithm)
+        } else {
+            match normalize_algorithm::<EncryptOperation>(cx, &algorithm) {
+                Ok(algorithm) => WrapKeyAlgorithmOrEncryptAlgorithm::EncryptAlgorithm(algorithm),
+                Err(error) => {
+                    let promise = Promise::new_in_realm(cx);
+                    promise.reject_error(error, CanGc::from_cx(cx));
+                    return promise;
+                },
+            }
         };
 
-        // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-        let promise = Promise::new_in_realm(cx);
-        if wrap_key_normalized_algorithm.is_err() {
-            if let Err(error) = encrypt_normalized_algorithm {
-                promise.reject_error(error, CanGc::from_cx(cx));
-                return promise;
-            }
-        }
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
-        // NOTE: We did that in preparation of Step 4.
+        let promise = Promise::new_in_realm(cx);
 
         // Step 7. Return promise and perform the remaining steps in parallel.
         let trusted_subtle = Trusted::new(self);
@@ -1430,15 +1431,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 9. If the name member of normalizedAlgorithm is not equal to the name
                 // attribute of the [[algorithm]] internal slot of wrappingKey then throw an
                 // InvalidAccessError.
-                let normalized_algorithm_name =
-                    if let Ok(normalized_algorithm) = &wrap_key_normalized_algorithm {
-                        normalized_algorithm.name()
-                    } else if let Ok(normalized_algorithm) = &encrypt_normalized_algorithm {
-                        normalized_algorithm.name()
-                    } else {
-                        // Guarantee unreachable by Step 4.
-                        unreachable!()
-                    };
+                let normalized_algorithm_name = match &normalized_algorithm {
+                    WrapKeyAlgorithmOrEncryptAlgorithm::WrapKeyAlgorithm(algorithm) => {
+                        algorithm.name()
+                    },
+                    WrapKeyAlgorithmOrEncryptAlgorithm::EncryptAlgorithm(algorithm) => {
+                        algorithm.name()
+                    },
+                };
                 if normalized_algorithm_name != wrapping_key.algorithm().name() {
                     subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
@@ -1517,13 +1517,13 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 //     plaintext.
                 // Otherwise:
                 //     throw a NotSupportedError.
-                let result = if let Ok(normalized_algorithm) = wrap_key_normalized_algorithm {
-                    normalized_algorithm.wrap_key(&wrapping_key, &bytes)
-                } else if let Ok(normalized_algorithm) = encrypt_normalized_algorithm {
-                    normalized_algorithm.encrypt(&wrapping_key, &bytes)
-                } else {
-                    // Guarantee unreachable by Step 4.
-                    unreachable!()
+                let result = match normalized_algorithm {
+                    WrapKeyAlgorithmOrEncryptAlgorithm::WrapKeyAlgorithm(algorithm) => {
+                        algorithm.wrap_key(&wrapping_key, &bytes)
+                    },
+                    WrapKeyAlgorithmOrEncryptAlgorithm::EncryptAlgorithm(algorithm) => {
+                        algorithm.encrypt(&wrapping_key, &bytes)
+                    },
                 };
                 let result = match result {
                     Ok(result) => result,
@@ -1569,28 +1569,27 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
         // to algorithm and op set to "unwrapKey".
-        let unwrap_key_normalized_algorithm =
-            normalize_algorithm::<UnwrapKeyOperation>(cx, &algorithm);
-
         // Step 4. If an error occurred, let normalizedAlgorithm be the result of normalizing an
         // algorithm, with alg set to algorithm and op set to "decrypt".
-        let decrypt_normalized_algorithm = match &unwrap_key_normalized_algorithm {
-            Err(_) => normalize_algorithm::<DecryptOperation>(cx, &algorithm),
-            Ok(_) => {
-                // This is a placeholder. When unwrap_key_normalized_algorithm is an Ok(_),
-                // decrypt_normalized_algorithm won't be used.
-                Err(Error::NotSupported(None))
-            },
-        };
-
         // Step 5. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-        let promise = Promise::new_in_realm(cx);
-        if unwrap_key_normalized_algorithm.is_err() {
-            if let Err(error) = decrypt_normalized_algorithm {
-                promise.reject_error(error, CanGc::from_cx(cx));
-                return promise;
-            }
+        enum UnwrapKeyAlgorithmOrDecryptAlgorithm {
+            UnwrapKeyAlgorithm(UnwrapKeyAlgorithm),
+            DecryptAlgorithm(DecryptAlgorithm),
         }
+        let normalized_algorithm = if let Ok(algorithm) =
+            normalize_algorithm::<UnwrapKeyOperation>(cx, &algorithm)
+        {
+            UnwrapKeyAlgorithmOrDecryptAlgorithm::UnwrapKeyAlgorithm(algorithm)
+        } else {
+            match normalize_algorithm::<DecryptOperation>(cx, &algorithm) {
+                Ok(algorithm) => UnwrapKeyAlgorithmOrDecryptAlgorithm::DecryptAlgorithm(algorithm),
+                Err(error) => {
+                    let promise = Promise::new_in_realm(cx);
+                    promise.reject_error(error, CanGc::from_cx(cx));
+                    return promise;
+                },
+            }
+        };
 
         // Step 6. Let normalizedKeyAlgorithm be the result of normalizing an algorithm, with alg
         // set to unwrappedKeyAlgorithm and op set to "importKey".
@@ -1599,6 +1598,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             match normalize_algorithm::<ImportKeyOperation>(cx, &unwrapped_key_algorithm) {
                 Ok(algorithm) => algorithm,
                 Err(error) => {
+                    let promise = Promise::new_in_realm(cx);
                     promise.reject_error(error, CanGc::from_cx(cx));
                     return promise;
                 },
@@ -1606,7 +1606,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 8. Let realm be the relevant realm of this.
         // Step 9. Let promise be a new Promise.
-        // NOTE: We did that in preparation of Step 5.
+        let promise = Promise::new_in_realm(cx);
+
         // Step 10. Return promise and perform the remaining steps in parallel.
         let trusted_subtle = Trusted::new(self);
         let trusted_unwrapping_key = Trusted::new(unwrapping_key);
@@ -1624,15 +1625,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // Step 12. If the name member of normalizedAlgorithm is not equal to the name
                 // attribute of the [[algorithm]] internal slot of unwrappingKey then throw an
                 // InvalidAccessError.
-                let normalized_algorithm_name =
-                    if let Ok(normalized_algorithm) = &unwrap_key_normalized_algorithm {
-                        normalized_algorithm.name()
-                    } else if let Ok(normalized_algorithm) = &decrypt_normalized_algorithm {
-                        normalized_algorithm.name()
-                    } else {
-                        // Guarantee unreachable by Step 5.
-                        unreachable!()
-                    };
+                let normalized_algorithm_name = match &normalized_algorithm {
+                    UnwrapKeyAlgorithmOrDecryptAlgorithm::UnwrapKeyAlgorithm(algorithm) => {
+                        algorithm.name()
+                    },
+                    UnwrapKeyAlgorithmOrDecryptAlgorithm::DecryptAlgorithm(algorithm) => {
+                        algorithm.name()
+                    },
+                };
                 if normalized_algorithm_name != unwrapping_key.algorithm().name() {
                     subtle.reject_promise_with_error(promise, Error::InvalidAccess(None));
                     return;
@@ -1656,13 +1656,13 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 //     ciphertext.
                 // Otherwise:
                 //     throw a NotSupportedError.
-                let bytes = if let Ok(normalized_algorithm) = unwrap_key_normalized_algorithm {
-                    normalized_algorithm.unwrap_key(&unwrapping_key, &wrapped_key)
-                } else if let Ok(normalized_algorithm) = decrypt_normalized_algorithm {
-                    normalized_algorithm.decrypt(&unwrapping_key, &wrapped_key)
-                } else {
-                    // Guarantee unreachable by Step 5.
-                    unreachable!()
+                let bytes = match normalized_algorithm {
+                    UnwrapKeyAlgorithmOrDecryptAlgorithm::UnwrapKeyAlgorithm(algorithm) => {
+                        algorithm.unwrap_key(&unwrapping_key, &wrapped_key)
+                    },
+                    UnwrapKeyAlgorithmOrDecryptAlgorithm::DecryptAlgorithm(algorithm) => {
+                        algorithm.decrypt(&unwrapping_key, &wrapped_key)
+                    },
                 };
                 let bytes = match bytes {
                     Ok(bytes) => bytes,
