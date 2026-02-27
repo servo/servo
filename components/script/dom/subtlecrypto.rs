@@ -3545,15 +3545,18 @@ fn normalize_algorithm<Op: Operation>(
         },
         // If alg is an object:
         ObjectOrString::Object(obj) => {
+            // Step 1. Let registeredAlgorithms be the associative container stored at the op key
+            // of supportedAlgorithms.
+
             // Stpe 2. Let initialAlg be the result of converting the ECMAScript object represented
             // by alg to the IDL dictionary type Algorithm, as defined by [WebIDL].
             // Step 3. If an error occurred, return the error and terminate this algorithm.
             rooted!(&in(cx) let value = ObjectValue(obj.get()));
             let initial_alg = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
 
-            // Step 1. Let registeredAlgorithms be the associative container stored at the op key
-            // of supportedAlgorithms.
             // Step 4. Let algName be the value of the name attribute of initialAlg.
+            let alg_name = CryptoAlgorithm::from_str_ignore_case(&initial_alg.name.str())?;
+
             // Step 5.
             //     If registeredAlgorithms contains a key that is a case-insensitive string match
             //     for algName:
@@ -3589,9 +3592,10 @@ fn normalize_algorithm<Op: Operation>(
             //                 idlValue and the op set to the operation defined by the
             //                 specification that defines the algorithm identified by algName.
             //
-            // NOTE: Step 5.2 is done by writing algName back to the name attribute of the JS
-            // object before dictionary conversion to streamline our implementation.
-            let alg_name = CryptoAlgorithm::from_str_ignore_case(&initial_alg.name.str())?;
+            // NOTE: Step 7 is done by writing algName back to the name attribute of the JS object
+            // before dictionary conversion in Step 6, in order to streamline the conversion. Step
+            // 9 and 10 are done by the calling `TryIntoWithCx::try_into_with_cx` within the trait
+            // implementation of `Op::RegisteredAlgorithm::from_object_value`.
             rooted!(&in(cx) let mut alg_name_ptr = UndefinedValue());
             alg_name.as_str().safe_to_jsval(
                 cx.into(),
