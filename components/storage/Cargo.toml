@@ -1,5 +1,5 @@
 [package]
-name = "storage"
+name = "servo-storage"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -27,8 +27,8 @@ sea-query = { workspace = true }
 sea-query-rusqlite = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-servo_config = { path = "../config" }
-servo_url = { path = "../url" }
+servo_config = { package = "servo-config", path = "../config" }
+servo_url = { package = "servo-url", path = "../url" }
 storage_traits = { workspace = true }
 tempfile = "3"
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
@@ -38,7 +38,7 @@ tokio-util = { workspace = true, features = ["codec", "io"] }
 uuid = { workspace = true }
 
 [dev-dependencies]
-profile = { path = "../profile" }
+profile = { package = "servo-profile", path = "../profile" }
 url = { workspace = true }
 
 [[test]]

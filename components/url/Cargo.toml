@@ -1,5 +1,5 @@
 [package]
-name = "servo_url"
+name = "servo-url"
 version.workspace = true
 authors.workspace = true
 license.workspace = true

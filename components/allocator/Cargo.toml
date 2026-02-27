@@ -1,5 +1,5 @@
 [package]
-name = "servo_allocator"
+name = "servo-allocator"
 version.workspace = true
 authors.workspace = true
 license.workspace = true

@@ -1,5 +1,5 @@
 [package]
-name = "net_traits"
+name = "servo-net-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -33,15 +33,15 @@ num-traits = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
-pixels = { path = "../../pixels" }
-profile_traits = { path = "../profile" }
+pixels = { package = "servo-pixels", path = "../../pixels" }
+profile_traits = { package = "servo-profile-traits", path = "../profile" }
 rand = { workspace = true }
 rustc-hash = { workspace = true }
 rustls-pki-types = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
-servo_config = { path = "../../config" }
-servo_url = { path = "../../url" }
+servo_config = { package = "servo-config", path = "../../config" }
+servo_url = { package = "servo-url", path = "../../url" }
 sys-locale = "0.3"
 tokio = { workspace = true }
 url = { workspace = true }

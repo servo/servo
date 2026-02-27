@@ -1,5 +1,5 @@
 [package]
-name = "layout_api"
+name = "servo-layout-api"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -19,7 +19,7 @@ base = { workspace = true }
 bitflags = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
-fonts = { path = "../../fonts" }
+fonts = { package = "servo-fonts", path = "../../fonts" }
 fonts_traits = { workspace = true }
 html5ever = { workspace = true }
 libc = { workspace = true }
@@ -28,14 +28,14 @@ malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
-pixels = { path = "../../pixels" }
+pixels = { package = "servo-pixels", path = "../../pixels" }
 profile_traits = { workspace = true }
 rustc-hash = { workspace = true }
 script_traits = { workspace = true }
 selectors = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
-servo_url = { path = "../../url" }
+servo_url = { package = "servo-url", path = "../../url" }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
 webrender_api = { workspace = true }

@@ -1,5 +1,5 @@
 [package]
-name = "timers"
+name = "servo-timers"
 version.workspace = true
 authors.workspace = true
 license.workspace = true

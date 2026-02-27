@@ -1,5 +1,5 @@
 [package]
-name = "metrics"
+name = "servo-metrics"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -18,5 +18,5 @@ malloc_size_of_derive = { workspace = true }
 paint_api = { workspace = true }
 profile_traits = { workspace = true }
 script_traits = { workspace = true }
-servo_config = { path = "../config" }
-servo_url = { path = "../url" }
+servo_config = { package = "servo-config", path = "../config" }
+servo_url = { package = "servo-url", path = "../url" }

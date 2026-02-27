@@ -1,5 +1,5 @@
 [package]
-name = "embedder_traits"
+name = "servo-embedder-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -31,11 +31,11 @@ keyboard-types = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
-pixels = { path = "../../pixels" }
+pixels = { package = "servo-pixels", path = "../../pixels" }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
-servo_geometry = { path = "../../geometry" }
-servo_url = { path = "../../url" }
+servo_geometry = { package = "servo-geometry", path = "../../geometry" }
+servo_url = { package = "servo-url", path = "../../url" }
 strum = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }

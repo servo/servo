@@ -12,4 +12,4 @@ path = "lib.rs"
 test = false
 
 [dependencies]
-deny_public_fields = {path = "../../../components/deny_public_fields"}
+deny_public_fields = { package = "servo-deny-public-fields", path = "../../../components/deny_public_fields"}

@@ -36,24 +36,24 @@ arrayvec = "0.7"
 async-tungstenite = { version = "0.33", features = ["tokio-rustls-webpki-roots"] }
 atomic_refcell = "0.1.13"
 aws-lc-rs = { version = "1.16", default-features = false, features = ["aws-lc-sys"] }
-background_hang_monitor_api = { path = "components/shared/background_hang_monitor" }
+background_hang_monitor_api = { package = "servo-background-hang-monitor-api", path = "components/shared/background_hang_monitor" }
 backtrace = "0.3"
-base = { path = "components/shared/base" }
+base = { package = "servo-base", path = "components/shared/base" }
 base64 = "0.22.1"
 base64ct = { version = "1.8", features = ["alloc"] }
 bitflags = "2.11"
-bluetooth_traits = { path = "components/shared/bluetooth" }
+bluetooth_traits = { package = "servo-bluetooth-traits", path = "components/shared/bluetooth" }
 brotli = "8.0.2"
 bytemuck = "1"
 byteorder = "1.5"
-canvas_traits = { path = "components/shared/canvas" }
+canvas_traits = { package = "servo-canvas-traits", path = "components/shared/canvas" }
 cbc = "0.1.2"
 cfg-if = "1.0.4"
 chacha20poly1305 = "0.10"
 chardetng = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 cipher = { version = "0.4.4", features = ["alloc"] }
-constellation_traits = { path = "components/shared/constellation" }
+constellation_traits = { package = "servo-constellation-traits", path = "components/shared/constellation" }
 content-security-policy = { version = "0.6.0", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 crossbeam-channel = "0.5"
@@ -61,18 +61,18 @@ cssparser = { version = "0.36", features = ["serde"] }
 ctr = "0.9.2"
 data-url = "0.3"
 der = { version = "0.7", features = ["alloc", "derive"] }
-devtools_traits = { path = "components/shared/devtools" }
+devtools_traits = { package = "servo-devtools-traits", path = "components/shared/devtools" }
 digest = "0.10"
 dpi = "0.1"
 dwrote = "0.11.5"
 ecdsa = "0.16"
 elliptic-curve = "0.13"
-embedder_traits = { path = "components/shared/embedder" }
+embedder_traits = { package = "servo-embedder-traits", path = "components/shared/embedder" }
 encoding_rs = { version = "0.8", features = ["serde"] }
 env_logger = "0.11"
 euclid = "0.22"
 flate2 = "1.1"
-fonts_traits = { path = "components/shared/fonts" }
+fonts_traits = { package = "servo-fonts-traits", path = "components/shared/fonts" }
 freetype-sys = "0.20"
 futures = { version = "0.3", default-features = false }
 futures-core = { version = "0.3", default-features = false }
@@ -105,7 +105,7 @@ http-body-util = "0.1"
 hyper = "1.8"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "http2", "tokio", "client-proxy"] }
-hyper_serde = { path = "components/hyper_serde" }
+hyper_serde = { package = "servo-hyper-serde", path = "components/hyper_serde" }
 icu_locid = "1.5.0"
 icu_segmenter = "1.5.0"
 image = { version = "0.25", default-features = false, features = ["avif", "rayon", "bmp", "gif", "ico", "jpeg", "png", "webp"] }
@@ -116,11 +116,11 @@ itertools = "0.14"
 js = { package = "mozjs", version = "=0.15.1", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
-layout_api = { path = "components/shared/layout" }
+layout_api = { package = "servo-layout-api", path = "components/shared/layout" }
 libc = "0.2"
 log = "0.4.29"
 mach2 = "0.6"
-malloc_size_of = { package = "servo_malloc_size_of", path = "components/malloc_size_of" }
+malloc_size_of = { package = "servo-malloc-size-of", path = "components/malloc_size_of" }
 malloc_size_of_derive = "0.1"
 markup5ever = "0.38"
 memmap2 = "0.9.10"
@@ -130,7 +130,7 @@ mime_guess = "2.0.5"
 ml-dsa = "0.0.4"
 ml-kem = { version = "0.2", features = ["deterministic"] }
 mozangle = "0.5.3"
-net_traits = { path = "components/shared/net" }
+net_traits = { package = "servo-net-traits", path = "components/shared/net" }
 nix = "0.30"
 nom = "8.0.0"
 nom-rfc8288 = "0.4.0"
@@ -144,7 +144,7 @@ objc2-core-graphics = "0.3.2"
 objc2-core-text = "0.3.2"
 ocb3 = "0.1.0"
 openxr = "0.20"
-paint_api = { path = "components/shared/paint" }
+paint_api = { package = "servo-paint-api", path = "components/shared/paint" }
 p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }
 p521 = { version = "0.13", features = ["ecdh"] }
@@ -154,7 +154,7 @@ percent-encoding = "2.3"
 pkcs8 = { version = "0.10", features = ["rand_core"] }
 postcard = { version = "1.1.3", default-features = false, features = ["use-std"] }
 proc-macro2 = "1"
-profile_traits = { path = "components/shared/profile" }
+profile_traits = { package = "servo-profile-traits", path = "components/shared/profile" }
 quote = "1"
 rand = "0.9"
 raw-window-handle = "0.6"
@@ -167,7 +167,7 @@ rustc-hash = "2.1.1"
 rustls = { version = "0.23", default-features = false, features = ["logging", "std", "tls12"] }
 rustls-pki-types = "1.14"
 rustls-platform-verifier = "0.6.2"
-script_traits = { path = "components/shared/script" }
+script_traits = { package = "servo-script-traits", path = "components/shared/script" }
 sea-query = { version = "1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = { version = "0.8.0-rc.15" }
 sec1 = "0.7"
@@ -186,7 +186,7 @@ sha2 = "0.10"
 sha3 = "0.10"
 skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
-storage_traits = { path = "components/shared/storage" }
+storage_traits = { package = "servo-storage-traits", path = "components/shared/storage" }
 string_cache = "0.9"
 strum = { version = "0.27", features = ["derive"] }
 stylo = { git = "https://github.com/servo/stylo", rev = "2f131eb1909c6193a7cfae22e49f288fe9df4fbb" }
@@ -223,11 +223,11 @@ uuid = { version = "1.21.0", features = ["v4", "v5"] }
 vello = "0.6"
 vello_cpu = "0.0.4"
 webdriver = "0.53.0"
-webgpu_traits = { path = "components/shared/webgpu" }
+webgpu_traits = { package = "servo-webgpu-traits", path = "components/shared/webgpu" }
 webpki-roots = "1.0"
 webrender = { version = "0.68", features = ["capture"] }
 webrender_api = "0.68"
-webxr-api = { path = "components/shared/webxr" }
+webxr-api = { package = "servo-webxr-api", path = "components/shared/webxr" }
 wgpu-core = "26"
 wgpu-types = "26"
 winapi = "0.3"
@@ -238,7 +238,7 @@ wr_malloc_size_of = "0.2.2"
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 xi-unicode = "0.3.0"
 xml5ever = "0.38"
-xpath = { path = "components/xpath" }
+xpath = { package = "servo-xpath", path = "components/xpath" }
 
 # RSA key generation could be very slow without compilation
 # optimizations, in development mode. Without optimizations, WPT might

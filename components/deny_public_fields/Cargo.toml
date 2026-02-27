@@ -1,5 +1,5 @@
 [package]
-name = "deny_public_fields"
+name = "servo-deny-public-fields"
 version.workspace = true
 authors.workspace = true
 license.workspace = true

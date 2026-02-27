@@ -1,5 +1,5 @@
 [package]
-name = "canvas_traits"
+name = "servo-canvas-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -23,9 +23,9 @@ glow = { workspace = true }
 kurbo = { workspace = true, features = ["serde"] }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
-pixels = { path = "../../pixels" }
+pixels = { package = "servo-pixels", path = "../../pixels" }
 serde = { workspace = true }
-servo_config = { path = "../../config" }
+servo_config = { package = "servo-config", path = "../../config" }
 strum = { workspace = true }
 stylo = { workspace = true }
 webrender_api = { workspace = true }
