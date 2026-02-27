@@ -195,13 +195,13 @@ impl CryptoAlgorithm {
         (*self).into()
     }
 
-    fn from_str_ignore_case(algo_name: &str) -> Fallible<CryptoAlgorithm> {
+    fn from_str_ignore_case(algorithm_name: &str) -> Fallible<CryptoAlgorithm> {
         Self::VARIANTS
             .iter()
-            .find(|algo| algo.as_str().eq_ignore_ascii_case(algo_name))
+            .find(|algorithm| algorithm.as_str().eq_ignore_ascii_case(algorithm_name))
             .cloned()
             .ok_or(Error::NotSupported(Some(format!(
-                "Unsupported algorithm: {algo_name}"
+                "Unsupported algorithm: {algorithm_name}"
             ))))
     }
 }
@@ -3525,36 +3525,37 @@ impl JsonWebKeyExt for JsonWebKey {
 /// <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
 fn normalize_algorithm<Op: Operation>(
     cx: &mut js::context::JSContext,
-    alg: &AlgorithmIdentifier,
+    algorithm: &AlgorithmIdentifier,
 ) -> Result<Op::RegisteredAlgorithm, Error> {
-    match alg {
+    match algorithm {
         // If alg is an instance of a DOMString:
         ObjectOrString::String(name) => {
             // Return the result of running the normalize an algorithm algorithm, with the alg set
             // to a new Algorithm dictionary whose name attribute is alg, and with the op set to
             // op.
-            let alg = Algorithm {
+            let algorithm = Algorithm {
                 name: name.to_owned(),
             };
-            rooted!(&in(cx) let mut alg_value = UndefinedValue());
-            alg.safe_to_jsval(cx.into(), alg_value.handle_mut(), CanGc::from_cx(cx));
-            let alg_obj = RootedTraceableBox::new(Heap::default());
-            alg_obj.set(alg_value.to_object());
-            normalize_algorithm::<Op>(cx, &ObjectOrString::Object(alg_obj))
+            rooted!(&in(cx) let mut algorithm_value = UndefinedValue());
+            algorithm.safe_to_jsval(cx.into(), algorithm_value.handle_mut(), CanGc::from_cx(cx));
+            let algorithm_object = RootedTraceableBox::new(Heap::default());
+            algorithm_object.set(algorithm_value.to_object());
+            normalize_algorithm::<Op>(cx, &ObjectOrString::Object(algorithm_object))
         },
         // If alg is an object:
-        ObjectOrString::Object(obj) => {
+        ObjectOrString::Object(object) => {
             // Step 1. Let registeredAlgorithms be the associative container stored at the op key
             // of supportedAlgorithms.
 
             // Stpe 2. Let initialAlg be the result of converting the ECMAScript object represented
             // by alg to the IDL dictionary type Algorithm, as defined by [WebIDL].
             // Step 3. If an error occurred, return the error and terminate this algorithm.
-            rooted!(&in(cx) let value = ObjectValue(obj.get()));
-            let initial_alg = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
+            rooted!(&in(cx) let value = ObjectValue(object.get()));
+            let initial_algorithm = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
 
             // Step 4. Let algName be the value of the name attribute of initialAlg.
-            let alg_name = CryptoAlgorithm::from_str_ignore_case(&initial_alg.name.str())?;
+            let algorithm_name =
+                CryptoAlgorithm::from_str_ignore_case(&initial_algorithm.name.str())?;
 
             // Step 5.
             //     If registeredAlgorithms contains a key that is a case-insensitive string match
@@ -3595,16 +3596,21 @@ fn normalize_algorithm<Op: Operation>(
             // before dictionary conversion in Step 6, in order to streamline the conversion. Step
             // 9 and 10 are done by the calling `TryIntoWithCx::try_into_with_cx` within the trait
             // implementation of `Op::RegisteredAlgorithm::from_object_value`.
-            rooted!(&in(cx) let mut alg_name_ptr = UndefinedValue());
-            alg_name.as_str().safe_to_jsval(
+            rooted!(&in(cx) let mut algorithm_name_value = UndefinedValue());
+            algorithm_name.as_str().safe_to_jsval(
                 cx.into(),
-                alg_name_ptr.handle_mut(),
+                algorithm_name_value.handle_mut(),
                 CanGc::from_cx(cx),
             );
-            set_dictionary_property(cx.into(), obj.handle(), c"name", alg_name_ptr.handle())
-                .map_err(|_| Error::JSFailed)?;
+            set_dictionary_property(
+                cx.into(),
+                object.handle(),
+                c"name",
+                algorithm_name_value.handle(),
+            )
+            .map_err(|_| Error::JSFailed)?;
             let normalized_algorithm =
-                Op::RegisteredAlgorithm::from_object_value(cx, alg_name, value.handle())?;
+                Op::RegisteredAlgorithm::from_object_value(cx, algorithm_name, value.handle())?;
 
             // Step 11. Return normalizedAlgorithm.
             Ok(normalized_algorithm)
@@ -3673,7 +3679,7 @@ trait NormalizedAlgorithm: Sized {
     /// Step 4 - 10 of <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self>;
     fn name(&self) -> &str;
@@ -3700,10 +3706,10 @@ enum EncryptAlgorithm {
 impl NormalizedAlgorithm for EncryptAlgorithm {
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self> {
-        match alg_name {
+        match algorithm_name {
             CryptoAlgorithm::RsaOaep => Ok(EncryptAlgorithm::RsaOaep(value.try_into_with_cx(cx)?)),
             CryptoAlgorithm::AesCtr => Ok(EncryptAlgorithm::AesCtr(value.try_into_with_cx(cx)?)),
             CryptoAlgorithm::AesCbc => Ok(EncryptAlgorithm::AesCbc(value.try_into_with_cx(cx)?)),
@@ -3714,19 +3720,19 @@ impl NormalizedAlgorithm for EncryptAlgorithm {
             )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"encrypt\" operation",
-                alg_name.as_str()
+                algorithm_name.as_str()
             )))),
         }
     }
 
     fn name(&self) -> &str {
         match self {
-            EncryptAlgorithm::RsaOaep(algo) => &algo.name,
-            EncryptAlgorithm::AesCtr(algo) => &algo.name,
-            EncryptAlgorithm::AesCbc(algo) => &algo.name,
-            EncryptAlgorithm::AesGcm(algo) => &algo.name,
-            EncryptAlgorithm::AesOcb(algo) => &algo.name,
-            EncryptAlgorithm::ChaCha20Poly1305(algo) => &algo.name,
+            EncryptAlgorithm::RsaOaep(algorithm) => &algorithm.name,
+            EncryptAlgorithm::AesCtr(algorithm) => &algorithm.name,
+            EncryptAlgorithm::AesCbc(algorithm) => &algorithm.name,
+            EncryptAlgorithm::AesGcm(algorithm) => &algorithm.name,
+            EncryptAlgorithm::AesOcb(algorithm) => &algorithm.name,
+            EncryptAlgorithm::ChaCha20Poly1305(algorithm) => &algorithm.name,
         }
     }
 }
@@ -3734,13 +3740,23 @@ impl NormalizedAlgorithm for EncryptAlgorithm {
 impl EncryptAlgorithm {
     fn encrypt(&self, key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
-            EncryptAlgorithm::RsaOaep(algo) => rsa_oaep_operation::encrypt(algo, key, plaintext),
-            EncryptAlgorithm::AesCtr(algo) => aes_ctr_operation::encrypt(algo, key, plaintext),
-            EncryptAlgorithm::AesCbc(algo) => aes_cbc_operation::encrypt(algo, key, plaintext),
-            EncryptAlgorithm::AesGcm(algo) => aes_gcm_operation::encrypt(algo, key, plaintext),
-            EncryptAlgorithm::AesOcb(algo) => aes_ocb_operation::encrypt(algo, key, plaintext),
-            EncryptAlgorithm::ChaCha20Poly1305(algo) => {
-                chacha20_poly1305_operation::encrypt(algo, key, plaintext)
+            EncryptAlgorithm::RsaOaep(algorithm) => {
+                rsa_oaep_operation::encrypt(algorithm, key, plaintext)
+            },
+            EncryptAlgorithm::AesCtr(algorithm) => {
+                aes_ctr_operation::encrypt(algorithm, key, plaintext)
+            },
+            EncryptAlgorithm::AesCbc(algorithm) => {
+                aes_cbc_operation::encrypt(algorithm, key, plaintext)
+            },
+            EncryptAlgorithm::AesGcm(algorithm) => {
+                aes_gcm_operation::encrypt(algorithm, key, plaintext)
+            },
+            EncryptAlgorithm::AesOcb(algorithm) => {
+                aes_ocb_operation::encrypt(algorithm, key, plaintext)
+            },
+            EncryptAlgorithm::ChaCha20Poly1305(algorithm) => {
+                chacha20_poly1305_operation::encrypt(algorithm, key, plaintext)
             },
         }
     }
@@ -3767,10 +3783,10 @@ enum DecryptAlgorithm {
 impl NormalizedAlgorithm for DecryptAlgorithm {
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self> {
-        match alg_name {
+        match algorithm_name {
             CryptoAlgorithm::RsaOaep => Ok(DecryptAlgorithm::RsaOaep(value.try_into_with_cx(cx)?)),
             CryptoAlgorithm::AesCtr => Ok(DecryptAlgorithm::AesCtr(value.try_into_with_cx(cx)?)),
             CryptoAlgorithm::AesCbc => Ok(DecryptAlgorithm::AesCbc(value.try_into_with_cx(cx)?)),
@@ -3781,19 +3797,19 @@ impl NormalizedAlgorithm for DecryptAlgorithm {
             )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"decrypt\" operation",
-                alg_name.as_str()
+                algorithm_name.as_str()
             )))),
         }
     }
 
     fn name(&self) -> &str {
         match self {
-            DecryptAlgorithm::RsaOaep(algo) => &algo.name,
-            DecryptAlgorithm::AesCtr(algo) => &algo.name,
-            DecryptAlgorithm::AesCbc(algo) => &algo.name,
-            DecryptAlgorithm::AesGcm(algo) => &algo.name,
-            DecryptAlgorithm::AesOcb(algo) => &algo.name,
-            DecryptAlgorithm::ChaCha20Poly1305(algo) => &algo.name,
+            DecryptAlgorithm::RsaOaep(algorithm) => &algorithm.name,
+            DecryptAlgorithm::AesCtr(algorithm) => &algorithm.name,
+            DecryptAlgorithm::AesCbc(algorithm) => &algorithm.name,
+            DecryptAlgorithm::AesGcm(algorithm) => &algorithm.name,
+            DecryptAlgorithm::AesOcb(algorithm) => &algorithm.name,
+            DecryptAlgorithm::ChaCha20Poly1305(algorithm) => &algorithm.name,
         }
     }
 }
@@ -3801,13 +3817,23 @@ impl NormalizedAlgorithm for DecryptAlgorithm {
 impl DecryptAlgorithm {
     fn decrypt(&self, key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
-            DecryptAlgorithm::RsaOaep(algo) => rsa_oaep_operation::decrypt(algo, key, ciphertext),
-            DecryptAlgorithm::AesCtr(algo) => aes_ctr_operation::decrypt(algo, key, ciphertext),
-            DecryptAlgorithm::AesCbc(algo) => aes_cbc_operation::decrypt(algo, key, ciphertext),
-            DecryptAlgorithm::AesGcm(algo) => aes_gcm_operation::decrypt(algo, key, ciphertext),
-            DecryptAlgorithm::AesOcb(algo) => aes_ocb_operation::decrypt(algo, key, ciphertext),
-            DecryptAlgorithm::ChaCha20Poly1305(algo) => {
-                chacha20_poly1305_operation::decrypt(algo, key, ciphertext)
+            DecryptAlgorithm::RsaOaep(algorithm) => {
+                rsa_oaep_operation::decrypt(algorithm, key, ciphertext)
+            },
+            DecryptAlgorithm::AesCtr(algorithm) => {
+                aes_ctr_operation::decrypt(algorithm, key, ciphertext)
+            },
+            DecryptAlgorithm::AesCbc(algorithm) => {
+                aes_cbc_operation::decrypt(algorithm, key, ciphertext)
+            },
+            DecryptAlgorithm::AesGcm(algorithm) => {
+                aes_gcm_operation::decrypt(algorithm, key, ciphertext)
+            },
+            DecryptAlgorithm::AesOcb(algorithm) => {
+                aes_ocb_operation::decrypt(algorithm, key, ciphertext)
+            },
+            DecryptAlgorithm::ChaCha20Poly1305(algorithm) => {
+                chacha20_poly1305_operation::decrypt(algorithm, key, ciphertext)
             },
         }
     }
@@ -3834,10 +3860,10 @@ enum SignAlgorithm {
 impl NormalizedAlgorithm for SignAlgorithm {
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self> {
-        match alg_name {
+        match algorithm_name {
             CryptoAlgorithm::RsassaPkcs1V1_5 => {
                 Ok(SignAlgorithm::RsassaPkcs1V1_5(value.try_into_with_cx(cx)?))
             },
@@ -3850,19 +3876,19 @@ impl NormalizedAlgorithm for SignAlgorithm {
             },
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"sign\" operation",
-                alg_name.as_str()
+                algorithm_name.as_str()
             )))),
         }
     }
 
     fn name(&self) -> &str {
         match self {
-            SignAlgorithm::RsassaPkcs1V1_5(algo) => &algo.name,
-            SignAlgorithm::RsaPss(algo) => &algo.name,
-            SignAlgorithm::Ecdsa(algo) => &algo.name,
-            SignAlgorithm::Ed25519(algo) => &algo.name,
-            SignAlgorithm::Hmac(algo) => &algo.name,
-            SignAlgorithm::MlDsa(algo) => &algo.name,
+            SignAlgorithm::RsassaPkcs1V1_5(algorithm) => &algorithm.name,
+            SignAlgorithm::RsaPss(algorithm) => &algorithm.name,
+            SignAlgorithm::Ecdsa(algorithm) => &algorithm.name,
+            SignAlgorithm::Ed25519(algorithm) => &algorithm.name,
+            SignAlgorithm::Hmac(algorithm) => &algorithm.name,
+            SignAlgorithm::MlDsa(algorithm) => &algorithm.name,
         }
     }
 }
@@ -3870,14 +3896,14 @@ impl NormalizedAlgorithm for SignAlgorithm {
 impl SignAlgorithm {
     fn sign(&self, key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
-            SignAlgorithm::RsassaPkcs1V1_5(_algo) => {
+            SignAlgorithm::RsassaPkcs1V1_5(_algorithm) => {
                 rsassa_pkcs1_v1_5_operation::sign(key, message)
             },
-            SignAlgorithm::RsaPss(algo) => rsa_pss_operation::sign(algo, key, message),
-            SignAlgorithm::Ecdsa(algo) => ecdsa_operation::sign(algo, key, message),
-            SignAlgorithm::Ed25519(_algo) => ed25519_operation::sign(key, message),
-            SignAlgorithm::Hmac(_algo) => hmac_operation::sign(key, message),
-            SignAlgorithm::MlDsa(algo) => ml_dsa_operation::sign(algo, key, message),
+            SignAlgorithm::RsaPss(algorithm) => rsa_pss_operation::sign(algorithm, key, message),
+            SignAlgorithm::Ecdsa(algorithm) => ecdsa_operation::sign(algorithm, key, message),
+            SignAlgorithm::Ed25519(_algorithm) => ed25519_operation::sign(key, message),
+            SignAlgorithm::Hmac(_algorithm) => hmac_operation::sign(key, message),
+            SignAlgorithm::MlDsa(algorithm) => ml_dsa_operation::sign(algorithm, key, message),
         }
     }
 }
@@ -3903,10 +3929,10 @@ enum VerifyAlgorithm {
 impl NormalizedAlgorithm for VerifyAlgorithm {
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self> {
-        match alg_name {
+        match algorithm_name {
             CryptoAlgorithm::RsassaPkcs1V1_5 => Ok(VerifyAlgorithm::RsassaPkcs1V1_5(
                 value.try_into_with_cx(cx)?,
             )),
@@ -3919,19 +3945,19 @@ impl NormalizedAlgorithm for VerifyAlgorithm {
             },
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"verify\" operation",
-                alg_name.as_str()
+                algorithm_name.as_str()
             )))),
         }
     }
 
     fn name(&self) -> &str {
         match self {
-            VerifyAlgorithm::RsassaPkcs1V1_5(algo) => &algo.name,
-            VerifyAlgorithm::RsaPss(algo) => &algo.name,
-            VerifyAlgorithm::Ecdsa(algo) => &algo.name,
-            VerifyAlgorithm::Ed25519(algo) => &algo.name,
-            VerifyAlgorithm::Hmac(algo) => &algo.name,
-            VerifyAlgorithm::MlDsa(algo) => &algo.name,
+            VerifyAlgorithm::RsassaPkcs1V1_5(algorithm) => &algorithm.name,
+            VerifyAlgorithm::RsaPss(algorithm) => &algorithm.name,
+            VerifyAlgorithm::Ecdsa(algorithm) => &algorithm.name,
+            VerifyAlgorithm::Ed25519(algorithm) => &algorithm.name,
+            VerifyAlgorithm::Hmac(algorithm) => &algorithm.name,
+            VerifyAlgorithm::MlDsa(algorithm) => &algorithm.name,
         }
     }
 }
@@ -3939,16 +3965,22 @@ impl NormalizedAlgorithm for VerifyAlgorithm {
 impl VerifyAlgorithm {
     fn verify(&self, key: &CryptoKey, message: &[u8], signature: &[u8]) -> Result<bool, Error> {
         match self {
-            VerifyAlgorithm::RsassaPkcs1V1_5(_algo) => {
+            VerifyAlgorithm::RsassaPkcs1V1_5(_algorithm) => {
                 rsassa_pkcs1_v1_5_operation::verify(key, message, signature)
             },
-            VerifyAlgorithm::RsaPss(algo) => {
-                rsa_pss_operation::verify(algo, key, message, signature)
+            VerifyAlgorithm::RsaPss(algorithm) => {
+                rsa_pss_operation::verify(algorithm, key, message, signature)
             },
-            VerifyAlgorithm::Ecdsa(algo) => ecdsa_operation::verify(algo, key, message, signature),
-            VerifyAlgorithm::Ed25519(_algo) => ed25519_operation::verify(key, message, signature),
-            VerifyAlgorithm::Hmac(_algo) => hmac_operation::verify(key, message, signature),
-            VerifyAlgorithm::MlDsa(algo) => ml_dsa_operation::verify(algo, key, message, signature),
+            VerifyAlgorithm::Ecdsa(algorithm) => {
+                ecdsa_operation::verify(algorithm, key, message, signature)
+            },
+            VerifyAlgorithm::Ed25519(_algorithm) => {
+                ed25519_operation::verify(key, message, signature)
+            },
+            VerifyAlgorithm::Hmac(_algorithm) => hmac_operation::verify(key, message, signature),
+            VerifyAlgorithm::MlDsa(algorithm) => {
+                ml_dsa_operation::verify(algorithm, key, message, signature)
+            },
         }
     }
 }
@@ -3972,10 +4004,10 @@ enum DigestAlgorithm {
 impl NormalizedAlgorithm for DigestAlgorithm {
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self> {
-        match alg_name {
+        match algorithm_name {
             CryptoAlgorithm::Sha1 |
             CryptoAlgorithm::Sha256 |
             CryptoAlgorithm::Sha384 |
@@ -3988,16 +4020,16 @@ impl NormalizedAlgorithm for DigestAlgorithm {
             },
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"digest\" operation",
-                alg_name.as_str()
+                algorithm_name.as_str()
             )))),
         }
     }
 
     fn name(&self) -> &str {
         match self {
-            DigestAlgorithm::Sha(algo) => &algo.name,
-            DigestAlgorithm::Sha3(algo) => &algo.name,
-            DigestAlgorithm::CShake(algo) => &algo.name,
+            DigestAlgorithm::Sha(algorithm) => &algorithm.name,
+            DigestAlgorithm::Sha3(algorithm) => &algorithm.name,
+            DigestAlgorithm::CShake(algorithm) => &algorithm.name,
         }
     }
 }
@@ -4005,9 +4037,9 @@ impl NormalizedAlgorithm for DigestAlgorithm {
 impl DigestAlgorithm {
     fn digest(&self, message: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
-            DigestAlgorithm::Sha(algo) => sha_operation::digest(algo, message),
-            DigestAlgorithm::Sha3(algo) => sha3_operation::digest(algo, message),
-            DigestAlgorithm::CShake(algo) => cshake_operation::digest(algo, message),
+            DigestAlgorithm::Sha(algorithm) => sha_operation::digest(algorithm, message),
+            DigestAlgorithm::Sha3(algorithm) => sha3_operation::digest(algorithm, message),
+            DigestAlgorithm::CShake(algorithm) => cshake_operation::digest(algorithm, message),
         }
     }
 }
@@ -4032,10 +4064,10 @@ enum DeriveBitsAlgorithm {
 impl NormalizedAlgorithm for DeriveBitsAlgorithm {
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self> {
-        match alg_name {
+        match algorithm_name {
             CryptoAlgorithm::Ecdh => Ok(DeriveBitsAlgorithm::Ecdh(value.try_into_with_cx(cx)?)),
             CryptoAlgorithm::X25519 => Ok(DeriveBitsAlgorithm::X25519(value.try_into_with_cx(cx)?)),
             CryptoAlgorithm::Hkdf => Ok(DeriveBitsAlgorithm::Hkdf(value.try_into_with_cx(cx)?)),
@@ -4045,18 +4077,18 @@ impl NormalizedAlgorithm for DeriveBitsAlgorithm {
             },
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"deriveBits\" operation",
-                alg_name.as_str()
+                algorithm_name.as_str()
             )))),
         }
     }
 
     fn name(&self) -> &str {
         match self {
-            DeriveBitsAlgorithm::Ecdh(algo) => &algo.name,
-            DeriveBitsAlgorithm::X25519(algo) => &algo.name,
-            DeriveBitsAlgorithm::Hkdf(algo) => &algo.name,
-            DeriveBitsAlgorithm::Pbkdf2(algo) => &algo.name,
-            DeriveBitsAlgorithm::Argon2(algo) => &algo.name,
+            DeriveBitsAlgorithm::Ecdh(algorithm) => &algorithm.name,
+            DeriveBitsAlgorithm::X25519(algorithm) => &algorithm.name,
+            DeriveBitsAlgorithm::Hkdf(algorithm) => &algorithm.name,
+            DeriveBitsAlgorithm::Pbkdf2(algorithm) => &algorithm.name,
+            DeriveBitsAlgorithm::Argon2(algorithm) => &algorithm.name,
         }
     }
 }
@@ -4064,11 +4096,21 @@ impl NormalizedAlgorithm for DeriveBitsAlgorithm {
 impl DeriveBitsAlgorithm {
     fn derive_bits(&self, key: &CryptoKey, length: Option<u32>) -> Result<Vec<u8>, Error> {
         match self {
-            DeriveBitsAlgorithm::Ecdh(algo) => ecdh_operation::derive_bits(algo, key, length),
-            DeriveBitsAlgorithm::X25519(algo) => x25519_operation::derive_bits(algo, key, length),
-            DeriveBitsAlgorithm::Hkdf(algo) => hkdf_operation::derive_bits(algo, key, length),
-            DeriveBitsAlgorithm::Pbkdf2(algo) => pbkdf2_operation::derive_bits(algo, key, length),
-            DeriveBitsAlgorithm::Argon2(algo) => argon2_operation::derive_bits(algo, key, length),
+            DeriveBitsAlgorithm::Ecdh(algorithm) => {
+                ecdh_operation::derive_bits(algorithm, key, length)
+            },
+            DeriveBitsAlgorithm::X25519(algorithm) => {
+                x25519_operation::derive_bits(algorithm, key, length)
+            },
+            DeriveBitsAlgorithm::Hkdf(algorithm) => {
+                hkdf_operation::derive_bits(algorithm, key, length)
+            },
+            DeriveBitsAlgorithm::Pbkdf2(algorithm) => {
+                pbkdf2_operation::derive_bits(algorithm, key, length)
+            },
+            DeriveBitsAlgorithm::Argon2(algorithm) => {
+                argon2_operation::derive_bits(algorithm, key, length)
+            },
         }
     }
 }
@@ -4089,21 +4131,21 @@ enum WrapKeyAlgorithm {
 impl NormalizedAlgorithm for WrapKeyAlgorithm {
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self> {
-        match alg_name {
+        match algorithm_name {
             CryptoAlgorithm::AesKw => Ok(WrapKeyAlgorithm::AesKw(value.try_into_with_cx(cx)?)),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"wrapKey\" operation",
-                alg_name.as_str()
+                algorithm_name.as_str()
             )))),
         }
     }
 
     fn name(&self) -> &str {
         match self {
-            WrapKeyAlgorithm::AesKw(algo) => &algo.name,
+            WrapKeyAlgorithm::AesKw(algorithm) => &algorithm.name,
         }
     }
 }
@@ -4111,7 +4153,7 @@ impl NormalizedAlgorithm for WrapKeyAlgorithm {
 impl WrapKeyAlgorithm {
     fn wrap_key(&self, key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
-            WrapKeyAlgorithm::AesKw(_algo) => aes_kw_operation::wrap_key(key, plaintext),
+            WrapKeyAlgorithm::AesKw(_algorithm) => aes_kw_operation::wrap_key(key, plaintext),
         }
     }
 }
@@ -4132,21 +4174,21 @@ enum UnwrapKeyAlgorithm {
 impl NormalizedAlgorithm for UnwrapKeyAlgorithm {
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self> {
-        match alg_name {
+        match algorithm_name {
             CryptoAlgorithm::AesKw => Ok(UnwrapKeyAlgorithm::AesKw(value.try_into_with_cx(cx)?)),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"unwrapKey\" operation",
-                alg_name.as_str()
+                algorithm_name.as_str()
             )))),
         }
     }
 
     fn name(&self) -> &str {
         match self {
-            UnwrapKeyAlgorithm::AesKw(algo) => &algo.name,
+            UnwrapKeyAlgorithm::AesKw(algorithm) => &algorithm.name,
         }
     }
 }
@@ -4154,7 +4196,7 @@ impl NormalizedAlgorithm for UnwrapKeyAlgorithm {
 impl UnwrapKeyAlgorithm {
     fn unwrap_key(&self, key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
-            UnwrapKeyAlgorithm::AesKw(_algo) => aes_kw_operation::unwrap_key(key, ciphertext),
+            UnwrapKeyAlgorithm::AesKw(_algorithm) => aes_kw_operation::unwrap_key(key, ciphertext),
         }
     }
 }
@@ -4190,10 +4232,10 @@ enum GenerateKeyAlgorithm {
 impl NormalizedAlgorithm for GenerateKeyAlgorithm {
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self> {
-        match alg_name {
+        match algorithm_name {
             CryptoAlgorithm::RsassaPkcs1V1_5 => Ok(GenerateKeyAlgorithm::RsassaPkcs1V1_5(
                 value.try_into_with_cx(cx)?,
             )),
@@ -4236,29 +4278,29 @@ impl NormalizedAlgorithm for GenerateKeyAlgorithm {
             )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"generateKey\" operation",
-                alg_name.as_str()
+                algorithm_name.as_str()
             )))),
         }
     }
 
     fn name(&self) -> &str {
         match self {
-            GenerateKeyAlgorithm::RsassaPkcs1V1_5(algo) => &algo.name,
-            GenerateKeyAlgorithm::RsaPss(algo) => &algo.name,
-            GenerateKeyAlgorithm::RsaOaep(algo) => &algo.name,
-            GenerateKeyAlgorithm::Ecdsa(algo) => &algo.name,
-            GenerateKeyAlgorithm::Ecdh(algo) => &algo.name,
-            GenerateKeyAlgorithm::Ed25519(algo) => &algo.name,
-            GenerateKeyAlgorithm::X25519(algo) => &algo.name,
-            GenerateKeyAlgorithm::AesCtr(algo) => &algo.name,
-            GenerateKeyAlgorithm::AesCbc(algo) => &algo.name,
-            GenerateKeyAlgorithm::AesGcm(algo) => &algo.name,
-            GenerateKeyAlgorithm::AesKw(algo) => &algo.name,
-            GenerateKeyAlgorithm::Hmac(algo) => &algo.name,
-            GenerateKeyAlgorithm::MlKem(algo) => &algo.name,
-            GenerateKeyAlgorithm::MlDsa(algo) => &algo.name,
-            GenerateKeyAlgorithm::AesOcb(algo) => &algo.name,
-            GenerateKeyAlgorithm::ChaCha20Poly1305(algo) => &algo.name,
+            GenerateKeyAlgorithm::RsassaPkcs1V1_5(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::RsaPss(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::RsaOaep(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::Ecdsa(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::Ecdh(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::Ed25519(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::X25519(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::AesCtr(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::AesCbc(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::AesGcm(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::AesKw(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::Hmac(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::MlKem(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::MlDsa(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::AesOcb(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::ChaCha20Poly1305(algorithm) => &algorithm.name,
         }
     }
 }
@@ -4272,67 +4314,73 @@ impl GenerateKeyAlgorithm {
         usages: Vec<KeyUsage>,
     ) -> Result<CryptoKeyOrCryptoKeyPair, Error> {
         match self {
-            GenerateKeyAlgorithm::RsassaPkcs1V1_5(algo) => {
-                rsassa_pkcs1_v1_5_operation::generate_key(cx, global, algo, extractable, usages)
+            GenerateKeyAlgorithm::RsassaPkcs1V1_5(algorithm) => {
+                rsassa_pkcs1_v1_5_operation::generate_key(
+                    cx,
+                    global,
+                    algorithm,
+                    extractable,
+                    usages,
+                )
+                .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
+            },
+            GenerateKeyAlgorithm::RsaPss(algorithm) => {
+                rsa_pss_operation::generate_key(cx, global, algorithm, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
             },
-            GenerateKeyAlgorithm::RsaPss(algo) => {
-                rsa_pss_operation::generate_key(cx, global, algo, extractable, usages)
+            GenerateKeyAlgorithm::RsaOaep(algorithm) => {
+                rsa_oaep_operation::generate_key(cx, global, algorithm, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
             },
-            GenerateKeyAlgorithm::RsaOaep(algo) => {
-                rsa_oaep_operation::generate_key(cx, global, algo, extractable, usages)
+            GenerateKeyAlgorithm::Ecdsa(algorithm) => {
+                ecdsa_operation::generate_key(cx, global, algorithm, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
             },
-            GenerateKeyAlgorithm::Ecdsa(algo) => {
-                ecdsa_operation::generate_key(cx, global, algo, extractable, usages)
+            GenerateKeyAlgorithm::Ecdh(algorithm) => {
+                ecdh_operation::generate_key(cx, global, algorithm, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
             },
-            GenerateKeyAlgorithm::Ecdh(algo) => {
-                ecdh_operation::generate_key(cx, global, algo, extractable, usages)
-                    .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
-            },
-            GenerateKeyAlgorithm::Ed25519(_algo) => {
+            GenerateKeyAlgorithm::Ed25519(_algorithm) => {
                 ed25519_operation::generate_key(cx, global, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
             },
-            GenerateKeyAlgorithm::X25519(_algo) => {
+            GenerateKeyAlgorithm::X25519(_algorithm) => {
                 x25519_operation::generate_key(cx, global, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
             },
-            GenerateKeyAlgorithm::AesCtr(algo) => {
-                aes_ctr_operation::generate_key(cx, global, algo, extractable, usages)
+            GenerateKeyAlgorithm::AesCtr(algorithm) => {
+                aes_ctr_operation::generate_key(cx, global, algorithm, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
-            GenerateKeyAlgorithm::AesCbc(algo) => {
-                aes_cbc_operation::generate_key(cx, global, algo, extractable, usages)
+            GenerateKeyAlgorithm::AesCbc(algorithm) => {
+                aes_cbc_operation::generate_key(cx, global, algorithm, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
-            GenerateKeyAlgorithm::AesGcm(algo) => {
-                aes_gcm_operation::generate_key(cx, global, algo, extractable, usages)
+            GenerateKeyAlgorithm::AesGcm(algorithm) => {
+                aes_gcm_operation::generate_key(cx, global, algorithm, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
-            GenerateKeyAlgorithm::AesKw(algo) => {
-                aes_kw_operation::generate_key(cx, global, algo, extractable, usages)
+            GenerateKeyAlgorithm::AesKw(algorithm) => {
+                aes_kw_operation::generate_key(cx, global, algorithm, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
-            GenerateKeyAlgorithm::Hmac(algo) => {
-                hmac_operation::generate_key(cx, global, algo, extractable, usages)
+            GenerateKeyAlgorithm::Hmac(algorithm) => {
+                hmac_operation::generate_key(cx, global, algorithm, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
-            GenerateKeyAlgorithm::MlKem(algo) => {
-                ml_kem_operation::generate_key(cx, global, algo, extractable, usages)
+            GenerateKeyAlgorithm::MlKem(algorithm) => {
+                ml_kem_operation::generate_key(cx, global, algorithm, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
             },
-            GenerateKeyAlgorithm::MlDsa(algo) => {
-                ml_dsa_operation::generate_key(cx, global, algo, extractable, usages)
+            GenerateKeyAlgorithm::MlDsa(algorithm) => {
+                ml_dsa_operation::generate_key(cx, global, algorithm, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKeyPair)
             },
-            GenerateKeyAlgorithm::AesOcb(algo) => {
-                aes_ocb_operation::generate_key(cx, global, algo, extractable, usages)
+            GenerateKeyAlgorithm::AesOcb(algorithm) => {
+                aes_ocb_operation::generate_key(cx, global, algorithm, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
-            GenerateKeyAlgorithm::ChaCha20Poly1305(_algo) => {
+            GenerateKeyAlgorithm::ChaCha20Poly1305(_algorithm) => {
                 chacha20_poly1305_operation::generate_key(cx, global, extractable, usages)
                     .map(CryptoKeyOrCryptoKeyPair::CryptoKey)
             },
@@ -4374,10 +4422,10 @@ enum ImportKeyAlgorithm {
 impl NormalizedAlgorithm for ImportKeyAlgorithm {
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self> {
-        match alg_name {
+        match algorithm_name {
             CryptoAlgorithm::RsassaPkcs1V1_5 => Ok(ImportKeyAlgorithm::RsassaPkcs1V1_5(
                 value.try_into_with_cx(cx)?,
             )),
@@ -4413,32 +4461,32 @@ impl NormalizedAlgorithm for ImportKeyAlgorithm {
             },
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"importKey\" operation",
-                alg_name.as_str()
+                algorithm_name.as_str()
             )))),
         }
     }
 
     fn name(&self) -> &str {
         match self {
-            ImportKeyAlgorithm::RsassaPkcs1V1_5(algo) => &algo.name,
-            ImportKeyAlgorithm::RsaPss(algo) => &algo.name,
-            ImportKeyAlgorithm::RsaOaep(algo) => &algo.name,
-            ImportKeyAlgorithm::Ecdsa(algo) => &algo.name,
-            ImportKeyAlgorithm::Ecdh(algo) => &algo.name,
-            ImportKeyAlgorithm::Ed25519(algo) => &algo.name,
-            ImportKeyAlgorithm::X25519(algo) => &algo.name,
-            ImportKeyAlgorithm::AesCtr(algo) => &algo.name,
-            ImportKeyAlgorithm::AesCbc(algo) => &algo.name,
-            ImportKeyAlgorithm::AesGcm(algo) => &algo.name,
-            ImportKeyAlgorithm::AesKw(algo) => &algo.name,
-            ImportKeyAlgorithm::Hmac(algo) => &algo.name,
-            ImportKeyAlgorithm::Hkdf(algo) => &algo.name,
-            ImportKeyAlgorithm::Pbkdf2(algo) => &algo.name,
-            ImportKeyAlgorithm::MlKem(algo) => &algo.name,
-            ImportKeyAlgorithm::MlDsa(algo) => &algo.name,
-            ImportKeyAlgorithm::AesOcb(algo) => &algo.name,
-            ImportKeyAlgorithm::ChaCha20Poly1305(algo) => &algo.name,
-            ImportKeyAlgorithm::Argon2(algo) => &algo.name,
+            ImportKeyAlgorithm::RsassaPkcs1V1_5(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::RsaPss(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::RsaOaep(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::Ecdsa(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::Ecdh(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::Ed25519(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::X25519(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::AesCtr(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::AesCbc(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::AesGcm(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::AesKw(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::Hmac(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::Hkdf(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::Pbkdf2(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::MlKem(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::MlDsa(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::AesOcb(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::ChaCha20Poly1305(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::Argon2(algorithm) => &algorithm.name,
         }
     }
 }
@@ -4454,99 +4502,121 @@ impl ImportKeyAlgorithm {
         usages: Vec<KeyUsage>,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         match self {
-            ImportKeyAlgorithm::RsassaPkcs1V1_5(algo) => rsassa_pkcs1_v1_5_operation::import_key(
-                cx,
-                global,
-                algo,
-                format,
-                key_data,
-                extractable,
-                usages,
-            ),
-            ImportKeyAlgorithm::RsaPss(algo) => rsa_pss_operation::import_key(
-                cx,
-                global,
-                algo,
-                format,
-                key_data,
-                extractable,
-                usages,
-            ),
-            ImportKeyAlgorithm::RsaOaep(algo) => rsa_oaep_operation::import_key(
-                cx,
-                global,
-                algo,
-                format,
-                key_data,
-                extractable,
-                usages,
-            ),
-            ImportKeyAlgorithm::Ecdsa(algo) => {
-                ecdsa_operation::import_key(cx, global, algo, format, key_data, extractable, usages)
+            ImportKeyAlgorithm::RsassaPkcs1V1_5(algorithm) => {
+                rsassa_pkcs1_v1_5_operation::import_key(
+                    cx,
+                    global,
+                    algorithm,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                )
             },
-            ImportKeyAlgorithm::Ecdh(algo) => {
-                ecdh_operation::import_key(cx, global, algo, format, key_data, extractable, usages)
-            },
-            ImportKeyAlgorithm::Ed25519(_algo) => {
+            ImportKeyAlgorithm::RsaPss(algorithm) => rsa_pss_operation::import_key(
+                cx,
+                global,
+                algorithm,
+                format,
+                key_data,
+                extractable,
+                usages,
+            ),
+            ImportKeyAlgorithm::RsaOaep(algorithm) => rsa_oaep_operation::import_key(
+                cx,
+                global,
+                algorithm,
+                format,
+                key_data,
+                extractable,
+                usages,
+            ),
+            ImportKeyAlgorithm::Ecdsa(algorithm) => ecdsa_operation::import_key(
+                cx,
+                global,
+                algorithm,
+                format,
+                key_data,
+                extractable,
+                usages,
+            ),
+            ImportKeyAlgorithm::Ecdh(algorithm) => ecdh_operation::import_key(
+                cx,
+                global,
+                algorithm,
+                format,
+                key_data,
+                extractable,
+                usages,
+            ),
+            ImportKeyAlgorithm::Ed25519(_algorithm) => {
                 ed25519_operation::import_key(cx, global, format, key_data, extractable, usages)
             },
-            ImportKeyAlgorithm::X25519(_algo) => {
+            ImportKeyAlgorithm::X25519(_algorithm) => {
                 x25519_operation::import_key(cx, global, format, key_data, extractable, usages)
             },
-            ImportKeyAlgorithm::AesCtr(_algo) => {
+            ImportKeyAlgorithm::AesCtr(_algorithm) => {
                 aes_ctr_operation::import_key(cx, global, format, key_data, extractable, usages)
             },
-            ImportKeyAlgorithm::AesCbc(_algo) => {
+            ImportKeyAlgorithm::AesCbc(_algorithm) => {
                 aes_cbc_operation::import_key(cx, global, format, key_data, extractable, usages)
             },
-            ImportKeyAlgorithm::AesGcm(_algo) => {
+            ImportKeyAlgorithm::AesGcm(_algorithm) => {
                 aes_gcm_operation::import_key(cx, global, format, key_data, extractable, usages)
             },
-            ImportKeyAlgorithm::AesKw(_algo) => {
+            ImportKeyAlgorithm::AesKw(_algorithm) => {
                 aes_kw_operation::import_key(cx, global, format, key_data, extractable, usages)
             },
-            ImportKeyAlgorithm::Hmac(algo) => {
-                hmac_operation::import_key(cx, global, algo, format, key_data, extractable, usages)
-            },
-            ImportKeyAlgorithm::Hkdf(_algo) => {
+            ImportKeyAlgorithm::Hmac(algorithm) => hmac_operation::import_key(
+                cx,
+                global,
+                algorithm,
+                format,
+                key_data,
+                extractable,
+                usages,
+            ),
+            ImportKeyAlgorithm::Hkdf(_algorithm) => {
                 hkdf_operation::import_key(cx, global, format, key_data, extractable, usages)
             },
-            ImportKeyAlgorithm::Pbkdf2(_algo) => {
+            ImportKeyAlgorithm::Pbkdf2(_algorithm) => {
                 pbkdf2_operation::import_key(cx, global, format, key_data, extractable, usages)
             },
-            ImportKeyAlgorithm::MlKem(algo) => ml_kem_operation::import_key(
+            ImportKeyAlgorithm::MlKem(algorithm) => ml_kem_operation::import_key(
                 cx,
                 global,
-                algo,
+                algorithm,
                 format,
                 key_data,
                 extractable,
                 usages,
             ),
-            ImportKeyAlgorithm::MlDsa(algo) => ml_dsa_operation::import_key(
+            ImportKeyAlgorithm::MlDsa(algorithm) => ml_dsa_operation::import_key(
                 cx,
                 global,
-                algo,
+                algorithm,
                 format,
                 key_data,
                 extractable,
                 usages,
             ),
-            ImportKeyAlgorithm::AesOcb(_algo) => {
+            ImportKeyAlgorithm::AesOcb(_algorithm) => {
                 aes_ocb_operation::import_key(cx, global, format, key_data, extractable, usages)
             },
-            ImportKeyAlgorithm::ChaCha20Poly1305(_algo) => chacha20_poly1305_operation::import_key(
+            ImportKeyAlgorithm::ChaCha20Poly1305(_algorithm) => {
+                chacha20_poly1305_operation::import_key(
+                    cx,
+                    global,
+                    format,
+                    key_data,
+                    extractable,
+                    usages,
+                )
+            },
+            ImportKeyAlgorithm::Argon2(algorithm) => argon2_operation::import_key(
                 cx,
                 global,
-                format,
-                key_data,
-                extractable,
-                usages,
-            ),
-            ImportKeyAlgorithm::Argon2(algo) => argon2_operation::import_key(
-                cx,
-                global,
-                algo,
+                algorithm,
                 format,
                 key_data,
                 extractable,
@@ -4587,10 +4657,10 @@ enum ExportKeyAlgorithm {
 impl NormalizedAlgorithm for ExportKeyAlgorithm {
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self> {
-        match alg_name {
+        match algorithm_name {
             CryptoAlgorithm::RsassaPkcs1V1_5 => Ok(ExportKeyAlgorithm::RsassaPkcs1V1_5(
                 value.try_into_with_cx(cx)?,
             )),
@@ -4621,29 +4691,29 @@ impl NormalizedAlgorithm for ExportKeyAlgorithm {
             )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"exportKey\" operation",
-                alg_name.as_str()
+                algorithm_name.as_str()
             )))),
         }
     }
 
     fn name(&self) -> &str {
         match self {
-            ExportKeyAlgorithm::RsassaPkcs1V1_5(algo) => &algo.name,
-            ExportKeyAlgorithm::RsaPss(algo) => &algo.name,
-            ExportKeyAlgorithm::RsaOaep(algo) => &algo.name,
-            ExportKeyAlgorithm::Ecdsa(algo) => &algo.name,
-            ExportKeyAlgorithm::Ecdh(algo) => &algo.name,
-            ExportKeyAlgorithm::Ed25519(algo) => &algo.name,
-            ExportKeyAlgorithm::X25519(algo) => &algo.name,
-            ExportKeyAlgorithm::AesCtr(algo) => &algo.name,
-            ExportKeyAlgorithm::AesCbc(algo) => &algo.name,
-            ExportKeyAlgorithm::AesGcm(algo) => &algo.name,
-            ExportKeyAlgorithm::AesKw(algo) => &algo.name,
-            ExportKeyAlgorithm::Hmac(algo) => &algo.name,
-            ExportKeyAlgorithm::MlKem(algo) => &algo.name,
-            ExportKeyAlgorithm::MlDsa(algo) => &algo.name,
-            ExportKeyAlgorithm::AesOcb(algo) => &algo.name,
-            ExportKeyAlgorithm::ChaCha20Poly1305(algo) => &algo.name,
+            ExportKeyAlgorithm::RsassaPkcs1V1_5(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::RsaPss(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::RsaOaep(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::Ecdsa(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::Ecdh(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::Ed25519(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::X25519(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::AesCtr(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::AesCbc(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::AesGcm(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::AesKw(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::Hmac(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::MlKem(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::MlDsa(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::AesOcb(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::ChaCha20Poly1305(algorithm) => &algorithm.name,
         }
     }
 }
@@ -4651,24 +4721,24 @@ impl NormalizedAlgorithm for ExportKeyAlgorithm {
 impl ExportKeyAlgorithm {
     fn export_key(&self, format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
         match self {
-            ExportKeyAlgorithm::RsassaPkcs1V1_5(_algo) => {
+            ExportKeyAlgorithm::RsassaPkcs1V1_5(_algorithm) => {
                 rsassa_pkcs1_v1_5_operation::export_key(format, key)
             },
-            ExportKeyAlgorithm::RsaPss(_algo) => rsa_pss_operation::export_key(format, key),
-            ExportKeyAlgorithm::RsaOaep(_algo) => rsa_oaep_operation::export_key(format, key),
-            ExportKeyAlgorithm::Ecdsa(_algo) => ecdsa_operation::export_key(format, key),
-            ExportKeyAlgorithm::Ecdh(_algo) => ecdh_operation::export_key(format, key),
-            ExportKeyAlgorithm::Ed25519(_algo) => ed25519_operation::export_key(format, key),
-            ExportKeyAlgorithm::X25519(_algo) => x25519_operation::export_key(format, key),
-            ExportKeyAlgorithm::AesCtr(_algo) => aes_ctr_operation::export_key(format, key),
-            ExportKeyAlgorithm::AesCbc(_algo) => aes_cbc_operation::export_key(format, key),
-            ExportKeyAlgorithm::AesGcm(_algo) => aes_gcm_operation::export_key(format, key),
-            ExportKeyAlgorithm::AesKw(_algo) => aes_kw_operation::export_key(format, key),
-            ExportKeyAlgorithm::Hmac(_algo) => hmac_operation::export_key(format, key),
-            ExportKeyAlgorithm::MlKem(_algo) => ml_kem_operation::export_key(format, key),
-            ExportKeyAlgorithm::MlDsa(_algo) => ml_dsa_operation::export_key(format, key),
-            ExportKeyAlgorithm::AesOcb(_algo) => aes_ocb_operation::export_key(format, key),
-            ExportKeyAlgorithm::ChaCha20Poly1305(_algo) => {
+            ExportKeyAlgorithm::RsaPss(_algorithm) => rsa_pss_operation::export_key(format, key),
+            ExportKeyAlgorithm::RsaOaep(_algorithm) => rsa_oaep_operation::export_key(format, key),
+            ExportKeyAlgorithm::Ecdsa(_algorithm) => ecdsa_operation::export_key(format, key),
+            ExportKeyAlgorithm::Ecdh(_algorithm) => ecdh_operation::export_key(format, key),
+            ExportKeyAlgorithm::Ed25519(_algorithm) => ed25519_operation::export_key(format, key),
+            ExportKeyAlgorithm::X25519(_algorithm) => x25519_operation::export_key(format, key),
+            ExportKeyAlgorithm::AesCtr(_algorithm) => aes_ctr_operation::export_key(format, key),
+            ExportKeyAlgorithm::AesCbc(_algorithm) => aes_cbc_operation::export_key(format, key),
+            ExportKeyAlgorithm::AesGcm(_algorithm) => aes_gcm_operation::export_key(format, key),
+            ExportKeyAlgorithm::AesKw(_algorithm) => aes_kw_operation::export_key(format, key),
+            ExportKeyAlgorithm::Hmac(_algorithm) => hmac_operation::export_key(format, key),
+            ExportKeyAlgorithm::MlKem(_algorithm) => ml_kem_operation::export_key(format, key),
+            ExportKeyAlgorithm::MlDsa(_algorithm) => ml_dsa_operation::export_key(format, key),
+            ExportKeyAlgorithm::AesOcb(_algorithm) => aes_ocb_operation::export_key(format, key),
+            ExportKeyAlgorithm::ChaCha20Poly1305(_algorithm) => {
                 chacha20_poly1305_operation::export_key(format, key)
             },
         }
@@ -4700,10 +4770,10 @@ enum GetKeyLengthAlgorithm {
 impl NormalizedAlgorithm for GetKeyLengthAlgorithm {
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self> {
-        match alg_name {
+        match algorithm_name {
             CryptoAlgorithm::AesCtr => {
                 Ok(GetKeyLengthAlgorithm::AesCtr(value.try_into_with_cx(cx)?))
             },
@@ -4730,23 +4800,23 @@ impl NormalizedAlgorithm for GetKeyLengthAlgorithm {
             },
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"get key length\" operation",
-                alg_name.as_str()
+                algorithm_name.as_str()
             )))),
         }
     }
 
     fn name(&self) -> &str {
         match self {
-            GetKeyLengthAlgorithm::AesCtr(algo) => &algo.name,
-            GetKeyLengthAlgorithm::AesCbc(algo) => &algo.name,
-            GetKeyLengthAlgorithm::AesGcm(algo) => &algo.name,
-            GetKeyLengthAlgorithm::AesKw(algo) => &algo.name,
-            GetKeyLengthAlgorithm::Hmac(algo) => &algo.name,
-            GetKeyLengthAlgorithm::Hkdf(algo) => &algo.name,
-            GetKeyLengthAlgorithm::Pbkdf2(algo) => &algo.name,
-            GetKeyLengthAlgorithm::AesOcb(algo) => &algo.name,
-            GetKeyLengthAlgorithm::ChaCha20Poly1305(algo) => &algo.name,
-            GetKeyLengthAlgorithm::Argon2(algo) => &algo.name,
+            GetKeyLengthAlgorithm::AesCtr(algorithm) => &algorithm.name,
+            GetKeyLengthAlgorithm::AesCbc(algorithm) => &algorithm.name,
+            GetKeyLengthAlgorithm::AesGcm(algorithm) => &algorithm.name,
+            GetKeyLengthAlgorithm::AesKw(algorithm) => &algorithm.name,
+            GetKeyLengthAlgorithm::Hmac(algorithm) => &algorithm.name,
+            GetKeyLengthAlgorithm::Hkdf(algorithm) => &algorithm.name,
+            GetKeyLengthAlgorithm::Pbkdf2(algorithm) => &algorithm.name,
+            GetKeyLengthAlgorithm::AesOcb(algorithm) => &algorithm.name,
+            GetKeyLengthAlgorithm::ChaCha20Poly1305(algorithm) => &algorithm.name,
+            GetKeyLengthAlgorithm::Argon2(algorithm) => &algorithm.name,
         }
     }
 }
@@ -4754,18 +4824,26 @@ impl NormalizedAlgorithm for GetKeyLengthAlgorithm {
 impl GetKeyLengthAlgorithm {
     fn get_key_length(&self) -> Result<Option<u32>, Error> {
         match self {
-            GetKeyLengthAlgorithm::AesCtr(algo) => aes_ctr_operation::get_key_length(algo),
-            GetKeyLengthAlgorithm::AesCbc(algo) => aes_cbc_operation::get_key_length(algo),
-            GetKeyLengthAlgorithm::AesGcm(algo) => aes_gcm_operation::get_key_length(algo),
-            GetKeyLengthAlgorithm::AesKw(algo) => aes_kw_operation::get_key_length(algo),
-            GetKeyLengthAlgorithm::Hmac(algo) => hmac_operation::get_key_length(algo),
-            GetKeyLengthAlgorithm::Hkdf(_algo) => hkdf_operation::get_key_length(),
-            GetKeyLengthAlgorithm::Pbkdf2(_algo) => pbkdf2_operation::get_key_length(),
-            GetKeyLengthAlgorithm::AesOcb(algo) => aes_ocb_operation::get_key_length(algo),
-            GetKeyLengthAlgorithm::ChaCha20Poly1305(_algo) => {
+            GetKeyLengthAlgorithm::AesCtr(algorithm) => {
+                aes_ctr_operation::get_key_length(algorithm)
+            },
+            GetKeyLengthAlgorithm::AesCbc(algorithm) => {
+                aes_cbc_operation::get_key_length(algorithm)
+            },
+            GetKeyLengthAlgorithm::AesGcm(algorithm) => {
+                aes_gcm_operation::get_key_length(algorithm)
+            },
+            GetKeyLengthAlgorithm::AesKw(algorithm) => aes_kw_operation::get_key_length(algorithm),
+            GetKeyLengthAlgorithm::Hmac(algorithm) => hmac_operation::get_key_length(algorithm),
+            GetKeyLengthAlgorithm::Hkdf(_algorithm) => hkdf_operation::get_key_length(),
+            GetKeyLengthAlgorithm::Pbkdf2(_algorithm) => pbkdf2_operation::get_key_length(),
+            GetKeyLengthAlgorithm::AesOcb(algorithm) => {
+                aes_ocb_operation::get_key_length(algorithm)
+            },
+            GetKeyLengthAlgorithm::ChaCha20Poly1305(_algorithm) => {
                 chacha20_poly1305_operation::get_key_length()
             },
-            GetKeyLengthAlgorithm::Argon2(_algo) => argon2_operation::get_key_length(),
+            GetKeyLengthAlgorithm::Argon2(_algorithm) => argon2_operation::get_key_length(),
         }
     }
 }
@@ -4786,23 +4864,23 @@ enum EncapsulateAlgorithm {
 impl NormalizedAlgorithm for EncapsulateAlgorithm {
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self> {
-        match alg_name {
+        match algorithm_name {
             CryptoAlgorithm::MlKem512 | CryptoAlgorithm::MlKem768 | CryptoAlgorithm::MlKem1024 => {
                 Ok(EncapsulateAlgorithm::MlKem(value.try_into_with_cx(cx)?))
             },
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"encapsulate\" operation",
-                alg_name.as_str()
+                algorithm_name.as_str()
             )))),
         }
     }
 
     fn name(&self) -> &str {
         match self {
-            EncapsulateAlgorithm::MlKem(algo) => &algo.name,
+            EncapsulateAlgorithm::MlKem(algorithm) => &algorithm.name,
         }
     }
 }
@@ -4810,7 +4888,7 @@ impl NormalizedAlgorithm for EncapsulateAlgorithm {
 impl EncapsulateAlgorithm {
     fn encapsulate(&self, key: &CryptoKey) -> Result<SubtleEncapsulatedBits, Error> {
         match self {
-            EncapsulateAlgorithm::MlKem(algo) => ml_kem_operation::encapsulate(algo, key),
+            EncapsulateAlgorithm::MlKem(algorithm) => ml_kem_operation::encapsulate(algorithm, key),
         }
     }
 }
@@ -4831,23 +4909,23 @@ enum DecapsulateAlgorithm {
 impl NormalizedAlgorithm for DecapsulateAlgorithm {
     fn from_object_value(
         cx: &mut js::context::JSContext,
-        alg_name: CryptoAlgorithm,
+        algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self> {
-        match alg_name {
+        match algorithm_name {
             CryptoAlgorithm::MlKem512 | CryptoAlgorithm::MlKem768 | CryptoAlgorithm::MlKem1024 => {
                 Ok(DecapsulateAlgorithm::MlKem(value.try_into_with_cx(cx)?))
             },
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"decapsulate\" operation",
-                alg_name.as_str()
+                algorithm_name.as_str()
             )))),
         }
     }
 
     fn name(&self) -> &str {
         match self {
-            DecapsulateAlgorithm::MlKem(algo) => &algo.name,
+            DecapsulateAlgorithm::MlKem(algorithm) => &algorithm.name,
         }
     }
 }
@@ -4855,8 +4933,8 @@ impl NormalizedAlgorithm for DecapsulateAlgorithm {
 impl DecapsulateAlgorithm {
     fn decapsulate(&self, key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
-            DecapsulateAlgorithm::MlKem(algo) => {
-                ml_kem_operation::decapsulate(algo, key, ciphertext)
+            DecapsulateAlgorithm::MlKem(algorithm) => {
+                ml_kem_operation::decapsulate(algorithm, key, ciphertext)
             },
         }
     }
