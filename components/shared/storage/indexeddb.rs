@@ -273,9 +273,9 @@ pub struct IndexedDBObjectStore {
     pub indexes: Vec<IndexedDBIndex>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum PutItemResult {
-    Success,
+    Key(IndexedDBKeyType),
     CannotOverwrite,
 }
 

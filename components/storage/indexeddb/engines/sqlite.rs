@@ -237,10 +237,11 @@ impl SqliteEngine {
     fn put_item(
         connection: &Connection,
         store: object_store_model::Model,
-        serialized_key: Vec<u8>,
+        key: IndexedDBKeyType,
         value: Vec<u8>,
         should_overwrite: bool,
     ) -> Result<PutItemResult, Error> {
+        let serialized_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
         let existing_item = connection
             .prepare("SELECT * FROM object_data WHERE key = ? AND object_store_id = ?")
             .and_then(|mut stmt| {
@@ -254,7 +255,7 @@ impl SqliteEngine {
                 "INSERT INTO object_data (object_store_id, key, data) VALUES (?, ?, ?)",
                 params![store.id, serialized_key, value],
             )?;
-            Ok(PutItemResult::Success)
+            Ok(PutItemResult::Key(key))
         } else {
             Ok(PutItemResult::CannotOverwrite)
         }
@@ -439,16 +440,9 @@ impl KvsEngine for SqliteEngine {
                                 continue;
                             },
                         };
-                        let serialized_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
                         let _ = callback.send(
-                            Self::put_item(
-                                &connection,
-                                object_store,
-                                serialized_key,
-                                value,
-                                should_overwrite,
-                            )
-                            .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                            Self::put_item(&connection, object_store, key, value, should_overwrite)
+                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {

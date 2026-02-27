@@ -86,7 +86,7 @@ impl From<Vec<Vec<u8>>> for IdbResult {
 impl From<PutItemResult> for IdbResult {
     fn from(value: PutItemResult) -> Self {
         match value {
-            PutItemResult::Success => Self::None,
+            PutItemResult::Key(key) => Self::Key(key),
             PutItemResult::CannotOverwrite => Self::Error(Error::Constraint(None)),
         }
     }
