@@ -33,7 +33,6 @@ class MachCommands(CommandBase):
             params = []
 
         self.ensure_bootstrapped()
-        self.ensure_clobbered()
         status = self.run_cargo_build_like_command("check", params, **kwargs)
         assert isinstance(status, int)
         if status == 0:
@@ -60,7 +59,6 @@ class MachCommands(CommandBase):
             params = []
 
         self.ensure_bootstrapped()
-        self.ensure_clobbered()
         status = self.run_cargo_build_like_command("fix", params, **kwargs)
         assert isinstance(status, int)
         return status
@@ -87,7 +85,6 @@ class MachCommands(CommandBase):
             return 1
 
         self.ensure_bootstrapped()
-        self.ensure_clobbered()
         env = self.build_env()
         env["RUSTC"] = "rustc"
 

@@ -122,7 +122,6 @@ class MachCommands(CommandBase):
 
         env = self.build_env()
         self.ensure_bootstrapped()
-        self.ensure_clobbered()
 
         host = servo.platform.host_triple()
         target_triple = self.target.triple()
