@@ -12,6 +12,7 @@ use euclid::{Point2D, Rect, Size2D};
 use fonts::{FontMetrics, GlyphStore};
 use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
+use servo_url::ServoUrl;
 use style::Zero;
 use style_traits::CSSPixel;
 use webrender_api::{FontInstanceKey, ImageKey};
@@ -84,6 +85,7 @@ pub(crate) struct ImageFragment {
     pub clip: PhysicalRect<Au>,
     pub image_key: Option<ImageKey>,
     pub showing_broken_image_icon: bool,
+    pub url: Option<ServoUrl>,
 }
 
 #[derive(MallocSizeOf)]

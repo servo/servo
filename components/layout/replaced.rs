@@ -359,7 +359,6 @@ impl ReplacedContents {
                 },
                 LayoutImageCacheResult::Pending | LayoutImageCacheResult::LoadError => return None,
             };
-
             return Some(Self {
                 kind: ReplacedContentKind::Image(ImageInfo {
                     image,
@@ -522,6 +521,7 @@ impl ReplacedContents {
                         clip,
                         image_key: Some(image_key),
                         showing_broken_image_icon: image_info.showing_broken_image_icon,
+                        url: image_info.url.clone(),
                     }))
                 })
                 .into_iter()
@@ -532,6 +532,7 @@ impl ReplacedContents {
                     clip,
                     image_key: video_info.image_key,
                     showing_broken_image_icon: false,
+                    url: None,
                 }))]
             },
             ReplacedContentKind::IFrame(iframe) => {
@@ -570,6 +571,7 @@ impl ReplacedContents {
                     clip,
                     image_key: Some(image_key),
                     showing_broken_image_icon: false,
+                    url: None,
                 }))]
             },
             ReplacedContentKind::SVGElement(vector_image) => {
@@ -614,6 +616,7 @@ impl ReplacedContents {
                             clip,
                             image_key: Some(image_key),
                             showing_broken_image_icon: false,
+                            url: None,
                         }))
                     })
                     .into_iter()

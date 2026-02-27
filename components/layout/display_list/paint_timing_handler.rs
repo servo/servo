@@ -5,6 +5,7 @@
 use euclid::Rect;
 use paint_api::largest_contentful_paint_candidate::{LCPCandidate, LCPCandidateID};
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
+use servo_url::ServoUrl;
 use style_traits::CSSPixel;
 use webrender_api::units::{LayoutRect, LayoutSize};
 
@@ -77,6 +78,7 @@ impl PaintTimingHandler {
         bounds: LayoutRect,
         clip_rect: LayoutRect,
         transform: FastLayoutTransform,
+        url: Option<ServoUrl>,
     ) {
         // From <https://www.w3.org/TR/largest-contentful-paint/#sec-report-largest-contentful-paint>:
         //  Let intersectionRect be the value returned by the intersection rect algorithm using imageElement as the target and viewport as the root.
@@ -95,7 +97,7 @@ impl PaintTimingHandler {
             .unwrap_or(LCPCandidateID(0));
 
         // Set newCandidate to be a new largest contentful paint candidate
-        self.lcp_candidate = Some(LCPCandidate::new(id, size as usize));
+        self.lcp_candidate = Some(LCPCandidate::new(id, size as usize, url));
         self.lcp_size = size;
         self.lcp_candidate_updated = true;
     }
@@ -109,6 +111,6 @@ impl PaintTimingHandler {
     }
 
     pub(crate) fn largest_contentful_paint_candidate(&self) -> Option<LCPCandidate> {
-        self.lcp_candidate
+        self.lcp_candidate.clone()
     }
 }

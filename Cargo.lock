@@ -8311,6 +8311,7 @@ dependencies = [
  "servo-pixels",
  "servo-profile-traits",
  "servo-tracing",
+ "servo-url",
  "smallvec",
  "strum",
  "stylo",

@@ -106,7 +106,7 @@ pub enum DocumentActivity {
 }
 
 /// Type of recorded progressive web metric
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ProgressiveWebMetricType {
     /// Time to first Paint
     FirstPaint,
@@ -116,6 +116,8 @@ pub enum ProgressiveWebMetricType {
     LargestContentfulPaint {
         /// The pixel area of the largest contentful element.
         area: usize,
+        /// The URL of the largest contentful element, if any.
+        url: Option<ServoUrl>,
     },
     /// Time to interactive
     TimeToInteractive,
