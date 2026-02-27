@@ -2279,7 +2279,12 @@ impl ScriptThread {
             DevtoolScriptControlMsg::Interrupt => {
                 self.debugger_global.fire_interrupt(CanGc::from_cx(cx));
             },
-            DevtoolScriptControlMsg::Resume => {
+            DevtoolScriptControlMsg::Resume(resume_limit_type, frame_actor_id) => {
+                self.debugger_global.fire_resume(
+                    resume_limit_type,
+                    frame_actor_id,
+                    CanGc::from_cx(cx),
+                );
                 self.debugger_paused.set(false);
             },
         }
