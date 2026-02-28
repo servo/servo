@@ -40,7 +40,7 @@ pub fn run_a_script<D: DomTypes, R>(global: &D::GlobalScope, f: impl FnOnce() ->
         });
         profile_traits::info_span!("ScriptEvaluate", url = global.get_url().to_string()).entered()
     });
-    let r = f();
+    let result = f();
     let stack_is_empty = settings_stack.with(|stack| {
         let mut stack = stack.borrow_mut();
         let entry = stack.pop().unwrap();
@@ -58,7 +58,7 @@ pub fn run_a_script<D: DomTypes, R>(global: &D::GlobalScope, f: impl FnOnce() ->
         let mut cx = unsafe { temp_cx() };
         global.perform_a_microtask_checkpoint(&mut cx);
     }
-    r
+    result
 }
 
 /// Wrapper that pushes and pops entries from the script settings stack.
@@ -82,7 +82,7 @@ pub fn run_a_callback<D: DomTypes, R>(global: &D::GlobalScope, f: impl FnOnce() 
             kind: StackEntryKind::Incumbent,
         });
     });
-    let r = f();
+    let result = f();
     // <https://html.spec.whatwg.org/multipage/#clean-up-after-running-a-callback>
     settings_stack.with(|stack| {
         // Step 4.
@@ -104,5 +104,5 @@ pub fn run_a_callback<D: DomTypes, R>(global: &D::GlobalScope, f: impl FnOnce() 
         // Step 1-2.
         UnhideScriptedCaller(cx.as_ptr());
     }
-    r
+    result
 }

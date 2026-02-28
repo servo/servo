@@ -273,9 +273,9 @@ pub fn call_setup<D: DomTypes, T: CallbackContainer<D>, R>(
 
     // Step 8: Prepare to run script with relevant settings.
     run_a_script::<D, R>(global, move || {
-        let g = || {
+        let actual_callback = || {
             let old_realm = unsafe { EnterRealm(*cx, callback.callback()) };
-            let r = f(cx);
+            let result = f(cx);
             unsafe {
                 LeaveRealm(*cx, old_realm);
             }
@@ -288,13 +288,13 @@ pub fn call_setup<D: DomTypes, T: CallbackContainer<D>, R>(
                     CanGc::note(),
                 );
             }
-            r
+            result
         };
         if let Some(incumbent_global) = callback.incumbent() {
             // Step 9: Prepare to run a callback with stored settings.
-            run_a_callback::<D, R>(incumbent_global, g)
+            run_a_callback::<D, R>(incumbent_global, actual_callback)
         } else {
-            g()
+            actual_callback()
         }
     }) // Step 14.2: Clean up after running script with relevant settings.
 }
