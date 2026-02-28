@@ -889,13 +889,6 @@ pub(crate) fn import_key(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-export-key>
-///
-/// The exportKey() method does not involve AlgorithmIdentifier and algorithm normalization, so
-/// there should not be normalizedAlgorithm in the export key operation. It could be a mistake in
-/// the specification (Related issue: <https://github.com/WICG/webcrypto-modern-algos/issues/47>).
-///
-/// In our implementation, we use the name attribute of the [[algorithhm]] internal slot of key to
-/// determine the security category.
 pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     // Step 1. If the underlying cryptographic key material represented by the [[handle]] internal
     // slot of key cannot be accessed, then throw an OperationError.
@@ -912,22 +905,29 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 )));
             }
 
-            // Step 2.2.
+            // Step 2.2. Let keyAlgorithm be the [[algorithm]] internal slot of key.
+            let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
+                return Err(Error::Operation(Some(
+                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
+                )));
+            };
+
+            // Step 2.3.
             // Let data be an instance of the SubjectPublicKeyInfo ASN.1 structure defined in
             // [RFC5280] with the following properties:
             //
             //     Set the algorithm field to an AlgorithmIdentifier ASN.1 type with the following
             //     properties:
             //
-            //         If the name member of normalizedAlgorithm is "ML-KEM-512":
+            //         If the name member of keyAlgorithm is "ML-KEM-512":
             //             Set the algorithm object identifier to the id-alg-ml-kem-512
             //             (2.16.840.1.101.3.4.4.1) OID.
             //
-            //         If the name member of normalizedAlgorithm is "ML-KEM-768":
+            //         If the name member of keyAlgorithm is "ML-KEM-768":
             //             Set the algorithm object identifier to the id-alg-ml-kem-768
             //             (2.16.840.1.101.3.4.4.2) OID.
             //
-            //         If the name member of normalizedAlgorithm is "ML-KEM-1024":
+            //         If the name member of keyAlgorithm is "ML-KEM-1024":
             //             Set the algorithm object identifier to the id-alg-ml-kem-1024
             //             (2.16.840.1.101.3.4.4.3) OID.
             //
@@ -935,11 +935,6 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //             throw a NotSupportedError.
             //
             //     Set the subjectPublicKey field to keyData.
-            let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
-                return Err(Error::Operation(Some(
-                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
-                )));
-            };
             let oid = match key_algorithm.name.as_str() {
                 ALG_ML_KEM_512 => ID_ALG_ML_KEM_512,
                 ALG_ML_KEM_768 => ID_ALG_ML_KEM_768,
@@ -966,7 +961,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 subject_public_key,
             };
 
-            // Step 2.3. Let result be the result of DER-encoding data.
+            // Step 2.4. Let result be the result of DER-encoding data.
             ExportedKey::Bytes(data.to_der().map_err(|_| {
                 Error::Operation(Some(
                     "Failed to encode SubjectPublicKeyInfo in DER format".to_string(),
@@ -983,7 +978,14 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 )));
             }
 
-            // Step 2.2.
+            // Step 2.2. Let keyAlgorithm be the [[algorithm]] internal slot of key.
+            let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
+                return Err(Error::Operation(Some(
+                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
+                )));
+            };
+
+            // Step 2.3.
             // Let data be an instance of the PrivateKeyInfo ASN.1 structure defined in [RFC5208]
             // with the following properties:
             //
@@ -992,15 +994,15 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //     Set the privateKeyAlgorithm field to a PrivateKeyAlgorithmIdentifier ASN.1 type
             //     with the following properties:
             //
-            //         If the name member of normalizedAlgorithm is "ML-KEM-512":
+            //         If the name member of keyAlgorithm is "ML-KEM-512":
             //             Set the algorithm object identifier to the id-alg-ml-kem-512
             //             (2.16.840.1.101.3.4.4.1) OID.
             //
-            //         If the name member of normalizedAlgorithm is "ML-KEM-768":
+            //         If the name member of keyAlgorithm is "ML-KEM-768":
             //             Set the algorithm object identifier to the id-alg-ml-kem-768
             //             (2.16.840.1.101.3.4.4.2) OID.
             //
-            //         If the name member of normalizedAlgorithm is "ML-KEM-1024":
+            //         If the name member of keyAlgorithm is "ML-KEM-1024":
             //             Set the algorithm object identifier to the id-alg-ml-kem-1024
             //             (2.16.840.1.101.3.4.4.3) OID.
             //
@@ -1009,21 +1011,21 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //
             //     Set the privateKey field as follows:
             //
-            //         If the name member of normalizedAlgorithm is "ML-KEM-512":
+            //         If the name member of keyAlgorithm is "ML-KEM-512":
             //             Set the privateKey field to the result of DER-encoding a
             //             ML-KEM-512-PrivateKey ASN.1 type that represents the ML-KEM private key
             //             seed represented by the [[handle]] internal slot of key using the
             //             seed-only format (using a context-specific [0] primitive tag with an
             //             implicit encoding of OCTET STRING).
             //
-            //         If the name member of normalizedAlgorithm is "ML-KEM-768":
+            //         If the name member of keyAlgorithm is "ML-KEM-768":
             //             Set the privateKey field to the result of DER-encoding a
             //             ML-KEM-768-PrivateKey ASN.1 type that represents the ML-KEM private key
             //             seed represented by the [[handle]] internal slot of key using the
             //             seed-only format (using a context-specific [0] primitive tag with an
             //             implicit encoding of OCTET STRING).
             //
-            //         If the name member of normalizedAlgorithm is "ML-KEM-1024":
+            //         If the name member of keyAlgorithm is "ML-KEM-1024":
             //             Set the privateKey field to the result of DER-encoding a
             //             ML-KEM-1024-PrivateKey ASN.1 type that represents the ML-KEM private key
             //             seed represented by the [[handle]] internal slot of key using the
@@ -1032,11 +1034,6 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //
             //         Otherwise:
             //             throw a NotSupportedError.
-            let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
-                return Err(Error::Operation(Some(
-                    "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
-                )));
-            };
             let oid = match key_algorithm.name.as_str() {
                 ALG_ML_KEM_512 => ID_ALG_ML_KEM_512,
                 ALG_ML_KEM_768 => ID_ALG_ML_KEM_768,
@@ -1071,7 +1068,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 public_key: None,
             };
 
-            // Step 2.3. Let result be the result of DER-encoding data.
+            // Step 2.4. Let result be the result of DER-encoding data.
             ExportedKey::Bytes(private_key_info.to_der().map_err(|_| {
                 Error::Operation(Some(
                     "Failed to encode PrivateKeyInfo in DER format".to_string(),
@@ -1117,22 +1114,23 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // The JWK format for ML-KEM is not standardized yet and thus subject to change.
 
             // Step 2.1. Let jwk be a new JsonWebKey dictionary.
-            // Step 2.2. Set the kty attribute of jwk to "AKP".
-            let mut jwk = JsonWebKey {
-                kty: Some(DOMString::from("AKP")),
-                ..Default::default()
-            };
+            let mut jwk = JsonWebKey::default();
 
-            // Step 2.3. Set the alg attribute of jwk to the alg value corresponding to the name
-            // member of normalizedAlgorithm indicated in Section 8 of [draft-ietf-jose-pqc-kem-01]
-            // (Figure 1).
-            //
-            // <https://www.ietf.org/archive/id/draft-ietf-jose-pqc-kem-01.html#direct-table>
+            // Step 2.2. Let keyAlgorithm be the [[algorithm]] internal slot of key.
             let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
                 return Err(Error::Operation(Some(
                     "[[algorithm]] internal slot of key is not a KeyAlgorithm".to_string(),
                 )));
             };
+
+            // Step 2.3. Set the kty attribute of jwk to "AKP".
+            jwk.kty = Some(DOMString::from("AKP"));
+
+            // Step 2.4. Set the alg attribute of jwk to the alg value corresponding to the name
+            // member of normalizedAlgorithm indicated in Section 8 of [draft-ietf-jose-pqc-kem-01]
+            // (Figure 1).
+            //
+            // <https://www.ietf.org/archive/id/draft-ietf-jose-pqc-kem-01.html#direct-table>
             let alg = match key_algorithm.name.as_str() {
                 ALG_ML_KEM_512 => "MLKEM512",
                 ALG_ML_KEM_768 => "MLKEM768",
@@ -1146,9 +1144,9 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
             jwk.alg = Some(DOMString::from(alg));
 
-            // Step 2.4. Set the pub attribute of jwk to the base64url encoded public key
+            // Step 2.5. Set the pub attribute of jwk to the base64url encoded public key
             // corresponding to the [[handle]] internal slot of key.
-            // Step 2.5.
+            // Step 2.6.
             // If the [[type]] internal slot of key is "private":
             //     Set the priv attribute of jwk to the base64url encoded seed represented by the
             //     [[handle]] internal slot of key.
@@ -1162,13 +1160,13 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 jwk.encode_string_field(JwkStringField::Pub, &public_key_bytes);
             }
 
-            // Step 2.6. Set the key_ops attribute of jwk to the usages attribute of key.
+            // Step 2.7. Set the key_ops attribute of jwk to the usages attribute of key.
             jwk.set_key_ops(key.usages());
 
-            // Step 2.7. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
+            // Step 2.8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
             jwk.ext = Some(key.Extractable());
 
-            // Step 2.8. Let result be jwk.
+            // Step 2.9. Let result be jwk.
             ExportedKey::Jwk(Box::new(jwk))
         },
         // Otherwise:
