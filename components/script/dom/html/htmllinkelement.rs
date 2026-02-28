@@ -61,7 +61,7 @@ use crate::dom::types::{EventTarget, GlobalScope};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::links::LinkRelations;
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::script_module::{ModuleOwner, ScriptFetchOptions, fetch_a_modulepreload_module};
+use crate::script_module::{ScriptFetchOptions, fetch_a_modulepreload_module};
 use crate::script_runtime::CanGc;
 use crate::stylesheet_loader::{ElementStylesheetLoader, StylesheetContextSource, StylesheetOwner};
 
@@ -1026,15 +1026,20 @@ impl HTMLLinkElement {
             referrer: global.get_referrer(),
         };
 
+        let link = DomRoot::from_ref(self);
+
         // Step 14. Fetch a modulepreload module script graph given url, destination, settings object, options,
         // and with the following steps given result:
-        fetch_a_modulepreload_module(
-            url,
-            destination,
-            ModuleOwner::Window(Trusted::new(self.upcast())),
-            options,
-            can_gc,
-        );
+        fetch_a_modulepreload_module(url, destination, &global, options, move |module_tree| {
+            // Step 1. If result is null, then fire an event named error at el, and return.
+            // Step 2. Fire an event named load at el.
+            let event = match module_tree.is_none() {
+                true => atom!("error"),
+                false => atom!("load"),
+            };
+
+            link.upcast::<EventTarget>().fire_event(event, can_gc);
+        });
     }
 }
 

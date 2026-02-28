@@ -880,7 +880,7 @@ impl HTMLScriptElement {
                     // Step 31.11. Fetch an external module script graph.
                     fetch_an_external_module_script(
                         url,
-                        ModuleOwner::Window(Trusted::new(self.upcast())),
+                        ModuleOwner::Window(Trusted::new(self)),
                         options,
                         can_gc,
                     );
@@ -946,7 +946,7 @@ impl HTMLScriptElement {
                     };
 
                     fetch_inline_module_script(
-                        ModuleOwner::Window(Trusted::new(self.upcast())),
+                        ModuleOwner::Window(Trusted::new(self)),
                         text_rc,
                         base_url,
                         options,
@@ -958,7 +958,7 @@ impl HTMLScriptElement {
                     // Step 32.1 Let result be the result of creating an import map
                     // parse result given source text and base URL.
                     let import_map_result = parse_an_import_map_string(
-                        ModuleOwner::Window(Trusted::new(self.upcast())),
+                        ModuleOwner::Window(Trusted::new(self)),
                         Rc::clone(&text_rc),
                         base_url.clone(),
                     );
