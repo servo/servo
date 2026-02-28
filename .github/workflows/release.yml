@@ -2,8 +2,8 @@ name: Release
 
 on:
   schedule:
-    # Run at 5:15 am, daily.
-    - cron: '15 5 * * *'
+    # Run at 1:15 am, daily.
+    - cron: '15 1 * * *'
   workflow_dispatch:
     inputs:
       # Note: On scheduled runs `inputs.regular_release` will be `null`, which allows us to create
