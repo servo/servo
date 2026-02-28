@@ -2,8 +2,9 @@ name: Release
 
 on:
   schedule:
-    # Run at 1:15 am, daily.
-    - cron: '15 1 * * *'
+    # Run at 22:15 pm, daily.
+    # To make sure it finishes in time before next WPT daily epoch run
+    - cron: '15 22 * * *'
   workflow_dispatch:
     inputs:
       # Note: On scheduled runs `inputs.regular_release` will be `null`, which allows us to create
