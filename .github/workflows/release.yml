@@ -117,8 +117,8 @@ jobs:
       id-token: write
       attestations: write
     env:
-      ARTIFACT_BASENAME: "servo-${{ needs.create-draft-release.outputs.release-tag }}-src-vendor"
-      ARTIFACT_FILENAME: "servo-${{ needs.create-draft-release.outputs.release-tag }}-src-vendor.tar.gz"
+      ARTIFACT_BASENAME: "servo-${{ needs.create-draft-release.outputs.release-tag }}-src-vendored"
+      ARTIFACT_FILENAME: "servo-${{ needs.create-draft-release.outputs.release-tag }}-src-vendored.tar.gz"
     needs:
       - create-draft-release
     steps:
