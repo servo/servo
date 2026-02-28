@@ -4,11 +4,13 @@
 
 use std::iter::Filter;
 use std::str::Split;
+use std::sync::LazyLock;
 
 use base64::Engine;
 use generic_array::ArrayLength;
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use parking_lot::MutexGuard;
+use regex::Regex;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 const SUPPORTED_ALGORITHM: &[&str] = &["sha256", "sha384", "sha512"];
@@ -40,6 +42,10 @@ impl SriEntry {
 
 /// <https://w3c.github.io/webappsec-subresource-integrity/#parse-metadata>
 pub fn parsed_metadata(integrity_metadata: &str) -> Vec<SriEntry> {
+    // https://w3c.github.io/webappsec-csp/#grammardef-base64-value
+    static BASE64_GRAMMAR: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"^[A-Za-z0-9+/_-]+={0,2}$").unwrap());
+
     // Step 1
     let mut result = vec![];
 
@@ -57,6 +63,11 @@ pub fn parsed_metadata(integrity_metadata: &str) -> Vec<SriEntry> {
 
             let data: Vec<&str> = parsed_data[1].split('?').collect();
             let digest = data[0];
+
+            // check if digest follows the base64 grammar defined by CSP spec
+            if !BASE64_GRAMMAR.is_match(digest) {
+                continue;
+            }
 
             let opt = if data.len() > 1 {
                 Some(data[1].to_owned())
