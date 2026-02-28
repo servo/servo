@@ -49,7 +49,7 @@ pub type AutoIncumbentScript = GenericAutoIncumbentScript<crate::DomTypeHolder>;
 /// Returns the ["incumbent"] global object.
 ///
 /// ["incumbent"]: https://html.spec.whatwg.org/multipage/#incumbent
-pub(crate) fn incumbent_global() -> Option<DomRoot<GlobalScope>> {
+pub(crate) fn incumbent_global() -> DomRoot<GlobalScope> {
     // https://html.spec.whatwg.org/multipage/#incumbent-settings-object
 
     // Step 1, 3: See what the JS engine has to say. If we've got a scripted
@@ -57,14 +57,10 @@ pub(crate) fn incumbent_global() -> Option<DomRoot<GlobalScope>> {
     // there's nothing on the JS stack, which will cause us to check the
     // incumbent script stack below.
     unsafe {
-        let Some(cx) = Runtime::get() else {
-            // It's not meaningful to return a global object if the runtime
-            // no longer exists.
-            return None;
-        };
+        let cx = Runtime::get().unwrap();
         let global = GetScriptedCallerGlobal(cx.as_ptr());
         if !global.is_null() {
-            return Some(GlobalScope::from_object(global));
+            return GlobalScope::from_object(global);
         }
     }
 
@@ -74,5 +70,6 @@ pub(crate) fn incumbent_global() -> Option<DomRoot<GlobalScope>> {
             .borrow()
             .last()
             .map(|entry| DomRoot::from_ref(&*entry.global))
+            .unwrap()
     })
 }

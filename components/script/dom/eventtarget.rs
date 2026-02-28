@@ -20,10 +20,12 @@ use js::rust::{CompileOptionsWrapper, HandleObject, transform_u16_to_source_text
 use libc::c_char;
 use rustc_hash::FxBuildHasher;
 use script_bindings::cformat;
+use script_bindings::settings_stack::StackEntryKind;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
 use stylo_atoms::Atom;
 
+use crate::DomTypeHolder;
 use crate::conversions::Convert;
 use crate::dom::abortsignal::{AbortAlgorithm, RemovableDomEventListener};
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
@@ -739,19 +741,29 @@ impl EventTarget {
             .and_then(|e| e.as_maybe_form_control())
             .and_then(|f| f.form_owner());
 
-        // Step 3.6 TODO: settings objects not implemented
+        // Step 3.6 Let settings object be the relevant settings object of document.
+        let global = document.global();
 
         // Step 3.7 is written as though we call the parser separately
         // from the compiler; since we just call CompileFunction with
         // source text, we handle parse errors later
 
-        // Step 3.8 TODO: settings objects not implemented
-        let window = document.window();
-        let _ac = enter_realm(window);
+        // Step 3.8 Push settings object's realm execution context onto the JavaScript execution context stack; it is now the running JavaScript execution context.
+        let realm = enter_realm(&*global);
+        let settings_stack = <DomTypeHolder as script_bindings::interfaces::DomHelpers<
+            DomTypeHolder,
+        >>::settings_stack();
+        settings_stack.with(|stack| {
+            let mut stack = stack.borrow_mut();
+            stack.push(script_bindings::settings_stack::StackEntry {
+                global: Dom::from_ref(&global),
+                kind: script_bindings::settings_stack::StackEntryKind::Entry,
+            });
+        });
 
         // Step 3.9
 
-        let name = CString::new(format!("on{}", &**ty)).unwrap();
+        let name = CString::new(std::format!("on{}", &**ty)).unwrap();
 
         // Step 3.9, subsection ParameterList
         const ARG_NAMES: &[*const c_char] = &[c"event".as_ptr()];
@@ -780,7 +792,7 @@ impl EventTarget {
             scopechain.append(element.reflector().get_jsobject().get());
         }
 
-        rooted!(in(*cx) let mut handler = unsafe {
+        js::rooted!(in(*cx) let mut handler = unsafe {
             CompileFunction(
                 *cx,
                 scopechain.get(),
@@ -799,7 +811,16 @@ impl EventTarget {
             return None;
         }
 
-        // Step 3.10 happens when we drop _ac
+        settings_stack.with(|stack| {
+            let mut stack = stack.borrow_mut();
+            let entry = stack.pop().unwrap();
+            std::assert_eq!(
+                &*entry.global as *const GlobalScope,
+                &*global as *const GlobalScope,
+            );
+            std::assert_eq!(entry.kind, StackEntryKind::Entry);
+        });
+        drop(realm); // Step 3.10 happens when we drop _ac
 
         // TODO Step 3.11
 

@@ -66,15 +66,8 @@ pub struct CallbackObject<D: DomTypes> {
     /// The ["callback context"], that is, the global to use as incumbent
     /// global when calling the callback.
     ///
-    /// Looking at the WebIDL standard, it appears as though there would always
-    /// be a value here, but [sometimes] callback functions are created by
-    /// hand-waving without defining the value of the callback context, and
-    /// without any JavaScript code on the stack to grab an incumbent global
-    /// from.
-    ///
     /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
-    /// [sometimes]: https://github.com/whatwg/html/issues/2248
-    incumbent: Option<Dom<D::GlobalScope>>,
+    incumbent: Dom<D::GlobalScope>,
 }
 
 impl<D: DomTypes> CallbackObject<D> {
@@ -84,7 +77,7 @@ impl<D: DomTypes> CallbackObject<D> {
         Self {
             callback: Heap::default(),
             permanent_js_root: Heap::default(),
-            incumbent: D::GlobalScope::incumbent().map(|i| Dom::from_ref(&*i)),
+            incumbent: Dom::from_ref(&*D::GlobalScope::incumbent()),
         }
     }
 
@@ -141,8 +134,8 @@ pub trait CallbackContainer<D: DomTypes> {
     /// incumbent global when calling the callback.
     ///
     /// ["callback context"]: https://heycam.github.io/webidl/#dfn-callback-context
-    fn incumbent(&self) -> Option<&D::GlobalScope> {
-        self.callback_holder().incumbent.as_deref()
+    fn incumbent(&self) -> &D::GlobalScope {
+        &self.callback_holder().incumbent
     }
 }
 
@@ -275,9 +268,7 @@ pub fn call_setup<D: DomTypes, T: CallbackContainer<D>, R>(
     // Step 8: Prepare to run script with relevant settings.
     run_a_script::<D, R>(global, move || {
         // Step 9: Prepare to run a callback with stored settings.
-        let ais = callback
-            .incumbent()
-            .map(GenericAutoIncumbentScript::<D>::new);
+        let ais = GenericAutoIncumbentScript::<D>::new(callback.incumbent());
         let old_realm = unsafe { EnterRealm(*cx, callback.callback()) };
         let r = f(cx);
         unsafe {

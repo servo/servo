@@ -276,10 +276,7 @@ unsafe extern "C" fn get_host_defined_data(
     data: MutableHandleObject,
 ) -> bool {
     wrap_panic(&mut || {
-        let Some(incumbent_global) = GlobalScope::incumbent() else {
-            data.set(ptr::null_mut());
-            return;
-        };
+        let incumbent_global = GlobalScope::incumbent();
 
         let _realm = enter_realm(&*incumbent_global);
 

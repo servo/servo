@@ -223,10 +223,7 @@ impl DissimilarOriginWindow {
         // Step 1.
         let target = self.window_proxy.browsing_context_id();
         // Step 2.
-        let incumbent = match GlobalScope::incumbent() {
-            None => panic!("postMessage called with no incumbent global"),
-            Some(incumbent) => incumbent,
-        };
+        let incumbent = GlobalScope::incumbent();
 
         let source_origin = incumbent.origin().immutable().clone();
 

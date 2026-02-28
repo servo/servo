@@ -67,7 +67,7 @@ impl Location {
         let navigable = &self.window;
         let navigable_document = navigable.Document();
         // Step 2. Let sourceDocument be the incumbent global object's associated Document.
-        let incumbent_global = GlobalScope::incumbent().expect("no incumbent global object");
+        let incumbent_global = GlobalScope::incumbent();
         let mut load_data = incumbent_global
             .as_window()
             .load_data_for_document(url, navigable.pipeline_id());
@@ -98,7 +98,7 @@ impl Location {
         can_gc: CanGc,
     ) {
         fn incumbent_window() -> DomRoot<Window> {
-            let incumbent_global = GlobalScope::incumbent().expect("no incumbent global object");
+            let incumbent_global = GlobalScope::incumbent();
             DomRoot::downcast(incumbent_global).expect("global object is not a Window")
         }
 

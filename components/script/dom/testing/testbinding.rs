@@ -1074,7 +1074,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
         GlobalScope::entry()
     }
     fn IncumbentGlobal(&self) -> DomRoot<GlobalScope> {
-        GlobalScope::incumbent().unwrap()
+        GlobalScope::incumbent()
     }
 
     fn SemiExposedBoolFromInterface(&self) -> bool {
