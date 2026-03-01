@@ -1,5 +1,5 @@
 [package]
-name = "webgpu"
+name = "servo-webgpu"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -17,9 +17,9 @@ base = { workspace = true }
 euclid = { workspace = true }
 log = { workspace = true }
 paint_api = { workspace = true }
-pixels = { path = "../pixels" }
+pixels = { package = "servo-pixels", path = "../pixels" }
 rustc-hash = { workspace = true }
-servo_config = { path = "../config" }
+servo_config = { package = "servo-config", path = "../config" }
 webgpu_traits = { workspace = true }
 webrender_api = { workspace = true }
 wgpu-core = { workspace = true, features = ["serde", "wgsl"] }

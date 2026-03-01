@@ -1,5 +1,5 @@
 [package]
-name = "script_traits"
+name = "servo-script-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -32,15 +32,15 @@ keyboard-types = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
-media = { path = "../../media/media-thread" }
+media = { package = "servo-media-thread", path = "../../media/media-thread" }
 net_traits = { workspace = true }
 paint_api = { workspace = true }
-pixels = { path = "../../pixels" }
+pixels = { package = "servo-pixels", path = "../../pixels" }
 profile_traits = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
-servo_config = { path = "../../config" }
-servo_url = { path = "../../url" }
+servo_config = { package = "servo-config", path = "../../config" }
+servo_url = { package = "servo-url", path = "../../url" }
 storage_traits = { workspace = true }
 strum = { workspace = true }
 stylo_atoms = { workspace = true }

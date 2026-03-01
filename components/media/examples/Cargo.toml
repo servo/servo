@@ -1,5 +1,5 @@
 [package]
-name = "media-examples"
+name = "servo-media-examples"
 version.workspace = true
 authors.workspace = true
 license.workspace = true

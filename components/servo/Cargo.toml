@@ -74,51 +74,51 @@ webxr = [
 
 [dependencies]
 accesskit = { workspace = true }
-background_hang_monitor = { path = "../background_hang_monitor" }
+background_hang_monitor = { package = "servo-background-hang-monitor", path = "../background_hang_monitor" }
 base = { workspace = true }
 bitflags = { workspace = true }
-bluetooth = { path = "../bluetooth", optional = true }
+bluetooth = { package = "servo-bluetooth", path = "../bluetooth", optional = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
-constellation = { path = "../constellation" }
+constellation = { package = "servo-constellation", path = "../constellation" }
 constellation_traits = { workspace = true }
 crossbeam-channel = { workspace = true }
-devtools = { path = "../devtools" }
+devtools = { package = "servo-devtools", path = "../devtools" }
 devtools_traits = { workspace = true }
 dpi = { workspace = true }
 embedder_traits = { workspace = true }
 env_logger = { workspace = true }
 euclid = { workspace = true }
-fonts = { path = "../fonts" }
+fonts = { package = "servo-fonts", path = "../fonts" }
 gstreamer = { workspace = true, optional = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
-layout = { path = "../layout" }
+layout = { package = "servo-layout", path = "../layout" }
 layout_api = { workspace = true }
 log = { workspace = true }
-media = { path = "../media/media-thread" }
+media = { package = "servo-media-thread", path = "../media/media-thread" }
 mozangle = { workspace = true }
-net = { path = "../net" }
+net = { package = "servo-net", path = "../net" }
 net_traits = { workspace = true }
-paint = { path = "../paint" }
+paint = { package = "servo-paint", path = "../paint" }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
-profile = { path = "../profile" }
+profile = { package = "servo-profile", path = "../profile" }
 profile_traits = { workspace = true }
 rustc-hash = { workspace = true }
-script = { path = "../script" }
+script = { package = "servo-script", path = "../script" }
 script_traits = { workspace = true }
 serde = { workspace = true }
 servo-media = { workspace = true }
 servo-media-dummy = { workspace = true }
 servo-media-gstreamer = { workspace = true, optional = true }
 servo-tracing = { workspace = true }
-servo_allocator = { path = "../allocator" }
-servo_config = { path = "../config" }
-servo_geometry = { path = "../geometry" }
-servo_url = { path = "../url" }
-storage = { path = "../storage" }
+servo_allocator = { package = "servo-allocator", path = "../allocator" }
+servo_config = { package = "servo-config", path = "../config" }
+servo_geometry = { package = "servo-geometry", path = "../geometry" }
+servo_url = { package = "servo-url", path = "../url" }
+storage = { package = "servo-storage", path = "../storage" }
 storage_traits = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
@@ -126,31 +126,31 @@ surfman = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true, optional = true }
 url = { workspace = true }
-webgl = { path = "../webgl", default-features = false }
-webgpu = { path = "../webgpu" }
+webgl = { package = "servo-webgl", path = "../webgl", default-features = false }
+webgpu = { package = "servo-webgpu", path = "../webgpu" }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
 webxr-api = { workspace = true, optional = true }
 
 [target.'cfg(any(target_os = "android", target_env = "ohos"))'.dependencies]
-webxr = { path = "../webxr", optional = true }
+webxr = { package = "servo-webxr", path = "../webxr", optional = true }
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 arboard = { workspace = true, optional = true }
-webxr = { path = "../webxr", features = ["glwindow", "headless"] }
+webxr = { package = "servo-webxr", path = "../webxr", features = ["glwindow", "headless"] }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_env = "ohos"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
 gaol = "0.2.1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-webxr = { path = "../webxr", features = ["glwindow", "headless", "openxr-api"] }
+webxr = { package = "servo-webxr", path = "../webxr", features = ["glwindow", "headless", "openxr-api"] }
 
 [dev-dependencies]
 http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true }
 libservo = { path = ".", features = ["tracing"] }
-net = { path = "../net", features = ["test-util"] }
+net = { package = "servo-net", path = "../net", features = ["test-util"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
 tracing = { workspace = true }
 winit = { workspace = true }

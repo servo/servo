@@ -1,5 +1,5 @@
 [package]
-name = "servo_config_macro"
+name = "servo-config-macro"
 version.workspace = true
 authors.workspace = true
 license.workspace = true

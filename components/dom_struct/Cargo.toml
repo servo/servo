@@ -1,5 +1,5 @@
 [package]
-name = "dom_struct"
+name = "servo-dom-struct"
 edition.workspace = true
 version.workspace = true
 authors.workspace = true

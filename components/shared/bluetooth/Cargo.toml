@@ -1,5 +1,5 @@
 [package]
-name = "bluetooth_traits"
+name = "servo-bluetooth-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true

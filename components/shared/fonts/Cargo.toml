@@ -1,5 +1,5 @@
 [package]
-name = "fonts_traits"
+name = "servo-fonts-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -24,7 +24,7 @@ parking_lot = { workspace = true }
 profile_traits = { workspace = true }
 read-fonts = { workspace = true }
 serde = { workspace = true }
-servo_url = { path = "../../url" }
+servo_url = { package = "servo-url", path = "../../url" }
 stylo = { workspace = true }
 webrender_api = { workspace = true }
 

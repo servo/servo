@@ -80,7 +80,7 @@ tracing = { workspace = true, optional = true }
 tracing-perfetto = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }
 url = { workspace = true }
-webdriver_server = { path = "../../components/webdriver_server" }
+webdriver_server = { package = "servo-webdriver-server", path = "../../components/webdriver_server" }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.15"
@@ -122,7 +122,7 @@ glow = { workspace = true }
 headers = { workspace = true }
 serde_json = { workspace = true }
 # For optional feature servo_allocator/use-system-allocator and servo_allocator/allocation-tracking
-servo_allocator = { path = "../../components/allocator" }
+servo_allocator = { package = "servo-allocator", path = "../../components/allocator" }
 surfman = { workspace = true, features = ["sm-raw-window-handle-06", "sm-x11"] }
 winit = { workspace = true }
 

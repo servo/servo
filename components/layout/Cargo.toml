@@ -1,5 +1,5 @@
 [package]
-name = "layout"
+name = "servo-layout"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -26,7 +26,7 @@ cssparser = { workspace = true }
 data-url = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
-fonts = { path = "../fonts" }
+fonts = { package = "servo-fonts", path = "../fonts" }
 fonts_traits = { workspace = true }
 html5ever = { workspace = true }
 icu_locid = { workspace = true }
@@ -40,18 +40,18 @@ malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
-pixels = { path = "../pixels" }
+pixels = { package = "servo-pixels", path = "../pixels" }
 profile_traits = { workspace = true }
 rayon = { workspace = true }
 rustc-hash = { workspace = true }
-script = { path = "../script" }
+script = { package = "servo-script", path = "../script" }
 script_traits = { workspace = true }
 selectors = { workspace = true }
 servo-tracing = { workspace = true }
 servo_arc = { workspace = true }
-servo_config = { path = "../config" }
-servo_geometry = { path = "../geometry" }
-servo_url = { path = "../url" }
+servo_config = { package = "servo-config", path = "../config" }
+servo_geometry = { package = "servo-geometry", path = "../geometry" }
+servo_url = { package = "servo-url", path = "../url" }
 smallvec = { workspace = true }
 strum = { workspace = true }
 stylo = { workspace = true }

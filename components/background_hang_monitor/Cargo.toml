@@ -1,5 +1,5 @@
 [package]
-name = "background_hang_monitor"
+name = "servo-background-hang-monitor"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
