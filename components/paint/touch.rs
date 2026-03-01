@@ -91,7 +91,7 @@ pub struct TouchSequenceInfo {
     pub(crate) state: TouchSequenceState,
     /// touch sequence active touch points
     active_touch_points: Vec<TouchPoint>,
-    /// The script thread is already processing a touchmove operation.
+    /// Whether the script thread is already processing a touchmove operation for the TouchId.
     ///
     /// We use this to skip sending the event to the script thread,
     /// to prevent overloading script.
