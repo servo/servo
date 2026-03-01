@@ -73,6 +73,11 @@ pub enum TouchMoveAllowed {
     Pending,
 }
 
+pub(crate) enum TouchIdMoveTracking {
+    Track,
+    Remove,
+}
+
 /// A cached [`PaintHitTestResult`] to use during a touch sequence. This
 /// is kept so that the renderer doesn't have to constantly keep making hit tests
 /// while during panning and flinging actions.
@@ -233,13 +238,16 @@ impl TouchHandler {
         &mut self,
         sequence_id: TouchSequenceId,
         touch_id: TouchId,
-        flag: bool,
+        flag: TouchIdMoveTracking,
     ) {
         if let Some(sequence) = self.touch_sequence_map.get_mut(&sequence_id) {
-            if flag {
-                sequence.touch_ids_in_move.insert(touch_id);
-            } else {
-                sequence.touch_ids_in_move.remove(&touch_id);
+            match flag {
+                TouchIdMoveTracking::Track => {
+                    sequence.touch_ids_in_move.insert(touch_id);
+                },
+                TouchIdMoveTracking::Remove => {
+                    sequence.touch_ids_in_move.remove(&touch_id);
+                },
             }
         }
     }

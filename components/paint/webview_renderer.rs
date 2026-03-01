@@ -34,7 +34,9 @@ use crate::painter::Painter;
 use crate::pinch_zoom::PinchZoom;
 use crate::pipeline_details::PipelineDetails;
 use crate::refresh_driver::BaseRefreshDriver;
-use crate::touch::{PendingTouchInputEvent, TouchHandler, TouchMoveAllowed, TouchSequenceState};
+use crate::touch::{
+    PendingTouchInputEvent, TouchHandler, TouchIdMoveTracking, TouchMoveAllowed, TouchSequenceState,
+};
 
 #[derive(Clone, Copy)]
 pub(crate) struct ScrollEvent {
@@ -490,7 +492,7 @@ impl WebViewRenderer {
             self.touch_handler.set_handling_touch_move_for_touch_id(
                 self.touch_handler.current_sequence_id,
                 event.touch_id,
-                true,
+                TouchIdMoveTracking::Track,
             );
         }
     }
@@ -546,7 +548,7 @@ impl WebViewRenderer {
                         self.touch_handler.set_handling_touch_move_for_touch_id(
                             self.touch_handler.current_sequence_id,
                             touch_id,
-                            false,
+                            TouchIdMoveTracking::Remove,
                         );
                         self.touch_handler
                             .remove_pending_touch_move_actions(sequence_id);
@@ -610,7 +612,7 @@ impl WebViewRenderer {
                     self.touch_handler.set_handling_touch_move_for_touch_id(
                         self.touch_handler.current_sequence_id,
                         touch_id,
-                        false,
+                        TouchIdMoveTracking::Remove,
                     );
                     if let Some(info) = self.touch_handler.get_touch_sequence_mut(sequence_id) {
                         if info.prevent_move == TouchMoveAllowed::Pending {
