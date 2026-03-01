@@ -1050,7 +1050,7 @@ impl WebViewRenderer {
 
     pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
         self.set_page_zoom(Scale::new(
-            viewport_description.clamp_page_zoom(viewport_description.initial_scale.get()),
+            viewport_description.clamp_zoom(viewport_description.initial_scale.get()),
         ));
         self.viewport_description = Some(viewport_description);
     }
