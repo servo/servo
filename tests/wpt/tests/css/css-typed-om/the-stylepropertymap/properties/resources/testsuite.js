@@ -221,6 +221,10 @@ const gTestSyntaxExamples = {
       {
         description: "a calc number",
         input: new CSSMathSum(new CSSUnitValue(2, 'number'), new CSSUnitValue(3, 'number')),
+        // TODO: Consider merging specifiedAlternateExpected with
+        // specifiedExpected once all engines do simplification during
+        // association.
+        specifiedAlternateExpected: new CSSMathSum(new CSSUnitValue(5, 'number')),
         defaultSpecified: (_, result) => assert_is_calc_sum(result),
         defaultComputed: (_, result) => {
           assert_style_value_equals(result, new CSSUnitValue(5, 'number'));

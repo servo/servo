@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>HTML Test: focusgroup - All behavior tokens parsing and basic navigation</title>
+<title>HTML Test: focusgroup - Default axis and wrap per behavior token</title>
+<meta name="assert" content="Each behavior token provides default axis and wrap modifiers. Explicit modifiers override defaults. 'none' disables navigation.">
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
 <link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
 <script src="/resources/testharness.js"></script>
@@ -11,108 +12,256 @@
 <script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="resources/focusgroup-utils.js"></script>
 
-<!-- Test all behavior tokens for basic navigation -->
-<div id=toolbar focusgroup="toolbar">
-  <span id=toolbar1 tabindex=0>toolbar1</span>
-  <span id=toolbar2 tabindex=0>toolbar2</span>
+<!-- toolbar: inline only, no wrap -->
+<div focusgroup="toolbar">
+  <button id=tb1>tb1</button>
+  <button id=tb2>tb2</button>
+  <button id=tb3>tb3</button>
 </div>
 
-<div id=tablist focusgroup="tablist">
-  <span id=tablist1 tabindex=0>tablist1</span>
-  <span id=tablist2 tabindex=0>tablist2</span>
+<!-- tablist: inline + wrap -->
+<div focusgroup="tablist">
+  <button id=tl1>tl1</button>
+  <button id=tl2>tl2</button>
+  <button id=tl3>tl3</button>
 </div>
 
-<div id=radiogroup focusgroup="radiogroup">
-  <span id=radiogroup1 tabindex=0>radiogroup1</span>
-  <span id=radiogroup2 tabindex=0>radiogroup2</span>
+<!-- menu: block + wrap -->
+<div focusgroup="menu">
+  <button id=m1>m1</button>
+  <button id=m2>m2</button>
+  <button id=m3>m3</button>
 </div>
 
-<div id=listbox focusgroup="listbox">
-  <span id=listbox1 tabindex=0>listbox1</span>
-  <span id=listbox2 tabindex=0>listbox2</span>
+<!-- menubar: inline + wrap -->
+<div focusgroup="menubar">
+  <button id=mb1>mb1</button>
+  <button id=mb2>mb2</button>
+  <button id=mb3>mb3</button>
 </div>
 
-<div id=menu focusgroup="menu">
-  <span id=menu1 tabindex=0>menu1</span>
-  <span id=menu2 tabindex=0>menu2</span>
+<!-- radiogroup: no default axis, no wrap -->
+<div focusgroup="radiogroup">
+  <button id=rg1>rg1</button>
+  <button id=rg2>rg2</button>
+  <button id=rg3>rg3</button>
 </div>
 
-<div id=menubar focusgroup="menubar">
-  <span id=menubar1 tabindex=0>menubar1</span>
-  <span id=menubar2 tabindex=0>menubar2</span>
+<!-- listbox: no default axis, no wrap -->
+<div focusgroup="listbox">
+  <button id=lb1>lb1</button>
+  <button id=lb2>lb2</button>
+  <button id=lb3>lb3</button>
 </div>
 
-<table id=grid focusgroup="grid">
+<!-- grid: both axes, multiple rows -->
+<table focusgroup="grid">
   <tr>
-    <td id=grid1 tabindex=0>grid1</td>
-    <td id=grid2 tabindex=0>grid2</td>
+    <td id=g1 tabindex=0>g1</td>
+    <td id=g2 tabindex=0>g2</td>
+  </tr>
+  <tr>
+    <td id=g3 tabindex=0>g3</td>
+    <td id=g4 tabindex=0>g4</td>
   </tr>
 </table>
 
-<div id=none_test focusgroup="none">
-  <span id=none1 tabindex=0>none1</span>
-  <span id=none2 tabindex=0>none2</span>
+<!-- none: opt-out -->
+<div focusgroup="none">
+  <button id=n1>n1</button>
+  <button id=n2>n2</button>
+</div>
+
+<!-- tablist block: explicit block overrides default inline -->
+<div focusgroup="tablist block">
+  <button id=tlb1>tlb1</button>
+  <button id=tlb2>tlb2</button>
+  <button id=tlb3>tlb3</button>
+</div>
+
+<!-- tablist nowrap: suppresses default wrap -->
+<div focusgroup="tablist nowrap">
+  <button id=tlnw1>tlnw1</button>
+  <button id=tlnw2>tlnw2</button>
+  <button id=tlnw3>tlnw3</button>
+</div>
+
+<!-- menu inline: explicit inline overrides default block -->
+<div focusgroup="menu inline">
+  <button id=mi1>mi1</button>
+  <button id=mi2>mi2</button>
+  <button id=mi3>mi3</button>
 </div>
 
 <script>
-  const behaviorTokens = [
-    'toolbar', 'tablist', 'radiogroup', 'listbox', 'menu', 'menubar', 'grid', 'none'
-  ];
 
-  for (const behavior of behaviorTokens) {
-    if (behavior === 'none') {
-      // 'none' behavior should disable navigation
-      promise_test(async t => {
-        var item1 = document.getElementById(`${behavior}1`);
-        var item2 = document.getElementById(`${behavior}2`);
-
-        await focusAndKeyPress(item1, kArrowRight);
-        assert_equals(document.activeElement, item1, `'${behavior}' behavior should disable navigation`);
-      }, `Behavior token '${behavior}' disables focusgroup navigation`);
-    } else {
-      // All other behaviors should enable navigation (linear or grid)
-      promise_test(async t => {
-        var item1 = document.getElementById(`${behavior}1`);
-        var item2 = document.getElementById(`${behavior}2`);
-
-        await focusAndKeyPress(item1, kArrowRight);
-        assert_equals(document.activeElement, item2, `'${behavior}' behavior should enable navigation`);
-      }, `Behavior token '${behavior}' enables focusgroup navigation`);
-    }
-  }
-
-  // Test behavior tokens with modifiers
-  promise_test(async t => {
-    // Create elements dynamically to test combinations
-    const testDiv = document.createElement('div');
-    testDiv.setAttribute('focusgroup', 'toolbar inline wrap');
-    testDiv.innerHTML = '<span id=combo1 tabindex=0>combo1</span><span id=combo2 tabindex=0>combo2</span>';
-    document.body.appendChild(testDiv);
-
-    var combo1 = document.getElementById('combo1');
-    var combo2 = document.getElementById('combo2');
-
-    await focusAndKeyPress(combo1, kArrowRight);
-    assert_equals(document.activeElement, combo2, "Behavior token with modifiers should work");
-
-    // Clean up
-    document.body.removeChild(testDiv);
-  }, "Behavior token 'toolbar' with modifiers 'inline wrap' works correctly");
+  // --- toolbar: inline only, no wrap ---
 
   promise_test(async t => {
-    // Test grid with modifiers
-    const testTable = document.createElement('table');
-    testTable.setAttribute('focusgroup', 'grid row-wrap col-flow');
-    testTable.innerHTML = '<tr><td id=gridcombo1 tabindex=0>gridcombo1</td><td id=gridcombo2 tabindex=0>gridcombo2</td></tr>';
-    document.body.appendChild(testTable);
+    await focusAndKeyPress(document.getElementById('tb1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tb2');
+  }, "toolbar: ArrowRight navigates (inline)");
 
-    var gridcombo1 = document.getElementById('gridcombo1');
-    var gridcombo2 = document.getElementById('gridcombo2');
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tb1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'tb1');
+  }, "toolbar: ArrowDown blocked (inline-only)");
 
-    await focusAndKeyPress(gridcombo1, kArrowRight);
-    assert_equals(document.activeElement, gridcombo2, "Grid behavior token with modifiers should work");
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tb3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tb3');
+  }, "toolbar: does not wrap");
 
-    // Clean up
-    document.body.removeChild(testTable);
-  }, "Behavior token 'grid' with modifiers 'row-wrap col-flow' works correctly");
+  // --- tablist: inline + wrap ---
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tl1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tl2');
+  }, "tablist: ArrowRight navigates (inline)");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tl1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'tl1');
+  }, "tablist: ArrowDown blocked (inline-only)");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tl3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tl1');
+  }, "tablist: wraps");
+
+  // --- menu: block + wrap ---
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('m1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'm2');
+  }, "menu: ArrowDown navigates (block)");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('m1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'm1');
+  }, "menu: ArrowRight blocked (block-only)");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('m3'), kArrowDown);
+    assert_equals(document.activeElement.id, 'm1');
+  }, "menu: wraps");
+
+  // --- menubar: inline + wrap ---
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mb1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'mb2');
+  }, "menubar: ArrowRight navigates (inline)");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mb1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'mb1');
+  }, "menubar: ArrowDown blocked (inline-only)");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mb3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'mb1');
+  }, "menubar: wraps");
+
+  // --- radiogroup: both axes, no wrap ---
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rg1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'rg2');
+  }, "radiogroup: ArrowRight navigates");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rg1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'rg2');
+  }, "radiogroup: ArrowDown navigates");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('rg3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'rg3');
+  }, "radiogroup: does not wrap");
+
+  // --- listbox: both axes, no wrap ---
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('lb1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'lb2');
+  }, "listbox: ArrowRight navigates");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('lb1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'lb2');
+  }, "listbox: ArrowDown navigates");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('lb3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'lb3');
+  }, "listbox: does not wrap");
+
+  // --- grid: both axes ---
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('g1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'g2');
+  }, "grid: ArrowRight navigates (inline)");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('g1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'g3');
+  }, "grid: ArrowDown navigates (block, same column)");
+
+  // --- none: all navigation disabled ---
+
+  promise_test(async t => {
+    const n1 = document.getElementById('n1');
+    await focusAndKeyPress(n1, kArrowRight);
+    assert_equals(document.activeElement.id, 'n1');
+    await focusAndKeyPress(n1, kArrowDown);
+    assert_equals(document.activeElement.id, 'n1');
+  }, "none: no navigation");
+
+  // --- Modifier overrides ---
+
+  // tablist block: explicit block overrides default inline.
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlb1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'tlb2');
+  }, "tablist block: ArrowDown navigates");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlb1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tlb1');
+  }, "tablist block: ArrowRight blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlb3'), kArrowDown);
+    assert_equals(document.activeElement.id, 'tlb1');
+  }, "tablist block: wraps");
+
+  // tablist nowrap: suppresses default wrap.
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlnw1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tlnw2');
+  }, "tablist nowrap: ArrowRight navigates");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('tlnw3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'tlnw3');
+  }, "tablist nowrap: does not wrap");
+
+  // menu inline: explicit inline overrides default block.
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mi1'), kArrowRight);
+    assert_equals(document.activeElement.id, 'mi2');
+  }, "menu inline: ArrowRight navigates");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mi1'), kArrowDown);
+    assert_equals(document.activeElement.id, 'mi1');
+  }, "menu inline: ArrowDown blocked");
+
+  promise_test(async t => {
+    await focusAndKeyPress(document.getElementById('mi3'), kArrowRight);
+    assert_equals(document.activeElement.id, 'mi1');
+  }, "menu inline: wraps");
+
 </script>

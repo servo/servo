@@ -1,0 +1,20 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script>
+promise_test(async t => {
+  let w = window.open("/common/blank.html");
+  await new Promise(resolve => w.onload = resolve);
+
+  await test_driver.bless("navigate", async function() {
+    w.navigation.navigate("resources/navigate-during-onnavigate-should-reject-helper.html");
+  });
+
+  await new Promise(resolve => onmessage = resolve);
+  w.postMessage("start", "*");
+  await new Promise(resolve => onmessage = resolve);
+  w.close();
+}, "Test that await navigation.back().finished during onnavigate should reject");
+</script>

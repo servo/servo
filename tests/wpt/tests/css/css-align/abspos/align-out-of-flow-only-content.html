@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-align/#align-justify-content">
+<link rel="match" href="align-out-of-flow-only-content-ref.html">
+<meta name="assert" content="Ensures that single, absolutely positioned elements take align-content into account.">
+<style>
+.container {
+  background: blue;
+  position: relative;
+  width: 100px;
+  height: 100px;
+  display: inline-block;
+  margin-right: 5px;
+  align-content: end;
+}
+
+.abs {
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  background: green;
+}
+
+.positioned-inline {
+  left: 0;
+}
+
+.positioned-block {
+  bottom: -50px;
+}
+</style>
+<div class="container">
+  <div class="abs"></div>
+</div>
+<div class="container">
+  <div class="abs positioned-block"></div>
+</div>
+<div class="container">
+  <div class="abs positioned-inline"></div>
+</div>

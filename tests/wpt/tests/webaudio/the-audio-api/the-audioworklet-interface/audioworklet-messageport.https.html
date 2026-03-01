@@ -9,18 +9,12 @@
   </head>
   <body>
     <script>
+      const filePath = 'processors/port-processor.js';
 
-      // This test verifies the correct operation of MessagePort communication
-      // between the main thread and the AudioWorklet environment. It checks:
-      // 1. Messages can be sent/received via the AudioWorkletGlobalScope's
-      //    shared port (context.audioWorklet.port)
-      // 2. Messages can be sent/received via individual AudioWorkletProcessor
-      //    instance ports (node.port)
-      // 3. AudioWorkletProcessor instances send initialization messages
-      //    upon creation
-      promise_test(async () => {
+      // Global-to-worklet via shared port test
+      promise_test(async (t) => {
         const context = new AudioContext();
-        const filePath = 'processors/port-processor.js';
+        t.add_cleanup(() => context.close());
         await context.audioWorklet.addModule(filePath);
 
         const globalOnMessagePromise = new Promise((resolve) => {
@@ -34,6 +28,13 @@
             await globalOnMessagePromise,
             'hello world',
             'The response from AudioWorkletGlobalScope');
+      }, 'AudioWorkletGlobalScope: message via shared port');
+
+      // Worklet-to-node (initialization message from Worklet constructor) test
+      promise_test(async (t) => {
+        const context = new AudioContext();
+        t.add_cleanup(() => context.close());
+        await context.audioWorklet.addModule(filePath);
 
         // Creates an AudioWorkletNode and sets an EventHandler on MessagePort
         // object. The associated PortProcessor will post a message upon its
@@ -49,6 +50,13 @@
             await nodeCreationOnMessagePromise,
             'created',
             'The initial message from PortProcessor');
+      }, 'AudioWorkletProcessor: initialization message');
+
+      // Node-to-worklet echo test
+      promise_test(async (t) => {
+        const context = new AudioContext();
+        t.add_cleanup(() => context.close());
+        await context.audioWorklet.addModule(filePath);
 
         const nodeOnMessagePromise = new Promise((resolve) => {
           const node = new AudioWorkletNode(context, 'port-processor');
@@ -66,7 +74,7 @@
             await nodeOnMessagePromise,
             'hello',
             'The response from PortProcessor');
-      }, 'Test MessagePort in AudioWorkletNode and AudioWorkletProcessor');
+      }, 'AudioWorkletProcessor: message via instance port');
     </script>
   </body>
 </html>

@@ -1,0 +1,41 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebMCP (https://webmachinelearning.github.io/webmcp/)
+
+partial interface Navigator {
+  [SecureContext, SameObject] readonly attribute ModelContext modelContext;
+};
+
+[Exposed=Window, SecureContext]
+interface ModelContext {
+  undefined provideContext(optional ModelContextOptions options = {});
+  undefined clearContext();
+  undefined registerTool(ModelContextTool tool);
+  undefined unregisterTool(DOMString name);
+};
+
+dictionary ModelContextOptions {
+  sequence<ModelContextTool> tools = [];
+};
+
+dictionary ModelContextTool {
+  required DOMString name;
+  required DOMString description;
+  object inputSchema;
+  required ToolExecuteCallback execute;
+  ToolAnnotations annotations;
+};
+
+dictionary ToolAnnotations {
+  boolean readOnlyHint;
+};
+
+callback ToolExecuteCallback = Promise<any> (object input, ModelContextClient client);
+
+[Exposed=Window, SecureContext]
+interface ModelContextClient {
+  Promise<any> requestUserInteraction(UserInteractionCallback callback);
+};
+
+callback UserInteractionCallback = Promise<any> ();

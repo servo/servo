@@ -1,0 +1,18 @@
+<!doctype html>
+<title>Mutation of 'd' on a 'display: none' &lt;path> referenced by &lt;textPath></title>
+<link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextPathElementHrefAttribute">
+<link rel="help" href="https://crbug.com/485900033">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <path id="path" d="M0,25h200" display="none"/>
+  <text id="target" fill="green"><textPath href="#path">Text</textPath></text>
+</svg>
+<script>
+  test(t => {
+    const text = document.getElementById('target');
+    assert_equals(text.getStartPositionOfChar(0).y, 25, 'before mutation');
+    document.getElementById("path").setAttribute("d", "M0,50h200");
+    assert_equals(text.getStartPositionOfChar(0).y, 50, 'after mutation');
+  });
+</script>

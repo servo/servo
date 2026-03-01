@@ -1,0 +1,9 @@
+<!doctype html>
+<title>CSS Lists Reference: element with multiple counter-reset: reversed()</title>
+<style>
+  .item::before { content: attr(data-marker); }
+</style>
+<div class="multi">
+  <div class="item" data-marker="2,4"></div>
+  <div class="item" data-marker="1,2"></div>
+</div>

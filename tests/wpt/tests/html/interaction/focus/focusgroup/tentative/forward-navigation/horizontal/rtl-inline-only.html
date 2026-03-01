@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - RTL with inline-only axis respects reversed arrow keys.</title>
+<meta name="assert" content="In an RTL focusgroup restricted to inline axis, ArrowLeft moves forward and ArrowRight moves backward. ArrowUp/ArrowDown should not move focus since the block axis is not supported.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../../../resources/focusgroup-utils.js"></script>
+
+<div dir="rtl" focusgroup="toolbar inline">
+  <span id=item1 tabindex=0>item1</span>
+  <span id=item2 tabindex=0>item2</span>
+  <span id=item3 tabindex=0>item3</span>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item2 = document.getElementById("item2");
+
+    // ArrowLeft is forward inline in RTL.
+    await focusAndKeyPress(item1, kArrowLeft);
+    assert_equals(document.activeElement, item2,
+      "ArrowLeft should move forward inline in RTL inline-only focusgroup");
+  }, "ArrowLeft moves forward in RTL inline-only focusgroup.");
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item2 = document.getElementById("item2");
+
+    // ArrowRight is backward inline in RTL.
+    await focusAndKeyPress(item2, kArrowRight);
+    assert_equals(document.activeElement, item1,
+      "ArrowRight should move backward inline in RTL inline-only focusgroup");
+  }, "ArrowRight moves backward in RTL inline-only focusgroup.");
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+
+    // Block axis keys should not move focus in an inline-only focusgroup.
+    await focusAndKeyPress(item1, kArrowDown);
+    assert_equals(document.activeElement, item1,
+      "ArrowDown should not move focus in inline-only focusgroup");
+
+    await focusAndKeyPress(item1, kArrowUp);
+    assert_equals(document.activeElement, item1,
+      "ArrowUp should not move focus in inline-only focusgroup");
+  }, "ArrowDown and ArrowUp do not move focus in RTL inline-only focusgroup.");
+
+</script>

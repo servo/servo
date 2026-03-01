@@ -1,12 +1,18 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCRtpTransceiver.prototype.stop</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
+
 // FIXME: Add a test adding a transceiver, stopping it and trying to create an empty offer.
 
+if (rest) {
 promise_test(async (t)=> {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
@@ -115,7 +121,9 @@ promise_test(async (t) => {
   await exchangeOfferAnswer(pc2, pc1);
   await pc1.setLocalDescription(await pc1.createOffer());
 }, 'If a transceiver is stopped remotely, setting a locally generated answer should still work');
+}
 
+if (interop2026) {
 promise_test(async (t) => {
   const pc1 = new RTCPeerConnection();
   const pc2 = new RTCPeerConnection();
@@ -144,12 +152,13 @@ promise_test(async (t) => {
   await exchangeOfferAnswer(pc1, pc2);
   assert_equals(pc1.getTransceivers().length, 1);
   assert_equals(pc2.getTransceivers().length, 1);
-  pc1Transceiver = pc1.getTransceivers()[0];
-  pc2Transceiver = pc2.getTransceivers()[0];
+  const [pc1Transceiver] = pc1.getTransceivers();
+  const [pc2Transceiver] = pc2.getTransceivers();
   pc1.getTransceivers()[0].stop();
   await exchangeOfferAnswer(pc1, pc2);
   assert_equals(pc1Transceiver.direction, 'stopped');
   assert_equals(pc2Transceiver.direction, 'stopped');
 }, 'If a transceiver is stopped, transceivers should end up in state stopped');
+}
 
 </script>

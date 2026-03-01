@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - RTL wrapping respects reversed inline direction.</title>
+<meta name="assert" content="In an RTL focusgroup with wrap, ArrowLeft at the last item should wrap to the first, and ArrowRight at the first item should wrap to the last.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../../resources/focusgroup-utils.js"></script>
+
+<div dir="rtl" focusgroup="toolbar wrap">
+  <span id=item1 tabindex=0>item1</span>
+  <span id=item2 tabindex=0>item2</span>
+  <span id=item3 tabindex=0>item3</span>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item3 = document.getElementById("item3");
+
+    // ArrowLeft wraps forward: from last item should wrap to first.
+    await focusAndKeyPress(item3, kArrowLeft);
+    assert_equals(document.activeElement, item1,
+      "ArrowLeft from last item should wrap to first in RTL");
+  }, "ArrowLeft at last item wraps to first item in RTL focusgroup.");
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item3 = document.getElementById("item3");
+
+    // ArrowRight wraps backward: from first item should wrap to last.
+    await focusAndKeyPress(item1, kArrowRight);
+    assert_equals(document.activeElement, item3,
+      "ArrowRight from first item should wrap to last in RTL");
+  }, "ArrowRight at first item wraps to last item in RTL focusgroup.");
+
+</script>

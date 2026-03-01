@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>Single-axis sticky constraints: Basic and Clip</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#sticky-pos">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .scroller-y { overflow-y: scroll; overflow-x: visible; width: 100px; height: 100px; margin-bottom: 20px; }
+  .scroller-x { overflow-x: scroll; overflow-y: visible; width: 100px; height: 200px; }
+  .clip-y { overflow-x: scroll; overflow-y: clip; width: 100px; height: 200px; }
+  .sticky { position: sticky; top: 10px; left: 20px; width: 10px; height: 10px; background: green; }
+  .spacer { width: 400px; height: 400px; }
+</style>
+
+<!-- Standard independent scrollers. -->
+<div id="outer-basic" class="scroller-y">
+  <div id="inner-basic" class="scroller-x">
+    <div id="sticky-basic" class="sticky"></div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<!-- Scroller with overflow: clip on one axis. -->
+<div id="outer-clip" class="scroller-y">
+  <div id="inner-clip" class="clip-y">
+    <div id="sticky-clip" class="sticky" style="left: 10px;"></div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<script>
+test(() => {
+  let outer = document.getElementById("outer-basic");
+  let inner = document.getElementById("inner-basic");
+  let sticky = document.getElementById("sticky-basic");
+
+  // Scroll both axes. The sticky element tracks 'inner' for the X axis and 'outer' for the Y axis.
+  inner.scrollLeft = 50;
+  outer.scrollTop = 60;
+
+  let rOuter = outer.getBoundingClientRect();
+  let rSticky = sticky.getBoundingClientRect();
+
+  assert_equals(rSticky.left - rOuter.left, 20, "Left constraint applies to inner scroller");
+  assert_equals(rSticky.top - rOuter.top, 10, "Top constraint applies to outer scroller");
+}, "Constraints apply independently across nested single-axis scrollers");
+
+test(() => {
+  let outer = document.getElementById("outer-clip");
+  let inner = document.getElementById("inner-clip");
+  let sticky = document.getElementById("sticky-clip");
+
+  // Scroll both axes. Because 'inner' is overflow-y: clip, the sticky element skips it and attaches to 'outer' for the Y axis.
+  inner.scrollLeft = 50;
+  outer.scrollTop = 60;
+
+  let rOuter = outer.getBoundingClientRect();
+  let rSticky = sticky.getBoundingClientRect();
+
+  assert_equals(rSticky.left - rOuter.left, 10, "Left constraint applies to inner scroller");
+  assert_equals(rSticky.top - rOuter.top, 10, "Top constraint skips clip and applies to outer");
+}, "Constraints correctly skip axes that are overflow: clip");
+</script>

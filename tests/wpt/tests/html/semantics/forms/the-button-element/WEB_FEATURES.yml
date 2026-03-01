@@ -20,5 +20,5 @@ features:
   - button-willvalidate.html
 - name: invoker-commands
   files:
-  - button-click-resets-with-commandfor.tentative.html
-  - button-click-submits-with-commandfor.tentative.html
+  - button-click-resets-with-commandfor.html
+  - button-click-submits-with-commandfor.html

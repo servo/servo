@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>Test that icons_localized falls back to a language-only locale key</title>
+<link rel="help" href="https://w3c.github.io/manifest/#icons-member" />
+<link rel="help" href="https://w3c.github.io/manifest/#dfn-localizable-member" />
+<link rel="manifest" href="resources/icons_localized-member-language-fallback.webmanifest" />
+<script src="resources/icons_localized-member-manual.js"></script>
+<h1>Testing language-only fallback for <code>icons_localized</code></h1>
+<p>
+    Set your browser locale to one that includes a region subtag not present in
+    the manifest (e.g. <code>en-US</code>, <code>en-GB</code>,
+    <code>fr-CA</code>, or <code>ja-JP</code>), then install this page as a web
+    application. To pass, the browser
+    must fall back to the language-only key and the installed app icon must be a
+    green check mark (<code>pass.png</code>).
+</p>

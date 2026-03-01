@@ -81,7 +81,11 @@ class WebDriverBaseProtocolPart(BaseProtocolPart):
         return method(script, args=args)
 
     def set_timeout(self, timeout):
-        self.webdriver.timeouts.script = timeout
+        # TODO(webdriver/w3c#1949): The struct definition contradicts the
+        # algorithm on whether fractional timeouts are allowed. There's not a
+        # large difference for non-wdspec testing either way, so coerce to int
+        # until there's a resolution.
+        self.webdriver.timeouts.script = int(timeout)
 
     def create_window(self, type=None, **kwargs):
         # WebKitGTK-based browsers have issues when the test is opened in a new tab instead of a separate window

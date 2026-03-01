@@ -56,28 +56,28 @@
 <script>
   promise_test(async t => {
     await focusAndWait(document.getElementById("before1"));
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, document.getElementById("item2"),
                   "Entry element is item with focusgroupstart");
   }, "Element with focusgroupstart is selected as entry element");
 
   promise_test(async t => {
     await focusAndWait(document.getElementById("before2"));
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, document.getElementById("first"),
                   "First item in tree order is selected when no priority attributes");
   }, "When no elements have focusgroupstart, first in tree order is selected");
 
   promise_test(async t => {
     await focusAndWait(document.getElementById("before3"));
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, document.getElementById("early1"),
                   "First element with priority attribute is selected");
   }, "When multiple items have focusgroupstart, earliest in tree order wins");
 
   promise_test(async t => {
     await focusAndWait(document.getElementById("before4"));
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, document.getElementById("btn2"),
                   "Priority attribute overrides tree order for native focusable elements");
   }, "focusgroupstart works with natively focusable elements");

@@ -1,5 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCRtpReceiver.prototype.getParameters</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -8,6 +10,8 @@
 <script src="RTCRtpParameters-helper.js"></script>
 <script>
   'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
@@ -32,6 +36,7 @@
         - rtcp.reducedSize is set to true if the receiver is currently prepared to receive
           reduced-size RTCP packets, and false otherwise. rtcp.cname is left undefined.
   */
+if (interop2026) {
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -55,7 +60,9 @@
     assert_greater_than(param.headerExtensions.length, 0);
     assert_greater_than(param.codecs.length, 0);
   }, 'getParameters() with video receiver');
+}
 
+if (rest) {
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -71,7 +78,9 @@
     assert_greater_than(param.headerExtensions.length, 0);
     assert_greater_than(param.codecs.length, 0);
   }, 'getParameters() with simulcast video receiver');
+}
 
+if (interop2026) {
   promise_test(async t => {
     const stream = await getNoiseStream({video: true});
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
@@ -107,5 +116,6 @@
     assert_greater_than(calleeReceiver.getParameters().headerExtensions.length, 0,
       "callee header extensions after O/A");
   }, 'getParameters() surfaces codecs on two-way receiver at the right time');
+}
 
 </script>

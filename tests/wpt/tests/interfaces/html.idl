@@ -1904,7 +1904,7 @@ interface Location { // but see also additional creation steps and overridden in
   [LegacyUnforgeable] undefined replace(USVString url);
   [LegacyUnforgeable] undefined reload();
 
-  [LegacyUnforgeable, SameObject] readonly attribute DOMStringList ancestorOrigins;
+  [LegacyUnforgeable] readonly attribute DOMStringList ancestorOrigins;
 };
 
 enum ScrollRestoration { "auto", "manual" };

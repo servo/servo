@@ -301,9 +301,7 @@ const testIdToExpectations = {
 `<select>
     <button>
       <selectedcontent>option</selectedcontent>
-      <selectedcontent>outer2
-        <selectedcontent>inner2</selectedcontent>
-      </selectedcontent>
+      <selectedcontent>option</selectedcontent>
     </button>
     <option>option</option>
   </select>`,
@@ -320,8 +318,6 @@ const testIdToExpectations = {
       "Type: childList | Target: selectedcontent | Added: [#text: \"\"] | After: selectedcontent",
       "Type: childList | Target: button | Added: [#text: \"\"] | After: selectedcontent",
       "Type: childList | Target: button | Added: [selectedcontent] | After: #text: \"\"",
-      "Type: childList | Target: selectedcontent | Removed: [#text: \"outer1\", selectedcontent, #text: \"\"]",
-      "Type: childList | Target: selectedcontent | Removed: [#text: \"inner1\"]",
       "Type: childList | Target: selectedcontent | Added: [#text: \"outer2\"]",
       "Type: childList | Target: selectedcontent | Added: [selectedcontent] | After: #text: \"outer2\"",
       "Type: childList | Target: selectedcontent | Added: [#text: \"inner2\"]",
@@ -329,7 +325,12 @@ const testIdToExpectations = {
       "Type: childList | Target: button | Added: [#text: \"\"] | After: selectedcontent",
       "Type: childList | Target: select | Added: [#text: \"\"] | After: button",
       "Type: childList | Target: select | Added: [option] | After: #text: \"\"",
+      "Type: childList | Target: selectedcontent | Removed: [#text: \"outer1\", selectedcontent, #text: \"\"]",
+      "Type: childList | Target: selectedcontent | Removed: [#text: \"inner1\"]",
+      "Type: childList | Target: selectedcontent | Removed: [#text: \"outer2\", selectedcontent, #text: \"\"]",
+      "Type: childList | Target: selectedcontent | Removed: [#text: \"inner2\"]",
       "Type: childList | Target: option | Added: [#text: \"option\"]",
+      "Type: childList | Target: selectedcontent | Added: [#text: \"option\"]",
       "Type: childList | Target: selectedcontent | Added: [#text: \"option\"]",
       "Type: childList | Target: select | Added: [#text: \"\"] | After: option",
       "Type: childList | Target: div#test3 | Added: [#text: \"\"] | After: select"

@@ -63,7 +63,7 @@
     await focusAndWait(search);
     assert_equals(document.activeElement, search, "Precondition: focus starts on native arrow key handler");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, italic,
                   "Tab from native arrow key handler should move to next segment entry");
   }, "Tab from native arrow key handler moves to next segment entry");

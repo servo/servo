@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>@scope works with elements that have UA shadow roots</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scoped-styles">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+input {
+  appearance: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background-color: red;
+}
+@scope (.test) {
+  input {
+    width: 100px;
+    height: 100px;
+    background-color: green;
+  }
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="test">
+  <input>
+</div>

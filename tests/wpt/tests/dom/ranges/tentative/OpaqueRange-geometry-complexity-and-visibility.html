@@ -46,7 +46,7 @@ controls.forEach(controlType => {
   test(() => {
     const mixed = 'abc \u0645\u0631\u062D\u0628\u0627 def'; // abc مرحبا def.
     const element = setupControl(controlType, mixed);
-    const range = element.getValueRange(0, mixed.length);
+    const range = element.createValueRange(0, mixed.length);
     const boundingRect = rect(range, element, 'Bidirectional text full selection inside: ');
     assert_greater_than(boundingRect.width, 0);
     assert_greater_than(boundingRect.height, 0);
@@ -59,13 +59,13 @@ controls.forEach(controlType => {
     const value = '\ud83c\udf20A\ud83c\udf20'; // 🌠A🌠 in UTF-16.
     const element = setupControl(controlType, value);
 
-    const fullRects = Array.from(element.getValueRange(0, value.length).getClientRects());
+    const fullRects = Array.from(element.createValueRange(0, value.length).getClientRects());
     assert_greater_than_equal(fullRects.length, 1, 'full selection has rects');
 
     const fullWidth = fullRects[0].width;
-    const wHalf1 = Array.from(element.getValueRange(0, 1).getClientRects())[0]?.width ?? 0;
-    const wHalf2 = Array.from(element.getValueRange(1, 2).getClientRects())[0]?.width ?? 0;
-    const wPair  = Array.from(element.getValueRange(0, 2).getClientRects())[0]?.width ?? 0;
+    const wHalf1 = Array.from(element.createValueRange(0, 1).getClientRects())[0]?.width ?? 0;
+    const wHalf2 = Array.from(element.createValueRange(1, 2).getClientRects())[0]?.width ?? 0;
+    const wPair  = Array.from(element.createValueRange(0, 2).getClientRects())[0]?.width ?? 0;
 
   assert_greater_than(wPair, 0, 'pair width greater than 0');
   assert_greater_than_equal(wPair + 0.05, Math.max(wHalf1, wHalf2), 'full pair width greater than or equal to any single code-unit slice');
@@ -79,7 +79,7 @@ controls.forEach(controlType => {
       : '<textarea id="test" style="visibility:hidden">abc</textarea>';
     const hidden = document.getElementById('test');
     hidden.focus();
-    const range = hidden.getValueRange(2, 2);
+    const range = hidden.createValueRange(2, 2);
     const caretRect = rect(range, hidden, 'hidden caret inside: ');
     assert_greater_than(caretRect.height, 0, 'caret height greater than 0');
     assert_approx_equals(caretRect.width, 0, 0.05, 'caret width should be 0');

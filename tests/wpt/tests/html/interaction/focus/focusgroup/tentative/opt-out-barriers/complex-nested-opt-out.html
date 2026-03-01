@@ -24,7 +24,7 @@
         <button id=optout_item2 tabindex=0>Opted out 2 (nested)</button>
 
         <!-- Nested focusgroup within opt-out should function independently and not participate in ancestor group -->
-        <div id=nested_in_optout focusgroup="menu">
+        <div id=nested_in_optout focusgroup="menu nowrap">
           <button id=nested_optout_item1 tabindex=0>Nested in opt-out 1</button>
           <button id=nested_optout_item2 tabindex=0>Nested in opt-out 2</button>
         </div>
@@ -87,13 +87,13 @@
     const nested_item2 = document.getElementById("nested_optout_item2");
 
     await focusAndWait(nested_item1);
-    await focusAndKeyPress(nested_item1, kArrowRight);
+    await focusAndKeyPress(nested_item1, kArrowDown);
     assert_equals(document.activeElement, nested_item2, "Nested focusgroup should allow forward navigation inside opt-out subtree");
 
-    await focusAndKeyPress(nested_item2, kArrowLeft);
+    await focusAndKeyPress(nested_item2, kArrowUp);
     assert_equals(document.activeElement, nested_item1, "Nested focusgroup should allow backward navigation inside opt-out subtree");
 
-    await focusAndKeyPress(nested_item1, kArrowLeft);
+    await focusAndKeyPress(nested_item1, kArrowUp);
     assert_equals(document.activeElement, nested_item1, "Backward navigation inside nested scope should not jump to outer items");
   }, "Nested focusgroup inside opted-out subtree still works internally");
 

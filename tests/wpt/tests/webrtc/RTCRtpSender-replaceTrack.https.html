@@ -1,5 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <meta name="timeout" content="long">
 <title>RTCRtpSender.prototype.replaceTrack</title>
 <script src="/resources/testharness.js"></script>
@@ -7,6 +9,8 @@
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
@@ -29,6 +33,7 @@
       4.  If connection's [[isClosed]] slot is true, return a promise rejected
           with a newly created InvalidStateError and abort these steps.
    */
+if (rest) {
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -245,6 +250,7 @@
       assert_equals(sender.track, track2);
     });
   }, 'Calling replaceTrack on sender with similar track and and set to session description should resolve with sender.track set to new track');
+}
 
   /*
     TODO
@@ -274,6 +280,7 @@
               1.  If connection's [[isClosed]] slot is true, abort these steps.
   */
 
+if (interop2026) {
   promise_test(async t => {
     const v = document.createElement('video');
     v.autoplay = true;
@@ -334,4 +341,5 @@
     await sender.replaceTrack(track2);
     await detectSignal(t, v, 250);
   }, 'ReplaceTrack null -> new track transmits the new track');
+}
 </script>

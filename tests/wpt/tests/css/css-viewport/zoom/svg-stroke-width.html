@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS zoom does not scale SVG stroke-width when defined on svg element</title>
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<link rel="help" href="https://drafts.fxtf.org/fill-stroke-3/#propdef-stroke-width">
+<link rel="match" href="svg-stroke-width-ref.html">
+<style>
+body { margin: 0; }
+.zoom { zoom: 2; }
+</style>
+
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"
+     fill="none" stroke="black" stroke-width="2" style="zoom: 2;">
+    <rect x="10" y="10" width="80" height="80"/>
+</svg>
+
+<div class="zoom">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"
+         fill="none" stroke="black" stroke-width="2">
+        <rect x="10" y="10" width="80" height="80"/>
+    </svg>
+</div>

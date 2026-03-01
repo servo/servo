@@ -18,32 +18,32 @@ controls.forEach(control => {
     const element = setupControl(control, "A");
 
     [[0, 0, true], [0, 1, false], [1, 1, true]].forEach(([start, end, collapsed]) => {
-      const range = element.getValueRange(start, end);
+      const range = element.createValueRange(start, end);
       assert_equals(range.startOffset, start, `[${start}, ${end}] startOffset`);
       assert_equals(range.endOffset, end, `[${start}, ${end}] endOffset`);
       assert_equals(range.collapsed, collapsed, `[${start}, ${end}] collapsed`);
     });
-  }, `getValueRange with single character in ${control}.`);
+  }, `createValueRange with single character in ${control}.`);
 
   test(() => {
     const element = setupControl(control, "");
-    const range = element.getValueRange(0, 0);
+    const range = element.createValueRange(0, 0);
 
     assert_equals(range.startOffset, 0);
     assert_equals(range.endOffset, 0);
     assert_true(range.collapsed);
-  }, `getValueRange with empty control in ${control}.`);
+  }, `createValueRange with empty control in ${control}.`);
 
   test(() => {
     const element = setupControl(control, "Hello World");
 
     [[0, 5, false], [5, 6, false], [6, 11, false], [11, 11, true]].forEach(([start, end, collapsed]) => {
-      const range = element.getValueRange(start, end);
+      const range = element.createValueRange(start, end);
       assert_equals(range.startOffset, start, `[${start}, ${end}] startOffset`);
       assert_equals(range.endOffset, end, `[${start}, ${end}] endOffset`);
       assert_equals(range.collapsed, collapsed, `[${start}, ${end}] collapsed`);
     });
-  }, `getValueRange boundary positions in ${control}.`);
+  }, `createValueRange boundary positions in ${control}.`);
 
   test(() => {
     const testCases = [
@@ -67,13 +67,13 @@ controls.forEach(control => {
     testCases.forEach(testCase => {
       const element = setupControl(control, testCase.text);
       testCase.ranges.forEach(([start, end, collapsed]) => {
-        const range = element.getValueRange(start, end);
+        const range = element.createValueRange(start, end);
         assert_equals(range.startOffset, start, `[${start}, ${end}] startOffset`);
         assert_equals(range.endOffset, end, `[${start}, ${end}] endOffset`);
         assert_equals(range.collapsed, collapsed, `[${start}, ${end}] collapsed`);
       });
     });
-  }, `getValueRange with Unicode characters in ${control}.`);
+  }, `createValueRange with Unicode characters in ${control}.`);
 });
 
 
@@ -83,11 +83,11 @@ test(() => {
   const textarea = document.body.firstElementChild;
 
   // Whitespace is preserved in textarea.value.
-  const range = textarea.getValueRange(0, textarea.value.length);
+  const range = textarea.createValueRange(0, textarea.value.length);
   assert_equals(range.startOffset, 0);
   assert_equals(range.endOffset, textarea.value.length);
   assert_false(range.collapsed);
-}, "getValueRange on textarea with whitespace in light DOM.");
+}, "createValueRange on textarea with whitespace in light DOM.");
 
 test(() => {
   document.body.innerHTML = '<textarea>Hello World</textarea>';
@@ -105,12 +105,12 @@ test(() => {
   textarea.append(document.createTextNode("Some rendered content"));
   textarea.append(document.createTextNode("Some more rendered content"));
 
-  // getValueRange uses element.value, which includes text nodes but ignores element children.
-  const range = textarea.getValueRange(0, textarea.value.length);
+  // createValueRange uses element.value, which includes text nodes but ignores element children.
+  const range = textarea.createValueRange(0, textarea.value.length);
   assert_equals(range.startOffset, 0);
   assert_equals(range.endOffset, textarea.value.length);
   assert_false(range.collapsed);
-}, "getValueRange works correctly with weirdly formed light DOM structure.");
+}, "createValueRange works correctly with weirdly formed light DOM structure.");
 
 test(() => {
   // Test input with child nodes (which shouldn't exist but might)
@@ -121,11 +121,11 @@ test(() => {
   input.appendChild(document.createTextNode("Ignored"));
   input.appendChild(document.createElement("span")).textContent = "AlsoIgnored";
 
-  const range = input.getValueRange(0, input.value.length);
+  const range = input.createValueRange(0, input.value.length);
 
   // Input.value is unaffected by child nodes.
   assert_equals(range.startOffset, 0);
   assert_equals(range.endOffset, 8); // "Original".length
   assert_false(range.collapsed);
-}, "getValueRange ignores malformed input child nodes.");
+}, "createValueRange ignores malformed input child nodes.");
 </script>

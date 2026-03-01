@@ -1,0 +1,35 @@
+{
+    "name": "Icons Localized No Match Fallback Test",
+    "icons": [
+        {
+            "src": "pass.png",
+            "sizes": "256x256",
+            "type": "image/png"
+        }
+    ],
+    "icons_localized": {
+        "en": [
+            {
+                "src": "fail.png",
+                "sizes": "256x256",
+                "type": "image/png"
+            }
+        ],
+        "fr": [
+            {
+                "src": "fail.png",
+                "sizes": "256x256",
+                "type": "image/png"
+            }
+        ],
+        "ja": [
+            {
+                "src": "fail.png",
+                "sizes": "256x256",
+                "type": "image/png"
+            }
+        ]
+    },
+    "start_url": "../icons_localized-member-no-match-fallback-manual.html",
+    "display": "fullscreen"
+}

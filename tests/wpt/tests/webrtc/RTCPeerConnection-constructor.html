@@ -1,13 +1,21 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCPeerConnection constructor</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
+
+if (rest) {
 test(function() {
   assert_equals(RTCPeerConnection.length, 0);
 }, 'RTCPeerConnection.length');
+}
 
+if (interop2026) {
 // These are used for string and number dictionary members to see if they are
 // being accessed at all.
 const toStringThrows = { toString: function() { throw new Error; } };
@@ -47,7 +55,9 @@ for (const arg in testArgs) {
     }
   }, expr);
 }
+}
 
+if (rest) {
 // The initial values of attributes of RTCPeerConnection.
 const initialState = {
   'localDescription': null,
@@ -72,5 +82,6 @@ for (const attr in initialState) {
     }
     assert_equals(window.pc[attr], initialState[attr]);
   }, attr + ' initial value');
+}
 }
 </script>

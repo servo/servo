@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSStyleSheet.replace/replaceSync() when stylesheet is a thenable</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="help" href="https://drafts.csswg.org/cssom/#extensions-to-the-document-or-shadow-root-interface">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2016237">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async function() {
+  const sheet = new CSSStyleSheet();
+  document.adoptedStyleSheets = [sheet];
+
+  let p2 = null;
+  let once = false;
+
+  Object.defineProperty(CSSStyleSheet.prototype, "then", {
+    configurable: true,
+    get() {
+      if (!once) {
+        once = true;
+        p2 = sheet.replace("b { color: blue; }");
+      }
+      return undefined;
+    },
+  });
+
+  await sheet.replace("a { color: red; }");
+  delete CSSStyleSheet.prototype.then;
+
+  assert_true(once, "Then getter was called");
+
+  await p2;
+
+  assert_true(true, "replace() from then() should settle");
+
+  // Check if sheet is still modifiable
+  sheet.replaceSync("c {}");
+
+  assert_equals(sheet.cssRules[0].selectorText, "c", "Sheet should still be modifiable");
+});
+</script>

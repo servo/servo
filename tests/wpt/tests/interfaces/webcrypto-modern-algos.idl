@@ -75,7 +75,7 @@ dictionary AeadParams : Algorithm {
 };
 
 dictionary CShakeParams : Algorithm {
-  required [EnforceRange] unsigned long length;
+  required [EnforceRange] unsigned long outputLength;
   BufferSource functionName;
   BufferSource customization;
 };
@@ -93,7 +93,7 @@ dictionary KmacKeyAlgorithm : KeyAlgorithm {
 };
 
 dictionary KmacParams : Algorithm {
-  required [EnforceRange] unsigned long length;
+  required [EnforceRange] unsigned long outputLength;
   BufferSource customization;
 };
 

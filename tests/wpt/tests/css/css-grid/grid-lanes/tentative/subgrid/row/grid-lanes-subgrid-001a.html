@@ -14,18 +14,14 @@ html,body {
   color:black; background-color:white; font:16px/1 monospace; padding:0; margin:0;
 }
 
-grid {
-  display: inline-grid-lanes;
-  grid-lanes-direction: row;
+grid-lanes {
+  display: inline grid-lanes;
   grid-template-rows: 50px 80px 40px;
   gap: 4px 2px;
   padding: 1px 3px 5px 7px;
   border: solid;
   border-width: 3px 5px 1px 1px;
   background: lightgrey content-box;
-}
-.rows {
-  grid-template-columns: 50px 80px 40px;
 }
 item {
   background: grey;
@@ -44,27 +40,18 @@ subgrid {
   grid-row: 2 / span 2;
   grid-gap: 8px 20px;
   background: yellow;
-  flow-tolerance: 0px;
-}
-.rows > subgrid {
-  grid-row: initial;
-  grid-column: 2 / span 2;
 }
 </style>
 </head>
 <body>
-
-
-<grid class="rows">
+<grid-lanes>
   <item>1</item>
   <item>2</item>
   <item>3</item>
   <subgrid>
     <item>4a</item>
-    <item>4b</item>
-    <item>4c</item>
+    <item style="margin-right:15px">4b</item>
   </subgrid>
-  <item>5</item>
-</grid>
-
-</body></html>
+</grid-lanes>
+</body>
+</html>

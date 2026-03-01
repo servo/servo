@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://github.com/whatwg/html/issues/12050">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<input filter=select>
+<select id=select size=4>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</select>
+
+<script>
+const input = document.querySelector('input');
+const select = document.querySelector('select');
+const optionOne = document.querySelector('.one');
+const optionTwo = document.querySelector('.two');
+
+function activeOptions() {
+  return [...document.querySelectorAll(':active-option')];
+}
+function selectedOptions() {
+  return [...select.selectedOptions];
+}
+
+const tabKey = '\uE004';
+const enterKey = '\uE007';
+const spaceKey = '\uE00D';
+const arrowUp = '\uE013';
+const arrowDown = '\uE015';
+function pressKey(keyCode) {
+  return (new test_driver.Actions()
+    .keyDown(keyCode)
+    .keyUp(keyCode))
+    .send();
+}
+
+['base-select', 'auto'].forEach(appearanceValue => {
+  promise_test(async () => {
+    if (document.activeElement) {
+      document.activeElement.blur();
+    }
+    input.value = '';
+    select.value = '';
+    select.style.appearance = appearanceValue;
+
+    assert_array_equals(activeOptions(), [],
+      'Nothing should match :active-option at the start of the test.');
+    assert_array_equals(selectedOptions(), [],
+      'No options should be selected at the start of the test.');
+
+    input.focus();
+    assert_array_equals(activeOptions(), [optionOne],
+      'First option should match :active-option after focusing input.');
+    assert_array_equals(selectedOptions(), [],
+      'No options should be selected after focusing the input.');
+
+    await pressKey(arrowDown);
+    assert_array_equals(activeOptions(), [optionTwo],
+      'Second option should match :active-option after pressing down arrow.');
+    assert_array_equals(selectedOptions(), [],
+      'No options should be selected after pressing down arrow.');
+
+    await pressKey(arrowDown);
+    assert_array_equals(activeOptions(), [optionTwo],
+      'Last option should match :active-option after pressing down on last option.');
+    assert_array_equals(selectedOptions(), [],
+      'No options should be selected after pressing down arrow on the last option.');
+
+    await pressKey(arrowUp);
+    assert_array_equals(activeOptions(), [optionOne],
+      'First option should match :active-option after pressing up arrow.');
+    assert_array_equals(selectedOptions(), [],
+      'No options should be selected after pressing up arrow.');
+
+    await pressKey(arrowUp);
+    assert_array_equals(activeOptions(), [optionOne],
+      'First option should match :active-option after pressing up on first option.');
+    assert_array_equals(selectedOptions(), [],
+      'No options should be selected after pressing up arrow on first option.');
+
+    await pressKey(enterKey);
+    assert_array_equals(activeOptions(), [optionOne],
+      'Same option should match :active-option after pressing enter.');
+    assert_array_equals(selectedOptions(), [optionOne],
+      'Active option should become selected after pressing enter.');
+
+    await pressKey(arrowDown);
+    await pressKey(spaceKey);
+    assert_array_equals(activeOptions(), [optionTwo],
+      'Same option should match :active-option after pressing space.');
+    assert_array_equals(selectedOptions(), [optionOne],
+      'Active option should not become selected after pressing space.');
+  }, `appearance ${appearanceValue}: Keyboard behavior for filterable select.`);
+});
+</script>

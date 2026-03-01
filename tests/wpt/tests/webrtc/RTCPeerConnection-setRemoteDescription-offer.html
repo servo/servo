@@ -1,12 +1,16 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCPeerConnection.prototype.setRemoteDescription - offer</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
 <script src="/webrtc/third_party/sdp/sdp.js"></script>
 <script>
-  'use strict';
+'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
   //   assert_session_desc_similar()
@@ -48,6 +52,7 @@
           attribute to description and signaling state to have-remote-offer.
    */
 
+if (rest) {
   promise_test(t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
@@ -169,7 +174,9 @@
     await pc1.setRemoteDescription(await pc2.createOffer());
     assert_equals(pc1.signalingState, 'have-remote-offer');
   }, 'setRemoteDescription(offer) from have-local-offer should roll back and succeed');
+}
 
+if (interop2026) {
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
@@ -187,7 +194,9 @@
     assert_equals(pc1.pendingRemoteDescription.type, 'offer');
     await p;
   }, 'setRemoteDescription(offer) from have-local-offer fires signalingstatechange twice');
+}
 
+if (rest) {
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
@@ -217,7 +226,9 @@
 
     await srdPromise;
   }, "setRemoteDescription(offer) in stable should update internal state with a queued task, in the right order");
+}
 
+if (interop2026) {
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     t.add_cleanup(() => pc1.close());
@@ -266,7 +277,9 @@
 
     await srdPromise;
   }, "setRemoteDescription(offer) in have-local-offer should update internal state with a queued task, in the right order");
+}
 
+if (rest) {
   promise_test(async t => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
@@ -381,5 +394,6 @@
     const p = pc2.setRemoteDescription({type: 'offer', sdp: sdp});
     await promise_rejects_dom(t, 'OperationError', p);
   }, 'setRemoteDescription(section with duplicate msid) rejects');
+}
 
 </script>

@@ -48,6 +48,17 @@
       });
     }, "Preferred width of mrow with mn and mo children");
 
+    test(function() {
+      assert_true(MathMLFeatureDetection.has_operator_spacing());
+
+      Array.from(document.getElementById("embellished-op-tests").getElementsByClassName("shrink-wrap")).forEach((container) => {
+        var containerWidth = container.getBoundingClientRect().width;
+        var mrow = container.getElementsByClassName("mrow-like")[0];
+        var mrowWidth = MrowWidthFromChildren(mrow);
+        assert_approx_equals(containerWidth, mrowWidth, epsilon, mrow.tagName);
+      });
+    }, "Preferred width of mrow with mn and embellished op children");
+
     done();
   }
 </script>
@@ -87,6 +98,9 @@ div.shrink-wrap {
       </div>
     </div>
     <div>
+      <div class="shrink-wrap">
+        <math class="mrow-like"><mspace width="30px" height="15px" style="background: blue"/><mspace width="20px" depth="30px" style="background: green"/><mspace width="15px" height="5px" depth="10px" style="background: black"/></math>
+      </div>
     </div>
   </div>
   <div id="tokens-tests">
@@ -123,6 +137,53 @@ div.shrink-wrap {
     <div>
       <div class="shrink-wrap">
       <math><a class="mrow-like"><mtext>blah</mtext><mo lspace="30px" rspace="20px">|</mo><mn>2</mn></a></math>
+      </div>
+    </div>
+    <div>
+      <div class="shrink-wrap">
+      <math class="mrow-like"><mtext>blah</mtext><mo lspace="30px" rspace="20px">|</mo><mn>2</mn></math>
+      </div>
+    </div>
+  </div>
+  <div id="embellished-op-tests">
+    <div>
+      <div class="shrink-wrap">
+      <math><mrow class="mrow-like"><mtext>blah</mtext><mfrac><msub><mrow><mo lspace="30px" rspace="20px">|</mo></mrow><mn>3</mn></msub><mn>4</mn></mfrac><mn>2</mn></mrow></math>
+      </div>
+    </div>
+    <div>
+      <div class="shrink-wrap">
+      <math><mstyle class="mrow-like"><mtext>blah</mtext><mfrac><msub><mrow><mo lspace="30px" rspace="20px">|</mo></mrow><mn>3</mn></msub><mn>4</mn></mfrac><mn>2</mn></mstyle></math>
+      </div>
+    </div>
+    <div>
+      <div class="shrink-wrap">
+      <math><mphantom class="mrow-like"><mtext>blah</mtext><mfrac><msub><mrow><mo lspace="30px" rspace="20px">|</mo></mrow><mn>3</mn></msub><mn>4</mn></mfrac><mn>2</mn></mphantom></math>
+      </div>
+    </div>
+    <div>
+      <div class="shrink-wrap">
+      <math class="mrow-like"><mtext>blah</mtext><mfrac><msub><mrow><mo lspace="30px" rspace="20px">|</mo></mrow><mn>3</mn></msub><mn>4</mn></mfrac><mn>2</mn></math>
+      </div>
+    </div>
+    <div>
+      <div class="shrink-wrap">
+      <math><unknown class="mrow-like"><mtext>blah</mtext><mfrac><msub><mrow><mo lspace="30px" rspace="20px">|</mo></mrow><mn>3</mn></msub><mn>4</mn></mfrac><mn>2</mn></unknown></math>
+      </div>
+    </div>
+    <div>
+      <div class="shrink-wrap">
+      <math><mfenced class="mrow-like"><mtext>blah</mtext><mfrac><msub><mrow><mo lspace="30px" rspace="20px">|</mo></mrow><mn>3</mn></msub><mn>4</mn></mfrac><mn>2</mn></mfenced></math>
+      </div>
+    </div>
+    <div>
+      <div class="shrink-wrap">
+      <math><a class="mrow-like"><mtext>blah</mtext><mfrac><msub><mrow><mo lspace="30px" rspace="20px">|</mo></mrow><mn>3</mn></msub><mn>4</mn></mfrac><mn>2</mn></a></math>
+      </div>
+    </div>
+    <div>
+      <div class="shrink-wrap">
+      <math class="mrow-like"><mtext>blah</mtext><mfrac><msub><mrow><mo lspace="30px" rspace="20px">|</mo></mrow><mn>3</mn></msub><mn>4</mn></mfrac><mn>2</mn></math>
       </div>
     </div>
   </div>
