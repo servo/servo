@@ -85,7 +85,10 @@ use crate::dom::bindings::inheritance::{
     Castable, CharacterDataTypeId, ElementTypeId, EventTargetTypeId, HTMLElementTypeId, NodeTypeId,
     SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId,
 };
-use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto, reflect_weak_referenceable_dom_object_with_proto};
+use crate::dom::bindings::reflector::{
+    DomObject, DomObjectWrap, reflect_dom_object_with_proto,
+    reflect_weak_referenceable_dom_object_with_proto,
+};
 use crate::dom::bindings::root::{
     Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout, UnrootedDom,
 };

@@ -83,7 +83,7 @@ where
 pub(crate) fn reflect_weak_referenceable_dom_object<D, T, U>(
     obj: Rc<T>,
     global: &U,
-    can_gc: CanGc,
+    _can_gc: CanGc,
 ) -> DomRoot<T>
 where
     D: DomTypes,
@@ -91,14 +91,15 @@ where
     U: DerivedFrom<D::GlobalScope>,
 {
     let global_scope = global.upcast();
-    unsafe { T::WRAP(D::GlobalScope::get_cx(), global_scope, None, obj, can_gc) }
+    let mut cx = unsafe { temp_cx() };
+    unsafe { T::WRAP(&mut cx, global_scope, None, obj) }
 }
 
 pub(crate) fn reflect_weak_referenceable_dom_object_with_proto<D, T, U>(
     obj: Rc<T>,
     global: &U,
     proto: Option<HandleObject>,
-    can_gc: CanGc,
+    _can_gc: CanGc,
 ) -> DomRoot<T>
 where
     D: DomTypes,
@@ -106,7 +107,8 @@ where
     U: DerivedFrom<D::GlobalScope>,
 {
     let global_scope = global.upcast();
-    unsafe { T::WRAP(D::GlobalScope::get_cx(), global_scope, proto, obj, can_gc) }
+    let mut cx = unsafe { temp_cx() };
+    unsafe { T::WRAP(&mut cx, global_scope, proto, obj) }
 }
 
 pub(crate) trait DomGlobal {

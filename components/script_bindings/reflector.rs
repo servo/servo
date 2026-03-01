@@ -211,11 +211,10 @@ pub trait WeakReferenceableDomObjectWrap<D: DomTypes>:
     /// Function pointer to the general wrap function type
     #[expect(clippy::type_complexity)]
     const WRAP: unsafe fn(
-        JSContext,
+        &mut js::context::JSContext,
         &D::GlobalScope,
         Option<HandleObject>,
         Rc<Self>,
-        CanGc,
     ) -> Root<Dom<Self>>;
 }
 

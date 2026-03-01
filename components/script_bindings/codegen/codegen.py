@@ -3507,11 +3507,10 @@ class CGWeakReferenceableDomObjectWrap(CGThing):
         return f"""
 impl WeakReferenceableDomObjectWrap<crate::DomTypeHolder> for {firstCap(ifaceName)} {{
     const WRAP: unsafe fn(
-        SafeJSContext,
+        &mut JSContext,
         &GlobalScope,
         Option<HandleObject>,
         Rc<Self>,
-        CanGc,
     ) -> Root<Dom<Self>> = {bindingModule}::Wrap::<crate::DomTypeHolder>;
 }}
 """
