@@ -238,7 +238,7 @@ pub enum TouchEventType {
 /// An opaque identifier for a touch point.
 ///
 /// <http://w3c.github.io/touch-events/#widl-Touch-identifier>
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct TouchId(pub i32);
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
