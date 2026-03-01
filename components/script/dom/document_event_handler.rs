@@ -669,12 +669,13 @@ impl DocumentEventHandler {
         // <https://html.spec.whatwg.org/multipage/#selector-active>
         // If the element is being actively pointed at the element is being activated.
         // Disabled elements can also be activated.
-        let activable = self.element_for_activation(element.clone());
         if event.action == MouseButtonAction::Down {
-            activable.set_active_state(true);
+            self.element_for_activation(element.clone())
+                .set_active_state(true);
         }
         if event.action == MouseButtonAction::Up {
-            activable.set_active_state(false);
+            self.element_for_activation(element.clone())
+                .set_active_state(false);
         }
 
         // https://w3c.github.io/uievents/#hit-test
@@ -1009,7 +1010,6 @@ impl DocumentEventHandler {
             .upcast::<Event>()
             .fire(&current_target, can_gc);
 
-        let activable = self.element_for_activation(element);
         let (touch_dispatch_target, changed_touch) = match event.event_type {
             TouchEventType::Down => {
                 // Add a new touch point
@@ -1018,7 +1018,7 @@ impl DocumentEventHandler {
                     .push(Dom::from_ref(&*pointer_touch));
                 // <https://html.spec.whatwg.org/multipage/#selector-active>
                 // If the element is being actively pointed at the element is being activated.
-                activable.set_active_state(true);
+                self.element_for_activation(element).set_active_state(true);
                 (current_target, pointer_touch)
             },
             _ => {
@@ -1059,9 +1059,9 @@ impl DocumentEventHandler {
                     TouchEventType::Up | TouchEventType::Cancel => {
                         active_touch_points.swap_remove(index);
                         self.remove_pointer_id_for_touch(identifier);
-                        // <https://html.spec.whatwg.org/multipage/#selector-active     >
+                        // <https://html.spec.whatwg.org/multipage/#selector-active>
                         // If the element is being actively pointed at the element is being activated.
-                        activable.set_active_state(false);
+                        self.element_for_activation(element).set_active_state(false);
                     },
                     TouchEventType::Down => unreachable!("Should have been handled above"),
                 }
