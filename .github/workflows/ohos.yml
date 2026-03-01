@@ -146,7 +146,7 @@ jobs:
           echo "artifact_ids=${{steps.upload-library.outputs.artifact-id}},${{steps.upload-hap-signed.outputs.artifact-id}}" >> $GITHUB_OUTPUT
 
   bencher:
-    needs: ["build"]
+    needs: ["build-openharmony"]
     strategy:
       matrix:
         target: ["aarch64-unknown-linux-ohos", "x86_64-unknown-linux-ohos"]
