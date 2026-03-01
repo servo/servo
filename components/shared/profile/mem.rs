@@ -269,6 +269,7 @@ pub struct MemoryReport {
     /// The pid of the report
     pub pid: u32,
     /// Is this the main process
+    #[serde(rename = "isMainProcess")]
     pub is_main_process: bool,
     /// All the reports for this pid
     pub reports: Vec<Report>,
