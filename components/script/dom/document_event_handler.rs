@@ -666,7 +666,7 @@ impl DocumentEventHandler {
         let node = element.upcast::<Node>();
         debug!("{:?} on {:?}", event.action, node.debug_str());
 
-        // <https://html.spec.whatwg.org/multipage/semantics-other.html#selector-active>
+        // <https://html.spec.whatwg.org/multipage/#selector-active>
         // If the element is being actively pointed at the element is being activated.
         // Disabled elements can also be activated.
         let activable = self.element_for_activation(element.clone());
@@ -1016,7 +1016,7 @@ impl DocumentEventHandler {
                 self.active_touch_points
                     .borrow_mut()
                     .push(Dom::from_ref(&*pointer_touch));
-                // <https://html.spec.whatwg.org/multipage/semantics-other.html#selector-active>
+                // <https://html.spec.whatwg.org/multipage/#selector-active>
                 // If the element is being actively pointed at the element is being activated.
                 activable.set_active_state(true);
                 (current_target, pointer_touch)
@@ -1059,7 +1059,7 @@ impl DocumentEventHandler {
                     TouchEventType::Up | TouchEventType::Cancel => {
                         active_touch_points.swap_remove(index);
                         self.remove_pointer_id_for_touch(identifier);
-                        // <https://html.spec.whatwg.org/multipage/semantics-other.html#selector-active>
+                        // <https://html.spec.whatwg.org/multipage/#selector-active     >
                         // If the element is being actively pointed at the element is being activated.
                         activable.set_active_state(false);
                     },
