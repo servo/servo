@@ -1,11 +1,15 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCConfiguration iceServers</title>
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
 <script src='RTCConfiguration-helper.js'></script>
 <script>
-  'use strict';
+'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   // Test is based on the following editor's draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
@@ -38,6 +42,7 @@
   // https://datatracker.ietf.org/doc/html/rfc8489#section-14.3
   const kUsernameOfMaxPermittedLength = 'a'.repeat(509);
 
+if (rest) {
   test(() => {
     const pc = new RTCPeerConnection();
     assert_array_equals(pc.getConfiguration().iceServers, []);
@@ -243,7 +248,8 @@
         credential: 'cred'
       }] }));
   }, 'with turns server and only credential should throw InvalidAccessError');
-
+}
+if (interop2026) {
   config_test(makePc => {
     assert_equals(kUsernameOfMaxPermittedLength.length, 509);
     assert_throws_dom('InvalidAccessError', () =>
@@ -253,7 +259,8 @@
         credential: 'cred'
       }] }));
   }, `with a turn server and a username of 510 characters throw InvalidAccessError`);
-
+}
+if (rest) {
   /*
     4.3.2.  To set a configuration
       11.3. For each url in server.urls parse url and obtain scheme name.
@@ -311,13 +318,16 @@
       }] }));
   }, 'with invalid turn url should throw SyntaxError');
 
+}
+if (interop2026) {
   config_test(makePc => {
     assert_throws_dom("SyntaxError", () =>
       makePc({ iceServers: [{
         urls: 'stun://example.org/foo?x=y'
       }] }));
   }, 'with invalid stun url should throw SyntaxError');
-
+}
+if (rest) {
   config_test(makePc => {
     assert_throws_dom("SyntaxError", () =>
       makePc({ iceServers: [{
@@ -349,4 +359,5 @@
       assert_array_equals(server.urls, [`stun:stun${i+1}.example.net`]);
     }
   }, `with 32 ice servers must succeed`);
+}
 </script>

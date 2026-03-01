@@ -119,11 +119,19 @@ class SoftNavigationTestHelper {
    * @param {function(): (string|Promise<string>)} modifyDOM Function called in
    *    in the click handler to modify the DOM. Can be sync or async. Returns
    *    the ID of the mutated element which is expected to match the ICP entry.
+   * @param {function()} navigate Optional function called to navigate the
+   *    page. If no function is provided a push navigation to `url` is
+   *    performed.
+   * @return {!Promise} A promise that is resolved with the resulting soft
+   *    navigation and ICP entry.
    */
-  async clickAndExpectSoftNavigation(clickTarget, url, modifyDOM) {
+  async clickAndExpectSoftNavigation(clickTarget, url, modifyDOM, navigate) {
+    if (!navigate) {
+      navigate = targetUrl => history.pushState({}, '', targetUrl);
+    }
     let targetId;
     clickTarget.addEventListener('click', async () => {
-      history.pushState({}, '', url);
+      navigate(url);
       targetId = await modifyDOM();
     }, {once: true});
 
@@ -148,5 +156,7 @@ class SoftNavigationTestHelper {
         icpPromise, 'ICP not detected.', /*timeout=*/ 3000);
     assert_equals(icps.length, 1, 'Expected exactly one ICP entry.');
     assert_equals(icps[0].id, targetId, `Expected ICP candidate to be "${targetId}"`);
+
+    return {softNav: softNavs[0], icp: icps[0]};
   }
 }

@@ -6,7 +6,7 @@
 test(() => {
   document.body.innerHTML = '<textarea>Hello</textarea>';
   const textarea = document.body.firstElementChild;
-  const range = textarea.getValueRange(1, 4);
+  const range = textarea.createValueRange(1, 4);
 
   range.disconnect();
 
@@ -23,7 +23,7 @@ test(() => {
 test(() => {
   document.body.innerHTML = '<textarea>Hello</textarea>';
   const textarea = document.body.firstElementChild;
-  const range = textarea.getValueRange(1, 4);
+  const range = textarea.createValueRange(1, 4);
 
   range.disconnect();
   range.disconnect();
@@ -35,7 +35,7 @@ test(() => {
 test(() => {
   document.body.innerHTML = '<textarea>Hello</textarea>';
   const textarea = document.body.firstElementChild;
-  const range = textarea.getValueRange(1, 4);
+  const range = textarea.createValueRange(1, 4);
 
   range.disconnect();
   textarea.value = "World!";
@@ -47,8 +47,8 @@ test(() => {
 test(() => {
   document.body.innerHTML = '<textarea>Hello</textarea>';
   const textarea = document.body.firstElementChild;
-  const range1 = textarea.getValueRange(0, 3);
-  const range2 = textarea.getValueRange(2, 5);
+  const range1 = textarea.createValueRange(0, 3);
+  const range2 = textarea.createValueRange(2, 5);
 
   range1.disconnect();
 
@@ -63,10 +63,10 @@ test(() => {
 test(() => {
   document.body.innerHTML = '<textarea>Hello</textarea>';
   const textarea = document.body.firstElementChild;
-  const range = textarea.getValueRange(1, 4);
+  const range = textarea.createValueRange(1, 4);
   range.disconnect();
 
-  const newRange = textarea.getValueRange(0, 5);
+  const newRange = textarea.createValueRange(0, 5);
   assert_equals(newRange.startOffset, 0);
   assert_equals(newRange.endOffset, 5);
   assert_false(newRange.collapsed);

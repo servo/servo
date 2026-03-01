@@ -1,0 +1,19 @@
+<script>
+  navigation.addEventListener("navigate", function (e) {
+    if (e.signal) {
+      e.signal.addEventListener(
+        "abort",
+        function () {
+          // This re-enters #inner-navigate-event-firing-algorithm and fails
+          // the assert that navigation's ongoing navigate event is null.
+          history.pushState(null, "", "#1");
+        },
+        { once: true },
+      );
+    }
+
+    history.go(0);
+  });
+
+  history.pushState(null, "", "#2");
+</script>

@@ -512,7 +512,7 @@ async function textSelectionAndBlockMain(target, duration) {
     blockCapturePointerDownEventListener(target, "pointerdown", duration),
     blockNextEventListener(target, "pointermove", duration),
     blockNextEventListener(target, "scroll", duration),
-    blockNextEventListener(target, "pointerup", 10),
+    blockNextEventListener(target, "pointerup", duration),
     textSelectionInTarget(target),
     // afterNextPaint(),
   ]);

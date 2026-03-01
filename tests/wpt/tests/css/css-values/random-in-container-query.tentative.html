@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: random() in container queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#random">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10982">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<style id="test_style">
+  @property --length {
+    syntax: "<length>";
+    initial-value: 30px;
+    inherits: true;
+  }
+
+  #container {
+    container-type: size;
+    --length: 30px;
+    --unregistered: random(element-shared, 30px, 10px);
+  }
+  #target {
+    --test1: true;
+    --test2: true;
+    --test3: true;
+    --test4: true;
+    --test5: true;
+    --test6: true;
+    --test7: true;
+  }
+  @container style(--length: random(element-shared, 30px, 10px)) {
+    #target { --test1: false; }
+  }
+  @container style(--length: var(--unregistered)) {
+    #target { --test2: false; }
+  }
+  @container style(--length = random(element-shared, 30px, 10px)) {
+    #target { --test3: false; }
+  }
+  @container style(--unregistered = 30px) {
+    #target { --test4: false; }
+  }
+  @container style(random(element-shared, 30px, 10px) = random(element-shared, 30px, 10px)) {
+    #target { --test5: false; }
+  }
+  @container style(random(element-shared, 30px, 10px) <= random(element-shared, 30px, 10px) <= random(element-shared, 10px, 30px)) {
+    #target { --test6: false; }
+  }
+  @container style(--length <= --length <= random(element-shared, 30px, 10px)) {
+    #target { --test7: false; }
+  }
+</style>
+<div style="container-name:name">
+  <main id="cq-main"></main>
+</div>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+  test_cq_condition_unknown("(width: random(element-shared, 10px, 30px))");
+  test_cq_condition_unknown("(height: random(10px, 30px))");
+
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--test1"), "true");
+  }, "random() should be disallowed in @container style() query");
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--test2"), "true");
+  }, "random() in var() should be disallowed in @container style() query");
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--test3"), "true");
+  }, "comparing custom property to random() should be disallowed in @container style() query range");
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--test4"), "true");
+  }, "comparing custom property with random() value should be disallowed in @container style() query range");
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--test5"), "true");
+  }, "comparing two random() values should be disallowed in @container style() query range");
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--test6"), "true");
+  }, "comparing three random() values should be disallowed in @container style() query range");
+  test(() => {
+    assert_equals(getComputedStyle(target).getPropertyValue("--test7"), "true");
+  }, "comparing custom properties to random() should be disallowed in @container style() query range");
+</script>

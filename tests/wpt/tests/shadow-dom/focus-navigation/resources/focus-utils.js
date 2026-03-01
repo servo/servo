@@ -37,12 +37,30 @@ function sendKey(key) {
   return new test_driver.Actions().keyDown(key).keyUp(key).send();
 }
 
-async function navigateFocusForward() {
+// Send Tab using the Actions API without targeting a specific element.
+// Unlike navigateFocusForward, this does NOT call focus() on any element
+// first, so it will not trigger blur events that could interfere with
+// focusgroup exit behaviour on key-conflict elements.
+async function sendTabForward() {
   await waitForRender();
   await sendKey(kTab);
   await waitForRender();
 }
 
+async function navigateFocusForward() {
+  await waitForRender();
+  // Use test_driver.send_keys for reliable synchronization rather than the
+  // lower-level Actions API which can drop key events on slower CI
+  // environments.  We target document.body because body.focus() is a no-op,
+  // which preserves the current focus state. Targeting activeElement would
+  // break shadow hosts with delegatesFocus (re-delegating on focus()).
+  await test_driver.send_keys(document.body, kTab);
+  await waitForRender();
+}
+
+// Shift+Tab via the Actions API.  Does not call focus() on any element, so
+// it will not trigger blur events that could interfere with focusgroup exit
+// behaviour on key-conflict elements.
 async function navigateFocusBackward() {
   await waitForRender();
   await new test_driver.Actions()

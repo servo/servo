@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: random() in at-rule descriptors</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#random">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/10982">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-conditional/container-queries/support/cq-testcommon.js"></script>
+<style id="test_sheet">
+  @font-face {
+    font-family: my-font;
+    font-weight: 300;
+    font-weight: random(500, 900);
+  }
+  @font-face {
+    font-family: my-font;
+    font-stretch: 30%;
+    font-stretch: random(element-shared, 0%, 10%);
+  }
+  @font-palette-values --palette {
+    font-family: my-font;
+    base-palette: 3;
+    base-palette: random(10, 30);
+  }
+  @font-feature-values my-font {
+    @swash {
+      foo: random(1, 3);
+    }
+  }
+</style>
+<div id="test"></div>
+<script>
+  const rules = test_sheet.sheet.cssRules;
+  test(() => {
+    assert_equals(rules[0].style.fontWeight, "300");
+  }, "random() should not be allowed in @font-face descriptors");
+
+  test(() => {
+    assert_equals(rules[1].style.fontStretch, "30%");
+  }, "element-shared random() should not be allowed in @font-face descriptors");
+
+  test(() => {
+    assert_equals(rules[2].basePalette, "3");
+  }, "random()");
+
+  test(() => {
+    const swashValues = rules[3].swash.values();
+    assert_equals(swashValues.next().value, undefined);
+  }, "element-shared ");
+</script>

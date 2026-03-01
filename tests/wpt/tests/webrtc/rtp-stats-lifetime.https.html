@@ -1,5 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -8,6 +10,8 @@
 <script src="simulcast/simulcast.js"></script>
 <script>
 'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
 async function hasStats(pc, type) {
   const report = await pc.getStats();
@@ -32,6 +36,7 @@ async function getStatsTypePollUntilItExists(pc, type, kTimeoutMs = 10000) {
   return null;
 }
 
+if (rest) {
 promise_test(async t => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
@@ -43,7 +48,9 @@ promise_test(async t => {
   assert_false(await hasStats(pc, 'outbound-rtp'),
               'outbound-rtp does not exist in have-local-offer');
 }, `RTCOutboundRtpStreamStats does not exist as early as have-local-offer`);
+}
 
+if (interop2026) {
 // This test does not exchange ICE candidates, meaning no packets are sent.
 // We should still see outbound-rtp stats because they are created by the O/A.
 promise_test(async t => {
@@ -95,7 +102,9 @@ promise_test(async t => {
   assert_not_equals(outboundRtpBar, undefined);
   assert_not_equals(outboundRtpBar.ssrc, undefined);
 }, `RTCOutboundRtpStreamStats exists per simulcast encoding`);
+}
 
+if (rest) {
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -197,7 +206,9 @@ promise_test(async t => {
         `outbound-rtp should remain in ${name}.getStats() after sender.replaceTrack(null)`);
   }
 }, `RTCOutboundRtpStreamStats remain in ${name}.getStats() after sender.replaceTrack(null)`));
+}
 
+if (interop2026) {
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -243,4 +254,5 @@ promise_test(async t => {
       inboundRtp.packetsReceived, 0,
       'inbound-rtp must only exist after packets have been received');
 }, `RTCInboundRtpStreamStats exists for early media`);
+}
 </script>

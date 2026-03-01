@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Vertical writing-mode swaps inline and block axes.</title>
+<meta name="assert" content="In a vertical-rl writing mode, the inline axis runs vertically and the block axis runs horizontally. ArrowDown/Up should navigate inline; ArrowLeft/Right should navigate block.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../../resources/focusgroup-utils.js"></script>
+
+<!-- In vertical-rl, inline direction runs top-to-bottom and block direction
+     runs right-to-left. An inline-only focusgroup should respond to
+     ArrowDown/ArrowUp but not ArrowLeft/ArrowRight. -->
+<div style="writing-mode: vertical-rl" focusgroup="toolbar inline">
+  <span id=item1 tabindex=0>item1</span>
+  <span id=item2 tabindex=0>item2</span>
+  <span id=item3 tabindex=0>item3</span>
+</div>
+
+<!-- Both-axes focusgroup (no axis restriction) for testing all four keys. -->
+<div id=both style="writing-mode: vertical-rl" focusgroup="toolbar inline block">
+  <span id=b1 tabindex=0>b1</span>
+  <span id=b2 tabindex=0>b2</span>
+  <span id=b3 tabindex=0>b3</span>
+</div>
+
+<script>
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item2 = document.getElementById("item2");
+
+    // ArrowDown is forward inline in vertical-rl.
+    await focusAndKeyPress(item1, kArrowDown);
+    assert_equals(document.activeElement, item2,
+      "ArrowDown should move forward inline in vertical-rl");
+  }, "ArrowDown moves forward inline in vertical-rl inline-only focusgroup.");
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+    var item2 = document.getElementById("item2");
+
+    // ArrowUp is backward inline in vertical-rl.
+    await focusAndKeyPress(item2, kArrowUp);
+    assert_equals(document.activeElement, item1,
+      "ArrowUp should move backward inline in vertical-rl");
+  }, "ArrowUp moves backward inline in vertical-rl inline-only focusgroup.");
+
+  promise_test(async t => {
+    var item1 = document.getElementById("item1");
+
+    // ArrowLeft and ArrowRight are block-axis in vertical-rl; should not
+    // move focus in an inline-only focusgroup.
+    await focusAndKeyPress(item1, kArrowLeft);
+    assert_equals(document.activeElement, item1,
+      "ArrowLeft (block) should not move focus in inline-only focusgroup");
+
+    await focusAndKeyPress(item1, kArrowRight);
+    assert_equals(document.activeElement, item1,
+      "ArrowRight (block) should not move focus in inline-only focusgroup");
+  }, "ArrowLeft/ArrowRight do not move focus in vertical-rl inline-only focusgroup.");
+
+  promise_test(async t => {
+    var b1 = document.getElementById("b1");
+    var b2 = document.getElementById("b2");
+
+    // In both-axes vertical-rl, ArrowDown is forward inline.
+    await focusAndKeyPress(b1, kArrowDown);
+    assert_equals(document.activeElement, b2,
+      "ArrowDown should move forward in both-axes vertical-rl focusgroup");
+  }, "ArrowDown moves forward in both-axes vertical-rl focusgroup.");
+
+  promise_test(async t => {
+    var b1 = document.getElementById("b1");
+    var b2 = document.getElementById("b2");
+
+    // In both-axes vertical-rl, ArrowLeft is forward block.
+    await focusAndKeyPress(b1, kArrowLeft);
+    assert_equals(document.activeElement, b2,
+      "ArrowLeft should move forward in both-axes vertical-rl focusgroup");
+  }, "ArrowLeft moves forward (block) in both-axes vertical-rl focusgroup.");
+
+</script>

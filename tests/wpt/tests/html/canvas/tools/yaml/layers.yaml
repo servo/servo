@@ -1533,3 +1533,57 @@
     ctx.fillRect(15, 15, 100, 100);
     ctx.fillStyle = 'grey';
     ctx.fillRect(10, 10, 100, 100);
+
+- name: 2d.layer.draw-in-filter
+  desc: >-
+    Tests that draw calls happening inside the filter definition aren't affected
+    by the filter.
+  size: [100, 100]
+  code: |
+    ctx.beginLayer({filter: {
+      get name() {
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(10, 10, 30, 30);
+        return 'gaussianBlur';
+      },
+      stdDeviation: 5
+    }});
+    ctx.fillStyle = 'green';
+    ctx.fillRect(60, 60, 30, 30);
+    ctx.endLayer();
+  reference: |
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(10, 10, 30, 30);
+    ctx.beginLayer({filter: {
+      name: 'gaussianBlur',
+      stdDeviation: 5
+    }});
+    ctx.fillStyle = 'green';
+    ctx.fillRect(60, 60, 30, 30);
+    ctx.endLayer();
+
+- name: 2d.layer.resize-canvas-in-filter
+  desc: Tests resizing the canvas in a layer filter.
+  size: [200, 200]
+  code: |
+    canvas.width = 10;
+    canvas.height = 10;
+    ctx.beginLayer({filter: {
+      get name() {
+        canvas.width = 200;
+        canvas.height = 200;
+        return 'gaussianBlur';
+      },
+      stdDeviation: 5
+    }});
+    ctx.fillStyle = 'green';
+    ctx.fillRect(50, 50, 100, 100);
+    ctx.endLayer();
+  reference: |
+    ctx.beginLayer({filter: {
+      name: 'gaussianBlur',
+      stdDeviation: 5
+    }});
+    ctx.fillStyle = 'green';
+    ctx.fillRect(50, 50, 100, 100);
+    ctx.endLayer();

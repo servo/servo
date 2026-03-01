@@ -54,13 +54,13 @@
     var between = document.getElementById("between");
 
     await focusAndWait(beforeMemory);
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, memoryItem2, "First tab entry should use focusgroupstart element");
 
     await focusAndKeyPress(memoryItem2, kArrowRight);
     assert_equals(document.activeElement, memoryItem3, "Arrow navigation should move to Item 3");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, between, "Tab should exit to between element");
 
     await navigateFocusBackward();
@@ -75,13 +75,13 @@
     var afterNoMemory = document.getElementById("after-no-memory");
 
     await focusAndWait(between);
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, noMemoryItem2, "Entry should use focusgroupstart element");
 
     await focusAndKeyPress(noMemoryItem2, kArrowRight);
     assert_equals(document.activeElement, noMemoryItem3, "Arrow navigation should move to Item 3");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, afterNoMemory, "Tab should exit focusgroup");
 
     await navigateFocusBackward();
@@ -97,16 +97,16 @@
     var afterSegments = document.getElementById("after-segments");
 
     await focusAndWait(beforeSegments);
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, segItem2, "Should enter at focusgroupstart element");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, segOptedOut, "Should move to opted-out element");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, segItem3, "Should enter second focusgroup segment");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, afterSegments, "Should exit focusgroup");
 
     await navigateFocusBackward();
@@ -126,7 +126,7 @@
     await navigateFocusBackward();
     assert_equals(document.activeElement, beforeSegments, "Should exit to before element");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, segItem2, "Re-entering first segment should remember last focused");
   }, "Memory works correctly for first focusgroup segment");
 

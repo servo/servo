@@ -34,28 +34,28 @@
 <script>
   promise_test(async t => {
     await focusAndWait(document.getElementById("before1"));
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, document.getElementById("item1"),
                   "First item selected as entry element initially (tree order)");
 
     document.getElementById("item2").setAttribute("focusgroupstart", "");
 
     await focusAndWait(document.getElementById("before1"));
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, document.getElementById("item2"),
                   "After adding focusgroupstart, new priority is respected");
   }, "Dynamic focusgroupstart changes affect entry element selection");
 
   promise_test(async t => {
     await focusAndWait(document.getElementById("before2"));
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, document.getElementById("btn1"),
                   "Tab skips disabled button");
 
     document.getElementById("btn2").removeAttribute("disabled");
 
     await focusAndWait(document.getElementById("before2"));
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, document.getElementById("btn1"),
                   "First enabled button selected in tree order");
   }, "Enabling disabled elements makes them available for tab stop");

@@ -2,66 +2,215 @@ function is_same_sanitizer_name(a, b) {
   return a.name === b.name && a.namespace === b.namespace;
 }
 
-// https://pr-preview.s3.amazonaws.com/otherdaniel/purification/pull/296.html#sanitizerconfig-valid
+function is_data_attribute(attribute) {
+  return attribute.name.startsWith("data-") && attribute.namespace === null;
+}
+
+function has_duplicates(list) {
+  if (!list) {
+    return false;
+  }
+
+  for (let i = 0; i < list.length; i++) {
+    for (let j = i + 1; j < list.length; j++) {
+      if (is_same_sanitizer_name(list[i], list[j])) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function has_intersection(list1, list2) {
+  if (!list1 || !list2) {
+    return false;
+  }
+
+  for (let item1 of list1) {
+    for (let item2 of list2) {
+      if (is_same_sanitizer_name(item1, item2)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+function is_subset(subset, superset) {
+  if (!subset) {
+    return true;
+  }
+
+  for (let item of subset) {
+    if (!superset.some(superItem => is_same_sanitizer_name(item, superItem))) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// https://wicg.github.io/sanitizer-api/#sanitizerconfig-valid
 function assert_config_is_valid(config) {
-  // The config has either an elements or a removeElements key, but not both.
-  assert_false(
-    "elements" in config && "removeElements" in config,
-    "Either elements or a removeElements, but not both",
-  );
+  // 1. Assert: config["elements"] exists or config["removeElements"] exists.
   assert_true(
     "elements" in config || "removeElements" in config,
-    "Either elements or a removeElements",
+    'Assert: config["elements"] exists or config["removeElements"] exists.',
   );
 
-  // The config has either an attributes or a removeAttributes key, but not both.
+  // 2. If config["elements"] exists and config["removeElements"] exists, then return false.
   assert_false(
-    "attributes" in config && "removeAttributes" in config,
-    "Either attributes or a removeAttributes, but not both",
+    "elements" in config && "removeElements" in config,
+    'If config["elements"] exists and config["removeElements"] exists, then return false.',
   );
+
+  // 3. Assert: Either config["attributes"] exists or config["removeAttributes"] exists.
   assert_true(
     "attributes" in config || "removeAttributes" in config,
-    "Either attributes or removeAttributes",
+    'Assert: Either config["attributes"] exists or config["removeAttributes"] exists.',
   );
 
-  // If both config[elements] and config[replaceWithChildrenElements] exist, then the difference of config[elements] and config[replaceWithChildrenElements] is empty.
-  if (config.elements && config.replaceWithChildrenElements) {
-    for (let element of config.elements) {
-      assert_false(
-        config.replaceWithChildrenElements.some((replaceElement) =>
-          is_same_sanitizer_name(element, replaceElement),
-        ),
-        `replaceWithChildrenElements should not contain ${element.name}`,
-      );
-    }
-  }
+  // 4. If config["attributes"] exists and config["removeAttributes"] exists, then return false.
+  assert_false(
+    "attributes" in config && "removeAttributes" in config,
+    'If config["attributes"] exists and config["removeAttributes"] exists, then return false.',
+  );
 
-  // If both config[removeElements] and config[replaceWithChildrenElements] exist, then the difference of config[removeElements] and config[replaceWithChildrenElements] is empty.
-  if (config.removeElements && config.replaceWithChildrenElements) {
-    for (let removeElement of config.removeElements) {
-      assert_false(
-        config.replaceWithChildrenElements.some((replaceElement) =>
-          is_same_sanitizer_name(removeElement, replaceElement),
-        ),
-        `replaceWithChildrenElements should not contain ${removeElement.name}`,
-      );
-    }
-  }
+  // 5. Assert: All SanitizerElementNamespaceWithAttributes, SanitizerElementNamespace, and SanitizerAttributeNamespace items in config are canonical, meaning they have been run through canonicalize a sanitizer element or canonicalize a sanitizer attribute, as appropriate.
 
-  // If config[attributes] exists:
-  if (config.attributes) {
+  // 6. If config["elements"] exists:
+  if ("elements" in config) {
+    // 6.1. If config["elements"] has duplicates, then return false.
+    assert_false(has_duplicates(config.elements), 'If config["elements"] has duplicates, then return false.');
   } else {
+    // 7. Otherwise:
+    // 7.1. If config["removeElements"] has duplicates, then return false.
+    assert_false(has_duplicates(config.removeElements), 'If config["removeElements"] has duplicates, then return false.');
+  }
+
+  // 8. If config["replaceWithChildrenElements"] exists and has duplicates, then return false.
+  if (config.replaceWithChildrenElements) {
+    assert_false(has_duplicates(config.replaceWithChildrenElements), 'If config["replaceWithChildrenElements"] exists and has duplicates, then return false.');
+  }
+
+  // 9. If config["attributes"] exists:
+  if ("attributes" in config) {
+    // 9.1. If config["attributes"] has duplicates, then return false.
+    assert_false(has_duplicates(config.attributes), 'If config["attributes"] has duplicates, then return false.');
+  } else {
+    // 10. Otherwise:
+    // 10.1. If config["removeAttributes"] has duplicates, then return false.
+    assert_false(has_duplicates(config.removeAttributes), 'If config["removeAttributes"] has duplicates, then return false.');
+  }
+
+  // 11. If config["replaceWithChildrenElements"] exists:
+  if (config.replaceWithChildrenElements) {
+    // 11.1. If config["elements"] exists:
     if (config.elements) {
+      // 11.1.1. If the intersection of config["elements"] and config["replaceWithChildrenElements"] is not empty, then return false.
+      assert_false(
+        has_intersection(config.elements, config.replaceWithChildrenElements),
+        'If the intersection of config["elements"] and config["replaceWithChildrenElements"] is not empty, then return false.',
+      );
+    } else {
+      // 11.2. Otherwise:
+      // 11.2.1. If the intersection of config["removeElements"] and config["replaceWithChildrenElements"] is not empty, then return false.
+      assert_false(
+        has_intersection(config.removeElements, config.replaceWithChildrenElements),
+        'If the intersection of config["removeElements"] and config["replaceWithChildrenElements"] is not empty, then return false.',
+      );
+    }
+  }
+
+  // 12. If config["attributes"] exists:
+  if (config.attributes) {
+    // 12.1. Assert: config["dataAttributes"] exists.
+    assert_true("dataAttributes" in config, 'Assert: config["dataAttributes"] exists.');
+
+    // 12.2. If config["elements"] exists:
+    if (config.elements) {
+      // 12.2.1. For each element of config["elements"]:
       for (let element of config.elements) {
-        // Not both element[attributes] and element[removeAttributes] exist.
-        assert_false("attributes" in element && "removeAttributes" in element,
-                     `Element ${element.name} can't have both 'attributes' and 'removeAttributes'`);
+        // 12.2.1.1. If element["attributes"] exists and element["attributes"] has duplicates, then return false.
+        if (element.attributes) {
+          assert_false(has_duplicates(element.attributes),
+                      `If element["attributes"] exists and element["attributes"] has duplicates, then return false. (element: ${element.name})`);
+        }
+
+        // 12.2.1.2. If element["removeAttributes"] exists and element["removeAttributes"] has duplicates, then return false.
+        if (element.removeAttributes) {
+          assert_false(has_duplicates(element.removeAttributes),
+                      `If element["removeAttributes"] exists and element["removeAttributes"] has duplicates, then return false. (element: ${element.name})`);
+        }
+
+        // 12.2.1.3. If the intersection of config["attributes"] and element["attributes"] with default « » is not empty, then return false.
+        assert_false(has_intersection(config.attributes, element.attributes),
+                    `If the intersection of config["attributes"] and element["attributes"] with default « » is not empty, then return false. (element: ${element.name})`);
+
+        // 12.2.1.4. If element["removeAttributes"] with default « » is not a subset of config["attributes"], then return false.
+        assert_true(is_subset(element.removeAttributes, config.attributes),
+                    `If element["removeAttributes"] with default « » is not a subset of config["attributes"], then return false. (element: ${element.name})`);
+
+        // 12.2.1.5. If config["dataAttributes"] is true and element["attributes"] contains a custom data attribute, then return false.
+        if (config.dataAttributes && element.attributes) {
+          for (let attr of element.attributes) {
+            assert_false(is_data_attribute(attr),
+                        `If config["dataAttributes"] is true and element["attributes"] contains a custom data attribute, then return false. (element: ${element.name}, attribute: ${attr.name})`);
+          }
+        }
       }
     }
 
-    // config[dataAttributes] does not exist.
-    assert_false("dataAttributes" in config, "dataAttributes does not exist");
+    // 12.3. If config["dataAttributes"] is true and config["attributes"] contains a custom data attribute, then return false.
+    if (config.dataAttributes) {
+      for (let attr of config.attributes) {
+        assert_false(is_data_attribute(attr),
+                    `If config["dataAttributes"] is true and config["attributes"] contains a custom data attribute, then return false. (attribute: ${attr.name})`);
+      }
+    }
+  } else {
+    // 13. Otherwise:
+    // 13.1. If config["elements"] exists:
+    if (config.elements) {
+      // 13.1.1. For each element of config["elements"]:
+      for (let element of config.elements) {
+        // 13.1.1.1. If element["attributes"] exists and element["removeAttributes"] exists, then return false.
+        assert_false("attributes" in element && "removeAttributes" in element,
+                     `If element["attributes"] exists and element["removeAttributes"] exists, then return false. (element: ${element.name})`);
+
+        // 13.1.1.2. If element["attributes"] exist and element["attributes"] has duplicates, then return false.
+        if (element.attributes) {
+          assert_false(has_duplicates(element.attributes),
+                      `If element["attributes"] exist and element["attributes"] has duplicates, then return false. (element: ${element.name})`);
+        }
+
+        // 13.1.1.3. If element["removeAttributes"] exist and element["removeAttributes"] has duplicates, then return false.
+        if (element.removeAttributes) {
+          assert_false(has_duplicates(element.removeAttributes),
+                      `If element["removeAttributes"] exist and element["removeAttributes"] has duplicates, then return false. (element: ${element.name})`);
+        }
+
+        // 13.1.1.4. If the intersection of config["removeAttributes"] and element["attributes"] with default « » is not empty, then return false.
+        if (element.attributes) {
+          assert_false(has_intersection(config.removeAttributes, element.attributes),
+                      `If the intersection of config["removeAttributes"] and element["attributes"] with default « » is not empty, then return false. (element: ${element.name})`);
+        }
+
+        // 13.1.1.5. If the intersection of config["removeAttributes"] and element["removeAttributes"] with default « » is not empty, then return false.
+        if (element.removeAttributes) {
+          assert_false(has_intersection(config.removeAttributes, element.removeAttributes),
+                      `If the intersection of config["removeAttributes"] and element["removeAttributes"] with default « » is not empty, then return false. (element: ${element.name})`);
+        }
+      }
+    }
+
+    // 13.2. If config["dataAttributes"] exists, then return false.
+    assert_false("dataAttributes" in config, 'If config["dataAttributes"] exists, then return false.');
   }
+
+  // 14. Return true.
 }
 
 function assert_config(config, expected) {
@@ -84,9 +233,6 @@ function assert_config(config, expected) {
   }
 
   assert_config_is_valid(config);
-
-  // XXX duplications
-  // XXX other consistency checks
 
   function assert_attrs(key, config, expected, prefix = "config") {
     // XXX we allow specifying only a subset for expected.

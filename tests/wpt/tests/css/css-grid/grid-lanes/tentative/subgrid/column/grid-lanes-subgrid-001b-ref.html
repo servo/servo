@@ -84,7 +84,7 @@ grid-lanes-track > subgrid {
 
 <!-- just to sanity check that `grid-lanes` behaves as `none` in the column axis in this case: -->
 
-<grid>
+<grid class="rows">
  <grid-lanes-track>
   <item class="nth-1">1</item>
   <item>5</item>
@@ -92,9 +92,9 @@ grid-lanes-track > subgrid {
  <grid-lanes-track>
   <item class="purple">2</item>
   <item>3</item>
-  <subgrid>
-    <item class="nth-1" style="grid-column:span 2">4a</item>
-    <item class="purple js">4b</item>
+  <subgrid style="grid:auto/subgrid">
+    <item class="nth-1">4a</item>
+    <item class="purple">4b</item>
     <item>4c</item>
   </subgrid>
  </grid-lanes-track>

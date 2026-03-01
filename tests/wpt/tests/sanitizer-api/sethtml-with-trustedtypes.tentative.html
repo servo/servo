@@ -1,0 +1,250 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/helper.sub.js"></script>
+
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="require-trusted-types-for 'script';"
+    />
+  </head>
+  <body>
+    <div id="container"></div>
+    <script>
+      const container = document.querySelector("#container");
+      // We have to replace this global because we are overriding the default policy from within the test.
+      let createParserOptions = (options) => options;
+      let createHTML = (html) => html;
+      const cleanupPolicy = trustedTypes.createPolicy("cleanup", {
+        createHTML: (_) => "",
+      });
+
+      trustedTypes.createPolicy("default", {
+        createHTML: (html) => createHTML(html),
+        createParserOptions: (options) => createParserOptions(options),
+      });
+
+      function cleanup() {}
+
+      function createTarget(target_type, t) {
+        t.add_cleanup(() => {
+          createParserOptions = (options) => options;
+          createHTML = (html) => html;
+        });
+
+        const target = document.createElement("div");
+        container.append(target);
+        t.add_cleanup(() => target.remove());
+        switch (target_type) {
+          case "Element":
+            return target;
+          case "ShadowRoot":
+            return target.attachShadow({ mode: "open" });
+        }
+      }
+
+      /**
+       *
+       * @param {Element|ShadowRoot} node
+       * @param {string} method
+       * @param {string} html
+       */
+      function run_method(node, method, html) {
+        switch (method) {
+          case "innerHTML":
+            node[method] = html;
+            break;
+          case "outerHTML": {
+            const inner = document.createElement("div");
+            node.replaceChildren(inner);
+            inner[method] = html;
+            break;
+          }
+          case "afterbegin":
+          case "beforeend": {
+            node.insertAdjacentHTML(method, html);
+            break;
+          }
+          case "beforebegin":
+          case "afterend": {
+            const inner = document.createElement("div");
+            node.replaceChildren(inner);
+            inner.insertAdjacentHTML(method, html);
+            break;
+          }
+          case "createContextualFragment":
+            const range = document.createRange();
+            range.setStart(node, 0);
+            range.setEnd(node, 0);
+            range.insertNode(range.createContextualFragment(html));
+            break;
+          default:
+            node[method](html);
+        }
+      }
+
+      for (const target of ["ShadowRoot", "Element"]) {
+        for (const method of [
+          "setHTML",
+          "setHTMLUnsafe",
+          "innerHTML",
+          "outerHTML",
+          "createContextualFragment",
+          "afterbegin",
+          "beforeend",
+          "beforebegin",
+          "afterend",
+        ]) {
+          if (
+            target === "ShadowRoot" &&
+            (method === "outerHTML" ||
+              method === "afterbegin" ||
+              method === "beforeend" ||
+              method === "createContextualFragment")
+          ) {
+            continue;
+          }
+          test((t) => {
+            const node = createTarget(target, t);
+            createParserOptions = (options) => ({
+              ...options,
+              sanitizer: { removeElements: ["span"] },
+            });
+            run_method(
+              node,
+              method,
+              "<div id='allowed'><span id=forbidden></span></div>",
+            );
+            assert_equals(node.querySelector("#forbidden"), null);
+            assert_not_equals(node.querySelector("#allowed"), null);
+          }, `${target}.${method}: createParserOptions can inject a sanitizer config`);
+
+          test((t) => {
+            t.add_cleanup(cleanup);
+            const node = createTarget(target, t);
+            createParserOptions = (options) => ({
+              ...options,
+              sanitizer: new Sanitizer({ removeElements: ["span"] }),
+            });
+            run_method(
+              node,
+              method,
+              "<div id=allowed><span id=forbidden></span></div>",
+            );
+            assert_equals(node.querySelector("#forbidden"), null);
+            assert_not_equals(node.querySelector("#allowed"), null);
+          }, `${target}.${method}: createParserOptions can inject a sanitizer`);
+
+          test((t) => {
+            const node = createTarget(target, t);
+            createParserOptions = (options) => ({
+              sanitizer: { removeElements: ["span"] },
+            });
+            run_method(
+              node,
+              method,
+              "<div id=allowed><span id=forbidden></span></div>",
+              {
+                sanitizer: { removeElements: ["div"] },
+              },
+            );
+            assert_equals(node.querySelector("#forbidden"), null);
+            assert_not_equals(node.querySelector("#allowed"), null);
+          }, `${target}.${method}: createParserOptions can override a sanitizer config`);
+
+          test((t) => {
+            const node = createTarget(target, t);
+            createParserOptions = (options) => ({});
+            run_method(node, method, "<div id=allowed></div>", {
+              sanitizer: { removeElements: ["div"] },
+            });
+            assert_equals(node.querySelector("#forbidden"), null);
+            assert_not_equals(node.querySelector("#allowed"), null);
+          }, `${target}.${method}: createParserOptions can remove a sanitizer`);
+
+          for (const value of [null, undefined, 0, 123, "foo"]) {
+            test((t) => {
+              const node = createTarget(target, t);
+              createParserOptions = (options) => value;
+              assert_throws_js(TypeError, () => {
+                run_method(
+                  node,
+                  method,
+                  "<div id='allowed'><span id=forbidden></span></div>",
+                );
+              });
+              assert_equals(node.querySelector("#forbidden"), null);
+              assert_equals(node.textContent, "");
+            }, `${target}.${method}: createParserOptions returning ${JSON.stringify(value)} fails`);
+          }
+        }
+
+        test((t) => {
+          const node = createTarget(target, t);
+          window.did_run = false;
+          t.add_cleanup(() => {
+            window.did_run = false;
+          });
+          createParserOptions = (options) => ({
+            runScripts: false,
+          });
+          node.setHTMLUnsafe(
+            "<div id=allowed><script>window.did_run = true;<" +
+              "/script></div>",
+          );
+          assert_false(window.did_run);
+          assert_not_equals(node.querySelector("#allowed"), null);
+        }, `${target}: createParserOptions can override runScripts`);
+
+        test((t) => {
+          const node = createTarget(target, t);
+          window.did_run = false;
+          t.add_cleanup(() => {
+            window.did_run = false;
+          });
+          createParserOptions = (options) => ({
+            runScripts: true,
+          });
+          (node.setHTMLUnsafe(
+            "<div id=allowed><script>window.did_run = true;<" +
+              "/script></div>",
+          ),
+            { runScripts: false });
+          assert_false(window.did_run);
+          assert_not_equals(node.querySelector("#allowed"), null);
+        }, `${target}: createParserOptions cannot change runScripts from false to true`);
+
+        test((t) => {
+          const node = createTarget(target, t);
+          createParserOptions = (options) => ({
+            ...options,
+            sanitizer: new Sanitizer({ removeElements: ["span"] }),
+          });
+          createHTML = (html) =>
+            html.replaceAll("cat", "<span id=forbidden2></span><p>dog</p>");
+          node.setHTMLUnsafe(
+            "<div id=allowed><span id=forbidden></span><div>cat</div></div>",
+          );
+          assert_equals(node.querySelector("#forbidden"), null);
+          assert_equals(node.querySelector("#forbidden2"), null);
+          assert_equals(node.textContent, "dog", node.innerHTML);
+          assert_not_equals(node.querySelector("#allowed"), null);
+        }, `${target}.setHTMLUnsafe: createParserOptions works after createHTML`);
+
+        test((t) => {
+          const node = createTarget(target, t);
+          window.did_run = false;
+          t.add_cleanup(() => {
+            window.did_run = false;
+          });
+          createParserOptions = (options) => ({ allowElements: ["script"] });
+          node.setHTML("<script id=forbidden><" + "/script>");
+          assert_false(window.did_run);
+          assert_equals(node.querySelector("#forbidden"), null);
+        }, `${target}: createParserOptions cannot add unsafe elements to safe HTML setting`);
+      }
+    </script>
+  </body>
+</html>

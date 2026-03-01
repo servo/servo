@@ -49,7 +49,7 @@ promise_test(async () => {
   await ensureLanguageModel();
   const session = await createLanguageModel();
   const promise = new Promise(resolve => {
-    session.addEventListener("quotaoverflow", resolve);
+    session.addEventListener('contextoverflow', resolve);
   });
   // Make sure there is something to evict.
   const kLongPrompt = kTestPrompt.repeat(10);
@@ -62,7 +62,7 @@ promise_test(async () => {
   const promptString = kLongPrompt.repeat(repeatCount);
   // The prompt promise succeeds, while causing older input to be evicted.
   await Promise.all([promise, session.prompt(promptString)]);
-}, 'The `quotaoverflow` event is fired when overall usage exceeds the quota');
+}, 'The `contextoverflow` event is fired when overall usage exceeds the context window');
 
 promise_test(async t => {
   await ensureLanguageModel();
@@ -71,4 +71,4 @@ promise_test(async t => {
   const requested = await session.measureContextUsage(promptString);
   await promise_rejects_quotaexceedederror(
       t, session.prompt(promptString), requested, session.contextWindow);
-}, 'Test that prompt input exceeding the total quota rejects');
+}, 'Test that prompt input exceeding the total context window rejects');

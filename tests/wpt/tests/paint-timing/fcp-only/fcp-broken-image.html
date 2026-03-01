@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>Performance Paint Timing Test: FCP due to broken image</title>
+<link rel="author" title="Shubham Gupta" href="mailto:shubham.gupta@chromium.org">
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<img id='broken'></div>
+<script>
+setup({"hide_test_state": true});
+promise_test(async t => {
+  const onload = new Promise(r => window.addEventListener('load', r));
+  await onload;
+  return assertNoFirstContentfulPaint(t).then(() => {
+    document.getElementById('broken').src = '../non-existent-image.jpg';
+  }).then(() => {
+    return assertFirstContentfulPaint(t);
+  });
+}, 'Broken image triggers First Contentful Paint.');
+</script>
+</body>

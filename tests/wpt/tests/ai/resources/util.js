@@ -294,25 +294,31 @@ async function ensureLanguageModel(options = {}) {
 async function testDestroy(t, createMethod, options, instanceMethods) {
   const instance = await createMethod(options);
 
+  const promises = instanceMethods.map(method => method(instance));
+
   instance.destroy();
 
-  const rejectionPromises = instanceMethods.map(method => {
-    return promise_rejects_dom(t, 'InvalidStateError', method(instance));
-  });
-  await Promise.all(rejectionPromises);
+  promises.push(...instanceMethods.map(method => method(instance)));
+
+  for (const promise of promises) {
+    await promise_rejects_dom(t, 'AbortError', promise);
+  }
 }
 
 async function testCreateAbort(t, createMethod, options, instanceMethods) {
   const controller = new AbortController();
   const instance = await createMethod({...options, signal: controller.signal});
 
-  const abortError = new Error('The create abort signal was aborted.');
-  controller.abort(abortError);
+  const promises = instanceMethods.map(method => method(instance));
 
-  const rejectionPromises = instanceMethods.map(method => {
-    return promise_rejects_dom(t, 'InvalidStateError', method(instance));
-  });
-  await Promise.all(rejectionPromises);
+  const error = new Error('The create abort signal was aborted.');
+  controller.abort(error);
+
+  promises.push(...instanceMethods.map(method => method(instance)));
+
+  for (const promise of promises) {
+    await promise_rejects_exactly(t, error, promise);
+  }
 }
 
 // Helper function to check that 'actual' is within 'expected +/- delta'.

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-notation">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="Wildcard not supported in attr() function">
+<style>
+.a {
+   background: green;
+   height: 100px;
+   width: 100px;
+}
+
+.attr {
+  background: attr(*|bar type(*));
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="a attr" bar="red"></div>

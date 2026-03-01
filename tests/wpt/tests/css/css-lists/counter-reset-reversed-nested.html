@@ -1,0 +1,25 @@
+<!doctype html>
+<title>CSS Lists: nested counter-reset: reversed() with counter-set and counter-increment</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#counter-reset">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#inheriting-counters">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#instantiating-counters">
+<link rel="help" href="https://drafts.csswg.org/css-lists/#nested-counters">
+<link rel="author" title="Minseong Kim" href="mailto:jja08111@gmail.com">
+<link rel="match" href="counter-reset-reversed-nested-ref.html">
+<style>
+  ol { counter-reset: reversed(foo); }
+  li { display: block }
+  li::before { counter-increment: foo -1; content: counter(foo) ". " }
+  .set { counter-set: foo 10; }
+</style>
+<ol>
+  <li>Three</li>
+  <li>Two
+    <ol>
+      <li>Eleven</li>
+      <li class="set">Nine</li>
+      <li>Eight</li>
+    </ol>
+  </li>
+  <li>One</li>
+</ol>

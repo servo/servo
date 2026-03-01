@@ -1,0 +1,17 @@
+{
+    "short_name": "fallback-short",
+    "short_name_localized": {
+        "en": "EN Short",
+        "en-US": "EN-US Short",
+        "fr": "FR Court",
+        "ja": "短い名前"
+    },
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "192x192"
+        }
+    ],
+    "start_url": "../short_name_localized-member-exact-match-manual.html",
+    "display": "fullscreen"
+}

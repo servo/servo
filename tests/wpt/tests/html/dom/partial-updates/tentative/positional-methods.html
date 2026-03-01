@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  HTML partial updates - {append|prepend|before|after|replaceWith}HTML{Unafe}
+</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<body>
+  <script>
+    function create_tests(target_type, pos, ref_type, safe) {
+      const method_name = `${pos}HTML${safe ? "" : "Unsafe"}`;
+      const variant = `${ref_type}.${method_name} (${target_type})`;
+
+      function prepare(t) {
+        return prepare_html_partial_update(target_type, ref_type, pos, t);
+      }
+
+      test((t) => {
+        const { target, ref, object } = prepare(t);
+        object[method_name]("<span>html;</span>");
+        check_position(target, pos, ref);
+      }, `Position check: ${variant}`);
+
+      for (const runScripts of [true, false]) {
+        test((t) => {
+          const { target, ref, object } = prepare(t);
+          window.did_run = false;
+          t.add_cleanup(() => {
+            delete window.did_run;
+          });
+          object[method_name](
+            "<span>html;</span><script>window.did_run = true<" + "/script>",
+            { runScripts },
+          );
+          const script = target.querySelector("script");
+          assert_equals(!!script, !safe);
+          if (script) script.remove();
+          assert_equals(window.did_run, runScripts && !safe);
+
+          check_position(target, pos, ref);
+        }, `Only unsafe variants should run scripts: ${variant} (runScripts=${runScripts})`);
+      }
+
+      test((t) => {
+        const { target, ref, object } = prepare(t);
+        object[method_name]("<span>html;</span><p>forbidden</p>", {
+          sanitizer: { removeElements: ["p"] },
+        });
+        check_position(target, pos, ref);
+        assert_equals(target.querySelector("p"), null);
+      }, `Sanitizer should remove forbidden elements: ${variant}`);
+    }
+
+    for (const target of ["Element", "ShadowRoot"]) {
+      for (const pos of ["append", "prepend"]) {
+        for (const safe of [true, false]) {
+          create_tests(target, pos, "Element", safe);
+        }
+      }
+
+      for (const ref of [
+        "Element",
+        "Comment",
+        "Text",
+        "ProcessingInstruction",
+      ]) {
+        for (const pos of ["before", "after", "replaceWith"]) {
+          for (const safe of [true, false]) {
+            create_tests(target, pos, ref, safe);
+          }
+        }
+      }
+    }
+  </script>
+</body>

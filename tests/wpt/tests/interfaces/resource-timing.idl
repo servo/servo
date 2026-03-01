@@ -41,8 +41,7 @@ enum RenderBlockingStatusType {
     "non-blocking"
 };
 
-partial interface Performance {
-  undefined clearResourceTimings ();
+partial interface Performance {  undefined clearResourceTimings ();
   undefined setResourceTimingBufferSize (unsigned long maxSize);
   attribute EventHandler onresourcetimingbufferfull;
 };

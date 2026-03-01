@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>CSS Test: animating the guaranteed-invalid value</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-variables-1/#guaranteed-invalid">
+
+<style>
+@keyframes anim {
+  50% { --width: initial; }
+  100% { --width: 100px; }
+}
+.test {
+  --width: 50px;
+  width: var(--width);
+  animation: anim 100s linear paused both;
+  animation-delay: calc(var(--at) * -1s);
+  border: solid;
+  box-sizing: border-box;
+}
+.test::before { /* Just informative, not really necessary for the test */
+  counter-reset: --at var(--at);
+  content: counter(--at) "%";
+}
+</style>
+
+<div style="width: 200px">
+  <!-- From 0% to 25%, `--width` is set to 50px (outside of the @keyframes) -->
+  <div class="test" style="--at:   0" data-expected-width= "50"></div>
+  <div class="test" style="--at:  24" data-expected-width= "50"></div>
+
+  <!-- From 25% to 75%, `--width` is set to the guaranteed invalid value.
+       Therefore `width` becomes invalid at computed-value time, and thus
+       computes to its initial value, stretching to fill the container. -->
+  <div class="test" style="--at:  25" data-expected-width="200"></div>
+  <div class="test" style="--at:  74" data-expected-width="200"></div>
+
+  <!-- From 75% to 100%, `--width` is set to 100px (in the @keyframes) -->
+  <div class="test" style="--at:  75" data-expected-width="100"></div>
+  <div class="test" style="--at: 100" data-expected-width="100"></div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+checkLayout(".test");
+</script>
