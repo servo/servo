@@ -400,28 +400,28 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // encrypt() method, respectively.
         // NOTE: We did that in method parameter.
 
-        // Step 2. Let data be the result of getting a copy of the bytes held by the data parameter
+        // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
+        // to algorithm and op set to "encrypt".
+        // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+        let normalized_algorithm = match normalize_algorithm::<EncryptOperation>(cx, &algorithm) {
+            Ok(normalized_algorithm) => normalized_algorithm,
+            Err(error) => {
+                let promise = Promise::new_in_realm(cx);
+                promise.reject_error(error, CanGc::from_cx(cx));
+                return promise;
+            },
+        };
+
+        // Step 4. Let data be the result of getting a copy of the bytes held by the data parameter
         // passed to the encrypt() method.
         let data = match data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
-        // to algorithm and op set to "encrypt".
-        // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-        let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm::<EncryptOperation>(cx, &algorithm) {
-            Ok(normalized_algorithm) => normalized_algorithm,
-            Err(error) => {
-                promise.reject_error(error, CanGc::from_cx(cx));
-                return promise;
-            },
-        };
-
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
-        // NOTE: We did that in preparation of Step 4.
+        let promise = Promise::new_in_realm(cx);
 
         // Step 7. Return promise and perform the remaining steps in parallel.
         let this = Trusted::new(self);
@@ -487,28 +487,28 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // decrypt() method, respectively.
         // NOTE: We did that in method parameter.
 
-        // Step 2. Let data be the result of getting a copy of the bytes held by the data parameter
+        // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
+        // to algorithm and op set to "decrypt".
+        // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+        let normalized_algorithm = match normalize_algorithm::<DecryptOperation>(cx, &algorithm) {
+            Ok(normalized_algorithm) => normalized_algorithm,
+            Err(error) => {
+                let promise = Promise::new_in_realm(cx);
+                promise.reject_error(error, CanGc::from_cx(cx));
+                return promise;
+            },
+        };
+
+        // Step 4. Let data be the result of getting a copy of the bytes held by the data parameter
         // passed to the decrypt() method.
         let data = match data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
-        // to algorithm and op set to "decrypt".
-        // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-        let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm::<DecryptOperation>(cx, &algorithm) {
-            Ok(normalized_algorithm) => normalized_algorithm,
-            Err(error) => {
-                promise.reject_error(error, CanGc::from_cx(cx));
-                return promise;
-            },
-        };
-
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
-        // NOTE: We did that in preparation of Step 4.
+        let promise = Promise::new_in_realm(cx);
 
         // Step 7. Return promise and perform the remaining steps in parallel.
         let this = Trusted::new(self);
@@ -574,28 +574,28 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // method, respectively.
         // NOTE: We did that in method parameter.
 
-        // Step 2. Let data be the result of getting a copy of the bytes held by the data parameter
+        // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
+        // to algorithm and op set to "sign".
+        // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+        let normalized_algorithm = match normalize_algorithm::<SignOperation>(cx, &algorithm) {
+            Ok(normalized_algorithm) => normalized_algorithm,
+            Err(error) => {
+                let promise = Promise::new_in_realm(cx);
+                promise.reject_error(error, CanGc::from_cx(cx));
+                return promise;
+            },
+        };
+
+        // Step 4. Let data be the result of getting a copy of the bytes held by the data parameter
         // passed to the sign() method.
         let data = match &data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
-        // to algorithm and op set to "sign".
-        // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-        let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm::<SignOperation>(cx, &algorithm) {
-            Ok(normalized_algorithm) => normalized_algorithm,
-            Err(error) => {
-                promise.reject_error(error, CanGc::from_cx(cx));
-                return promise;
-            },
-        };
-
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
-        // NOTE: We did that in preparation of Step 4.
+        let promise = Promise::new_in_realm(cx);
 
         // Step 7. Return promise and perform the remaining steps in parallel.
         let this = Trusted::new(self);
@@ -661,35 +661,35 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // method, respectively.
         // NOTE: We did that in method parameter.
 
-        // Step 2. Let signature be the result of getting a copy of the bytes held by the signature
+        // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set to
+        // algorithm and op set to "verify".
+        // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+        let normalized_algorithm = match normalize_algorithm::<VerifyOperation>(cx, &algorithm) {
+            Ok(algorithm) => algorithm,
+            Err(error) => {
+                let promise = Promise::new_in_realm(cx);
+                promise.reject_error(error, CanGc::from_cx(cx));
+                return promise;
+            },
+        };
+
+        // Step 4. Let signature be the result of getting a copy of the bytes held by the signature
         // parameter passed to the verify() method.
         let signature = match &signature {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        // Step 3. Let data be the result of getting a copy of the bytes held by the data parameter
+        // Step 5. Let data be the result of getting a copy of the bytes held by the data parameter
         // passed to the verify() method.
         let data = match &data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        // Step 4. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set to
-        // algorithm and op set to "verify".
-        // Step 5. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-        let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm::<VerifyOperation>(cx, &algorithm) {
-            Ok(algorithm) => algorithm,
-            Err(error) => {
-                promise.reject_error(error, CanGc::from_cx(cx));
-                return promise;
-            },
-        };
-
         // Step 6. Let realm be the relevant realm of this.
         // Step 7. Let promise be a new Promise.
-        // NOTE: We did that in preparation of Step 5.
+        let promise = Promise::new_in_realm(cx);
 
         // Step 8. Return promise and perform the remaining steps in parallel.
         let this = Trusted::new(self);
@@ -751,28 +751,28 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 1. Let algorithm be the algorithm parameter passed to the digest() method.
         // NOTE: We did that in method parameter.
 
-        // Step 2. Let data be the result of getting a copy of the bytes held by the
+        // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm,
+        // with alg set to algorithm and op set to "digest".
+        // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+        let normalized_algorithm = match normalize_algorithm::<DigestOperation>(cx, &algorithm) {
+            Ok(normalized_algorithm) => normalized_algorithm,
+            Err(error) => {
+                let promise = Promise::new_in_realm(cx);
+                promise.reject_error(error, CanGc::from_cx(cx));
+                return promise;
+            },
+        };
+
+        // Step 4. Let data be the result of getting a copy of the bytes held by the
         // data parameter passed to the digest() method.
         let data = match data {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm,
-        // with alg set to algorithm and op set to "digest".
-        // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-        let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm::<DigestOperation>(cx, &algorithm) {
-            Ok(normalized_algorithm) => normalized_algorithm,
-            Err(error) => {
-                promise.reject_error(error, CanGc::from_cx(cx));
-                return promise;
-            },
-        };
-
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
-        // NOTE: We did that in preparation of Step 3.
+        let promise = Promise::new_in_realm(cx);
 
         // Step 7. Return promise and perform the remaining steps in parallel.
         let this = Trusted::new(self);
@@ -1154,19 +1154,28 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 1. Let format, algorithm, extractable and usages, be the format, algorithm,
         // extractable and keyUsages parameters passed to the importKey() method, respectively.
 
-        // Step 5. Let realm be the relevant realm of this.
-        // Step 6. Let promise be a new Promise.
-        let promise = Promise::new_in_realm(cx);
+        // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
+        // to algorithm and op set to "importKey".
+        // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+        let normalized_algorithm = match normalize_algorithm::<ImportKeyOperation>(cx, &algorithm) {
+            Ok(algorithm) => algorithm,
+            Err(error) => {
+                let promise = Promise::new_in_realm(cx);
+                promise.reject_error(error, CanGc::from_cx(cx));
+                return promise;
+            },
+        };
 
-        // Step 2.
+        // Step 4.
         let key_data = match format {
             // If format is equal to the string "jwk":
             KeyFormat::Jwk => {
                 match key_data {
                     ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBufferView(_) |
                     ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBuffer(_) => {
-                        // Step 2.1. If the keyData parameter passed to the importKey() method is
+                        // Step 4.1. If the keyData parameter passed to the importKey() method is
                         // not a JsonWebKey dictionary, throw a TypeError.
+                        let promise = Promise::new_in_realm(cx);
                         promise.reject_error(
                             Error::Type(c"The keyData type does not match the format".to_owned()),
                             CanGc::from_cx(cx),
@@ -1175,7 +1184,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     },
 
                     ArrayBufferViewOrArrayBufferOrJsonWebKey::JsonWebKey(jwk) => {
-                        // Step 2.2. Let keyData be the keyData parameter passed to the importKey()
+                        // Step 4.2. Let keyData be the keyData parameter passed to the importKey()
                         // method.
                         //
                         // NOTE: Serialize JsonWebKey throught stringifying it.
@@ -1185,6 +1194,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         match jwk.stringify(cx) {
                             Ok(stringified) => stringified.as_bytes().to_vec(),
                             Err(error) => {
+                                let promise = Promise::new_in_realm(cx);
                                 promise.reject_error(error, CanGc::from_cx(cx));
                                 return promise;
                             },
@@ -1195,9 +1205,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             // Otherwise:
             _ => {
                 match key_data {
-                    // Step 2.1. If the keyData parameter passed to the importKey() method is a
+                    // Step 4.1. If the keyData parameter passed to the importKey() method is a
                     // JsonWebKey dictionary, throw a TypeError.
                     ArrayBufferViewOrArrayBufferOrJsonWebKey::JsonWebKey(_) => {
+                        let promise = Promise::new_in_realm(cx);
                         promise.reject_error(
                             Error::Type(c"The keyData type does not match the format".to_owned()),
                             CanGc::from_cx(cx),
@@ -1205,7 +1216,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                         return promise;
                     },
 
-                    // Step 2.2. Let keyData be the result of getting a copy of the bytes held by
+                    // Step 4.2. Let keyData be the result of getting a copy of the bytes held by
                     // the keyData parameter passed to the importKey() method.
                     ArrayBufferViewOrArrayBufferOrJsonWebKey::ArrayBufferView(view) => {
                         view.to_vec()
@@ -1217,16 +1228,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             },
         };
 
-        // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
-        // to algorithm and op set to "importKey".
-        // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
-        let normalized_algorithm = match normalize_algorithm::<ImportKeyOperation>(cx, &algorithm) {
-            Ok(algorithm) => algorithm,
-            Err(error) => {
-                promise.reject_error(error, CanGc::from_cx(cx));
-                return promise;
-            },
-        };
+        // Step 5. Let realm be the relevant realm of this.
+        // Step 6. Let promise be a new Promise.
+        let promise = Promise::new_in_realm(cx);
 
         // Step 7. Return promise and perform the remaining steps in parallel.
         let this = Trusted::new(self);
@@ -1559,18 +1563,11 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // extractable and keyUsages parameters passed to the unwrapKey() method, respectively.
         // NOTE: We did that in method parameter.
 
-        // Step 2. Let wrappedKey be the result of getting a copy of the bytes held by the
-        // wrappedKey parameter passed to the unwrapKey() method.
-        let wrapped_key = match wrapped_key {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
-
-        // Step 3. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
+        // Step 2. Let normalizedAlgorithm be the result of normalizing an algorithm, with alg set
         // to algorithm and op set to "unwrapKey".
-        // Step 4. If an error occurred, let normalizedAlgorithm be the result of normalizing an
+        // Step 3. If an error occurred, let normalizedAlgorithm be the result of normalizing an
         // algorithm, with alg set to algorithm and op set to "decrypt".
-        // Step 5. If an error occurred, return a Promise rejected with normalizedAlgorithm.
+        // Step 4. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         enum UnwrapKeyAlgorithmOrDecryptAlgorithm {
             UnwrapKeyAlgorithm(UnwrapKeyAlgorithm),
             DecryptAlgorithm(DecryptAlgorithm),
@@ -1590,9 +1587,9 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             }
         };
 
-        // Step 6. Let normalizedKeyAlgorithm be the result of normalizing an algorithm, with alg
+        // Step 5. Let normalizedKeyAlgorithm be the result of normalizing an algorithm, with alg
         // set to unwrappedKeyAlgorithm and op set to "importKey".
-        // Step 7. If an error occurred, return a Promise rejected with normalizedKeyAlgorithm.
+        // Step 6. If an error occurred, return a Promise rejected with normalizedKeyAlgorithm.
         let normalized_key_algorithm =
             match normalize_algorithm::<ImportKeyOperation>(cx, &unwrapped_key_algorithm) {
                 Ok(algorithm) => algorithm,
@@ -1602,6 +1599,13 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     return promise;
                 },
             };
+
+        // Step 7. Let wrappedKey be the result of getting a copy of the bytes held by the
+        // wrappedKey parameter passed to the unwrapKey() method.
+        let wrapped_key = match wrapped_key {
+            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
+            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
+        };
 
         // Step 8. Let realm be the relevant realm of this.
         // Step 9. Let promise be a new Promise.
@@ -1980,43 +1984,44 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // extractable and keyUsages parameters passed to the decapsulateKey() method,
         // respectively.
 
-        // Step 2. Let ciphertext be the result of getting a copy of the bytes held by the
+        // Step 2. Let normalizedDecapsulationAlgorithm be the result of normalizing an algorithm,
+        // with alg set to decapsulationAlgorithm and op set to "decapsulate".
+        // Step 3. If an error occurred, return a Promise rejected with
+        // normalizedDecapsulationAlgorithm.
+        let normalized_decapsulation_algorithm =
+            match normalize_algorithm::<DecapsulateOperation>(cx, &decapsulation_algorithm) {
+                Ok(normalized_algorithm) => normalized_algorithm,
+                Err(error) => {
+                    let promise = Promise::new_in_realm(cx);
+                    promise.reject_error(error, CanGc::from_cx(cx));
+                    return promise;
+                },
+            };
+
+        // Step 4. Let normalizedSharedKeyAlgorithm be the result of normalizing an algorithm, with
+        // alg set to sharedKeyAlgorithm and op set to "importKey".
+        // Step 5. If an error occurred, return a Promise rejected with
+        // normalizedSharedKeyAlgorithm.
+        let normalized_shared_key_algorithm =
+            match normalize_algorithm::<ImportKeyOperation>(cx, &shared_key_algorithm) {
+                Ok(normalized_algorithm) => normalized_algorithm,
+                Err(error) => {
+                    let promise = Promise::new_in_realm(cx);
+                    promise.reject_error(error, CanGc::from_cx(cx));
+                    return promise;
+                },
+            };
+
+        // Step 6. Let ciphertext be the result of getting a copy of the bytes held by the
         // ciphertext parameter passed to the decapsulateKey() method.
         let ciphertext = match ciphertext {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        // Step 3. Let normalizedDecapsulationAlgorithm be the result of normalizing an algorithm,
-        // with alg set to decapsulationAlgorithm and op set to "decapsulate".
-        // Step 4. If an error occurred, return a Promise rejected with
-        // normalizedDecapsulationAlgorithm.
-        let promise = Promise::new_in_realm(cx);
-        let normalized_decapsulation_algorithm =
-            match normalize_algorithm::<DecapsulateOperation>(cx, &decapsulation_algorithm) {
-                Ok(normalized_algorithm) => normalized_algorithm,
-                Err(error) => {
-                    promise.reject_error(error, CanGc::from_cx(cx));
-                    return promise;
-                },
-            };
-
-        // Step 5. Let normalizedSharedKeyAlgorithm be the result of normalizing an algorithm, with
-        // alg set to sharedKeyAlgorithm and op set to "importKey".
-        // Step 6. If an error occurred, return a Promise rejected with
-        // normalizedSharedKeyAlgorithm.
-        let normalized_shared_key_algorithm =
-            match normalize_algorithm::<ImportKeyOperation>(cx, &shared_key_algorithm) {
-                Ok(normalized_algorithm) => normalized_algorithm,
-                Err(error) => {
-                    promise.reject_error(error, CanGc::from_cx(cx));
-                    return promise;
-                },
-            };
-
         // Step 7. Let realm be the relevant realm of this.
         // Step 8. Let promise be a new Promise.
-        // NOTE: We did that in preparation of Step 4.
+        let promise = Promise::new_in_realm(cx);
 
         // Step 9. Return promise and perform the remaining steps in parallel.
         let trusted_subtle = Trusted::new(self);
@@ -2116,30 +2121,30 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // Step 1. Let decapsulationAlgorithm and decapsulationKey be the decapsulationAlgorithm
         // and decapsulationKey parameters passed to the decapsulateBits() method, respectively.
 
-        // Step 2. Let ciphertext be the result of getting a copy of the bytes held by the
+        // Step 2. Let normalizedDecapsulationAlgorithm be the result of normalizing an algorithm,
+        // with alg set to decapsulationAlgorithm and op set to "decapsulate".
+        // Step 3. If an error occurred, return a Promise rejected with
+        // normalizedDecapsulationAlgorithm.
+        let normalized_decapsulation_algorithm =
+            match normalize_algorithm::<DecapsulateOperation>(cx, &decapsulation_algorithm) {
+                Ok(normalized_algorithm) => normalized_algorithm,
+                Err(error) => {
+                    let promise = Promise::new_in_realm(cx);
+                    promise.reject_error(error, CanGc::from_cx(cx));
+                    return promise;
+                },
+            };
+
+        // Step 4. Let ciphertext be the result of getting a copy of the bytes held by the
         // ciphertext parameter passed to the decapsulateBits() method.
         let ciphertext = match ciphertext {
             ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
             ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
         };
 
-        // Step 3. Let normalizedDecapsulationAlgorithm be the result of normalizing an algorithm,
-        // with alg set to decapsulationAlgorithm and op set to "decapsulate".
-        // Step 4. If an error occurred, return a Promise rejected with
-        // normalizedDecapsulationAlgorithm.
-        let promise = Promise::new_in_realm(cx);
-        let normalized_decapsulation_algorithm =
-            match normalize_algorithm::<DecapsulateOperation>(cx, &decapsulation_algorithm) {
-                Ok(normalized_algorithm) => normalized_algorithm,
-                Err(error) => {
-                    promise.reject_error(error, CanGc::from_cx(cx));
-                    return promise;
-                },
-            };
-
         // Step 5. Let realm be the relevant realm of this.
         // Step 6. Let promise be a new Promise.
-        // NOTE: We did that in preparation of Step 4.
+        let promise = Promise::new_in_realm(cx);
 
         // Step 7. Return promise and perform the remaining steps in parallel.
         let trusted_subtle = Trusted::new(self);
