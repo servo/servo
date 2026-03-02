@@ -13,6 +13,7 @@ use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use js::context::JSContext;
 use js::realm::AutoRealm;
 use js::rust::HandleObject;
 use mime::{self, Mime};
@@ -1816,8 +1817,8 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin>
-    fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
-        set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
+    fn SetCrossOrigin(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        set_cross_origin_attribute(cx, self.upcast::<Element>(), value);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
