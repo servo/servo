@@ -173,12 +173,9 @@ impl ReplacedContents {
                     ReplacedContentKind::Canvas(canvas_info),
                     NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
                 )
-            } else if let Some((pipeline_id, browsing_context_id)) = node.as_iframe() {
+            } else if let Some(iframe_info) = node.as_iframe() {
                 (
-                    ReplacedContentKind::IFrame(IFrameInfo {
-                        pipeline_id,
-                        browsing_context_id,
-                    }),
+                    ReplacedContentKind::IFrame(iframe_info),
                     NaturalSizes::empty(),
                 )
             } else if let Some((video_info, natural_size_in_dots)) = node.as_video() {
