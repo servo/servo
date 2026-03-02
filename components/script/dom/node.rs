@@ -2192,6 +2192,39 @@ where
     }
 }
 
+/// An efficient SimpleNodeIterator because it skips rooting if there are no GC pauses.
+///
+/// Use this if you have a `&JSContext` or `NoGC`.
+///
+/// Normally we need to root every `Node` we come across as we do not know if we will have a GC pause.
+/// This does not root the required children. Taking a `&NoGC` enforces that there is no `&mut JSContext`
+/// while this iterator is alive.
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+pub(crate) struct EfficientSimpleNodeIterator<'a, 'b, I>
+where
+    I: Fn(&Node) -> Option<UnrootedDom<'b, Node>>,
+{
+    current: Option<UnrootedDom<'b, Node>>,
+    next_node: I,
+    /// This is unused and only used for lifetime guarantee of NoGC
+    no_gc: &'b NoGC,
+    phantom: PhantomData<&'a Node>,
+}
+
+impl<'a, 'b, I> Iterator for EfficientSimpleNodeIterator<'a, 'b, I>
+where
+    'b: 'a,
+    I: Fn(&Node) -> Option<UnrootedDom<'b, Node>>,
+{
+    type Item = UnrootedDom<'b, Node>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current = self.current.take();
+        self.current = current.as_ref().and_then(|c| (self.next_node)(c));
+        current
+    }
+}
+
 /// Whether a tree traversal should pass shadow tree boundaries.
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum ShadowIncluding {
