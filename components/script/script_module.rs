@@ -739,7 +739,8 @@ impl FetchResponseListener for ModuleContext {
         let global = self.owner.global();
         let (url, module_type) = &self.module_request;
 
-        if let Some(window) = global.downcast::<Window>() {
+        if let ModuleOwner::Window(_) = self.owner {
+            let window = global.downcast::<Window>().unwrap();
             window
                 .Document()
                 .finish_load(LoadType::Script(url.clone()), cx);
