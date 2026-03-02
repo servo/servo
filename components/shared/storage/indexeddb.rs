@@ -273,9 +273,9 @@ pub struct IndexedDBObjectStore {
     pub indexes: Vec<IndexedDBIndex>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum PutItemResult {
-    Success,
+    Key(IndexedDBKeyType),
     CannotOverwrite,
 }
 
@@ -459,6 +459,13 @@ pub enum SyncOperation {
     /// Get object store info
     GetObjectStore(
         GenericSender<BackendResult<IndexedDBObjectStore>>,
+        ImmutableOrigin,
+        String, // Database
+        String, // Store
+    ),
+    /// Generate and reserve a key from an object store key generator.
+    GenerateKey(
+        GenericSender<BackendResult<IndexedDBKeyType>>,
         ImmutableOrigin,
         String, // Database
         String, // Store

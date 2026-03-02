@@ -14,8 +14,8 @@ use js::jsapi::{
 };
 use js::jsval::{DoubleValue, JSVal, UndefinedValue};
 use js::rust::wrappers2::{
-    GetArrayLength, GetBuiltinClass, IsArrayObject, JS_GetProperty, JS_HasOwnProperty,
-    JS_HasOwnPropertyById, JS_IndexToId, JS_IsIdentifier, JS_NewObject, NewDateObject,
+    GetArrayLength, GetBuiltinClass, IsArrayObject, JS_HasOwnPropertyById, JS_IndexToId,
+    JS_IsIdentifier, JS_NewObject, NewDateObject,
 };
 use js::rust::{HandleValue, MutableHandleValue};
 use storage_traits::indexeddb::{BackendError, IndexedDBKeyRange, IndexedDBKeyType};
@@ -29,11 +29,14 @@ use crate::dom::bindings::conversions::{
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::utils::set_dictionary_property;
+use crate::dom::bindings::utils::{
+    define_dictionary_property, get_dictionary_property, has_own_property,
+};
 use crate::dom::blob::Blob;
 use crate::dom::file::File;
 use crate::dom::idbkeyrange::IDBKeyRange;
 use crate::dom::idbobjectstore::KeyPath;
+use crate::script_runtime::CanGc;
 
 // https://www.w3.org/TR/IndexedDB-3/#convert-key-to-value
 #[expect(unsafe_code)]
@@ -337,7 +340,7 @@ pub(crate) fn evaluate_key_path_on_value(
                 // Step 1.3.5. Let status be CreateDataProperty(result, p, key).
                 // Step 1.3.6. Assert: status is true.
                 let i_cstr = std::ffi::CString::new(i.to_string()).unwrap();
-                set_dictionary_property(
+                define_dictionary_property(
                     cx.into(),
                     result.handle(),
                     i_cstr.as_c_str(),
@@ -477,10 +480,9 @@ pub(crate) fn evaluate_key_path_on_value(
                         CString::new(identifier).expect("Failed to convert str to CString");
 
                     // Let hop be ! HasOwnProperty(value, identifier).
-                    let mut hop = false;
-                    if !JS_HasOwnProperty(cx, object.handle(), identifier_name.as_ptr(), &mut hop) {
-                        return Err(Error::JSFailed);
-                    }
+                    let hop =
+                        has_own_property(cx.into(), object.handle(), identifier_name.as_c_str())
+                            .map_err(|_| Error::JSFailed)?;
 
                     // If hop is false, return failure.
                     if !hop {
@@ -488,13 +490,16 @@ pub(crate) fn evaluate_key_path_on_value(
                     }
 
                     // Let value be ! Get(value, identifier).
-                    if !JS_GetProperty(
-                        cx,
+                    match get_dictionary_property(
+                        cx.raw_cx(),
                         object.handle(),
-                        identifier_name.as_ptr(),
+                        identifier_name.as_c_str(),
                         current_value.handle_mut(),
+                        CanGc::note(),
                     ) {
-                        return Err(Error::JSFailed);
+                        Ok(true) => {},
+                        Ok(false) => return Ok(EvaluationResult::Failure),
+                        Err(()) => return Err(Error::JSFailed),
                     }
 
                     // If value is undefined, return failure.
@@ -520,6 +525,179 @@ pub(crate) enum ExtractionResult {
     Key(IndexedDBKeyType),
     Invalid,
     Failure,
+}
+
+/// <https://w3c.github.io/IndexedDB/#check-that-a-key-could-be-injected-into-a-value>
+#[expect(unsafe_code)]
+pub(crate) fn can_inject_key_into_value(
+    cx: &mut JSContext,
+    value: HandleValue,
+    key_path: &DOMString,
+) -> Result<bool, Error> {
+    // Step 1. Let identifiers be the result of strictly splitting keyPath on U+002E FULL STOP
+    // characters (.).
+    let key_path_string = key_path.str();
+    let mut identifiers: Vec<&str> = key_path_string.split('.').collect();
+
+    // Step 2. Assert: identifiers is not empty.
+    let Some(_) = identifiers.pop() else {
+        return Ok(false);
+    };
+
+    rooted!(&in(cx) let mut current_value = *value);
+
+    // Step 3. For each remaining identifier of identifiers:
+    for identifier in identifiers {
+        // Step 3.1. If value is not an Object or an Array, return false.
+        if !current_value.is_object() {
+            return Ok(false);
+        }
+
+        rooted!(&in(cx) let current_object = current_value.to_object());
+        let identifier_name =
+            CString::new(identifier).expect("Failed to convert key path identifier to CString");
+
+        // Step 3.2. Let hop be ? HasOwnProperty(value, identifier).
+        let hop = has_own_property(
+            cx.into(),
+            current_object.handle(),
+            identifier_name.as_c_str(),
+        )
+        .map_err(|_| Error::JSFailed)?;
+
+        // Step 3.3. If hop is false, set value to a new Object created as if by the expression
+        // ({}).
+        // We avoid mutating `value` during this check and can return true immediately because the
+        // remaining path can be created from scratch.
+        if !hop {
+            return Ok(true);
+        }
+
+        // Step 3.4. Set value to ? Get(value, identifier).
+        match unsafe {
+            get_dictionary_property(
+                cx.raw_cx(),
+                current_object.handle(),
+                identifier_name.as_c_str(),
+                current_value.handle_mut(),
+                CanGc::note(),
+            )
+        } {
+            Ok(true) => {},
+            Ok(false) => return Ok(false),
+            Err(()) => return Err(Error::JSFailed),
+        }
+    }
+
+    // Step 4. Return true if value is an Object or an Array, and false otherwise.
+    Ok(current_value.is_object())
+}
+
+/// <https://w3c.github.io/IndexedDB/#inject-a-key-into-a-value-using-a-key-path>
+#[expect(unsafe_code)]
+pub(crate) fn inject_key_into_value(
+    cx: &mut JSContext,
+    value: HandleValue,
+    key: &IndexedDBKeyType,
+    key_path: &DOMString,
+) -> Result<bool, Error> {
+    // Step 1. Let identifiers be the result of strictly splitting keyPath on U+002E FULL STOP characters (.).
+    let key_path_string = key_path.str();
+    let mut identifiers: Vec<&str> = key_path_string.split('.').collect();
+
+    // Step 2. Assert: identifiers is not empty.
+    let Some(last) = identifiers.pop() else {
+        return Ok(false);
+    };
+
+    // Step 3. Let last be the last item of identifiers and remove it from the list.
+    // Done by `pop()` above.
+
+    rooted!(&in(cx) let mut current_value = *value);
+
+    // Step 4. For each remaining identifier of identifiers:
+    for identifier in identifiers {
+        // Step 4.1 Assert: value is an Object or an Array.
+        if !current_value.is_object() {
+            return Ok(false);
+        }
+
+        rooted!(&in(cx) let current_object = current_value.to_object());
+        let identifier_name =
+            CString::new(identifier).expect("Failed to convert key path identifier to CString");
+
+        // Step 4.2 Let hop be ! HasOwnProperty(value, identifier).
+        let hop = has_own_property(
+            cx.into(),
+            current_object.handle(),
+            identifier_name.as_c_str(),
+        )
+        .map_err(|_| Error::JSFailed)?;
+
+        // Step 4.3 If hop is false, then:
+        if !hop {
+            // Step 4.3.1 Let o be a new Object created as if by the expression ({}).
+            rooted!(&in(cx) let o = unsafe { JS_NewObject(cx, ptr::null()) });
+            rooted!(&in(cx) let mut o_value = UndefinedValue());
+            o.safe_to_jsval(cx, o_value.handle_mut());
+
+            // Step 4.3.2 Let status be CreateDataProperty(value, identifier, o).
+            define_dictionary_property(
+                cx.into(),
+                current_object.handle(),
+                identifier_name.as_c_str(),
+                o_value.handle(),
+            )
+            .map_err(|_| Error::JSFailed)?;
+
+            // Step 4.3.3 Assert: status is true.
+        }
+
+        // Step 4.3 Let value be ! Get(value, identifier).
+        match unsafe {
+            get_dictionary_property(
+                cx.raw_cx(),
+                current_object.handle(),
+                identifier_name.as_c_str(),
+                current_value.handle_mut(),
+                CanGc::note(),
+            )
+        } {
+            Ok(true) => {},
+            Ok(false) => return Ok(false),
+            Err(()) => return Err(Error::JSFailed),
+        }
+
+        // Step 5 "Assert: value is an Object or an Array."
+        if !current_value.is_object() {
+            return Ok(false);
+        }
+    }
+
+    // Step 6. Let keyValue be the result of converting a key to a value with key.
+    rooted!(&in(cx) let mut key_value = UndefinedValue());
+    key_type_to_jsval(cx, key, key_value.handle_mut());
+
+    // `current_value` is the parent object where `last` will be defined.
+    if !current_value.is_object() {
+        return Ok(false);
+    }
+    rooted!(&in(cx) let parent_object = current_value.to_object());
+    let last_name = CString::new(last).expect("Failed to convert final key path identifier");
+
+    // Step 7. Let status be CreateDataProperty(value, last, keyValue).
+    define_dictionary_property(
+        cx.into(),
+        parent_object.handle(),
+        last_name.as_c_str(),
+        key_value.handle(),
+    )
+    .map_err(|_| Error::JSFailed)?;
+
+    // Step 8. Assert: status is true.
+    // The JS_DefineProperty success check above enforces this assertion.
+    // "NOTE: Assertions can be made in the above steps because this algorithm is only applied to values that are the output of StructuredDeserialize, and the steps to check that a key could be injected into a value have been run."
+    Ok(true)
 }
 
 /// <https://www.w3.org/TR/IndexedDB-3/#extract-a-key-from-a-value-using-a-key-path>
