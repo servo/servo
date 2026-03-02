@@ -15,6 +15,7 @@ use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use selectors::Element;
 use servo_arc::Arc as ServoArc;
+use servo_url::ServoUrl;
 use style::Zero;
 use style::attr::AttrValue;
 use style::computed_values::object_fit::T as ObjectFit;
@@ -127,6 +128,7 @@ pub(crate) struct IFrameInfo {
 pub(crate) struct ImageInfo {
     pub image: Option<Image>,
     pub showing_broken_image_icon: bool,
+    pub url: Option<ServoUrl>,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -362,6 +364,7 @@ impl ReplacedContents {
                 kind: ReplacedContentKind::Image(ImageInfo {
                     image,
                     showing_broken_image_icon: false,
+                    url: Some(image_url.clone().into()),
                 }),
                 natural_size: NaturalSizes::from_width_and_height(width, height),
                 base_fragment_info: node.into(),
@@ -386,6 +389,7 @@ impl ReplacedContents {
             kind: ReplacedContentKind::Image(ImageInfo {
                 image: None,
                 showing_broken_image_icon: false,
+                url: None,
             }),
             natural_size: NaturalSizes::from_width_and_height(0., 0.),
             base_fragment_info: node.into(),
@@ -424,6 +428,7 @@ impl ReplacedContents {
         if let ReplacedContentKind::Image(ImageInfo {
             image: Some(Image::Raster(image)),
             showing_broken_image_icon: true,
+            url: _,
         }) = &self.kind
         {
             let size = Size2D::new(
