@@ -30,7 +30,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::utils::{
-    get_dictionary_property, has_own_property, set_dictionary_property,
+    define_dictionary_property, get_dictionary_property, has_own_property,
 };
 use crate::dom::blob::Blob;
 use crate::dom::file::File;
@@ -340,7 +340,7 @@ pub(crate) fn evaluate_key_path_on_value(
                 // Step 1.3.5. Let status be CreateDataProperty(result, p, key).
                 // Step 1.3.6. Assert: status is true.
                 let i_cstr = std::ffi::CString::new(i.to_string()).unwrap();
-                set_dictionary_property(
+                define_dictionary_property(
                     cx.into(),
                     result.handle(),
                     i_cstr.as_c_str(),
@@ -642,7 +642,7 @@ pub(crate) fn inject_key_into_value(
             o.safe_to_jsval(cx, o_value.handle_mut());
 
             // Step 4.3.2 Let status be CreateDataProperty(value, identifier, o).
-            set_dictionary_property(
+            define_dictionary_property(
                 cx.into(),
                 current_object.handle(),
                 identifier_name.as_c_str(),
@@ -686,7 +686,7 @@ pub(crate) fn inject_key_into_value(
     let last_name = CString::new(last).expect("Failed to convert final key path identifier");
 
     // Step 7. Let status be CreateDataProperty(value, last, keyValue).
-    set_dictionary_property(
+    define_dictionary_property(
         cx.into(),
         parent_object.handle(),
         last_name.as_c_str(),

@@ -19,14 +19,15 @@ use js::jsapi::{
     HandleObject as RawHandleObject, Heap, JS_AtomizeStringN, JS_ClearPendingException,
     JS_DeprecatedStringHasLatin1Chars, JS_GetLatin1StringCharsAndLength, JS_IsExceptionPending,
     JS_IsGlobalObject, JS_MayResolveStandardClass, JS_NewEnumerateStandardClasses,
-    JS_ResolveStandardClass, JSAtom, JSAtomState, JSContext, JSJitInfo, JSObject, JSTracer,
-    MutableHandleIdVector as RawMutableHandleIdVector, MutableHandleValue as RawMutableHandleValue,
-    ObjectOpResult, PropertyKey, StringIsArrayIndex, jsid,
+    JS_ResolveStandardClass, JSAtom, JSAtomState, JSContext, JSJitInfo, JSObject, JSPROP_ENUMERATE,
+    JSTracer, MutableHandleIdVector as RawMutableHandleIdVector,
+    MutableHandleValue as RawMutableHandleValue, ObjectOpResult, PropertyKey, StringIsArrayIndex,
+    jsid,
 };
 use js::jsid::StringId;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers::{
-    CallOriginalPromiseReject, JS_DeletePropertyById, JS_ForwardGetPropertyTo,
+    CallOriginalPromiseReject, JS_DefineProperty, JS_DeletePropertyById, JS_ForwardGetPropertyTo,
     JS_GetPendingException, JS_GetProperty, JS_GetPrototype, JS_HasOwnProperty, JS_HasProperty,
     JS_HasPropertyById, JS_SetPendingException, JS_SetProperty,
 };
@@ -302,6 +303,35 @@ pub fn set_dictionary_property(
 
     unsafe {
         if !JS_SetProperty(*cx, object, property.as_ptr(), value) {
+            return Err(());
+        }
+    }
+
+    Ok(())
+}
+
+/// Define an own enumerable data property with name `property` on `object`.
+/// Returns `Err(())` on JSAPI failure, or null object,
+/// and Ok(()) otherwise.
+#[allow(clippy::result_unit_err)]
+pub fn define_dictionary_property(
+    cx: SafeJSContext,
+    object: HandleObject,
+    property: &CStr,
+    value: HandleValue,
+) -> Result<(), ()> {
+    if object.get().is_null() {
+        return Err(());
+    }
+
+    unsafe {
+        if !JS_DefineProperty(
+            *cx,
+            object,
+            property.as_ptr(),
+            value,
+            JSPROP_ENUMERATE as u32,
+        ) {
             return Err(());
         }
     }
