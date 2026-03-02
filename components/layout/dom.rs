@@ -357,6 +357,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         let width = metadata.map(|metadata| metadata.width).unwrap_or_default();
         let height = metadata.map(|metadata| metadata.height).unwrap_or_default();
         let (mut width, mut height) = (width as f64, height as f64);
+        // Take `image_density` into account for calculating the size in pixels for images.
         if let Some(density) = self.image_density().filter(|density| *density != 1.) {
             width /= density;
             height /= density;
@@ -365,6 +366,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
             ImageInfo {
                 image: resource,
                 showing_broken_image_icon: self.showing_broken_image_icon(),
+                url: self.image_url(),
             },
             PhysicalSize::new(width, height),
         ))
