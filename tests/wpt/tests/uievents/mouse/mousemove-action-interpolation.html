@@ -21,7 +21,10 @@
             dot.style.transform = `translate(${event.clientX}px, ${event.clientY}px)`;
         };
         document.addEventListener('mousemove', handler);
-        t.add_cleanup(() => document.removeEventListener('mousemove', handler));
+        t.add_cleanup(() => {
+            document.removeEventListener('mousemove', handler);
+            dot.remove();
+        });
 
         await new test_driver.Actions()
             .pointerMove(10, 10)
