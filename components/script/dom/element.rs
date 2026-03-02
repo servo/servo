@@ -1775,6 +1775,10 @@ impl Element {
         }
     }
 
+    pub(crate) fn is_keyboard_focusable(&self) -> bool {
+        self.is_focusable_area() && self.tab_index() != -1
+    }
+
     pub(crate) fn is_focusable_area(&self) -> bool {
         if self.is_actually_disabled() {
             return false;

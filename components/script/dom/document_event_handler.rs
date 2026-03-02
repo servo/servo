@@ -4,6 +4,7 @@
 
 use std::array::from_ref;
 use std::cell::{Cell, RefCell};
+use std::cmp::Ordering;
 use std::f64::consts::PI;
 use std::mem;
 use std::rc::Rc;
@@ -1685,13 +1686,11 @@ impl DocumentEventHandler {
         }
     }
 
-    pub(crate) fn run_default_keyboard_event_handler(&self, event: &KeyboardEvent) {
+    pub(crate) fn run_default_keyboard_event_handler(&self, event: &KeyboardEvent, can_gc: CanGc) {
         if event.upcast::<Event>().type_() != atom!("keydown") {
             return;
         }
-        if !event.modifiers().is_empty() {
-            return;
-        }
+
         let scroll = match event.key() {
             Key::Named(NamedKey::ArrowDown) => KeyboardScroll::Down,
             Key::Named(NamedKey::ArrowLeft) => KeyboardScroll::Left,
@@ -1701,9 +1700,195 @@ impl DocumentEventHandler {
             Key::Named(NamedKey::Home) => KeyboardScroll::Home,
             Key::Named(NamedKey::PageDown) => KeyboardScroll::PageDown,
             Key::Named(NamedKey::PageUp) => KeyboardScroll::PageUp,
+            Key::Named(NamedKey::Tab) => {
+                self.do_tab_navigation(event, can_gc);
+                return;
+            },
             _ => return,
         };
-        self.do_keyboard_scroll(scroll);
+
+        if event.modifiers().is_empty() {
+            self.do_keyboard_scroll(scroll);
+        }
+    }
+
+    pub(crate) fn do_tab_navigation(&self, event: &KeyboardEvent, can_gc: CanGc) {
+        let focus_direction = if event.modifiers().contains(Modifiers::SHIFT) {
+            FocusDirection::Backward
+        } else {
+            FocusDirection::Forward
+        };
+
+        if let Some(element) = self.find_element_for_tab_focus(focus_direction) {
+            let document = self.window.Document();
+            document.begin_focus_transaction();
+
+            document.request_focus(None, FocusInitiator::Local, can_gc);
+            document.request_focus(Some(&*element), FocusInitiator::Local, can_gc);
+
+            assert!(document.has_focus_transaction());
+            document.commit_focus_transaction(FocusInitiator::Local, can_gc);
+        }
+    }
+
+    fn find_element_for_tab_focus(&self, direction: FocusDirection) -> Option<DomRoot<Element>> {
+        match self.window.Document().get_focused_element() {
+            Some(focused_element) => {
+                self.find_element_for_tab_focus_following_element(direction, focused_element)
+            },
+            None => self.find_first_tab_focusable_element(direction),
+        }
+    }
+
+    fn find_element_for_tab_focus_following_element(
+        &self,
+        direction: FocusDirection,
+        focused_element: DomRoot<Element>,
+    ) -> Option<DomRoot<Element>> {
+        let root_node = self.window.Document().GetDocumentElement()?;
+        let focused_element_tab_index = focused_element.tab_index();
+        let mut winning_node_and_tab_index: Option<(DomRoot<Element>, i32)> = None;
+        let mut saw_focused_element = false;
+        for node in root_node
+            .upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::Yes)
+        {
+            let Some(candidate_element) = DomRoot::downcast(node) else {
+                continue;
+            };
+            if candidate_element == focused_element {
+                saw_focused_element = true;
+                continue;
+            }
+            if !candidate_element.is_keyboard_focusable() {
+                continue;
+            }
+
+            let candidate_element_tab_index = candidate_element.tab_index();
+            let ordering =
+                compare_tab_indices(focused_element_tab_index, candidate_element_tab_index);
+            match direction {
+                FocusDirection::Forward => {
+                    // If moving forward the first element with equal tab index after the current
+                    // element is the winner.
+                    if saw_focused_element && ordering == Ordering::Equal {
+                        return Some(candidate_element);
+                    }
+                    // If the candidate element does not have a lesser tab index, then discard it.
+                    if ordering != Ordering::Less {
+                        continue;
+                    }
+                    let Some((_, winning_tab_index)) = winning_node_and_tab_index else {
+                        // If this candidate has a tab index which is one greater than the current
+                        // tab index, then we know it is the winner, because we give precedence to
+                        // elements earlier in the DOM.
+                        if candidate_element_tab_index == focused_element_tab_index + 1 {
+                            return Some(candidate_element);
+                        }
+
+                        winning_node_and_tab_index =
+                            Some((candidate_element, candidate_element_tab_index));
+                        continue;
+                    };
+                    // If the candidate element has a lesser tab index than than the current winner,
+                    // then it becomes the winner.
+                    if compare_tab_indices(candidate_element_tab_index, winning_tab_index) ==
+                        Ordering::Less
+                    {
+                        winning_node_and_tab_index =
+                            Some((candidate_element, candidate_element_tab_index))
+                    }
+                },
+                FocusDirection::Backward => {
+                    // If moving backward the last element with an equal tab index that precedes
+                    // the focused element in the DOM is the winner.
+                    if !saw_focused_element && ordering == Ordering::Equal {
+                        winning_node_and_tab_index =
+                            Some((candidate_element, candidate_element_tab_index));
+                        continue;
+                    }
+                    // If the candidate does not have a greater tab index, then discard it.
+                    if ordering != Ordering::Greater {
+                        continue;
+                    }
+                    let Some((_, winning_tab_index)) = winning_node_and_tab_index else {
+                        winning_node_and_tab_index =
+                            Some((candidate_element, candidate_element_tab_index));
+                        continue;
+                    };
+                    // If the candidate element's tab index is not less than the current winner,
+                    // then it becomes the new winner. This means that when the tab indices are
+                    // equal, we give preference to the last one in DOM order.
+                    if compare_tab_indices(candidate_element_tab_index, winning_tab_index) !=
+                        Ordering::Less
+                    {
+                        winning_node_and_tab_index =
+                            Some((candidate_element, candidate_element_tab_index))
+                    }
+                },
+            }
+        }
+
+        Some(winning_node_and_tab_index?.0)
+    }
+
+    fn find_first_tab_focusable_element(
+        &self,
+        direction: FocusDirection,
+    ) -> Option<DomRoot<Element>> {
+        let root_node = self.window.Document().GetDocumentElement()?;
+        let mut winning_node_and_tab_index: Option<(DomRoot<Element>, i32)> = None;
+        for node in root_node
+            .upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::Yes)
+        {
+            let Some(candidate_element) = DomRoot::downcast::<Element>(node) else {
+                continue;
+            };
+            if !candidate_element.is_keyboard_focusable() {
+                continue;
+            }
+
+            let element_tab_index = candidate_element.tab_index();
+            match direction {
+                FocusDirection::Forward => {
+                    // We can immediately return the first time we find an element with the lowest
+                    // possible tab index (1). We are guaranteed not to find any lower tab index
+                    // and all other equal tab indices are later in the DOM.
+                    if element_tab_index == 1 {
+                        return Some(candidate_element);
+                    }
+
+                    // Only promote a candidate to the current winner if it has a lesser tab
+                    // index than the current winner or there is currently no winer.
+                    if winning_node_and_tab_index
+                        .as_ref()
+                        .is_none_or(|(_, winning_tab_index)| {
+                            compare_tab_indices(element_tab_index, *winning_tab_index) ==
+                                Ordering::Less
+                        })
+                    {
+                        winning_node_and_tab_index = Some((candidate_element, element_tab_index));
+                    }
+                },
+                FocusDirection::Backward => {
+                    // Only promote a candidate to winner if it has tab index equal to or
+                    // greater than the winner's tab index. This gives precedence to elements
+                    // later in the DOM.
+                    if winning_node_and_tab_index
+                        .as_ref()
+                        .is_none_or(|(_, winning_tab_index)| {
+                            compare_tab_indices(element_tab_index, *winning_tab_index) !=
+                                Ordering::Less
+                        })
+                    {
+                        winning_node_and_tab_index = Some((candidate_element, element_tab_index));
+                    }
+                },
+            }
+        }
+
+        Some(winning_node_and_tab_index?.0)
     }
 
     pub(crate) fn do_keyboard_scroll(&self, scroll: KeyboardScroll) {
@@ -1832,5 +2017,23 @@ impl DocumentEventHandler {
             .values()
             .min()
             .is_some_and(|primary_pointer| *primary_pointer == pointer_id)
+    }
+}
+
+#[derive(PartialEq)]
+enum FocusDirection {
+    Forward,
+    Backward,
+}
+
+fn compare_tab_indices(a: i32, b: i32) -> Ordering {
+    if a == b {
+        Ordering::Equal
+    } else if a == 0 {
+        Ordering::Greater
+    } else if b == 0 {
+        Ordering::Less
+    } else {
+        a.cmp(&b)
     }
 }
