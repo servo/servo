@@ -264,6 +264,15 @@ impl FontContext {
             font_template, font_descriptor
         );
 
+        // Check one more time whether the font is cached or not. There's a potential race
+        // condition, where between the time we took the read lock above and now, another thread
+        // added the font to the cache. This check makes sense, because loading a font has memory
+        // implications and is much slower than checking the map again.
+        let mut fonts = self.fonts.write();
+        if let Some(font) = fonts.get(&cache_key).cloned() {
+            return font;
+        }
+
         // TODO: Inserting `None` into the cache here is a bit bogus. Instead we should somehow
         // mark this template as invalid so it isn't tried again.
         let font = self
@@ -273,7 +282,7 @@ impl FontContext {
                 synthesized_small_caps_font,
             )
             .ok();
-        self.fonts.write().insert(cache_key, font.clone());
+        fonts.insert(cache_key, font.clone());
         font
     }
 
