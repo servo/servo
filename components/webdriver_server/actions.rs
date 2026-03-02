@@ -28,8 +28,8 @@ use webdriver::error::{ErrorStatus, WebDriverError};
 use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_oneshot_response};
 
 /// Interval between wheelScroll and pointerMove increments in ms, based on common vsync
-static POINTERMOVE_INTERVAL: u64 = 17;
-static WHEELSCROLL_INTERVAL: u64 = 17;
+static POINTERMOVE_INTERVAL: u64 = 16;
+static WHEELSCROLL_INTERVAL: u64 = 16;
 
 /// <https://w3c.github.io/webdriver/#dfn-element-click>
 /// This is hard-coded as 0 in spec.
