@@ -3482,7 +3482,7 @@ impl Document {
             ProgressiveWebMetricType::FirstContentfulPaint => {
                 let binding = PerformancePaintTiming::new(
                     self.window.as_global_scope(),
-                    metric_type,
+                    metric_type.clone(),
                     metric_value,
                     can_gc,
                 );
@@ -3490,11 +3490,12 @@ impl Document {
                 let entry = binding.upcast::<PerformanceEntry>();
                 self.window.Performance().queue_entry(entry);
             },
-            ProgressiveWebMetricType::LargestContentfulPaint { area } => {
+            ProgressiveWebMetricType::LargestContentfulPaint { area, url } => {
                 let binding = LargestContentfulPaint::new(
                     self.window.as_global_scope(),
-                    metric_type,
                     metric_value,
+                    area,
+                    url,
                     can_gc,
                 );
                 metrics.set_largest_contentful_paint(metric_value, area);

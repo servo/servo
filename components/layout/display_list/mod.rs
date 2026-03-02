@@ -18,6 +18,7 @@ use servo_arc::Arc as ServoArc;
 use servo_config::opts::DiagnosticsLogging;
 use servo_config::pref;
 use servo_geometry::MaxRect;
+use servo_url::ServoUrl;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::border_image_outset::T as BorderImageOutset;
@@ -554,6 +555,7 @@ impl DisplayListBuilder<'_> {
         clip_rect: LayoutRect,
         bounds: LayoutRect,
         tag: Option<Tag>,
+        url: Option<ServoUrl>,
     ) {
         if !pref!(largest_contentful_paint_enabled) {
             return;
@@ -565,7 +567,7 @@ impl DisplayListBuilder<'_> {
             .cumulative_node_to_root_transform(self.current_scroll_node_id);
 
         self.paint_timing_handler
-            .update_lcp_candidate(tag, bounds, clip_rect, transform);
+            .update_lcp_candidate(tag, bounds, clip_rect, transform, url);
     }
 }
 
@@ -710,7 +712,12 @@ impl Fragment {
                             );
                         }
 
-                        builder.check_for_lcp_candidate(common.clip_rect, rect, image.base.tag);
+                        builder.check_for_lcp_candidate(
+                            common.clip_rect,
+                            rect,
+                            image.base.tag,
+                            image.url.clone(),
+                        );
                     },
                     Visibility::Hidden => (),
                     Visibility::Collapse => (),
@@ -1455,6 +1462,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                             layer.common.clip_rect,
                             layer.bounds,
                             self.fragment.base.tag,
+                            None,
                         );
                     }
                 },

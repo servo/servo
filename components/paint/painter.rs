@@ -516,6 +516,7 @@ impl Painter {
                                     PaintMetricEvent::LargestContentfulPaint(
                                         lcp.paint_time,
                                         lcp.area,
+                                        lcp.url.clone(),
                                     ),
                                 ),
                             );

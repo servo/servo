@@ -80,7 +80,7 @@ impl LargestContentfulPaintsContainer {
         paint_time: CrossProcessInstant,
     ) -> Option<LargestContentfulPaint> {
         if self.lcp_candidates.is_empty() {
-            return self.latest_lcp;
+            return self.latest_lcp.clone();
         }
 
         let candidates = std::mem::take(&mut self.lcp_candidates);
@@ -98,6 +98,6 @@ impl LargestContentfulPaintsContainer {
             }
         }
 
-        self.latest_lcp
+        self.latest_lcp.clone()
     }
 }
