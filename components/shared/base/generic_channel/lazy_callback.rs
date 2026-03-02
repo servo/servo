@@ -71,15 +71,18 @@ where
                 callback_receiver,
                 callback,
             } => {
-                let cb = callback.get_or_init(|| {
-                    callback_receiver
-                        .borrow_mut()
-                        .take()
-                        .unwrap()
-                        .recv()
-                        .unwrap()
-                });
-                cb.send(value)
+                if let Some(cb) = callback.get() {
+                    cb.send(value)
+                } else {
+                    // Init callback
+                    if let Ok(cb) = callback_receiver.borrow_mut().take().unwrap().recv() {
+                        let _ = callback.set(cb);
+                        callback.get().unwrap().send(value)
+                    } else {
+                        log::error!("Could not get callback. Callback_receiver already dropped");
+                        SendResult::Err(SendError::Disconnected)
+                    }
+                }
             },
             LazyCallbackVariants::Ipc(ipc_sender) => {
                 ipc_sender.send(value).map_err(|error| match error {
@@ -282,7 +285,7 @@ where
 #[cfg(test)]
 mod single_process_callback_test {
     use crate::generic_channel::lazy_callback::{lazy_callback_inprocess, lazy_callback_ipc};
-
+    use crate::generic_channel::{CallbackSetter, LazyCallback};
     fn test_lazy_callback(callback: LazyCallback<bool>, callback_setter: CallbackSetter<bool>) {
         let t1 = std::thread::spawn(move || {
             callback.send(true).expect("Could not send");
