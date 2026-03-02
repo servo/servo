@@ -13,7 +13,6 @@ use layout_api::{
     SVGElementData,
 };
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::image_cache::Image;
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_arc::Arc as ServoArc;
 use smallvec::SmallVec;
@@ -31,7 +30,7 @@ use crate::flow::{BlockLevelBox, BlockLevelCreator};
 use crate::fragment_tree::{Fragment, FragmentFlags};
 use crate::geom::PhysicalSize;
 use crate::layout_box_base::LayoutBoxBase;
-use crate::replaced::{CanvasInfo, VideoInfo};
+use crate::replaced::{CanvasInfo, ImageInfo, VideoInfo};
 use crate::style_ext::{
     ComputedValuesExt, Display, DisplayGeneratingBox, DisplayLayoutInternal, DisplayOutside,
 };
@@ -307,9 +306,8 @@ impl Drop for BoxSlot<'_> {
 }
 
 pub(crate) trait NodeExt<'dom> {
-    /// Returns the image if it’s loaded, and its size in image pixels
-    /// adjusted for `image_density`.
-    fn as_image(&self) -> Option<(Option<Image>, PhysicalSize<f64>)>;
+    /// Returns the relevant data wrapping into respective struct and its size in pixels.
+    fn as_image(&self) -> Option<(ImageInfo, PhysicalSize<f64>)>;
     fn as_canvas(&self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
     fn as_iframe(&self) -> Option<(PipelineId, BrowsingContextId)>;
     fn as_video(&self) -> Option<(VideoInfo, Option<PhysicalSize<f64>>)>;
@@ -354,7 +352,7 @@ pub(crate) trait NodeExt<'dom> {
 }
 
 impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
-    fn as_image(&self) -> Option<(Option<Image>, PhysicalSize<f64>)> {
+    fn as_image(&self) -> Option<(ImageInfo, PhysicalSize<f64>)> {
         let (resource, metadata) = self.image_data()?;
         let width = metadata.map(|metadata| metadata.width).unwrap_or_default();
         let height = metadata.map(|metadata| metadata.height).unwrap_or_default();
@@ -363,7 +361,13 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
             width /= density;
             height /= density;
         }
-        Some((resource, PhysicalSize::new(width, height)))
+        Some((
+            ImageInfo {
+                image: resource,
+                showing_broken_image_icon: self.showing_broken_image_icon(),
+            },
+            PhysicalSize::new(width, height),
+        ))
     }
 
     fn as_svg(&self) -> Option<SVGElementData<'dom>> {
