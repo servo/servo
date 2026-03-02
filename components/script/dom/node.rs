@@ -843,16 +843,16 @@ impl Node {
         TreeIterator::new(self, shadow_including)
     }
 
-    /// Iterates over this node and all its descendants, in preorder. Does not root.
+    /// Iterates over this node and all its descendants, in preorder. We take &NoGC to prevent GC which allows us to avoid rooting.
     pub(crate) fn traverse_preorder_non_rooting<'a, 'b>(
         &'a self,
         no_gc: &'b NoGC,
         shadow_including: ShadowIncluding,
-    ) -> EfficientTreeIterator<'a, 'b>
+    ) -> UnrootedTreeIterator<'a, 'b>
     where
         'b: 'a,
     {
-        EfficientTreeIterator::new(self, shadow_including, no_gc)
+        UnrootedTreeIterator::new(self, shadow_including, no_gc)
     }
 
     pub(crate) fn inclusively_following_siblings(
@@ -2201,7 +2201,7 @@ pub(crate) enum ShadowIncluding {
 pub(crate) struct TreeIterator {
     current: Option<DomRoot<Node>>,
     depth: usize,
-    shadow_including: bool,
+    shadow_including: ShadowIncluding,
 }
 
 impl TreeIterator {
@@ -2209,7 +2209,7 @@ impl TreeIterator {
         TreeIterator {
             current: Some(DomRoot::from_ref(root)),
             depth: 0,
-            shadow_including: shadow_including == ShadowIncluding::Yes,
+            shadow_including,
         }
     }
 
@@ -2220,11 +2220,7 @@ impl TreeIterator {
     }
 
     fn next_skipping_children_impl(&mut self, current: DomRoot<Node>) -> Option<DomRoot<Node>> {
-        let iter = current.inclusive_ancestors(if self.shadow_including {
-            ShadowIncluding::Yes
-        } else {
-            ShadowIncluding::No
-        });
+        let iter = current.inclusive_ancestors(self.shadow_including);
 
         for ancestor in iter {
             if self.depth == 0 {
@@ -2265,7 +2261,7 @@ impl Iterator for TreeIterator {
         // Handle a potential shadow root on the element
         if let Some(element) = current.downcast::<Element>() {
             if let Some(shadow_root) = element.shadow_root() {
-                if self.shadow_including {
+                if self.shadow_including == ShadowIncluding::Yes {
                     self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()));
                     self.depth += 1;
                     return Some(current);
@@ -2291,16 +2287,16 @@ impl Iterator for TreeIterator {
 /// This does not root the required children. Taking a `&NoGC` enforces that there is no `&mut JSContext`
 /// while this iterator is alive.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
-pub(crate) struct EfficientTreeIterator<'a, 'b> {
+pub(crate) struct UnrootedTreeIterator<'a, 'b> {
     current: Option<UnrootedDom<'b, Node>>,
     depth: usize,
-    shadow_including: bool,
+    shadow_including: ShadowIncluding,
     /// This is unused and only used for lifetime guarantee of NoGC
     no_gc: &'b NoGC,
     phantom: PhantomData<&'a Node>,
 }
 
-impl<'a, 'b> EfficientTreeIterator<'a, 'b>
+impl<'a, 'b> UnrootedTreeIterator<'a, 'b>
 where
     'b: 'a,
 {
@@ -2308,11 +2304,11 @@ where
         root: &'a Node,
         shadow_including: ShadowIncluding,
         no_gc: &'b NoGC,
-    ) -> EfficientTreeIterator<'a, 'b> {
-        EfficientTreeIterator {
+    ) -> UnrootedTreeIterator<'a, 'b> {
+        UnrootedTreeIterator {
             current: Some(UnrootedDom::from_dom(Dom::from_ref(root), no_gc)),
             depth: 0,
-            shadow_including: shadow_including == ShadowIncluding::Yes,
+            shadow_including,
             no_gc,
             phantom: PhantomData,
         }
@@ -2321,11 +2317,7 @@ where
     pub(crate) fn next_skipping_children(&mut self) -> Option<UnrootedDom<'b, Node>> {
         let current = self.current.take()?;
 
-        let iter = current.inclusive_ancestors(if self.shadow_including {
-            ShadowIncluding::Yes
-        } else {
-            ShadowIncluding::No
-        });
+        let iter = current.inclusive_ancestors(self.shadow_including);
 
         for ancestor in iter {
             if self.depth == 0 {
@@ -2360,7 +2352,7 @@ where
     }
 }
 
-impl<'a, 'b> Iterator for EfficientTreeIterator<'a, 'b>
+impl<'a, 'b> Iterator for UnrootedTreeIterator<'a, 'b>
 where
     'b: 'a,
 {
@@ -2374,7 +2366,7 @@ where
         // Handle a potential shadow root on the element
         if let Some(element) = current.downcast::<Element>() {
             if let Some(shadow_root) = element.shadow_root() {
-                if self.shadow_including {
+                if self.shadow_including == ShadowIncluding::Yes {
                     self.current = Some(UnrootedDom::from_dom(
                         Dom::from_ref(shadow_root.upcast::<Node>()),
                         self.no_gc,
