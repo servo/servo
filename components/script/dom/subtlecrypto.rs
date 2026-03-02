@@ -72,44 +72,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::script_runtime::{CanGc, JSContext};
 
-// Regconized algorithm name from <https://w3c.github.io/webcrypto/>
-const ALG_RSASSA_PKCS1_V1_5: &str = "RSASSA-PKCS1-v1_5";
-const ALG_RSA_PSS: &str = "RSA-PSS";
-const ALG_RSA_OAEP: &str = "RSA-OAEP";
-const ALG_ECDSA: &str = "ECDSA";
-const ALG_ECDH: &str = "ECDH";
-const ALG_ED25519: &str = "Ed25519";
-const ALG_X25519: &str = "X25519";
-const ALG_AES_CTR: &str = "AES-CTR";
-const ALG_AES_CBC: &str = "AES-CBC";
-const ALG_AES_GCM: &str = "AES-GCM";
-const ALG_AES_KW: &str = "AES-KW";
-const ALG_HMAC: &str = "HMAC";
-const ALG_SHA1: &str = "SHA-1";
-const ALG_SHA256: &str = "SHA-256";
-const ALG_SHA384: &str = "SHA-384";
-const ALG_SHA512: &str = "SHA-512";
-const ALG_HKDF: &str = "HKDF";
-const ALG_PBKDF2: &str = "PBKDF2";
-
-// Regconized algorithm name from <https://wicg.github.io/webcrypto-modern-algos/>
-const ALG_ML_KEM_512: &str = "ML-KEM-512";
-const ALG_ML_KEM_768: &str = "ML-KEM-768";
-const ALG_ML_KEM_1024: &str = "ML-KEM-1024";
-const ALG_ML_DSA_44: &str = "ML-DSA-44";
-const ALG_ML_DSA_65: &str = "ML-DSA-65";
-const ALG_ML_DSA_87: &str = "ML-DSA-87";
-const ALG_AES_OCB: &str = "AES-OCB";
-const ALG_CHACHA20_POLY1305: &str = "ChaCha20-Poly1305";
-const ALG_SHA3_256: &str = "SHA3-256";
-const ALG_SHA3_384: &str = "SHA3-384";
-const ALG_SHA3_512: &str = "SHA3-512";
-const ALG_CSHAKE_128: &str = "cSHAKE128";
-const ALG_CSHAKE_256: &str = "cSHAKE256";
-const ALG_ARGON2D: &str = "Argon2d";
-const ALG_ARGON2I: &str = "Argon2i";
-const ALG_ARGON2ID: &str = "Argon2id";
-
 // Named elliptic curves
 const NAMED_CURVE_P256: &str = "P-256";
 const NAMED_CURVE_P384: &str = "P-384";
@@ -117,7 +79,7 @@ const NAMED_CURVE_P521: &str = "P-521";
 
 static SUPPORTED_CURVES: &[&str] = &[NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521];
 
-#[derive(EnumString, VariantArray, IntoStaticStr, Clone, Copy)]
+#[derive(EnumString, VariantArray, IntoStaticStr, PartialEq, Clone, Copy, MallocSizeOf)]
 enum CryptoAlgorithm {
     #[strum(serialize = "RSASSA-PKCS1-v1_5")]
     RsassaPkcs1V1_5,
@@ -203,6 +165,10 @@ impl CryptoAlgorithm {
             .ok_or(Error::NotSupported(Some(format!(
                 "Unsupported algorithm: {algorithm_name}"
             ))))
+    }
+
+    fn from_domstring(name: &DOMString) -> Fallible<Self> {
+        CryptoAlgorithm::try_from(&*name.str()).map_err(|_| Error::NotSupported(None))
     }
 }
 
@@ -1322,7 +1288,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // the export key operation.
                 let export_key_algorithm = match normalize_algorithm::<ExportKeyOperation>(
                     cx,
-                    &AlgorithmIdentifier::String(DOMString::from(key.algorithm().name())),
+                    &AlgorithmIdentifier::String(DOMString::from(key.algorithm().name().as_str())),
                 ) {
                     Ok(normalized_algorithm) => normalized_algorithm,
                     Err(error) => {
@@ -1461,7 +1427,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // the export key operation.
                 let export_key_algorithm = match normalize_algorithm::<ExportKeyOperation>(
                     cx,
-                    &AlgorithmIdentifier::String(DOMString::from(key.algorithm().name())),
+                    &AlgorithmIdentifier::String(DOMString::from(key.algorithm().name().as_str())),
                 ) {
                     Ok(normalized_algorithm) => normalized_algorithm,
                     Err(error) => {
@@ -2238,10 +2204,10 @@ where
 // so they can be sent safely when running steps in parallel.
 
 /// <https://w3c.github.io/webcrypto/#dfn-Algorithm>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleAlgorithm {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 }
 
 impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAlgorithm {
@@ -2254,22 +2220,22 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAlgorithm {
         let dictionary = dictionary_from_jsval::<Algorithm>(cx, value)?;
 
         Ok(SubtleAlgorithm {
-            name: dictionary.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.name)?,
         })
     }
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-KeyAlgorithm>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct SubtleKeyAlgorithm {
     /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 }
 
 impl SafeToJSValConvertible for SubtleKeyAlgorithm {
     fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
         let dictionary = KeyAlgorithm {
-            name: self.name.clone().into(),
+            name: self.name.as_str().into(),
         };
         dictionary.safe_to_jsval(cx, rval, can_gc);
     }
@@ -2279,7 +2245,7 @@ impl SafeToJSValConvertible for SubtleKeyAlgorithm {
 #[derive(Clone, MallocSizeOf)]
 pub(crate) struct SubtleRsaHashedKeyGenParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-RsaKeyGenParams-modulusLength>
     modulus_length: u32,
@@ -2302,7 +2268,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedKeyGenParams {
             dictionary_from_jsval::<RootedTraceableBox<RsaHashedKeyGenParams>>(cx, value)?;
 
         Ok(SubtleRsaHashedKeyGenParams {
-            name: dictionary.parent.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.parent.name)?,
             modulus_length: dictionary.parent.modulusLength,
             public_exponent: dictionary.parent.publicExponent.to_vec(),
             hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
@@ -2314,7 +2280,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedKeyGenParams {
 #[derive(Clone, MallocSizeOf)]
 pub(crate) struct SubtleRsaHashedKeyAlgorithm {
     /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-RsaKeyAlgorithm-modulusLength>
     modulus_length: u32,
@@ -2333,7 +2299,7 @@ impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
             create_buffer_source(cx, &self.public_exponent, js_object.handle_mut(), can_gc)
                 .expect("Fail to convert publicExponent to Uint8Array");
         let key_algorithm = KeyAlgorithm {
-            name: self.name.clone().into(),
+            name: self.name.as_str().into(),
         };
         let rsa_key_algorithm = RootedTraceableBox::new(RsaKeyAlgorithm {
             parent: key_algorithm,
@@ -2343,7 +2309,7 @@ impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
         let rsa_hashed_key_algorithm = RootedTraceableBox::new(RsaHashedKeyAlgorithm {
             parent: rsa_key_algorithm,
             hash: KeyAlgorithm {
-                name: self.hash.name().into(),
+                name: self.hash.name().as_str().into(),
             },
         });
         rsa_hashed_key_algorithm.safe_to_jsval(cx, rval, can_gc);
@@ -2354,7 +2320,7 @@ impl SafeToJSValConvertible for SubtleRsaHashedKeyAlgorithm {
 #[derive(Clone, MallocSizeOf)]
 struct SubtleRsaHashedImportParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-RsaHashedImportParams-hash>
     hash: DigestAlgorithm,
@@ -2371,17 +2337,17 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedImportParams {
             dictionary_from_jsval::<RootedTraceableBox<RsaHashedImportParams>>(cx, value)?;
 
         Ok(SubtleRsaHashedImportParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
         })
     }
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-RsaPssParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleRsaPssParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-RsaPssParams-saltLength>
     salt_length: u32,
@@ -2397,17 +2363,18 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaPssParams {
         let dictionary = dictionary_from_jsval::<RsaPssParams>(cx, value)?;
 
         Ok(SubtleRsaPssParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             salt_length: dictionary.saltLength,
         })
     }
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-RsaOaepParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleRsaOaepParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
+
     /// <https://w3c.github.io/webcrypto/#dfn-RsaOaepParams-label>
     label: Option<Vec<u8>>,
 }
@@ -2427,7 +2394,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaOaepParams {
         });
 
         Ok(SubtleRsaOaepParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             label,
         })
     }
@@ -2437,7 +2404,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaOaepParams {
 #[derive(Clone, MallocSizeOf)]
 struct SubtleEcdsaParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-EcdsaParams-hash>
     hash: DigestAlgorithm,
@@ -2453,17 +2420,17 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcdsaParams {
         let dictionary = dictionary_from_jsval::<RootedTraceableBox<EcdsaParams>>(cx, value)?;
 
         Ok(SubtleEcdsaParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
         })
     }
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-EcKeyGenParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleEcKeyGenParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-EcKeyGenParams-namedCurve>
     named_curve: String,
@@ -2479,17 +2446,17 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcKeyGenParams {
         let dictionary = dictionary_from_jsval::<EcKeyGenParams>(cx, value)?;
 
         Ok(SubtleEcKeyGenParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             named_curve: dictionary.namedCurve.to_string(),
         })
     }
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-EcKeyAlgorithm>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct SubtleEcKeyAlgorithm {
     /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-EcKeyAlgorithm-namedCurve>
     named_curve: String,
@@ -2498,7 +2465,7 @@ pub(crate) struct SubtleEcKeyAlgorithm {
 impl SafeToJSValConvertible for SubtleEcKeyAlgorithm {
     fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
         let parent = KeyAlgorithm {
-            name: self.name.clone().into(),
+            name: self.name.as_str().into(),
         };
         let dictionary = EcKeyAlgorithm {
             parent,
@@ -2509,10 +2476,10 @@ impl SafeToJSValConvertible for SubtleEcKeyAlgorithm {
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-EcKeyImportParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleEcKeyImportParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-EcKeyImportParams-namedCurve>
     named_curve: String,
@@ -2528,7 +2495,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcKeyImportParams {
         let dictionary = dictionary_from_jsval::<EcKeyImportParams>(cx, value)?;
 
         Ok(SubtleEcKeyImportParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             named_curve: dictionary.namedCurve.to_string(),
         })
     }
@@ -2538,7 +2505,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcKeyImportParams {
 #[derive(Clone, MallocSizeOf)]
 struct SubtleEcdhKeyDeriveParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-EcdhKeyDeriveParams-public>
     public: Trusted<CryptoKey>,
@@ -2554,17 +2521,17 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcdhKeyDeriveParams {
         let dictionary = dictionary_from_jsval::<EcdhKeyDeriveParams>(cx, value)?;
 
         Ok(SubtleEcdhKeyDeriveParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             public: Trusted::new(&dictionary.public),
         })
     }
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-AesCtrParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleAesCtrParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-AesCtrParams-counter>
     counter: Vec<u8>,
@@ -2588,7 +2555,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesCtrParams {
         };
 
         Ok(SubtleAesCtrParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             counter,
             length: dictionary.length,
         })
@@ -2596,10 +2563,10 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesCtrParams {
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-AesKeyAlgorithm>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct SubtleAesKeyAlgorithm {
     /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-AesKeyAlgorithm-length>
     length: u16,
@@ -2608,7 +2575,7 @@ pub(crate) struct SubtleAesKeyAlgorithm {
 impl SafeToJSValConvertible for SubtleAesKeyAlgorithm {
     fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
         let parent = KeyAlgorithm {
-            name: self.name.clone().into(),
+            name: self.name.as_str().into(),
         };
         let dictionary = AesKeyAlgorithm {
             parent,
@@ -2619,10 +2586,10 @@ impl SafeToJSValConvertible for SubtleAesKeyAlgorithm {
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-AesKeyGenParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleAesKeyGenParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-AesKeyGenParams-length>
     length: u16,
@@ -2638,17 +2605,17 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesKeyGenParams {
         let dictionary = dictionary_from_jsval::<AesKeyGenParams>(cx, value)?;
 
         Ok(SubtleAesKeyGenParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             length: dictionary.length,
         })
     }
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-AesDerivedKeyParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleAesDerivedKeyParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-AesDerivedKeyParams-length>
     length: u16,
@@ -2664,17 +2631,17 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesDerivedKeyParams {
         let dictionary = dictionary_from_jsval::<AesDerivedKeyParams>(cx, value)?;
 
         Ok(SubtleAesDerivedKeyParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             length: dictionary.length,
         })
     }
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-AesCbcParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleAesCbcParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-AesCbcParams-iv>
     iv: Vec<u8>,
@@ -2695,17 +2662,17 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesCbcParams {
         };
 
         Ok(SubtleAesCbcParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             iv,
         })
     }
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-AesGcmParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleAesGcmParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-AesGcmParams-iv>
     iv: Vec<u8>,
@@ -2736,7 +2703,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesGcmParams {
         });
 
         Ok(SubtleAesGcmParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             iv,
             additional_data,
             tag_length: dictionary.tagLength,
@@ -2748,7 +2715,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesGcmParams {
 #[derive(Clone, MallocSizeOf)]
 struct SubtleHmacImportParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacImportParams-hash>
     hash: DigestAlgorithm,
@@ -2767,7 +2734,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHmacImportParams {
         let dictionary = dictionary_from_jsval::<RootedTraceableBox<HmacImportParams>>(cx, value)?;
 
         Ok(SubtleHmacImportParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
             length: dictionary.length,
         })
@@ -2775,10 +2742,10 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHmacImportParams {
 }
 
 /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyAlgorithm>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 pub(crate) struct SubtleHmacKeyAlgorithm {
     /// <https://w3c.github.io/webcrypto/#dom-keyalgorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyAlgorithm-hash>
     hash: SubtleKeyAlgorithm,
@@ -2790,10 +2757,10 @@ pub(crate) struct SubtleHmacKeyAlgorithm {
 impl SafeToJSValConvertible for SubtleHmacKeyAlgorithm {
     fn safe_to_jsval(&self, cx: JSContext, rval: MutableHandleValue, can_gc: CanGc) {
         let parent = KeyAlgorithm {
-            name: self.name.clone().into(),
+            name: self.name.as_str().into(),
         };
         let hash = KeyAlgorithm {
-            name: self.hash.name.clone().into(),
+            name: self.hash.name.as_str().into(),
         };
         let dictionary = HmacKeyAlgorithm {
             parent,
@@ -2808,7 +2775,7 @@ impl SafeToJSValConvertible for SubtleHmacKeyAlgorithm {
 #[derive(Clone, MallocSizeOf)]
 struct SubtleHmacKeyGenParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HmacKeyGenParams-hash>
     hash: DigestAlgorithm,
@@ -2827,7 +2794,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHmacKeyGenParams {
         let dictionary = dictionary_from_jsval::<RootedTraceableBox<HmacKeyGenParams>>(cx, value)?;
 
         Ok(SubtleHmacKeyGenParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
             length: dictionary.length,
         })
@@ -2838,7 +2805,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHmacKeyGenParams {
 #[derive(Clone, MallocSizeOf)]
 pub(crate) struct SubtleHkdfParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-HkdfParams-hash>
     hash: DigestAlgorithm,
@@ -2869,7 +2836,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHkdfParams {
         };
 
         Ok(SubtleHkdfParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
             salt,
             info,
@@ -2881,7 +2848,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHkdfParams {
 #[derive(Clone, MallocSizeOf)]
 pub(crate) struct SubtlePbkdf2Params {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-Pbkdf2Params-salt>
     salt: Vec<u8>,
@@ -2908,7 +2875,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtlePbkdf2Params {
         };
 
         Ok(SubtlePbkdf2Params {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             salt,
             iterations: dictionary.iterations,
             hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
@@ -2917,10 +2884,10 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtlePbkdf2Params {
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-ContextParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleContextParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-ContextParams-context>
     context: Option<Vec<u8>>,
@@ -2941,17 +2908,17 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleContextParams {
         });
 
         Ok(SubtleContextParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             context,
         })
     }
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-AeadParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleAeadParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-AeadParams-iv>
     iv: Vec<u8>,
@@ -2982,7 +2949,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAeadParams {
         });
 
         Ok(SubtleAeadParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             iv,
             additional_data,
             tag_length: dictionary.tagLength,
@@ -2991,10 +2958,10 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAeadParams {
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-CShakeParams>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleCShakeParams {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-CShakeParams-length>
     length: u32,
@@ -3033,7 +3000,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleCShakeParams {
                 });
 
         Ok(SubtleCShakeParams {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             length: dictionary.length,
             function_name,
             customization,
@@ -3042,10 +3009,10 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleCShakeParams {
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params>
-#[derive(Clone, Debug, MallocSizeOf)]
+#[derive(Clone, MallocSizeOf)]
 struct SubtleArgon2Params {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
-    name: String,
+    name: CryptoAlgorithm,
 
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-Argon2Params-nonce>
     nonce: Vec<u8>,
@@ -3099,7 +3066,7 @@ impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleArgon2Params {
                 });
 
         Ok(SubtleArgon2Params {
-            name: dictionary.parent.name.to_string(),
+            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
             nonce,
             parallelism: dictionary.parallelism,
             memory: dictionary.memory,
@@ -3200,13 +3167,13 @@ pub(crate) enum KeyAlgorithmAndDerivatives {
 }
 
 impl KeyAlgorithmAndDerivatives {
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            KeyAlgorithmAndDerivatives::KeyAlgorithm(algo) => &algo.name,
-            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algo) => &algo.name,
-            KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algo) => &algo.name,
-            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algo) => &algo.name,
-            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => &algo.name,
+            KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm) => algorithm.name,
+            KeyAlgorithmAndDerivatives::RsaHashedKeyAlgorithm(algorithm) => algorithm.name,
+            KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) => algorithm.name,
+            KeyAlgorithmAndDerivatives::AesKeyAlgorithm(algorithm) => algorithm.name,
+            KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm) => algorithm.name,
         }
     }
 }
@@ -3687,7 +3654,7 @@ trait NormalizedAlgorithm: Sized {
         algorithm_name: CryptoAlgorithm,
         value: HandleValue,
     ) -> Fallible<Self>;
-    fn name(&self) -> &str;
+    fn name(&self) -> CryptoAlgorithm;
 }
 
 /// The value of the key "encrypt" in the internal object supportedAlgorithms
@@ -3730,14 +3697,14 @@ impl NormalizedAlgorithm for EncryptAlgorithm {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            EncryptAlgorithm::RsaOaep(algorithm) => &algorithm.name,
-            EncryptAlgorithm::AesCtr(algorithm) => &algorithm.name,
-            EncryptAlgorithm::AesCbc(algorithm) => &algorithm.name,
-            EncryptAlgorithm::AesGcm(algorithm) => &algorithm.name,
-            EncryptAlgorithm::AesOcb(algorithm) => &algorithm.name,
-            EncryptAlgorithm::ChaCha20Poly1305(algorithm) => &algorithm.name,
+            EncryptAlgorithm::RsaOaep(algorithm) => algorithm.name,
+            EncryptAlgorithm::AesCtr(algorithm) => algorithm.name,
+            EncryptAlgorithm::AesCbc(algorithm) => algorithm.name,
+            EncryptAlgorithm::AesGcm(algorithm) => algorithm.name,
+            EncryptAlgorithm::AesOcb(algorithm) => algorithm.name,
+            EncryptAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
         }
     }
 }
@@ -3807,14 +3774,14 @@ impl NormalizedAlgorithm for DecryptAlgorithm {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            DecryptAlgorithm::RsaOaep(algorithm) => &algorithm.name,
-            DecryptAlgorithm::AesCtr(algorithm) => &algorithm.name,
-            DecryptAlgorithm::AesCbc(algorithm) => &algorithm.name,
-            DecryptAlgorithm::AesGcm(algorithm) => &algorithm.name,
-            DecryptAlgorithm::AesOcb(algorithm) => &algorithm.name,
-            DecryptAlgorithm::ChaCha20Poly1305(algorithm) => &algorithm.name,
+            DecryptAlgorithm::RsaOaep(algorithm) => algorithm.name,
+            DecryptAlgorithm::AesCtr(algorithm) => algorithm.name,
+            DecryptAlgorithm::AesCbc(algorithm) => algorithm.name,
+            DecryptAlgorithm::AesGcm(algorithm) => algorithm.name,
+            DecryptAlgorithm::AesOcb(algorithm) => algorithm.name,
+            DecryptAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
         }
     }
 }
@@ -3886,14 +3853,14 @@ impl NormalizedAlgorithm for SignAlgorithm {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            SignAlgorithm::RsassaPkcs1V1_5(algorithm) => &algorithm.name,
-            SignAlgorithm::RsaPss(algorithm) => &algorithm.name,
-            SignAlgorithm::Ecdsa(algorithm) => &algorithm.name,
-            SignAlgorithm::Ed25519(algorithm) => &algorithm.name,
-            SignAlgorithm::Hmac(algorithm) => &algorithm.name,
-            SignAlgorithm::MlDsa(algorithm) => &algorithm.name,
+            SignAlgorithm::RsassaPkcs1V1_5(algorithm) => algorithm.name,
+            SignAlgorithm::RsaPss(algorithm) => algorithm.name,
+            SignAlgorithm::Ecdsa(algorithm) => algorithm.name,
+            SignAlgorithm::Ed25519(algorithm) => algorithm.name,
+            SignAlgorithm::Hmac(algorithm) => algorithm.name,
+            SignAlgorithm::MlDsa(algorithm) => algorithm.name,
         }
     }
 }
@@ -3955,14 +3922,14 @@ impl NormalizedAlgorithm for VerifyAlgorithm {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            VerifyAlgorithm::RsassaPkcs1V1_5(algorithm) => &algorithm.name,
-            VerifyAlgorithm::RsaPss(algorithm) => &algorithm.name,
-            VerifyAlgorithm::Ecdsa(algorithm) => &algorithm.name,
-            VerifyAlgorithm::Ed25519(algorithm) => &algorithm.name,
-            VerifyAlgorithm::Hmac(algorithm) => &algorithm.name,
-            VerifyAlgorithm::MlDsa(algorithm) => &algorithm.name,
+            VerifyAlgorithm::RsassaPkcs1V1_5(algorithm) => algorithm.name,
+            VerifyAlgorithm::RsaPss(algorithm) => algorithm.name,
+            VerifyAlgorithm::Ecdsa(algorithm) => algorithm.name,
+            VerifyAlgorithm::Ed25519(algorithm) => algorithm.name,
+            VerifyAlgorithm::Hmac(algorithm) => algorithm.name,
+            VerifyAlgorithm::MlDsa(algorithm) => algorithm.name,
         }
     }
 }
@@ -4030,11 +3997,11 @@ impl NormalizedAlgorithm for DigestAlgorithm {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            DigestAlgorithm::Sha(algorithm) => &algorithm.name,
-            DigestAlgorithm::Sha3(algorithm) => &algorithm.name,
-            DigestAlgorithm::CShake(algorithm) => &algorithm.name,
+            DigestAlgorithm::Sha(algorithm) => algorithm.name,
+            DigestAlgorithm::Sha3(algorithm) => algorithm.name,
+            DigestAlgorithm::CShake(algorithm) => algorithm.name,
         }
     }
 }
@@ -4087,13 +4054,13 @@ impl NormalizedAlgorithm for DeriveBitsAlgorithm {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            DeriveBitsAlgorithm::Ecdh(algorithm) => &algorithm.name,
-            DeriveBitsAlgorithm::X25519(algorithm) => &algorithm.name,
-            DeriveBitsAlgorithm::Hkdf(algorithm) => &algorithm.name,
-            DeriveBitsAlgorithm::Pbkdf2(algorithm) => &algorithm.name,
-            DeriveBitsAlgorithm::Argon2(algorithm) => &algorithm.name,
+            DeriveBitsAlgorithm::Ecdh(algorithm) => algorithm.name,
+            DeriveBitsAlgorithm::X25519(algorithm) => algorithm.name,
+            DeriveBitsAlgorithm::Hkdf(algorithm) => algorithm.name,
+            DeriveBitsAlgorithm::Pbkdf2(algorithm) => algorithm.name,
+            DeriveBitsAlgorithm::Argon2(algorithm) => algorithm.name,
         }
     }
 }
@@ -4148,9 +4115,9 @@ impl NormalizedAlgorithm for WrapKeyAlgorithm {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            WrapKeyAlgorithm::AesKw(algorithm) => &algorithm.name,
+            WrapKeyAlgorithm::AesKw(algorithm) => algorithm.name,
         }
     }
 }
@@ -4191,9 +4158,9 @@ impl NormalizedAlgorithm for UnwrapKeyAlgorithm {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            UnwrapKeyAlgorithm::AesKw(algorithm) => &algorithm.name,
+            UnwrapKeyAlgorithm::AesKw(algorithm) => algorithm.name,
         }
     }
 }
@@ -4288,24 +4255,24 @@ impl NormalizedAlgorithm for GenerateKeyAlgorithm {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            GenerateKeyAlgorithm::RsassaPkcs1V1_5(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::RsaPss(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::RsaOaep(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::Ecdsa(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::Ecdh(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::Ed25519(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::X25519(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::AesCtr(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::AesCbc(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::AesGcm(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::AesKw(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::Hmac(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::MlKem(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::MlDsa(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::AesOcb(algorithm) => &algorithm.name,
-            GenerateKeyAlgorithm::ChaCha20Poly1305(algorithm) => &algorithm.name,
+            GenerateKeyAlgorithm::RsassaPkcs1V1_5(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::RsaPss(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::RsaOaep(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::Ecdsa(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::Ecdh(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::Ed25519(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::X25519(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::AesCtr(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::AesCbc(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::AesGcm(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::AesKw(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::Hmac(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::MlKem(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::MlDsa(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::AesOcb(algorithm) => algorithm.name,
+            GenerateKeyAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
         }
     }
 }
@@ -4471,27 +4438,27 @@ impl NormalizedAlgorithm for ImportKeyAlgorithm {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            ImportKeyAlgorithm::RsassaPkcs1V1_5(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::RsaPss(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::RsaOaep(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::Ecdsa(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::Ecdh(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::Ed25519(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::X25519(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::AesCtr(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::AesCbc(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::AesGcm(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::AesKw(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::Hmac(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::Hkdf(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::Pbkdf2(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::MlKem(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::MlDsa(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::AesOcb(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::ChaCha20Poly1305(algorithm) => &algorithm.name,
-            ImportKeyAlgorithm::Argon2(algorithm) => &algorithm.name,
+            ImportKeyAlgorithm::RsassaPkcs1V1_5(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::RsaPss(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::RsaOaep(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::Ecdsa(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::Ecdh(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::Ed25519(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::X25519(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::AesCtr(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::AesCbc(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::AesGcm(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::AesKw(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::Hmac(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::Hkdf(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::Pbkdf2(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::MlKem(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::MlDsa(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::AesOcb(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
+            ImportKeyAlgorithm::Argon2(algorithm) => algorithm.name,
         }
     }
 }
@@ -4701,24 +4668,24 @@ impl NormalizedAlgorithm for ExportKeyAlgorithm {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            ExportKeyAlgorithm::RsassaPkcs1V1_5(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::RsaPss(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::RsaOaep(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::Ecdsa(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::Ecdh(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::Ed25519(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::X25519(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::AesCtr(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::AesCbc(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::AesGcm(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::AesKw(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::Hmac(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::MlKem(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::MlDsa(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::AesOcb(algorithm) => &algorithm.name,
-            ExportKeyAlgorithm::ChaCha20Poly1305(algorithm) => &algorithm.name,
+            ExportKeyAlgorithm::RsassaPkcs1V1_5(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::RsaPss(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::RsaOaep(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::Ecdsa(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::Ecdh(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::Ed25519(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::X25519(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::AesCtr(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::AesCbc(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::AesGcm(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::AesKw(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::Hmac(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::MlKem(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::MlDsa(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::AesOcb(algorithm) => algorithm.name,
+            ExportKeyAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
         }
     }
 }
@@ -4810,18 +4777,18 @@ impl NormalizedAlgorithm for GetKeyLengthAlgorithm {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            GetKeyLengthAlgorithm::AesCtr(algorithm) => &algorithm.name,
-            GetKeyLengthAlgorithm::AesCbc(algorithm) => &algorithm.name,
-            GetKeyLengthAlgorithm::AesGcm(algorithm) => &algorithm.name,
-            GetKeyLengthAlgorithm::AesKw(algorithm) => &algorithm.name,
-            GetKeyLengthAlgorithm::Hmac(algorithm) => &algorithm.name,
-            GetKeyLengthAlgorithm::Hkdf(algorithm) => &algorithm.name,
-            GetKeyLengthAlgorithm::Pbkdf2(algorithm) => &algorithm.name,
-            GetKeyLengthAlgorithm::AesOcb(algorithm) => &algorithm.name,
-            GetKeyLengthAlgorithm::ChaCha20Poly1305(algorithm) => &algorithm.name,
-            GetKeyLengthAlgorithm::Argon2(algorithm) => &algorithm.name,
+            GetKeyLengthAlgorithm::AesCtr(algorithm) => algorithm.name,
+            GetKeyLengthAlgorithm::AesCbc(algorithm) => algorithm.name,
+            GetKeyLengthAlgorithm::AesGcm(algorithm) => algorithm.name,
+            GetKeyLengthAlgorithm::AesKw(algorithm) => algorithm.name,
+            GetKeyLengthAlgorithm::Hmac(algorithm) => algorithm.name,
+            GetKeyLengthAlgorithm::Hkdf(algorithm) => algorithm.name,
+            GetKeyLengthAlgorithm::Pbkdf2(algorithm) => algorithm.name,
+            GetKeyLengthAlgorithm::AesOcb(algorithm) => algorithm.name,
+            GetKeyLengthAlgorithm::ChaCha20Poly1305(algorithm) => algorithm.name,
+            GetKeyLengthAlgorithm::Argon2(algorithm) => algorithm.name,
         }
     }
 }
@@ -4883,9 +4850,9 @@ impl NormalizedAlgorithm for EncapsulateAlgorithm {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            EncapsulateAlgorithm::MlKem(algorithm) => &algorithm.name,
+            EncapsulateAlgorithm::MlKem(algorithm) => algorithm.name,
         }
     }
 }
@@ -4928,9 +4895,9 @@ impl NormalizedAlgorithm for DecapsulateAlgorithm {
         }
     }
 
-    fn name(&self) -> &str {
+    fn name(&self) -> CryptoAlgorithm {
         match self {
-            DecapsulateAlgorithm::MlKem(algorithm) => &algorithm.name,
+            DecapsulateAlgorithm::MlKem(algorithm) => algorithm.name,
         }
     }
 }

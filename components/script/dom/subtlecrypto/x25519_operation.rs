@@ -20,7 +20,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_X25519, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
     SubtleEcdhKeyDeriveParams, SubtleKeyAlgorithm,
 };
 
@@ -132,7 +132,7 @@ pub(crate) fn generate_key(
     // Step 3. Let algorithm be a new KeyAlgorithm object.
     // Step 4. Set the name attribute of algorithm to "X25519".
     let algorithm = SubtleKeyAlgorithm {
-        name: ALG_X25519.to_string(),
+        name: CryptoAlgorithm::X25519,
     };
 
     // Step 5. Let publicKey be a new CryptoKey representing the public key of the generated key pair.
@@ -237,7 +237,7 @@ pub(crate) fn import_key(
             // Step 2.10. Set the name attribute of algorithm to "X25519".
             // Step 2.11. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleKeyAlgorithm {
-                name: ALG_X25519.to_string(),
+                name: CryptoAlgorithm::X25519,
             };
             CryptoKey::new(
                 cx,
@@ -300,7 +300,7 @@ pub(crate) fn import_key(
             // Step 2.11. Set the name attribute of algorithm to "X25519".
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleKeyAlgorithm {
-                name: ALG_X25519.to_string(),
+                name: CryptoAlgorithm::X25519,
             };
             CryptoKey::new(
                 cx,
@@ -343,7 +343,7 @@ pub(crate) fn import_key(
             }
 
             // Step 2.2. If the crv field of jwk is not "X25519", then throw a DataError.
-            if jwk.crv.as_ref().is_none_or(|crv| crv != ALG_X25519) {
+            if jwk.crv.as_ref().is_none_or(|crv| crv != "X25519") {
                 return Err(Error::Data(None));
             }
 
@@ -415,7 +415,7 @@ pub(crate) fn import_key(
             // Step 2.11. Set the name attribute of algorithm to "X25519".
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleKeyAlgorithm {
-                name: ALG_X25519.to_string(),
+                name: CryptoAlgorithm::X25519,
             };
             CryptoKey::new(
                 cx,
@@ -448,7 +448,7 @@ pub(crate) fn import_key(
                 key_data.try_into().map_err(|_| Error::Data(None))?;
             let public_key = PublicKey::from(key_bytes);
             let algorithm = SubtleKeyAlgorithm {
-                name: ALG_X25519.to_string(),
+                name: CryptoAlgorithm::X25519,
             };
             CryptoKey::new(
                 cx,
@@ -555,7 +555,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.3. Set the crv attribute of jwk to "X25519".
             let mut jwk = JsonWebKey {
                 kty: Some(DOMString::from("OKP")),
-                crv: Some(DOMString::from(ALG_X25519)),
+                crv: Some(DOMString::from("X25519")),
                 ..Default::default()
             };
 

@@ -22,8 +22,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_ML_DSA_44, ALG_ML_DSA_65, ALG_ML_DSA_87, ExportedKey, JsonWebKeyExt, JwkStringField,
-    KeyAlgorithmAndDerivatives, SubtleAlgorithm, SubtleContextParams, SubtleKeyAlgorithm,
+    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    SubtleAlgorithm, SubtleContextParams, SubtleKeyAlgorithm,
 };
 
 /// Object Identifier (OID) of ML-DSA-44
@@ -145,8 +145,8 @@ pub(crate) fn sign(
     // of normalizedAlgorithm, using the ML-DSA private key associated with key as sk, message as M
     // and context as ctx.
     // Step 4. If the ML-DSA.Sign algorithm returned an error, return an OperationError.
-    let result = match normalized_algorithm.name.as_str() {
-        ALG_ML_DSA_44 => {
+    let result = match normalized_algorithm.name {
+        CryptoAlgorithm::MlDsa44 => {
             let Handle::MlDsa44PrivateKey(seed) = key.handle() else {
                 return Err(Error::Operation(Some(
                     "The key handle is not representing an ML-DSA-44 private key".to_string(),
@@ -161,7 +161,7 @@ pub(crate) fn sign(
                 .encode()
                 .to_vec()
         },
-        ALG_ML_DSA_65 => {
+        CryptoAlgorithm::MlDsa65 => {
             let Handle::MlDsa65PrivateKey(seed) = key.handle() else {
                 return Err(Error::Operation(Some(
                     "The key handle is not representing an ML-DSA-65 private key".to_string(),
@@ -176,7 +176,7 @@ pub(crate) fn sign(
                 .encode()
                 .to_vec()
         },
-        ALG_ML_DSA_87 => {
+        CryptoAlgorithm::MlDsa87 => {
             let Handle::MlDsa87PrivateKey(seed) = key.handle() else {
                 return Err(Error::Operation(Some(
                     "The key handle is not representing an ML-DSA-87 private key".to_string(),
@@ -227,8 +227,8 @@ pub(crate) fn verify(
     // of normalizedAlgorithm, using the ML-DSA public key associated with key as pk, message as M,
     // signature as σ and context as ctx.
     // Step 4. If the ML-DSA.Verify algorithm returned an error, return an OperationError.
-    let result = match normalized_algorithm.name.as_str() {
-        ALG_ML_DSA_44 => {
+    let result = match normalized_algorithm.name {
+        CryptoAlgorithm::MlDsa44 => {
             let Handle::MlDsa44PublicKey(public_key) = key.handle() else {
                 return Err(Error::Operation(Some(
                     "The key handle is not representing an ML-DSA-44 public key".to_string(),
@@ -242,7 +242,7 @@ pub(crate) fn verify(
                 Err(_) => false,
             }
         },
-        ALG_ML_DSA_65 => {
+        CryptoAlgorithm::MlDsa65 => {
             let Handle::MlDsa65PublicKey(public_key) = key.handle() else {
                 return Err(Error::Operation(Some(
                     "The key handle is not representing an ML-DSA-65 public key".to_string(),
@@ -256,7 +256,7 @@ pub(crate) fn verify(
                 Err(_) => false,
             }
         },
-        ALG_ML_DSA_87 => {
+        CryptoAlgorithm::MlDsa87 => {
             let Handle::MlDsa87PublicKey(public_key) = key.handle() else {
                 return Err(Error::Operation(Some(
                     "The key handle is not representing an ML-DSA-87 public key".to_string(),
@@ -307,12 +307,12 @@ pub(crate) fn generate_key(
     let mut seed_bytes = vec![0u8; 32];
     OsRng.fill_bytes(&mut seed_bytes);
     let (private_key_handle, public_key_handle) =
-        convert_seed_to_handles(&normalized_algorithm.name, &seed_bytes, None, None)?;
+        convert_seed_to_handles(normalized_algorithm.name, &seed_bytes, None, None)?;
 
     // Step 4. Let algorithm be a new KeyAlgorithm object.
     // Step 5. Set the name attribute of algorithm to the name attribute of normalizedAlgorithm.
     let algorithm = SubtleKeyAlgorithm {
-        name: normalized_algorithm.name.clone(),
+        name: normalized_algorithm.name,
     };
 
     // Step 6. Let publicKey be a new CryptoKey representing the public key of the generated key
@@ -411,10 +411,10 @@ pub(crate) fn import_key(
             //     Let expectedOid be id-ml-dsa-87 (2.16.840.1.101.3.4.3.19).
             // Otherwise:
             //     throw a NotSupportedError.
-            let expected_oid = match normalized_algorithm.name.as_str() {
-                ALG_ML_DSA_44 => ObjectIdentifier::new_unwrap(ID_ALG_ML_DSA_44),
-                ALG_ML_DSA_65 => ObjectIdentifier::new_unwrap(ID_ALG_ML_DSA_65),
-                ALG_ML_DSA_87 => ObjectIdentifier::new_unwrap(ID_ALG_ML_DSA_87),
+            let expected_oid = match normalized_algorithm.name {
+                CryptoAlgorithm::MlDsa44 => ObjectIdentifier::new_unwrap(ID_ALG_ML_DSA_44),
+                CryptoAlgorithm::MlDsa65 => ObjectIdentifier::new_unwrap(ID_ALG_ML_DSA_65),
+                CryptoAlgorithm::MlDsa87 => ObjectIdentifier::new_unwrap(ID_ALG_ML_DSA_87),
                 _ => {
                     return Err(Error::NotSupported(Some(format!(
                         "{} is not an ML-DSA algorithm",
@@ -445,7 +445,7 @@ pub(crate) fn import_key(
             let key_bytes = spki.subject_public_key.as_bytes().ok_or(Error::Data(Some(
                 "Failed to parse byte sequence over SubjectPublicKey field of spki".to_string(),
             )))?;
-            let public_key = convert_public_key_to_handle(&normalized_algorithm.name, key_bytes)?;
+            let public_key = convert_public_key_to_handle(normalized_algorithm.name, key_bytes)?;
 
             // Step 2.8. Let key be a new CryptoKey that represents publicKey.
             // Step 2.9. Set the [[type]] internal slot of key to "public"
@@ -454,7 +454,7 @@ pub(crate) fn import_key(
             // normalizedAlgorithm.
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleKeyAlgorithm {
-                name: normalized_algorithm.name.clone(),
+                name: normalized_algorithm.name,
             };
             CryptoKey::new(
                 cx,
@@ -496,10 +496,10 @@ pub(crate) fn import_key(
             //     Let asn1Structure be the ASN.1 ML-DSA-87-PrivateKey structure.
             // Otherwise:
             //     throw a NotSupportedError.
-            let expected_oid = match normalized_algorithm.name.as_str() {
-                ALG_ML_DSA_44 => ObjectIdentifier::new_unwrap(ID_ALG_ML_DSA_44),
-                ALG_ML_DSA_65 => ObjectIdentifier::new_unwrap(ID_ALG_ML_DSA_65),
-                ALG_ML_DSA_87 => ObjectIdentifier::new_unwrap(ID_ALG_ML_DSA_87),
+            let expected_oid = match normalized_algorithm.name {
+                CryptoAlgorithm::MlDsa44 => ObjectIdentifier::new_unwrap(ID_ALG_ML_DSA_44),
+                CryptoAlgorithm::MlDsa65 => ObjectIdentifier::new_unwrap(ID_ALG_ML_DSA_65),
+                CryptoAlgorithm::MlDsa87 => ObjectIdentifier::new_unwrap(ID_ALG_ML_DSA_87),
                 _ => {
                     return Err(Error::NotSupported(Some(format!(
                         "{} is not an ML-DSA algorithm",
@@ -548,7 +548,7 @@ pub(crate) fn import_key(
             let ml_dsa_private_key = match private_key_structure {
                 MlDsaPrivateKeyStructure::Seed(seed) => {
                     let (private_key_handle, _public_key_handle) = convert_seed_to_handles(
-                        &normalized_algorithm.name,
+                        normalized_algorithm.name,
                         seed.as_bytes(),
                         None,
                         None,
@@ -563,7 +563,7 @@ pub(crate) fn import_key(
                 },
                 MlDsaPrivateKeyStructure::Both(both) => {
                     let (private_key_handle, _public_key_handle) = convert_seed_to_handles(
-                        &normalized_algorithm.name,
+                        normalized_algorithm.name,
                         both.seed.as_bytes(),
                         Some(both.expanded_key.as_bytes()),
                         None,
@@ -580,7 +580,7 @@ pub(crate) fn import_key(
             // normalizedAlgorithm.
             // Step 2.13. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleKeyAlgorithm {
-                name: normalized_algorithm.name.clone(),
+                name: normalized_algorithm.name,
             };
             CryptoKey::new(
                 cx,
@@ -608,9 +608,9 @@ pub(crate) fn import_key(
             // Step 2.5. Set the [[type]] internal slot of key to "public"
             // Step 2.6. Set the [[algorithm]] internal slot of key to algorithm.
             let public_key_handle =
-                convert_public_key_to_handle(&normalized_algorithm.name, key_data)?;
+                convert_public_key_to_handle(normalized_algorithm.name, key_data)?;
             let algorithm = SubtleKeyAlgorithm {
-                name: normalized_algorithm.name.clone(),
+                name: normalized_algorithm.name,
             };
             CryptoKey::new(
                 cx,
@@ -639,7 +639,7 @@ pub(crate) fn import_key(
             // function described in Section 6.1 of [FIPS-204] with the parameter set indicated by
             // the name member of normalizedAlgorithm, using data as ξ.
             let (private_key_handle, _public_key_handle) =
-                convert_seed_to_handles(&normalized_algorithm.name, data, None, None)?;
+                convert_seed_to_handles(normalized_algorithm.name, data, None, None)?;
 
             // Step 2.5. Let key be a new CryptoKey that represents the ML-DSA private key
             // identified by privateKey.
@@ -649,7 +649,7 @@ pub(crate) fn import_key(
             // normalizedAlgorithm.
             // Step 2.9. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleKeyAlgorithm {
-                name: normalized_algorithm.name.clone(),
+                name: normalized_algorithm.name,
             };
             CryptoKey::new(
                 cx,
@@ -748,13 +748,13 @@ pub(crate) fn import_key(
                 // DataError.
                 let pub_bytes = jwk.decode_required_string_field(JwkStringField::Pub)?;
                 let (private_key_handle, _public_key_handle) = convert_seed_to_handles(
-                    &normalized_algorithm.name,
+                    normalized_algorithm.name,
                     &priv_bytes,
                     None,
                     Some(&pub_bytes),
                 )?;
                 let algorithm = SubtleKeyAlgorithm {
-                    name: normalized_algorithm.name.clone(),
+                    name: normalized_algorithm.name,
                 };
                 CryptoKey::new(
                     cx,
@@ -777,9 +777,9 @@ pub(crate) fn import_key(
                 // public key.
                 // Step 2.8.3. Set the [[type]] internal slot of key to "public".
                 let public_key_handle =
-                    convert_public_key_to_handle(&normalized_algorithm.name, &pub_bytes)?;
+                    convert_public_key_to_handle(normalized_algorithm.name, &pub_bytes)?;
                 let algorithm = SubtleKeyAlgorithm {
-                    name: normalized_algorithm.name.clone(),
+                    name: normalized_algorithm.name,
                 };
                 CryptoKey::new(
                     cx,
@@ -853,10 +853,10 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //             throw a NotSupportedError.
             //
             //     Set the subjectPublicKey field to keyData.
-            let oid = match key_algorithm.name.as_str() {
-                ALG_ML_DSA_44 => ID_ALG_ML_DSA_44,
-                ALG_ML_DSA_65 => ID_ALG_ML_DSA_65,
-                ALG_ML_DSA_87 => ID_ALG_ML_DSA_87,
+            let oid = match key_algorithm.name {
+                CryptoAlgorithm::MlDsa44 => ID_ALG_ML_DSA_44,
+                CryptoAlgorithm::MlDsa65 => ID_ALG_ML_DSA_65,
+                CryptoAlgorithm::MlDsa87 => ID_ALG_ML_DSA_87,
                 _ => {
                     return Err(Error::Operation(Some(format!(
                         "{} is not an ML-DSA algorithm",
@@ -951,10 +951,10 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //
             //         Otherwise:
             //             throw a NotSupportedError.
-            let oid = match key_algorithm.name.as_str() {
-                ALG_ML_DSA_44 => ID_ALG_ML_DSA_44,
-                ALG_ML_DSA_65 => ID_ALG_ML_DSA_65,
-                ALG_ML_DSA_87 => ID_ALG_ML_DSA_87,
+            let oid = match key_algorithm.name {
+                CryptoAlgorithm::MlDsa44 => ID_ALG_ML_DSA_44,
+                CryptoAlgorithm::MlDsa65 => ID_ALG_ML_DSA_65,
+                CryptoAlgorithm::MlDsa87 => ID_ALG_ML_DSA_87,
                 _ => {
                     return Err(Error::Operation(Some(format!(
                         "{} is not an ML-DSA algorithm",
@@ -1088,7 +1088,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 /// If the length in bits of seed bytes is not 256, the conversion fails, or the consistency check
 /// fails, throw a DataError.
 fn convert_seed_to_handles(
-    algo_name: &str,
+    algorithm_name: CryptoAlgorithm,
     seed_bytes: &[u8],
     private_key_bytes: Option<&[u8]>,
     public_key_bytes: Option<&[u8]>,
@@ -1102,8 +1102,8 @@ fn convert_seed_to_handles(
     let seed: B32 = seed_bytes
         .try_into()
         .map_err(|_| Error::Data(Some("Failed to parse the seed bytes".to_string())))?;
-    let handles = match algo_name {
-        ALG_ML_DSA_44 => {
+    let handles = match algorithm_name {
+        CryptoAlgorithm::MlDsa44 => {
             let key_pair = MlDsa44::key_gen_internal(&seed);
             if let Some(private_key_bytes) = private_key_bytes {
                 if private_key_bytes != key_pair.signing_key().encode().as_slice() {
@@ -1125,7 +1125,7 @@ fn convert_seed_to_handles(
                 Handle::MlDsa44PublicKey(Box::new(key_pair.verifying_key().encode())),
             )
         },
-        ALG_ML_DSA_65 => {
+        CryptoAlgorithm::MlDsa65 => {
             let key_pair = MlDsa65::key_gen_internal(&seed);
             if let Some(private_key_bytes) = private_key_bytes {
                 if private_key_bytes != key_pair.signing_key().encode().as_slice() {
@@ -1147,7 +1147,7 @@ fn convert_seed_to_handles(
                 Handle::MlDsa65PublicKey(Box::new(key_pair.verifying_key().encode())),
             )
         },
-        ALG_ML_DSA_87 => {
+        CryptoAlgorithm::MlDsa87 => {
             let key_pair = MlDsa87::key_gen_internal(&seed);
             if let Some(private_key_bytes) = private_key_bytes {
                 if private_key_bytes != key_pair.signing_key().encode().as_slice() {
@@ -1172,7 +1172,7 @@ fn convert_seed_to_handles(
         _ => {
             return Err(Error::NotSupported(Some(format!(
                 "{} is not an ML-DSA algorithm",
-                algo_name
+                algorithm_name.as_str()
             ))));
         },
     };
@@ -1182,19 +1182,22 @@ fn convert_seed_to_handles(
 
 /// Convert public key bytes to an ML-DSA public key handle. If the conversion fails, throw a
 /// DataError.
-fn convert_public_key_to_handle(algo_name: &str, public_key_bytes: &[u8]) -> Result<Handle, Error> {
-    let public_key_handle = match algo_name {
-        ALG_ML_DSA_44 => {
+fn convert_public_key_to_handle(
+    algorithm_name: CryptoAlgorithm,
+    public_key_bytes: &[u8],
+) -> Result<Handle, Error> {
+    let public_key_handle = match algorithm_name {
+        CryptoAlgorithm::MlDsa44 => {
             let encoded_verifying_key = EncodedVerifyingKey::<MlDsa44>::try_from(public_key_bytes)
                 .map_err(|_| Error::Data(Some("Failed to parse ML-DSA public key".to_string())))?;
             Handle::MlDsa44PublicKey(Box::new(encoded_verifying_key))
         },
-        ALG_ML_DSA_65 => {
+        CryptoAlgorithm::MlDsa65 => {
             let encoded_verifying_key = EncodedVerifyingKey::<MlDsa65>::try_from(public_key_bytes)
                 .map_err(|_| Error::Data(Some("Failed to parse ML-DSA public key".to_string())))?;
             Handle::MlDsa65PublicKey(Box::new(encoded_verifying_key))
         },
-        ALG_ML_DSA_87 => {
+        CryptoAlgorithm::MlDsa87 => {
             let encoded_verifying_key = EncodedVerifyingKey::<MlDsa87>::try_from(public_key_bytes)
                 .map_err(|_| Error::Data(Some("Failed to parse ML-DSA public key".to_string())))?;
             Handle::MlDsa87PublicKey(Box::new(encoded_verifying_key))
@@ -1202,7 +1205,7 @@ fn convert_public_key_to_handle(algo_name: &str, public_key_bytes: &[u8]) -> Res
         _ => {
             return Err(Error::NotSupported(Some(format!(
                 "{} is not an ML-DSA algorithm",
-                algo_name
+                algorithm_name.as_str()
             ))));
         },
     };
