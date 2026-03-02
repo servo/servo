@@ -2,6 +2,13 @@
  "items": {
   "crashtest": {
    "mozilla": {
+    "async-html-meta-charset-crash.html": [
+     "8743acb152daa256af34bc938f688561abd313c1",
+     [
+      null,
+      {}
+     ]
+    ],
     "audioContext_createMediaElementSource-crash.html": [
      "e70316d3e6d880d8ec9600ff157e81f6047871a4",
      [

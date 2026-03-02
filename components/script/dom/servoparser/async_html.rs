@@ -154,7 +154,10 @@ enum FromParserThreadMsg {
         script: ParseNode,
         updated_input: VecDeque<SendTendril<UTF8>>,
     },
-    EncodingIndicator(SendTendril<UTF8>),
+    EncodingIndicator {
+        encoding: SendTendril<UTF8>,
+        updated_input: VecDeque<SendTendril<UTF8>>,
+    },
     /// Sent to main thread to signify that the parser thread's end method has returned.
     End,
     ProcessOperation(ParseOperation),
@@ -338,7 +341,15 @@ impl Tokenizer {
                     let script = self.get_node(&script.id);
                     return TokenizerResult::Script(DomRoot::from_ref(script.downcast().unwrap()));
                 },
-                FromParserThreadMsg::EncodingIndicator(_) => continue,
+                FromParserThreadMsg::EncodingIndicator { updated_input, .. } => {
+                    // We don't handle encoding indicators yet, so just tell the
+                    // parser thread to continue.
+                    self.to_parser_thread_sender
+                        .send(ToParserThreadMsg::Feed {
+                            input: updated_input,
+                        })
+                        .unwrap();
+                },
                 _ => unreachable!(),
             };
         }
@@ -363,11 +374,8 @@ impl Tokenizer {
                     self.process_operation(parse_op, cx);
                 },
                 FromParserThreadMsg::TokenizerResultDone { updated_input: _ } |
-                FromParserThreadMsg::TokenizerResultScript {
-                    script: _,
-                    updated_input: _,
-                } |
-                FromParserThreadMsg::EncodingIndicator(_) => continue,
+                FromParserThreadMsg::TokenizerResultScript { .. } |
+                FromParserThreadMsg::EncodingIndicator { .. } => continue,
                 FromParserThreadMsg::End => return,
             };
         }
@@ -692,7 +700,10 @@ fn run(
                         updated_input,
                     },
                     TokenizerResult::EncodingIndicator(encoding) => {
-                        FromParserThreadMsg::EncodingIndicator(SendTendril::from(encoding))
+                        FromParserThreadMsg::EncodingIndicator {
+                            encoding: SendTendril::from(encoding),
+                            updated_input,
+                        }
                     },
                 };
                 sender.send(res).unwrap();
