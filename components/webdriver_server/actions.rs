@@ -182,7 +182,7 @@ impl Handler {
 
             // Step 1.3. Try to dispatch tick actions
             self.dispatch_tick_actions(tick_actions, tick_duration)?;
-
+            self.process_pending_pointer_moves();
             // Step 1.4.1
             // There are no pending asynchronous waits arising
             // from the last invocation of the dispatch tick actions steps.
@@ -205,15 +205,6 @@ impl Handler {
                 let sleep_duration = tick_duration - elapsed;
                 thread::sleep(Duration::from_millis(sleep_duration));
             }
-
-            self.process_pending_pointer_moves();
-        }
-
-        // Edge case: All tick actions are processed. But `pending_pointer_moves` may
-        // still be non-empty.
-        while !self.pending_pointer_moves.is_empty() {
-            thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
-            self.process_pending_pointer_moves();
         }
 
         // Step 2. Return success with data null.
@@ -221,21 +212,29 @@ impl Handler {
         Ok(())
     }
 
+    /// <https://w3c.github.io/webdriver/#dfn-perform-a-pointer-move>
+    /// Step 9. Run the following substeps in parallel:
+    /// Step 9.1. Asynchronously wait for an implementation defined amount of time to pass.
+    /// Step 9.2. Perform a pointer move with arguments input state,
+    /// duration, start x, start y, target x, target y.
     fn process_pending_pointer_moves(&mut self) {
-        let moves = std::mem::take(&mut self.pending_pointer_moves);
-        for PendingPointerMove {
-            input_id,
-            duration,
-            start_x,
-            start_y,
-            target_x,
-            target_y,
-            tick_start,
-        } in moves
-        {
-            self.perform_pointer_move(
-                &input_id, duration, start_x, start_y, target_x, target_y, tick_start,
-            );
+        while !self.pending_pointer_moves.is_empty() {
+            let moves = std::mem::take(&mut self.pending_pointer_moves);
+            thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
+            for PendingPointerMove {
+                input_id,
+                duration,
+                start_x,
+                start_y,
+                target_x,
+                target_y,
+                tick_start,
+            } in moves
+            {
+                self.perform_pointer_move(
+                    &input_id, duration, start_x, start_y, target_x, target_y, tick_start,
+                );
+            }
         }
     }
 
@@ -654,6 +653,7 @@ impl Handler {
         // Step 9.1. Asynchronously wait for an implementation defined amount of time to pass.
         // Step 9.2. Perform a pointer move with arguments input state,
         // duration, start x, start y, target x, target y.
+        // This is done in `fn process_pending_pointer_moves`.
 
         // NOTE: The initial pointer movement is performed synchronously.
         // This ensures determinism in the sequence of the first event
