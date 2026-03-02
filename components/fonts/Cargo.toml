@@ -26,6 +26,7 @@ fonts_traits = { workspace = true }
 fontsan = { version = "0.6.1" }
 # FIXME (#34517): macOS only needs this when building libservo without `--features media-gstreamer`
 harfbuzz-sys = { workspace = true, features = ["bundled"] }
+icu_properties = { workspace = true, features = ["compiled_data"] }
 itertools = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }

@@ -7697,6 +7697,7 @@ dependencies = [
  "fontsan",
  "freetype-sys",
  "harfbuzz-sys",
+ "icu_properties",
  "itertools 0.14.0",
  "libc",
  "log",
