@@ -4265,11 +4265,11 @@ impl VirtualMethods for Node {
         }
     }
 
-    fn handle_event(&self, event: &Event, _: CanGc) {
+    fn handle_event(&self, event: &Event, can_gc: CanGc) {
         if let Some(event) = event.downcast::<KeyboardEvent>() {
             self.owner_document()
                 .event_handler()
-                .run_default_keyboard_event_handler(event);
+                .run_default_keyboard_event_handler(event, can_gc);
         }
     }
 }
