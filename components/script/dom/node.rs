@@ -2332,7 +2332,6 @@ where
                 break;
             }
 
-            // SAFETY: Using unsafe methods is ok, as we have a reference to a NoGC, hence, disallowing any mutable reference which would imply Gc happening.
             let next_sibling_option = ancestor.get_next_sibling_unrooted(self.no_gc);
 
             if let Some(next_sibling) = next_sibling_option {
@@ -2343,7 +2342,6 @@ where
             if let Some(shadow_root) = ancestor.downcast::<ShadowRoot>() {
                 // Shadow roots don't have sibling, so after we're done traversing
                 // one we jump to the first child of the host
-                // SAFETY: Using unsafe methods is ok, as we have a reference to NoGC, hence, disallowing any mutable reference which would imply Gc happening.
                 let child_option = shadow_root
                     .Host()
                     .upcast::<Node>()
@@ -2387,7 +2385,6 @@ where
             }
         }
 
-        // SAFETY: Using unsafe methods is ok, as we have a reference to a JSContext, hence, disallowing any mutable reference which would imply Gc happening.
         let first_child_option = current.get_first_child_unrooted(self.no_gc);
         if let Some(first_child) = first_child_option {
             self.current = Some(first_child);
