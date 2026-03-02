@@ -15,11 +15,12 @@
     (subpath "/private/var"))
 
 ; This is unfortunate...
+; Todo: What is this file used for?
 (allow process-exec
-    (regex #"/servo$"))
+    (regex #"/servoshell$"))
 
 (deny file-write*
-    (regex #"/servo$"))
+    (regex #"/servoshell$"))
 
 (allow sysctl-read)
 (allow sysctl-write)

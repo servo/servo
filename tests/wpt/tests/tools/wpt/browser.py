@@ -2315,7 +2315,7 @@ class Servo(Browser):
 
         resp = self._get(channel)
         decompress(resp.raw, dest=dest)
-        path = which("servo", path=os.path.join(dest, "servo"))
+        path = which("servoshell", path=os.path.join(dest, "servo"))
         st = os.stat(path)
         os.chmod(path, st.st_mode | stat.S_IEXEC)
         return path

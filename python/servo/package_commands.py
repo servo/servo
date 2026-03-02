@@ -230,7 +230,7 @@ class PackageCommands(CommandBase):
             shutil.copy2(binary_path, content_dir)
 
             print("Packaging GStreamer...")
-            dmg_binary = path.join(content_dir, "servo")
+            dmg_binary = path.join(content_dir, "servoshell")
             servo.gstreamer.package_gstreamer_dylibs(dmg_binary, lib_dir, self.target)
 
             print("Adding version to Credits.rtf")
@@ -343,7 +343,7 @@ class PackageCommands(CommandBase):
             except subprocess.CalledProcessError as e:
                 print("WiX light exited with return value %d" % e.returncode)
                 return e.returncode
-            print("Packaged Servo into " + path.join(dir_to_msi, "Servo.exe"))
+            print("Packaged Servo into " + path.join(dir_to_msi, "Servoshell.exe"))
 
             print("Creating ZIP")
             zip_path = path.join(dir_to_msi, "Servo.zip")
@@ -463,7 +463,7 @@ class PackageCommands(CommandBase):
         print("\r ➤  Bumping version number...")
         replacements = {
             "ports/servoshell/Cargo.toml": r'^version ?= ?"(?P<version>.*?)"',
-            "ports/servoshell/platform/windows/servo.exe.manifest": r'assemblyIdentity[^\/>]+version="(?P<version>.*?).0\"[^\/>]*\/>',
+            "ports/servoshell/platform/windows/servoshell.exe.manifest": r'assemblyIdentity[^\/>]+version="(?P<version>.*?).0\"[^\/>]*\/>',
             "support/windows/Servo.wxs.mako": r'<Product(.|\n)*Version="(?P<version>.*?)".*>',
             "ports/servoshell/platform/macos/Info.plist": r"<key>CFBundleShortVersionString</key>\n\s*<string>(?P<version>.*?)</string>",
             "support/android/apk/servoapp/build.gradle.kts": r'versionName\s*=\s*"(?P<version>.*?)"',
