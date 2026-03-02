@@ -41,10 +41,16 @@ struct Index {
         })
     }
     .width(65)
-    .height(50)
+    .height(40)
     .justifyContent(FlexAlign.Center)
     .backgroundColor(this.currentIndex === index ? '#1B8381': Color.White)
     .borderRadius(10)
+    .shadow({
+          radius: 10,
+          color: Color.Gray,
+          offsetX: 10,
+          offsetY: 10
+        })
   }
 
   aboutToAppear(): void {
@@ -116,11 +122,12 @@ struct Index {
               .focusable(true)
           }.tabBar(this.tabBuilder(String(item), index))
         })
-      }.onChange((index: number) => {
+      }.barHeight(40)
+      .onChange((index: number) => {
         this.currentIndex = index;
         servoshell.focusWebview(index, this.tablist);
       })
-      .backgroundColor('#c7c7c7')
+      .backgroundColor('#e1e1e1')
     }
     .width('100%')
   }
