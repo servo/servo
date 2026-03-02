@@ -160,15 +160,12 @@ impl ReplacedContents {
         }
 
         let (kind, natural_size) = {
-            if let Some((image, natural_size_in_dots)) = node.as_image() {
+            if let Some((image_info, natural_size_in_dots)) = node.as_image() {
                 if let Some(content_image) = Self::from_content_property(node, context) {
                     return Some(content_image);
                 }
                 (
-                    ReplacedContentKind::Image(ImageInfo {
-                        image,
-                        showing_broken_image_icon: node.showing_broken_image_icon(),
-                    }),
+                    ReplacedContentKind::Image(image_info),
                     NaturalSizes::from_natural_size_in_dots(natural_size_in_dots),
                 )
             } else if let Some((canvas_info, natural_size_in_dots)) = node.as_canvas() {
