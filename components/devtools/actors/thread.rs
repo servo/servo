@@ -8,7 +8,7 @@ use atomic_refcell::AtomicRefCell;
 use base::generic_channel::GenericSender;
 use devtools_traits::{DevtoolScriptControlMsg, PauseReason};
 use malloc_size_of_derive::MallocSizeOf;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use super::source::{SourceManager, SourcesReply};
@@ -65,6 +65,40 @@ struct FramesReply {
     frames: Vec<FrameActorMsg>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+enum ResumeLimitType {
+    Break,
+    Finish,
+    Next,
+    Restart,
+    Step,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct ResumeLimit {
+    #[serde(rename = "type")]
+    type_: ResumeLimitType,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+struct ResumeRequest {
+    resume_limit: Option<ResumeLimit>,
+    #[serde(rename = "frameActorID")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    frame_actor_id: Option<String>,
+}
+
+impl ResumeRequest {
+    fn get_type(&self) -> Option<String> {
+        let resume_limit = self.resume_limit.as_ref()?;
+        serde_json::to_string(&resume_limit.type_)
+            .ok()
+            .map(|s| s.trim_matches('"').into())
+    }
+}
+
 #[derive(MallocSizeOf)]
 pub(crate) struct ThreadActor {
     name: String,
@@ -94,7 +128,7 @@ impl Actor for ThreadActor {
         mut request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
-        _msg: &Map<String, Value>,
+        msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
         match msg_type {
@@ -122,7 +156,13 @@ impl Actor for ThreadActor {
             },
 
             "resume" => {
-                let _ = self.script_sender.send(DevtoolScriptControlMsg::Resume);
+                let resume: ResumeRequest =
+                    serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;
+
+                let _ = self.script_sender.send(DevtoolScriptControlMsg::Resume(
+                    resume.get_type(),
+                    resume.frame_actor_id,
+                ));
 
                 let msg = ThreadResumedReply {
                     from: self.name(),
@@ -162,6 +202,10 @@ impl Actor for ThreadActor {
             },
 
             "frames" => {
+                // TODO: This should get the youngest frame and its parents from debugger.js
+                // self.frames is not needed
+                // Frame actors should be registered here
+                // https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1425
                 let msg = FramesReply {
                     from: self.name(),
                     frames: self

@@ -37,6 +37,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::debuggerclearbreakpointevent::DebuggerClearBreakpointEvent;
 use crate::dom::debuggerinterruptevent::DebuggerInterruptEvent;
+use crate::dom::debuggerresumeevent::DebuggerResumeEvent;
 use crate::dom::debuggersetbreakpointevent::DebuggerSetBreakpointEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::{
@@ -240,6 +241,24 @@ impl DebuggerGlobalScope {
         assert!(
             event.fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerInterruptEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_resume(
+        &self,
+        resume_limit_type: Option<String>,
+        frame_actor_id: Option<String>,
+        can_gc: CanGc,
+    ) {
+        let event = DomRoot::upcast::<Event>(DebuggerResumeEvent::new(
+            self.upcast(),
+            resume_limit_type.map(DOMString::from),
+            frame_actor_id.map(DOMString::from),
+            can_gc,
+        ));
+        assert!(
+            event.fire(self.upcast(), can_gc),
+            "Guaranteed by DebuggerResumeEvent::new"
         );
     }
 

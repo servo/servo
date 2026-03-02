@@ -140,6 +140,9 @@ addEventListener("getPossibleBreakpoints", event => {
 });
 
 function handlePauseAndRespond(frame, pauseReason) {
+    dbg.onEnterFrame = undefined;
+    clearSteppingHooks();
+
     // Get the pipeline ID for this debuggee
     const pipelineId = debuggeesToPipelineIds.get(frame.script.global);
     if (!pipelineId) {
@@ -204,10 +207,90 @@ addEventListener("setBreakpoint", event => {
 
 // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Frame.html>
 addEventListener("interrupt", event => {
-    dbg.onEnterFrame = function(frame) {
-        dbg.onEnterFrame = undefined;
-        handlePauseAndRespond(frame, { type_:PAUSE_REASONS.INTERRUPTED, onNext: true});
-    };
+    dbg.onEnterFrame = (frame) => handlePauseAndRespond(
+        frame,
+        { type_: PAUSE_REASONS.INTERRUPTED, onNext: true }
+    );
+});
+
+function makeSteppingHooks(steppingType, startFrame) {
+    return {
+        onEnterFrame: (frame) => {
+            const { onStep, onPop } = makeSteppingHooks("next", frame);
+            frame.onStep = onStep;
+            frame.onPop = onPop;
+        },
+        onStep: () => {
+            const meta = startFrame.script.getOffsetMetadata(startFrame.offset);
+            if (meta.isBreakpoint && meta.isStepStart) {
+                return handlePauseAndRespond(startFrame, { type_: PAUSE_REASONS.RESUME_LIMIT });
+            }
+        },
+        onPop: () => {},
+    }
+}
+
+function getNextStepFrame(frame) {
+    const endOfFrame = frame.reportedPop;
+    const stepFrame = endOfFrame ? frame.older : frame;
+    if (!stepFrame || !stepFrame.script) {
+      return null;
+    }
+    return stepFrame;
+}
+
+// <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1235>
+function attachSteppingHooks(steppingType, frame) {
+    if (steppingType === "finish" && frame.reportedPop) {
+      steppingType = "next";
+    }
+
+    const stepFrame = getNextStepFrame(frame);
+    if (!stepFrame) {
+        steppingType = "step";
+    }
+
+    const { onEnterFrame, onPop, onStep } = makeSteppingHooks(
+        steppingType,
+        frame,
+    );
+
+    if (steppingType === "step") {
+        dbg.onEnterFrame = onEnterFrame;
+    }
+
+    if (stepFrame) {
+        switch (steppingType) {
+            case "step":
+            case "next":
+                if (stepFrame.script) {
+                    stepFrame.onStep = onStep;
+                }
+        }
+    }
+}
+
+function clearSteppingHooks() {
+    let frame = this.youngestFrame;
+    if (frame?.onStack) {
+        while (frame) {
+            frame.onStep = undefined;
+            frame.onPop = undefined;
+            frame = frame.older;
+        }
+    }
+}
+
+// <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#resuming-a-thread>
+addEventListener("resume", event => {
+    const {resumeLimitType: steppingType, frameActorID} = event;
+    console.log("\n\n\n---------", steppingType);
+    if (steppingType) {
+        const frame = frameActorsToFrames.get(frameActorID);
+        attachSteppingHooks(steppingType, frame);
+    } else {
+        clearSteppingHooks();
+    }
 });
 
 // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#clearbreakpoint-handler-offset>
