@@ -158,7 +158,7 @@ jobs:
         run: .\mach smoketest --profile ${{ inputs.profile }}
       - name: Install cargo nextest
         if: ${{ runner.environment != 'self-hosted' }}
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.68.16
         with:
           tool: nextest
       # On self-hosted windows runners the install-action fails

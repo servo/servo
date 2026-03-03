@@ -142,14 +142,14 @@ jobs:
     needs: linux-wpt
     steps:
       - name: Merge logs (full)
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: wpt-full-logs-linux
           pattern: wpt-full-logs-linux-*
           delete-merged: true
       # This job needs to be last. If no filtered results were uploaded, it will fail, but we want to merge other archives in that case.
       - name: Merge logs (filtered)
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: wpt-filtered-logs-linux
           pattern: wpt-filtered-logs-linux-*

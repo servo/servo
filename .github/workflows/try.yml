@@ -128,7 +128,7 @@ jobs:
     steps:
       - name: Merge build timings
         continue-on-error: true
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: cargo-timings
           pattern: cargo-timings-*

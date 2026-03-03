@@ -71,7 +71,7 @@ jobs:
       - build
     steps:
       - name: Merge build timings
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: cargo-timings
           pattern: cargo-timings-*

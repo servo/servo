@@ -145,7 +145,7 @@ jobs:
       - name: Change Mirror Priorities
         if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/apt-mirrors
-      - uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@v2.68.16
         with:
           tool: nextest
       - name: Bootstrap dependencies
@@ -332,7 +332,7 @@ jobs:
         if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/apt-mirrors
       - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.68.16
         with:
           tool: cargo-llvm-cov,cargo-nextest
       - name: Bootstrap dependencies

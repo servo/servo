@@ -118,7 +118,7 @@ jobs:
       - name: Install crown
         run: cargo install --path support/crown
 
-      - uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@v2.68.16
         with:
           tool: nextest
 
