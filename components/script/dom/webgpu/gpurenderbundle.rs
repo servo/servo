@@ -13,16 +13,36 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::CanGc;
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPURenderBundle {
+    #[no_trace]
+    channel: WebGPU,
+    #[no_trace]
+    render_bundle: WebGPURenderBundle,
+}
+
+impl Drop for DroppableGPURenderBundle {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropRenderBundle(self.render_bundle.0))
+        {
+            warn!(
+                "Failed to send DropRenderBundle ({:?}) ({})",
+                self.render_bundle.0, e
+            );
+        }
+    }
+}
+
 #[dom_struct]
 pub(crate) struct GPURenderBundle {
     reflector_: Reflector,
     #[no_trace]
-    channel: WebGPU,
-    #[no_trace]
     device: WebGPUDevice,
-    #[no_trace]
-    render_bundle: WebGPURenderBundle,
     label: DomRefCell<USVString>,
+    droppable: DroppableGPURenderBundle,
 }
 
 impl GPURenderBundle {
@@ -34,10 +54,12 @@ impl GPURenderBundle {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            render_bundle,
             device,
-            channel,
             label: DomRefCell::new(label),
+            droppable: DroppableGPURenderBundle {
+                channel,
+                render_bundle,
+            },
         }
     }
 
@@ -64,7 +86,7 @@ impl GPURenderBundle {
 
 impl GPURenderBundle {
     pub(crate) fn id(&self) -> WebGPURenderBundle {
-        self.render_bundle
+        self.droppable.render_bundle
     }
 }
 
@@ -77,20 +99,5 @@ impl GPURenderBundleMethods<crate::DomTypeHolder> for GPURenderBundle {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
-    }
-}
-
-impl Drop for GPURenderBundle {
-    fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropRenderBundle(self.render_bundle.0))
-        {
-            warn!(
-                "Failed to send DropRenderBundle ({:?}) ({})",
-                self.render_bundle.0, e
-            );
-        }
     }
 }
