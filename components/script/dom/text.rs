@@ -105,7 +105,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-text-wholetext>
-    fn WholeText(&self, cx: &mut JSContext) -> DOMString {
+    fn WholeText(&self, cx: &JSContext) -> DOMString {
         let first = self
             .upcast::<Node>()
             .inclusively_preceding_siblings_unrooted(cx.no_gc())
