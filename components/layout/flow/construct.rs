@@ -424,8 +424,25 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
             self.finish_anonymous_table_if_needed();
         }
 
-        self.ensure_inline_formatting_context_builder()
-            .push_text(text, info);
+        self.ensure_inline_formatting_context_builder();
+        let context = self.context;
+        let builder = self.inline_formatting_context_builder.as_mut().unwrap();
+
+        let mut range = 0..;
+        if let Some(pseudo_info) = self
+            .info
+            .with_pseudo_element(context, PseudoElement::FirstLetter)
+        {
+            if builder.text_segments.iter().all(|seg| seg.is_empty()) {
+                // TODO: split first_letter properly
+                let index = text.ceil_char_boundary(1);
+                let first_letter = Cow::Borrowed(&text[..index]);
+                range = index..;
+                builder.push_first_letter(first_letter, &pseudo_info, context);
+            }
+        }
+
+        builder.push_text(Cow::Borrowed(&text[range]), info);
     }
 
     fn enter_display_contents(&mut self, styles: SharedInlineStyles) {

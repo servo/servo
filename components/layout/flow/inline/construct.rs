@@ -280,37 +280,67 @@ impl InlineFormattingContextBuilder {
         self.push_control_character_string(bidi_control_chars.1);
     }
 
+    pub(crate) fn push_first_letter<'dom>(
+        &mut self,
+        first_letter: Cow<'dom, str>,
+        pseudo_info: &NodeAndStyleInfo<'dom>,
+        context: &LayoutContext<'dom>,
+    ) {
+        debug_assert!(self.text_segments.is_empty());
+
+        let white_space_collapse = pseudo_info.style.clone_white_space_collapse();
+        let text_transform = pseudo_info.style.clone_text_transform().case();
+        let mut capitalized_text = String::new();
+        let mut character_count = 0;
+        let new_first_letter: String = apply_whitespace_collapse_and_text_transform(
+            &first_letter[..],
+            &mut capitalized_text,
+            white_space_collapse,
+            text_transform,
+            self.on_word_boundary,
+            self.last_inline_box_ended_with_collapsible_white_space,
+        )
+        .inspect(|&character| {
+            character_count += 1;
+            self.is_empty =
+                self.is_empty && is_collapsible_whitespace(character, white_space_collapse);
+        })
+        .collect();
+
+        // TODO: text transform etc
+        let new_text_range =
+            self.current_text_offset..self.current_text_offset + new_first_letter.len();
+        self.current_text_offset = new_text_range.end;
+
+        let character_count = new_first_letter.chars().count();
+        let new_character_range =
+            self.current_character_offset..self.current_character_offset + character_count;
+        self.current_character_offset = new_character_range.end;
+
+        self.text_segments.push(new_first_letter);
+        let inline_styles = SharedInlineStyles::from_info_and_context(pseudo_info, context);
+
+        self.inline_items
+            .push(InlineItem::TextRun(ArcRefCell::new(TextRun::new(
+                pseudo_info.into(),
+                inline_styles,
+                new_text_range,
+                new_character_range,
+            ))));
+    }
+
     pub(crate) fn push_text<'dom>(&mut self, text: Cow<'dom, str>, info: &NodeAndStyleInfo<'dom>) {
         let white_space_collapse = info.style.clone_white_space_collapse();
-        let collapsed = WhitespaceCollapse::new(
-            text.chars(),
+        let text_transform = info.style.clone_text_transform().case();
+        let mut capitalized_text = String::new();
+        let char_iterator = apply_whitespace_collapse_and_text_transform(
+            &text[..],
+            &mut capitalized_text,
             white_space_collapse,
+            text_transform,
+            self.on_word_boundary,
             self.last_inline_box_ended_with_collapsible_white_space,
         );
-
-        // TODO: Not all text transforms are about case, this logic should stop ignoring
-        // TextTransform::FULL_WIDTH and TextTransform::FULL_SIZE_KANA.
-        let text_transform = info.style.clone_text_transform().case();
-        let capitalized_text: String;
-        let char_iterator: Box<dyn Iterator<Item = char>> = match text_transform {
-            TextTransformCase::None => Box::new(collapsed),
-            TextTransformCase::Capitalize => {
-                // `TextTransformation` doesn't support capitalization, so we must capitalize the whole
-                // string at once and make a copy. Here `on_word_boundary` indicates whether or not the
-                // inline formatting context as a whole is on a word boundary. This is different from
-                // `last_inline_box_ended_with_collapsible_white_space` because the word boundaries are
-                // between atomic inlines and at the start of the IFC, and because preserved spaces
-                // are a word boundary.
-                let collapsed_string: String = collapsed.collect();
-                capitalized_text = capitalize_string(&collapsed_string, self.on_word_boundary);
-                Box::new(capitalized_text.chars())
-            },
-            _ => {
-                // If `text-transform` is active, wrap the `WhitespaceCollapse` iterator in
-                // a `TextTransformation` iterator.
-                Box::new(TextTransformation::new(collapsed, text_transform))
-            },
-        };
 
         let char_iterator = if info.style.clone__webkit_text_security() != WebKitTextSecurity::None
         {
@@ -322,20 +352,13 @@ impl InlineFormattingContextBuilder {
             char_iterator
         };
 
-        let white_space_collapse = info.style.clone_white_space_collapse();
         let mut character_count = 0;
         let new_text: String = char_iterator
             .inspect(|&character| {
                 character_count += 1;
 
-                self.is_empty = self.is_empty &&
-                    match white_space_collapse {
-                        WhiteSpaceCollapse::Collapse => character.is_ascii_whitespace(),
-                        WhiteSpaceCollapse::PreserveBreaks => {
-                            character.is_ascii_whitespace() && character != '\n'
-                        },
-                        WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces => false,
-                    };
+                self.is_empty =
+                    self.is_empty && is_collapsible_whitespace(character, white_space_collapse);
             })
             .collect();
 
@@ -409,6 +432,49 @@ impl InlineFormattingContextBuilder {
             is_single_line_text_input,
             default_bidi_level,
         ))
+    }
+}
+
+fn apply_whitespace_collapse_and_text_transform<'a>(
+    text: &'a str,
+    capitalized_text: &'a mut String,
+    white_space_collapse: WhiteSpaceCollapse,
+    text_transform: TextTransformCase,
+    on_word_boundary: bool,
+    trim_beginning_white_space: bool,
+) -> Box<dyn Iterator<Item = char> + 'a> {
+    let collapsed = WhitespaceCollapse::new(
+        text.chars(),
+        white_space_collapse,
+        trim_beginning_white_space,
+    );
+
+    match text_transform {
+        TextTransformCase::None => Box::new(collapsed),
+        TextTransformCase::Capitalize => {
+            // `TextTransformation` doesn't support capitalization, so we must capitalize the whole
+            // string at once and make a copy. Here `on_word_boundary` indicates whether or not the
+            // inline formatting context as a whole is on a word boundary. This is different from
+            // `last_inline_box_ended_with_collapsible_white_space` because the word boundaries are
+            // between atomic inlines and at the start of the IFC, and because preserved spaces
+            // are a word boundary.
+            let collapsed_string: String = collapsed.collect();
+            *capitalized_text = capitalize_string(&collapsed_string, on_word_boundary);
+            Box::new(capitalized_text.chars())
+        },
+        _ => {
+            // If `text-transform` is active, wrap the `WhitespaceCollapse` iterator in
+            // a `TextTransformation` iterator.
+            Box::new(TextTransformation::new(collapsed, text_transform))
+        },
+    }
+}
+
+fn is_collapsible_whitespace(c: char, white_space_collapse: WhiteSpaceCollapse) -> bool {
+    match white_space_collapse {
+        WhiteSpaceCollapse::Collapse => c.is_ascii_whitespace(),
+        WhiteSpaceCollapse::PreserveBreaks => c.is_ascii_whitespace() && c != '\n',
+        WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces => false,
     }
 }
 
