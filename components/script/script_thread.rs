@@ -477,7 +477,7 @@ impl ScriptThreadFactory for ScriptThread {
         thread::Builder::new()
             .name(format!("Script#{script_thread_id}"))
             .spawn(move || {
-                thread_state::initialize(ThreadState::SCRIPT | ThreadState::LAYOUT);
+                thread_state::initialize(ThreadState::SCRIPT);
                 PipelineNamespace::install(state.pipeline_namespace_id);
                 ScriptEventLoopId::install(state.id);
                 let memory_profiler_sender = state.memory_profiler_sender.clone();

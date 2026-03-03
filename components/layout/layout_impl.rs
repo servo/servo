@@ -71,6 +71,7 @@ use style::stylesheets::{
     CustomMediaMap, DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument,
 };
 use style::stylist::Stylist;
+use style::thread_state::{self, ThreadState};
 use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
 use style::values::computed::font::GenericFontFamily;
@@ -222,6 +223,28 @@ impl LayoutFactory for LayoutFactoryImpl {
     }
 }
 
+struct ThreadStateRestorer;
+
+impl ThreadStateRestorer {
+    fn new() -> Self {
+        thread_state::exit(ThreadState::SCRIPT);
+        thread_state::enter(ThreadState::LAYOUT);
+        Self
+    }
+}
+
+impl Drop for ThreadStateRestorer {
+    fn drop(&mut self) {
+        thread_state::exit(ThreadState::LAYOUT);
+        thread_state::enter(ThreadState::SCRIPT);
+    }
+}
+
+fn with_layout_state<R>(f: impl FnOnce() -> R) -> R {
+    let _guard = ThreadStateRestorer::new();
+    f()
+}
+
 impl Drop for LayoutThread {
     fn drop(&mut self) {
         let (keys, instance_keys) = self
@@ -316,14 +339,16 @@ impl Layout for LayoutThread {
     /// Return the resolved values of this node's padding rect.
     #[servo_tracing::instrument(skip_all)]
     fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides> {
-        // If we have not built a fragment tree yet, there is no way we have layout information for
-        // this query, which can be run without forcing a layout (for IntersectionObserver).
-        if self.fragment_tree.borrow().is_none() {
-            return None;
-        }
+        with_layout_state(|| {
+            // If we have not built a fragment tree yet, there is no way we have layout information for
+            // this query, which can be run without forcing a layout (for IntersectionObserver).
+            if self.fragment_tree.borrow().is_none() {
+                return None;
+            }
 
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        process_padding_request(node.to_threadsafe())
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            process_padding_request(node.to_threadsafe())
+        })
     }
 
     /// Return the union of this node's areas in the coordinate space of the Document. This is used
@@ -338,23 +363,25 @@ impl Layout for LayoutThread {
         area: BoxAreaType,
         exclude_transform_and_inline: bool,
     ) -> Option<Rect<Au, CSSPixel>> {
-        // If we have not built a fragment tree yet, there is no way we have layout information for
-        // this query, which can be run without forcing a layout (for IntersectionObserver).
-        if self.fragment_tree.borrow().is_none() {
-            return None;
-        }
+        with_layout_state(|| {
+            // If we have not built a fragment tree yet, there is no way we have layout information for
+            // this query, which can be run without forcing a layout (for IntersectionObserver).
+            if self.fragment_tree.borrow().is_none() {
+                return None;
+            }
 
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        let stacking_context_tree = self.stacking_context_tree.borrow();
-        let stacking_context_tree = stacking_context_tree
-            .as_ref()
-            .expect("Should always have a StackingContextTree for box area queries");
-        process_box_area_request(
-            stacking_context_tree,
-            node.to_threadsafe(),
-            area,
-            exclude_transform_and_inline,
-        )
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            let stacking_context_tree = self.stacking_context_tree.borrow();
+            let stacking_context_tree = stacking_context_tree
+                .as_ref()
+                .expect("Should always have a StackingContextTree for box area queries");
+            process_box_area_request(
+                stacking_context_tree,
+                node.to_threadsafe(),
+                area,
+                exclude_transform_and_inline,
+            )
+        })
     }
 
     /// Get a `Vec` of bounding boxes of this node's `Fragment`s specific area in the coordinate space of
@@ -363,46 +390,56 @@ impl Layout for LayoutThread {
     /// See <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>.
     #[servo_tracing::instrument(skip_all)]
     fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> CSSPixelRectIterator {
-        // If we have not built a fragment tree yet, there is no way we have layout information for
-        // this query, which can be run without forcing a layout (for IntersectionObserver).
-        if self.fragment_tree.borrow().is_none() {
-            return Box::new(std::iter::empty());
-        }
+        with_layout_state(|| {
+            // If we have not built a fragment tree yet, there is no way we have layout information for
+            // this query, which can be run without forcing a layout (for IntersectionObserver).
+            if self.fragment_tree.borrow().is_none() {
+                return Box::new(std::iter::empty()) as CSSPixelRectIterator;
+            }
 
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        let stacking_context_tree = self.stacking_context_tree.borrow();
-        let stacking_context_tree = stacking_context_tree
-            .as_ref()
-            .expect("Should always have a StackingContextTree for box area queries");
-        process_box_areas_request(stacking_context_tree, node.to_threadsafe(), area)
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            let stacking_context_tree = self.stacking_context_tree.borrow();
+            let stacking_context_tree = stacking_context_tree
+                .as_ref()
+                .expect("Should always have a StackingContextTree for box area queries");
+            process_box_areas_request(stacking_context_tree, node.to_threadsafe(), area)
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32, CSSPixel> {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        process_client_rect_request(node.to_threadsafe())
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            process_client_rect_request(node.to_threadsafe())
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
     fn query_current_css_zoom(&self, node: TrustedNodeAddress) -> f32 {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        process_current_css_zoom_query(node)
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            process_current_css_zoom_query(node)
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
     fn query_element_inner_outer_text(&self, node: layout_api::TrustedNodeAddress) -> String {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        get_the_text_steps(node)
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            get_the_text_steps(node)
+        })
     }
     #[servo_tracing::instrument(skip_all)]
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        let stacking_context_tree = self.stacking_context_tree.borrow();
-        let stacking_context_tree = stacking_context_tree
-            .as_ref()
-            .expect("Should always have a StackingContextTree for offset parent queries");
-        process_offset_parent_query(&stacking_context_tree.paint_info.scroll_tree, node)
-            .unwrap_or_default()
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            let stacking_context_tree = self.stacking_context_tree.borrow();
+            let stacking_context_tree = stacking_context_tree
+                .as_ref()
+                .expect("Should always have a StackingContextTree for offset parent queries");
+            process_offset_parent_query(&stacking_context_tree.paint_info.scroll_tree, node)
+                .unwrap_or_default()
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -411,14 +448,16 @@ impl Layout for LayoutThread {
         node: Option<TrustedNodeAddress>,
         flags: ScrollContainerQueryFlags,
     ) -> Option<ScrollContainerResponse> {
-        let node = unsafe { node.as_ref().map(|node| ServoLayoutNode::new(node)) };
-        let viewport_overflow = self
-            .box_tree
-            .borrow()
-            .as_ref()
-            .expect("Should have a BoxTree for all scroll container queries.")
-            .viewport_overflow;
-        process_scroll_container_query(node, flags, viewport_overflow)
+        with_layout_state(|| {
+            let node = unsafe { node.as_ref().map(|node| ServoLayoutNode::new(node)) };
+            let viewport_overflow = self
+                .box_tree
+                .borrow()
+                .as_ref()
+                .expect("Should have a BoxTree for all scroll container queries.")
+                .viewport_overflow;
+            process_scroll_container_query(node, flags, viewport_overflow)
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -430,24 +469,26 @@ impl Layout for LayoutThread {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> String {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        let document = node.owner_doc();
-        let document_shared_lock = document.style_shared_lock();
-        let guards = StylesheetGuards {
-            author: &document_shared_lock.read(),
-            ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
-        };
-        let snapshot_map = SnapshotMap::new();
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            let document = node.owner_doc();
+            let document_shared_lock = document.style_shared_lock();
+            let guards = StylesheetGuards {
+                author: &document_shared_lock.read(),
+                ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
+            };
+            let snapshot_map = SnapshotMap::new();
 
-        let shared_style_context = self.build_shared_style_context(
-            guards,
-            &snapshot_map,
-            animation_timeline_value,
-            &animations,
-            TraversalFlags::empty(),
-        );
+            let shared_style_context = self.build_shared_style_context(
+                guards,
+                &snapshot_map,
+                animation_timeline_value,
+                &animations,
+                TraversalFlags::empty(),
+            );
 
-        process_resolved_style_request(&shared_style_context, node, &pseudo, &property_id)
+            process_resolved_style_request(&shared_style_context, node, &pseudo, &property_id)
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -458,35 +499,39 @@ impl Layout for LayoutThread {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>> {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        let document = node.owner_doc();
-        let document_shared_lock = document.style_shared_lock();
-        let guards = StylesheetGuards {
-            author: &document_shared_lock.read(),
-            ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
-        };
-        let snapshot_map = SnapshotMap::new();
-        let shared_style_context = self.build_shared_style_context(
-            guards,
-            &snapshot_map,
-            animation_timeline_value,
-            &animations,
-            TraversalFlags::empty(),
-        );
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            let document = node.owner_doc();
+            let document_shared_lock = document.style_shared_lock();
+            let guards = StylesheetGuards {
+                author: &document_shared_lock.read(),
+                ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
+            };
+            let snapshot_map = SnapshotMap::new();
+            let shared_style_context = self.build_shared_style_context(
+                guards,
+                &snapshot_map,
+                animation_timeline_value,
+                &animations,
+                TraversalFlags::empty(),
+            );
 
-        process_resolved_font_style_query(
-            &shared_style_context,
-            node,
-            value,
-            self.url.clone(),
-            document_shared_lock,
-        )
+            process_resolved_font_style_query(
+                &shared_style_context,
+                node,
+                value,
+                self.url.clone(),
+                document_shared_lock,
+            )
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32, CSSPixel> {
-        let node = node.map(|node| unsafe { ServoLayoutNode::new(&node).to_threadsafe() });
-        process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
+        with_layout_state(|| {
+            let node = node.map(|node| unsafe { ServoLayoutNode::new(&node).to_threadsafe() });
+            process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -495,10 +540,16 @@ impl Layout for LayoutThread {
         node: TrustedNodeAddress,
         point_in_node: Point2D<Au, CSSPixel>,
     ) -> Option<usize> {
-        let node = unsafe { ServoLayoutNode::new(&node).to_threadsafe() };
-        let stacking_context_tree = self.stacking_context_tree.borrow_mut();
-        let stacking_context_tree = stacking_context_tree.as_ref()?;
-        find_character_offset_in_fragment_descendants(&node, stacking_context_tree, point_in_node)
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node).to_threadsafe() };
+            let stacking_context_tree = self.stacking_context_tree.borrow_mut();
+            let stacking_context_tree = stacking_context_tree.as_ref()?;
+            find_character_offset_in_fragment_descendants(
+                &node,
+                stacking_context_tree,
+                point_in_node,
+            )
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -507,11 +558,13 @@ impl Layout for LayoutThread {
         point: webrender_api::units::LayoutPoint,
         flags: layout_api::ElementsFromPointFlags,
     ) -> Vec<layout_api::ElementsFromPointResult> {
-        self.stacking_context_tree
-            .borrow_mut()
-            .as_mut()
-            .map(|tree| HitTest::run(tree, point, flags))
-            .unwrap_or_default()
+        with_layout_state(|| {
+            self.stacking_context_tree
+                .borrow_mut()
+                .as_mut()
+                .map(|tree| HitTest::run(tree, point, flags))
+                .unwrap_or_default()
+        })
     }
 
     fn exit_now(&mut self) {}
@@ -576,17 +629,19 @@ impl Layout for LayoutThread {
             profile_time::ProfilerCategory::Layout,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
-            || self.handle_reflow(reflow_request),
+            || with_layout_state(|| self.handle_reflow(reflow_request)),
         )
     }
 
     fn ensure_stacking_context_tree(&self, viewport_details: ViewportDetails) {
-        if self.stacking_context_tree.borrow().is_some() &&
-            !self.need_new_stacking_context_tree.get()
-        {
-            return;
-        }
-        self.build_stacking_context_tree(viewport_details);
+        with_layout_state(|| {
+            if self.stacking_context_tree.borrow().is_some() &&
+                !self.need_new_stacking_context_tree.get()
+            {
+                return;
+            }
+            self.build_stacking_context_tree(viewport_details);
+        })
     }
 
     fn register_paint_worklet_modules(
