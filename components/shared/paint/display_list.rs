@@ -842,6 +842,10 @@ pub struct PaintDisplayListInfo {
     /// tree.
     pub root_scroll_node_id: ScrollTreeNodeId,
 
+    /// First paint
+    /// See <https://w3c.github.io/paint-timing/#first-paint>.
+    pub first_paint: bool,
+
     /// Contentful paint i.e. whether the display list contains items of type
     /// text, image, non-white canvas or SVG). Used by metrics.
     /// See <https://w3c.github.io/paint-timing/#first-contentful-paint>.
@@ -897,6 +901,7 @@ impl PaintDisplayListInfo {
             scroll_tree,
             root_reference_frame_id,
             root_scroll_node_id,
+            first_paint: false,
             is_contentful: false,
             first_reflow,
         }
