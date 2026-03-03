@@ -43,7 +43,7 @@ jobs:
         run: |
           if [[ -z "${{ inputs.artifact_ids }}" ]]; then
             echo "Error: No artifact IDs provided."
-            echo "Help: Check the calling workflow's inputs.artifact_ids parameter, usually created by a build workflow."
+            echo "Help: Check the calling workflow's output.artifact_ids parameter, usually created by a build workflow."
             echo "If you recently renamed the build job for the artifacts, without updating the `outputs.artifact_ids` "
             echo "parameter then this might be the cause of the error."
             exit 1
