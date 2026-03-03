@@ -28,7 +28,9 @@ use keyboard_types::{Code, Key, KeyState, Modifiers, NamedKey};
 use layout_api::{ScrollContainerQueryFlags, node_id_from_scroll_id};
 use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
+use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
+use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
@@ -58,13 +60,14 @@ use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 #[cfg(feature = "gamepad")]
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
+use crate::dom::interactive_element_command::InteractiveElementCommand;
 use crate::dom::node::{self, Node, NodeTraits, ShadowIncluding};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
-use crate::dom::scrolling_box::ScrollingBoxAxis;
+use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
 use crate::dom::types::{
     ClipboardEvent, CompositionEvent, DataTransfer, Element, Event, EventTarget, GlobalScope,
-    HTMLAnchorElement, HTMLLabelElement, KeyboardEvent, MouseEvent, Touch, TouchEvent, TouchList,
-    WheelEvent, Window,
+    HTMLAnchorElement, HTMLElement, HTMLLabelElement, KeyboardEvent, MouseEvent, Touch, TouchEvent,
+    TouchList, WheelEvent, Window,
 };
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::realms::enter_realm;
@@ -172,6 +175,8 @@ pub(crate) struct DocumentEventHandler {
     active_pointer_ids: DomRefCell<FxHashMap<i32, i32>>,
     /// Counter for generating unique pointer IDs for touch inputs
     next_touch_pointer_id: Cell<i32>,
+    /// A map holding information about currently registered access key handlers.
+    access_key_handlers: DomRefCell<FxHashMap<char, Dom<HTMLElement>>>,
 }
 
 impl DocumentEventHandler {
@@ -191,6 +196,7 @@ impl DocumentEventHandler {
             active_keyboard_modifiers: Default::default(),
             active_pointer_ids: Default::default(),
             next_touch_pointer_id: Cell::new(1),
+            access_key_handlers: Default::default(),
         }
     }
 
@@ -1823,6 +1829,10 @@ impl DocumentEventHandler {
             return;
         }
 
+        if self.maybe_handle_accesskey(event, can_gc) {
+            return;
+        }
+
         let scroll = match event.key() {
             Key::Named(NamedKey::ArrowDown) => KeyboardScroll::Down,
             Key::Named(NamedKey::ArrowLeft) => KeyboardScroll::Left,
@@ -2203,6 +2213,113 @@ impl DocumentEventHandler {
                 .upcast::<Event>()
                 .fire(target.upcast(), can_gc);
         }
+    }
+
+    pub(crate) fn has_assigned_access_key(&self, element: &HTMLElement) -> bool {
+        self.access_key_handlers
+            .borrow()
+            .values()
+            .any(|value| &**value != element)
+    }
+
+    pub(crate) fn unassign_access_key(&self, element: &HTMLElement) {
+        self.access_key_handlers
+            .borrow_mut()
+            .retain(|_, value| &**value != element)
+    }
+
+    pub(crate) fn assign_access_key(&self, element: &HTMLElement, character: char) {
+        let mut access_key_handlers = self.access_key_handlers.borrow_mut();
+        // If an element is already assigned this access key, ignore the request.
+        access_key_handlers
+            .entry(character)
+            .or_insert(Dom::from_ref(element));
+    }
+
+    fn maybe_handle_accesskey(&self, event: &KeyboardEvent, can_gc: CanGc) -> bool {
+        #[cfg(target_os = "macos")]
+        let access_key_modifiers = Modifiers::CONTROL | Modifiers::ALT;
+        #[cfg(not(target_os = "macos"))]
+        let access_key_modifiers = Modifiers::SHIFT | Modifiers::ALT;
+
+        if event.modifiers() != access_key_modifiers {
+            return false;
+        }
+
+        let Key::Character(ref string) = event.key() else {
+            return false;
+        };
+
+        let mut characters = string.chars();
+        let Some(character) = characters.next() else {
+            return false;
+        };
+        if characters.count() > 0 {
+            return false;
+        };
+
+        let Some(html_element) = self
+            .access_key_handlers
+            .borrow()
+            .get(&character)
+            .map(|html_element| html_element.as_rooted())
+        else {
+            return false;
+        };
+
+        // From <https://html.spec.whatwg.org/multipage/#the-accesskey-attribute>:
+        // > When the user presses the key combination corresponding to the assigned access key for
+        // > an element, if the element defines a command, the command's Hidden State facet is false
+        // > (visible), the command's Disabled State facet is also false (enabled), the element is in
+        // > a document that has a non-null browsing context, and neither the element nor any of its
+        // > ancestors has a hidden attribute specified, then the user agent must trigger the Action
+        // > of the command.
+        let Ok(command) = InteractiveElementCommand::try_from(&*html_element) else {
+            return false;
+        };
+
+        if command.disabled() || command.hidden() {
+            return false;
+        }
+
+        let node = html_element.upcast::<Node>();
+        if !node.is_connected() {
+            return false;
+        }
+
+        for node in node.inclusive_ancestors(ShadowIncluding::Yes) {
+            if node
+                .downcast::<HTMLElement>()
+                .is_some_and(|html_element| html_element.Hidden())
+            {
+                return false;
+            }
+        }
+
+        // This behavior is unspecified, but all browsers do this. When activating the element it is
+        // focused and scrolled into view.
+        //
+        // TODO: Focusing the element should likely be part of the default event handler for "click"
+        // events, but currently it's done only for real hardware click events and not synthetic
+        // ones. When that's fixed, this code can likely just scroll the element into view.
+        let element = html_element.upcast();
+        html_element
+            .owner_document()
+            .request_focus(Some(element), FocusInitiator::Script, can_gc);
+        let scroll_axis = ScrollAxisState {
+            position: ScrollLogicalPosition::Nearest,
+            requirement: ScrollRequirement::IfNotVisible,
+        };
+        element.scroll_into_view_with_options(
+            ScrollBehavior::Auto,
+            scroll_axis,
+            scroll_axis,
+            None,
+            None,
+        );
+
+        command.perform_action(can_gc);
+        true
     }
 }
 

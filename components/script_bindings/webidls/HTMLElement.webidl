@@ -36,9 +36,9 @@ interface HTMLElement : Element {
   // [CEReactions]
   //         attribute long tabIndex;
   undefined blur();
-  // [CEReactions]
-  //         attribute DOMString accessKey;
-  //readonly attribute DOMString accessKeyLabel;
+  [CEReactions]
+            attribute DOMString accessKey;
+  readonly attribute DOMString accessKeyLabel;
   // [CEReactions]
   //         attribute boolean draggable;
   // [SameObject, PutForwards=value] readonly attribute DOMTokenList dropzone;
