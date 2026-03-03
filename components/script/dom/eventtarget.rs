@@ -75,7 +75,7 @@ use crate::script_runtime::CanGc;
 /// <https://html.spec.whatwg.org/multipage/#globaleventhandlers> and
 /// <https://html.spec.whatwg.org/multipage/#windoweventhandlers> as well as
 /// specific attributes for elements
-static CONTENT_EVENT_HANDLER_NAMES: [&str; 108] = [
+static CONTENT_EVENT_HANDLER_NAMES: [&str; 118] = [
     "onabort",
     "onauxclick",
     "onbeforeinput",
@@ -164,6 +164,17 @@ static CONTENT_EVENT_HANDLER_NAMES: [&str; 108] = [
     // https://w3c.github.io/selection-api/#extensions-to-globaleventhandlers-interface
     "onselectstart",
     "onselectionchange",
+    // https://w3c.github.io/pointerevents/#extensions-to-the-globaleventhandlers-interface
+    "onpointercancel",
+    "onpointerdown",
+    "onpointerup",
+    "onpointermove",
+    "onpointerout",
+    "onpointerover",
+    "onpointerenter",
+    "onpointerleave",
+    "ongotpointercapture",
+    "onlostpointercapture",
     // https://html.spec.whatwg.org/multipage/#windoweventhandlers
     "onafterprint",
     "onbeforeprint",
