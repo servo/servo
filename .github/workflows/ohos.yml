@@ -54,13 +54,13 @@ jobs:
       artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
       signed: ${{ steps.signing_config.outputs.signed }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 2
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -81,7 +81,7 @@ jobs:
           version: "6.0.0.1" # api 20 in openharmony
           fixup-path: true
       - name: Install node for hvigor
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 18
       - name: Install hvigor modules
@@ -110,28 +110,28 @@ jobs:
           ./mach build --locked --target ${{ matrix.target }} --profile ${{ inputs.profile }}
           cp -r target/cargo-timings target/cargo-timings-ohos-${{ matrix.target }}
       - name: Archive build timing
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cargo-timings-ohos-${{ matrix.target }}-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
       - name: Upload shared library
         if: ${{ inputs.upload_library }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-library
         with:
           name: ${{ inputs.profile }}-library-ohos-${{ matrix.target }}
           path: target/aarch64-unknown-linux-ohos/production/libservoshell.so
       - name: Upload signed HAP artifact
         if: ${{ env.SERVO_OHOS_SIGNING_CONFIG != '' }} # Build output has different name if not signed.
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-hap-signed
         with:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
           path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-signed.hap
       - name: Upload unsigned HAP artifact
         if: ${{ env.SERVO_OHOS_SIGNING_CONFIG == '' }} # Build output has different name if not signed.
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-hap-unsigned
         with:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
@@ -186,7 +186,7 @@ jobs:
       - name: Build for aarch64 HarmonyOS
         run: |
           ./mach build --locked --target aarch64-unknown-linux-ohos --profile=${{ inputs.profile }} --flavor=harmonyos --no-default-features --features tracing,tracing-hitrace
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           # Upload the **unsigned** artifact - We don't have the signing materials in pull request workflows
           name: servoshell-hos-${{ inputs.profile }}.hap
@@ -209,7 +209,7 @@ jobs:
       job_status: ${{ steps.result.outputs.JOB_STATUS }}
     if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.outputs.job_status == 'success'
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           # Name of the artifact to download.
           # If unspecified, all artifacts for the run are downloaded.
@@ -228,13 +228,13 @@ jobs:
           # to make sure we don't use a previous version if installation failed for some reason.
           hdc uninstall org.servo.servo
           hdc install -r servoshell-hos-signed.hap
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 0
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -305,7 +305,7 @@ jobs:
         run: hitrace-bench -r support/hitrace-bencher/runs.json --bencher -p ${{ inputs.profile }}
       - name: Upload failure screenshots
         if: ${{ steps.hitrace_bench.success == 'failure' }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: bencher-${{ inputs.profile }}-failure-screenshot
           path: "/tmp/servo.jpeg"
@@ -323,7 +323,7 @@ jobs:
           hdc file recv /data/local/tmp/servo.jpeg speedometer_error_logs/servo_hos_screenshot.jpeg
           # Todo: Upload logs. This is currently not possible since the test-speedometer-ohos command
           # sets a log filter, which filters everything except JS console output.
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() && steps.speedometer.outcome == 'failure' }}
         with:
           name: ohos-speedometer-failure-${{ matrix.target }}-${{ inputs.profile }}
@@ -367,7 +367,7 @@ jobs:
       # This will ensure the scenario pyproject.toml is picked up and the correct venv used.
       UV_PROJECT: "etc/ci/scenario"
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           # Name of the artifact to download.
           # If unspecified, all artifacts for the run are downloaded.
@@ -387,7 +387,7 @@ jobs:
           hdc uninstall org.servo.servo
           hdc install -r servoshell-hos-signed.hap
       - name: Checkout scenario scripts
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           sparse-checkout: |
             etc/ci/scenario
@@ -420,7 +420,7 @@ jobs:
         run: uv run ./etc/ci/scenario/servo_test_slide.py
       - name: Upload failure screenshots
         if: ${{ steps.install_hap.outcome == 'success' && failure() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: hos-${{ inputs.profile }}-scenario-failures-screenshots
           path: "servo_scenario_*_error.jpg"

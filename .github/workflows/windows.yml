@@ -188,7 +188,7 @@ jobs:
         if: ${{ false && inputs.unit-tests }}  # FIXME #39273
         run: .\mach test-devtools --profile ${{ inputs.profile }}
       - name: Archive build timing
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cargo-timings-windows-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
@@ -200,13 +200,13 @@ jobs:
       # Bundle: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.exe
       # Zip: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.zip
       - name: Upload artifact for mach package
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-exe
         with:
           name: ${{ inputs.profile }}-binary-windows
           path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\Servo.exe
       - name: Upload artifact for mach package (zip)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-zip
         if: ${{ inputs.upload_zip }}
         with:
@@ -241,13 +241,13 @@ jobs:
     name: Build libservo and MSRV check
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 1
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request_target'
         with:
           ref: ${{ github.event.pull_request.head.sha }}

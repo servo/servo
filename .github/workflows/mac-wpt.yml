@@ -30,15 +30,15 @@ jobs:
       matrix:
         chunk_id: [1, 2, 3, 4, 5]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request_target'
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request_target'
         with:
           ref: refs/pull/${{ github.event.number }}/head
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.profile }}-binary-${{ env.NAME }}
       - name: Setup Python
@@ -62,13 +62,13 @@ jobs:
             --filter-intermittents wpt-filtered-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.json
             ${{ inputs.wpt-args }}
       - name: Archive results (filtered)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: wpt-filtered-logs-${{ env.NAME }}-${{ matrix.chunk_id }}
           path: wpt-filtered-logs/*/
       - name: Archive results (full)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: wpt-full-logs-${{ env.NAME }}-${{ matrix.chunk_id }}
@@ -92,7 +92,7 @@ jobs:
           name: wpt-full-logs-${{ env.NAME }}
           pattern: wpt-full-logs-${{ env.NAME }}-*
           delete-merged: true
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: ${{ !cancelled() }}
         with:
           fetch-depth: 2
@@ -103,11 +103,11 @@ jobs:
           cat results/${{ env.NAME }}/*.log > stable-unexpected-results.log || true
       - name: Upload aggregated results
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: stable-unexpected-results-${{ env.NAME }}
           path: stable-unexpected-results.log
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: ${{ !cancelled() }}
         with:
           name: wpt-filtered-logs-${{ env.NAME }}

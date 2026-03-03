@@ -72,15 +72,15 @@ jobs:
       matrix:
         chunk_id: ${{ fromJSON(needs.runner-select.outputs.selected-runner-indices) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name != 'pull_request_target'
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: github.event_name == 'pull_request_target'
         with:
           ref: refs/pull/${{ github.event.number }}/head
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.profile }}-binary-linux
           path: ${{ inputs.profile }}-binary-linux
@@ -123,13 +123,13 @@ jobs:
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
       - name: Archive results (filtered)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: wpt-filtered-logs-linux-${{ matrix.chunk_id }}
           path: wpt-filtered-logs/*/
       - name: Archive results (full)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         if: ${{ always() }}
         with:
           name: wpt-full-logs-linux-${{ matrix.chunk_id }}
@@ -154,15 +154,15 @@ jobs:
           name: wpt-filtered-logs-linux
           pattern: wpt-filtered-logs-linux-*
           delete-merged: true
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream && github.event_name != 'pull_request_target' }}
       # This is necessary to checkout the pull request if this run was triggered via a
       # `pull_request_target` event.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream && github.event_name == 'pull_request_target' }}
         with:
           ref: refs/pull/${{ github.event.number }}/head
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
         with:
           name: wpt-filtered-logs-linux
@@ -174,7 +174,7 @@ jobs:
           cat results/linux/*.log > stable-unexpected-results.log || true
       - name: Upload aggregated results
         if: ${{ !cancelled() && !inputs.wpt-sync-from-upstream }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: stable-unexpected-results-linux
           path: stable-unexpected-results.log
