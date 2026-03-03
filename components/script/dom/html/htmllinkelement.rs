@@ -275,6 +275,10 @@ impl VirtualMethods for HTMLLinkElement {
                 } else {
                     self.remove_stylesheet();
                 }
+
+                if self.relations.get().contains(LinkRelations::MODULE_PRELOAD) {
+                    self.fetch_and_process_modulepreload(can_gc);
+                }
             },
             local_name!("href") => {
                 // https://html.spec.whatwg.org/multipage/#attr-link-href
