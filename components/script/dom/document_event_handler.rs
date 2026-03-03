@@ -441,6 +441,9 @@ impl DocumentEventHandler {
                 input_event,
                 can_gc,
             );
+            mouse_event
+                .upcast::<Event>()
+                .set_related_target(related_target.as_ref().map(|target| target.upcast()));
 
             // Fire pointer event before mouse event
             mouse_event
@@ -478,10 +481,10 @@ impl DocumentEventHandler {
             return;
         };
 
-        let target_has_changed = self
-            .current_hover_target
-            .get()
-            .is_none_or(|old_target| old_target != new_target);
+        let old_hover_target = self.current_hover_target.get();
+        let target_has_changed = old_hover_target
+            .as_ref()
+            .is_none_or(|old_target| *old_target != new_target);
 
         // Here we know the target has changed, so we must update the state,
         // dispatch mouseout to the previous one, mouseover to the new one.
@@ -512,6 +515,9 @@ impl DocumentEventHandler {
                     input_event,
                     can_gc,
                 );
+                mouse_out_event
+                    .upcast::<Event>()
+                    .set_related_target(Some(new_target.upcast()));
 
                 // Fire pointerout before mouseout
                 mouse_out_event
@@ -553,6 +559,9 @@ impl DocumentEventHandler {
                 input_event,
                 can_gc,
             );
+            mouse_over_event
+                .upcast::<Event>()
+                .set_related_target(old_hover_target.as_ref().map(|target| target.upcast()));
 
             // Fire pointerover before mouseover
             mouse_over_event
@@ -564,10 +573,8 @@ impl DocumentEventHandler {
                 .upcast::<Event>()
                 .dispatch(new_target.upcast(), false, can_gc);
 
-            let moving_from = self
-                .current_hover_target
-                .get()
-                .map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
+            let moving_from =
+                old_hover_target.map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
             let event_target = DomRoot::from_ref(new_target.upcast::<Node>());
             self.handle_mouse_enter_leave_event(
                 event_target,
