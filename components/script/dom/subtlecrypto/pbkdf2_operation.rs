@@ -15,7 +15,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     ALG_PBKDF2, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, KeyAlgorithmAndDerivatives,
-    SubtleKeyAlgorithm, SubtlePbkdf2Params,
+    NormalizedAlgorithm, SubtleKeyAlgorithm, SubtlePbkdf2Params,
 };
 
 /// <https://w3c.github.io/webcrypto/#pbkdf2-operations-derive-bits>

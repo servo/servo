@@ -15,7 +15,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     ALG_HKDF, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, KeyAlgorithmAndDerivatives,
-    SubtleHkdfParams, SubtleKeyAlgorithm,
+    NormalizedAlgorithm, SubtleHkdfParams, SubtleKeyAlgorithm,
 };
 
 /// <https://w3c.github.io/webcrypto/#hkdf-operations-derive-bits>

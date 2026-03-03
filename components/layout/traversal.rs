@@ -191,7 +191,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
         )
     };
 
-    let element_and_parent_damage = element_damage | damage_from_parent;
+    let mut element_and_parent_damage = element_damage | damage_from_parent;
     if is_display_none {
         node.unset_all_boxes();
         return element_and_parent_damage;
@@ -208,7 +208,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
             !node.isolates_damage_for_damage_propagation());
     if rebuild_children {
         damage_for_children.insert(LayoutDamage::box_damage());
-    } else if damage_for_children.contains(RestyleDamage::RELAYOUT) &&
+    } else if element_and_parent_damage.contains(RestyleDamage::RELAYOUT) &&
         !element_damage.contains(RestyleDamage::RELAYOUT) &&
         node.isolates_damage_for_damage_propagation()
     {
@@ -216,6 +216,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
         // only because of an ancestor, fragment layout caches should still be valid when
         // crossing down into new independent formatting contexts.
         damage_for_children.remove(RestyleDamage::RELAYOUT);
+        element_and_parent_damage.remove(RestyleDamage::RELAYOUT);
     }
 
     let mut damage_from_children = RestyleDamage::empty();
@@ -239,13 +240,13 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
     let descendant_needs_rebuild =
         damage_from_children.contains(LayoutDamage::descendant_has_box_damage());
     if element_or_ancestors_need_rebuild || descendant_needs_rebuild {
-        if element_or_ancestors_need_rebuild ||
+        if damage_from_parent.contains(LayoutDamage::descendant_has_box_damage()) ||
             !node.rebuild_box_tree_from_independent_formatting_context(layout_context)
         {
             // In this case:
-            //  - this node or an ancestor needs to be completely rebuilt.
+            //  - an ancestor needs to be completely rebuilt, or
             //  - a descendant needs to be rebuilt, but we are still propagating the rebuild
-            //    damage to an independent formatting context.
+            //    damage to an independent formatting context with a compatible box level.
             //
             // This means that this box is no longer valid and also needs to be rebuilt
             // (perhaps some of its descendants do not though). In this case, unset all existing
@@ -257,6 +258,7 @@ pub(crate) fn compute_damage_and_rebuild_box_tree_inner(
         } else {
             // In this case, we have rebuilt the box tree from this point and we do not
             // have to propagate rebuild box tree damage up the tree any further.
+            layout_damage_for_parent.remove(LayoutDamage::box_damage());
             layout_damage_for_parent
                 .insert(RestyleDamage::RELAYOUT | LayoutDamage::recompute_inline_content_sizes());
         }

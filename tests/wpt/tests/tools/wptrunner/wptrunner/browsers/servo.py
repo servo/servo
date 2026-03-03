@@ -138,7 +138,7 @@ class ServoBrowser(WebDriverBrowser):
         try:
             requests.get(f"http://{self.host}:{self.port}/status", timeout=3)
         except requests.exceptions.Timeout:
-            # FIXME: This indicates a hanged browser. 
+            # FIXME: This indicates a hanged browser.
             # Server is waiting for response of the previous command.
             # It happens with ~0.1% probability in our CI runs.
             self.logger.debug("Servo webdriver status request timed out.")
@@ -173,7 +173,7 @@ class ServoBrowser(WebDriverBrowser):
                 )
                 self.logger.warning("Hanged server. Killing instead.")
                 break
- 
+
             time.sleep(1)
         else:
             self.logger.warning("Max retry exceeded to normally shut down. Killing instead.")

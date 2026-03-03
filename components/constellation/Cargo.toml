@@ -1,5 +1,5 @@
 [package]
-name = "constellation"
+name = "servo-constellation"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -24,12 +24,12 @@ unwrap_used = "deny"
 panic = "deny"
 
 [dependencies]
-background_hang_monitor = { path = "../background_hang_monitor" }
+background_hang_monitor = { package = "servo-background-hang-monitor", path = "../background_hang_monitor" }
 background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }
 base = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
-canvas = { path = "../canvas" }
+canvas = { package = "servo-canvas", path = "../canvas" }
 canvas_traits = { workspace = true }
 constellation_traits = { workspace = true }
 content-security-policy = { workspace = true }
@@ -37,30 +37,30 @@ crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
-fonts = { path = "../fonts" }
+fonts = { package = "servo-fonts", path = "../fonts" }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 layout_api = { workspace = true }
 log = { workspace = true }
-media = { path = "../media/media-thread" }
-net = { path = "../net" }
+media = { package = "servo-media-thread", path = "../media/media-thread" }
+net = { package = "servo-net", path = "../net" }
 net_traits = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
-profile = { path = "../profile" }
+profile = { package = "servo-profile", path = "../profile" }
 profile_traits = { workspace = true }
 rand = { workspace = true }
 rustc-hash = { workspace = true }
 script_traits = { workspace = true }
 serde = { workspace = true }
 servo-tracing = { workspace = true }
-servo_config = { path = "../config" }
-servo_url = { path = "../url" }
+servo_config = { package = "servo-config", path = "../config" }
+servo_url = { package = "servo-url", path = "../url" }
 storage_traits = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
 tracing = { workspace = true, optional = true }
-webgpu = { path = "../webgpu" }
+webgpu = { package = "servo-webgpu", path = "../webgpu" }
 webgpu_traits = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }

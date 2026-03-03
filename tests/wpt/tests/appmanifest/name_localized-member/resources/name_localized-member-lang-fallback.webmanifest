@@ -1,0 +1,17 @@
+{
+    "name": "fallback-name",
+    "name_localized": {
+        "en": "English Name",
+        "en-US": "American English Name",
+        "fr": "Nom Français",
+        "ja": "日本語の名前"
+    },
+    "icons": [
+        {
+            "src": "icon.png",
+            "sizes": "192x192"
+        }
+    ],
+    "start_url": "../name_localized-member-lang-fallback-manual.html",
+    "display": "fullscreen"
+}

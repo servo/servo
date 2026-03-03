@@ -27,7 +27,7 @@ promise_test(async t => {
   assert_equals(
       typeof session.temperature, 'undefined');  // temperature is deprecated.
 
-  assert_equals(typeof session.onquotaoverflow, 'object');
+  assert_equals(typeof session.oncontextoverflow, 'object');
 }, 'LanguageModel.create() returns a valid object with default options');
 
 promise_test(async t => {

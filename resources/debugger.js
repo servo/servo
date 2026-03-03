@@ -6,6 +6,14 @@ const dbg = new Debugger;
 const debuggeesToPipelineIds = new Map;
 const debuggeesToWorkerIds = new Map;
 const sourceIdsToScripts = new Map;
+const frameActorsToFrames = new Map;
+
+// <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#155>
+// Possible values for the `why.type` attribute in "paused" event
+const PAUSE_REASONS = {
+  INTERRUPTED: "interrupted", // Associated with why.onNext attribute
+  RESUME_LIMIT: "resumeLimit",
+};
 
 // Find script by scriptId within a script tree
 function findScriptById(script, scriptId) {
@@ -131,7 +139,10 @@ addEventListener("getPossibleBreakpoints", event => {
     getPossibleBreakpointsResult(event, result);
 });
 
-function handlePauseAndRespond(frame, is_breakpoint) {
+function handlePauseAndRespond(frame, pauseReason) {
+    dbg.onEnterFrame = undefined;
+    clearSteppingHooks();
+
     // Get the pipeline ID for this debuggee
     const pipelineId = debuggeesToPipelineIds.get(frame.script.global);
     if (!pipelineId) {
@@ -139,21 +150,42 @@ function handlePauseAndRespond(frame, is_breakpoint) {
         return undefined;
     }
 
-    // TODO: Some properties throw if terminated is true
-    const result = {
-        // TODO: arguments: frame.arguments,
-        column: frame.script.startColumn,
-        displayName: frame.script.displayName,
-        line: frame.script.startLine,
-        onStack: frame.onStack,
-        oldest: frame.older == null,
-        terminated: frame.terminated,
-        type_: frame.type,
-        url: frame.script.url,
+    let frameActorId = findKeyByValue(frameActorsToFrames, frame);
+    if (!frameActorId) {
+        // TODO: Check if we already have an actor for this frame
+        frameActorId = registerFrameActor(pipelineId, {
+            // TODO: Some properties throw if terminated is true
+            // TODO: arguments: frame.arguments,
+            displayName: frame.script.displayName,
+            onStack: frame.onStack,
+            oldest: frame.older == null,
+            terminated: frame.terminated,
+            type_: frame.type,
+            url: frame.script.url,
+        });
+
+        if (!frameActorId) {
+            console.error("[debugger] Couldn't create frame");
+            return undefined;
+        }
+        frameActorsToFrames.set(frameActorId, frame);
+    }
+
+    // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#getoffsetmetadata-offset>
+    const offset = frame.offset;
+    const offsetMetadata = frame.script.getOffsetMetadata(offset);
+    const frameOffset = {
+        frameActorId,
+        column: offsetMetadata.columnNumber - 1,
+        line: offsetMetadata.lineNumber
     };
 
     // Notify devtools and enter pause loop. This blocks until Resume.
-    pauseAndRespond(pipelineId, result, is_breakpoint);
+    pauseAndRespond(
+        pipelineId,
+        frameOffset,
+        pauseReason
+    );
 
     // <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
     // Return undefined to continue execution normally after resume.
@@ -168,17 +200,97 @@ addEventListener("setBreakpoint", event => {
         target.setBreakpoint(offset, {
             // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#setbreakpoint-offset-handler>
             // The hit handler receives a Debugger.Frame instance representing the currently executing stack frame.
-            hit: (frame) => handlePauseAndRespond(frame, true)
+            hit: (frame) => handlePauseAndRespond(frame, {type_: "breakpoint"})
         });
     }
 });
 
 // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Frame.html>
 addEventListener("interrupt", event => {
-    dbg.onEnterFrame = function(frame) {
-        dbg.onEnterFrame = undefined;
-        handlePauseAndRespond(frame, false);
-    };
+    dbg.onEnterFrame = (frame) => handlePauseAndRespond(
+        frame,
+        { type_: PAUSE_REASONS.INTERRUPTED, onNext: true }
+    );
+});
+
+function makeSteppingHooks(steppingType, startFrame) {
+    return {
+        onEnterFrame: (frame) => {
+            const { onStep, onPop } = makeSteppingHooks("next", frame);
+            frame.onStep = onStep;
+            frame.onPop = onPop;
+        },
+        onStep: () => {
+            const meta = startFrame.script.getOffsetMetadata(startFrame.offset);
+            if (meta.isBreakpoint && meta.isStepStart) {
+                return handlePauseAndRespond(startFrame, { type_: PAUSE_REASONS.RESUME_LIMIT });
+            }
+        },
+        onPop: () => {},
+    }
+}
+
+function getNextStepFrame(frame) {
+    const endOfFrame = frame.reportedPop;
+    const stepFrame = endOfFrame ? frame.older : frame;
+    if (!stepFrame || !stepFrame.script) {
+      return null;
+    }
+    return stepFrame;
+}
+
+// <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1235>
+function attachSteppingHooks(steppingType, frame) {
+    if (steppingType === "finish" && frame.reportedPop) {
+      steppingType = "next";
+    }
+
+    const stepFrame = getNextStepFrame(frame);
+    if (!stepFrame) {
+        steppingType = "step";
+    }
+
+    const { onEnterFrame, onPop, onStep } = makeSteppingHooks(
+        steppingType,
+        frame,
+    );
+
+    if (steppingType === "step") {
+        dbg.onEnterFrame = onEnterFrame;
+    }
+
+    if (stepFrame) {
+        switch (steppingType) {
+            case "step":
+            case "next":
+                if (stepFrame.script) {
+                    stepFrame.onStep = onStep;
+                }
+        }
+    }
+}
+
+function clearSteppingHooks() {
+    let frame = this.youngestFrame;
+    if (frame?.onStack) {
+        while (frame) {
+            frame.onStep = undefined;
+            frame.onPop = undefined;
+            frame = frame.older;
+        }
+    }
+}
+
+// <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#resuming-a-thread>
+addEventListener("resume", event => {
+    const {resumeLimitType: steppingType, frameActorID} = event;
+    console.log("\n\n\n---------", steppingType);
+    if (steppingType) {
+        const frame = frameActorsToFrames.get(frameActorID);
+        attachSteppingHooks(steppingType, frame);
+    } else {
+        clearSteppingHooks();
+    }
 });
 
 // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#clearbreakpoint-handler-offset>

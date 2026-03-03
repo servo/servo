@@ -10,6 +10,7 @@ use std::default::Default;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{fmt, mem};
 
 use app_units::Au;
@@ -20,6 +21,7 @@ use euclid::Rect;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
+use js::context::JSContext;
 use js::jsapi::{Heap, JSAutoRealm};
 use js::jsval::JSVal;
 use js::rust::HandleObject;
@@ -211,12 +213,8 @@ pub struct Element {
     #[no_trace]
     state: Cell<ElementState>,
     /// These flags are set by the style system to indicate the that certain
-    /// operations may require restyling this element or its descendants. The
-    /// flags are not atomic, so the style system takes care of only set them
-    /// when it has exclusive access to the element.
-    #[ignore_malloc_size_of = "bitflags defined in rust-selectors"]
-    #[no_trace]
-    selector_flags: Cell<ElementSelectorFlags>,
+    /// operations may require restyling this element or its descendants.
+    selector_flags: AtomicUsize,
     rare_data: DomRefCell<Option<Box<ElementRareData>>>,
 }
 
@@ -328,7 +326,7 @@ impl Element {
             attr_list: Default::default(),
             class_list: Default::default(),
             state: Cell::new(state),
-            selector_flags: Cell::new(ElementSelectorFlags::empty()),
+            selector_flags: Default::default(),
             rare_data: Default::default(),
         }
     }
@@ -1491,13 +1489,12 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[inline]
     fn insert_selector_flags(self, flags: ElementSelectorFlags) {
         debug_assert!(thread_state::get().is_layout());
-        let f = &(self.unsafe_get()).selector_flags;
-        f.set(f.get() | flags);
+        self.unsafe_get().insert_selector_flags(flags);
     }
 
     #[inline]
     fn get_selector_flags(self) -> ElementSelectorFlags {
-        self.unsafe_get().selector_flags.get()
+        self.unsafe_get().get_selector_flags()
     }
 
     #[inline]
@@ -1773,6 +1770,10 @@ impl Element {
         } else {
             false
         }
+    }
+
+    pub(crate) fn is_keyboard_focusable(&self) -> bool {
+        self.is_focusable_area() && self.tab_index() != -1
     }
 
     pub(crate) fn is_focusable_area(&self) -> bool {
@@ -2334,16 +2335,16 @@ impl Element {
     /// attribute, e.g. `element.ariaLabel = null` removing the `aria-label` attribute.
     fn set_nullable_string_attribute(
         &self,
+        cx: &mut JSContext,
         local_name: &LocalName,
         value: Option<DOMString>,
-        can_gc: CanGc,
     ) {
         match value {
             Some(val) => {
-                self.set_string_attribute(local_name, val, can_gc);
+                self.set_string_attribute(local_name, val, CanGc::from_cx(cx));
             },
             None => {
-                self.remove_attribute(&ns!(), local_name, can_gc);
+                self.remove_attribute(&ns!(), local_name, CanGc::from_cx(cx));
             },
         }
     }
@@ -2626,10 +2627,10 @@ impl Element {
     }
 
     /// <https://www.w3.org/TR/CSP/#is-element-nonceable>
-    pub(crate) fn nonce_value_if_nonceable(&self) -> Option<String> {
+    pub(crate) fn is_nonceable(&self) -> bool {
         // Step 1: If element does not have an attribute named "nonce", return "Not Nonceable".
         if !self.has_attribute(&local_name!("nonce")) {
-            return None;
+            return false;
         }
         // Step 2: If element is a script element, then for each attribute of element’s attribute list:
         if self.downcast::<HTMLScriptElement>().is_some() {
@@ -2638,13 +2639,13 @@ impl Element {
                 // for "<script" or "<style", return "Not Nonceable".
                 let attr_name = attr.name().to_ascii_lowercase();
                 if attr_name.contains("<script") || attr_name.contains("<style") {
-                    return None;
+                    return false;
                 }
                 // Step 2.2: If attribute’s value contains an ASCII case-insensitive match
                 // for "<script" or "<style", return "Not Nonceable".
                 let attr_value = attr.value().to_ascii_lowercase();
                 if attr_value.contains("<script") || attr_value.contains("<style") {
-                    return None;
+                    return false;
                 }
             }
         }
@@ -2652,7 +2653,7 @@ impl Element {
         // TODO(https://github.com/servo/servo/issues/4577 and https://github.com/whatwg/html/issues/3257):
         // Figure out how to retrieve this information from the parser
         // Step 4: Return "Nonceable".
-        Some(self.nonce_value().trim().to_owned())
+        true
     }
 
     // https://dom.spec.whatwg.org/#insert-adjacent
@@ -2748,26 +2749,29 @@ impl Element {
     pub(crate) fn parse_fragment(
         &self,
         markup: DOMString,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<DomRoot<DocumentFragment>> {
         // Steps 1-2.
         // TODO(#11995): XML case.
-        let new_children = ServoParser::parse_html_fragment(self, markup, false, can_gc);
+        let new_children = ServoParser::parse_html_fragment(self, markup, false, cx);
         // Step 3.
         // See https://github.com/w3c/DOM-Parsing/issues/61.
         let context_document = {
             if let Some(template) = self.downcast::<HTMLTemplateElement>() {
-                template.Content(can_gc).upcast::<Node>().owner_doc()
+                template
+                    .Content(CanGc::from_cx(cx))
+                    .upcast::<Node>()
+                    .owner_doc()
             } else {
                 self.owner_document()
             }
         };
-        let fragment = DocumentFragment::new(&context_document, can_gc);
+        let fragment = DocumentFragment::new(&context_document, CanGc::from_cx(cx));
         // Step 4.
         for child in new_children {
             fragment
                 .upcast::<Node>()
-                .AppendChild(&child, can_gc)
+                .AppendChild(&child, CanGc::from_cx(cx))
                 .unwrap();
         }
         // Step 5.
@@ -2922,6 +2926,59 @@ impl Element {
             line_number: line_number + 2,
             column_number: 0,
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
+    pub(crate) fn tab_index(&self) -> i32 {
+        // > The tabIndex getter steps are:
+        // > 1. Let attribute be this's tabindex attribute.
+        // > 2. If attribute is not null:
+        // >    1. Let parsedValue be the result of integer parsing attribute's value.
+        // >    2. If parsedValue is not an error and is within the long range, then return parsedValue.
+        if self.has_attribute(&local_name!("tabindex")) {
+            return self.get_int_attribute(&local_name!("tabindex"), 0);
+        }
+
+        // > 3. Return 0 if this is an a, area, button, frame, iframe, input, object, select, textarea,
+        // > or SVG a element, or is a summary element that is a summary for its parent details;
+        // > otherwise -1.
+        //
+        // Note: We do not currently support SVG `a` elements.
+        if matches!(
+            self.upcast::<Node>().type_id(),
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLAnchorElement |
+                    HTMLElementTypeId::HTMLAreaElement |
+                    HTMLElementTypeId::HTMLButtonElement |
+                    HTMLElementTypeId::HTMLFrameElement |
+                    HTMLElementTypeId::HTMLIFrameElement |
+                    HTMLElementTypeId::HTMLInputElement |
+                    HTMLElementTypeId::HTMLObjectElement |
+                    HTMLElementTypeId::HTMLSelectElement |
+                    HTMLElementTypeId::HTMLTextAreaElement
+            ))
+        ) {
+            return 0;
+        }
+        if self
+            .downcast::<HTMLElement>()
+            .is_some_and(|html_element| html_element.is_a_summary_for_its_parent_details())
+        {
+            return 0;
+        }
+
+        -1
+    }
+
+    #[inline]
+    fn insert_selector_flags(&self, flags: ElementSelectorFlags) {
+        self.selector_flags
+            .fetch_or(flags.bits(), Ordering::Relaxed);
+    }
+
+    #[inline]
+    fn get_selector_flags(&self) -> ElementSelectorFlags {
+        ElementSelectorFlags::from_bits_retain(self.selector_flags.load(Ordering::Relaxed))
     }
 }
 
@@ -3632,7 +3689,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         };
 
         // Step 3. Unsafely set HTML given target, this, and compliantHTML
-        Node::unsafely_set_html(&target, self, html, CanGc::from_cx(cx));
+        Node::unsafely_set_html(&target, self, html, cx);
         Ok(())
     }
 
@@ -3708,7 +3765,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 3: Let fragment be the result of invoking the fragment parsing algorithm steps
         // with context and compliantString.
-        let frag = self.parse_fragment(value, CanGc::from_cx(cx))?;
+        let frag = self.parse_fragment(value, cx)?;
 
         // Step 5: Replace all with fragment within context.
         Node::replace_all(Some(frag.upcast()), &target, CanGc::from_cx(cx));
@@ -3779,7 +3836,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 6: Let fragment be the result of invoking the
         // fragment parsing algorithm steps given parent and compliantString.
-        let frag = parent.parse_fragment(value, CanGc::from_cx(cx))?;
+        let frag = parent.parse_fragment(value, cx)?;
         // Step 7: Replace this with fragment within this's parent.
         context_parent.ReplaceChild(frag.upcast(), context_node, CanGc::from_cx(cx))?;
         Ok(())
@@ -3991,7 +4048,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 5: Let fragment be the result of invoking the
         // fragment parsing algorithm steps with context and compliantString.
-        let fragment = context.parse_fragment(text, CanGc::from_cx(cx))?;
+        let fragment = context.parse_fragment(text, cx)?;
 
         // Step 6.
         self.insert_adjacent(position, fragment.upcast(), CanGc::from_cx(cx))
@@ -4068,356 +4125,352 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.get_nullable_string_attribute(&local_name!("role"))
     }
 
-    fn SetRole(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("role"), value, can_gc);
+    fn SetRole(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("role"), value);
     }
 
     fn GetAriaAtomic(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-atomic"))
     }
 
-    fn SetAriaAtomic(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-atomic"), value, can_gc);
+    fn SetAriaAtomic(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-atomic"), value);
     }
 
     fn GetAriaAutoComplete(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-autocomplete"))
     }
 
-    fn SetAriaAutoComplete(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-autocomplete"), value, can_gc);
+    fn SetAriaAutoComplete(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-autocomplete"), value);
     }
 
     fn GetAriaBrailleLabel(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-braillelabel"))
     }
 
-    fn SetAriaBrailleLabel(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-braillelabel"), value, can_gc);
+    fn SetAriaBrailleLabel(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-braillelabel"), value);
     }
 
     fn GetAriaBrailleRoleDescription(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-brailleroledescription"))
     }
 
-    fn SetAriaBrailleRoleDescription(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(
-            &local_name!("aria-brailleroledescription"),
-            value,
-            can_gc,
-        );
+    fn SetAriaBrailleRoleDescription(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-brailleroledescription"), value);
     }
 
     fn GetAriaBusy(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-busy"))
     }
 
-    fn SetAriaBusy(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-busy"), value, can_gc);
+    fn SetAriaBusy(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-busy"), value);
     }
 
     fn GetAriaChecked(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-checked"))
     }
 
-    fn SetAriaChecked(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-checked"), value, can_gc);
+    fn SetAriaChecked(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-checked"), value);
     }
 
     fn GetAriaColCount(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-colcount"))
     }
 
-    fn SetAriaColCount(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-colcount"), value, can_gc);
+    fn SetAriaColCount(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-colcount"), value);
     }
 
     fn GetAriaColIndex(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-colindex"))
     }
 
-    fn SetAriaColIndex(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-colindex"), value, can_gc);
+    fn SetAriaColIndex(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-colindex"), value);
     }
 
     fn GetAriaColIndexText(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-colindextext"))
     }
 
-    fn SetAriaColIndexText(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-colindextext"), value, can_gc);
+    fn SetAriaColIndexText(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-colindextext"), value);
     }
 
     fn GetAriaColSpan(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-colspan"))
     }
 
-    fn SetAriaColSpan(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-colspan"), value, can_gc);
+    fn SetAriaColSpan(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-colspan"), value);
     }
 
     fn GetAriaCurrent(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-current"))
     }
 
-    fn SetAriaCurrent(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-current"), value, can_gc);
+    fn SetAriaCurrent(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-current"), value);
     }
 
     fn GetAriaDescription(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-description"))
     }
 
-    fn SetAriaDescription(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-description"), value, can_gc);
+    fn SetAriaDescription(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-description"), value);
     }
 
     fn GetAriaDisabled(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-disabled"))
     }
 
-    fn SetAriaDisabled(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-disabled"), value, can_gc);
+    fn SetAriaDisabled(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-disabled"), value);
     }
 
     fn GetAriaExpanded(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-expanded"))
     }
 
-    fn SetAriaExpanded(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-expanded"), value, can_gc);
+    fn SetAriaExpanded(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-expanded"), value);
     }
 
     fn GetAriaHasPopup(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-haspopup"))
     }
 
-    fn SetAriaHasPopup(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-haspopup"), value, can_gc);
+    fn SetAriaHasPopup(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-haspopup"), value);
     }
 
     fn GetAriaHidden(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-hidden"))
     }
 
-    fn SetAriaHidden(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-hidden"), value, can_gc);
+    fn SetAriaHidden(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-hidden"), value);
     }
 
     fn GetAriaInvalid(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-invalid"))
     }
 
-    fn SetAriaInvalid(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-invalid"), value, can_gc);
+    fn SetAriaInvalid(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-invalid"), value);
     }
 
     fn GetAriaKeyShortcuts(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-keyshortcuts"))
     }
 
-    fn SetAriaKeyShortcuts(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-keyshortcuts"), value, can_gc);
+    fn SetAriaKeyShortcuts(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-keyshortcuts"), value);
     }
 
     fn GetAriaLabel(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-label"))
     }
 
-    fn SetAriaLabel(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-label"), value, can_gc);
+    fn SetAriaLabel(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-label"), value);
     }
 
     fn GetAriaLevel(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-level"))
     }
 
-    fn SetAriaLevel(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-level"), value, can_gc);
+    fn SetAriaLevel(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-level"), value);
     }
 
     fn GetAriaLive(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-live"))
     }
 
-    fn SetAriaLive(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-live"), value, can_gc);
+    fn SetAriaLive(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-live"), value);
     }
 
     fn GetAriaModal(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-modal"))
     }
 
-    fn SetAriaModal(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-modal"), value, can_gc);
+    fn SetAriaModal(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-modal"), value);
     }
 
     fn GetAriaMultiLine(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-multiline"))
     }
 
-    fn SetAriaMultiLine(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-multiline"), value, can_gc);
+    fn SetAriaMultiLine(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-multiline"), value);
     }
 
     fn GetAriaMultiSelectable(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-multiselectable"))
     }
 
-    fn SetAriaMultiSelectable(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-multiselectable"), value, can_gc);
+    fn SetAriaMultiSelectable(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-multiselectable"), value);
     }
 
     fn GetAriaOrientation(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-orientation"))
     }
 
-    fn SetAriaOrientation(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-orientation"), value, can_gc);
+    fn SetAriaOrientation(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-orientation"), value);
     }
 
     fn GetAriaPlaceholder(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-placeholder"))
     }
 
-    fn SetAriaPlaceholder(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-placeholder"), value, can_gc);
+    fn SetAriaPlaceholder(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-placeholder"), value);
     }
 
     fn GetAriaPosInSet(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-posinset"))
     }
 
-    fn SetAriaPosInSet(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-posinset"), value, can_gc);
+    fn SetAriaPosInSet(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-posinset"), value);
     }
 
     fn GetAriaPressed(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-pressed"))
     }
 
-    fn SetAriaPressed(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-pressed"), value, can_gc);
+    fn SetAriaPressed(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-pressed"), value);
     }
 
     fn GetAriaReadOnly(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-readonly"))
     }
 
-    fn SetAriaReadOnly(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-readonly"), value, can_gc);
+    fn SetAriaReadOnly(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-readonly"), value);
     }
 
     fn GetAriaRelevant(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-relevant"))
     }
 
-    fn SetAriaRelevant(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-relevant"), value, can_gc);
+    fn SetAriaRelevant(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-relevant"), value);
     }
 
     fn GetAriaRequired(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-required"))
     }
 
-    fn SetAriaRequired(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-required"), value, can_gc);
+    fn SetAriaRequired(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-required"), value);
     }
 
     fn GetAriaRoleDescription(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-roledescription"))
     }
 
-    fn SetAriaRoleDescription(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-roledescription"), value, can_gc);
+    fn SetAriaRoleDescription(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-roledescription"), value);
     }
 
     fn GetAriaRowCount(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-rowcount"))
     }
 
-    fn SetAriaRowCount(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-rowcount"), value, can_gc);
+    fn SetAriaRowCount(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-rowcount"), value);
     }
 
     fn GetAriaRowIndex(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-rowindex"))
     }
 
-    fn SetAriaRowIndex(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-rowindex"), value, can_gc);
+    fn SetAriaRowIndex(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-rowindex"), value);
     }
 
     fn GetAriaRowIndexText(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-rowindextext"))
     }
 
-    fn SetAriaRowIndexText(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-rowindextext"), value, can_gc);
+    fn SetAriaRowIndexText(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-rowindextext"), value);
     }
 
     fn GetAriaRowSpan(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-rowspan"))
     }
 
-    fn SetAriaRowSpan(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-rowspan"), value, can_gc);
+    fn SetAriaRowSpan(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-rowspan"), value);
     }
 
     fn GetAriaSelected(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-selected"))
     }
 
-    fn SetAriaSelected(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-selected"), value, can_gc);
+    fn SetAriaSelected(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-selected"), value);
     }
 
     fn GetAriaSetSize(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-setsize"))
     }
 
-    fn SetAriaSetSize(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-setsize"), value, can_gc);
+    fn SetAriaSetSize(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-setsize"), value);
     }
 
     fn GetAriaSort(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-sort"))
     }
 
-    fn SetAriaSort(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-sort"), value, can_gc);
+    fn SetAriaSort(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-sort"), value);
     }
 
     fn GetAriaValueMax(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-valuemax"))
     }
 
-    fn SetAriaValueMax(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-valuemax"), value, can_gc);
+    fn SetAriaValueMax(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-valuemax"), value);
     }
 
     fn GetAriaValueMin(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-valuemin"))
     }
 
-    fn SetAriaValueMin(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-valuemin"), value, can_gc);
+    fn SetAriaValueMin(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-valuemin"), value);
     }
 
     fn GetAriaValueNow(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-valuenow"))
     }
 
-    fn SetAriaValueNow(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-valuenow"), value, can_gc);
+    fn SetAriaValueNow(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-valuenow"), value);
     }
 
     fn GetAriaValueText(&self) -> Option<DOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-valuetext"))
     }
 
-    fn SetAriaValueText(&self, value: Option<DOMString>, can_gc: CanGc) {
-        self.set_nullable_string_attribute(&local_name!("aria-valuetext"), value, can_gc);
+    fn SetAriaValueText(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        self.set_nullable_string_attribute(cx, &local_name!("aria-valuetext"), value);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-slotable-assignedslot>
@@ -4584,15 +4637,17 @@ impl VirtualMethods for Element {
         if global.live_devtools_updates() {
             if let Some(sender) = global.devtools_chan() {
                 let pipeline_id = global.pipeline_id();
-                let devtools_message = ScriptToDevtoolsControlMsg::DomMutation(
-                    pipeline_id,
-                    DomMutation::AttributeModified {
-                        node: self.upcast::<Node>().unique_id(pipeline_id),
-                        attribute_name: attr.local_name().to_string(),
-                        new_value: mutation.new_value(attr).map(|value| value.to_string()),
-                    },
-                );
-                sender.send(devtools_message).unwrap();
+                if ScriptThread::devtools_want_updates_for_node(pipeline_id, self.upcast()) {
+                    let devtools_message = ScriptToDevtoolsControlMsg::DomMutation(
+                        pipeline_id,
+                        DomMutation::AttributeModified {
+                            node: self.upcast::<Node>().unique_id(pipeline_id),
+                            attribute_name: attr.local_name().to_string(),
+                            new_value: mutation.new_value(attr).map(|value| value.to_string()),
+                        },
+                    );
+                    sender.send(devtools_message).unwrap();
+                }
             }
         }
     }
@@ -4605,6 +4660,7 @@ impl VirtualMethods for Element {
                 AttrValue::from_serialized_tokenlist(value.into())
             },
             local_name!("exportparts") => AttrValue::from_shadow_parts(value.into()),
+            local_name!("tabindex") => AttrValue::from_i32(value.into(), -1),
             _ => self
                 .super_type()
                 .unwrap()
@@ -4697,7 +4753,7 @@ impl VirtualMethods for Element {
             s.children_changed(mutation, can_gc);
         }
 
-        let flags = self.selector_flags.get();
+        let flags = self.get_selector_flags();
         if flags.intersects(ElementSelectorFlags::HAS_SLOW_SELECTOR) {
             // All children of this node need to be restyled when any child changes.
             self.upcast::<Node>().dirty(NodeDamage::Other);
@@ -5651,14 +5707,16 @@ pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMStr
 }
 
 pub(crate) fn set_cross_origin_attribute(
+    cx: &mut JSContext,
     element: &Element,
     value: Option<DOMString>,
-    can_gc: CanGc,
 ) {
     match value {
-        Some(val) => element.set_string_attribute(&local_name!("crossorigin"), val, can_gc),
+        Some(val) => {
+            element.set_string_attribute(&local_name!("crossorigin"), val, CanGc::from_cx(cx))
+        },
         None => {
-            element.remove_attribute(&ns!(), &local_name!("crossorigin"), can_gc);
+            element.remove_attribute(&ns!(), &local_name!("crossorigin"), CanGc::from_cx(cx));
         },
     }
 }

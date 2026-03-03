@@ -43,8 +43,9 @@ env:
   MITMDUMP_CACHE_KEY: mitmdump-ohos-cache-0.1
 
 jobs:
-  build:
+  build-openharmony:
     name: OpenHarmony Build
+    timeout-minutes: 60
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -68,6 +69,8 @@ jobs:
         run: cargo install --path support/crown
       - name: Setup Python
         uses: ./.github/actions/setup-python
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
       - name: Bootstrap dependencies
         timeout-minutes: 30
         run: sudo apt update && ./mach bootstrap --yes --skip-lints --skip-nextest
@@ -143,7 +146,7 @@ jobs:
           echo "artifact_ids=${{steps.upload-library.outputs.artifact-id}},${{steps.upload-hap-signed.outputs.artifact-id}}" >> $GITHUB_OUTPUT
 
   bencher:
-    needs: ["build"]
+    needs: ["build-openharmony"]
     strategy:
       matrix:
         target: ["aarch64-unknown-linux-ohos", "x86_64-unknown-linux-ohos"]
@@ -163,6 +166,7 @@ jobs:
   # if we figure out how to make hvigor build for harmonyos without the HOS commandline-tools installed.
   build-harmonyos-aarch64:
     name: HarmonyOS Build (aarch64)
+    timeout-minutes: 60
     runs-on: hos-builder
     if: github.repository == 'servo/servo'
     outputs:
@@ -194,6 +198,7 @@ jobs:
 
   bench-harmonyos-aarch64:
     name: Benching HarmonyOS aarch64
+    timeout-minutes: 40
     env:
       # This will ensure the scenario pyproject.toml is picked up and the correct venv used.
       UV_PROJECT: "etc/ci/scenario"
@@ -352,6 +357,7 @@ jobs:
   scenario-test-harmonyos:
     name: Mossel Scenario test
     continue-on-error: true
+    timeout-minutes: 20
     runs-on: hos-runner
     if: github.repository == 'servo/servo' && needs.build-harmonyos-aarch64.outputs.job_status == 'success'
     needs: build-harmonyos-aarch64

@@ -1,12 +1,17 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCRtpParameters encodings</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="dictionary-helper.js"></script>
 <script src="RTCRtpParameters-helper.js"></script>
 <script>
-  'use strict';
+'use strict';
+
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
@@ -56,6 +61,8 @@
         - encodings is set to the value of the [[send encodings]] internal slot.
    */
 
+if (rest) {
+
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -68,6 +75,8 @@
     // fields that are not related to the test.
     validateSenderRtpParameters(param);
   }, `getParameters should return RTCRtpEncodingParameters with all required fields`);
+
+}
 
   /*
     5.1.  addTransceiver
@@ -83,6 +92,9 @@
           Otherwise, set it to a list containing a single RTCRtpEncodingParameters
           with active set to true.
    */
+
+if (interop2026) {
+
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -100,6 +112,10 @@
     // We do not check props from extension specifications here; those checks
     // need to go in a test-case for that extension specification.
   }, 'addTransceiver(audio) with undefined sendEncodings should have default encoding parameter with active set to true');
+
+}
+
+if (rest) {
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
@@ -126,6 +142,10 @@
     // need to go in a test-case for that extension specification.
   }, 'addTransceiver(video) with undefined sendEncodings should have default encoding parameter with active set to true and scaleResolutionDownBy set to 1');
 
+}
+
+if (interop2026) {
+
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -144,6 +164,10 @@
     // need to go in a test-case for that extension specification.
   }, 'addTransceiver(audio) with empty list sendEncodings should have default encoding parameter with active set to true');
 
+}
+
+if (rest) {
+
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -161,6 +185,10 @@
     // We do not check props from extension specifications here; those checks
     // need to go in a test-case for that extension specification.
   }, 'addTransceiver(video) with empty list sendEncodings should have default encoding parameter with active set to true and scaleResolutionDownBy set to 1');
+
+}
+
+if (interop2026) {
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
@@ -186,6 +214,10 @@
     assert_equals(encodings[1].scaleResolutionDownBy, 1.0);
   }, `addTransceiver should auto-set scaleResolutionDownBy to powers of 2 (descending) when absent`);
 
+}
+
+if (rest) {
+
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -199,6 +231,10 @@
     const { encodings } = param;
     assert_less_than(encodings.length, 1000, `1000 encodings is clearly too many`);
   }, `addTransceiver with a ridiculous number of encodings should truncate the list`);
+
+}
+
+if (interop2026) {
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
@@ -214,6 +250,10 @@
     // We do not check props from extension specifications here; those checks
     // need to go in a test-case for that extension specification.
   }, `addTransceiver(audio) with multiple encodings should result in one encoding with no properties other than active`);
+
+}
+
+if (rest) {
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
@@ -232,6 +272,10 @@
     assert_equals(encodings.length, 1);
     assert_not_own_property(encodings[0], "scaleResolutionDownBy");
   }, `addTransceiver(audio) should remove invalid scaleResolutionDownBy`);
+
+}
+
+if (interop2026) {
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
@@ -258,6 +302,10 @@
     assert_equals(encodings.length, 1);
     assert_not_own_property(encodings[0], "scaleResolutionDownBy");
   }, `setParameters with an invalid scaleResolutionDownBy on an audio sender should succeed, but remove the scaleResolutionDownBy`);
+
+}
+
+if (rest) {
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
@@ -294,6 +342,10 @@
     assert_throws_js(TypeError, () => pc.addTransceiver('video', { sendEncodings: [{rid: "foo_bar"}] }));
   }, 'addTransceiver with invalid rid characters throws TypeError');
 
+}
+
+if (interop2026) {
+
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -301,6 +353,10 @@
     // https://github.com/w3c/webrtc-pc/issues/2732
     assert_throws_js(TypeError, () => pc.addTransceiver('video', { sendEncodings: [{rid: 'a'.repeat(256)}] }));
   }, 'addTransceiver with rid longer than 255 characters throws TypeError');
+
+}
+
+if (rest) {
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
@@ -310,6 +366,8 @@
     assert_throws_js(RangeError, () => pc.addTransceiver('video', { sendEncodings: [{scaleResolutionDownBy: 0}] }));
     assert_throws_js(RangeError, () => pc.addTransceiver('video', { sendEncodings: [{scaleResolutionDownBy: 0.5}] }));
   }, `addTransceiver with scaleResolutionDownBy < 1 throws RangeError`);
+
+}
 
   /*
     5.2.  create an RTCRtpSender
@@ -325,6 +383,9 @@
     5.2.  getParameters
       - encodings is set to the value of the [[send encodings]] internal slot.
    */
+
+if (interop2026) {
+
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -345,6 +406,8 @@
 
   }, `sender.getParameters() should return sendEncodings set by addTransceiver()`);
 
+}
+
   /*
     5.2.  setParameters
       3.  Let N be the number of RTCRtpEncodingParameters stored in sender's internal
@@ -356,6 +419,9 @@
           with a newly created InvalidModificationError. Note that this also applies
           to transactionId.
    */
+
+if (interop2026) {
+
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -393,6 +459,10 @@
       sender.setParameters(param));
   }, `sender.setParameters() with removed encodings should reject with InvalidModificationError`);
 
+}
+
+if (rest) {
+
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -422,6 +492,10 @@
       sender.setParameters(param));
   }, `sender.setParameters() with encodings unset should reject with TypeError`);
 
+}
+
+if (interop2026) {
+
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -447,6 +521,10 @@
     return promise_rejects_dom(t, 'InvalidModificationError',
       sender.setParameters(param));
   }, `sender.setParameters() with empty encodings should reject with InvalidModificationError (audio)`);
+
+}
+
+if (rest) {
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
@@ -539,5 +617,7 @@
 
   test_modified_encoding('video', 'scaleResolutionDownBy', 2, 4,
     'setParameters() with modified encoding.scaleResolutionDownBy should succeed');
+
+}
 
 </script>

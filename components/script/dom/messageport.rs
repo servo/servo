@@ -9,6 +9,7 @@ use std::rc::Rc;
 use base::id::{MessagePortId, MessagePortIndex};
 use constellation_traits::{MessagePortImpl, PortMessageTask};
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::{Heap, JS_NewObject, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
@@ -132,7 +133,7 @@ impl MessagePort {
 
         let ports = transfer
             .iter()
-            .filter_map(|&obj| unsafe { root_from_object::<MessagePort>(obj, *cx).ok() });
+            .filter_map(|&obj| unsafe { root_from_object::<MessagePort>(obj, cx.raw_cx()).ok() });
         for port in ports {
             // Step 2
             if port.message_port_id() == self.message_port_id() {
@@ -299,20 +300,20 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
     fn PostMessage(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         transfer: CustomAutoRooterGuard<Vec<*mut JSObject>>,
     ) -> ErrorResult {
         if self.detached.get() {
             return Ok(());
         }
-        self.post_message_impl(cx, message, transfer)
+        self.post_message_impl(cx.into(), message, transfer)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-postmessage>
     fn PostMessage_(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         message: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
     ) -> ErrorResult {
@@ -326,8 +327,9 @@ impl MessagePortMethods<crate::DomTypeHolder> for MessagePort {
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
                 .collect(),
         );
-        let guard = CustomAutoRooterGuard::new(*cx, &mut rooted);
-        self.post_message_impl(cx, message, guard)
+        #[expect(unsafe_code)]
+        let guard = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
+        self.post_message_impl(cx.into(), message, guard)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>

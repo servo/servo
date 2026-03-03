@@ -13,8 +13,15 @@
 <script>
 'use strict';
 
+function assert_is_keyword_spacing(result, expected) {
+  assert_style_value_equals(result, new CSSUnitValue(expected, 'px'));
+}
+
 runPropertyTests('word-spacing', [
-  { syntax: 'normal' },
+  {
+    syntax: 'normal',
+    computed: (_, result) => assert_is_keyword_spacing(result, 0)
+  },
   { syntax: '<length>' },
   { syntax: '<percentage>' },
 ]);

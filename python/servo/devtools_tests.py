@@ -218,6 +218,23 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(paused_data.get("type"), "paused")
             self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
 
+    def test_breakpoint_at_invalid_entry_point_does_not_crash(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
+        with Devtools.connect() as devtools:
+            breakpoint_list = devtools.watcher.get_breakpoint_list_actor()
+            response = devtools.client.send_receive(
+                {
+                    "to": breakpoint_list["breakpointList"]["actor"],
+                    "type": "setBreakpoint",
+                    "location": {
+                        "sourceUrl": f"{self.base_urls[0]}/debugger/loop.html",
+                        "line": 1,
+                        "column": 0,
+                    },
+                }
+            )
+            self.assertIn("from", response)
+
     def test_manual_pause(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:
@@ -948,6 +965,39 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         # We don't run any assertions on the result because we don't implement these circular references
         # properly yet. The important part is that we didn't crash and didn't time out waiting for
         # a console notification (meaning we got *something*).
+
+    def test_inspector_doesnt_crash_when_attribute_on_element_it_doesnt_know_about_is_mutated(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/inspector/demo_dom.html")
+        with Devtools.connect() as devtools:
+            inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
+            walker = WalkerActor(devtools.client, inspector.get_walker()["actor"])
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+
+            did_see_new_mutations = False
+            evaluation_result = Future()
+
+            async def on_new_mutations(data):
+                global did_see_new_mutations
+                did_see_new_mutations = True
+
+            async def on_evaluation_result(data: dict):
+                evaluation_result.set_result(data)
+
+            devtools.client.add_event_listener(
+                inspector.get_walker()["actor"], Events.Walker.NEW_MUTATIONS, on_new_mutations
+            )
+            devtools.client.add_event_listener(
+                console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation_result
+            )
+
+            # Modify the nodes attribute
+            console.evaluate_js_async("document.body.firstElementChild.setAttribute('foo', 'baz');")
+            evaluation_result.result(1)
+
+            # Wait for a bit for unwanted notifications to arrive - we should not get any.
+            time.sleep(1)
+            self.assertFalse(did_see_new_mutations)
+            self.assertEquals(walker.get_mutations(False), [])
 
     # Sets `base_url` and `web_server` and `web_server_thread`.
     @classmethod

@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use html5ever::local_name;
+use js::context::JSContext;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::ElementInternalsBinding::{
@@ -362,19 +363,19 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-checkvalidity>
-    fn CheckValidity(&self, can_gc: CanGc) -> Fallible<bool> {
+    fn CheckValidity(&self, cx: &mut JSContext) -> Fallible<bool> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported(None));
         }
-        Ok(self.check_validity(can_gc))
+        Ok(self.check_validity(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-reportvalidity>
-    fn ReportValidity(&self, can_gc: CanGc) -> Fallible<bool> {
+    fn ReportValidity(&self, cx: &mut JSContext) -> Fallible<bool> {
         if !self.is_target_form_associated() {
             return Err(Error::NotSupported(None));
         }
-        Ok(self.report_validity(can_gc))
+        Ok(self.report_validity(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-elementinternals-states>

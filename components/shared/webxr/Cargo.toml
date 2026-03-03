@@ -1,5 +1,5 @@
 [package]
-name = "webxr-api"
+name = "servo-webxr-api"
 version.workspace = true
 authors.workspace = true
 license.workspace = true

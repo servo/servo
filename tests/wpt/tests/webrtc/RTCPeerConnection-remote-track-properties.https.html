@@ -1,10 +1,14 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
 'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
 async function setupPeerConnectionAndWaitForTrack(t, localTrack, localStream) {
   const pc1 = createPeerConnectionWithCleanup(t);
@@ -24,27 +28,34 @@ function testStreamId(localStream, remoteStream, kind)
   }, "Stream id for " + kind);
 }
 
-function testTrackLabel(remoteTrack, kind)
-{
-  test(() => {
-    assert_equals(remoteTrack.label, "remote " + kind);
-  }, "Track label for " + kind);
-}
+if (interop2026) {
 
 promise_test(async t => {
   const [localTrack, localStream] = await createTrackAndStreamWithCleanup(t, "video");
   const [remoteTrack, remoteStream] = await setupPeerConnectionAndWaitForTrack(t, localTrack, localStream);
+  assert_equals(remoteTrack.label, "remote video");
+}, 'Track label for video');
 
+promise_test(async t => {
+  const [localTrack, localStream] = await createTrackAndStreamWithCleanup(t, "audio");
+  const [remoteTrack, remoteStream] = await setupPeerConnectionAndWaitForTrack(t, localTrack, localStream);
+  assert_equals(remoteTrack.label, "remote audio");
+}, 'Track label for audio');
+
+}
+
+if (rest) {
+
+promise_test(async t => {
+  const [localTrack, localStream] = await createTrackAndStreamWithCleanup(t, "video");
+  const [remoteTrack, remoteStream] = await setupPeerConnectionAndWaitForTrack(t, localTrack, localStream);
   testStreamId(localStream, remoteStream, "video");
-  testTrackLabel(remoteTrack, "video");
 }, 'Remote video track and stream');
 
 promise_test(async t => {
   const [localTrack, localStream] = await createTrackAndStreamWithCleanup(t, "audio");
   const [remoteTrack, remoteStream] = await setupPeerConnectionAndWaitForTrack(t, localTrack, localStream);
-
   testStreamId(localStream, remoteStream, "audio");
-  testTrackLabel(remoteTrack, "audio");
 }, 'Remote audio track and stream');
 
 promise_test(async t => {
@@ -68,5 +79,7 @@ promise_test(async t => {
 
   assert_greater_than(remoteTrackIds.size, 1, "Remote tracks should have their own id");
 }, 'Remote video track ID is different on different PCs');
+
+} // rest
 
 </script>

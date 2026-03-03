@@ -21,8 +21,8 @@ use http::StatusCode;
 use http::header::{self, HeaderMap, HeaderValue};
 use ipc_channel::ipc::{self};
 use ipc_channel::router::ROUTER;
-use js::jsapi::JSAutoRealm;
-use js::realm::CurrentRealm;
+use js::context::JSContext;
+use js::realm::{AutoRealm, CurrentRealm};
 use layout_api::MediaFrame;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::request::{Destination, RequestId};
@@ -35,6 +35,7 @@ use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
 };
 use script_bindings::root::assert_in_script;
+use script_bindings::script_runtime::temp_cx;
 use script_bindings::weakref::WeakRef;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
@@ -105,7 +106,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::{FetchCanceller, RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::microtask::{Microtask, MicrotaskRunnable};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::realms::enter_realm;
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::task_source::SendableTaskSource;
@@ -735,12 +736,12 @@ impl HTMLMediaElement {
     /// we pass true to that method again.
     ///
     /// <https://html.spec.whatwg.org/multipage/#delaying-the-load-event-flag>
-    pub(crate) fn delay_load_event(&self, delay: bool, can_gc: CanGc) {
+    pub(crate) fn delay_load_event(&self, delay: bool, cx: &mut js::context::JSContext) {
         let blocker = &self.delaying_the_load_event_flag;
         if delay && blocker.borrow().is_none() {
             *blocker.borrow_mut() = Some(LoadBlocker::new(&self.owner_document(), LoadType::Media));
         } else if !delay && blocker.borrow().is_some() {
-            LoadBlocker::terminate(blocker, can_gc);
+            LoadBlocker::terminate(blocker, cx);
         }
     }
 
@@ -759,11 +760,11 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#internal-play-steps>
-    fn internal_play_steps(&self, can_gc: CanGc) {
+    fn internal_play_steps(&self, cx: &mut js::context::JSContext) {
         // Step 1. If the media element's networkState attribute has the value NETWORK_EMPTY, invoke
         // the media element's resource selection algorithm.
         if self.network_state.get() == NetworkState::Empty {
-            self.invoke_resource_selection_algorithm(can_gc);
+            self.invoke_resource_selection_algorithm(cx);
         }
 
         // Step 2. If the playback has ended and the direction of playback is forwards, seek to the
@@ -962,17 +963,17 @@ impl HTMLMediaElement {
                     self.owner_global()
                         .task_manager()
                         .media_element_task_source()
-                        .queue(task!(media_reached_current_data: move || {
+                        .queue(task!(media_reached_current_data: move |cx| {
                             let this = this.root();
                             if generation_id != this.generation_id.get() {
                                 return;
                             }
 
-                            this.upcast::<EventTarget>().fire_event(atom!("loadeddata"), CanGc::note());
+                            this.upcast::<EventTarget>().fire_event(atom!("loadeddata"), CanGc::from_cx(cx));
                             // Once the readyState attribute reaches HAVE_CURRENT_DATA, after the
                             // loadeddata event has been fired, set the element's
                             // delaying-the-load-event flag to false.
-                            this.delay_load_event(false, CanGc::note());
+                            this.delay_load_event(false, cx);
                         }));
                 }
 
@@ -1039,7 +1040,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
-    fn invoke_resource_selection_algorithm(&self, can_gc: CanGc) {
+    fn invoke_resource_selection_algorithm(&self, cx: &mut js::context::JSContext) {
         // Step 1. Set the element's networkState attribute to the NETWORK_NO_SOURCE value.
         self.network_state.set(NetworkState::NoSource);
 
@@ -1048,7 +1049,7 @@ impl HTMLMediaElement {
 
         // Step 3. Set the media element's delaying-the-load-event flag to true (this delays the
         // load event).
-        self.delay_load_event(true, can_gc);
+        self.delay_load_event(true, cx);
 
         // Step 4. Await a stable state, allowing the task that invoked this algorithm to continue.
         // If the resource selection mode in the synchronous section is
@@ -1070,7 +1071,11 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
-    fn resource_selection_algorithm_sync(&self, base_url: ServoUrl, can_gc: CanGc) {
+    fn resource_selection_algorithm_sync(
+        &self,
+        base_url: ServoUrl,
+        cx: &mut js::context::JSContext,
+    ) {
         // TODO Step 5. If the media element's blocked-on-parser flag is false, then populate the
         // list of pending text tracks.
         // FIXME(ferjm): Implement blocked_on_parser logic
@@ -1113,7 +1118,7 @@ impl HTMLMediaElement {
 
             // Step 6.none.2. Set the element's delaying-the-load-event flag to false. This stops
             // delaying the load event.
-            self.delay_load_event(false, can_gc);
+            self.delay_load_event(false, cx);
 
             // Step 6.none.3. End the synchronous section and return.
             return;
@@ -1273,14 +1278,14 @@ impl HTMLMediaElement {
         self.owner_global()
             .task_manager()
             .media_element_task_source()
-            .queue(task!(queue_error_event: move || {
+            .queue(task!(queue_error_event: move |cx| {
                 let this = trusted_this.root();
                 if generation_id != this.generation_id.get() {
                     return;
                 }
 
                 let source = trusted_source.root();
-                source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
+                source.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::from_cx(cx));
             }));
 
         // Step 9.children.11. Await a stable state.
@@ -1365,13 +1370,13 @@ impl HTMLMediaElement {
         self.owner_global()
             .task_manager()
             .media_element_task_source()
-            .queue(task!(queue_delay_load_event: move || {
+            .queue(task!(queue_delay_load_event: move |cx| {
                 let this = this.root();
                 if generation_id != this.generation_id.get() {
                     return;
                 }
 
-                this.delay_load_event(false, CanGc::note());
+                this.delay_load_event(false, cx);
             }));
 
         // Step 9.children.22. Wait until the node after pointer is a node other than the end of the
@@ -1533,13 +1538,13 @@ impl HTMLMediaElement {
                     self.owner_global()
                         .task_manager()
                         .media_element_task_source()
-                        .queue(task!(queue_delay_load_event: move || {
+                        .queue(task!(queue_delay_load_event: move |cx| {
                             let this = this.root();
                             if generation_id != this.generation_id.get() {
                                 return;
                             }
 
-                            this.delay_load_event(false, CanGc::note());
+                            this.delay_load_event(false, cx);
                         }));
 
                     // TODO Steps 5.remote.1.4. Wait for the task to be run.
@@ -1600,7 +1605,7 @@ impl HTMLMediaElement {
         self.owner_global()
             .task_manager()
             .media_element_task_source()
-            .queue(task!(dedicated_media_source_failure_steps: move || {
+            .queue(task!(dedicated_media_source_failure_steps: move |cx| {
                 let this = this.root();
                 if generation_id != this.generation_id.get() {
                     return;
@@ -1611,11 +1616,11 @@ impl HTMLMediaElement {
                     // MEDIA_ERR_SRC_NOT_SUPPORTED.
                     this.error.set(Some(&*MediaError::new(
                         &this.owner_window(),
-                        MEDIA_ERR_SRC_NOT_SUPPORTED, CanGc::note())));
+                        MEDIA_ERR_SRC_NOT_SUPPORTED, CanGc::from_cx(cx))));
 
                     // Step 2. Forget the media element's media-resource-specific tracks.
-                    this.AudioTracks(CanGc::note()).clear();
-                    this.VideoTracks(CanGc::note()).clear();
+                    this.AudioTracks(CanGc::from_cx(cx)).clear();
+                    this.VideoTracks(CanGc::from_cx(cx)).clear();
 
                     // Step 3. Set the element's networkState attribute to the NETWORK_NO_SOURCE
                     // value.
@@ -1625,7 +1630,7 @@ impl HTMLMediaElement {
                     this.show_poster.set(true);
 
                     // Step 5. Fire an event named error at the media element.
-                    this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::note());
+                    this.upcast::<EventTarget>().fire_event(atom!("error"), CanGc::from_cx(cx));
 
                     if let Some(ref player) = *this.player.borrow() {
                         if let Err(error) = player.lock().unwrap().stop() {
@@ -1640,7 +1645,7 @@ impl HTMLMediaElement {
 
                 // Step 7. Set the element's delaying-the-load-event flag to false. This stops
                 // delaying the load event.
-                this.delay_load_event(false, CanGc::note());
+                this.delay_load_event(false, cx);
             }));
     }
 
@@ -1678,7 +1683,7 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#media-element-load-algorithm>
-    fn media_element_load_algorithm(&self, can_gc: CanGc) {
+    fn media_element_load_algorithm(&self, cx: &mut js::context::JSContext) {
         // Reset the flag that signals whether loadeddata was ever fired for
         // this invokation of the load algorithm.
         self.fired_loadeddata_event.set(false);
@@ -1735,8 +1740,8 @@ impl HTMLMediaElement {
             // object, then detach it.
 
             // Step 7.4. Forget the media element's media-resource-specific tracks.
-            self.AudioTracks(can_gc).clear();
-            self.VideoTracks(can_gc).clear();
+            self.AudioTracks(CanGc::from_cx(cx)).clear();
+            self.VideoTracks(CanGc::from_cx(cx)).clear();
 
             // Step 7.5. If readyState is not set to HAVE_NOTHING, then set it to that state.
             if self.ready_state.get() != ReadyState::HaveNothing {
@@ -1783,7 +1788,7 @@ impl HTMLMediaElement {
         self.autoplaying.set(true);
 
         // Step 10. Invoke the media element's resource selection algorithm.
-        self.invoke_resource_selection_algorithm(can_gc);
+        self.invoke_resource_selection_algorithm(cx);
 
         // Step 11. Note: Playback of any previously playing media resource for this element stops.
     }
@@ -1797,13 +1802,13 @@ impl HTMLMediaElement {
         self.owner_global()
             .task_manager()
             .media_element_task_source()
-            .queue(task!(queue_event: move || {
+            .queue(task!(queue_event: move |cx| {
                 let this = this.root();
                 if generation_id != this.generation_id.get() {
                     return;
                 }
 
-                this.upcast::<EventTarget>().fire_event(name, CanGc::note());
+                this.upcast::<EventTarget>().fire_event(name, CanGc::from_cx(cx));
             }));
     }
 
@@ -1857,7 +1862,11 @@ impl HTMLMediaElement {
         }
     }
 
-    pub(crate) fn handle_source_child_insertion(&self, source: &HTMLSourceElement, can_gc: CanGc) {
+    pub(crate) fn handle_source_child_insertion(
+        &self,
+        source: &HTMLSourceElement,
+        cx: &mut js::context::JSContext,
+    ) {
         // <https://html.spec.whatwg.org/multipage/#the-source-element:html-element-insertion-steps>
         // Step 2. If parent is a media element that has no src attribute and whose networkState has
         // the value NETWORK_EMPTY, then invoke that media element's resource selection algorithm.
@@ -1866,7 +1875,7 @@ impl HTMLMediaElement {
         }
 
         if self.network_state.get() == NetworkState::Empty {
-            self.invoke_resource_selection_algorithm(can_gc);
+            self.invoke_resource_selection_algorithm(cx);
             return;
         }
 
@@ -1892,16 +1901,16 @@ impl HTMLMediaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm>
-    fn select_next_source_child_after_wait(&self, can_gc: CanGc) {
+    fn select_next_source_child_after_wait(&self, cx: &mut js::context::JSContext) {
         // Step 9.children.24. Set the element's delaying-the-load-event flag back to true (this
         // delays the load event again, in case it hasn't been fired yet).
-        self.delay_load_event(true, can_gc);
+        self.delay_load_event(true, cx);
 
         // Step 9.children.25. Set the networkState back to NETWORK_LOADING.
         self.network_state.set(NetworkState::Loading);
 
         // Step 9.children.26. Jump back to the find next candidate step above.
-        self.select_next_source_child(can_gc);
+        self.select_next_source_child(CanGc::from_cx(cx));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list>
@@ -1921,7 +1930,7 @@ impl HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list>
     /// => "If the connection is interrupted after some media data has been received..."
     /// => "If the media data is corrupted"
-    fn media_data_processing_fatal_steps(&self, error: u16, can_gc: CanGc) {
+    fn media_data_processing_fatal_steps(&self, error: u16, cx: &mut js::context::JSContext) {
         *self.source_children_pointer.borrow_mut() = None;
         self.current_source_child.set(None);
 
@@ -1932,19 +1941,22 @@ impl HTMLMediaElement {
 
         // Step 2. Set the error attribute to the result of creating a MediaError with
         // MEDIA_ERR_NETWORK/MEDIA_ERR_DECODE.
-        self.error
-            .set(Some(&*MediaError::new(&self.owner_window(), error, can_gc)));
+        self.error.set(Some(&*MediaError::new(
+            &self.owner_window(),
+            error,
+            CanGc::from_cx(cx),
+        )));
 
         // Step 3. Set the element's networkState attribute to the NETWORK_IDLE value.
         self.network_state.set(NetworkState::Idle);
 
         // Step 4. Set the element's delaying-the-load-event flag to false. This stops delaying
         // the load event.
-        self.delay_load_event(false, can_gc);
+        self.delay_load_event(false, cx);
 
         // Step 5. Fire an event named error at the media element.
         self.upcast::<EventTarget>()
-            .fire_event(atom!("error"), can_gc);
+            .fire_event(atom!("error"), CanGc::from_cx(cx));
 
         // Step 6. Abort the overall resource selection algorithm.
     }
@@ -2155,14 +2167,14 @@ impl HTMLMediaElement {
                 let event = message.unwrap();
                 let weak_event_handler = weak_event_handler.clone();
 
-                task_source.queue(task!(handle_player_event: move || {
+                task_source.queue(task!(handle_player_event: move |cx| {
                     trace!("HTMLMediaElement event: {event:?}");
 
                     let Some(event_handler) = weak_event_handler.upgrade() else {
                         return;
                     };
 
-                    event_handler.lock().unwrap().handle_player_event(player_id, event, CanGc::note());
+                    event_handler.lock().unwrap().handle_player_event(player_id, event, cx);
                 }));
             }),
         );
@@ -2336,7 +2348,7 @@ impl HTMLMediaElement {
         }
     }
 
-    fn playback_error(&self, error: &str, can_gc: CanGc) {
+    fn playback_error(&self, error: &str, cx: &mut js::context::JSContext) {
         error!("Player error: {:?}", error);
 
         // If we have already flagged an error condition while processing
@@ -2353,7 +2365,7 @@ impl HTMLMediaElement {
             self.media_data_processing_failure_steps();
         } else {
             // => "If the media data is corrupted"
-            self.media_data_processing_fatal_steps(MEDIA_ERR_DECODE, can_gc);
+            self.media_data_processing_fatal_steps(MEDIA_ERR_DECODE, cx);
         }
     }
 
@@ -2897,7 +2909,7 @@ impl HTMLMediaElement {
     pub(crate) fn set_audio_renderer(
         &self,
         audio_renderer: Option<Arc<Mutex<dyn AudioRenderer>>>,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         *self.audio_renderer.borrow_mut() = audio_renderer;
 
@@ -2913,7 +2925,7 @@ impl HTMLMediaElement {
         };
 
         if had_player {
-            self.media_element_load_algorithm(can_gc);
+            self.media_element_load_algorithm(cx);
         }
     }
 
@@ -2991,8 +3003,8 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         reflect_cross_origin_attribute(self.upcast::<Element>())
     }
     /// <https://html.spec.whatwg.org/multipage/#dom-media-crossOrigin>
-    fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
-        set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
+    fn SetCrossOrigin(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        set_cross_origin_attribute(cx, self.upcast::<Element>(), value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-muted>
@@ -3040,7 +3052,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-media-srcobject>
     fn SetSrcObject(&self, cx: &mut js::context::JSContext, value: Option<MediaStreamOrBlob>) {
         *self.src_object.borrow_mut() = value.map(|value| value.into());
-        self.media_element_load_algorithm(CanGc::from_cx(cx));
+        self.media_element_load_algorithm(cx);
     }
 
     // https://html.spec.whatwg.org/multipage/#attr-media-preload
@@ -3063,7 +3075,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-load>
     fn Load(&self, cx: &mut js::context::JSContext) {
-        self.media_element_load_algorithm(CanGc::from_cx(cx));
+        self.media_element_load_algorithm(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-canplaytype>
@@ -3104,7 +3116,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         self.push_pending_play_promise(&promise);
 
         // Step 4. Run the internal play steps for the media element.
-        self.internal_play_steps(CanGc::from_cx(cx));
+        self.internal_play_steps(cx);
 
         // Step 5. Return promise.
         promise
@@ -3115,7 +3127,7 @@ impl HTMLMediaElementMethods<crate::DomTypeHolder> for HTMLMediaElement {
         // Step 1. If the media element's networkState attribute has the value NETWORK_EMPTY, invoke
         // the media element's resource selection algorithm.
         if self.network_state.get() == NetworkState::Empty {
-            self.invoke_resource_selection_algorithm(CanGc::from_cx(cx));
+            self.invoke_resource_selection_algorithm(cx);
         }
 
         // Step 2. Run the internal pause steps for the media element.
@@ -3361,10 +3373,14 @@ impl VirtualMethods for HTMLMediaElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    #[expect(unsafe_code)]
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, _can_gc: CanGc) {
+        // TODO: https://github.com/servo/servo/issues/42812
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(attr, mutation, CanGc::from_cx(cx));
 
         match *attr.local_name() {
             local_name!("muted") => {
@@ -3385,12 +3401,12 @@ impl VirtualMethods for HTMLMediaElement {
                 // the media element's media element load algorithm (Removing the src attribute does
                 // not do this, even if there are source elements present).
                 if !mutation.is_removal() {
-                    self.media_element_load_algorithm(can_gc);
+                    self.media_element_load_algorithm(cx);
                 }
             },
             local_name!("controls") => {
                 if mutation.new_value(attr).is_some() {
-                    self.render_controls(can_gc);
+                    self.render_controls(CanGc::from_cx(cx));
                 } else {
                     self.remove_controls();
                 }
@@ -3458,7 +3474,7 @@ pub(crate) enum MediaElementMicrotask {
 }
 
 impl MicrotaskRunnable for MediaElementMicrotask {
-    fn handler(&self, can_gc: CanGc) {
+    fn handler(&self, cx: &mut js::context::JSContext) {
         match self {
             &MediaElementMicrotask::ResourceSelection {
                 ref elem,
@@ -3466,7 +3482,7 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                 ref base_url,
             } => {
                 if generation_id == elem.generation_id.get() {
-                    elem.resource_selection_algorithm_sync(base_url.clone(), can_gc);
+                    elem.resource_selection_algorithm_sync(base_url.clone(), cx);
                 }
             },
             MediaElementMicrotask::PauseIfNotInDocument { elem } => {
@@ -3487,7 +3503,7 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                 generation_id,
             } => {
                 if generation_id == elem.generation_id.get() {
-                    elem.select_next_source_child(can_gc);
+                    elem.select_next_source_child(CanGc::from_cx(cx));
                 }
             },
             &MediaElementMicrotask::SelectNextSourceChildAfterWait {
@@ -3495,20 +3511,20 @@ impl MicrotaskRunnable for MediaElementMicrotask {
                 generation_id,
             } => {
                 if generation_id == elem.generation_id.get() {
-                    elem.select_next_source_child_after_wait(can_gc);
+                    elem.select_next_source_child_after_wait(cx);
                 }
             },
         }
     }
 
-    fn enter_realm(&self) -> JSAutoRealm {
+    fn enter_realm<'cx>(&self, cx: &'cx mut js::context::JSContext) -> AutoRealm<'cx> {
         match self {
             &MediaElementMicrotask::ResourceSelection { ref elem, .. } |
             &MediaElementMicrotask::PauseIfNotInDocument { ref elem } |
             &MediaElementMicrotask::Seeked { ref elem, .. } |
             &MediaElementMicrotask::SelectNextSourceChild { ref elem, .. } |
             &MediaElementMicrotask::SelectNextSourceChildAfterWait { ref elem, .. } => {
-                enter_realm(&**elem)
+                enter_auto_realm(cx, &**elem)
             },
         }
     }
@@ -3700,7 +3716,11 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     fn process_request_eof(&mut self, _: RequestId) {}
 
+    #[expect(unsafe_code)]
     fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
+        // TODO: https://github.com/servo/servo/issues/42840
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         let element = self.element.root();
 
         let (metadata, origin_clean) = match metadata {
@@ -3730,7 +3750,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
                 element.media_data_processing_failure_steps();
             } else {
                 // => "If the connection is interrupted after some media data has been received..."
-                element.media_data_processing_fatal_steps(MEDIA_ERR_NETWORK, CanGc::note());
+                element.media_data_processing_fatal_steps(MEDIA_ERR_NETWORK, cx);
             }
             return;
         }
@@ -3891,7 +3911,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
                 .fire_event(atom!("suspend"), CanGc::from_cx(cx));
         } else if status.is_err() && element.ready_state.get() != ReadyState::HaveNothing {
             // => "If the connection is interrupted after some media data has been received..."
-            element.media_data_processing_fatal_steps(MEDIA_ERR_NETWORK, CanGc::from_cx(cx));
+            element.media_data_processing_fatal_steps(MEDIA_ERR_NETWORK, cx);
         } else {
             // => "If the media data can be fetched but is found by inspection to be in an
             // unsupported format, or can otherwise not be rendered at all"
@@ -3984,7 +4004,12 @@ impl HTMLMediaElementEventHandler {
         }
     }
 
-    fn handle_player_event(&self, player_id: usize, event: PlayerEvent, can_gc: CanGc) {
+    fn handle_player_event(
+        &self,
+        player_id: usize,
+        event: PlayerEvent,
+        cx: &mut js::context::JSContext,
+    ) {
         let Some(element) = self.element.root() else {
             return;
         };
@@ -3998,9 +4023,9 @@ impl HTMLMediaElementEventHandler {
             PlayerEvent::DurationChanged(duration) => element.playback_duration_changed(duration),
             PlayerEvent::EndOfStream => element.playback_end(),
             PlayerEvent::EnoughData => element.playback_enough_data(),
-            PlayerEvent::Error(ref error) => element.playback_error(error, can_gc),
+            PlayerEvent::Error(ref error) => element.playback_error(error, cx),
             PlayerEvent::MetadataUpdated(ref metadata) => {
-                element.playback_metadata_updated(metadata, can_gc)
+                element.playback_metadata_updated(metadata, CanGc::from_cx(cx))
             },
             PlayerEvent::NeedData => element.playback_need_data(),
             PlayerEvent::PositionChanged(position) => element.playback_position_changed(position),

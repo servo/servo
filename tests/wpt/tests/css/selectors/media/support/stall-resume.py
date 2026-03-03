@@ -21,8 +21,10 @@ def main(request, response):
         response.writer.write_header("Content-Length", str(file_size))
         response.writer.end_headers()
 
-        # Send the first ~10 seconds of data.
-        first_size = file_size // 30
+        # Send a small initial chunk so the browser doesn't buffer enough data
+        # to satisfy preload heuristics, which would stop it from requesting more
+        # and prevent the stalled event from firing.
+        first_size = 4096
 
         response.writer.write(f.read(first_size))
 

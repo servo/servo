@@ -9,7 +9,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::generic_channel::{
     GenericReceiverVariants, GenericSenderVariants, GenericSenderVisitor, ReceiveResult, SendError,
-    SendResult, serialize_generic_sender_variants,
+    SendResult, serialize_generic_sender_variants, use_ipc,
 };
 
 /// The oneshot sender struct
@@ -62,7 +62,7 @@ pub fn oneshot<T>() -> Option<(GenericOneshotSender<T>, GenericOneshotReceiver<T
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    if servo_config::opts::get().multiprocess || servo_config::opts::get().force_ipc {
+    if use_ipc() {
         ipc_channel::ipc::channel()
             .map(|(tx, rx)| {
                 (

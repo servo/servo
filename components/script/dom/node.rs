@@ -345,26 +345,26 @@ impl Node {
         target: &Node,
         context_element: &Element,
         html: DOMString,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         // Step 1. Let newChildren be the result of the HTML fragment parsing algorithm.
-        let new_children = ServoParser::parse_html_fragment(context_element, html, true, can_gc);
+        let new_children = ServoParser::parse_html_fragment(context_element, html, true, cx);
 
         // Step 2. Let fragment be a new DocumentFragment whose node document is contextElement's node document.
 
         let context_document = context_element.owner_document();
-        let fragment = DocumentFragment::new(&context_document, can_gc);
+        let fragment = DocumentFragment::new(&context_document, CanGc::from_cx(cx));
 
         // Step 3. For each node in newChildren, append node to fragment.
         for child in new_children {
             fragment
                 .upcast::<Node>()
-                .AppendChild(&child, can_gc)
+                .AppendChild(&child, CanGc::from_cx(cx))
                 .unwrap();
         }
 
         // Step 4. Replace all with fragment within target.
-        Node::replace_all(Some(fragment.upcast()), target, can_gc);
+        Node::replace_all(Some(fragment.upcast()), target, CanGc::from_cx(cx));
     }
 
     /// Clear this [`Node`]'s layout data and also clear the layout data of all children.
@@ -1351,6 +1351,17 @@ impl Node {
         if let Some(ref parent) = self.GetParentNode() {
             Node::remove(self, parent, SuppressObserver::Unsuppressed, can_gc);
         }
+    }
+
+    /// Returns the node's `unique_id` if it has been computed before and `None` otherwise.
+    pub(crate) fn unique_id_if_already_present(&self) -> Option<String> {
+        Ref::filter_map(self.rare_data(), |rare_data| {
+            rare_data
+                .as_ref()
+                .and_then(|rare_data| rare_data.unique_id.as_ref())
+        })
+        .ok()
+        .map(|unique_id| unique_id.borrow().simple().to_string())
     }
 
     pub(crate) fn unique_id(&self, pipeline: PipelineId) -> String {
@@ -4254,11 +4265,11 @@ impl VirtualMethods for Node {
         }
     }
 
-    fn handle_event(&self, event: &Event, _: CanGc) {
+    fn handle_event(&self, event: &Event, can_gc: CanGc) {
         if let Some(event) = event.downcast::<KeyboardEvent>() {
             self.owner_document()
                 .event_handler()
-                .run_default_keyboard_event_handler(event);
+                .run_default_keyboard_event_handler(event, can_gc);
         }
     }
 }

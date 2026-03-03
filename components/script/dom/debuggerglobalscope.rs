@@ -2,18 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
 use std::cell::RefCell;
 
-use base::generic_channel::{GenericCallback, GenericSender};
+use base::generic_channel::{GenericCallback, GenericSender, channel};
 use base::id::{Index, PipelineId, PipelineNamespaceId};
 use constellation_traits::ScriptToConstellationChan;
 use devtools_traits::{
     DevtoolScriptControlMsg, EvaluateJSReply, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
 };
 use dom_struct::dom_struct;
+use embedder_traits::ScriptToEmbedderChan;
 use embedder_traits::resources::{self, Resource};
-use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
 use js::context::JSContext;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers2::JS_DefineDebuggerObject;
@@ -24,20 +23,21 @@ use script_bindings::codegen::GenericBindings::DebuggerGetPossibleBreakpointsEve
 use script_bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::{
     DebuggerGlobalScopeMethods, NotifyNewSource, PipelineIdInit,
 };
-use script_bindings::realms::InRealm;
 use script_bindings::reflector::DomObject;
 use script_bindings::str::DOMString;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
-use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::PausedFrame;
-use crate::dom::bindings::error::report_pending_exception;
+use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::{
+    FrameInfo, FrameOffset, PauseReason,
+};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::debuggerclearbreakpointevent::DebuggerClearBreakpointEvent;
 use crate::dom::debuggerinterruptevent::DebuggerInterruptEvent;
+use crate::dom::debuggerresumeevent::DebuggerResumeEvent;
 use crate::dom::debuggersetbreakpointevent::DebuggerSetBreakpointEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::{
@@ -127,34 +127,18 @@ impl DebuggerGlobalScope {
         self.upcast::<GlobalScope>()
     }
 
-    fn evaluate_js(
-        &self,
-        script: Cow<'_, str>,
-        cx: &mut JSContext,
-    ) -> Result<(), JavaScriptEvaluationError> {
+    pub(crate) fn execute(&self, cx: &mut JSContext) {
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
+
         rooted!(&in(cx) let mut rval = UndefinedValue());
-        self.global_scope.evaluate_js_on_global(
-            script,
+        let _ = self.global_scope.evaluate_js_on_global(
+            cx,
+            resources::read_string(Resource::DebuggerJS).into(),
             "",
             None,
             rval.handle_mut(),
-            CanGc::from_cx(cx),
-        )
-    }
-
-    pub(crate) fn execute(&self, cx: &mut JSContext) {
-        if self
-            .evaluate_js(resources::read_string(Resource::DebuggerJS).into(), cx)
-            .is_err()
-        {
-            let mut realm = enter_auto_realm(cx, self);
-            let mut realm = realm.current_realm();
-            let in_realm_proof = (&mut realm).into();
-            let in_realm = InRealm::Already(&in_realm_proof);
-
-            let cx = &mut realm;
-            report_pending_exception(cx.into(), true, in_realm, CanGc::from_cx(cx));
-        }
+        );
     }
 
     pub(crate) fn fire_add_debuggee(
@@ -257,6 +241,24 @@ impl DebuggerGlobalScope {
         assert!(
             event.fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerInterruptEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_resume(
+        &self,
+        resume_limit_type: Option<String>,
+        frame_actor_id: Option<String>,
+        can_gc: CanGc,
+    ) {
+        let event = DomRoot::upcast::<Event>(DebuggerResumeEvent::new(
+            self.upcast(),
+            resume_limit_type.map(DOMString::from),
+            frame_actor_id.map(DOMString::from),
+            can_gc,
+        ));
+        assert!(
+            event.fire(self.upcast(), can_gc),
+            "Guaranteed by DebuggerResumeEvent::new"
         );
     }
 
@@ -454,31 +456,60 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
     fn PauseAndRespond(
         &self,
         pipeline_id: &PipelineIdInit,
-        result: &PausedFrame,
-        is_breakpoint: bool,
+        frame_offset: &FrameOffset,
+        pause_reason: &PauseReason,
     ) {
         let pipeline_id = PipelineId {
             namespace_id: PipelineNamespaceId(pipeline_id.namespaceId),
             index: Index::new(pipeline_id.index).expect("`pipelineId.index` must not be zero"),
         };
 
+        let frame_offset = devtools_traits::FrameOffset {
+            actor: frame_offset.frameActorId.clone().into(),
+            column: frame_offset.column,
+            line: frame_offset.line,
+        };
+
+        let pause_reason = devtools_traits::PauseReason {
+            type_: pause_reason.type_.clone().into(),
+            on_next: pause_reason.onNext,
+        };
+
         if let Some(chan) = self.upcast::<GlobalScope>().devtools_chan() {
-            let frame = devtools_traits::PausedFrame {
-                column: result.column,
-                display_name: result.displayName.clone().into(),
-                line: result.line,
-                on_stack: result.onStack,
-                oldest: result.oldest,
-                terminated: result.terminated,
-                type_: result.type_.clone().into(),
-                url: result.url.clone().into(),
-            };
-            let msg = ScriptToDevtoolsControlMsg::DebuggerPause(pipeline_id, frame, is_breakpoint);
+            let msg =
+                ScriptToDevtoolsControlMsg::DebuggerPause(pipeline_id, frame_offset, pause_reason);
             let _ = chan.send(msg);
         }
 
         with_script_thread(|script_thread| {
             script_thread.enter_debugger_pause_loop();
         });
+    }
+
+    fn RegisterFrameActor(
+        &self,
+        pipeline_id: &PipelineIdInit,
+        result: &FrameInfo,
+    ) -> Option<DOMString> {
+        let pipeline_id = PipelineId {
+            namespace_id: PipelineNamespaceId(pipeline_id.namespaceId),
+            index: Index::new(pipeline_id.index).expect("`pipelineId.index` must not be zero"),
+        };
+
+        let chan = self.upcast::<GlobalScope>().devtools_chan()?;
+        let (tx, rx) = channel::<String>().unwrap();
+
+        let frame = devtools_traits::FrameInfo {
+            display_name: result.displayName.clone().into(),
+            on_stack: result.onStack,
+            oldest: result.oldest,
+            terminated: result.terminated,
+            type_: result.type_.clone().into(),
+            url: result.url.clone().into(),
+        };
+        let msg = ScriptToDevtoolsControlMsg::CreateFrameActor(tx, pipeline_id, frame);
+        let _ = chan.send(msg);
+
+        rx.recv().ok().map(DOMString::from)
     }
 }

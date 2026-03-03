@@ -937,9 +937,10 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 rval.set(NullValue());
             },
             // Step 2
-            XMLHttpRequestResponseType::Document => self
-                .document_response(CanGc::from_cx(cx))
-                .safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx)),
+            XMLHttpRequestResponseType::Document => {
+                self.document_response(cx)
+                    .safe_to_jsval(cx.into(), rval, CanGc::from_cx(cx))
+            },
             XMLHttpRequestResponseType::Json => self.json_response(cx.into(), rval),
             XMLHttpRequestResponseType::Blob => self
                 .blob_response(CanGc::from_cx(cx))
@@ -982,7 +983,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
             XMLHttpRequestResponseType::_empty | XMLHttpRequestResponseType::Document => {
                 // Step 3
                 if let XMLHttpRequestState::Done = self.ready_state.get() {
-                    Ok(self.document_response(CanGc::from_cx(cx)))
+                    Ok(self.document_response(cx))
                 } else {
                     // Step 2
                     Ok(None)
@@ -1371,7 +1372,7 @@ impl XMLHttpRequest {
     }
 
     /// <https://xhr.spec.whatwg.org/#document-response>
-    fn document_response(&self, can_gc: CanGc) -> Option<DomRoot<Document>> {
+    fn document_response(&self, cx: &mut js::context::JSContext) -> Option<DomRoot<Document>> {
         // Caching: if we have existing response xml, redirect it directly
         let response = self.response_xml.get();
         if response.is_some() {
@@ -1414,7 +1415,7 @@ impl XMLHttpRequest {
             // Step 5.4: Let document be a document that represents the result parsing xhr’s
             // received bytes following the rules set forth in the HTML Standard for an HTML parser
             // with scripting disabled and a known definite encoding charset. [HTML]
-            temp_doc = self.document_text_html(can_gc);
+            temp_doc = self.document_text_html(cx);
         } else {
             assert!(is_xml_mime_type);
 
@@ -1424,7 +1425,7 @@ impl XMLHttpRequest {
             // return null. [HTML]
             //
             // TODO: The spec seems to suggest the charset should come from the XML parser here.
-            temp_doc = self.handle_xml(can_gc);
+            temp_doc = self.handle_xml(cx);
             charset = self.final_charset();
 
             // Not sure it the parser should throw an error for this case
@@ -1490,12 +1491,12 @@ impl XMLHttpRequest {
         self.response_json.set(rval.get());
     }
 
-    fn document_text_html(&self, can_gc: CanGc) -> DomRoot<Document> {
+    fn document_text_html(&self, cx: &mut js::context::JSContext) -> DomRoot<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let response = self.response.borrow();
         let (decoded, _, _) = charset.decode(&response);
-        let document = self.new_doc(IsHTMLDocument::HTMLDocument, can_gc);
+        let document = self.new_doc(IsHTMLDocument::HTMLDocument, CanGc::from_cx(cx));
         // TODO: Disable scripting while parsing
         ServoParser::parse_html_document(
             &document,
@@ -1503,24 +1504,24 @@ impl XMLHttpRequest {
             wr.get_url(),
             None,
             None,
-            can_gc,
+            cx,
         );
         document
     }
 
-    fn handle_xml(&self, can_gc: CanGc) -> DomRoot<Document> {
+    fn handle_xml(&self, cx: &mut js::context::JSContext) -> DomRoot<Document> {
         let charset = self.final_charset().unwrap_or(UTF_8);
         let wr = self.global();
         let response = self.response.borrow();
         let (decoded, _, _) = charset.decode(&response);
-        let document = self.new_doc(IsHTMLDocument::NonHTMLDocument, can_gc);
+        let document = self.new_doc(IsHTMLDocument::NonHTMLDocument, CanGc::from_cx(cx));
         // TODO: Disable scripting while parsing
         ServoParser::parse_xml_document(
             &document,
             Some(DOMString::from(decoded)),
             wr.get_url(),
             None,
-            can_gc,
+            cx,
         );
         document
     }

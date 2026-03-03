@@ -2,9 +2,9 @@
 <link rel=stylesheet href="resources/customizable-select-styles.css">
 
 <div>hover target</div>
-<div class=customizable-select-button popovertarget=popover id=button>
+<button class=customizable-select-button popovertarget=popover id=button>
   <span class=customizable-select-selectedcontent>option</span>
-</div>
+</button>
 <div id=popover popover=auto class=customizable-select-popover>
   <div class="customizable-select-option selected">option</div>
 </div>
@@ -12,4 +12,3 @@
 <script>
 document.getElementById('popover').showPopover({ source: button });
 </script>
-

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html class='test-wait'>
+<head>
+  <meta charset="utf-8">
+  <!--
+    Sanity check that animating to or from display: none is handled
+    gracefully with nested pseudo-elements.
+  -->
+  <link rel="help" contents="crbug.com/487225935">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nested display none</title>
+</head>
+<style>
+  #target {
+    background-color: rebeccapurple;
+    height: 100px;
+    width: 100px;
+    view-transition-name: target;
+  }
+
+  @keyframes vanish-then-show {
+    0% {
+      opacity: 1;
+      display: block;
+    }
+    40% {
+      opacity: 0;
+      display: none;
+    }
+    60% {
+      opacity: 0;
+      display: none;
+    }
+    100% {
+      opacity: 1;
+      display: block;
+    }
+  }
+
+  #target.update {
+    background-color: lightgoldenrodyellow;
+  }
+
+  ::view-transition-group(target) {
+    animation: vanish-then-show ease-in-out;
+    animation-duration: 300ms;
+  }
+
+</style>
+<body>
+  <div id="target"></div>
+</body>
+<script>
+  window.onload = async () => {
+    const vt = target.startViewTransition(() => {
+      target.classList.add('update');
+    });
+    await vt.finished;
+    document.documentElement.classList.remove('test-wait');
+  };
+</script>
+</html>

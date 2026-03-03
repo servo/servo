@@ -6,30 +6,34 @@
 
 use base::cross_process_instant::CrossProcessInstant;
 use serde::{Deserialize, Serialize};
+use servo_url::ServoUrl;
 
 /// Largest Contentful Paint Candidate, include image and block-level element containing text
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LCPCandidate {
     /// The identity of the element.
     pub id: LCPCandidateID,
     /// The size of the visual area
     pub area: usize,
+    /// The candidate's request URL
+    pub url: Option<ServoUrl>,
 }
 
 impl LCPCandidate {
-    pub fn new(id: LCPCandidateID, area: usize) -> Self {
-        Self { id, area }
+    pub fn new(id: LCPCandidateID, area: usize, url: Option<ServoUrl>) -> Self {
+        Self { id, area, url }
     }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct LCPCandidateID(pub usize);
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 pub struct LargestContentfulPaint {
     pub id: LCPCandidateID,
     pub area: usize,
     pub paint_time: CrossProcessInstant,
+    pub url: Option<ServoUrl>,
 }
 
 impl LargestContentfulPaint {
@@ -38,6 +42,7 @@ impl LargestContentfulPaint {
             id: lcp_candidate.id,
             area: lcp_candidate.area,
             paint_time,
+            url: lcp_candidate.url,
         }
     }
 }

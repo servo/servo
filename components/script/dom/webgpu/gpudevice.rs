@@ -67,11 +67,29 @@ use crate::realms::InRealm;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPUDevice {
+    #[no_trace]
+    channel: WebGPU,
+    #[no_trace]
+    device: WebGPUDevice,
+}
+
+impl Drop for DroppableGPUDevice {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropDevice(self.device.0))
+        {
+            warn!("Failed to send DropDevice ({:?}) ({})", self.device.0, e);
+        }
+    }
+}
+
 #[dom_struct]
 pub(crate) struct GPUDevice {
     eventtarget: EventTarget,
-    #[no_trace]
-    channel: WebGPU,
     adapter: Dom<GPUAdapter>,
     #[ignore_malloc_size_of = "mozjs"]
     extensions: Heap<*mut JSObject>,
@@ -79,13 +97,12 @@ pub(crate) struct GPUDevice {
     limits: Dom<GPUSupportedLimits>,
     adapter_info: Dom<GPUAdapterInfo>,
     label: DomRefCell<USVString>,
-    #[no_trace]
-    device: WebGPUDevice,
     default_queue: Dom<GPUQueue>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost>
     #[conditional_malloc_size_of]
     lost_promise: DomRefCell<Rc<Promise>>,
     valid: Cell<bool>,
+    droppable: DroppableGPUDevice,
 }
 
 pub(crate) enum PipelineLayout {
@@ -126,17 +143,16 @@ impl GPUDevice {
     ) -> Self {
         Self {
             eventtarget: EventTarget::new_inherited(),
-            channel,
             adapter: Dom::from_ref(adapter),
             extensions: Heap::default(),
             features: Dom::from_ref(features),
             limits: Dom::from_ref(limits),
             adapter_info: Dom::from_ref(adapter_info),
             label: DomRefCell::new(USVString::from(label)),
-            device,
             default_queue: Dom::from_ref(queue),
             lost_promise: DomRefCell::new(lost_promise),
             valid: Cell::new(true),
+            droppable: DroppableGPUDevice { channel, device },
         }
     }
 
@@ -181,7 +197,7 @@ impl GPUDevice {
 
 impl GPUDevice {
     pub(crate) fn id(&self) -> WebGPUDevice {
-        self.device
+        self.droppable.device
     }
 
     pub(crate) fn queue_id(&self) -> WebGPUQueue {
@@ -189,12 +205,12 @@ impl GPUDevice {
     }
 
     pub(crate) fn channel(&self) -> WebGPU {
-        self.channel.clone()
+        self.droppable.channel.clone()
     }
 
     pub(crate) fn dispatch_error(&self, error: webgpu_traits::Error) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::DispatchError {
-            device_id: self.device.0,
+        if let Err(e) = self.droppable.channel.0.send(WebGPURequest::DispatchError {
+            device_id: self.id().0,
             error,
         }) {
             warn!("Failed to send WebGPURequest::DispatchError due to {e:?}");
@@ -572,10 +588,11 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-pusherrorscope>
     fn PushErrorScope(&self, filter: GPUErrorFilter) {
         if self
+            .droppable
             .channel
             .0
             .send(WebGPURequest::PushErrorScope {
-                device_id: self.device.0,
+                device_id: self.id().0,
                 filter: filter.as_webgpu(),
             })
             .is_err()
@@ -593,10 +610,11 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
             self.global().task_manager().dom_manipulation_task_source(),
         );
         if self
+            .droppable
             .channel
             .0
             .send(WebGPURequest::PopErrorScope {
-                device_id: self.device.0,
+                device_id: self.id().0,
                 callback,
             })
             .is_err()
@@ -615,11 +633,12 @@ impl GPUDeviceMethods<crate::DomTypeHolder> for GPUDevice {
             self.valid.set(false);
 
             if let Err(e) = self
+                .droppable
                 .channel
                 .0
-                .send(WebGPURequest::DestroyDevice(self.device.0))
+                .send(WebGPURequest::DestroyDevice(self.id().0))
             {
-                warn!("Failed to send DestroyDevice ({:?}) ({})", self.device.0, e);
+                warn!("Failed to send DestroyDevice ({:?}) ({})", self.id().0, e);
             }
         }
     }
@@ -725,18 +744,6 @@ impl RoutedPromiseListener<WebGPURenderPipelineResponse> for GPUDevice {
                     can_gc,
                 )
             },
-        }
-    }
-}
-
-impl Drop for GPUDevice {
-    fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropDevice(self.device.0))
-        {
-            warn!("Failed to send DropDevice ({:?}) ({})", self.device.0, e);
         }
     }
 }

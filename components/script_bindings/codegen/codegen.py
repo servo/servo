@@ -8427,11 +8427,11 @@ class CGCallback(CGClass):
         # Record the names of all the arguments, so we can use them when we call
         # the private method.
         argnames = [arg.name for arg in args] + ["can_gc"]
-        argnamesWithThis = ["s.get_context()", "thisValue.handle()"] + argnames
-        argnamesWithoutThis = ["s.get_context()", "HandleValue::undefined()"] + argnames
+        argnamesWithThis = ["cx", "thisValue.handle()"] + argnames
+        argnamesWithoutThis = ["cx", "HandleValue::undefined()"] + argnames
         # Now that we've recorded the argnames for our call to our private
         # method, insert our optional argument for deciding whether the
-        # CallSetup should re-throw exceptions on aRv.
+        # call_setup should re-throw exceptions on aRv.
         args.append(Argument("ExceptionHandling", "aExceptionHandling",
                              "ReportExceptions"))
 
@@ -8447,18 +8447,19 @@ class CGCallback(CGClass):
         args.insert(0, Argument(None, "&self"))
         argsWithoutThis.insert(0, Argument(None, "&self"))
 
-        setupCall = "let s = CallSetup::<D>::new(self, aExceptionHandling);\n"
-
         bodyWithThis = (
-            f"{setupCall}rooted!(in(*s.get_context()) let mut thisValue: JSVal);\n"
-            "let wrap_result = wrap_call_this_value(s.get_context(), thisObj, thisValue.handle_mut());\n"
-            "if !wrap_result {\n"
-            "    return Err(JSFailed);\n"
-            "}\n"
-            f"unsafe {{ self.{method.name}({', '.join(argnamesWithThis)}) }}")
+            "call_setup(self, aExceptionHandling, |cx| {\n"
+            "    rooted!(in(*cx) let mut thisValue: JSVal);\n"
+            "    let wrap_result = wrap_call_this_value(cx, thisObj, thisValue.handle_mut());\n"
+            "    if !wrap_result {\n"
+            "        return Err(JSFailed);\n"
+            "    }\n"
+            f"    unsafe {{ self.{method.name}({', '.join(argnamesWithThis)}) }}"
+            "})")
         bodyWithoutThis = (
-            f"{setupCall}\n"
-            f"unsafe {{ self.{method.name}({', '.join(argnamesWithoutThis)}) }}")
+            "call_setup(self, aExceptionHandling, |cx| {\n"
+            f"    unsafe {{ self.{method.name}({', '.join(argnamesWithoutThis)}) }}"
+            "})")
         return [ClassMethod(f'{method.name}_', method.returnType, args,
                             bodyInHeader=True,
                             templateArgs=["T: ThisReflector"],

@@ -362,6 +362,7 @@ pub(crate) trait ComputedValuesExt {
         writing_mode: WritingMode,
     ) -> bool;
     fn is_inline_box(&self, fragment_flags: FragmentFlags) -> bool;
+    fn is_atomic_inline_level(&self, fragment_flags: FragmentFlags) -> bool;
     fn overflow_direction(&self) -> OverflowDirection;
     fn to_bidi_level(&self) -> Level;
 }
@@ -521,6 +522,11 @@ impl ComputedValuesExt for ComputedValues {
     fn is_inline_box(&self, fragment_flags: FragmentFlags) -> bool {
         self.get_box().display.is_inline_flow() &&
             !fragment_flags.intersects(FragmentFlags::IS_REPLACED | FragmentFlags::IS_WIDGET)
+    }
+
+    fn is_atomic_inline_level(&self, fragment_flags: FragmentFlags) -> bool {
+        self.get_box().display.outside() == stylo::DisplayOutside::Inline &&
+            !self.is_inline_box(fragment_flags)
     }
 
     /// Returns true if this is a transformable element.
@@ -1255,7 +1261,7 @@ impl From<stylo::Display> for Display {
             stylo::DisplayOutside::None => return Display::None,
         };
 
-        let inside = match packed.inside() {
+        let inside = match inside {
             stylo::DisplayInside::Flow => DisplayInside::Flow {
                 is_list_item: packed.is_list_item(),
             },
@@ -1264,12 +1270,12 @@ impl From<stylo::Display> for Display {
             },
             stylo::DisplayInside::Flex => DisplayInside::Flex,
             stylo::DisplayInside::Grid => DisplayInside::Grid,
+            stylo::DisplayInside::Table => DisplayInside::Table,
 
             // These should not be values of DisplayInside, but oh well
             stylo::DisplayInside::None => return Display::None,
             stylo::DisplayInside::Contents => return Display::Contents,
 
-            stylo::DisplayInside::Table => DisplayInside::Table,
             stylo::DisplayInside::TableRowGroup |
             stylo::DisplayInside::TableColumn |
             stylo::DisplayInside::TableColumnGroup |

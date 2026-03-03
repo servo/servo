@@ -65,6 +65,9 @@ jobs:
           crate: cargo-deny
           version: 0.19.0
           locked: true
+      - name: Change Mirror Priorities
+        if: ${{ runner.environment != 'self-hosted' }}
+        uses: ./.github/actions/apt-mirrors
       - name: Bootstrap dependencies
         if: ${{ runner.environment != 'self-hosted' }}
         timeout-minutes: 30

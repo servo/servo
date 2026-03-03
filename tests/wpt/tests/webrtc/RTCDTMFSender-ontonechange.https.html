@@ -1,5 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCDTMFSender.prototype.ontonechange</title>
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
@@ -7,7 +9,9 @@
 <script src="RTCPeerConnection-helper.js"></script>
 <script src="RTCDTMFSender-helper.js"></script>
 <script>
-  'use strict';
+'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
@@ -51,6 +55,7 @@
         7.  Fire an event named tonechange with a string consisting of tone at the
             RTCDTMFSender object.
    */
+if (rest) {
   test_tone_change_events((t, dtmfSender) => {
     dtmfSender.insertDTMF('123');
   }, [
@@ -270,7 +275,8 @@
 
     await new Promise(resolve => t.step_timeout(resolve, 300));
   }, `Setting transceiver.currentDirection to recvonly in the middle of tonechange events should stop future tonechange events from firing`);
-
+}
+if (interop2026) {
   /* Section 7.3 - Tone change event */
   test(t => {
     let ev = new RTCDTMFToneChangeEvent('tonechange', {'tone': '1'});
@@ -290,5 +296,5 @@
     const ev2 = new RTCDTMFToneChangeEvent('tonechange');
     assert_equals(ev2.tone, '');
   }, 'Tone change event init optional parameters');
-
+}
 </script>

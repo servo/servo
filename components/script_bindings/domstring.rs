@@ -1019,7 +1019,7 @@ macro_rules! match_domstring_ascii_inner {
         } == $input {
           $then
         } else {
-            match_domstring_ascii_inner!($variant, $input, $($rest)*)
+            $crate::match_domstring_ascii_inner!($variant, $input, $($rest)*)
         }
 
     };
@@ -1047,15 +1047,14 @@ macro_rules! match_domstring_ascii_inner {
 macro_rules! match_domstring_ascii {
     ($input:expr, $($tail:tt)*) => {
         {
-            use $crate::match_domstring_ascii_inner;
             use $crate::domstring::EncodedBytes;
 
             let view = $input.view();
             let s = view.encoded_bytes();
             if matches!(s, EncodedBytes::Latin1Bytes(_)) {
-                match_domstring_ascii_inner!(EncodedBytes::Latin1Bytes, s, $($tail)*)
+                $crate::match_domstring_ascii_inner!(EncodedBytes::Latin1Bytes, s, $($tail)*)
             } else {
-                match_domstring_ascii_inner!(EncodedBytes::Utf8Bytes, s, $($tail)*)
+                $crate::match_domstring_ascii_inner!(EncodedBytes::Utf8Bytes, s, $($tail)*)
             }
         }
     };

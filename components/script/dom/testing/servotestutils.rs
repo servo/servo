@@ -33,7 +33,7 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
     }
 
     fn ForceLayout(global: &GlobalScope, can_gc: CanGc) -> DomRoot<LayoutResult> {
-        let phases_run = global.as_window().Document().update_the_rendering();
+        let (phases_run, statistics) = global.as_window().Document().update_the_rendering();
 
         let mut phases = Vec::new();
         if phases_run.contains(ReflowPhasesRun::RanLayout) {
@@ -55,7 +55,13 @@ impl ServoTestUtilsMethods<crate::DomTypeHolder> for ServoTestUtils {
             phases.push(DOMString::from("UpdatedImageData"))
         }
 
-        LayoutResult::new(global, phases, can_gc)
+        LayoutResult::new(
+            global,
+            phases,
+            statistics.rebuilt_fragment_count,
+            statistics.restyle_fragment_count,
+            can_gc,
+        )
     }
 
     fn Js_backtrace(_: &GlobalScope) {

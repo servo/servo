@@ -739,6 +739,17 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         self.element
             .set_bool_attribute(&local_name!("autofocus"), autofocus, can_gc);
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
+    fn TabIndex(&self) -> i32 {
+        self.element.tab_index()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
+    fn SetTabIndex(&self, tab_index: i32, can_gc: CanGc) {
+        self.element
+            .set_int_attribute(&local_name!("tabindex"), tab_index, can_gc);
+    }
 }
 
 fn append_text_node_to_fragment(
@@ -1043,7 +1054,7 @@ impl HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#summary-for-its-parent-details>
-    fn is_a_summary_for_its_parent_details(&self) -> bool {
+    pub(crate) fn is_a_summary_for_its_parent_details(&self) -> bool {
         if self.is_implicit_summary_element() {
             return true;
         }

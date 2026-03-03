@@ -4,6 +4,7 @@
 
 use std::array::from_ref;
 use std::cell::{Cell, RefCell};
+use std::cmp::Ordering;
 use std::f64::consts::PI;
 use std::mem;
 use std::rc::Rc;
@@ -14,8 +15,8 @@ use constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use embedder_traits::{
     Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventAndId,
     InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
-    MouseButtonEvent, MouseLeftViewportEvent, ScrollEvent, TouchEvent as EmbedderTouchEvent,
-    TouchEventType, TouchId, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
+    MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
+    TouchId, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
 };
 #[cfg(feature = "gamepad")]
 use embedder_traits::{
@@ -28,8 +29,8 @@ use layout_api::{ScrollContainerQueryFlags, node_id_from_scroll_id};
 use rustc_hash::FxHashMap;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
+use script_bindings::codegen::GenericBindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
-use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 use script_bindings::codegen::GenericBindings::TouchBinding::TouchMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::{ScrollBehavior, WindowMethods};
@@ -43,8 +44,10 @@ use script_bindings::str::DOMString;
 use script_traits::ConstellationInputEvent;
 use servo_config::pref;
 use style_traits::CSSPixel;
+use webrender_api::ExternalScrollId;
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::clipboardevent::ClipboardEventType;
@@ -60,7 +63,8 @@ use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::scrolling_box::ScrollingBoxAxis;
 use crate::dom::types::{
     ClipboardEvent, CompositionEvent, DataTransfer, Element, Event, EventTarget, GlobalScope,
-    HTMLAnchorElement, KeyboardEvent, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
+    HTMLAnchorElement, HTMLLabelElement, KeyboardEvent, MouseEvent, Touch, TouchEvent, TouchList,
+    WheelEvent, Window,
 };
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::realms::enter_realm;
@@ -278,10 +282,6 @@ impl DocumentEventHandler {
                 InputEvent::EditingAction(editing_action_event) => {
                     self.handle_editing_action(None, editing_action_event, can_gc)
                 },
-                InputEvent::Scroll(scroll_event) => {
-                    self.handle_embedder_scroll_event(scroll_event);
-                    InputEventResult::default()
-                },
             };
 
             self.notify_embedder_that_event_was_handled(event.event, result);
@@ -332,7 +332,7 @@ impl DocumentEventHandler {
                 .filter_map(DomRoot::downcast::<Element>)
             {
                 element.set_hover_state(false);
-                element.set_active_state(false);
+                self.element_for_activation(element).set_active_state(false);
             }
 
             if let Some(hit_test_result) = self
@@ -340,15 +340,24 @@ impl DocumentEventHandler {
                 .get()
                 .and_then(|point| self.window.hit_test_from_point_in_viewport(point))
             {
-                MouseEvent::new_for_platform_motion_event(
+                let mouse_out_event = MouseEvent::new_for_platform_motion_event(
                     &self.window,
                     FireMouseEventType::Out,
                     &hit_test_result,
                     input_event,
                     can_gc,
-                )
-                .upcast::<Event>()
-                .fire(current_hover_target.upcast(), can_gc);
+                );
+
+                // Fire pointerout before mouseout
+                mouse_out_event
+                    .to_pointer_hover_event("pointerout", can_gc)
+                    .upcast::<Event>()
+                    .fire(current_hover_target.upcast(), can_gc);
+
+                mouse_out_event
+                    .upcast::<Event>()
+                    .fire(current_hover_target.upcast(), can_gc);
+
                 self.handle_mouse_enter_leave_event(
                     DomRoot::from_ref(current_hover_target),
                     None,
@@ -395,7 +404,7 @@ impl DocumentEventHandler {
 
         let common_ancestor = match related_target.as_ref() {
             Some(related_target) => event_target
-                .common_ancestor(related_target, ShadowIncluding::Yes)
+                .common_ancestor_in_flat_tree(related_target)
                 .unwrap_or_else(|| DomRoot::from_ref(&*event_target)),
             None => DomRoot::from_ref(&*event_target),
         };
@@ -408,26 +417,39 @@ impl DocumentEventHandler {
             if node == common_ancestor {
                 break;
             }
-            current = node.GetParentNode();
+            current = node.parent_in_flat_tree();
             targets.push(node);
         }
 
-        // The order for dispatching mouseenter events starts from the topmost
+        // The order for dispatching mouseenter/pointerenter events starts from the topmost
         // common ancestor of the event target and the related target.
         if event_type == FireMouseEventType::Enter {
             targets = targets.into_iter().rev().collect();
         }
 
+        let pointer_event_name = match event_type {
+            FireMouseEventType::Enter => "pointerenter",
+            FireMouseEventType::Leave => "pointerleave",
+            _ => unreachable!(),
+        };
+
         for target in targets {
-            MouseEvent::new_for_platform_motion_event(
+            let mouse_event = MouseEvent::new_for_platform_motion_event(
                 &self.window,
                 event_type,
                 hit_test_result,
                 input_event,
                 can_gc,
-            )
-            .upcast::<Event>()
-            .fire(target.upcast(), can_gc);
+            );
+
+            // Fire pointer event before mouse event
+            mouse_event
+                .to_pointer_hover_event(pointer_event_name, can_gc)
+                .upcast::<Event>()
+                .fire(target.upcast(), can_gc);
+
+            // Fire mouse event
+            mouse_event.upcast::<Event>().fire(target.upcast(), can_gc);
         }
     }
 
@@ -464,7 +486,7 @@ impl DocumentEventHandler {
         // Here we know the target has changed, so we must update the state,
         // dispatch mouseout to the previous one, mouseover to the new one.
         if target_has_changed {
-            // Dispatch mouseout and mouseleave to previous target.
+            // Dispatch pointerout/mouseout and pointerleave/mouseleave to previous target.
             if let Some(old_target) = self.current_hover_target.get() {
                 let old_target_is_ancestor_of_new_target = old_target
                     .upcast::<Node>()
@@ -479,19 +501,27 @@ impl DocumentEventHandler {
                         .filter_map(DomRoot::downcast::<Element>)
                     {
                         element.set_hover_state(false);
-                        element.set_active_state(false);
+                        self.element_for_activation(element).set_active_state(false);
                     }
                 }
 
-                MouseEvent::new_for_platform_motion_event(
+                let mouse_out_event = MouseEvent::new_for_platform_motion_event(
                     &self.window,
                     FireMouseEventType::Out,
                     &hit_test_result,
                     input_event,
                     can_gc,
-                )
-                .upcast::<Event>()
-                .fire(old_target.upcast(), can_gc);
+                );
+
+                // Fire pointerout before mouseout
+                mouse_out_event
+                    .to_pointer_hover_event("pointerout", can_gc)
+                    .upcast::<Event>()
+                    .fire(old_target.upcast(), can_gc);
+
+                mouse_out_event
+                    .upcast::<Event>()
+                    .fire(old_target.upcast(), can_gc);
 
                 if !old_target_is_ancestor_of_new_target {
                     let event_target = DomRoot::from_ref(old_target.upcast::<Node>());
@@ -507,7 +537,7 @@ impl DocumentEventHandler {
                 }
             }
 
-            // Dispatch mouseover and mouseenter to new target.
+            // Dispatch pointerover/mouseover and pointerenter/mouseenter to new target.
             for element in new_target
                 .upcast::<Node>()
                 .inclusive_ancestors(ShadowIncluding::Yes)
@@ -516,15 +546,23 @@ impl DocumentEventHandler {
                 element.set_hover_state(true);
             }
 
-            MouseEvent::new_for_platform_motion_event(
+            let mouse_over_event = MouseEvent::new_for_platform_motion_event(
                 &self.window,
                 FireMouseEventType::Over,
                 &hit_test_result,
                 input_event,
                 can_gc,
-            )
-            .upcast::<Event>()
-            .dispatch(new_target.upcast(), false, can_gc);
+            );
+
+            // Fire pointerover before mouseover
+            mouse_over_event
+                .to_pointer_hover_event("pointerover", can_gc)
+                .upcast::<Event>()
+                .dispatch(new_target.upcast(), false, can_gc);
+
+            mouse_over_event
+                .upcast::<Event>()
+                .dispatch(new_target.upcast(), false, can_gc);
 
             let moving_from = self
                 .current_hover_target
@@ -622,6 +660,21 @@ impl DocumentEventHandler {
         self.set_cursor(Some(hit_test_result.cursor));
     }
 
+    fn element_for_activation(&self, element: DomRoot<Element>) -> DomRoot<Element> {
+        // If the element is a label, the activable element is the control element.
+        if element.upcast::<Node>().type_id() ==
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLLabelElement,
+            ))
+        {
+            let label = element.downcast::<HTMLLabelElement>().unwrap();
+            if let Some(control) = label.GetControl() {
+                return DomRoot::from_ref(control.upcast::<Element>());
+            }
+        }
+        element
+    }
+
     /// <https://w3c.github.io/uievents/#mouseevent-algorithms>
     /// Handles native mouse down, mouse up, mouse click.
     fn handle_native_mouse_button_event(
@@ -650,6 +703,18 @@ impl DocumentEventHandler {
 
         let node = element.upcast::<Node>();
         debug!("{:?} on {:?}", event.action, node.debug_str());
+
+        // <https://html.spec.whatwg.org/multipage/#selector-active>
+        // If the element is being actively pointed at the element is being activated.
+        // Disabled elements can also be activated.
+        if event.action == MouseButtonAction::Down {
+            self.element_for_activation(element.clone())
+                .set_active_state(true);
+        }
+        if event.action == MouseButtonAction::Up {
+            self.element_for_activation(element.clone())
+                .set_active_state(false);
+        }
 
         // https://w3c.github.io/uievents/#hit-test
         // Prevent mouse event if element is disabled.
@@ -686,15 +751,10 @@ impl DocumentEventHandler {
             can_gc,
         ));
 
-        let activatable = element.as_maybe_activatable();
         match event.action {
             MouseButtonAction::Down => {
                 self.last_mouse_button_down_point
                     .set(Some(hit_test_result.point_in_frame));
-
-                if let Some(a) = activatable {
-                    a.enter_formal_activation_state();
-                }
 
                 // Step 6. Dispatch pointerdown event.
                 let down_button_count = self.down_button_count.get();
@@ -748,10 +808,6 @@ impl DocumentEventHandler {
             },
             // https://w3c.github.io/uievents/#handle-native-mouse-up
             MouseButtonAction::Up => {
-                if let Some(a) = activatable {
-                    a.exit_formal_activation_state();
-                }
-
                 // Step 6. Dispatch pointerup event.
                 let down_button_count = self.down_button_count.get();
 
@@ -942,7 +998,7 @@ impl DocumentEventHandler {
             return Default::default();
         };
 
-        let current_target = DomRoot::upcast::<EventTarget>(element);
+        let current_target = DomRoot::upcast::<EventTarget>(element.clone());
         let window = &*self.window;
 
         let client_x = Finite::wrap(hit_test_result.point_in_frame.x as f64);
@@ -967,7 +1023,7 @@ impl DocumentEventHandler {
         );
 
         // Dispatch pointer event before updating active touch points and before touch event.
-        let pointer_event_type = match event.event_type {
+        let pointer_event_name = match event.event_type {
             TouchEventType::Down => "pointerdown",
             TouchEventType::Move => "pointermove",
             TouchEventType::Up => "pointerup",
@@ -978,9 +1034,38 @@ impl DocumentEventHandler {
         let pointer_id = self.get_or_create_pointer_id_for_touch(identifier);
         let is_primary = self.is_primary_pointer(pointer_id);
 
+        // For touch devices (which don't support hover), fire pointerover/pointerenter
+        // <https://w3c.github.io/pointerevents/#mapping-for-devices-that-do-not-support-hover>
+        if matches!(event.event_type, TouchEventType::Down) {
+            // Fire pointerover
+            let pointer_over = pointer_touch.to_pointer_event(
+                window,
+                "pointerover",
+                pointer_id,
+                is_primary,
+                input_event.active_keyboard_modifiers,
+                true, // cancelable
+                Some(hit_test_result.point_in_node),
+                can_gc,
+            );
+            pointer_over.upcast::<Event>().fire(&current_target, can_gc);
+
+            // Fire pointerenter hierarchically (from topmost ancestor to target)
+            self.fire_pointer_event_for_touch(
+                &element,
+                &pointer_touch,
+                pointer_id,
+                "pointerenter",
+                is_primary,
+                input_event,
+                &hit_test_result,
+                can_gc,
+            );
+        }
+
         let pointer_event = pointer_touch.to_pointer_event(
             window,
-            pointer_event_type,
+            pointer_event_name,
             pointer_id,
             is_primary,
             input_event.active_keyboard_modifiers,
@@ -992,12 +1077,47 @@ impl DocumentEventHandler {
             .upcast::<Event>()
             .fire(&current_target, can_gc);
 
+        // For touch devices, fire pointerout/pointerleave after pointerup/pointercancel
+        // <https://w3c.github.io/pointerevents/#mapping-for-devices-that-do-not-support-hover>
+        if matches!(
+            event.event_type,
+            TouchEventType::Up | TouchEventType::Cancel
+        ) {
+            // Fire pointerout
+            let pointer_out = pointer_touch.to_pointer_event(
+                window,
+                "pointerout",
+                pointer_id,
+                is_primary,
+                input_event.active_keyboard_modifiers,
+                true, // cancelable
+                Some(hit_test_result.point_in_node),
+                can_gc,
+            );
+            pointer_out.upcast::<Event>().fire(&current_target, can_gc);
+
+            // Fire pointerleave hierarchically (from target to topmost ancestor)
+            self.fire_pointer_event_for_touch(
+                &element,
+                &pointer_touch,
+                pointer_id,
+                "pointerleave",
+                is_primary,
+                input_event,
+                &hit_test_result,
+                can_gc,
+            );
+        }
+
         let (touch_dispatch_target, changed_touch) = match event.event_type {
             TouchEventType::Down => {
                 // Add a new touch point
                 self.active_touch_points
                     .borrow_mut()
                     .push(Dom::from_ref(&*pointer_touch));
+                // <https://html.spec.whatwg.org/multipage/#selector-active>
+                // If the element is being actively pointed at the element is being activated.
+                self.element_for_activation(element).set_active_state(true);
                 (current_target, pointer_touch)
             },
             _ => {
@@ -1038,6 +1158,9 @@ impl DocumentEventHandler {
                     TouchEventType::Up | TouchEventType::Cancel => {
                         active_touch_points.swap_remove(index);
                         self.remove_pointer_id_for_touch(identifier);
+                        // <https://html.spec.whatwg.org/multipage/#selector-active>
+                        // If the element is being actively pointed at the element is being activated.
+                        self.element_for_activation(element).set_active_state(false);
                     },
                     TouchEventType::Down => unreachable!("Should have been handled above"),
                 }
@@ -1661,17 +1784,17 @@ impl DocumentEventHandler {
         }
     }
 
-    /// Handle scroll event triggered by user interactions from embedder side.
+    /// Handle a scroll event triggered by user interactions from the embedder.
     /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
     #[expect(unsafe_code)]
-    fn handle_embedder_scroll_event(&self, event: ScrollEvent) {
+    pub(crate) fn handle_embedder_scroll_event(&self, scrolled_node: ExternalScrollId) {
         // If it is a viewport scroll.
         let document = self.window.Document();
-        if event.external_id.is_root() {
+        if scrolled_node.is_root() {
             document.handle_viewport_scroll_event();
         } else {
             // Otherwise, check whether it is for a relevant element within the document.
-            let Some(node_id) = node_id_from_scroll_id(event.external_id.0 as usize) else {
+            let Some(node_id) = node_id_from_scroll_id(scrolled_node.0 as usize) else {
                 return;
             };
             let node = unsafe {
@@ -1688,13 +1811,11 @@ impl DocumentEventHandler {
         }
     }
 
-    pub(crate) fn run_default_keyboard_event_handler(&self, event: &KeyboardEvent) {
+    pub(crate) fn run_default_keyboard_event_handler(&self, event: &KeyboardEvent, can_gc: CanGc) {
         if event.upcast::<Event>().type_() != atom!("keydown") {
             return;
         }
-        if !event.modifiers().is_empty() {
-            return;
-        }
+
         let scroll = match event.key() {
             Key::Named(NamedKey::ArrowDown) => KeyboardScroll::Down,
             Key::Named(NamedKey::ArrowLeft) => KeyboardScroll::Left,
@@ -1704,9 +1825,195 @@ impl DocumentEventHandler {
             Key::Named(NamedKey::Home) => KeyboardScroll::Home,
             Key::Named(NamedKey::PageDown) => KeyboardScroll::PageDown,
             Key::Named(NamedKey::PageUp) => KeyboardScroll::PageUp,
+            Key::Named(NamedKey::Tab) => {
+                self.do_tab_navigation(event, can_gc);
+                return;
+            },
             _ => return,
         };
-        self.do_keyboard_scroll(scroll);
+
+        if event.modifiers().is_empty() {
+            self.do_keyboard_scroll(scroll);
+        }
+    }
+
+    pub(crate) fn do_tab_navigation(&self, event: &KeyboardEvent, can_gc: CanGc) {
+        let focus_direction = if event.modifiers().contains(Modifiers::SHIFT) {
+            FocusDirection::Backward
+        } else {
+            FocusDirection::Forward
+        };
+
+        if let Some(element) = self.find_element_for_tab_focus(focus_direction) {
+            let document = self.window.Document();
+            document.begin_focus_transaction();
+
+            document.request_focus(None, FocusInitiator::Local, can_gc);
+            document.request_focus(Some(&*element), FocusInitiator::Local, can_gc);
+
+            assert!(document.has_focus_transaction());
+            document.commit_focus_transaction(FocusInitiator::Local, can_gc);
+        }
+    }
+
+    fn find_element_for_tab_focus(&self, direction: FocusDirection) -> Option<DomRoot<Element>> {
+        match self.window.Document().get_focused_element() {
+            Some(focused_element) => {
+                self.find_element_for_tab_focus_following_element(direction, focused_element)
+            },
+            None => self.find_first_tab_focusable_element(direction),
+        }
+    }
+
+    fn find_element_for_tab_focus_following_element(
+        &self,
+        direction: FocusDirection,
+        focused_element: DomRoot<Element>,
+    ) -> Option<DomRoot<Element>> {
+        let root_node = self.window.Document().GetDocumentElement()?;
+        let focused_element_tab_index = focused_element.tab_index();
+        let mut winning_node_and_tab_index: Option<(DomRoot<Element>, i32)> = None;
+        let mut saw_focused_element = false;
+        for node in root_node
+            .upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::Yes)
+        {
+            let Some(candidate_element) = DomRoot::downcast(node) else {
+                continue;
+            };
+            if candidate_element == focused_element {
+                saw_focused_element = true;
+                continue;
+            }
+            if !candidate_element.is_keyboard_focusable() {
+                continue;
+            }
+
+            let candidate_element_tab_index = candidate_element.tab_index();
+            let ordering =
+                compare_tab_indices(focused_element_tab_index, candidate_element_tab_index);
+            match direction {
+                FocusDirection::Forward => {
+                    // If moving forward the first element with equal tab index after the current
+                    // element is the winner.
+                    if saw_focused_element && ordering == Ordering::Equal {
+                        return Some(candidate_element);
+                    }
+                    // If the candidate element does not have a lesser tab index, then discard it.
+                    if ordering != Ordering::Less {
+                        continue;
+                    }
+                    let Some((_, winning_tab_index)) = winning_node_and_tab_index else {
+                        // If this candidate has a tab index which is one greater than the current
+                        // tab index, then we know it is the winner, because we give precedence to
+                        // elements earlier in the DOM.
+                        if candidate_element_tab_index == focused_element_tab_index + 1 {
+                            return Some(candidate_element);
+                        }
+
+                        winning_node_and_tab_index =
+                            Some((candidate_element, candidate_element_tab_index));
+                        continue;
+                    };
+                    // If the candidate element has a lesser tab index than than the current winner,
+                    // then it becomes the winner.
+                    if compare_tab_indices(candidate_element_tab_index, winning_tab_index) ==
+                        Ordering::Less
+                    {
+                        winning_node_and_tab_index =
+                            Some((candidate_element, candidate_element_tab_index))
+                    }
+                },
+                FocusDirection::Backward => {
+                    // If moving backward the last element with an equal tab index that precedes
+                    // the focused element in the DOM is the winner.
+                    if !saw_focused_element && ordering == Ordering::Equal {
+                        winning_node_and_tab_index =
+                            Some((candidate_element, candidate_element_tab_index));
+                        continue;
+                    }
+                    // If the candidate does not have a greater tab index, then discard it.
+                    if ordering != Ordering::Greater {
+                        continue;
+                    }
+                    let Some((_, winning_tab_index)) = winning_node_and_tab_index else {
+                        winning_node_and_tab_index =
+                            Some((candidate_element, candidate_element_tab_index));
+                        continue;
+                    };
+                    // If the candidate element's tab index is not less than the current winner,
+                    // then it becomes the new winner. This means that when the tab indices are
+                    // equal, we give preference to the last one in DOM order.
+                    if compare_tab_indices(candidate_element_tab_index, winning_tab_index) !=
+                        Ordering::Less
+                    {
+                        winning_node_and_tab_index =
+                            Some((candidate_element, candidate_element_tab_index))
+                    }
+                },
+            }
+        }
+
+        Some(winning_node_and_tab_index?.0)
+    }
+
+    fn find_first_tab_focusable_element(
+        &self,
+        direction: FocusDirection,
+    ) -> Option<DomRoot<Element>> {
+        let root_node = self.window.Document().GetDocumentElement()?;
+        let mut winning_node_and_tab_index: Option<(DomRoot<Element>, i32)> = None;
+        for node in root_node
+            .upcast::<Node>()
+            .traverse_preorder(ShadowIncluding::Yes)
+        {
+            let Some(candidate_element) = DomRoot::downcast::<Element>(node) else {
+                continue;
+            };
+            if !candidate_element.is_keyboard_focusable() {
+                continue;
+            }
+
+            let element_tab_index = candidate_element.tab_index();
+            match direction {
+                FocusDirection::Forward => {
+                    // We can immediately return the first time we find an element with the lowest
+                    // possible tab index (1). We are guaranteed not to find any lower tab index
+                    // and all other equal tab indices are later in the DOM.
+                    if element_tab_index == 1 {
+                        return Some(candidate_element);
+                    }
+
+                    // Only promote a candidate to the current winner if it has a lesser tab
+                    // index than the current winner or there is currently no winer.
+                    if winning_node_and_tab_index
+                        .as_ref()
+                        .is_none_or(|(_, winning_tab_index)| {
+                            compare_tab_indices(element_tab_index, *winning_tab_index) ==
+                                Ordering::Less
+                        })
+                    {
+                        winning_node_and_tab_index = Some((candidate_element, element_tab_index));
+                    }
+                },
+                FocusDirection::Backward => {
+                    // Only promote a candidate to winner if it has tab index equal to or
+                    // greater than the winner's tab index. This gives precedence to elements
+                    // later in the DOM.
+                    if winning_node_and_tab_index
+                        .as_ref()
+                        .is_none_or(|(_, winning_tab_index)| {
+                            compare_tab_indices(element_tab_index, *winning_tab_index) !=
+                                Ordering::Less
+                        })
+                    {
+                        winning_node_and_tab_index = Some((candidate_element, element_tab_index));
+                    }
+                },
+            }
+        }
+
+        Some(winning_node_and_tab_index?.0)
     }
 
     pub(crate) fn do_keyboard_scroll(&self, scroll: KeyboardScroll) {
@@ -1835,5 +2142,68 @@ impl DocumentEventHandler {
             .values()
             .min()
             .is_some_and(|primary_pointer| *primary_pointer == pointer_id)
+    }
+
+    /// Fire pointerenter events hierarchically from topmost ancestor to target element.
+    /// Fire pointerleave events hierarchically from target element to topmost ancestor.
+    /// Used for touch devices that don't support hover.
+    #[allow(clippy::too_many_arguments)]
+    fn fire_pointer_event_for_touch(
+        &self,
+        target_element: &Element,
+        touch: &Touch,
+        pointer_id: i32,
+        event_name: &str,
+        is_primary: bool,
+        input_event: &ConstellationInputEvent,
+        hit_test_result: &HitTestResult,
+        can_gc: CanGc,
+    ) {
+        // Collect ancestors from target to root
+        let mut targets: Vec<DomRoot<Node>> = vec![];
+        let mut current: Option<DomRoot<Node>> = Some(DomRoot::from_ref(target_element.upcast()));
+        while let Some(node) = current {
+            targets.push(DomRoot::from_ref(&*node));
+            current = node.parent_in_flat_tree();
+        }
+
+        // Reverse to dispatch from topmost ancestor to target
+        if event_name == "pointerenter" {
+            targets.reverse();
+        }
+
+        for target in targets {
+            let pointer_event = touch.to_pointer_event(
+                &self.window,
+                event_name,
+                pointer_id,
+                is_primary,
+                input_event.active_keyboard_modifiers,
+                false,
+                Some(hit_test_result.point_in_node),
+                can_gc,
+            );
+            pointer_event
+                .upcast::<Event>()
+                .fire(target.upcast(), can_gc);
+        }
+    }
+}
+
+#[derive(PartialEq)]
+enum FocusDirection {
+    Forward,
+    Backward,
+}
+
+fn compare_tab_indices(a: i32, b: i32) -> Ordering {
+    if a == b {
+        Ordering::Equal
+    } else if a == 0 {
+        Ordering::Greater
+    } else if b == 0 {
+        Ordering::Less
+    } else {
+        a.cmp(&b)
     }
 }

@@ -2,7 +2,7 @@
   Focusgroup-specific test assertion helpers.
 
   This file depends on focus-utils.js being loaded first for generic
-  primitives (key constants, focusAndKeyPress, navigateFocusForward, etc.).
+  primitives (key constants, focusAndKeyPress, sendTabForward, etc.).
 */
 
 // Test bidirectional directional (arrow) navigation through a list of elements in visual order.
@@ -30,8 +30,9 @@ async function assert_arrow_navigation_bidirectional(elements, shouldWrap = fals
 
 // Test Tab navigation through DOM elements. Unlike assert_focus_navigation_forward
 // in shadow-dom's focus-utils.js (which takes string paths and requires shadow-dom.js),
-// this takes direct element references. Uses the Actions API to send Tab keys
-// without disturbing focus state (see navigateFocusForward).
+// this takes direct element references. Uses sendTabForward (Actions API) to
+// avoid calling focus() on document.body, which would blur the active element
+// and break focusgroup exit behaviour on key-conflict elements.
 async function assert_focusgroup_tab_navigation(elements) {
   if (elements.length === 0) {
     return;
@@ -42,7 +43,7 @@ async function assert_focusgroup_tab_navigation(elements) {
     `Failed to focus starting element ${elements[0].id}`);
 
   for (let i = 0; i < elements.length - 1; i++) {
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, elements[i + 1],
       `Tab from ${elements[i].id} should move to ${elements[i + 1].id}`);
   }
@@ -50,6 +51,7 @@ async function assert_focusgroup_tab_navigation(elements) {
 
 // Test Shift+Tab navigation through a list of elements in reverse.
 // Mirrors assert_focusgroup_tab_navigation but navigates backward.
+// Uses navigateFocusBackward (Actions API) for the same reason as above.
 async function assert_focusgroup_shift_tab_navigation(elements) {
   if (elements.length === 0) {
     return;

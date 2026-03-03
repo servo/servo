@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>focusgroup: nested shadow focusgroup isolation</title>
+<title>HTML Test: focusgroup - Nested shadow focusgroup isolation</title>
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
 <link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
 <script src="/resources/testharness.js"></script>
@@ -29,7 +29,7 @@
     const host = document.getElementById('shadow_host');
     const sr = host.attachShadow({mode: 'open'});
     sr.innerHTML = `
-      <div id=inner_fg focusgroup="menu inline">
+      <div id=inner_fg focusgroup="toolbar inline">
         <button id=inner1 tabindex=0>Inner 1</button>
         <button id=inner2 tabindex=0>Inner 2</button>
       </div>`;

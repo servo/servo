@@ -1,5 +1,5 @@
 [package]
-name = "hyper_serde"
+name = "servo-hyper-serde"
 version = "0.13.2"
 edition.workspace = true
 authors = ["The Servo Project Developers"]

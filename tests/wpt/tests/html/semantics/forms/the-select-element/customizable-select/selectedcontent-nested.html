@@ -8,11 +8,13 @@
   <button>
     <selectedcontent id=main></selectedcontent>
   </button>
-  <option>option</option>
+  <option>one</option>
+  <option>two</option>
 </select>
 
 <script>
 test(() => {
+  const select = document.querySelector('select');
   const mainSelectedcontent = document.querySelector('selectedcontent');
   const button = document.querySelector('button');
 
@@ -26,9 +28,20 @@ test(() => {
   parentSelectedcontent.appendChild(childSelectedcontent);
   button.appendChild(parentSelectedcontent);
 
-  assert_equals(parentSelectedcontent.childNodes.length, 0,
-    'parent selectedcontent should get cleared.');
-  assert_equals(childSelectedcontent.childNodes.length, 0,
-    'child selectedcontent should get cleared.');
+  assert_equals(parentSelectedcontent.innerHTML, 'one',
+    'parent selectedcontent should not get cleared after inserting.');
+  assert_equals(childSelectedcontent.innerHTML, 'child',
+    'child selectedcontent should not be modified after inserting.');
+  assert_equals(childSelectedcontent.parentNode, null,
+    'child selectedcontent should get disconnected after inserting.');
+
+  parentSelectedcontent.appendChild(childSelectedcontent);
+  select.value = 'two';
+  assert_equals(parentSelectedcontent.innerHTML, 'two',
+    'parent selectedcontent should get updated when selected option is changed.');
+  assert_equals(childSelectedcontent.innerHTML, 'two',
+    'child selectedcontent should get updated when selected option is changed.');
+  assert_equals(childSelectedcontent.parentNode, null,
+    'child selectedcontent should get disconnected when selected option is changed.');
 }, 'Modification behavior when nesting selectedcontent elements.');
 </script>

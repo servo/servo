@@ -31,6 +31,7 @@ use js::typedarray::{
 };
 use pixels::{self, Alpha, PixelFormat, Snapshot, SnapshotPixelFormat};
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::reflector::AssociatedMemory;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use webrender_api::ImageKey;
@@ -183,9 +184,9 @@ impl Drop for DroppableWebGLRenderingContext {
     }
 }
 
-#[dom_struct]
+#[dom_struct(associated_memory)]
 pub(crate) struct WebGLRenderingContext {
-    reflector_: Reflector,
+    reflector_: Reflector<AssociatedMemory>,
     #[no_trace]
     webgl_version: WebGLVersion,
     #[no_trace]
@@ -2007,6 +2008,8 @@ impl CanvasContext for WebGLRenderingContext {
         // FIXME(#21718) The backend is allowed to choose a size smaller than
         // what was requested
         self.size.set(size);
+        self.reflector_
+            .update_memory_size(self, size.cast::<usize>().area() * 4);
 
         if let Err(msg) = receiver.recv().unwrap() {
             error!("Error resizing WebGLContext: {}", msg);

@@ -24,8 +24,9 @@ use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,
-    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation, NavigationState,
-    NetworkEvent, PausedFrame, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId, get_time_stamp,
+    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation, FrameInfo,
+    FrameOffset, NavigationState, NetworkEvent, PauseReason, ScriptToDevtoolsControlMsg,
+    SourceInfo, WorkerId, get_time_stamp,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
 use log::{trace, warn};
@@ -38,7 +39,7 @@ use rustc_hash::FxHashMap;
 use serde::Serialize;
 use servo_config::pref;
 
-use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::console::{ConsoleActor, ConsoleResource, DevtoolsConsoleMessage, Root};
 use crate::actors::frame::FrameActor;
@@ -49,7 +50,7 @@ use crate::actors::network_event::NetworkEventActor;
 use crate::actors::pause::PauseActor;
 use crate::actors::root::RootActor;
 use crate::actors::source::SourceActor;
-use crate::actors::thread::{ThreadActor, ThreadInterruptedReply, WhyMsg};
+use crate::actors::thread::{ThreadActor, ThreadInterruptedReply};
 use crate::actors::watcher::WatcherActor;
 use crate::actors::worker::{WorkerActor, WorkerType};
 use crate::id::IdMap;
@@ -365,9 +366,14 @@ impl DevtoolsInstance {
                 },
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::DebuggerPause(
                     pipeline_id,
-                    frame_result,
-                    is_breakpoint,
-                )) => self.handle_breakpoint_hit(pipeline_id, frame_result, is_breakpoint),
+                    frame_offset,
+                    pause_reason,
+                )) => self.handle_debugger_pause(pipeline_id, frame_offset, pause_reason),
+                DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::CreateFrameActor(
+                    result_sender,
+                    pipeline_id,
+                    frame_info,
+                )) => self.handle_create_frame_actor(result_sender, pipeline_id, frame_info),
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                     request_id,
                     network_event,
@@ -752,11 +758,11 @@ impl DevtoolsInstance {
         actors.set_inline_source_content(pipeline_id, source_content);
     }
 
-    fn handle_breakpoint_hit(
+    fn handle_debugger_pause(
         &mut self,
         pipeline_id: PipelineId,
-        frame: PausedFrame,
-        is_breakpoint: bool,
+        frame_offset: FrameOffset,
+        pause_reason: PauseReason,
     ) {
         let actors = &self.registry;
 
@@ -771,7 +777,46 @@ impl DevtoolsInstance {
         let browsing_context = actors.find::<BrowsingContextActor>(browsing_context);
         let thread = actors.find::<ThreadActor>(&browsing_context.thread);
 
-        // Find the source actor for this URL
+        let pause = actors.new_name::<PauseActor>();
+        actors.register(PauseActor {
+            name: pause.clone(),
+        });
+
+        let frame = actors.find::<FrameActor>(&frame_offset.actor);
+        frame.set_offset(frame_offset.column, frame_offset.line);
+
+        let msg = ThreadInterruptedReply {
+            from: thread.name(),
+            type_: "paused".to_owned(),
+            actor: pause,
+            frame: frame.encode(actors),
+            why: pause_reason,
+        };
+
+        for stream in self.connections.lock().unwrap().values_mut() {
+            let _ = stream.write_json_packet(&msg);
+        }
+    }
+
+    fn handle_create_frame_actor(
+        &mut self,
+        result_sender: GenericSender<String>,
+        pipeline_id: PipelineId,
+        frame: FrameInfo,
+    ) {
+        let actors = &self.registry;
+
+        let Some(browsing_context) = self
+            .pipelines
+            .get(&pipeline_id)
+            .and_then(|id| self.browsing_contexts.get(id))
+        else {
+            return;
+        };
+
+        let browsing_context = actors.find::<BrowsingContextActor>(browsing_context);
+        let thread = actors.find::<ThreadActor>(&browsing_context.thread);
+
         let source = match thread.source_manager.find_source(actors, &frame.url) {
             Some(source) => source.name(),
             None => {
@@ -780,38 +825,10 @@ impl DevtoolsInstance {
             },
         };
 
-        let pause = actors.new_name::<PauseActor>();
-        actors.register(PauseActor {
-            name: pause.clone(),
-        });
-
         let frame = FrameActor::register(actors, source, frame);
         thread.frames.borrow_mut().insert(frame.clone());
 
-        // <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1662>
-        let why = if is_breakpoint {
-            WhyMsg {
-                type_: "breakpoint".into(),
-                on_next: None,
-            }
-        } else {
-            WhyMsg {
-                type_: "interrupted".into(),
-                on_next: Some(true),
-            }
-        };
-
-        let msg = ThreadInterruptedReply {
-            from: thread.name(),
-            type_: "paused".to_owned(),
-            actor: pause,
-            frame: actors.encode::<FrameActor, _>(&frame),
-            why,
-        };
-
-        for stream in self.connections.lock().unwrap().values_mut() {
-            let _ = stream.write_json_packet(&msg);
-        }
+        let _ = result_sender.send(frame);
     }
 }
 

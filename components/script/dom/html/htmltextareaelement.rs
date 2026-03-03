@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodType};
 use fonts::{ByteIndex, TextByteRange};
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::wrapper_traits::{ScriptSelection, SharedSelection};
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
@@ -187,6 +188,8 @@ impl HTMLTextAreaElement {
                         text: self.Value().to_string(),
                         insertion_point: self.GetSelectionEnd(),
                         multiline: false,
+                        // We follow chromium's heuristic to show the virtual keyboard only if user had interacted before.
+                        allow_virtual_keyboard: self.owner_window().has_sticky_activation(),
                     }),
                     None,
                 );
@@ -523,13 +526,13 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
-    fn CheckValidity(&self, can_gc: CanGc) -> bool {
-        self.check_validity(can_gc)
+    fn CheckValidity(&self, cx: &mut JSContext) -> bool {
+        self.check_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
-    fn ReportValidity(&self, can_gc: CanGc) -> bool {
-        self.report_validity(can_gc)
+    fn ReportValidity(&self, cx: &mut JSContext) -> bool {
+        self.report_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>

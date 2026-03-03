@@ -25,8 +25,8 @@ test(() => {
     doc.body.appendChild(input);
 
     assert_throws_dom("NotSupportedError", () => {
-      input.getValueRange(0, 0);
-    }, `getValueRange should throw NotSupportedError for ${input.outerHTML}`);
+      input.createValueRange(0, 0);
+    }, `createValueRange should throw NotSupportedError for ${input.outerHTML}`);
   });
-}, "getValueRange throws NotSupportedError for unsupported input types.");
+}, "createValueRange throws NotSupportedError for unsupported input types.");
 </script>

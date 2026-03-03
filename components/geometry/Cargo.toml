@@ -1,5 +1,5 @@
 [package]
-name = "servo_geometry"
+name = "servo-geometry"
 version.workspace = true
 authors.workspace = true
 license.workspace = true

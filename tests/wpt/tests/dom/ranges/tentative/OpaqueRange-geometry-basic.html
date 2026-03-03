@@ -28,7 +28,7 @@ function setupControl(control, value) {
   return element;
 }
 function setupOpaqueRange(element, startOffset, endOffset){
-  return element.getValueRange(startOffset, endOffset);
+  return element.createValueRange(startOffset, endOffset);
 }
 
 function assert_rect_inside(inner, outer, msg = '') {
@@ -101,11 +101,11 @@ controls.forEach(controlType => {
   }, `Full selection bounding box inside element (${controlType})`);
 
   test(() => {
-    // Backwards offsets are auto-collapsed by getValueRange; caret geometry applies.
+    // Backwards offsets are auto-collapsed by createValueRange; caret geometry applies.
     document.body.innerHTML = controlType === 'input' ? '<input type="text" value="Test">'
                                                     : '<textarea>Test</textarea>';
     const element = document.body.firstElementChild;
-    const range = element.getValueRange(3, 1);
+    const range = element.createValueRange(3, 1);
     assert_true(range.collapsed, 'collapsed');
     const caretRect = range.getBoundingClientRect();
     assert_approx_equals(caretRect.width, 0, 0.05, 'caret width should be 0');

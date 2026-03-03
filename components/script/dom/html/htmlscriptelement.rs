@@ -263,7 +263,7 @@ fn finish_fetching_a_classic_script(
     script_kind: ExternalScriptKind,
     url: ServoUrl,
     load: ScriptResult,
-    can_gc: CanGc,
+    cx: &mut js::context::JSContext,
 ) {
     // Step 33. The "steps to run when the result is ready" for each type of script in 33.2-33.5.
     // of https://html.spec.whatwg.org/multipage/#prepare-the-script-element
@@ -272,23 +272,23 @@ fn finish_fetching_a_classic_script(
     match script_kind {
         ExternalScriptKind::Asap => {
             document = elem.preparation_time_document.get().unwrap();
-            document.asap_script_loaded(elem, load, can_gc)
+            document.asap_script_loaded(elem, load, CanGc::from_cx(cx))
         },
         ExternalScriptKind::AsapInOrder => {
             document = elem.preparation_time_document.get().unwrap();
-            document.asap_in_order_script_loaded(elem, load, can_gc)
+            document.asap_in_order_script_loaded(elem, load, CanGc::from_cx(cx))
         },
         ExternalScriptKind::Deferred => {
             document = elem.parser_document.as_rooted();
-            document.deferred_script_loaded(elem, load, can_gc);
+            document.deferred_script_loaded(elem, load, CanGc::from_cx(cx));
         },
         ExternalScriptKind::ParsingBlocking => {
             document = elem.parser_document.as_rooted();
-            document.pending_parsing_blocking_script_loaded(elem, load, can_gc);
+            document.pending_parsing_blocking_script_loaded(elem, load, cx);
         },
     }
 
-    document.finish_load(LoadType::Script(url), can_gc);
+    document.finish_load(LoadType::Script(url), cx);
 }
 
 pub(crate) type ScriptResult = Result<Script, ()>;
@@ -387,7 +387,7 @@ impl FetchResponseListener for ClassicContext {
                     self.kind,
                     self.url.clone(),
                     Err(()),
-                    CanGc::from_cx(cx),
+                    cx,
                 );
 
                 // Resource timing is expected to be available before "error" or "load" events are fired.
@@ -463,13 +463,7 @@ impl FetchResponseListener for ClassicContext {
             }
         } else {*/
         let load = Script::Classic(script);
-        finish_fetching_a_classic_script(
-            &elem,
-            self.kind,
-            self.url.clone(),
-            Ok(load),
-            CanGc::from_cx(cx),
-        );
+        finish_fetching_a_classic_script(&elem, self.kind, self.url.clone(), Ok(load), cx);
         // }
 
         network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
@@ -478,10 +472,7 @@ impl FetchResponseListener for ClassicContext {
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         let elem = self.elem.root();
-        let source_position = elem
-            .upcast::<Element>()
-            .compute_source_position(elem.line_number as u32);
-        global.report_csp_violations(violations, Some(elem.upcast()), Some(source_position));
+        global.report_csp_violations(violations, Some(elem.upcast()), None);
     }
 }
 
@@ -731,7 +722,15 @@ impl HTMLScriptElement {
         };
 
         // Step 24. Let cryptographic nonce be el's [[CryptographicNonce]] internal slot's value.
-        let cryptographic_nonce = self.upcast::<Element>().nonce_value();
+        // If the element has a nonce content attribute but is not nonceable strip the nonce to prevent injection attacks.
+        // Elements without a nonce content attribute (e.g. JS-created with .nonce = "abc")
+        // use the internal slot directly — the nonceable check only applies to parser-created elements.
+        let el = self.upcast::<Element>();
+        let cryptographic_nonce = if el.is_nonceable() || !el.has_attribute(&local_name!("nonce")) {
+            el.nonce_value().trim().to_owned()
+        } else {
+            String::new()
+        };
 
         // Step 25. If el has an integrity attribute, then let integrity metadata be that attribute's value.
         // Otherwise, let integrity metadata be the empty string.
@@ -934,7 +933,6 @@ impl HTMLScriptElement {
                         ModuleOwner::Window(Trusted::new(self)),
                         Rc::clone(&text_rc),
                         base_url.clone(),
-                        can_gc,
                     );
                     let script = Script::ImportMap(ScriptOrigin::internal(
                         text_rc,
@@ -1306,8 +1304,8 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-crossorigin>
-    fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
-        set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
+    fn SetCrossOrigin(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        set_cross_origin_attribute(cx, self.upcast::<Element>(), value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-referrerpolicy>

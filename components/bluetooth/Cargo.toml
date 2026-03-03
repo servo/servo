@@ -1,5 +1,5 @@
 [package]
-name = "bluetooth"
+name = "servo-bluetooth"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -19,7 +19,7 @@ blurmock = { version = "0.1.2", optional = true }
 embedder_traits = { workspace = true }
 log = { workspace = true }
 rand = { workspace = true }
-servo_config = { path = "../config" }
+servo_config = { package = "servo-config", path = "../config" }
 uuid = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]

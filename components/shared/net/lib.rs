@@ -633,6 +633,8 @@ pub enum CoreResourceMsg {
     GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     GetAllCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     DeleteCookiesForSites(Vec<String>, GenericSender<()>),
+    /// This currently is used by unit tests and WebDriver only.
+    /// When url is `None`, this clears cookies across all origins.
     DeleteCookies(Option<ServoUrl>, Option<IpcSender<()>>),
     DeleteCookie(ServoUrl, String),
     DeleteCookieAsync(CookieStoreId, ServoUrl, String),

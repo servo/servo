@@ -5,6 +5,7 @@
 use canvas_traits::webgl::{WebGLCommand, WebGLContextId, WebGLMsgSender};
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom_struct::dom_struct;
+use script_bindings::reflector::AssociatedMemory;
 use script_bindings::root::DomRoot;
 use script_bindings::weakref::WeakRef;
 
@@ -15,9 +16,9 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webglrenderingcontext::{Operation, capture_webgl_backtrace};
 
-#[dom_struct]
+#[dom_struct(associated_memory)]
 pub(crate) struct WebGLObject {
-    reflector_: Reflector,
+    reflector_: Reflector<AssociatedMemory>,
     #[no_trace]
     webgl_sender: WebGLMsgSender,
     context: WeakRef<WebGLRenderingContext>,

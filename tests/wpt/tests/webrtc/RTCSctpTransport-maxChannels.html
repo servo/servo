@@ -1,5 +1,7 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCSctpTransport.prototype.maxChannels</title>
 <link rel="help" href="https://w3c.github.io/webrtc-pc/#rtcsctptransport-interface">
 <script src=/resources/testharness.js></script>
@@ -7,7 +9,10 @@
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
 'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
+if (rest) {
 promise_test(async (t) => {
   const pc = new RTCPeerConnection();
   t.add_cleanup(() => pc.close());
@@ -22,7 +27,9 @@ promise_test(async (t) => {
   assert_not_equals(pc.sctp, null, 'RTCSctpTransport must be available');
   assert_equals(pc.sctp.maxChannels, null, 'maxChannels must not be set');
 }, 'An unconnected peerconnection must not have maxChannels set');
+}
 
+if (interop2026) {
 promise_test(async (t) => {
     const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -46,4 +53,5 @@ promise_test(async (t) => {
   assert_not_equals(null, pc2.sctp.maxChannels);
   assert_equals(pc1.sctp.maxChannels, pc2.sctp.maxChannels);
 }, 'maxChannels gets instantiated after connecting');
+}
 </script>

@@ -1,5 +1,5 @@
 [package]
-name = "paint_api"
+name = "servo-paint-api"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -30,13 +30,14 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 parking_lot = { workspace = true }
-pixels = { path = "../../pixels" }
-profile_traits = { path = '../profile' }
+pixels = { package = "servo-pixels", path = "../../pixels" }
+profile_traits = { package = "servo-profile-traits", path = "../profile" }
 raw-window-handle = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
-servo_geometry = { path = "../../geometry" }
+servo_geometry = { package = "servo-geometry", path = "../../geometry" }
+servo-url = { path = "../../url" }
 smallvec = { workspace = true }
 strum = { workspace = true }
 servo-tracing = { workspace = true }

@@ -12,6 +12,7 @@ use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentType, HeaderMapExt};
 use html5ever::{LocalName, Prefix, local_name, ns};
 use http::Method;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::http_percent_encode;
@@ -649,13 +650,13 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-checkvalidity>
-    fn CheckValidity(&self, can_gc: CanGc) -> bool {
-        self.static_validation(can_gc).is_ok()
+    fn CheckValidity(&self, cx: &mut JSContext) -> bool {
+        self.static_validation(CanGc::from_cx(cx)).is_ok()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-form-reportvalidity>
-    fn ReportValidity(&self, can_gc: CanGc) -> bool {
-        self.interactive_validation(can_gc).is_ok()
+    fn ReportValidity(&self, cx: &mut JSContext) -> bool {
+        self.interactive_validation(CanGc::from_cx(cx)).is_ok()
     }
 }
 

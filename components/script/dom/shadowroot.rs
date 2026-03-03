@@ -509,7 +509,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         //
         // NOTE: The spec doesn't strictly tell us to bail out here, but
         // we can't continue if parsing failed
-        let frag = context.parse_fragment(value, CanGc::from_cx(cx))?;
+        let frag = context.parse_fragment(value, cx)?;
 
         // Step 4. Replace all with fragment within this.
         Node::replace_all(Some(frag.upcast()), self.upcast(), CanGc::from_cx(cx));
@@ -540,7 +540,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         let target = self.upcast::<Node>();
         let context_element = self.Host();
 
-        Node::unsafely_set_html(target, &context_element, value, CanGc::from_cx(cx));
+        Node::unsafely_set_html(target, &context_element, value, cx);
         Ok(())
     }
 

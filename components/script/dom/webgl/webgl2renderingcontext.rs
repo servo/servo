@@ -94,7 +94,7 @@ impl IndexedBinding {
     }
 }
 
-#[dom_struct]
+#[dom_struct] // no need to report size here as it is reported as part of WebGLRenderingContext
 pub(crate) struct WebGL2RenderingContext {
     reflector_: Reflector,
     base: Dom<WebGLRenderingContext>,

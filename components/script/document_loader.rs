@@ -8,13 +8,13 @@
 
 use net_traits::request::RequestBuilder;
 use net_traits::{BoxedFetchCallback, ResourceThreads, fetch_async};
+use script_bindings::script_runtime::temp_cx;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::root::Dom;
 use crate::dom::document::Document;
 use crate::fetch::FetchCanceller;
-use crate::script_runtime::CanGc;
 
 #[derive(Clone, Debug, JSTraceable, MallocSizeOf, PartialEq)]
 pub(crate) enum LoadType {
@@ -49,7 +49,10 @@ impl LoadBlocker {
     }
 
     /// Remove this load from the associated document's list of blocking loads.
-    pub(crate) fn terminate(blocker: &DomRefCell<Option<LoadBlocker>>, can_gc: CanGc) {
+    pub(crate) fn terminate(
+        blocker: &DomRefCell<Option<LoadBlocker>>,
+        cx: &mut js::context::JSContext,
+    ) {
         let Some(load) = blocker
             .borrow_mut()
             .as_mut()
@@ -59,7 +62,7 @@ impl LoadBlocker {
         };
 
         if let Some(blocker) = blocker.borrow().as_ref() {
-            blocker.doc.finish_load(load, can_gc);
+            blocker.doc.finish_load(load, cx);
         }
 
         *blocker.borrow_mut() = None;
@@ -67,9 +70,11 @@ impl LoadBlocker {
 }
 
 impl Drop for LoadBlocker {
+    #[expect(unsafe_code)]
     fn drop(&mut self) {
         if let Some(load) = self.load.take() {
-            self.doc.finish_load(load, CanGc::note());
+            let mut cx = unsafe { temp_cx() };
+            self.doc.finish_load(load, &mut cx);
         }
     }
 }

@@ -8,7 +8,6 @@ use bitflags::bitflags;
 use keyboard_types::{Code, CompositionEvent, Key, KeyState, Location, Modifiers};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
-use webrender_api::ExternalScrollId;
 
 use crate::WebViewPoint;
 
@@ -48,7 +47,6 @@ pub enum InputEvent {
     MouseButton(MouseButtonEvent),
     MouseLeftViewport(MouseLeftViewportEvent),
     MouseMove(MouseMoveEvent),
-    Scroll(ScrollEvent),
     Touch(TouchEvent),
     Wheel(WheelEvent),
 }
@@ -89,7 +87,6 @@ impl InputEvent {
             InputEvent::MouseLeftViewport(_) => None,
             InputEvent::Touch(event) => Some(event.point),
             InputEvent::Wheel(event) => Some(event.point),
-            InputEvent::Scroll(..) => None,
         }
     }
 }
@@ -241,7 +238,7 @@ pub enum TouchEventType {
 /// An opaque identifier for a touch point.
 ///
 /// <http://w3c.github.io/touch-events/#widl-Touch-identifier>
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct TouchId(pub i32);
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -308,11 +305,6 @@ impl WheelEvent {
     pub fn new(delta: WheelDelta, point: WebViewPoint) -> Self {
         WheelEvent { delta, point }
     }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub struct ScrollEvent {
-    pub external_id: ExternalScrollId,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

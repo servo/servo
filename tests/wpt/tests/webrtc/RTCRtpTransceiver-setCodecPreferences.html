@@ -1,12 +1,17 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCRtpTransceiver.prototype.setCodecPreferences</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="./third_party/sdp/sdp.js"></script>
 <script>
-  'use strict';
+'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
+if (rest) {
   test((t) => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -58,7 +63,9 @@
     assert_true(!!codec, 'VP8 video codec was found');
     transceiver.setCodecPreferences([codec]);
   }, `setCodecPreferences() with only VP8 should succeed`);
+}
 
+if (interop2026) {
   test(() => {
     const pc = new RTCPeerConnection();
     const transceiver = pc.addTransceiver('video');
@@ -70,6 +77,7 @@
     assert_true(!!codec, 'H264 video codec was found');
     transceiver.setCodecPreferences([codec]);
   }, `setCodecPreferences() with only H264 should succeed`);
+}
 
   async function getRTPMapLinesWithCodecAsFirst(firstCodec)
   {
@@ -89,13 +97,16 @@
      return offer.sdp.split('\r\n').filter(line => line.startsWith('a=rtpmap:'));
   }
 
+if (interop2026) {
   promise_test(async () => {
     const lines = await getRTPMapLinesWithCodecAsFirst('video/H264');
 
     assert_greater_than(lines.length, 1);
     assert_true(lines[0].indexOf('H264') !== -1, 'H264 should be the first codec');
   }, `setCodecPreferences() should allow setting H264 as first codec`);
+}
 
+if (rest) {
   promise_test(async () => {
     const lines = await getRTPMapLinesWithCodecAsFirst('video/VP8');
 
@@ -231,7 +242,9 @@
     const rtpParameters = SDPUtils.parseRtpParameters(mediaSection);
     assert_equals(rtpParameters.codecs[0].name, firstCodec);
   }, `setCodecPreferences() modifies the order of audio codecs in createOffer`);
+}
 
+if (interop2026) {
   promise_test(async (t) => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -271,8 +284,11 @@
     const rtpParameters = SDPUtils.parseRtpParameters(mediaSection);
     assert_equals(rtpParameters.codecs[0].name, firstCodec);
   }, `setCodecPreferences() modifies the order of video codecs in createOffer`);
+}
 
   ['rtx', 'red', 'ulpfec'].forEach(resiliencyMechanism => {
+    if (interop2026 && resiliencyMechanism != 'rtx') return;
+    if (rest && resiliencyMechanism == 'rtx') return;
     promise_test(async (t) => {
       const pc = new RTCPeerConnection();
       t.add_cleanup(() => pc.close());
@@ -291,6 +307,7 @@
     }, `setCodecPreferences() can remove ${resiliencyMechanism}`);
   });
 
+if (interop2026) {
   // Tests the note removed as result of discussion in
   // https://github.com/w3c/webrtc-pc/issues/2933
   promise_test(async (t) => {
@@ -323,8 +340,10 @@
     assert_equals(rtpParameters.codecs[1].name, 'VP8');
 
   }, `setCodecPreferences() filters on receiver and prefers receiver order`);
+}
 
-["audio", "video"].forEach(kind => promise_test(async (t) => {
+if (rest) {
+  ["audio", "video"].forEach(kind => promise_test(async (t) => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     const [codec] = RTCRtpReceiver.getCapabilities(kind).codecs;
@@ -335,5 +354,6 @@
     codec.mimeType = codec.mimeType.toLowerCase();
     transceiver.setCodecPreferences([codec]);
   }, `setCodecPreferences should accept ${kind} codecs regardless of mimeType case`));
+}
 
  </script>

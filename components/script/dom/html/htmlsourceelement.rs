@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
+use script_bindings::script_runtime::temp_cx;
 use style::attr::AttrValue;
 
 use crate::dom::attr::Attr;
@@ -66,6 +67,18 @@ impl HTMLSourceElement {
             }
         }
     }
+
+    fn iterate_next_html_image_element_siblings_with_cx(
+        cx: &mut js::context::JSContext,
+        next_siblings_iterator: impl Iterator<Item = Root<Dom<Node>>>,
+        callback: impl Fn(&mut js::context::JSContext, &HTMLImageElement),
+    ) {
+        for next_sibling in next_siblings_iterator {
+            if let Some(html_image_element_sibling) = next_sibling.downcast::<HTMLImageElement>() {
+                callback(cx, html_image_element_sibling);
+            }
+        }
+    }
 }
 
 impl VirtualMethods for HTMLSourceElement {
@@ -73,10 +86,14 @@ impl VirtualMethods for HTMLSourceElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    #[expect(unsafe_code)]
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, _can_gc: CanGc) {
+        // TODO: https://github.com/servo/servo/issues/42812
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(attr, mutation, CanGc::from_cx(cx));
 
         match attr.local_name() {
             &local_name!("srcset") |
@@ -89,9 +106,10 @@ impl VirtualMethods for HTMLSourceElement {
                 if let Some(parent) = self.upcast::<Node>().GetParentElement() {
                     if parent.is::<HTMLPictureElement>() {
                         let next_sibling_iterator = self.upcast::<Node>().following_siblings();
-                        HTMLSourceElement::iterate_next_html_image_element_siblings(
+                        HTMLSourceElement::iterate_next_html_image_element_siblings_with_cx(
+                            cx,
                             next_sibling_iterator,
-                            |image| image.update_the_image_data(can_gc),
+                            |cx, image| image.update_the_image_data(cx),
                         );
                     }
                 }
@@ -127,9 +145,15 @@ impl VirtualMethods for HTMLSourceElement {
         }
     }
 
+    #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:html-element-insertion-steps>
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
-        self.super_type().unwrap().bind_to_tree(context, can_gc);
+    fn bind_to_tree(&self, context: &BindContext, _can_gc: CanGc) {
+        // TODO: https://github.com/servo/servo/issues/42838
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+        self.super_type()
+            .unwrap()
+            .bind_to_tree(context, CanGc::from_cx(cx));
 
         // Step 1. Let parent be insertedNode's parent.
         let parent = self.upcast::<Node>().GetParentNode().unwrap();
@@ -140,32 +164,40 @@ impl VirtualMethods for HTMLSourceElement {
             parent
                 .downcast::<HTMLMediaElement>()
                 .unwrap()
-                .handle_source_child_insertion(self, can_gc);
+                .handle_source_child_insertion(self, cx);
         }
 
         // Step 3. If parent is a picture element, then for each child of parent's children, if
         // child is an img element, then count this as a relevant mutation for child.
         if parent.is::<HTMLPictureElement>() && std::ptr::eq(&*parent, context.parent) {
             let next_sibling_iterator = self.upcast::<Node>().following_siblings();
-            HTMLSourceElement::iterate_next_html_image_element_siblings(
+            HTMLSourceElement::iterate_next_html_image_element_siblings_with_cx(
+                cx,
                 next_sibling_iterator,
-                |image| image.update_the_image_data(can_gc),
+                |cx, image| image.update_the_image_data(cx),
             );
         }
     }
 
+    #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:html-element-removing-steps>
-    fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
-        self.super_type().unwrap().unbind_from_tree(context, can_gc);
+    fn unbind_from_tree(&self, context: &UnbindContext, _can_gc: CanGc) {
+        // TODO: https://github.com/servo/servo/issues/42837
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+        self.super_type()
+            .unwrap()
+            .unbind_from_tree(context, CanGc::from_cx(cx));
 
         // Step 1. If oldParent is a picture element, then for each child of oldParent's children,
         // if child is an img element, then count this as a relevant mutation for child.
         if context.parent.is::<HTMLPictureElement>() && !self.upcast::<Node>().has_parent() {
             if let Some(next_sibling) = context.next_sibling {
                 let next_sibling_iterator = next_sibling.inclusively_following_siblings();
-                HTMLSourceElement::iterate_next_html_image_element_siblings(
+                HTMLSourceElement::iterate_next_html_image_element_siblings_with_cx(
+                    cx,
                     next_sibling_iterator,
-                    |image| image.update_the_image_data(can_gc),
+                    |cx, image| image.update_the_image_data(cx),
                 );
             }
         }

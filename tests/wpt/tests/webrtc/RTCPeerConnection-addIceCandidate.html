@@ -1,10 +1,15 @@
 <!doctype html>
+<meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>Test RTCPeerConnection.prototype.addIceCandidate</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   // SDP copied from JSEP Example 7.1
   // It contains two media streams with different ufrags
@@ -118,13 +123,14 @@ a=rtcp-rsize
       `Expect candidate line to be found after media line ${beforeMediaLine}`);
   }
 
-  /*
-    4.4.2.  addIceCandidate
-      4.  Return the result of enqueuing the following steps:
-        1.  If remoteDescription is null return a promise rejected with a
-            newly created InvalidStateError.
-   */
-  promise_test(t => {
+/*
+  4.4.2.  addIceCandidate
+    4.  Return the result of enqueuing the following steps:
+      1.  If remoteDescription is null return a promise rejected with a
+          newly created InvalidStateError.
+ */
+if (interop2026) {
+promise_test(t => {
     const pc = new RTCPeerConnection();
 
     t.add_cleanup(() => pc.close());
@@ -137,7 +143,9 @@ a=rtcp-rsize
         usernameFragment: usernameFragment1
       }));
   }, 'Add ICE candidate before setting remote description should reject with InvalidStateError');
+}
 
+if (rest) {
   promise_test(t => {
     const pc = new RTCPeerConnection();
     pc.setRemoteDescription(sessionDesc);
@@ -150,7 +158,9 @@ a=rtcp-rsize
         usernameFragment: usernameFragment1
       }));
   }, 'addIceCandidate after close should reject with InvalidStateError');
+}
 
+if (interop2026) {
   /*
     Success cases
    */
@@ -641,7 +651,9 @@ a=rtcp-rsize
           usernameFragment: usernameFragment1
         })));
   }, 'Add candidate with sdpMid belonging to different usernameFragment should reject with OperationError');
+}
 
+if (rest) {
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -665,4 +677,5 @@ a=rtcp-rsize
     });
     assert_array_equals(recognized, ['usernameFragment']);
   }, 'addIceCandidate should not recognize relayProtocol or url');
+}
 </script>

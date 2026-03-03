@@ -1,5 +1,5 @@
 [package]
-name = "script"
+name = "servo-script"
 build = "build.rs"
 version.workspace = true
 authors.workspace = true
@@ -62,18 +62,18 @@ crossbeam-channel = { workspace = true }
 cssparser = { workspace = true }
 ctr = { workspace = true }
 data-url = { workspace = true }
-deny_public_fields = { path = "../deny_public_fields" }
+deny_public_fields = { package = "servo-deny-public-fields", path = "../deny_public_fields" }
 der = { workspace = true }
 devtools_traits = { workspace = true }
 digest = { workspace = true }
-dom_struct = { path = "../dom_struct" }
+dom_struct = { package = "servo-dom-struct", path = "../dom_struct" }
 ecdsa = { workspace = true }
 elliptic-curve = { workspace = true }
 embedder_traits = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
 flate2 = { workspace = true }
-fonts = { path = "../fonts" }
+fonts = { package = "servo-fonts", path = "../fonts" }
 fonts_traits = { workspace = true }
 glow = { workspace = true }
 headers = { workspace = true }
@@ -86,7 +86,7 @@ indexmap = { workspace = true }
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
 js = { workspace = true }
-jstraceable_derive = { path = "../jstraceable_derive" }
+jstraceable_derive = { package = "servo-jstraceable-derive", path = "../jstraceable_derive" }
 keyboard-types = { workspace = true }
 kurbo = { workspace = true }
 layout_api = { workspace = true }
@@ -95,8 +95,8 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 markup5ever = { workspace = true }
-media = { path = "../media/media-thread" }
-metrics = { path = "../metrics" }
+media = { package = "servo-media-thread", path = "../media/media-thread" }
+metrics = { package = "servo-metrics", path = "../metrics" }
 mime = { workspace = true }
 mime-multipart-hyper1 = { workspace = true }
 mime_guess = { workspace = true }
@@ -115,7 +115,7 @@ p521 = { workspace = true }
 parking_lot = { workspace = true }
 percent-encoding = { workspace = true }
 phf = "0.13"
-pixels = { path = "../pixels" }
+pixels = { package = "servo-pixels", path = "../pixels" }
 pkcs8 = { workspace = true }
 postcard = { workspace = true }
 profile_traits = { workspace = true }
@@ -123,17 +123,17 @@ rand = { workspace = true }
 regex = { workspace = true }
 rsa = { workspace = true }
 rustc-hash = { workspace = true }
-script_bindings = { path = "../script_bindings" }
+script_bindings = { package = "servo-script-bindings", path = "../script_bindings" }
 script_traits = { workspace = true }
 sec1 = { workspace = true }
 selectors = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
+serde_json = { workspace = true, features = ["preserve_order"] }
 servo-media = { workspace = true }
 servo_arc = { workspace = true }
-servo_config = { path = "../config" }
-servo_geometry = { path = "../geometry" }
-servo_url = { path = "../url" }
+servo_config = { package = "servo-config", path = "../config" }
+servo_geometry = { package = "servo-geometry", path = "../geometry" }
+servo_url = { package = "servo-url", path = "../url" }
 sha1 = { workspace = true }
 sha2 = { workspace = true }
 sha3 = { workspace = true }
@@ -149,7 +149,7 @@ swapper = "0.1"
 tempfile = "3"
 tendril = { workspace = true }
 time = { workspace = true }
-timers = { path = "../timers" }
+timers = { package = "servo-timers", path = "../timers" }
 tracing = { workspace = true, optional = true }
 unicode-bidi = { workspace = true }
 unicode-script = { workspace = true }

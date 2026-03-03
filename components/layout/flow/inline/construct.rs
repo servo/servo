@@ -96,12 +96,14 @@ pub(crate) struct InlineFormattingContextBuilder {
 }
 
 impl InlineFormattingContextBuilder {
-    pub(crate) fn new(info: &NodeAndStyleInfo) -> Self {
+    pub(crate) fn new(info: &NodeAndStyleInfo, context: &LayoutContext) -> Self {
         Self {
             // For the purposes of `text-transform: capitalize` the start of the IFC is a word boundary.
             on_word_boundary: true,
             is_empty: true,
-            shared_inline_styles_stack: vec![info.into()],
+            shared_inline_styles_stack: vec![SharedInlineStyles::from_info_and_context(
+                info, context,
+            )],
             shared_selection: info.node.selection(),
             ..Default::default()
         }

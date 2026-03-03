@@ -1,5 +1,5 @@
 [package]
-name = "webgpu_traits"
+name = "servo-webgpu-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -16,7 +16,7 @@ arrayvec = { workspace = true }
 base = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
-pixels = { path = "../../pixels" }
+pixels = { package = "servo-pixels", path = "../../pixels" }
 serde = { workspace = true }
 webrender_api = { workspace = true }
 wgpu-core = { workspace = true, features = ["serde", "wgsl"] }

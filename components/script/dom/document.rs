@@ -36,8 +36,8 @@ use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use layout_api::{
-    PendingRestyle, ReflowGoal, ReflowPhasesRun, RestyleReason, ScrollContainerQueryFlags,
-    TrustedNodeAddress,
+    PendingRestyle, ReflowGoal, ReflowPhasesRun, ReflowStatistics, RestyleReason,
+    ScrollContainerQueryFlags, TrustedNodeAddress,
 };
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
 use net_traits::CookieSource::NonHTTP;
@@ -139,8 +139,8 @@ use crate::dom::element::{
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::execcommand::basecommand::ContentEditableRange;
-use crate::dom::execcommand::execcommands::ExecCommandsSupport;
+use crate::dom::execcommand::contenteditable::ContentEditableRange;
+use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 use crate::dom::focusevent::FocusEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
@@ -843,7 +843,7 @@ impl Document {
         self.current_rendering_epoch.get()
     }
 
-    pub(crate) fn set_activity(&self, activity: DocumentActivity, can_gc: CanGc) {
+    pub(crate) fn set_activity(&self, cx: &mut js::context::JSContext, activity: DocumentActivity) {
         // This function should only be called on documents with a browsing context
         assert!(self.has_browsing_context);
         if activity == self.activity.get() {
@@ -858,7 +858,7 @@ impl Document {
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
 
         if activity != DocumentActivity::FullyActive {
-            self.window().suspend(can_gc);
+            self.window().suspend(cx);
             media.suspend(&client_context_id);
             return;
         }
@@ -866,7 +866,7 @@ impl Document {
         self.title_changed();
         self.notify_embedder_favicon();
         self.dirty_all_nodes();
-        self.window().resume(can_gc);
+        self.window().resume(CanGc::from_cx(cx));
         media.resume(&client_context_id);
 
         if self.ready_state.get() != DocumentReadyState::Complete {
@@ -2183,7 +2183,7 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#the-end
     // https://html.spec.whatwg.org/multipage/#delay-the-load-event
-    pub(crate) fn finish_load(&self, load: LoadType, can_gc: CanGc) {
+    pub(crate) fn finish_load(&self, load: LoadType, cx: &mut js::context::JSContext) {
         // This does not delay the load event anymore.
         debug!("Document got finish_load: {:?}", load);
         self.loader.borrow_mut().finish_load(&load);
@@ -2192,10 +2192,10 @@ impl Document {
             LoadType::Stylesheet(_) => {
                 // A stylesheet finishing to load may unblock any pending
                 // parsing-blocking script or deferred script.
-                self.process_pending_parsing_blocking_script(can_gc);
+                self.process_pending_parsing_blocking_script(cx);
 
                 // Step 3.
-                self.process_deferred_scripts(can_gc);
+                self.process_deferred_scripts(CanGc::from_cx(cx));
             },
             LoadType::PageSource(_) => {
                 // We finished loading the page, so if the `Window` is still waiting for
@@ -2208,7 +2208,7 @@ impl Document {
                 // this is the first opportunity to process them.
 
                 // Step 3.
-                self.process_deferred_scripts(can_gc);
+                self.process_deferred_scripts(CanGc::from_cx(cx));
             },
             _ => {},
         }
@@ -2564,7 +2564,7 @@ impl Document {
         &self,
         element: &HTMLScriptElement,
         result: ScriptResult,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         {
             let mut blocking_script = self.pending_parsing_blocking_script.borrow_mut();
@@ -2572,10 +2572,10 @@ impl Document {
             assert!(&*entry.element == element);
             entry.loaded(result);
         }
-        self.process_pending_parsing_blocking_script(can_gc);
+        self.process_pending_parsing_blocking_script(cx);
     }
 
-    fn process_pending_parsing_blocking_script(&self, can_gc: CanGc) {
+    fn process_pending_parsing_blocking_script(&self, cx: &mut js::context::JSContext) {
         if self.script_blocking_stylesheets_count.get() > 0 {
             return;
         }
@@ -2588,7 +2588,7 @@ impl Document {
             *self.pending_parsing_blocking_script.borrow_mut() = None;
             self.get_current_parser()
                 .unwrap()
-                .resume_with_pending_parsing_blocking_script(&element, result, can_gc);
+                .resume_with_pending_parsing_blocking_script(&element, result, cx);
         }
     }
 
@@ -2717,7 +2717,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-document-and-its-descendants>
-    pub(crate) fn destroy_document_and_its_descendants(&self, can_gc: CanGc) {
+    pub(crate) fn destroy_document_and_its_descendants(&self, cx: &mut js::context::JSContext) {
         // Step 1. If document is not fully active, then:
         if !self.is_fully_active() {
             // Step 1.1. Let reason be a string from user-agent specific blocking reasons.
@@ -2743,22 +2743,22 @@ impl Document {
         // Step 5. Wait until numberDestroyed equals childNavigable's size.
         for exited_iframe in self.iframes().iter() {
             debug!("Destroying nested iframe document");
-            exited_iframe.destroy_document_and_its_descendants(can_gc);
+            exited_iframe.destroy_document_and_its_descendants(cx);
         }
         // Step 6. Queue a global task on the navigation and traversal task source
         // given document's relevant global object to perform the following steps:
         // TODO
         // Step 6.1. Destroy document.
-        self.destroy(can_gc);
+        self.destroy(cx);
         // Step 6.2. If afterAllDestruction was given, then run it.
         // TODO
     }
 
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-document>
-    pub(crate) fn destroy(&self, can_gc: CanGc) {
+    pub(crate) fn destroy(&self, cx: &mut js::context::JSContext) {
         let exited_window = self.window();
         // Step 2. Abort document.
-        self.abort(can_gc);
+        self.abort(cx);
         // Step 3. Set document's salvageable state to false.
         self.salvageable.set(false);
         // Step 4. Let ports be the list of MessagePorts whose relevant
@@ -2814,14 +2814,14 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#abort-a-document>
-    pub(crate) fn abort(&self, can_gc: CanGc) {
+    pub(crate) fn abort(&self, cx: &mut js::context::JSContext) {
         // We need to inhibit the loader before anything else.
         self.loader.borrow_mut().inhibit_events();
 
         // Step 1.
         for iframe in self.iframes().iter() {
             if let Some(document) = iframe.GetContentDocument() {
-                document.abort(can_gc);
+                document.abort(cx);
             }
         }
 
@@ -2858,7 +2858,7 @@ impl Document {
             // Step 4.1. Set document's active parser was aborted to true.
             self.active_parser_was_aborted.set(true);
             // Step 4.2. Abort that parser.
-            parser.abort(can_gc);
+            parser.abort(cx);
             // Step 4.3. Make document unsalvageable given document and "parser-aborted".
             self.salvageable.set(false);
         }
@@ -3136,18 +3136,18 @@ impl Document {
     // > doc and its node navigable to reflect the current state.
     //
     // Returns the set of reflow phases run as a [`ReflowPhasesRun`].
-    pub(crate) fn update_the_rendering(&self) -> ReflowPhasesRun {
+    pub(crate) fn update_the_rendering(&self) -> (ReflowPhasesRun, ReflowStatistics) {
         if self.render_blocking_element_count() > 0 {
             return Default::default();
         }
 
-        let mut results = ReflowPhasesRun::empty();
+        let mut phases = ReflowPhasesRun::empty();
         if self.has_pending_animated_image_update.get() {
             self.image_animation_manager
                 .borrow()
                 .update_active_frames(&self.window, self.current_animation_timeline_value());
             self.has_pending_animated_image_update.set(false);
-            results.insert(ReflowPhasesRun::UpdatedImageData);
+            phases.insert(ReflowPhasesRun::UpdatedImageData);
         }
 
         self.current_rendering_epoch
@@ -3166,7 +3166,7 @@ impl Document {
         // uploaded. This allows canvas image uploading to happen asynchronously.
         let pipeline_id = self.window().pipeline_id();
         if !image_keys.is_empty() {
-            results.insert(ReflowPhasesRun::UpdatedImageData);
+            phases.insert(ReflowPhasesRun::UpdatedImageData);
             self.waiting_on_canvas_image_updates.set(true);
             self.window().paint_api().delay_new_frame_for_canvas(
                 self.webview_id(),
@@ -3176,7 +3176,8 @@ impl Document {
             );
         }
 
-        let results = results.union(self.window().reflow(ReflowGoal::UpdateTheRendering));
+        let (reflow_phases, statistics) = self.window().reflow(ReflowGoal::UpdateTheRendering);
+        let phases = phases.union(reflow_phases);
 
         self.window().paint_api().update_epoch(
             self.webview_id(),
@@ -3184,7 +3185,7 @@ impl Document {
             current_rendering_epoch,
         );
 
-        results
+        (phases, statistics)
     }
 
     pub(crate) fn handle_no_longer_waiting_on_asynchronous_image_updates(&self) {
@@ -3481,7 +3482,7 @@ impl Document {
             ProgressiveWebMetricType::FirstContentfulPaint => {
                 let binding = PerformancePaintTiming::new(
                     self.window.as_global_scope(),
-                    metric_type,
+                    metric_type.clone(),
                     metric_value,
                     can_gc,
                 );
@@ -3489,11 +3490,12 @@ impl Document {
                 let entry = binding.upcast::<PerformanceEntry>();
                 self.window.Performance().queue_entry(entry);
             },
-            ProgressiveWebMetricType::LargestContentfulPaint { area } => {
+            ProgressiveWebMetricType::LargestContentfulPaint { area, url } => {
                 let binding = LargestContentfulPaint::new(
                     self.window.as_global_scope(),
-                    metric_type,
                     metric_value,
+                    area,
+                    url,
                     can_gc,
                 );
                 metrics.set_largest_contentful_paint(metric_value, area);
@@ -3586,7 +3588,7 @@ impl Document {
         };
 
         // Steps 10-11.
-        parser.write(string.into(), CanGc::from_cx(cx));
+        parser.write(string.into(), cx);
 
         Ok(())
     }
@@ -4784,7 +4786,7 @@ impl Document {
     }
 
     /// An implementation of <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.
-    pub(crate) fn update_animations_and_send_events(&self, can_gc: CanGc) {
+    pub(crate) fn update_animations_and_send_events(&self, cx: &mut js::context::JSContext) {
         // Only update the time if it isn't being managed by a test.
         if !self.layout_animations_test_enabled {
             self.animation_timeline.borrow_mut().update();
@@ -4802,11 +4804,12 @@ impl Document {
         self.maybe_mark_animating_nodes_as_dirty();
 
         // > 3. Perform a microtask checkpoint.
-        self.window().perform_a_microtask_checkpoint(can_gc);
+        self.window().perform_a_microtask_checkpoint(cx);
 
         // Steps 4 through 7 occur inside `send_pending_events().`
         let _realm = enter_realm(self);
-        self.animations().send_pending_events(self.window(), can_gc);
+        self.animations()
+            .send_pending_events(self.window(), CanGc::from_cx(cx));
     }
 
     pub(crate) fn image_animation_manager(&self) -> Ref<'_, ImageAnimationManager> {
@@ -5131,14 +5134,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             CanGc::from_cx(cx),
         );
         // Step 4. Parse HTML from string given document and compliantHTML.
-        ServoParser::parse_html_document(
-            &document,
-            Some(compliant_html),
-            url,
-            None,
-            None,
-            CanGc::from_cx(cx),
-        );
+        ServoParser::parse_html_document(&document, Some(compliant_html), url, None, None, cx);
         // Step 5. Return document.
         document.set_ready_state(DocumentReadyState::Complete, CanGc::from_cx(cx));
         Ok(document)
@@ -6349,7 +6345,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         if self.has_browsing_context() {
             // spec says "stop document loading",
             // which is a process that does more than just abort
-            self.abort(CanGc::from_cx(cx));
+            self.abort(cx);
         }
 
         // Step 9
@@ -6457,25 +6453,26 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-close>
     fn Close(&self, cx: &mut js::context::JSContext) -> ErrorResult {
         if !self.is_html_document() {
-            // Step 1.
+            // Step 1. If this is an XML document, then throw an "InvalidStateError" DOMException.
             return Err(Error::InvalidState(None));
         }
 
-        // Step 2.
+        // Step 2. If this's throw-on-dynamic-markup-insertion counter is greater than zero,
+        // then throw an "InvalidStateError" DOMException.
         if self.throw_on_dynamic_markup_insertion_counter.get() > 0 {
             return Err(Error::InvalidState(None));
         }
 
+        // Step 3. If there is no script-created parser associated with this, then return.
         let parser = match self.get_current_parser() {
             Some(ref parser) if parser.is_script_created() => DomRoot::from_ref(&**parser),
             _ => {
-                // Step 3.
                 return Ok(());
             },
         };
 
-        // Step 4-6.
-        parser.close(CanGc::from_cx(cx));
+        // parser.close implements the remainder of this algorithm
+        parser.close(cx);
 
         Ok(())
     }

@@ -260,6 +260,7 @@ pub(crate) mod debuggerevalevent;
 pub(crate) mod debuggergetpossiblebreakpointsevent;
 pub(crate) mod debuggerglobalscope;
 pub(crate) mod debuggerinterruptevent;
+pub(crate) mod debuggerresumeevent;
 pub(crate) mod debuggersetbreakpointevent;
 pub(crate) mod dissimilaroriginlocation;
 pub(crate) mod dissimilaroriginwindow;

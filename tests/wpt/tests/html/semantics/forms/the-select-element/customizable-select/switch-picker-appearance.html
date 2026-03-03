@@ -62,7 +62,7 @@ promise_test(async (t) => {
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'auto');
   await test_driver.bless('showPicker');
   select1.showPicker();
-  assert_equals(getComputedStyle(select1,'::picker(select)').backgroundColor,red,'appearance:auto picker is never open');
+  assert_equals(getComputedStyle(select1,'::picker(select)').backgroundColor,green,'appearance:auto picker is opened');
   // Close the picker
   await clickOn(select1);
   assert_false(select1.matches(':open'));
@@ -77,7 +77,7 @@ promise_test(async (t) => {
   assert_equals(getComputedStyle(select1,'::picker(select)').appearance,'none');
   await test_driver.bless('showPicker');
   select1.showPicker();
-  assert_equals(getComputedStyle(select1,'::picker(select)').backgroundColor,red,'appearance:none picker is never open');
+  assert_equals(getComputedStyle(select1,'::picker(select)').backgroundColor,green,'appearance:none picker is opened');
   // Close the picker
   await clickOn(select1);
   assert_false(select1.matches(':open'));

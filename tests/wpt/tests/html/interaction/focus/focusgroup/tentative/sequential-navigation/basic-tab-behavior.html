@@ -29,10 +29,10 @@
     var after = document.getElementById("after");
 
     await focusAndWait(before);
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, item1, "Tab should enter focusgroup at first item in tree order");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, after, "Tab should exit focusgroup to next focusable element");
   }, "Tab enters focusgroup at first item in tree order and exits normally");
 

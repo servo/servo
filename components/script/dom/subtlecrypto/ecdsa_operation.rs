@@ -32,8 +32,8 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     ALG_ECDSA, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, JsonWebKeyExt,
     JwkStringField, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384,
-    NAMED_CURVE_P521, SUPPORTED_CURVES, SubtleEcKeyAlgorithm, SubtleEcKeyGenParams,
-    SubtleEcKeyImportParams, SubtleEcdsaParams,
+    NAMED_CURVE_P521, NormalizedAlgorithm, SUPPORTED_CURVES, SubtleEcKeyAlgorithm,
+    SubtleEcKeyGenParams, SubtleEcKeyImportParams, SubtleEcdsaParams,
 };
 
 const P256_PREHASH_LENGTH: usize = 32;

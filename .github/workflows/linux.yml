@@ -380,6 +380,8 @@ jobs:
         if: github.event_name != 'pull_request_target'
         with:
           fetch-depth: 1
+      - name: Change Mirror Priorities
+        uses: ./.github/actions/apt-mirrors
       - name: Install Dependencies
         run: |
           sudo bash -c 'apt-add-repository -y https://mirrors.kernel.org/ubuntu'
@@ -391,6 +393,7 @@ jobs:
             gstreamer1.0-plugins-good \
             gstreamer1.0-plugins-ugly \
             gstreamer1.0-tools \
+            jackd2 \
             libasound2-plugins \
             libfaad2 \
             libffi7 \
@@ -431,4 +434,4 @@ jobs:
           gst-inspect-1.0 | grep Total
       - name: Run Examples
         run: |
-          ls components/media/examples/examples/*.rs | xargs -I{} basename  {} .rs  | grep -v params_connect | RUST_BACKTRACE=1 GST_DEBUG=3 xargs -I{} cargo run -p media-examples --example {}
+          ls components/media/examples/examples/*.rs | xargs -I{} basename  {} .rs  | grep -v params_connect | RUST_BACKTRACE=1 GST_DEBUG=3 xargs -I{} cargo run -p servo-media-examples --example {}

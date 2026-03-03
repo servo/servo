@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>Single-axis sticky constraints: Nested elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#sticky-pos">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #outer { overflow-y: scroll; overflow-x: visible; width: 200px; height: 200px; }
+  #inner { overflow-x: scroll; overflow-y: visible; width: 200px; height: 1000px; }
+  #sticky-outer { position: sticky; top: 10px; left: 20px; width: 100px; height: 60px; background: lightblue; }
+  #sticky-inner { position: sticky; top: 25px; left: 40px; width: 50px; height: 20px; background: blue; }
+  .spacer { width: 1000px; height: 1000px; }
+</style>
+
+<div id="outer">
+  <div id="inner">
+    <div id="sticky-outer">
+      <div id="sticky-inner"></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<script>
+test(() => {
+  let outer = document.getElementById("outer");
+  let inner = document.getElementById("inner");
+  let stickyOuter = document.getElementById("sticky-outer");
+  let stickyInner = document.getElementById("sticky-inner");
+
+  // Scroll both axes to activate sticky offsets.
+  inner.scrollLeft = 50;
+  outer.scrollTop = 60;
+
+  let rOuter = outer.getBoundingClientRect();
+  let rStickyOuter = stickyOuter.getBoundingClientRect();
+  let rStickyInner = stickyInner.getBoundingClientRect();
+
+  // Verify the outer sticky element resolves against its own constraints.
+  assert_equals(rStickyOuter.left - rOuter.left, 20, "Outer sticky left");
+  assert_equals(rStickyOuter.top - rOuter.top, 10, "Outer sticky top");
+
+  // Verify the inner sticky element accumulates offsets from the outer sticky element.
+  assert_equals(rStickyInner.left - rOuter.left, 40, "Inner sticky left accumulates");
+  assert_equals(rStickyInner.top - rOuter.top, 25, "Inner sticky top accumulates");
+}, "Nested sticky elements accumulate offsets correctly on independent axes");
+</script>

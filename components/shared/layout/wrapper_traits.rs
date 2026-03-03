@@ -147,7 +147,7 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
     /// it can be used to reach siblings and cousins. A simple immutable borrow
     /// of the parent data is fine, since the bottom-up traversal will not process
     /// the parent until all the children have been processed.
-    fn parent_style(&self) -> Arc<ComputedValues>;
+    fn parent_style(&self, context: &SharedStyleContext) -> Arc<ComputedValues>;
 
     /// Initialize this node with empty opaque layout data.
     ///
@@ -183,7 +183,7 @@ pub trait ThreadSafeLayoutNode<'dom>: Clone + Copy + Debug + NodeInfo + PartialE
             // Text nodes are not styled during traversal,instead we simply
             // return parent style here and do cascading during layout.
             debug_assert!(self.is_text_node());
-            self.parent_style()
+            self.parent_style(context)
         }
     }
 
@@ -427,6 +427,14 @@ impl PseudoElementChain {
                 Self::unnested(pseudo_element)
             },
         }
+    }
+
+    pub fn without_innermost(&self) -> Option<Self> {
+        let primary = self.primary?;
+        Some(
+            self.secondary
+                .map_or_else(Self::default, |_| Self::unnested(primary)),
+        )
     }
 
     pub fn is_empty(&self) -> bool {

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Test: dynamically changing the outer display type while keeping a flow-root inner display type</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#outer-role">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#valdef-display-flow-root">
+<link rel="match" href="display-flow-root-dynamic-ref.html">
+<meta name="assert" content="The text 'A B C' should appear on a single line.">
+
+A
+<div id="target" style="display: block flow-root">B</div>
+C
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  target.style.display = "inline flow-root";
+  takeScreenshot();
+});
+</script>
+</html>

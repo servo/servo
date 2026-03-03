@@ -23,6 +23,7 @@ use selectors::Element as _;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style;
+use style::context::SharedStyleContext;
 use style::dom::{NodeInfo, TElement, TNode, TShadowRoot};
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
@@ -272,11 +273,11 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
                 self.node.node.is_text_container_of_single_line_input())
     }
 
-    pub fn selected_style(&self) -> Arc<ComputedValues> {
+    pub fn selected_style(&self, context: &SharedStyleContext) -> Arc<ComputedValues> {
         let Some(element) = self.as_element() else {
             // TODO(stshine): What should the selected style be for text?
             debug_assert!(self.is_text_node());
-            return self.parent_style();
+            return self.parent_style(context);
         };
 
         let style_data = &element.style_data().styles;
@@ -285,7 +286,12 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
             // propagate to the children and Shadow DOM elements. For this case, UA widget
             // inner elements should follow the originating element in terms of selection.
             if self.node.node.is_in_ua_widget() {
-                return Some(element.containing_shadow_host()?.as_node().selected_style());
+                return Some(
+                    element
+                        .containing_shadow_host()?
+                        .as_node()
+                        .selected_style(context),
+                );
             }
             style_data.pseudos.get(&PseudoElement::Selection).cloned()
         };
@@ -326,7 +332,12 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
         }
     }
 
-    fn parent_style(&self) -> Arc<ComputedValues> {
+    fn parent_style(&self, context: &SharedStyleContext) -> Arc<ComputedValues> {
+        if let Some(chain) = self.pseudo_element_chain.without_innermost() {
+            let mut parent = *self;
+            parent.pseudo_element_chain = chain;
+            return parent.style(context);
+        }
         let parent_element = self.node.traversal_parent().unwrap();
         let parent_data = parent_element.borrow_data().unwrap();
         parent_data.styles.primary().clone()

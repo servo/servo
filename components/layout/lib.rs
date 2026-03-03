@@ -76,13 +76,6 @@ impl<'a> ConstraintSpace<'a> {
             preferred_aspect_ratio,
         }
     }
-
-    fn new_for_style_and_ratio(
-        style: &'a ComputedValues,
-        preferred_aspect_ratio: Option<AspectRatio>,
-    ) -> Self {
-        Self::new(SizeConstraint::default(), style, preferred_aspect_ratio)
-    }
 }
 
 /// A variant of [`ContainingBlock`] that allows an indefinite inline size.

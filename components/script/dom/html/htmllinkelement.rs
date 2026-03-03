@@ -9,6 +9,7 @@ use std::default::Default;
 use base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
@@ -224,10 +225,6 @@ impl HTMLLinkElement {
             cssom_stylesheet.set_owner_node(None);
         }
         self.cssom_stylesheet.set(None);
-    }
-
-    pub(crate) fn line_number(&self) -> u32 {
-        self.line_number as u32
     }
 }
 
@@ -755,7 +752,7 @@ impl HTMLLinkElement {
         let trusted_node = Trusted::new(self);
         let window = self.owner_window();
         let request_generation_id = self.get_request_generation_id();
-        window.register_image_cache_listener(id, move |response| {
+        window.register_image_cache_listener(id, move |response, _| {
             let trusted_node = trusted_node.clone();
             let link_element = trusted_node.root();
             let window = link_element.owner_window();
@@ -1071,8 +1068,8 @@ impl HTMLLinkElementMethods<crate::DomTypeHolder> for HTMLLinkElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-link-crossorigin>
-    fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
-        set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
+    fn SetCrossOrigin(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        set_cross_origin_attribute(cx, self.upcast::<Element>(), value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-link-referrerpolicy>
@@ -1138,11 +1135,7 @@ impl FetchResponseListener for FaviconFetchContext {
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
-        let link = self.link.root();
-        let source_position = link
-            .upcast::<Element>()
-            .compute_source_position(link.line_number as u32);
-        global.report_csp_violations(violations, None, Some(source_position));
+        global.report_csp_violations(violations, None, None);
     }
 }
 

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>No tuning of lspace/rspace when scriptlevel is positive</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2018406"/>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/feature-detection.js"></script>
+<style>
+  math { font: 100px/1 Ahem; }
+</style>
+<math display="block">
+  <mrow id="big"><mn>1</mn><mo>O</mo><mn>2</mn></mrow>
+</math>
+<math display="block">
+  <mstyle id="small" scriptlevel="1"><mn>3</mn><mo>O</mo><mn>4</mn></mstyle>
+</math>
+<script>
+  test(function() {
+    const epsilon = 0.1;
+    let bigWidth = big.children[0].getBoundingClientRect().width;
+    let smallWidth = small.children[0].getBoundingClientRect().width;
+    let bigSpace =
+        big.getBoundingClientRect().width -
+        bigWidth * big.children.length;
+    let smallSpace =
+        small.getBoundingClientRect().width -
+        smallWidth * small.children.length;
+    assert_approx_equals(smallSpace / bigSpace,  smallWidth / bigWidth, epsilon);
+  }, `default lspace/rspace in scriptlevel = 1 is just obtained by scaling down the one for scriptlevel = 0.`);
+</script>

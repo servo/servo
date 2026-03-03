@@ -723,6 +723,7 @@ impl WebView {
                     insertion_point: input_method_request.insertion_point,
                     position,
                     multiline: input_method_request.multiline,
+                    allow_virtual_keyboard: input_method_request.allow_virtual_keyboard,
                 })
             },
             EmbedderControlRequest::ContextMenu(mut context_menu_request) => {

@@ -304,23 +304,23 @@ impl Actor for SourceActor {
 }
 
 impl SourceActor {
-    pub fn find_offset(&self, line: u32, column: u32) -> (u32, u32) {
-        let (tx, rx) = channel().unwrap();
+    pub fn find_offset(&self, line: u32, column: u32) -> Option<(u32, u32)> {
+        let (tx, rx) = channel()?;
         self.script_sender
             .send(DevtoolScriptControlMsg::GetPossibleBreakpoints(
                 self.spidermonkey_id,
                 tx,
             ))
-            .unwrap();
-        let result = rx.recv().unwrap();
+            .ok()?;
+        let result = rx.recv().ok()?;
         for location in result {
             // Line number are one-based. Column numbers are zero-based.
             // FIXME: the docs say column numbers are one-based, but this appears to be incorrect.
             // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#source-locations>
             if location.line_number == line && location.column_number - 1 == column {
-                return (location.script_id, location.offset);
+                return Some((location.script_id, location.offset));
             }
         }
-        panic!("There should be an entry with this column and line numbers");
+        None
     }
 }

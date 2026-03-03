@@ -14,7 +14,7 @@ use embedder_traits::RefreshDriver;
 use euclid::default::{Rect, Size2D as UntypedSize2D};
 use euclid::{Point2D, Size2D};
 use gleam::gl::{self, Gl};
-use glow::NativeFramebuffer;
+use glow::{HasContext, NativeFramebuffer};
 use image::RgbaImage;
 use log::{debug, trace, warn};
 use raw_window_handle::{DisplayHandle, WindowHandle};
@@ -22,7 +22,8 @@ pub use surfman::Error;
 use surfman::chains::{PreserveBuffer, SwapChain};
 use surfman::{
     Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device, GLApi,
-    NativeContext, NativeWidget, Surface, SurfaceAccess, SurfaceInfo, SurfaceTexture, SurfaceType,
+    GLVersion, NativeContext, NativeWidget, Surface, SurfaceAccess, SurfaceInfo, SurfaceTexture,
+    SurfaceType,
 };
 use webrender_api::units::{DeviceIntRect, DevicePixel};
 
@@ -128,7 +129,12 @@ impl SurfmanRenderingContext {
         };
         let context_descriptor =
             device.create_context_descriptor(&ContextAttributes { flags, version })?;
-        let context = device.create_context(&context_descriptor, None)?;
+
+        let context = device
+            .create_context(&context_descriptor, None)
+            .inspect_err(|_| {
+                print_diagnostics_information_on_context_creation_failure(&device, gl_api, version)
+            })?;
 
         #[expect(unsafe_code)]
         let gleam_gl = {
@@ -879,6 +885,50 @@ impl RenderingContext for OffscreenRenderingContext {
     fn refresh_driver(&self) -> Option<Rc<dyn RefreshDriver>> {
         self.parent_context().refresh_driver()
     }
+}
+
+fn print_diagnostics_information_on_context_creation_failure(
+    device: &Device,
+    desired_api: GLApi,
+    desired_version: GLVersion,
+) {
+    println!("===============================================================");
+    println!(
+        "Could not create a {desired_api:?} {:?}.{:?} context when starting Servo.",
+        desired_version.major, desired_version.minor
+    );
+
+    let version = surfman::GLVersion { major: 1, minor: 0 };
+    match device
+        .create_context_descriptor(&ContextAttributes {
+            flags: ContextAttributeFlags::empty(),
+            version,
+        })
+        .and_then(|context_descriptor| device.create_context(&context_descriptor, None))
+    {
+        Ok(mut context) => {
+            #[expect(unsafe_code)]
+            let glow_gl = unsafe {
+                glow::Context::from_loader_function(|function_name| {
+                    device.get_proc_address(&context, function_name)
+                })
+            };
+
+            println!(
+                "It's likely that your version of OpenGL ({:?}.{:?}) is too old.",
+                glow_gl.version().major,
+                glow_gl.version().minor
+            );
+            println!("If not, please file a bug at https://github.com/servo/servo/issues.");
+            let _ = device.destroy_context(&mut context);
+        },
+        Err(_) => {
+            println!("Could not create any {desired_api:?} context.");
+            println!("Ensure that OpenGL is working on your system.");
+            println!("If it is, please file a bug at https://github.com/servo/servo/issues.");
+        },
+    }
+    println!("===============================================================\n");
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
 [package]
-name = "pixels"
+name = "servo-pixels"
 version.workspace = true
 authors.workspace = true
 license.workspace = true

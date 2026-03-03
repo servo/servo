@@ -198,13 +198,11 @@ impl SharedInlineStyles {
     pub(crate) fn ptr_eq(&self, other: &Self) -> bool {
         self.style.ptr_eq(&other.style) && self.selected.ptr_eq(&other.selected)
     }
-}
 
-impl From<&NodeAndStyleInfo<'_>> for SharedInlineStyles {
-    fn from(info: &NodeAndStyleInfo) -> Self {
+    pub(crate) fn from_info_and_context(info: &NodeAndStyleInfo, context: &LayoutContext) -> Self {
         Self {
             style: SharedStyle::new(info.style.clone()),
-            selected: SharedStyle::new(info.node.selected_style()),
+            selected: SharedStyle::new(info.node.selected_style(&context.style_context)),
         }
     }
 }
@@ -305,7 +303,9 @@ impl InlineItem {
     ) {
         match self {
             InlineItem::StartInlineBox(inline_box) => {
-                inline_box.borrow_mut().repair_style(node, new_style);
+                inline_box
+                    .borrow_mut()
+                    .repair_style(context, node, new_style);
             },
             InlineItem::EndInlineBox => {},
             // TextRun holds a handle the `InlineSharedStyles` which is updated when repairing inline box
@@ -325,7 +325,7 @@ impl InlineItem {
             InlineItem::AnonymousBlock(block_box) => {
                 let mut block_box = block_box.borrow_mut();
                 block_box.base.repair_style(new_style);
-                block_box.contents.repair_style(node, new_style);
+                block_box.contents.repair_style(context, node, new_style);
             },
         }
     }
@@ -554,6 +554,13 @@ impl LineUnderConstruction {
             })
             .sum()
     }
+
+    /// Whether this is a phantom line box.
+    /// <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
+    fn is_phantom(&self) -> bool {
+        // Keep this logic in sync with `UnbreakableSegmentUnderConstruction::is_phantom()`.
+        !self.has_content && !self.has_inline_pbm
+    }
 }
 
 /// A block size relative to a line's final baseline. This is to track the size
@@ -771,6 +778,13 @@ impl UnbreakableSegmentUnderConstruction {
             }
         }
         self.inline_size -= whitespace_trimmed;
+    }
+
+    /// Whether this is segment is phantom. If false, its line box won't be phantom.
+    /// <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
+    fn is_phantom(&self) -> bool {
+        // Keep this logic in sync with `LineUnderConstruction::is_phantom()`.
+        !self.has_content && !self.has_inline_pbm
     }
 }
 
@@ -1087,7 +1101,7 @@ impl InlineFormattingContextLayout<'_> {
         // > positions of any descendant content (such as absolutely positioned boxes), and both the
         // > line box and its in-flow content must be treated as not existing for any other layout or
         // > rendering purpose.
-        let is_phantom_line = !self.current_line.has_content && !self.current_line.has_inline_pbm;
+        let is_phantom_line = self.current_line.is_phantom();
         if !is_phantom_line {
             self.current_line.start_position.block += self.placement_state.current_margin.solve();
             self.placement_state.current_margin = CollapsedMargin::zero();
@@ -1889,11 +1903,12 @@ impl InlineFormattingContext {
 
     pub(crate) fn repair_style(
         &self,
+        context: &SharedStyleContext,
         node: &ServoThreadSafeLayoutNode,
         new_style: &ServoArc<ComputedValues>,
     ) {
         *self.shared_inline_styles.style.borrow_mut() = new_style.clone();
-        *self.shared_inline_styles.selected.borrow_mut() = node.selected_style();
+        *self.shared_inline_styles.selected.borrow_mut() = node.selected_style(context);
     }
 
     fn inline_start_for_first_line(&self, containing_block: IndefiniteContainingBlock) -> Au {
@@ -1993,6 +2008,10 @@ impl InlineFormattingContext {
                         layout.current_inline_box_identifier(),
                         AbsolutelyPositionedLineItem {
                             absolutely_positioned_box: positioned_box.clone(),
+                            preceding_line_content_would_produce_phantom_line: layout
+                                .current_line
+                                .is_phantom() &&
+                                layout.current_line_segment.is_phantom(),
                         },
                     ));
                 },

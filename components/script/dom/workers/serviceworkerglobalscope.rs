@@ -461,8 +461,9 @@ impl ServiceWorkerGlobalScope {
                 DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
                     devtools::handle_evaluate_js(self.upcast(), string, sender, cx)
                 },
-                DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
-                    devtools::handle_wants_live_notifications(self.upcast(), bool_val)
+                DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, wants_updates) => {
+                    self.upcast::<GlobalScope>()
+                        .set_devtools_wants_updates(wants_updates);
                 },
                 _ => debug!("got an unusable devtools control message inside the worker!"),
             },

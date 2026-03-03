@@ -1,4 +1,7 @@
 <!doctype html>
+<meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <meta name="timeout" content="long">
 <title>RTCConfiguration iceTransportPolicy</title>
 <script src="/resources/testharness.js"></script>
@@ -6,7 +9,9 @@
 <script src="RTCConfiguration-helper.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
-  'use strict';
+'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
@@ -33,6 +38,7 @@
     };
    */
 
+if (rest) {
   test(() => {
     const pc = new RTCPeerConnection();
     assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
@@ -101,7 +107,8 @@
     assert_throws_js(TypeError, () =>
       makePc({ iceTransportPolicy: null }));
   }, `with null iceTransportPolicy should throw TypeError`);
-
+}
+if (interop2026) {
   // iceTransportPolicy is called iceTransports in Blink.
   test(() => {
     const pc = new RTCPeerConnection({ iceTransports: 'relay' });
@@ -117,7 +124,8 @@
     const pc = new RTCPeerConnection({ iceTransports: null });
     assert_equals(pc.getConfiguration().iceTransportPolicy, 'all');
   }, `new RTCPeerConnection({ iceTransports: null }) should have no effect`);
-
+}
+if (rest) {
   const getLines = (sdp, startsWith) =>
     sdp.split('\r\n').filter(l => l.startsWith(startsWith));
 
@@ -321,5 +329,5 @@
     assert_equals(oldUfrag, newUfrag,
         'Changing iceTransportPolicy on answerer should not effect ufrag');
   }, `Changing iceTransportPolicy from "all" to "relay" on the answerer has no effect on a subsequent offer/answer`);
-
+}
 </script>

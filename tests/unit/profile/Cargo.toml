@@ -14,7 +14,7 @@ doctest = false
 
 [dependencies]
 ipc-channel = { workspace = true }
-profile = { path = "../../../components/profile" }
+profile = { package = "servo-profile", path = "../../../components/profile" }
 profile_traits = { workspace = true }
-servo_config = { path = "../../../components/config" }
+servo_config = { package = "servo-config", path = "../../../components/config" }
 time = { workspace = true }

@@ -17,8 +17,8 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     ALG_HMAC, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, JsonWebKeyExt,
-    JwkStringField, KeyAlgorithmAndDerivatives, SubtleHmacImportParams, SubtleHmacKeyAlgorithm,
-    SubtleHmacKeyGenParams, SubtleKeyAlgorithm,
+    JwkStringField, KeyAlgorithmAndDerivatives, NormalizedAlgorithm, SubtleHmacImportParams,
+    SubtleHmacKeyAlgorithm, SubtleHmacKeyGenParams, SubtleKeyAlgorithm,
 };
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
@@ -179,7 +179,7 @@ pub(crate) fn import_key(
             data = key_data.to_vec();
 
             // Step 4.2. Set hash to equal the hash member of normalizedAlgorithm.
-            hash = normalized_algorithm.hash.as_ref();
+            hash = &normalized_algorithm.hash;
         },
         // If format is "jwk":
         KeyFormat::Jwk => {
@@ -201,7 +201,7 @@ pub(crate) fn import_key(
             data = jwk.decode_required_string_field(JwkStringField::K)?;
 
             // Step 2.5. Set the hash to equal the hash member of normalizedAlgorithm.
-            hash = normalized_algorithm.hash.as_ref();
+            hash = &normalized_algorithm.hash;
 
             // Step 2.6.
             match hash.name() {

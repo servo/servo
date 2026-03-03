@@ -319,9 +319,9 @@ impl IDBOpenDBRequest {
 }
 
 impl IDBOpenDBRequestMethods<crate::DomTypeHolder> for IDBOpenDBRequest {
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbopendbrequest-onblocked
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbopendbrequest-onblocked
     event_handler!(blocked, GetOnblocked, SetOnblocked);
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbopendbrequest-onupgradeneeded
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbopendbrequest-onupgradeneeded
     event_handler!(upgradeneeded, GetOnupgradeneeded, SetOnupgradeneeded);
 }

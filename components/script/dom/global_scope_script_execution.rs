@@ -18,12 +18,13 @@ use js::rust::wrappers::{
 };
 use js::rust::{CompileOptionsWrapper, MutableHandleValue, transform_str_to_source_text};
 use script_bindings::cformat;
+use script_bindings::settings_stack::run_a_script;
 use servo_url::ServoUrl;
 
+use crate::DomTypeHolder;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -156,76 +157,76 @@ impl GlobalScope {
 
         // Step 4. Prepare to run script given settings.
         // Once dropped this will run "Step 9. Clean up after running script" steps
-        let _aes = AutoEntryScript::new(self);
+        run_a_script::<DomTypeHolder, _>(self, || {
+            // Step 5. Let evaluationStatus be null.
+            rooted!(in(*cx) let mut evaluation_status = UndefinedValue());
+            let mut result = false;
 
-        // Step 5. Let evaluationStatus be null.
-        rooted!(in(*cx) let mut evaluation_status = UndefinedValue());
-        let mut result = false;
-
-        match script.record {
-            // Step 6. If script's error to rethrow is not null, then set evaluationStatus to ThrowCompletion(script's error to rethrow).
-            Err(error_to_rethrow) => unsafe {
-                JS_SetPendingException(
-                    *cx,
-                    error_to_rethrow.handle(),
-                    ExceptionStackBehavior::Capture,
-                )
-            },
-            // Step 7. Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
-            Ok(compiled_script) => {
-                rooted!(in(*cx) let mut rval = UndefinedValue());
-                result = evaluate_script(
-                    cx,
-                    compiled_script,
-                    script.url,
-                    script.fetch_options,
-                    rval.handle_mut(),
-                );
-            },
-        }
-
-        unsafe { JS_GetPendingException(*cx, evaluation_status.handle_mut()) };
-
-        // Step 8. If evaluationStatus is an abrupt completion, then:
-        if !evaluation_status.is_undefined() {
-            warn!("Error evaluating script");
-
-            match (rethrow_errors, script.muted_errors) {
-                // Step 8.1. If rethrow errors is true and script's muted errors is false, then:
-                (RethrowErrors::Yes, ErrorReporting::Unmuted) => {
-                    // Rethrow evaluationStatus.[[Value]].
-                    return Err(Error::JSFailed);
+            match script.record {
+                // Step 6. If script's error to rethrow is not null, then set evaluationStatus to ThrowCompletion(script's error to rethrow).
+                Err(error_to_rethrow) => unsafe {
+                    JS_SetPendingException(
+                        *cx,
+                        error_to_rethrow.handle(),
+                        ExceptionStackBehavior::Capture,
+                    )
                 },
-                // Step 8.2. If rethrow errors is true and script's muted errors is true, then:
-                (RethrowErrors::Yes, ErrorReporting::Muted) => {
-                    unsafe { JS_ClearPendingException(*cx) };
-                    // Throw a "NetworkError" DOMException.
-                    return Err(Error::Network(None));
-                },
-                // Step 8.3. Otherwise, rethrow errors is false. Perform the following steps:
-                _ => {
-                    unsafe { JS_ClearPendingException(*cx) };
-                    // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
-                    self.report_an_exception(cx, evaluation_status.handle(), can_gc);
-
-                    // Return evaluationStatus.
-                    return Err(Error::JSFailed);
+                // Step 7. Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
+                Ok(compiled_script) => {
+                    rooted!(in(*cx) let mut rval = UndefinedValue());
+                    result = evaluate_script(
+                        cx,
+                        compiled_script,
+                        script.url,
+                        script.fetch_options,
+                        rval.handle_mut(),
+                    );
                 },
             }
-        }
 
-        maybe_resume_unwind();
+            unsafe { JS_GetPendingException(*cx, evaluation_status.handle_mut()) };
 
-        // Step 10. If evaluationStatus is a normal completion, then return evaluationStatus.
-        if result {
-            return Ok(());
-        }
+            // Step 8. If evaluationStatus is an abrupt completion, then:
+            if !evaluation_status.is_undefined() {
+                warn!("Error evaluating script");
 
-        // Step 11. If we've reached this point, evaluationStatus was left as null because the script
-        // was aborted prematurely during evaluation. Return ThrowCompletion(a new QuotaExceededError).
-        Err(Error::QuotaExceeded {
-            quota: None,
-            requested: None,
+                match (rethrow_errors, script.muted_errors) {
+                    // Step 8.1. If rethrow errors is true and script's muted errors is false, then:
+                    (RethrowErrors::Yes, ErrorReporting::Unmuted) => {
+                        // Rethrow evaluationStatus.[[Value]].
+                        return Err(Error::JSFailed);
+                    },
+                    // Step 8.2. If rethrow errors is true and script's muted errors is true, then:
+                    (RethrowErrors::Yes, ErrorReporting::Muted) => {
+                        unsafe { JS_ClearPendingException(*cx) };
+                        // Throw a "NetworkError" DOMException.
+                        return Err(Error::Network(None));
+                    },
+                    // Step 8.3. Otherwise, rethrow errors is false. Perform the following steps:
+                    _ => {
+                        unsafe { JS_ClearPendingException(*cx) };
+                        // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
+                        self.report_an_exception(cx, evaluation_status.handle(), can_gc);
+
+                        // Return evaluationStatus.
+                        return Err(Error::JSFailed);
+                    },
+                }
+            }
+
+            maybe_resume_unwind();
+
+            // Step 10. If evaluationStatus is a normal completion, then return evaluationStatus.
+            if result {
+                return Ok(());
+            }
+
+            // Step 11. If we've reached this point, evaluationStatus was left as null because the script
+            // was aborted prematurely during evaluation. Return ThrowCompletion(a new QuotaExceededError).
+            Err(Error::QuotaExceeded {
+                quota: None,
+                requested: None,
+            })
         })
     }
 
@@ -249,34 +250,34 @@ impl GlobalScope {
         // TODO
 
         // Step 4. Prepare to run script given settings.
-        let _aes = AutoEntryScript::new(self);
-
-        // Step 6. If script's error to rethrow is not null, then set evaluationPromise to a
-        // promise rejected with script's error to rethrow.
-        {
-            let module_error = module_tree.get_rethrow_error().borrow();
-            if module_error.is_some() {
-                module_tree.report_error(self, can_gc);
-                return;
+        run_a_script::<DomTypeHolder, _>(self, || {
+            // Step 6. If script's error to rethrow is not null, then set evaluationPromise to a
+            // promise rejected with script's error to rethrow.
+            {
+                let module_error = module_tree.get_rethrow_error().borrow();
+                if module_error.is_some() {
+                    module_tree.report_error(self, can_gc);
+                    return;
+                }
             }
-        }
 
-        // Step 7.1. Otherwise: Let record be script's record.
-        let record = module_tree.get_record().map(|record| record.handle());
+            // Step 7.1. Otherwise: Let record be script's record.
+            let record = module_tree.get_record().map(|record| record.handle());
 
-        if let Some(record) = record {
-            // Step 7.2. Set evaluationPromise to record.Evaluate().
-            rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
-            let evaluated = module_tree.execute_module(self, record, rval.handle_mut(), can_gc);
+            if let Some(record) = record {
+                // Step 7.2. Set evaluationPromise to record.Evaluate().
+                rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
+                let evaluated = module_tree.execute_module(self, record, rval.handle_mut(), can_gc);
 
-            // Step 8. If preventErrorReporting is false, then upon rejection of evaluationPromise
-            // with reason, report an exception given by reason for script's settings object's
-            // global object.
-            if let Err(exception) = evaluated {
-                module_tree.set_rethrow_error(exception);
-                module_tree.report_error(self, can_gc);
+                // Step 8. If preventErrorReporting is false, then upon rejection of evaluationPromise
+                // with reason, report an exception given by reason for script's settings object's
+                // global object.
+                if let Err(exception) = evaluated {
+                    module_tree.set_rethrow_error(exception);
+                    module_tree.report_error(self, can_gc);
+                }
             }
-        }
+        });
     }
 
     /// <https://html.spec.whatwg.org/multipage/#check-if-we-can-run-script>

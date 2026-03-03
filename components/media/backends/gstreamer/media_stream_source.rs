@@ -10,6 +10,7 @@ use gstreamer::prelude::*;
 use gstreamer::subclass::prelude::*;
 use gstreamer_base::UniqueFlowCombiner;
 use once_cell::sync::Lazy;
+use servo_media_player::PlayerError;
 use servo_media_streams::{MediaStream, MediaStreamType};
 use url::Url;
 
@@ -56,7 +57,7 @@ mod imp {
             stream: &mut GStreamerMediaStream,
             src: &gstreamer::Element,
             only_stream: bool,
-        ) {
+        ) -> Result<(), PlayerError> {
             // XXXferjm the current design limits the number of streams to one
             // per type. This fulfills the basic use case for WebRTC, but we should
             // implement support for multiple streams per type at some point, which
@@ -67,20 +68,27 @@ mod imp {
 
             // Append a proxysink to the media stream pipeline.
             let pipeline = stream.pipeline_or_new();
-            let last_element = stream.encoded();
+            let last_element = stream.encoded().map_err(|_| PlayerError::SetStreamFailed)?;
             let sink = gstreamer::ElementFactory::make("proxysink")
                 .build()
-                .unwrap();
-            pipeline.add(&sink).unwrap();
-            gstreamer::Element::link_many(&[&last_element, &sink][..]).unwrap();
+                .map_err(|_| PlayerError::SetStreamFailed)?;
+            pipeline
+                .add(&sink)
+                .map_err(|_| PlayerError::SetStreamFailed)?;
+            gstreamer::Element::link_many(&[&last_element, &sink][..])
+                .map_err(|_| PlayerError::SetStreamFailed)?;
 
             // Create the appropriate proxysrc depending on the stream type
             // and connect the media stream proxysink to it.
             self.setup_proxy_src(stream.ty(), &sink, src, only_stream);
 
-            sink.sync_state_with_parent().unwrap();
+            sink.sync_state_with_parent()
+                .map_err(|_| PlayerError::SetStreamFailed)?;
+            pipeline
+                .set_state(gstreamer::State::Playing)
+                .map_err(|_| PlayerError::SetStreamFailed)?;
 
-            pipeline.set_state(gstreamer::State::Playing).unwrap();
+            Ok(())
         }
 
         fn setup_proxy_src(
@@ -313,7 +321,11 @@ unsafe impl Send for ServoMediaStreamSrc {}
 unsafe impl Sync for ServoMediaStreamSrc {}
 
 impl ServoMediaStreamSrc {
-    pub fn set_stream(&self, stream: &mut GStreamerMediaStream, only_stream: bool) {
+    pub fn set_stream(
+        &self,
+        stream: &mut GStreamerMediaStream,
+        only_stream: bool,
+    ) -> Result<(), PlayerError> {
         self.imp()
             .set_stream(stream, self.upcast_ref::<gstreamer::Element>(), only_stream)
     }

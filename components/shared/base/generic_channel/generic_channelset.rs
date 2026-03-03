@@ -4,7 +4,7 @@
 use ipc_channel::ipc::{IpcReceiverSet, IpcSelectionResult};
 use serde::{Deserialize, Serialize};
 
-use crate::generic_channel::{GenericReceiver, GenericReceiverVariants};
+use crate::generic_channel::{GenericReceiver, GenericReceiverVariants, use_ipc};
 
 /// A GenericReceiverSet. Allows you to wait on multiple GenericReceivers.
 /// Automatically selects either Ipc or crossbeam depending on multiprocess mode.
@@ -86,7 +86,7 @@ impl<T: Serialize + for<'de> serde::Deserialize<'de>> From<IpcSelectionResult>
 impl<T: Serialize + for<'de> Deserialize<'de>> GenericReceiverSet<T> {
     /// Create a new ReceiverSet.
     pub fn new() -> GenericReceiverSet<T> {
-        if servo_config::opts::get().multiprocess || servo_config::opts::get().force_ipc {
+        if use_ipc() {
             GenericReceiverSet(GenericReceiverSetVariants::Ipc(
                 IpcReceiverSet::new().expect("Could not create ipc receiver"),
             ))

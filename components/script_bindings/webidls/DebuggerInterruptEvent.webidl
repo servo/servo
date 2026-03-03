@@ -10,17 +10,30 @@ interface DebuggerInterruptEvent : Event {};
 partial interface DebuggerGlobalScope {
     undefined pauseAndRespond(
         PipelineIdInit pipelineId,
-        PausedFrame result,
-        boolean is_breakpoint);
+        FrameOffset frameOffset,
+        PauseReason pauseReason);
+
+    DOMString? registerFrameActor(
+        PipelineIdInit pipelineId,
+        FrameInfo result);
 };
 
-dictionary PausedFrame {
-    required unsigned long column;
+dictionary PauseReason {
+    required DOMString type_;
+    boolean onNext;
+};
+
+dictionary FrameInfo {
     required DOMString displayName;
-    required unsigned long line;
     required boolean onStack;
     required boolean oldest;
     required boolean terminated;
     required DOMString type_;
     required DOMString url;
+};
+
+dictionary FrameOffset {
+    required DOMString frameActorId;
+    required unsigned long column;
+    required unsigned long line;
 };

@@ -40,7 +40,7 @@
 }
 
 .customizable-select-option.disabled {
-  color: color-mix(in lab, currentColor 50%, transparent);
+  color: color-mix(currentColor 50%, transparent);
 }
 
 .customizable-select-option::before {
@@ -52,6 +52,7 @@
 
 .customizable-select-button {
   color: inherit;
+  font: inherit;
   background-color: transparent;
   appearance: none;
   padding-block: 0.25em;
@@ -74,15 +75,15 @@
 }
 
 .customizable-select-button.disabled {
-  color: color-mix(in srgb, currentColor 50%, transparent);
+  color: color-mix(currentColor 50%, transparent);
 }
 
 .customizable-select-button.hover {
-  background-color: color-mix(in lab, currentColor 10%, transparent);
+  background-color: color-mix(currentColor 10%, transparent);
 }
 
 .customizable-select-button.active {
-  background-color: color-mix(in lab, currentColor 20%, transparent);
+  background-color: color-mix(currentColor 20%, transparent);
 }
 
 .customizable-select-button::after {

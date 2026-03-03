@@ -40,14 +40,14 @@ promise_test(async () => {
   await new Promise(requestAnimationFrame);
   assert_equals(getComputedStyle(optionOne).color, 'rgb(0, 0, 0)',
     'Option color while hovering.');
-  assert_equals(getComputedStyle(optionOne).backgroundColor, 'lab(0 0 0 / 0.1)',
+  assert_equals(getComputedStyle(optionOne).backgroundColor, 'oklab(0 0 0 / 0.1)',
     'Option background-color while hovering.');
 
   await (new test_driver.Actions()
     .pointerMove(1, 1, {origin: disabledOption}))
     .send();
   await new Promise(requestAnimationFrame);
-  assert_equals(getComputedStyle(disabledOption).color, 'lab(0 0 0 / 0.5)',
+  assert_equals(getComputedStyle(disabledOption).color, 'oklab(0 0 0 / 0.5)',
     'Disabled option color while hovering.');
   assert_equals(getComputedStyle(disabledOption).backgroundColor, 'rgba(0, 0, 0, 0)',
     'Disabled option background-color while hovering.');

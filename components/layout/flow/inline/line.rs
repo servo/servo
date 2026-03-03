@@ -673,9 +673,15 @@ impl LineItemLayout<'_, '_> {
                 }
             } else {
                 // After the bottom of the line at the start of the inline formatting context.
+                // Note that phantom lines are treated as being zero-height for this purpose.
+                // <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
                 LogicalVec2 {
                     inline: -self.current_state.parent_offset.inline,
-                    block: block_position + self.line_metrics.block_size,
+                    block: if absolute.preceding_line_content_would_produce_phantom_line {
+                        block_position
+                    } else {
+                        block_position + self.line_metrics.block_size
+                    },
                 }
             };
 
@@ -936,6 +942,10 @@ impl AtomicLineItem {
 
 pub(super) struct AbsolutelyPositionedLineItem {
     pub absolutely_positioned_box: ArcRefCell<AbsolutelyPositionedBox>,
+    /// Whether the line would be phantom if it were to end before the abspos.
+    /// This is used when computing the static position (in the block axis) of
+    /// an abspos whose original display had a block outer display type.
+    pub preceding_line_content_would_produce_phantom_line: bool,
 }
 
 pub(super) struct FloatLineItem {

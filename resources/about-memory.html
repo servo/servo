@@ -154,6 +154,12 @@
       }
 
       function start() {
+        window.gcButton.onclick = async () => {
+          window.gcButton.disabled = true;
+          navigator.servo.garbageCollectAllContexts();
+          window.gcButton.disabled = false;
+        };
+
         window.startButton.onclick = async () => {
           let content = await navigator.servo.reportMemory();
           let reports = JSON.parse(content);
@@ -211,6 +217,7 @@
   <body>
     <h2>Memory Reports</h2>
     <button id="startButton">Measure</button>
+    <button id="gcButton">Force GC</button>
     <div id="reports" class="hidden"></div>
   </body>
 </html>

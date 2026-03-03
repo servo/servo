@@ -11,13 +11,14 @@ use clip::{Clip, ClipId};
 use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
+use layout_api::ReflowStatistics;
 use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
-use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DiagnosticsLogging;
 use servo_config::pref;
 use servo_geometry::MaxRect;
+use servo_url::ServoUrl;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::border_image_outset::T as BorderImageOutset;
@@ -53,8 +54,8 @@ use crate::context::{ImageResolver, ResolvedImage};
 pub(crate) use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
-    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
-    TextFragment,
+    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentStatus, FragmentTree,
+    SpecificLayoutInfo, Tag, TextFragment,
 };
 use crate::geom::{
     LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
@@ -124,6 +125,9 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// Handler for all Paint Timings
     paint_timing_handler: &'a mut PaintTimingHandler,
+
+    /// Statistics collected about the reflow, in order to write tests for incremental layout.
+    reflow_statistics: &'a mut ReflowStatistics,
 }
 
 struct InspectorHighlight {
@@ -165,6 +169,7 @@ impl InspectorHighlight {
 }
 
 impl DisplayListBuilder<'_> {
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn build(
         stacking_context_tree: &mut StackingContextTree,
         fragment_tree: &FragmentTree,
@@ -173,6 +178,7 @@ impl DisplayListBuilder<'_> {
         highlighted_dom_node: Option<OpaqueNode>,
         debug: &DiagnosticsLogging,
         paint_timing_handler: &mut PaintTimingHandler,
+        reflow_statistics: &mut ReflowStatistics,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let paint_info = &mut stacking_context_tree.paint_info;
@@ -202,6 +208,7 @@ impl DisplayListBuilder<'_> {
             image_resolver,
             device_pixel_ratio,
             paint_timing_handler,
+            reflow_statistics,
         };
 
         builder.add_all_spatial_nodes();
@@ -545,9 +552,10 @@ impl DisplayListBuilder<'_> {
 
     fn check_for_lcp_candidate(
         &mut self,
-        lcp_candidate_id: LCPCandidateID,
         clip_rect: LayoutRect,
         bounds: LayoutRect,
+        tag: Option<Tag>,
+        url: Option<ServoUrl>,
     ) {
         if !pref!(largest_contentful_paint_enabled) {
             return;
@@ -558,12 +566,8 @@ impl DisplayListBuilder<'_> {
             .scroll_tree
             .cumulative_node_to_root_transform(self.current_scroll_node_id);
 
-        self.paint_timing_handler.update_lcp_candidate(
-            lcp_candidate_id,
-            bounds,
-            clip_rect,
-            transform,
-        );
+        self.paint_timing_handler
+            .update_lcp_candidate(tag, bounds, clip_rect, transform, url);
     }
 }
 
@@ -619,6 +623,20 @@ impl Fragment {
         is_collapsed_table_borders: bool,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
     ) {
+        if let Some(mut base) = self.base_mut() {
+            match base.status {
+                FragmentStatus::New => {
+                    builder.reflow_statistics.rebuilt_fragment_count += 1;
+                    base.status = FragmentStatus::Clean;
+                },
+                FragmentStatus::StyleChanged => {
+                    builder.reflow_statistics.restyle_fragment_count += 1;
+                    base.status = FragmentStatus::Clean;
+                },
+                FragmentStatus::Clean => {},
+            }
+        }
+
         let spatial_id = builder.spatial_id(builder.current_scroll_node_id);
         let clip_chain_id = builder.clip_chain_id(builder.current_clip_id);
         if let Some(inspector_highlight) = &mut builder.inspector_highlight {
@@ -694,12 +712,12 @@ impl Fragment {
                             );
                         }
 
-                        let lcp_candidate_id = image
-                            .base
-                            .tag
-                            .map(|tag| LCPCandidateID(tag.node.id()))
-                            .unwrap_or(LCPCandidateID(0));
-                        builder.check_for_lcp_candidate(lcp_candidate_id, common.clip_rect, rect);
+                        builder.check_for_lcp_candidate(
+                            common.clip_rect,
+                            rect,
+                            image.base.tag,
+                            image.url.clone(),
+                        );
                     },
                     Visibility::Hidden => (),
                     Visibility::Collapse => (),
@@ -1440,16 +1458,11 @@ impl<'a> BuilderForBoxFragment<'a> {
                             style.clone_opacity(),
                         );
 
-                        let lcp_candidate_id = self
-                            .fragment
-                            .base
-                            .tag
-                            .map(|tag| LCPCandidateID(tag.node.id()))
-                            .unwrap_or(LCPCandidateID(0));
                         builder.check_for_lcp_candidate(
-                            lcp_candidate_id,
                             layer.common.clip_rect,
                             layer.bounds,
+                            self.fragment.base.tag,
+                            None,
                         );
                     }
                 },

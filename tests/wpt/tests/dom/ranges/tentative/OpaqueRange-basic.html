@@ -6,29 +6,29 @@
 test(() => {
   document.body.innerHTML = '<textarea>Hello</textarea>';
   const textarea = document.body.firstElementChild;
-  const range = textarea.getValueRange(0, 5);
+  const range = textarea.createValueRange(0, 5);
 
   assert_true(range instanceof OpaqueRange, "|range| should be an instance of OpaqueRange.");
   assert_true(range instanceof AbstractRange, "|range| should also be an instance of AbstractRange.");
   assert_false(range instanceof Range, "|range| should not be an instance of Range.");
-}, "Tests getValueRange returns OpaqueRange that extends AbstractRange.");
+}, "Tests createValueRange returns OpaqueRange that extends AbstractRange.");
 
 test(() => {
   document.body.innerHTML = '<textarea>Hello</textarea>';
   const textarea = document.body.firstElementChild;
-  const range = textarea.getValueRange(1, 4);
+  const range = textarea.createValueRange(1, 4);
 
   assert_equals(range.startContainer, null, "startContainer should be null.");
   assert_equals(range.endContainer, null, "endContainer should be null.");
   assert_equals(range.startOffset, 1);
   assert_equals(range.endOffset, 4);
   assert_false(range.collapsed);
-}, "OpaqueRange handles getValueRange correctly.");
+}, "OpaqueRange handles createValueRange correctly.");
 
 test(() => {
   document.body.innerHTML = '<input type="text" value="">';
   const input = document.body.firstElementChild;
-  const range = input.getValueRange(0, 0);
+  const range = input.createValueRange(0, 0);
 
   assert_equals(range.startOffset, 0);
   assert_equals(range.endOffset, 0);

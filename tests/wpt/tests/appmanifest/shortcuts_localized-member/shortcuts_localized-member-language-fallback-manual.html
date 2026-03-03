@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Test that shortcut name_localized and icons_localized fall back to a language-only locale key</title>
+<link rel="help" href="https://w3c.github.io/manifest/#shortcuts-member" />
+<link rel="help" href="https://w3c.github.io/manifest/#dfn-localizable-member" />
+<link rel="manifest" href="resources/shortcuts_localized-member-language-fallback.webmanifest" />
+<script src="resources/shortcuts_localized-member-manual.js"></script>
+<h1>Testing language-only fallback for shortcut <code>name_localized</code> and <code>icons_localized</code></h1>
+<p>
+    Set your browser locale to one that includes a region subtag not present in
+    the manifest (e.g. <code>en-US</code>, <code>en-GB</code>,
+    <code>fr-CA</code>, or <code>ja-JP</code>), then install this page as a web
+    application. To pass, the browser must fall back to the language-only key
+    and the shortcut must be named "pass" with a green check mark icon (<code>pass.png</code>).
+</p>

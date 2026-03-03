@@ -1,0 +1,24 @@
+<!DOCTYPE xhtml>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:color="http://www.example.com/">
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-notation"></link>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht"></link>
+    <style>
+        @namespace color "http://www.example.com/";
+
+        div {
+            background-color: red;
+        }
+
+        .a {
+            width: 100px;
+            height: 100px;
+            background-color: attr(color|myAttr type(*), red);
+        }
+    </style>
+</head>
+<body>
+    <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+    <div class="a" color:myAttr="green"></div>
+</body>
+</html>

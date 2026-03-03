@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use embedder_traits::EmbedderControlRequest;
 use embedder_traits::{SelectElementOption, SelectElementOptionOrOptgroup};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
@@ -656,13 +657,13 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
-    fn CheckValidity(&self, can_gc: CanGc) -> bool {
-        self.check_validity(can_gc)
+    fn CheckValidity(&self, cx: &mut JSContext) -> bool {
+        self.check_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
-    fn ReportValidity(&self, can_gc: CanGc) -> bool {
-        self.report_validity(can_gc)
+    fn ReportValidity(&self, cx: &mut JSContext) -> bool {
+        self.report_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>

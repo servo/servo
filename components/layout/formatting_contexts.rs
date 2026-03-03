@@ -43,7 +43,7 @@ pub(crate) struct IndependentFormattingContext {
     contents: IndependentFormattingContextContents,
     /// Data that was originally propagated down to this [`IndependentFormattingContext`]
     /// during creation. This is used during incremental layout.
-    propagated_data: PropagatedBoxTreeData,
+    pub propagated_data: PropagatedBoxTreeData,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -326,7 +326,7 @@ impl IndependentFormattingContext {
                 }
             },
             IndependentFormattingContextContents::Flow(block_formatting_context) => {
-                block_formatting_context.repair_style(node, new_style);
+                block_formatting_context.repair_style(context, node, new_style);
             },
             IndependentFormattingContextContents::Flex(flex_container) => {
                 flex_container.repair_style(new_style)

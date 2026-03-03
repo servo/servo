@@ -469,7 +469,9 @@ impl GStreamerWebRtcController {
                 self.request_pad_counter = idx + 1;
             }
             stream.attach_to_pipeline(&self.pipeline);
-            let element = stream.encoded();
+            let element = stream.encoded().map_err(|_| {
+                WebRtcError::Backend(String::from("Failed to attach encoding adapters to stream"))
+            })?;
             self.remote_mline_info[idx].is_used = true;
             let caps = stream.caps_with_payload(self.remote_mline_info[idx].payload);
             element.set_property("caps", &caps);
@@ -482,7 +484,9 @@ impl GStreamerWebRtcController {
             self.streams.push(*stream_id);
         } else if request_new_pads {
             stream.attach_to_pipeline(&self.pipeline);
-            let element = stream.encoded();
+            let element = stream.encoded().map_err(|_| {
+                WebRtcError::Backend(String::from("Failed to attach encoding adapters to stream"))
+            })?;
             let caps = stream.caps_with_payload(self.pt_counter);
             self.pt_counter += 1;
             element.set_property("caps", &caps);

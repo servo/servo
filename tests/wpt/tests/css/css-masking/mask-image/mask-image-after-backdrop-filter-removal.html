@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Mask-image persists after dynamically removing backdrop-filter</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-mask-image">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="mask-image-after-backdrop-filter-removal-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  .element {
+    width: 200px;
+    height: 100px;
+    backdrop-filter: saturate(20%);
+    background-color: rgba(0, 187, 255, 0.5);
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0) 0, #000 100%);
+  }
+
+  .element > div {
+    width: 100px;
+    height: 100px;
+    backdrop-filter: invert(1);
+  }
+</style>
+  <div class="element" id="target">
+    <div></div>
+  </div>
+<script>
+  // Dynamically remove backdrop-filter after initial paint.
+  // The mask-image should still be visible.
+  window.onload = async function() {
+    await waitForAtLeastOneFrame();
+    document.getElementById("target").style.backdropFilter = "none";
+    await waitForAtLeastOneFrame();
+    takeScreenshot();
+  };
+</script>
+</html>

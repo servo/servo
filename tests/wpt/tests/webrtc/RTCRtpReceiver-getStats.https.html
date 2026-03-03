@@ -1,13 +1,18 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <meta name="timeout" content="long">
 <title>RTCRtpReceiver.prototype.getStats</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
-  'use strict';
+'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
+if (interop2026) {
   promise_test(async t => {
     const caller = new RTCPeerConnection();
     t.add_cleanup(() => caller.close());
@@ -47,7 +52,9 @@
     const statsReport = await receiver.getStats();
     assert_true(!![...statsReport.values()].find(({type}) => type === 'inbound-rtp'));
   }, 'receiver.getStats() via addTrack should return stats report containing inbound-rtp stats');
+} // interop2026
 
+if (rest) {
   promise_test(async t => {
     const caller = new RTCPeerConnection();
     t.add_cleanup(() => caller.close());
@@ -71,7 +78,9 @@
     assert_true(!![...statsReportFirst.values()].find(({type}) => type === 'inbound-rtp'));
     assert_false(!![...statsReportSecond.values()].find(({type}) => type === 'inbound-rtp'));
   }, 'receiver.getStats() should work on a stopped transceiver but not have inbound-rtp objects');
+} // rest
 
+if (interop2026) {
   promise_test(async t => {
     const caller = new RTCPeerConnection();
     t.add_cleanup(() => caller.close());
@@ -114,5 +123,6 @@
     assert_true(!![...statsReport.values()].find(({type}) => type === 'local-candidate'));
     assert_true(!![...statsReport.values()].find(({type}) => type === 'remote-candidate'));
   }, 'receiver.getStats() should return stats report containing ICE candidate stats');
+} // interop2026
 
 </script>

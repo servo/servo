@@ -1149,7 +1149,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             Element::fragment_parsing_context(&owner_doc, element.as_deref(), CanGc::from_cx(cx));
 
         // Step 7. Let fragment node be the result of invoking the fragment parsing algorithm steps with element and compliantString.
-        let fragment_node = element.parse_fragment(fragment, CanGc::from_cx(cx))?;
+        let fragment_node = element.parse_fragment(fragment, cx)?;
 
         // Step 8. For each script of fragment node's script element descendants:
         for node in fragment_node

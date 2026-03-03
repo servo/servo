@@ -1,6 +1,8 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use js::context::JSContext;
+
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 use crate::dom::bindings::inheritance::Castable;
@@ -39,11 +41,11 @@ pub(crate) trait Validatable {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#check-validity-steps>
-    fn check_validity(&self, can_gc: CanGc) -> bool {
-        if self.is_instance_validatable() && !self.satisfies_constraints(can_gc) {
+    fn check_validity(&self, cx: &mut JSContext) -> bool {
+        if self.is_instance_validatable() && !self.satisfies_constraints(CanGc::from_cx(cx)) {
             self.as_element()
                 .upcast::<EventTarget>()
-                .fire_cancelable_event(atom!("invalid"), can_gc);
+                .fire_cancelable_event(atom!("invalid"), CanGc::from_cx(cx));
             false
         } else {
             true
@@ -51,13 +53,13 @@ pub(crate) trait Validatable {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-validity-steps>
-    fn report_validity(&self, can_gc: CanGc) -> bool {
+    fn report_validity(&self, cx: &mut JSContext) -> bool {
         // Step 1.
         if !self.is_instance_validatable() {
             return true;
         }
 
-        if self.satisfies_constraints(can_gc) {
+        if self.satisfies_constraints(CanGc::from_cx(cx)) {
             return true;
         }
 
@@ -66,19 +68,19 @@ pub(crate) trait Validatable {
         let report = self
             .as_element()
             .upcast::<EventTarget>()
-            .fire_cancelable_event(atom!("invalid"), can_gc);
+            .fire_cancelable_event(atom!("invalid"), CanGc::from_cx(cx));
 
         // Step 1.2. If `report` is true, for the element,
         // report the problem, run focusing steps, scroll into view.
         if report {
-            let flags = self.validity_state(can_gc).invalid_flags();
+            let flags = self.validity_state(CanGc::from_cx(cx)).invalid_flags();
             println!(
                 "Validation error: {}",
-                validation_message_for_flags(&self.validity_state(can_gc), flags)
+                validation_message_for_flags(&self.validity_state(CanGc::from_cx(cx)), flags)
             );
             if let Some(html_elem) = self.as_element().downcast::<HTMLElement>() {
                 // Run focusing steps and scroll into view.
-                html_elem.Focus(&FocusOptions::default(), can_gc);
+                html_elem.Focus(&FocusOptions::default(), CanGc::from_cx(cx));
             }
         }
 

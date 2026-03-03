@@ -51,7 +51,7 @@ impl Document {
     }
 }
 
-pub(crate) trait ExecCommandsSupport {
+pub(crate) trait DocumentExecCommandSupport {
     fn is_command_supported(&self, command_id: DOMString) -> bool;
     fn is_command_indeterminate(&self, command_id: DOMString) -> bool;
     fn command_state_for_command(&self, command_id: DOMString) -> bool;
@@ -69,7 +69,7 @@ pub(crate) trait ExecCommandsSupport {
     ) -> bool;
 }
 
-impl ExecCommandsSupport for Document {
+impl DocumentExecCommandSupport for Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandsupported()>
     fn is_command_supported(&self, command_id: DOMString) -> bool {
         self.command_if_command_is_supported(command_id).is_some()

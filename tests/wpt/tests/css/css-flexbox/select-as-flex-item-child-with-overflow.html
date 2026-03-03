@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>select as flex item's child with overflowing content</title>
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/" />
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.flexBox {
+  display: flex;
+  flex-direction: column;
+  overflow: scroll;
+  width: 100px;
+}
+
+select {
+  font-family: Ahem;
+  width: 100%;
+}
+</style>
+<p>Test passes if the flex box is not scrollable.</p>
+
+<div class=flexBox>
+  <div>
+    <select>
+      <option>this is a long long long long text this is a long long long long text</option>
+    </select>
+  </div>
+</div>
+<script>
+  test(function(t)
+    {
+      const flexBox = document.querySelector('.flexBox');
+      assert_less_than_equal(flexBox.scrollWidth, 100);
+    }, "select content (option) should not trigger scrollable overflow.");
+</script>

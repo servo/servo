@@ -11,7 +11,8 @@ use std::mem;
 use std::rc::Rc;
 
 use base::id::PipelineId;
-use js::jsapi::{JSAutoRealm, JobQueueIsEmpty, JobQueueMayNotBeEmpty};
+use js::jsapi::JobQueueMayNotBeEmpty;
+use js::realm::AutoRealm;
 
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
@@ -25,7 +26,7 @@ use crate::dom::promise::WaitForAllSuccessStepsMicrotask;
 use crate::dom::stream::byteteereadintorequest::ByteTeeReadIntoRequestMicrotask;
 use crate::dom::stream::byteteereadrequest::ByteTeeReadRequestMicrotask;
 use crate::dom::stream::defaultteereadrequest::DefaultTeeReadRequestMicrotask;
-use crate::realms::enter_realm;
+use crate::realms::enter_auto_realm;
 use crate::script_runtime::{CanGc, JSContext, notify_about_rejected_promises};
 use crate::script_thread::ScriptThread;
 
@@ -53,8 +54,8 @@ pub(crate) enum Microtask {
 }
 
 pub(crate) trait MicrotaskRunnable {
-    fn handler(&self, _can_gc: CanGc) {}
-    fn enter_realm(&self) -> JSAutoRealm;
+    fn handler(&self, _cx: &mut js::context::JSContext) {}
+    fn enter_realm<'cx>(&self, cx: &'cx mut js::context::JSContext) -> AutoRealm<'cx>;
 }
 
 /// A promise callback scheduled to run during the next microtask checkpoint (#4283).
@@ -91,10 +92,9 @@ impl MicrotaskQueue {
     #[expect(unsafe_code)]
     pub(crate) fn checkpoint<F>(
         &self,
-        cx: JSContext,
+        cx: &mut js::context::JSContext,
         target_provider: F,
         globalscopes: Vec<DomRoot<GlobalScope>>,
-        can_gc: CanGc,
     ) where
         F: Fn(PipelineId) -> Option<DomRoot<GlobalScope>>,
     {
@@ -115,54 +115,65 @@ impl MicrotaskQueue {
 
             for (idx, job) in pending_queue.iter().enumerate() {
                 if idx == pending_queue.len() - 1 && self.microtask_queue.borrow().is_empty() {
-                    unsafe { JobQueueIsEmpty(*cx) };
+                    unsafe { js::rust::wrappers2::JobQueueIsEmpty(cx) };
                 }
 
                 match *job {
                     Microtask::Promise(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
                             let _guard = ScriptThread::user_interacting_guard();
-                            let _realm = enter_realm(&*target);
-                            let _ = job
-                                .callback
-                                .Call_(&*target, ExceptionHandling::Report, can_gc);
+                            let mut realm = enter_auto_realm(cx, &*target);
+                            let cx = &mut realm;
+                            let _ = job.callback.Call_(
+                                &*target,
+                                ExceptionHandling::Report,
+                                CanGc::from_cx(cx),
+                            );
                         }
                     },
                     Microtask::User(ref job) => {
                         if let Some(target) = target_provider(job.pipeline) {
-                            let _realm = enter_realm(&*target);
-                            let _ = job
-                                .callback
-                                .Call_(&*target, ExceptionHandling::Report, can_gc);
+                            let mut realm = enter_auto_realm(cx, &*target);
+                            let cx = &mut realm;
+                            let _ = job.callback.Call_(
+                                &*target,
+                                ExceptionHandling::Report,
+                                CanGc::from_cx(cx),
+                            );
                         }
                     },
                     Microtask::MediaElement(ref task) => {
-                        let _realm = task.enter_realm();
-                        task.handler(can_gc);
+                        let mut realm = task.enter_realm(cx);
+                        let cx = &mut realm;
+                        task.handler(cx);
                     },
                     Microtask::ImageElement(ref task) => {
-                        let _realm = task.enter_realm();
-                        task.handler(can_gc);
+                        let mut realm = task.enter_realm(cx);
+                        let cx = &mut realm;
+                        task.handler(cx);
                     },
                     Microtask::ReadableStreamTeeReadRequest(ref task) => {
-                        let _realm = task.enter_realm();
-                        task.handler(can_gc);
+                        let mut realm = task.enter_realm(cx);
+                        let cx = &mut realm;
+                        task.handler(cx);
                     },
                     Microtask::WaitForAllSuccessSteps(ref task) => {
-                        let _realm = task.enter_realm();
-                        task.handler(can_gc);
+                        let mut realm = task.enter_realm(cx);
+                        let cx = &mut realm;
+                        task.handler(cx);
                     },
                     Microtask::CustomElementReaction => {
-                        ScriptThread::invoke_backup_element_queue(can_gc);
+                        ScriptThread::invoke_backup_element_queue(CanGc::from_cx(cx));
                     },
                     Microtask::NotifyMutationObservers => {
-                        ScriptThread::mutation_observers().notify_mutation_observers(can_gc);
+                        ScriptThread::mutation_observers()
+                            .notify_mutation_observers(CanGc::from_cx(cx));
                     },
                     Microtask::ReadableStreamByteTeeReadRequest(ref task) => {
-                        task.microtask_chunk_steps(can_gc)
+                        task.microtask_chunk_steps(cx)
                     },
                     Microtask::ReadableStreamByteTeeReadIntoRequest(ref task) => {
-                        task.microtask_chunk_steps(can_gc)
+                        task.microtask_chunk_steps(cx)
                     },
                 }
             }

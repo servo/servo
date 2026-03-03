@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::PausedFrame;
+use atomic_refcell::AtomicRefCell;
+use devtools_traits::FrameInfo;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -58,7 +59,8 @@ pub(crate) struct FrameActor {
     name: String,
     object_actor: String,
     source_actor: String,
-    frame_result: PausedFrame,
+    frame_result: FrameInfo,
+    current_offset: AtomicRefCell<(u32, u32)>,
 }
 
 impl Actor for FrameActor {
@@ -100,7 +102,7 @@ impl FrameActor {
     pub fn register(
         registry: &ActorRegistry,
         source_actor: String,
-        frame_result: PausedFrame,
+        frame_result: FrameInfo,
     ) -> String {
         let object_actor = ObjectActor::register(registry, None);
 
@@ -110,9 +112,14 @@ impl FrameActor {
             object_actor,
             source_actor,
             frame_result,
+            current_offset: Default::default(),
         };
         registry.register::<Self>(actor);
         name
+    }
+
+    pub(crate) fn set_offset(&self, column: u32, line: u32) {
+        *self.current_offset.borrow_mut() = (column, line);
     }
 }
 
@@ -125,6 +132,7 @@ impl ActorEncode<FrameActorMsg> for FrameActor {
         } else {
             Some("await".into())
         };
+        let (column, line) = *self.current_offset.borrow();
         // <https://searchfox.org/firefox-main/source/devtools/docs/user/debugger-api/debugger.frame/index.rst>
         FrameActorMsg {
             actor: self.name(),
@@ -138,8 +146,8 @@ impl ActorEncode<FrameActorMsg> for FrameActor {
             state,
             where_: FrameWhere {
                 actor: self.source_actor.clone(),
-                line: self.frame_result.line,
-                column: self.frame_result.column,
+                line,
+                column,
             },
         }
     }

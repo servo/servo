@@ -28,7 +28,6 @@ for (const method of ["streamAppendHTMLUnsafe", "streamHTMLUnsafe"]) {
         assert_false(window.did_run);
     }, `element.${method} with runScripts: false`);
 
-
     promise_test(async t => {
         const placeholder = document.getElementById("placeholder");
         const element = document.createElement("div");

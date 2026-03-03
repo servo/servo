@@ -19,7 +19,6 @@ use crate::dom::bindings::reflector::reflect_dom_object_with_proto_and_cx;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct MediaElementAudioSourceNode {
@@ -46,7 +45,7 @@ impl MediaElementAudioSourceNode {
             MediaElementSourceNodeMessage::GetAudioRenderer(sender),
         ));
         let audio_renderer = receiver.recv();
-        media_element.set_audio_renderer(audio_renderer.ok(), CanGc::from_cx(cx));
+        media_element.set_audio_renderer(audio_renderer.ok(), cx);
         let media_element = Dom::from_ref(media_element);
         Ok(MediaElementAudioSourceNode {
             node,

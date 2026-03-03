@@ -1,5 +1,5 @@
 [package]
-name = "xpath"
+name = "servo-xpath"
 version.workspace = true
 authors.workspace = true
 license.workspace = true

@@ -306,14 +306,15 @@ class OpenHarmonyTarget(CrossBuildTarget):
         if "OHOS_SDK_NATIVE" not in env:
             print(
                 "Please set the OHOS_SDK_NATIVE environment variable to the location of the `native` directory "
-                "in the OpenHarmony SDK."
+                "in the OpenHarmony SDK.",
+                file=sys.stderr,
             )
             sys.exit(1)
 
         ndk_root = pathlib.Path(env["OHOS_SDK_NATIVE"])
 
         if not ndk_root.is_dir():
-            print(f"OHOS_SDK_NATIVE is not set to a valid directory: `{ndk_root}`")
+            print(f"OHOS_SDK_NATIVE is not set to a valid directory: `{ndk_root}`", file=sys.stderr)
             sys.exit(1)
 
         ndk_root = ndk_root.resolve()
@@ -325,19 +326,25 @@ class OpenHarmonyTarget(CrossBuildTarget):
             ohos_sdk_version = parse_version(meta["version"])
             if ohos_sdk_version < parse_version("5.0") or ohos_api_version < 14:
                 raise RuntimeError("Building servo for OpenHarmony requires SDK version 5.0.2 (API-14) or newer.")
-            print(f"Info: The OpenHarmony SDK {ohos_sdk_version} is targeting API-level {ohos_api_version}")
+            print(
+                f"Info: The OpenHarmony SDK {ohos_sdk_version} is targeting API-level {ohos_api_version}",
+                file=sys.stderr,
+            )
         except (OSError, json.JSONDecodeError) as e:
-            print(f"Failed to read metadata information from {package_info}")
-            print(f"Exception: {e}")
+            print(f"Failed to read metadata information from {package_info}", file=sys.stderr)
+            print(f"Exception: {e}", file=sys.stderr)
 
         llvm_toolchain = ndk_root.joinpath("llvm")
         llvm_bin = llvm_toolchain.joinpath("bin")
         ohos_sysroot = ndk_root.joinpath("sysroot")
         if not (llvm_toolchain.is_dir() and llvm_bin.is_dir()):
-            print(f"Expected to find `llvm` and `llvm/bin` folder under $OHOS_SDK_NATIVE at `{llvm_toolchain}`")
+            print(
+                f"Expected to find `llvm` and `llvm/bin` folder under $OHOS_SDK_NATIVE at `{llvm_toolchain}`",
+                file=sys.stderr,
+            )
             sys.exit(1)
         if not ohos_sysroot.is_dir():
-            print(f"Could not find OpenHarmony sysroot in {ndk_root}")
+            print(f"Could not find OpenHarmony sysroot in {ndk_root}", file=sys.stderr)
             sys.exit(1)
         # When passing the sysroot to Rust crates such as `cc-rs` or bindgen, we should pass
         # POSIX paths, since otherwise the backslashes in windows paths may be interpreted as

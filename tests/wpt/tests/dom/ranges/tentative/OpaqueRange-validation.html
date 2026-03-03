@@ -9,8 +9,8 @@ test(() => {
   const textarea = document.querySelector('textarea');
 
   // Out-of-bounds offsets should throw.
-  assert_throws_dom("IndexSizeError", () => textarea.getValueRange(10, 15));
-}, "getValueRange throws IndexSizeError for out-of-bounds offsets.");
+  assert_throws_dom("IndexSizeError", () => textarea.createValueRange(10, 15));
+}, "createValueRange throws IndexSizeError for out-of-bounds offsets.");
 
 test(() => {
   const textarea = document.querySelector('textarea');
@@ -35,14 +35,14 @@ test(() => {
     [10, 15, true],
   ].forEach(([start, end, shouldThrow, expectedStart, expectedEnd, expectedCollapsed]) => {
     if (shouldThrow) {
-      assert_throws_dom("IndexSizeError", () => textarea.getValueRange(start, end),
+      assert_throws_dom("IndexSizeError", () => textarea.createValueRange(start, end),
                        `[${start}, ${end}] should throw`);
     } else {
-      const range = textarea.getValueRange(start, end);
+      const range = textarea.createValueRange(start, end);
       assert_equals(range.startOffset, expectedStart, `[${start}, ${end}] startOffset`);
       assert_equals(range.endOffset, expectedEnd, `[${start}, ${end}] endOffset`);
       assert_equals(range.collapsed, expectedCollapsed, `[${start}, ${end}] collapsed`);
     }
   });
-}, "getValueRange handles all range types correctly: forward, backwards, and out-of-bounds.");
+}, "createValueRange handles all range types correctly: forward, backwards, and out-of-bounds.");
 </script>

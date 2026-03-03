@@ -51,7 +51,7 @@ controls.forEach(control => {
 
     // OpaqueRange: full .value replacement (shorter) collapses to [0,0].
     let element = setup(control, 'ABCDEFG');
-    let range = element.getValueRange(2, 5);
+    let range = element.createValueRange(2, 5);
     element.value = 'XY';
     assert_equals(range.startOffset, 0, 'OpaqueRange shorter: start collapsed to 0');
     assert_equals(range.endOffset, 0, 'OpaqueRange shorter: end collapsed to 0');
@@ -65,7 +65,7 @@ controls.forEach(control => {
 
     // OpaqueRange: full .value replacement (longer) collapses to [0,0].
     element = setup(control, 'ABC');
-    range = element.getValueRange(1, 3);
+    range = element.createValueRange(1, 3);
     element.value = 'ABCDEFGHIJKLMNOP';
     assert_equals(range.startOffset, 0, 'OpaqueRange longer: start collapsed to 0');
     assert_equals(range.endOffset, 0, 'OpaqueRange longer: end collapsed to 0');
@@ -81,7 +81,7 @@ controls.forEach(control => {
 
     // OpaqueRange: same scenario.
     const element = setup(control, 'ABCDE');
-    const range = element.getValueRange(0, 5);
+    const range = element.createValueRange(0, 5);
     element.value = 'VWXYZ';
     assert_equals(range.startOffset, 0, 'OpaqueRange whole-old: start collapsed to 0');
     assert_equals(range.endOffset, 0, 'OpaqueRange whole-old: end collapsed to 0');
@@ -97,7 +97,7 @@ controls.forEach(control => {
 
     // OpaqueRange: same scenario.
     const element = setup(control, 'ABCDE');
-    const range = element.getValueRange(1, 4);
+    const range = element.createValueRange(1, 4);
     element.value = 'VWXYZ';
     assert_equals(range.startOffset, 0, 'OpaqueRange equal-length: start collapsed to 0');
     assert_equals(range.endOffset, 0, 'OpaqueRange equal-length: end collapsed to 0');
@@ -114,7 +114,7 @@ controls.forEach(control => {
 
     // OpaqueRange: same replace via setRangeText.
     const element = setup(control, '0123456789');
-    const range = element.getValueRange(2, 8);
+    const range = element.createValueRange(2, 8);
     element.setRangeText('XX', 3, 7);
     assert_equals(element.value, '012XX789', 'OpaqueRange value reflects setRangeText replace');
     assert_equals(range.startOffset, 2, 'OpaqueRange start unchanged before replaced segment');
@@ -130,7 +130,7 @@ controls.forEach(control => {
 
     // OpaqueRange: setting same value (no-op); range unchanged.
     const element = setup(control, 'HELLO');
-    const range = element.getValueRange(1, 4);
+    const range = element.createValueRange(1, 4);
     element.value = 'HELLO';
     assert_equals(range.startOffset, 1, 'OpaqueRange start unchanged on no-op');
     assert_equals(range.endOffset, 4, 'OpaqueRange end unchanged on no-op');
@@ -147,7 +147,7 @@ controls.forEach(control => {
 
     // OpaqueRange: same insert via setRangeText.
     const element = setup(control, 'ABCDE');
-    const range = element.getValueRange(2, 4);
+    const range = element.createValueRange(2, 4);
     element.setRangeText('Q', 1, 1);
     assert_equals(element.value, 'AQBCDE', 'OpaqueRange value after insertion before range');
     assert_equals(range.startOffset, 3, 'OpaqueRange start +1');
@@ -165,7 +165,7 @@ controls.forEach(control => {
 
     // OpaqueRange: same delete via setRangeText.
     const element = setup(control, 'ABCDE');
-    const range = element.getValueRange(1, 5);
+    const range = element.createValueRange(1, 5);
     element.setRangeText('', 2, 3);
     assert_equals(element.value, 'ABDE', 'OpaqueRange value after interior deletion');
     assert_equals(range.startOffset, 1, 'OpaqueRange start unchanged');
@@ -183,7 +183,7 @@ controls.forEach(control => {
 
     // OpaqueRange: same replacement via setRangeText.
     const element = setup(control, 'ABCDEFGHIJ');
-    const range = element.getValueRange(7, 10);
+    const range = element.createValueRange(7, 10);
     element.setRangeText('Z', 2, 5);
     assert_equals(element.value, 'ABZFGHIJ', 'OpaqueRange value after before-range shrink');
     assert_equals(range.startOffset, 5, 'OpaqueRange start -2');
@@ -201,7 +201,7 @@ controls.forEach(control => {
 
     // OpaqueRange: same replacement via setRangeText.
     const element = setup(control, 'ABCDEFGHIJ');
-    const range = element.getValueRange(2, 5);
+    const range = element.createValueRange(2, 5);
     element.setRangeText('WXYZ', 7, 9);
     assert_equals(element.value, 'ABCDEFGWXYZJ', 'OpaqueRange value after after-range grow');
     assert_equals(range.startOffset, 2, 'OpaqueRange start unchanged');
@@ -219,7 +219,7 @@ controls.forEach(control => {
 
     // OpaqueRange: same replacement via setRangeText.
     const element = setup(control, 'ABCDEFG');
-    const range = element.getValueRange(2, 5);
+    const range = element.createValueRange(2, 5);
     element.setRangeText('Q', 1, 6);
     assert_equals(element.value, 'AQG', 'OpaqueRange value after superset replacement');
     assert_equals(range.startOffset, 1, 'OpaqueRange collapsed to change start');
@@ -238,7 +238,7 @@ controls.forEach(control => {
 
     // OpaqueRange: same insertion via setRangeText.
     const element = setup(control, 'ABCDE');
-    const range = element.getValueRange(2, 4);
+    const range = element.createValueRange(2, 4);
     element.setRangeText('QQ', 2, 2);
     assert_equals(element.value, 'ABQQCDE', 'OpaqueRange value after insert at start boundary');
     assert_equals(range.startOffset, 2, 'OpaqueRange start unchanged at boundary');
@@ -256,7 +256,7 @@ controls.forEach(control => {
 
     // OpaqueRange: same insertion via setRangeText.
     const element = setup(control, 'ABCDE');
-    const range = element.getValueRange(2, 4);
+    const range = element.createValueRange(2, 4);
     element.setRangeText('QQ', 4, 4);
     assert_equals(element.value, 'ABCDQQE', 'OpaqueRange value after insert at end boundary');
     assert_equals(range.startOffset, 2, 'OpaqueRange start unchanged');
@@ -273,7 +273,7 @@ controls.forEach(control => {
 
     // OpaqueRange: same replacement via setRangeText.
     const element = setup(control, 'A😀BC');
-    const range = element.getValueRange(1, 4);
+    const range = element.createValueRange(1, 4);
     element.setRangeText('🙂🙂', 1, 3);
     assert_equals(range.startOffset, 1, 'OpaqueRange start unchanged inside growth');
     assert_equals(range.endOffset, 6, 'OpaqueRange end +2 code units');
@@ -291,7 +291,7 @@ controls.forEach(control => {
 
     // OpaqueRange: same edits via setRangeText.
     const element = setup(control, '012345');
-    const range = element.getValueRange(2, 5);
+    const range = element.createValueRange(2, 5);
     element.setRangeText('XX', 3, 4);
     element.setRangeText('', 3, 5);
     assert_equals(element.value, '01245', 'OpaqueRange final value after chained edits');
