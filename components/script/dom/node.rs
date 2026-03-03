@@ -865,12 +865,36 @@ impl Node {
         }
     }
 
+    pub(crate) fn inclusively_following_siblings_unrooted<'a, 'b>(
+        &'a self,
+        no_gc: &'b NoGC,
+    ) -> impl Iterator<Item = UnrootedDom<'b, Node>> + use<'b> {
+        UnrootedSimpleNodeIterator {
+            current: Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
+            next_node: |n, no_gc| n.get_next_sibling_unrooted(no_gc),
+            no_gc,
+            phantom: PhantomData,
+        }
+    }
+
     pub(crate) fn inclusively_preceding_siblings(
         &self,
     ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
         SimpleNodeIterator {
             current: Some(DomRoot::from_ref(self)),
             next_node: |n| n.GetPreviousSibling(),
+        }
+    }
+
+    pub(crate) fn inclusively_preceding_siblings_unrooted<'a, 'b>(
+        &'a self,
+        no_gc: &'b NoGC,
+    ) -> impl Iterator<Item = UnrootedDom<'b, Node>> + use<'b> {
+        UnrootedSimpleNodeIterator {
+            current: Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
+            next_node: |n, no_gc| n.get_previous_sibling_unrooted(no_gc),
+            no_gc,
+            phantom: PhantomData,
         }
     }
 
@@ -2200,9 +2224,9 @@ where
 /// This does not root the required children. Taking a `&NoGC` enforces that there is no `&mut JSContext`
 /// while this iterator is alive.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
-pub(crate) struct EfficientSimpleNodeIterator<'a, 'b, I>
+pub(crate) struct UnrootedSimpleNodeIterator<'a, 'b, I>
 where
-    I: Fn(&Node) -> Option<UnrootedDom<'b, Node>>,
+    I: Fn(&Node, &'b NoGC) -> Option<UnrootedDom<'b, Node>>,
 {
     current: Option<UnrootedDom<'b, Node>>,
     next_node: I,
@@ -2211,16 +2235,18 @@ where
     phantom: PhantomData<&'a Node>,
 }
 
-impl<'a, 'b, I> Iterator for EfficientSimpleNodeIterator<'a, 'b, I>
+impl<'a, 'b, I> Iterator for UnrootedSimpleNodeIterator<'a, 'b, I>
 where
     'b: 'a,
-    I: Fn(&Node) -> Option<UnrootedDom<'b, Node>>,
+    I: Fn(&Node, &'b NoGC) -> Option<UnrootedDom<'b, Node>>,
 {
     type Item = UnrootedDom<'b, Node>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let current = self.current.take();
-        self.current = current.as_ref().and_then(|c| (self.next_node)(c));
+        self.current = current
+            .as_ref()
+            .and_then(|c| (self.next_node)(c, self.no_gc));
         current
     }
 }
@@ -3519,6 +3545,10 @@ impl Node {
 
     fn get_next_sibling_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Node>> {
         self.next_sibling.get_unrooted(no_gc)
+    }
+
+    fn get_previous_sibling_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Node>> {
+        self.prev_sibling.get_unrooted(no_gc)
     }
 
     fn get_first_child_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Node>> {
