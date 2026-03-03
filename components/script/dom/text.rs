@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use script_bindings::script_runtime::temp_cx;
 
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -107,12 +108,12 @@ impl TextMethods<crate::DomTypeHolder> for Text {
     fn WholeText(&self) -> DOMString {
         let first = self
             .upcast::<Node>()
-            .inclusively_preceding_siblings()
+            .inclusively_preceding_siblings_unrooted()
             .take_while(|node| node.is::<Text>())
             .last()
             .unwrap();
         let nodes = first
-            .inclusively_following_siblings()
+            .inclusively_following_siblings_unrooted()
             .take_while(|node| node.is::<Text>());
         let mut text = String::new();
         for ref node in nodes {
