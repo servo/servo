@@ -270,6 +270,7 @@ pub struct IndexedDBObjectStore {
     pub name: String,
     pub key_path: Option<KeyPath>,
     pub has_key_generator: bool,
+    pub key_generator_current_number: Option<i32>,
     pub indexes: Vec<IndexedDBIndex>,
 }
 
@@ -333,6 +334,8 @@ pub enum AsyncReadWriteOperation {
         key: Option<IndexedDBKeyType>,
         value: Vec<u8>,
         should_overwrite: bool,
+        /// New object store key generator current number to persist if the put succeeds.
+        key_generator_current_number: Option<i32>,
     },
 
     /// Removes the key/value pair for the given key in the associated idb data
@@ -463,14 +466,6 @@ pub enum SyncOperation {
         String, // Database
         String, // Store
     ),
-    /// Generate and reserve a key from an object store key generator.
-    GenerateKey(
-        GenericSender<BackendResult<IndexedDBKeyType>>,
-        ImmutableOrigin,
-        String, // Database
-        String, // Store
-    ),
-
     /// Commits changes of a transaction to the database
     Commit(
         GenericCallback<TxnCompleteMsg>,

@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+use std::cell::Cell;
 use std::collections::HashMap;
 
 use base::generic_channel::{GenericSend, GenericSender};
@@ -10,7 +11,6 @@ use js::conversions::ToJSValConvertible;
 use js::gc::MutableHandleValue;
 use js::jsval::NullValue;
 use js::rust::HandleValue;
-use profile_traits::generic_channel::channel;
 use script_bindings::codegen::GenericBindings::IDBObjectStoreBinding::IDBIndexParameters;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
 use script_bindings::error::ErrorResult;
@@ -43,7 +43,7 @@ use crate::dom::indexeddb::idbrequest::IDBRequest;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
 use crate::indexeddb::{
     ExtractionResult, can_inject_key_into_value, convert_value_to_key, convert_value_to_key_range,
-    extract_key, inject_key_into_value, map_backend_error_to_dom_error,
+    extract_key, inject_key_into_value,
 };
 use crate::script_runtime::CanGc;
 
@@ -91,9 +91,11 @@ pub struct IDBObjectStore {
     key_path: Option<KeyPath>,
     index_set: DomRefCell<HashMap<DOMString, Dom<IDBIndex>>>,
     transaction: Dom<IDBTransaction>,
+    has_key_generator: bool,
+    key_generator_current_number: Cell<Option<i32>>,
 
-    // We store the db name in the object store to be able to find the correct
-    // store in the idb thread when checking if we have a key generator
+    // We store the db name in the object store to address backend operations
+    // that are keyed by (origin, database name, object store name).
     db_name: DOMString,
 }
 
@@ -102,6 +104,7 @@ impl IDBObjectStore {
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
+        key_generator_current_number: Option<i32>,
         transaction: &IDBTransaction,
     ) -> IDBObjectStore {
         let key_path: Option<KeyPath> = match options {
@@ -113,6 +116,12 @@ impl IDBObjectStore {
             }),
             None => None,
         };
+        let has_key_generator = options.is_some_and(|options| options.autoIncrement);
+        let key_generator_current_number = if has_key_generator {
+            Some(key_generator_current_number.unwrap_or(1))
+        } else {
+            None
+        };
 
         IDBObjectStore {
             reflector_: Reflector::new(),
@@ -120,6 +129,8 @@ impl IDBObjectStore {
             key_path,
             index_set: DomRefCell::new(HashMap::new()),
             transaction: Dom::from_ref(transaction),
+            has_key_generator,
+            key_generator_current_number: Cell::new(key_generator_current_number),
             db_name,
         }
     }
@@ -129,6 +140,7 @@ impl IDBObjectStore {
         db_name: DOMString,
         name: DOMString,
         options: Option<&IDBObjectStoreParameters>,
+        key_generator_current_number: Option<i32>,
         can_gc: CanGc,
         transaction: &IDBTransaction,
     ) -> DomRoot<IDBObjectStore> {
@@ -137,6 +149,7 @@ impl IDBObjectStore {
                 db_name,
                 name,
                 options,
+                key_generator_current_number,
                 transaction,
             )),
             global,
@@ -157,43 +170,20 @@ impl IDBObjectStore {
     }
 
     fn has_key_generator(&self) -> bool {
-        // FIXME: blocking IPC call
-        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
-
-        let operation = SyncOperation::GetObjectStore(
-            sender,
-            self.global().origin().immutable().clone(),
-            self.db_name.to_string(),
-            self.name.borrow().to_string(),
-        );
-
-        self.get_idb_thread()
-            .send(IndexedDBThreadMsg::Sync(operation))
-            .unwrap();
-
-        // First unwrap for ipc
-        // Second unwrap will never happen unless this db gets manually deleted somehow
-        receiver.recv().unwrap().unwrap().has_key_generator
+        self.has_key_generator
     }
 
-    fn generate_key(&self) -> Fallible<IndexedDBKeyType> {
-        // FIXME: blocking IPC call ? how ?
-        let (sender, receiver) = channel(self.global().time_profiler_chan().clone()).unwrap();
-        let operation = SyncOperation::GenerateKey(
-            sender,
-            self.global().origin().immutable().clone(),
-            self.db_name.to_string(),
-            self.name.borrow().to_string(),
-        );
-
-        self.get_idb_thread()
-            .send(IndexedDBThreadMsg::Sync(operation))
-            .unwrap();
-
-        receiver
-            .recv()
-            .unwrap()
-            .map_err(map_backend_error_to_dom_error)
+    fn reserve_generated_key_for_put(&self) -> Fallible<(IndexedDBKeyType, i32)> {
+        let Some(current_number) = self.key_generator_current_number.get() else {
+            return Err(Error::Data(None));
+        };
+        let next_current_number = current_number
+            .checked_add(1)
+            .ok_or(Error::Constraint(None))?;
+        Ok((
+            IndexedDBKeyType::Number(current_number as f64),
+            next_current_number,
+        ))
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#object-store-in-line-keys>
@@ -272,10 +262,12 @@ impl IDBObjectStore {
         // Step 8. If key was given, then: convert a value to a key with key.
         let serialized_key: Option<IndexedDBKeyType>;
         let maybe_modified_cloned_value;
+        let key_generator_current_number_for_put: Option<i32>;
 
         if !key.is_undefined() {
             serialized_key = Some(convert_value_to_key(cx, key, None)?.into_result()?);
             maybe_modified_cloned_value = None;
+            key_generator_current_number_for_put = None;
         } else {
             match self.key_path.as_ref() {
                 Some(key_path) => {
@@ -301,7 +293,10 @@ impl IDBObjectStore {
                         // Step 11.2. If kpk is invalid, throw a "DataError" DOMException.
                         ExtractionResult::Invalid => return Err(Error::Data(None)),
                         // Step 11.3. If kpk is not failure, let key be kpk.
-                        ExtractionResult::Key(kpk) => serialized_key = Some(kpk),
+                        ExtractionResult::Key(kpk) => {
+                            serialized_key = Some(kpk);
+                            key_generator_current_number_for_put = None;
+                        },
                         ExtractionResult::Failure => {
                             // Step 11.4. Otherwise:
                             // Step 11.4.1. If store does not have a key generator, throw
@@ -319,7 +314,8 @@ impl IDBObjectStore {
                                 return Err(Error::Data(None));
                             }
                             // Step 11.4.3. Let key be the result of generating a key for store.
-                            let generated_key = self.generate_key()?;
+                            let (generated_key, next_current_number) =
+                                self.reserve_generated_key_for_put()?;
                             // Step 11.4.4. Inject key into value.
                             if !inject_key_into_value(
                                 cx,
@@ -330,6 +326,7 @@ impl IDBObjectStore {
                                 return Err(Error::Data(None));
                             }
                             serialized_key = Some(generated_key);
+                            key_generator_current_number_for_put = Some(next_current_number);
                         },
                     }
 
@@ -345,8 +342,11 @@ impl IDBObjectStore {
                     if !self.has_key_generator() {
                         return Err(Error::Data(None));
                     }
+                    // Out-of-line key generation happens in the backend as part of executing
+                    // the put request, so script does not reserve a key here.
                     serialized_key = None;
                     maybe_modified_cloned_value = None;
+                    key_generator_current_number_for_put = None;
                 },
             }
         }
@@ -360,7 +360,7 @@ impl IDBObjectStore {
         };
         // Step 12. Let operation be an algorithm to run store a record into an object store with store, clone, key, and no-overwrite flag.
         // Step 13. Return the result (an IDBRequest) of running asynchronously execute a request with handle and operation.
-        IDBRequest::execute_async(
+        let request = IDBRequest::execute_async(
             self,
             |callback| {
                 AsyncOperation::ReadWrite(AsyncReadWriteOperation::PutItem {
@@ -368,12 +368,18 @@ impl IDBObjectStore {
                     key: serialized_key,
                     value: serialized_value,
                     should_overwrite: overwrite,
+                    key_generator_current_number: key_generator_current_number_for_put,
                 })
             },
             None,
             None,
             CanGc::from_cx(cx),
-        )
+        )?;
+        if let Some(next_key_generator_current_number) = key_generator_current_number_for_put {
+            self.key_generator_current_number
+                .set(Some(next_key_generator_current_number));
+        }
+        Ok(request)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-opencursor>

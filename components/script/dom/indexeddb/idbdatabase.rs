@@ -268,6 +268,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             self.name.clone(),
             name.clone(),
             Some(options),
+            if auto_increment { Some(1) } else { None },
             CanGc::from_cx(cx),
             &upgrade_transaction,
         );

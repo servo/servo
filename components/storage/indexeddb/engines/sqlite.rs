@@ -240,6 +240,7 @@ impl SqliteEngine {
         key: IndexedDBKeyType,
         value: Vec<u8>,
         should_overwrite: bool,
+        key_generator_current_number: Option<i32>,
     ) -> Result<PutItemResult, Error> {
         let serialized_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
         let existing_item = connection
@@ -255,6 +256,12 @@ impl SqliteEngine {
                 "INSERT INTO object_data (object_store_id, key, data) VALUES (?, ?, ?)",
                 params![store.id, serialized_key, value],
             )?;
+            if let Some(next_key_generator_current_number) = key_generator_current_number {
+                connection.execute(
+                    "UPDATE object_store SET auto_increment = ? WHERE id = ?",
+                    params![next_key_generator_current_number, store.id],
+                )?;
+            }
             Ok(PutItemResult::Key(key))
         } else {
             Ok(PutItemResult::CannotOverwrite)
@@ -298,23 +305,6 @@ impl SqliteEngine {
             .prepare(&sql)?
             .query_row(&*values.as_params(), |row| row.get(0))
             .map(|count: i64| count as usize)
-    }
-
-    fn generate_key(
-        connection: &Connection,
-        store: &object_store_model::Model,
-    ) -> Result<IndexedDBKeyType, Error> {
-        if store.auto_increment == 0 {
-            unreachable!("Should be caught in the script thread");
-        }
-        // TODO: handle overflows, this also needs to be able to handle 2^53 as per spec
-        let generated_key = store.auto_increment as f64;
-        let next_key = store.auto_increment + 1;
-        connection.execute(
-            "UPDATE object_store SET auto_increment = ? WHERE id = ?",
-            params![next_key, store.id],
-        )?;
-        Ok(IndexedDBKeyType::Number(generated_key))
     }
 }
 
@@ -429,20 +419,41 @@ impl KvsEngine for SqliteEngine {
                         key,
                         value,
                         should_overwrite,
+                        key_generator_current_number,
                     }) => {
-                        let key = match key
-                            .map(Ok)
-                            .unwrap_or_else(|| Self::generate_key(&connection, &object_store))
-                        {
-                            Ok(key) => key,
-                            Err(e) => {
-                                let _ = callback.send(Err(BackendError::DbErr(format!("{:?}", e))));
-                                continue;
+                        let (key, key_generator_current_number) = match key {
+                            Some(key) => (key, key_generator_current_number),
+                            None => {
+                                if object_store.auto_increment == 0 {
+                                    let _ = callback.send(Err(BackendError::DbErr(
+                                        "Missing key for PutItem request".to_string(),
+                                    )));
+                                    continue;
+                                }
+                                let Some(next_key_generator_current_number) =
+                                    object_store.auto_increment.checked_add(1)
+                                else {
+                                    let _ = callback.send(Err(BackendError::DbErr(
+                                        "Key generator overflow".to_string(),
+                                    )));
+                                    continue;
+                                };
+                                (
+                                    IndexedDBKeyType::Number(object_store.auto_increment as f64),
+                                    Some(next_key_generator_current_number),
+                                )
                             },
                         };
                         let _ = callback.send(
-                            Self::put_item(&connection, object_store, key, value, should_overwrite)
-                                .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
+                            Self::put_item(
+                                &connection,
+                                object_store,
+                                key,
+                                value,
+                                should_overwrite,
+                                key_generator_current_number,
+                            )
+                            .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
                     },
                     AsyncOperation::ReadOnly(AsyncReadOnlyOperation::GetItem {
@@ -539,8 +550,7 @@ impl KvsEngine for SqliteEngine {
         });
     }
 
-    // TODO: we should be able to error out here, maybe change the trait definition?
-    fn has_key_generator(&self, store_name: &str) -> bool {
+    fn key_generator_current_number(&self, store_name: &str) -> Option<i32> {
         self.connection
             .prepare("SELECT * FROM object_store WHERE name = ?")
             .and_then(|mut stmt| {
@@ -551,18 +561,7 @@ impl KvsEngine for SqliteEngine {
             })
             .optional()
             .unwrap()
-            // TODO: Wrong (change trait definition for this function)
-            .unwrap_or_default() !=
-            0
-    }
-
-    fn generate_key(&self, store_name: &str) -> Result<IndexedDBKeyType, Self::Error> {
-        let store = self.connection.query_row(
-            "SELECT * FROM object_store WHERE name = ?",
-            params![store_name.to_string()],
-            |row| object_store_model::Model::try_from(row),
-        )?;
-        Self::generate_key(&self.connection, &store)
+            .and_then(|current_number| (current_number != 0).then_some(current_number))
     }
 
     fn key_path(&self, store_name: &str) -> Option<KeyPath> {
@@ -798,7 +797,7 @@ mod tests {
         let create_result = result.unwrap();
         assert_eq!(create_result, CreateObjectResult::AlreadyExists);
         // Ensure store was not overwritten
-        assert!(db.has_key_generator(store_name));
+        assert!(db.key_generator_current_number(store_name).is_some());
     }
 
     #[test]
@@ -952,6 +951,7 @@ mod tests {
                             key: Some(IndexedDBKeyType::Number(1.0)),
                             value: vec![1, 2, 3],
                             should_overwrite: false,
+                            key_generator_current_number: None,
                         }),
                     },
                     KvsOperation {
@@ -961,6 +961,7 @@ mod tests {
                             key: Some(IndexedDBKeyType::String("2.0".to_string())),
                             value: vec![4, 5, 6],
                             should_overwrite: false,
+                            key_generator_current_number: None,
                         }),
                     },
                     KvsOperation {
@@ -973,6 +974,7 @@ mod tests {
                             ])),
                             value: vec![7, 8, 9],
                             should_overwrite: false,
+                            key_generator_current_number: None,
                         }),
                     },
                     // Try to put a duplicate key without overwrite
@@ -983,6 +985,7 @@ mod tests {
                             key: Some(IndexedDBKeyType::Number(1.0)),
                             value: vec![10, 11, 12],
                             should_overwrite: false,
+                            key_generator_current_number: None,
                         }),
                     },
                     KvsOperation {
