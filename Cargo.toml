@@ -189,7 +189,7 @@ skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 storage_traits = { package = "servo-storage-traits", path = "components/shared/storage" }
 string_cache = "0.9"
-strum = { version = "0.27", features = ["derive"] }
+strum = { version = "0.28", features = ["derive"] }
 stylo = { git = "https://github.com/servo/stylo", rev = "2f131eb1909c6193a7cfae22e49f288fe9df4fbb" }
 stylo_atoms = { git = "https://github.com/servo/stylo", rev = "2f131eb1909c6193a7cfae22e49f288fe9df4fbb" }
 stylo_dom = { git = "https://github.com/servo/stylo", rev = "2f131eb1909c6193a7cfae22e49f288fe9df4fbb" }
