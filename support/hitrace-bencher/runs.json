@@ -49,7 +49,7 @@
             {
                 "name": "resident-smaps",
                 "match_str": "resident-according-to-smaps",
-                "point_filter_type": "Combined"
+                "point_filter_type": "Largest"
             },
             {
                 "name": "LargestContentfulPaint",
@@ -100,7 +100,7 @@
             {
                 "name": "resident-smaps",
                 "match_str": "resident-according-to-smaps",
-                "point_filter_type": "Combined"
+                "point_filter_type": "Largest"
             },
             {
                 "name": "LargestContentfulPaint",
