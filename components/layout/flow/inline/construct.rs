@@ -286,8 +286,6 @@ impl InlineFormattingContextBuilder {
         pseudo_info: &NodeAndStyleInfo<'dom>,
         context: &LayoutContext<'dom>,
     ) {
-        debug_assert!(self.text_segments.is_empty());
-
         let white_space_collapse = pseudo_info.style.clone_white_space_collapse();
         let text_transform = pseudo_info.style.clone_text_transform().case();
         let mut capitalized_text = String::new();
