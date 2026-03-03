@@ -167,6 +167,51 @@ input::color-swatch {
   width: 100%;
 }
 
+input[type="range"] {
+  width: 100px;
+  min-height: 16px;
+  position: relative;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+input[type="range"]::-servo-slider-track {
+  width: 100%;
+  height: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #ddd;
+  border-radius: 5px;
+  position: absolute;
+  cursor: pointer;
+  z-index: 1;
+}
+
+input[type="range"]::-servo-slider-fill {
+  height: 8px;
+  background-color: #7a3;
+  border-radius: 5px;
+  position: absolute;
+  cursor: pointer;
+  top: 50%;
+  z-index: 2;
+  transform: translateY(-50%);
+}
+
+input[type="range"]::-servo-slider-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: gray;
+  border: 2px solid white;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  z-index: 3;
+}
+
 /* Checkbox and radio button inputs */
 input[type="checkbox"],
 input[type="radio"] {
@@ -276,7 +321,7 @@ canvas, embed, iframe, img, video {
   overflow-clip-margin: 0 !important;
 }
 
-input:not([type=radio i], [type=checkbox i], [type=reset i], [type=button i], [type=submit i], [type=file i]) {
+input:not([type=radio i], [type=checkbox i], [type=reset i], [type=button i], [type=submit i], [type=file i], [type=range i]) {
   cursor: text;
   overflow: hidden !important;
   white-space: pre;
