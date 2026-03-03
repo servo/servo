@@ -124,7 +124,8 @@
             {
                 "name": "",
                 "match_str": "parsefromstring",
-                "no_unit_conversion": true
+                "no_unit_conversion": true,
+                "point_filter_type": "Largest"
             }
         ]
     }
