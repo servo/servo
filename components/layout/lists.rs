@@ -4,6 +4,7 @@
 
 use style::properties::longhands::list_style_type::computed_value::T as ListStyleType;
 use style::properties::style_structs;
+use style::values::CSSFloat;
 use style::values::computed::Image;
 
 use crate::context::LayoutContext;
@@ -21,28 +22,45 @@ pub(crate) fn make_marker<'dom>(
     let list_style = style.get_list();
 
     // https://drafts.csswg.org/css-lists/#marker-image
-    let marker_image = || match &list_style.list_style_image {
-        Image::Url(url) => Some(vec![
-            PseudoElementContentItem::Replaced(ReplacedContents::from_image_url(
-                marker_info.node,
-                context,
-                url,
-            )?),
-            PseudoElementContentItem::Text(" ".into()),
-        ]),
-        // XXX: Non-None image types unimplemented.
-        Image::ImageSet(..) |
-        Image::Gradient(..) |
-        Image::CrossFade(..) |
-        Image::PaintWorklet(..) |
-        Image::None => None,
-        Image::LightDark(..) => unreachable!("light-dark() should be disabled"),
-    };
-    let content = marker_image().or_else(|| {
-        Some(vec![PseudoElementContentItem::Text(
-            marker_string(list_style)?.into(),
-        )])
-    })?;
+    fn marker_image<'dom>(
+        context: &LayoutContext,
+        image: &Image,
+        marker_info: &NodeAndStyleInfo<'dom>,
+        scale_factor: Option<CSSFloat>,
+    ) -> Option<ReplacedContents> {
+        match image {
+            Image::Url(url) => {
+                ReplacedContents::from_image_url(marker_info.node, context, url, scale_factor)
+            },
+            Image::ImageSet(image_set) => {
+                let selected_image = image_set.items.get(image_set.selected_index)?;
+                marker_image(
+                    context,
+                    &selected_image.image,
+                    marker_info,
+                    Some(selected_image.resolution.dppx()),
+                )
+            },
+            // XXX: Non-None image types unimplemented.
+            Image::Gradient(..) | Image::CrossFade(..) | Image::PaintWorklet(..) | Image::None => {
+                None
+            },
+            Image::LightDark(..) => unreachable!("light-dark() should be disabled"),
+        }
+    }
+
+    let content = marker_image(context, &list_style.list_style_image, &marker_info, None)
+        .map(|replaced_marker_content| {
+            vec![
+                PseudoElementContentItem::Replaced(replaced_marker_content),
+                PseudoElementContentItem::Text(" ".into()),
+            ]
+        })
+        .or_else(|| {
+            Some(vec![PseudoElementContentItem::Text(
+                marker_string(list_style)?.into(),
+            )])
+        })?;
 
     Some((marker_info, content))
 }
