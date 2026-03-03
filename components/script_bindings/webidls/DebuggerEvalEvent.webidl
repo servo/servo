@@ -9,6 +9,7 @@ interface DebuggerEvalEvent : Event {
     readonly attribute DOMString code;
     readonly attribute PipelineId pipelineId;
     readonly attribute DOMString? workerId;
+    readonly attribute DOMString? frameActorId;
 };
 
 partial interface DebuggerGlobalScope {
@@ -36,4 +37,5 @@ dictionary EvalResultValue {
     // A string naming the ECMAScript [[Class]] of the referent.
     // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Object.html#accessor-properties-of-the-debugger-object-prototype>
     DOMString? objectClass;
+    boolean? hasException;
 };

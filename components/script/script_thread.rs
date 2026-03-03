@@ -2249,9 +2249,15 @@ impl ScriptThread {
                     node_id.as_deref(),
                 )
             },
-            DevtoolScriptControlMsg::Eval(code, id, reply) => {
-                self.debugger_global
-                    .fire_eval(CanGc::from_cx(cx), code.into(), id, None, reply);
+            DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
+                self.debugger_global.fire_eval(
+                    CanGc::from_cx(cx),
+                    code.into(),
+                    id,
+                    None,
+                    frame_actor_id,
+                    reply,
+                );
             },
             DevtoolScriptControlMsg::GetPossibleBreakpoints(spidermonkey_id, result_sender) => {
                 self.debugger_global.fire_get_possible_breakpoints(

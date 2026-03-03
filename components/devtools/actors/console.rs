@@ -13,7 +13,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{self, GenericSender};
 use base::id::TEST_PIPELINE_ID;
-use devtools_traits::EvaluateJSReply::{
+use devtools_traits::EvaluateJSReplyValue::{
     ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
 };
 use devtools_traits::{
@@ -227,6 +227,7 @@ struct EvaluateJSReply {
     timestamp: u64,
     exception: Value,
     exception_message: Value,
+    has_exception: bool,
     helper_result: Value,
 }
 
@@ -243,6 +244,7 @@ struct EvaluateJSEvent {
     result_id: String,
     exception: Value,
     exception_message: Value,
+    has_exception: bool,
     helper_result: Value,
 }
 
@@ -319,6 +321,10 @@ impl ConsoleActor {
         msg: &Map<String, Value>,
     ) -> Result<EvaluateJSReply, ()> {
         let input = msg.get("text").unwrap().as_str().unwrap().to_owned();
+        let frame_actor_id = msg
+            .get("frameActor")
+            .and_then(|v| v.as_str())
+            .map(String::from);
         let (chan, port) = generic_channel::channel().unwrap();
         // FIXME: Redesign messages so we don't have to fake pipeline ids when
         //        communicating with workers.
@@ -327,11 +333,19 @@ impl ConsoleActor {
             UniqueId::Worker(_) => TEST_PIPELINE_ID,
         };
         self.script_chan(registry)
-            .send(DevtoolScriptControlMsg::Eval(input.clone(), pipeline, chan))
+            .send(DevtoolScriptControlMsg::Eval(
+                input.clone(),
+                pipeline,
+                frame_actor_id,
+                chan,
+            ))
             .unwrap();
 
         // TODO: Extract conversion into protocol module or some other useful place
-        let result = match port.recv().map_err(|_| ())? {
+        let eval_result = port.recv().map_err(|_| ())?;
+        let has_exception = eval_result.has_exception;
+
+        let result = match eval_result.value {
             VoidValue => {
                 let mut m = Map::new();
                 m.insert("type".to_owned(), Value::String("undefined".to_owned()));
@@ -380,8 +394,6 @@ impl ConsoleActor {
             },
         };
 
-        // TODO: Catch and return exception values from JS evaluation
-        // TODO: This should have a has_exception field
         let reply = EvaluateJSReply {
             from: self.name(),
             input,
@@ -389,9 +401,10 @@ impl ConsoleActor {
             timestamp: get_time_stamp(),
             exception: Value::Null,
             exception_message: Value::Null,
+            has_exception,
             helper_result: Value::Null,
         };
-        std::result::Result::Ok(reply)
+        Ok(reply)
     }
 
     pub(crate) fn handle_console_resource(
@@ -532,6 +545,7 @@ impl Actor for ConsoleActor {
                     result_id,
                     exception: reply.exception,
                     exception_message: reply.exception_message,
+                    has_exception: reply.has_exception,
                     helper_result: reply.helper_result,
                 };
                 // Send the data from evaluateJS along with a resultID

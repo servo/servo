@@ -149,15 +149,20 @@ pub enum DomMutation {
 }
 
 /// Serialized JS return values
-/// TODO: generalize this beyond the EvaluateJS message?
 #[derive(Debug, Deserialize, Serialize)]
-pub enum EvaluateJSReply {
+pub enum EvaluateJSReplyValue {
     VoidValue,
     NullValue,
     BooleanValue(bool),
     NumberValue(f64),
     StringValue(String),
     ActorValue { class: String, uuid: String },
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct EvaluateJSReply {
+    pub value: EvaluateJSReplyValue,
+    pub has_exception: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -333,7 +338,12 @@ pub enum DevtoolScriptControlMsg {
     /// Highlight the given DOM node
     HighlightDomNode(PipelineId, Option<String>),
 
-    Eval(String, PipelineId, GenericSender<EvaluateJSReply>),
+    Eval(
+        String,
+        PipelineId,
+        Option<String>,
+        GenericSender<EvaluateJSReply>,
+    ),
     GetPossibleBreakpoints(u32, GenericSender<Vec<RecommendedBreakpointLocation>>),
     SetBreakpoint(u32, u32, u32),
     ClearBreakpoint(u32, u32, u32),

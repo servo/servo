@@ -8,7 +8,8 @@ use base::generic_channel::{GenericCallback, GenericSender, channel};
 use base::id::{Index, PipelineId, PipelineNamespaceId};
 use constellation_traits::ScriptToConstellationChan;
 use devtools_traits::{
-    DevtoolScriptControlMsg, EvaluateJSReply, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
+    DevtoolScriptControlMsg, EvaluateJSReply, EvaluateJSReplyValue, ScriptToDevtoolsControlMsg,
+    SourceInfo, WorkerId,
 };
 use dom_struct::dom_struct;
 use embedder_traits::ScriptToEmbedderChan;
@@ -170,6 +171,7 @@ impl DebuggerGlobalScope {
         code: DOMString,
         debuggee_pipeline_id: PipelineId,
         debuggee_worker_id: Option<WorkerId>,
+        frame_actor_id: Option<String>,
         result_sender: GenericSender<EvaluateJSReply>,
     ) {
         assert!(
@@ -185,6 +187,7 @@ impl DebuggerGlobalScope {
             code,
             &debuggee_pipeline_id,
             debuggee_worker_id.map(|id| id.to_string().into()),
+            frame_actor_id.map(|id| id.into()),
             can_gc,
         ));
         assert!(
@@ -413,41 +416,44 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             .take()
             .expect("Guaranteed by Self::fire_eval()");
 
-        let reply = if result.completionType.str() == "terminated" {
-            EvaluateJSReply::VoidValue
-        } else {
-            match &*result.valueType.str() {
-                "undefined" => EvaluateJSReply::VoidValue,
-                "null" => EvaluateJSReply::NullValue,
-                "boolean" => {
-                    EvaluateJSReply::BooleanValue(result.booleanValue.flatten().unwrap_or(false))
-                },
-                "number" => {
-                    let num = result.numberValue.flatten().map(|f| *f).unwrap_or(0.0);
-                    EvaluateJSReply::NumberValue(num)
-                },
-                "string" => EvaluateJSReply::StringValue(
-                    result
-                        .stringValue
-                        .as_ref()
-                        .and_then(|opt| opt.as_ref())
-                        .map(|s| s.to_string())
-                        .unwrap_or_default(),
-                ),
-                "object" => {
-                    let class = result
-                        .objectClass
-                        .as_ref()
-                        .and_then(|opt| opt.as_ref())
-                        .map(|s| s.to_string())
-                        .unwrap_or_else(|| "Object".to_string());
-                    EvaluateJSReply::ActorValue {
-                        class,
-                        uuid: uuid::Uuid::new_v4().to_string(),
-                    }
-                },
-                _ => unreachable!(),
-            }
+        let has_exception = result.hasException.flatten().unwrap_or(false);
+
+        let value = match &*result.valueType.str() {
+            "undefined" => EvaluateJSReplyValue::VoidValue,
+            "null" => EvaluateJSReplyValue::NullValue,
+            "boolean" => {
+                EvaluateJSReplyValue::BooleanValue(result.booleanValue.flatten().unwrap_or(false))
+            },
+            "number" => {
+                let num = result.numberValue.flatten().map(|f| *f).unwrap_or(0.0);
+                EvaluateJSReplyValue::NumberValue(num)
+            },
+            "string" => EvaluateJSReplyValue::StringValue(
+                result
+                    .stringValue
+                    .as_ref()
+                    .and_then(|opt| opt.as_ref())
+                    .map(|s| s.to_string())
+                    .unwrap_or_default(),
+            ),
+            "object" => {
+                let class = result
+                    .objectClass
+                    .as_ref()
+                    .and_then(|opt| opt.as_ref())
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| "Object".to_string());
+                EvaluateJSReplyValue::ActorValue {
+                    class,
+                    uuid: uuid::Uuid::new_v4().to_string(),
+                }
+            },
+            _ => unreachable!(),
+        };
+
+        let reply = EvaluateJSReply {
+            value,
+            has_exception,
         };
 
         let _ = sender.send(reply);

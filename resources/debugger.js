@@ -100,27 +100,36 @@ function createValueResult(value) {
 // Evaluate some javascript code in the global context of the debuggee
 // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Object.html#executeinglobal-code-options>
 addEventListener("eval", event => {
-    const {code, pipelineId, workerId} = event;
-    const object = workerId !== undefined ?
-        findKeyByValue(debuggeesToWorkerIds, workerId) :
-        findKeyByValue(debuggeesToPipelineIds, pipelineId);
+    const {code, pipelineId, workerId, frameActorId} = event;
+
+    let completionValue;
+    if (frameActorId) {
+        const frame = frameActorsToFrames.get(frameActorId);
+        // <https://searchfox.org/firefox-main/source/js/src/doc/Debugger/Debugger.Frame.md#223>
+        if (frame?.onStack) {
+            completionValue = frame.eval(code);
+        } else {
+            completionValue = { throw: "Frame not available" };
+        }
+    } else {
+        const object = workerId !== undefined ?
+            findKeyByValue(debuggeesToWorkerIds, workerId) :
+            findKeyByValue(debuggeesToPipelineIds, pipelineId);
+        completionValue = object.executeInGlobal(code);
+    }
 
     // Completion values: <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#completion-values>
-    const completionValue = object.executeInGlobal(code);
     let resultValue;
-
     if (completionValue === null) {
-        resultValue = { completionType: "terminated", valueType: "undefined" };
+        resultValue = { completionType: "terminated", valueType: "undefined", hasException: false };
     } else if ("throw" in completionValue) {
-        // Adopt the value to ensure proper Debugger ownership
         // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.html#adoptdebuggeevalue-value>
         // <https://searchfox.org/firefox-main/source/devtools/server/actors/webconsole/eval-with-debugger.js#312>
         // we probably don't need adoptDebuggeeValue, as we only have one debugger instance for now
         // let value = dbg.adoptDebuggeeValue(completionValue.throw);
-        resultValue = { completionType: "throw", ...createValueResult(completionValue.throw) };
+        resultValue = { completionType: "throw", ...createValueResult(completionValue.throw), hasException: true };
     } else if ("return" in completionValue) {
-        // let value = dbg.adoptDebuggeeValue(completionValue.return);
-        resultValue = { completionType: "return", ...createValueResult(completionValue.return) };
+        resultValue = { completionType: "return", ...createValueResult(completionValue.return), hasException: false };
     }
 
     evalResult(event, resultValue);
