@@ -429,10 +429,9 @@ def main() -> int:
 
     if args.check_status:
         if args.dmg:
-            logger.info("No request ID provided, inferring from dmg path.")
             notarized_dmg = args.dmg
         else:
-            logger.info("No request ID or dmg path provided, inferring from latest archived dmg.")
+            logger.info("No `--dmg` path provided, checking latest archived dmg.")
             notarized_dmg = latest_archived_dmg()
             if not notarized_dmg:
                 logger.error("No archived dmg found to infer request ID.")
