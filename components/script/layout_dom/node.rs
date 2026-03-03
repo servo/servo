@@ -107,16 +107,16 @@ impl<'dom> ServoLayoutNode<'dom> {
     }
 
     /// <https://dom.spec.whatwg.org/#scope-match-a-selectors-string>
-    pub(crate) fn scope_match_a_selectors_string<Q>(
+    pub(crate) fn scope_match_a_selectors_string<Query>(
         self,
         document_url: Arc<Url>,
         selector: &str,
-    ) -> Fallible<Q::Output>
+    ) -> Fallible<Query::Output>
     where
-        Q: SelectorQuery<ServoLayoutElement<'dom>>,
-        Q::Output: Default,
+        Query: SelectorQuery<ServoLayoutElement<'dom>>,
+        Query::Output: Default,
     {
-        let mut result = Q::Output::default();
+        let mut result = Query::Output::default();
 
         // Step 1. Let selector be the result of parse a selector selectors.
         let selector_or_error =
@@ -129,7 +129,7 @@ impl<'dom> ServoLayoutNode<'dom> {
 
         // Step 3. Return the result of match a selector against a tree with selector
         // and node’s root using scoping root node.
-        query_selector::<ServoLayoutElement<'dom>, Q>(
+        query_selector::<ServoLayoutElement<'dom>, Query>(
             self,
             &selector_list,
             &mut result,
