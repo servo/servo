@@ -1626,7 +1626,13 @@ impl InlineFormattingContextLayout<'_> {
             self.current_line_segment.line_items.last_mut()
         {
             if *inline_box_identifier == current_inline_box_identifier &&
-                line_item.merge_if_possible(font_key, bidi_level, &glyph_store, &offsets)
+                line_item.merge_if_possible(
+                    font_key,
+                    bidi_level,
+                    &glyph_store,
+                    &offsets,
+                    &text_run.inline_styles,
+                )
             {
                 return;
             }
