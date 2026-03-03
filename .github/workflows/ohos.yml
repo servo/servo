@@ -16,7 +16,7 @@ on:
         type: boolean
     outputs:
       artifact_ids:
-        value: ${{ jobs.build.outputs.artifact_ids }}
+        value: ${{ jobs.build-openharmony.outputs.artifact_ids }}
         description: Comma-separated list of artifact IDs for the release artifacts
       optional_job_status:
         description: "Status of optional jobs (as an object)"
