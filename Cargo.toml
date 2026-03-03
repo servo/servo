@@ -229,7 +229,7 @@ webpki-roots = "1.0"
 webrender = { version = "0.68", features = ["capture"] }
 webrender_api = "0.68"
 webxr-api = { package = "servo-webxr-api", path = "components/shared/webxr" }
-wgpu-core = "26"
+wgpu-core = "28"
 wgpu-types = "26"
 winapi = "0.3"
 windows-sys = "0.61"
