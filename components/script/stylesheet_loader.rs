@@ -232,7 +232,16 @@ impl StylesheetContext {
         cx: &mut js::context::JSContext,
     ) {
         if self.is_script_blocking {
-            document.decrement_script_blocking_stylesheet_count();
+            if document.get_script_blocking_stylesheets_count() > 0 {
+                document.decrement_script_blocking_stylesheet_count();
+            } else {
+                // `window.stop()` can abortt the document from an error handler that we
+                // dispatch just before this call, resetting the blocker count
+                assert!(
+                    document.loader().events_inhibited(),
+                    "script-blocking stylesheet finished without a pending blocker"
+                );
+            }
         }
 
         if self.is_render_blocking {

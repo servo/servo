@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<link rel=help href="https://github.com/servo/servo/issues/42854">
+<link id="link" rel="stylesheet" onerror="window.stop()">
+<script>
+  addEventListener("load", () => {
+    link.href = "about:blank";
+  });
+</script>
