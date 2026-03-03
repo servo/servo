@@ -1,0 +1,21 @@
+Short version for non-lawyers:
+
+The Servo Project is licensed under Mozilla Public License Version 2.0,
+with some files under Apache License Version 2.0 or MIT license.
+
+It is Copyright (c) The Servo Project Developers.
+
+Longer version:
+
+Copyrights in the Servo project are retained by their contributors.
+No copyright assignment is required to contribute to the Servo project.
+
+Some files include explicit copyright notices and/or license notices.
+For full authorship information, see the version control history.
+
+The Servo project is primarily licensed under the Mozilla Public License,
+Version 2.0 <LICENSE>. Additionally, some files in the project are
+licensed under the Apache License, Version 2.0 or the MIT license.
+
+We track licenses for third-party materials using the REUSE software
+specification and cargo to track license information for dependencies.
