@@ -6,15 +6,17 @@
 //! <http://tools.ietf.org/html/rfc6265>
 
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry;
 use std::time::SystemTime;
+use base::generic_channel::GenericSender;
+use crossbeam_channel::Sender;
 
 use cookie::Cookie;
 use itertools::Itertools;
 use log::info;
 use net_traits::pub_domains::reg_suffix;
-use net_traits::{CookieSource, SiteDescriptor};
+use net_traits::{CookieSource, CoreResourceMsg, SiteDescriptor};
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 
@@ -27,8 +29,10 @@ pub struct CookieStorage {
     max_per_host: usize,
     // cookie changes are callbacks for "script visible" changes to the cookies for a given url
     // because we may have many webviews with the same url we also key on
-    #[serde(skip_serializing)]
-    cookie_change_listeners: HashMap<ServoUrl, Vec<Box<dyn Fn>>>,
+    #[serde(skip)]
+    cookie_change_listeners: HashSet<ServoUrl>,
+    #[serde(skip)]
+    cookie_change_sender: Option<GenericSender<CoreResourceMsg>>,
 }
 
 #[derive(Debug)]
@@ -38,12 +42,13 @@ pub enum RemoveCookieError {
 }
 
 impl CookieStorage {
-    pub fn new(max_cookies: usize) -> CookieStorage {
+    pub fn new(max_cookies: usize, cookie_change_sender: GenericSender<CoreResourceMsg>) -> CookieStorage {
         CookieStorage {
             version: 1,
             cookies_map: HashMap::new(),
             max_per_host: max_cookies,
-            cookie_change_listeners: HashMap::new(),
+            cookie_change_listeners: HashSet::new(),
+            cookie_change_sender: Some(cookie_change_sender),
         }
     }
 
@@ -182,7 +187,10 @@ impl CookieStorage {
                 return;
             }
         }
-        cookies.push(cookie);
+        cookies.push(cookie.clone());
+        if self.cookie_change_listeners.contains(url) {
+            self.cookie_change_sender.as_ref().map(|s| s.send(CoreResourceMsg::CookieChange(url.clone())));
+        }
     }
 
     pub fn cookie_comparator(a: &ServoCookie, b: &ServoCookie) -> Ordering {
@@ -295,14 +303,13 @@ impl CookieStorage {
             .collect()
     }
 
-    pub fn register_listener_for_url(&self, url: &ServoUrl, callback: Box<dyn Fn>) {
-        self.cookie_change_listeners
-            .entry(*url)
-            .and_modify(|v| v.push(callback))
-            .or_insert(vec![callback]);
+    pub fn register_listener_for_url(&mut self, url: &ServoUrl) {
+        self.cookie_change_listeners.insert(url.clone());
     }
 
-    pub fn remove_listener_for_url(url: &ServoUrl) {}
+    pub fn remove_listener_for_url(&mut self, url: ServoUrl) {
+        self.cookie_change_listeners.remove(&url);
+    }
 }
 
 fn reg_host(url: &str) -> String {

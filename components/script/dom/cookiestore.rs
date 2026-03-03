@@ -45,13 +45,15 @@ struct DroppableCookieStore {
     store_id: CookieStoreId,
     #[no_trace]
     unregister_channel: GenericSender<CoreResourceMsg>,
+    #[no_trace]
+    url: ServoUrl,
 }
 
 impl Drop for DroppableCookieStore {
     fn drop(&mut self) {
         let res = self
             .unregister_channel
-            .send(CoreResourceMsg::RemoveCookieListener(self.store_id));
+            .send(CoreResourceMsg::RemoveCookieListener(self.store_id, self.url.clone()));
         if res.is_err() {
             error!("Failed to send cookiestore message to resource threads");
         }
@@ -118,13 +120,14 @@ impl CookieListener {
 }
 
 impl CookieStore {
-    fn new_inherited(unregister_channel: GenericSender<CoreResourceMsg>) -> CookieStore {
+    fn new_inherited(unregister_channel: GenericSender<CoreResourceMsg>, url: ServoUrl) -> CookieStore {
         CookieStore {
             eventtarget: EventTarget::new_inherited(),
             in_flight: Default::default(),
             droppable: DroppableCookieStore {
                 store_id: CookieStoreId::new(),
                 unregister_channel,
+                url,
             },
         }
     }
@@ -133,6 +136,7 @@ impl CookieStore {
         let store = reflect_dom_object(
             Box::new(CookieStore::new_inherited(
                 global.resource_threads().core_thread.clone(),
+                global.creation_url()
             )),
             global,
             can_gc,

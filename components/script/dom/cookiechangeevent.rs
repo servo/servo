@@ -13,6 +13,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext};
@@ -21,11 +22,9 @@ use crate::script_runtime::{CanGc, JSContext};
 pub(crate) struct CookieChangeEvent {
     event: Event,
     changed: DomRefCell<Option<Vec<CookieListItem>>>,
-    #[ignore_malloc_size_of = "mozjs"]
-    frozen_changed: CachedFrozenArray,
+
     deleted: DomRefCell<Option<Vec<CookieListItem>>>,
-    #[ignore_malloc_size_of = "mozjs"]
-    frozen_deleted: CachedFrozenArray,
+
 }
 
 impl CookieChangeEvent {
@@ -33,9 +32,7 @@ impl CookieChangeEvent {
         CookieChangeEvent {
             event: Event::new_inherited(),
             changed: DomRefCell::new(init.changed.clone()),
-            frozen_changed: CachedFrozenArray::new(),
             deleted: DomRefCell::new(init.deleted.clone()),
-            frozen_deleted: CachedFrozenArray::new(),
         }
     }
 
@@ -81,21 +78,11 @@ impl CookieChangeEventMethods<crate::DomTypeHolder> for CookieChangeEvent {
     }
 
     fn Changed(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
-        self.frozen_changed.get_or_init(
-            || self.changed.borrow().iter().collect(),
-            cx,
-            retval,
-            can_gc,
-        );
+        to_frozen_array(self.changed.borrow().as_slice(), cx, retval, can_gc)
     }
 
     fn Deleted(&self, cx: JSContext, can_gc: CanGc, retval: MutableHandleValue) {
-        self.frozen_deleted.get_or_init(
-            || self.deleted.borrow().iter().collect(),
-            cx,
-            retval,
-            can_gc,
-        )
+        to_frozen_array(self.deleted.borrow().as_slice(), cx, retval, can_gc)
     }
 
     fn IsTrusted(&self) -> bool {
