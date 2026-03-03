@@ -1182,12 +1182,12 @@ impl IndexedDBManager {
         };
         if let Some(old_version) = old {
             if old_version == 0 {
-                // IndexedDB §5.8 "Aborting an upgrade transaction" sets connection version to 0
-                // for newly created databases; Servo also drops the just-created backend entry
-                // so it is not observable via `indexedDB.databases()` after the abort.
                 // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-                // Invariant: aborting initial creation leaves no database entry behind.
-                self.databases.remove(&key);
+                // IndexedDB §5.8 Step 3: "or 0 (zero) if database was newly created."
+                // IndexedDB §5.8 Step 4: "or the empty set if database was newly created."
+                if let Some(db) = self.databases.remove(&key) {
+                    let _ = db.delete_database();
+                }
             } else {
                 let Some(db) = self.databases.get_mut(&key) else {
                     return debug_assert!(false, "Db should have been created");
@@ -1247,12 +1247,12 @@ impl IndexedDBManager {
             }
             if let Some(version) = version_to_revert {
                 if version == 0 {
-                    // IndexedDB §5.8 "Aborting an upgrade transaction" sets connection version to 0
-                    // for newly created databases; Servo also drops the just-created backend entry
-                    // so it is not observable via `indexedDB.databases()` after the abort.
                     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-                    // Invariant: aborted initial upgrades must not remain as version-0 databases.
-                    self.databases.remove(&key);
+                    // IndexedDB §5.8 Step 3: "or 0 (zero) if database was newly created."
+                    // IndexedDB §5.8 Step 4: "or the empty set if database was newly created."
+                    if let Some(db) = self.databases.remove(&key) {
+                        let _ = db.delete_database();
+                    }
                 } else {
                     let Some(db) = self.databases.get_mut(&key) else {
                         return debug_assert!(false, "Db should have been created");
