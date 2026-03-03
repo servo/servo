@@ -321,15 +321,26 @@ egui-winit = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e0517
 #
 # Or for Stylo:
 #
+# [patch."https://github.com/servo/stylo"]
+# selectors = { path = "../stylo/selectors" }
+# servo_arc = { path = "../stylo/servo_arc" }
+# stylo = { path = "../stylo/style" }
+# stylo_atoms = { path = "../stylo/stylo_atoms" }
+# stylo_dom = { path = "../stylo/stylo_dom" }
+# stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
+# stylo_static_prefs = { path = "../stylo/stylo_static_prefs" }
+# stylo_traits = { path = "../stylo/style_traits" }
+#
+# TODO: Remove patch once stylo PR lands
 [patch."https://github.com/servo/stylo"]
-selectors = { path = "../stylo/selectors" }
-servo_arc = { path = "../stylo/servo_arc" }
-stylo = { path = "../stylo/style" }
-stylo_atoms = { path = "../stylo/stylo_atoms" }
-stylo_dom = { path = "../stylo/stylo_dom" }
-stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
-stylo_static_prefs = { path = "../stylo/stylo_static_prefs" }
-stylo_traits = { path = "../stylo/style_traits" }
+selectors = { git = "https://github.com/minghuaw/stylo", branch = "feat/first-letter" }
+servo_arc = { git = "https://github.com/minghuaw/stylo", branch = "feat/first-letter" }
+stylo = { git = "https://github.com/minghuaw/stylo", branch = "feat/first-letter" }
+stylo_atoms = { git = "https://github.com/minghuaw/stylo", branch = "feat/first-letter" }
+stylo_dom = { git = "https://github.com/minghuaw/stylo", branch = "feat/first-letter" }
+stylo_malloc_size_of = { git = "https://github.com/minghuaw/stylo", branch = "feat/first-letter" }
+stylo_static_prefs = { git = "https://github.com/minghuaw/stylo", branch = "feat/first-letter" }
+stylo_traits = { git = "https://github.com/minghuaw/stylo", branch = "feat/first-letter" }
 #
 # Or for WebRender:
 #
