@@ -364,6 +364,52 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
     }
 }
 
+fn first_letter_boundary(text: &str) -> usize {
+    use unicode_categories::UnicodeCategories;
+
+    enum State {
+        PrecedingPunc,
+        Lns,
+        SucceedingPunc,
+    }
+
+    let mut iter = text.char_indices();
+    let mut index = 0;
+    let mut state = State::PrecedingPunc;
+
+    // Zero or more punctuations interleaved with zero or more space
+    for (i, c) in iter {
+        index = i;
+        match state {
+            State::PrecedingPunc => {
+                if c.is_letter() || c.is_number() || c.is_symbol() {
+                    state = State::Lns;
+                } else if c.is_punctuation() || c.is_separator_space() {
+                    continue;
+                } else {
+                    return 0;
+                }
+            },
+            State::Lns => {
+                if c.is_punctuation() {
+                    state = State::SucceedingPunc;
+                } else {
+                    return i;
+                }
+            },
+            State::SucceedingPunc => {
+                if c.is_punctuation() {
+                    continue;
+                } else {
+                    return i;
+                }
+            },
+        }
+    }
+
+    index + 1
+}
+
 impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
     fn handle_element(
         &mut self,
@@ -435,7 +481,7 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
         {
             if builder.text_segments.iter().all(|seg| seg.is_empty()) {
                 // TODO: split first_letter properly
-                let index = text.ceil_char_boundary(1);
+                let index = first_letter_boundary(&text[..]);
                 let first_letter = Cow::Borrowed(&text[..index]);
                 range = index..;
                 builder.push_first_letter(first_letter, &pseudo_info, context);
