@@ -364,7 +364,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
     }
 }
 
-fn first_letter_boundary(text: &str) -> usize {
+fn first_letter_range(text: &str) -> std::ops::RangeTo<usize> {
     use unicode_categories::UnicodeCategories;
 
     enum State {
@@ -373,12 +373,11 @@ fn first_letter_boundary(text: &str) -> usize {
         SucceedingPunc,
     }
 
-    let mut iter = text.char_indices();
     let mut index = 0;
     let mut state = State::PrecedingPunc;
 
     // Zero or more punctuations interleaved with zero or more space
-    for (i, c) in iter {
+    for (i, c) in text.char_indices() {
         index = i;
         match state {
             State::PrecedingPunc => {
@@ -387,27 +386,28 @@ fn first_letter_boundary(text: &str) -> usize {
                 } else if c.is_punctuation() || c.is_separator_space() {
                     continue;
                 } else {
-                    return 0;
+                    return ..0;
                 }
             },
             State::Lns => {
                 if c.is_punctuation() {
                     state = State::SucceedingPunc;
                 } else {
-                    return i;
+                    return ..i;
                 }
             },
             State::SucceedingPunc => {
                 if c.is_punctuation() {
                     continue;
                 } else {
-                    return i;
+                    return ..i;
                 }
             },
         }
     }
 
-    index + 1
+    index += 1;
+    ..index
 }
 
 impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
@@ -480,11 +480,10 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
             .with_pseudo_element(context, PseudoElement::FirstLetter)
         {
             if builder.text_segments.iter().all(|seg| seg.is_empty()) {
-                // TODO: split first_letter properly
-                let index = first_letter_boundary(&text[..]);
-                let first_letter = Cow::Borrowed(&text[..index]);
-                range = index..;
+                let first_letter_range = first_letter_range(&text[..]);
+                let first_letter = Cow::Borrowed(&text[first_letter_range]);
                 builder.push_first_letter(first_letter, &pseudo_info, context);
+                range.start = first_letter_range.end;
             }
         }
 
