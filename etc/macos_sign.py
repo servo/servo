@@ -281,9 +281,6 @@ def parse_args() -> argparse.Namespace:
             "     `./etc/macos_sign.py --check-status`\n"
             "  3) Once notarization has passed (this may take a day), staple the dmg and verify it: \n"
             "     `./etc/macos_sign.py --check-status --staple-if-accepted`\n"
-            # "Notarization can take a while; by default we archive the DMG into etc/notarization\n"
-            # "with a timestamp prefix so it is less likely to be removed by cleanup steps.\n"
-            # "Use --no-wait to submit and check later with --check-status."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
