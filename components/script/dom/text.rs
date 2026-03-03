@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::script_runtime::temp_cx;
 
 use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -105,15 +105,15 @@ impl TextMethods<crate::DomTypeHolder> for Text {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-text-wholetext>
-    fn WholeText(&self) -> DOMString {
+    fn WholeText(&self, cx: &mut JSContext) -> DOMString {
         let first = self
             .upcast::<Node>()
-            .inclusively_preceding_siblings_unrooted()
+            .inclusively_preceding_siblings_unrooted(cx.no_gc())
             .take_while(|node| node.is::<Text>())
             .last()
             .unwrap();
         let nodes = first
-            .inclusively_following_siblings_unrooted()
+            .inclusively_following_siblings_unrooted(cx.no_gc())
             .take_while(|node| node.is::<Text>());
         let mut text = String::new();
         for ref node in nodes {
