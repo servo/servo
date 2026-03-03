@@ -214,7 +214,10 @@ class PackageCommands(CommandBase):
 
             print("Copying files")
             shutil.copytree(path.join(dir_to_root, "resources"), dir_to_resources)
-            shutil.copy2(path.join(dir_to_root, "ports/servoshell/platform/macos/Info.plist"), path.join(dir_to_app, "Contents", "Info.plist"))
+            shutil.copy2(
+                path.join(dir_to_root, "ports/servoshell/platform/macos/Info.plist"),
+                path.join(dir_to_app, "Contents", "Info.plist"),
+            )
 
             content_dir = path.join(dir_to_app, "Contents", "MacOS")
             lib_dir = path.join(content_dir, "lib")
