@@ -10,6 +10,7 @@ use std::default::Default;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{fmt, mem};
 
 use app_units::Au;
@@ -212,12 +213,8 @@ pub struct Element {
     #[no_trace]
     state: Cell<ElementState>,
     /// These flags are set by the style system to indicate the that certain
-    /// operations may require restyling this element or its descendants. The
-    /// flags are not atomic, so the style system takes care of only set them
-    /// when it has exclusive access to the element.
-    #[ignore_malloc_size_of = "bitflags defined in rust-selectors"]
-    #[no_trace]
-    selector_flags: Cell<ElementSelectorFlags>,
+    /// operations may require restyling this element or its descendants.
+    selector_flags: AtomicUsize,
     rare_data: DomRefCell<Option<Box<ElementRareData>>>,
 }
 
@@ -329,7 +326,7 @@ impl Element {
             attr_list: Default::default(),
             class_list: Default::default(),
             state: Cell::new(state),
-            selector_flags: Cell::new(ElementSelectorFlags::empty()),
+            selector_flags: Default::default(),
             rare_data: Default::default(),
         }
     }
@@ -1492,13 +1489,12 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[inline]
     fn insert_selector_flags(self, flags: ElementSelectorFlags) {
         debug_assert!(thread_state::get().is_layout());
-        let f = &(self.unsafe_get()).selector_flags;
-        f.set(f.get() | flags);
+        self.unsafe_get().insert_selector_flags(flags);
     }
 
     #[inline]
     fn get_selector_flags(self) -> ElementSelectorFlags {
-        self.unsafe_get().selector_flags.get()
+        self.unsafe_get().get_selector_flags()
     }
 
     #[inline]
@@ -2972,6 +2968,17 @@ impl Element {
         }
 
         -1
+    }
+
+    #[inline]
+    fn insert_selector_flags(&self, flags: ElementSelectorFlags) {
+        self.selector_flags
+            .fetch_or(flags.bits(), Ordering::Relaxed);
+    }
+
+    #[inline]
+    fn get_selector_flags(&self) -> ElementSelectorFlags {
+        ElementSelectorFlags::from_bits_retain(self.selector_flags.load(Ordering::Relaxed))
     }
 }
 
@@ -4746,7 +4753,7 @@ impl VirtualMethods for Element {
             s.children_changed(mutation, can_gc);
         }
 
-        let flags = self.selector_flags.get();
+        let flags = self.get_selector_flags();
         if flags.intersects(ElementSelectorFlags::HAS_SLOW_SELECTOR) {
             // All children of this node need to be restyled when any child changes.
             self.upcast::<Node>().dirty(NodeDamage::Other);
