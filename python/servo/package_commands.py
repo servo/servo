@@ -214,7 +214,10 @@ class PackageCommands(CommandBase):
 
             print("Copying files")
             shutil.copytree(path.join(dir_to_root, "resources"), dir_to_resources)
-            shutil.copy2(path.join(dir_to_root, "Info.plist"), path.join(dir_to_app, "Contents", "Info.plist"))
+            shutil.copy2(
+                path.join(dir_to_root, "ports/servoshell/platform/macos/Info.plist"),
+                path.join(dir_to_app, "Contents", "Info.plist"),
+            )
 
             content_dir = path.join(dir_to_app, "Contents", "MacOS")
             lib_dir = path.join(content_dir, "lib")
@@ -450,7 +453,7 @@ class PackageCommands(CommandBase):
             "ports/servoshell/Cargo.toml": r'^version ?= ?"(?P<version>.*?)"',
             "ports/servoshell/platform/windows/servo.exe.manifest": r'assemblyIdentity[^\/>]+version="(?P<version>.*?).0\"[^\/>]*\/>',
             "support/windows/Servo.wxs.mako": r'<Product(.|\n)*Version="(?P<version>.*?)".*>',
-            "Info.plist": r"<key>CFBundleShortVersionString</key>\n\s*<string>(?P<version>.*?)</string>",
+            "ports/servoshell/platform/macos/Info.plist": r"<key>CFBundleShortVersionString</key>\n\s*<string>(?P<version>.*?)</string>",
             "support/android/apk/servoapp/build.gradle.kts": r'versionName\s*=\s*"(?P<version>.*?)"',
             "support/openharmony/oh-package.json5": r'"version"\s*:\s*"(?P<version>.*?)"',
             "support/openharmony/entry/oh-package.json5": r'"version"\s*:\s*"(?P<version>.*?)"',
