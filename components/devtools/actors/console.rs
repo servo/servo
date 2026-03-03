@@ -73,7 +73,7 @@ fn console_argument_to_value(argument: ConsoleArgument, registry: &ActorRegistry
             // Create a new actor for the object.
             // These are currently never cleaned up, and we make no attempt at re-using the same actor
             // if the same object is logged repeatedly.
-            let actor = ObjectActor::register(registry, None);
+            let actor = ObjectActor::register(registry, None, object.class.clone());
 
             #[derive(Serialize)]
             struct PropertyDescriptor {
@@ -380,9 +380,8 @@ impl ConsoleActor {
             },
             StringValue(s) => Value::String(s),
             ActorValue { class, uuid } => {
-                // TODO: Make initial ActorValue message include these properties?
                 let mut m = Map::new();
-                let actor = ObjectActor::register(registry, Some(uuid));
+                let actor = ObjectActor::register(registry, Some(uuid), class.clone());
 
                 m.insert("type".to_owned(), Value::String("object".to_owned()));
                 m.insert("class".to_owned(), Value::String(class));

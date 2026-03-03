@@ -62,6 +62,7 @@ pub(crate) struct ObjectActorMsg {
 pub(crate) struct ObjectActor {
     name: String,
     _uuid: Option<String>,
+    class: String,
 }
 
 impl Actor for ObjectActor {
@@ -126,12 +127,13 @@ impl Actor for ObjectActor {
 }
 
 impl ObjectActor {
-    pub fn register(registry: &ActorRegistry, uuid: Option<String>) -> String {
+    pub fn register(registry: &ActorRegistry, uuid: Option<String>, class: String) -> String {
         let Some(uuid) = uuid else {
             let name = registry.new_name::<Self>();
             let actor = ObjectActor {
                 name: name.clone(),
                 _uuid: None,
+                class,
             };
             registry.register(actor);
             return name;
@@ -141,6 +143,7 @@ impl ObjectActor {
             let actor = ObjectActor {
                 name: name.clone(),
                 _uuid: Some(uuid.clone()),
+                class,
             };
 
             registry.register_script_actor(uuid, name.clone());
@@ -155,11 +158,10 @@ impl ObjectActor {
 
 impl ActorEncode<ObjectActorMsg> for ObjectActor {
     fn encode(&self, _: &ActorRegistry) -> ObjectActorMsg {
-        // TODO: Review hardcoded values here
         ObjectActorMsg {
             actor: self.name(),
             type_: "object".into(),
-            class: "Window".into(),
+            class: self.class.clone(),
             own_property_length: 0,
             extensible: true,
             frozen: false,
