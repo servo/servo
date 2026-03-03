@@ -379,7 +379,7 @@ impl ConsoleActor {
                 }
             },
             StringValue(s) => Value::String(s),
-            ActorValue { class, uuid } => {
+            ActorValue { class, uuid, name } => {
                 let mut m = Map::new();
                 let actor = ObjectActor::register(registry, Some(uuid), class.clone());
 
@@ -389,6 +389,9 @@ impl ConsoleActor {
                 m.insert("extensible".to_owned(), Value::Bool(true));
                 m.insert("frozen".to_owned(), Value::Bool(false));
                 m.insert("sealed".to_owned(), Value::Bool(false));
+                if let Some(name) = name {
+                    m.insert("name".to_owned(), Value::String(name));
+                }
                 Value::Object(m)
             },
         };

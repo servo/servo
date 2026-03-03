@@ -156,7 +156,11 @@ pub enum EvaluateJSReplyValue {
     BooleanValue(bool),
     NumberValue(f64),
     StringValue(String),
-    ActorValue { class: String, uuid: String },
+    ActorValue {
+        class: String,
+        uuid: String,
+        name: Option<String>,
+    },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
