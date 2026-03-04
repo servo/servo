@@ -1090,7 +1090,8 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
 
         // These pseudo-element type cannot be nested.
         if !self.pseudo_element_chain.is_empty() {
-            assert!(!pseudo_element.is_eager());
+            assert!(pseudo_element != PseudoElement::Before);
+            assert!(pseudo_element != PseudoElement::After);
             assert!(pseudo_element != PseudoElement::DetailsSummary);
             assert!(pseudo_element != PseudoElement::DetailsContent);
         }
