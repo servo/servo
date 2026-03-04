@@ -390,9 +390,11 @@ fn first_letter_range(text: &str) -> std::ops::Range<usize> {
                     // If the ending letter is the first letter
                     end += 1;
                     state = State::Lns;
-                } else {
+                } else if c.is_separator_space() {
                     start = i;
                     continue;
+                } else {
+                    return 0..0;
                 }
             },
             State::PrecedingPunc => {
