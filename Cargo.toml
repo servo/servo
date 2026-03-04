@@ -113,7 +113,7 @@ imsz = "0.4"
 indexmap = { version = "2.11.4", features = ["std"] }
 ipc-channel = "0.21"
 itertools = "0.14"
-js = { package = "mozjs", version = "=0.15.1", default-features = false, features = ["libz-sys", "intl"] }
+js = { package = "mozjs", version = "=0.15.4", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
 layout_api = { package = "servo-layout-api", path = "components/shared/layout" }
@@ -310,6 +310,8 @@ codegen-units = 1
 #
 # mozjs = { path = "../mozjs/mozjs" }
 # mozjs_sys = { path = "../mozjs/mozjs-sys" }
+mozjs = { git = "https://github.com/servo/mozjs.git", rev = "refs/pull/714/head" }
+mozjs_sys = { git = "https://github.com/servo/mozjs.git", rev = "refs/pull/714/head" }
 #
 # Pending egui bumping their accesskit version: https://github.com/emilk/egui/pull/7850
 # This is only used in servoshell.
