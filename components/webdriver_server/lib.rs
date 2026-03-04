@@ -2476,10 +2476,11 @@ impl Handler {
 
         let rect = wait_for_ipc_response_flatten(receiver)?;
 
+        // TODO: Consider writing mode. Convert `rect` before requesting screenshot.
         // Step 5
         let encoded = self.take_screenshot(Some(Rect::from_untyped(&rect)))?;
 
-        // Step 6 return success with data encoded string.
+        // Step 6. return success with data encoded string.
         Ok(WebDriverResponse::Generic(ValueResponse(
             serde_json::to_value(encoded)?,
         )))
