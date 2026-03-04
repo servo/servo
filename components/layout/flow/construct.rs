@@ -364,7 +364,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
     }
 }
 
-fn first_letter_range(text: &str) -> std::ops::Range<usize> {
+fn first_letter_range(text: &str) -> (std::ops::Range<usize>, bool) {
     use unicode_categories::UnicodeCategories;
 
     enum State {
@@ -374,12 +374,13 @@ fn first_letter_range(text: &str) -> std::ops::Range<usize> {
         SucceedingPunc,
     }
 
+    let mut iter = text.char_indices();
     let mut start = 0;
     let mut end = 0;
     let mut state = State::Start;
 
     // Zero or more punctuations interleaved with zero or more space
-    for (i, c) in text.char_indices() {
+    for (i, c) in &mut iter {
         end = i;
         match state {
             State::Start => {
@@ -387,14 +388,13 @@ fn first_letter_range(text: &str) -> std::ops::Range<usize> {
                     start = i;
                     state = State::PrecedingPunc;
                 } else if c.is_letter() || c.is_number() || c.is_symbol() {
-                    // If the ending letter is the first letter
                     end += 1;
                     state = State::Lns;
                 } else if c.is_separator_space() {
                     start = i;
                     continue;
                 } else {
-                    return 0..0;
+                    return (0..0, false);
                 }
             },
             State::PrecedingPunc => {
@@ -404,30 +404,45 @@ fn first_letter_range(text: &str) -> std::ops::Range<usize> {
                 } else if c.is_punctuation() || c.is_separator_space() {
                     continue;
                 } else {
-                    return 0..0;
+                    return (0..0, false);
                 }
             },
             State::Lns => {
-                // If the ending letter is the first letter
-                end += 1;
-                if c.is_punctuation() {
+                if c.is_punctuation() && !c.is_punctuation_open() && !c.is_punctuation_dash() {
                     state = State::SucceedingPunc;
                 } else {
-                    return start..i;
+                    end = i;
+                    break;
                 }
+                end += 1;
             },
             State::SucceedingPunc => {
-                if c.is_punctuation() {
+                // TODO: Intervening typographic space is allowed
+                if c.is_punctuation() && !c.is_punctuation_open() && !c.is_punctuation_dash() {
                     continue;
                 } else {
-                    return start..i;
+                    end = i;
+                    break;
                 }
             },
         }
     }
 
-    // end += 1;
-    start..end
+    let range = start..end;
+    let is_last_letter = iter.next().map_or_else(
+        || true,
+        |(_i, c)| {
+            // <https://www.w3.org/TR/css-text-4/#word-separator>
+            c == '\u{0020}' ||
+                c == '\u{00A0}' ||
+                c == '\u{1361}' ||
+                c == '\u{10100}' ||
+                c == '\u{10101}' ||
+                c == '\u{1039f}'
+        },
+    );
+
+    (range, is_last_letter)
 }
 
 impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
@@ -500,7 +515,7 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
             .with_pseudo_element(context, PseudoElement::FirstLetter)
         {
             if builder.text_segments.iter().all(|seg| seg.is_empty()) {
-                let first_letter_range = first_letter_range(&text[..]);
+                let (first_letter_range, is_last_letter) = first_letter_range(&text[..]);
                 range.start = first_letter_range.end;
 
                 // The first letter range may be some value larger than zero when
@@ -510,7 +525,7 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
                 }
 
                 let first_letter = Cow::Borrowed(&text[first_letter_range]);
-                builder.push_first_letter(first_letter, &pseudo_info, context);
+                builder.push_first_letter(first_letter, &pseudo_info, context, is_last_letter);
             }
         }
 

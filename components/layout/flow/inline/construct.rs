@@ -4,7 +4,10 @@
 
 use std::borrow::Cow;
 use std::char::{ToLowercase, ToUppercase};
+use std::str::FromStr;
 
+use icu_locid::LanguageIdentifier;
+use icu_locid::subtags::{Language, language};
 use icu_segmenter::WordSegmenter;
 use layout_api::wrapper_traits::{SharedSelection, ThreadSafeLayoutNode};
 use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
@@ -75,6 +78,11 @@ pub(crate) struct InlineFormattingContextBuilder {
     /// construction. This is stored in a flat list to make it easy to access the last
     /// item.
     pub inline_items: Vec<InlineItem>,
+
+    /// Whether the last processed inline text run item was appended with a zero-width joiner
+    /// (U+200D). This is to ensure arabic text separated into separate text run due to the
+    /// first-letter pseudo element gets shaped correctly
+    last_inline_text_run_ended_with_zero_width_joiner: bool,
 
     /// The current [`InlineBox`] tree of this [`InlineFormattingContext`] under construction.
     pub inline_boxes: InlineBoxes,
@@ -285,12 +293,13 @@ impl InlineFormattingContextBuilder {
         first_letter: Cow<'dom, str>,
         pseudo_info: &NodeAndStyleInfo<'dom>,
         context: &LayoutContext<'dom>,
+        is_last_letter: bool,
     ) {
         let white_space_collapse = pseudo_info.style.clone_white_space_collapse();
         let text_transform = pseudo_info.style.clone_text_transform().case();
         let mut capitalized_text = String::new();
         let mut character_count = 0;
-        let new_first_letter: String = apply_whitespace_collapse_and_text_transform(
+        let iter = apply_whitespace_collapse_and_text_transform(
             &first_letter[..],
             &mut capitalized_text,
             white_space_collapse,
@@ -300,8 +309,23 @@ impl InlineFormattingContextBuilder {
         )
         .inspect(|_| {
             character_count += 1;
-        })
-        .collect();
+        });
+
+        // Append a zero-width joiner if the writing style changes when letters are joined
+        const LANG_ARAB: Language = language!("ar");
+        let should_append_zwj = !is_last_letter &&
+            matches!(
+                LanguageIdentifier::from_str(&pseudo_info.style.clone__x_lang().0)
+                    .map(|locid| locid.language),
+                Ok(LANG_ARAB)
+            );
+
+        let new_first_letter: String = if should_append_zwj {
+            self.last_inline_text_run_ended_with_zero_width_joiner = true;
+            iter.chain(std::iter::once('\u{200D}')).collect()
+        } else {
+            iter.collect()
+        };
 
         // TODO: text transform etc
         let new_text_range =
@@ -350,20 +374,25 @@ impl InlineFormattingContextBuilder {
         };
 
         let mut character_count = 0;
-        let new_text: String = char_iterator
-            .inspect(|&character| {
-                character_count += 1;
+        let iter = char_iterator.inspect(|&character| {
+            character_count += 1;
 
-                self.is_empty = self.is_empty &&
-                    match white_space_collapse {
-                        WhiteSpaceCollapse::Collapse => character.is_ascii_whitespace(),
-                        WhiteSpaceCollapse::PreserveBreaks => {
-                            character.is_ascii_whitespace() && character != '\n'
-                        },
-                        WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces => false,
-                    };
-            })
-            .collect();
+            self.is_empty = self.is_empty &&
+                match white_space_collapse {
+                    WhiteSpaceCollapse::Collapse => character.is_ascii_whitespace(),
+                    WhiteSpaceCollapse::PreserveBreaks => {
+                        character.is_ascii_whitespace() && character != '\n'
+                    },
+                    WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces => false,
+                };
+        });
+
+        let new_text: String = if self.last_inline_text_run_ended_with_zero_width_joiner {
+            self.last_inline_text_run_ended_with_zero_width_joiner = false;
+            std::iter::once('\u{200D}').chain(iter).collect()
+        } else {
+            iter.collect()
+        };
 
         if new_text.is_empty() {
             return;
