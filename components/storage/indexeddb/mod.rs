@@ -1171,6 +1171,11 @@ impl IndexedDBManager {
                 // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
                 // IndexedDB §5.8 Step 3: "or 0 (zero) if database was newly created."
                 // IndexedDB §5.8 Step 4: "or the empty set if database was newly created."
+                // During open we eagerly create the backing DB with version 0 and no stores.
+                // If that first upgrade aborts, the required rollback target is the
+                // pre creation state (database does not exist), not a persisted placeholder.
+                // Removing it from `self.databases` and deleting the backing store restores
+                // that state in one step.
                 if let Some(db) = self.databases.remove(&key) {
                     let _ = db.delete_database();
                 }
@@ -1236,6 +1241,11 @@ impl IndexedDBManager {
                     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
                     // IndexedDB §5.8 Step 3: "or 0 (zero) if database was newly created."
                     // IndexedDB §5.8 Step 4: "or the empty set if database was newly created."
+                    // During open we eagerly create the backing DB with version 0 and no stores.
+                    // If that first upgrade aborts, the required rollback target is the
+                    // pre creation state (database does not exist), not a persisted placeholder.
+                    // Removing it from `self.databases` and deleting the backing store restores
+                    // that state in one step.
                     if let Some(db) = self.databases.remove(&key) {
                         let _ = db.delete_database();
                     }
