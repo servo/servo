@@ -173,17 +173,54 @@ impl IDBObjectStore {
         self.has_key_generator
     }
 
-    fn reserve_generated_key_for_put(&self) -> Fallible<(IndexedDBKeyType, i32)> {
+    /// <https://w3c.github.io/IndexedDB/#generate-a-key>
+    fn generate_key_for_put(&self) -> Fallible<(IndexedDBKeyType, i32)> {
+        // Step 1. Let generator be store's key generator.
         let Some(current_number) = self.key_generator_current_number.get() else {
             return Err(Error::Data(None));
         };
+        // Step 2. Let key be generator's current number.
+        let key = current_number as f64;
+        // Step 3. If key is greater than 2^53 (9007199254740992), then return failure.
+        if key > 9_007_199_254_740_992.0 {
+            return Err(Error::Constraint(None));
+        }
+        // Step 4. Increase generator's current number by 1.
         let next_current_number = current_number
             .checked_add(1)
             .ok_or(Error::Constraint(None))?;
-        Ok((
-            IndexedDBKeyType::Number(current_number as f64),
-            next_current_number,
-        ))
+        // Step 5. Return key.
+        Ok((IndexedDBKeyType::Number(key), next_current_number))
+    }
+
+    /// <https://w3c.github.io/IndexedDB/#possibly-update-the-key-generator>
+    fn possibly_update_the_key_generator(&self, key: &IndexedDBKeyType) -> Option<i32> {
+        // Step 1. If the type of key is not number, abort these steps.
+        let IndexedDBKeyType::Number(number) = key else {
+            return None;
+        };
+
+        // Step 2. Let value be the value of key.
+        let mut value = *number;
+        // Step 3. Set value to the minimum of value and 2^53 (9007199254740992).
+        value = value.min(9_007_199_254_740_992.0);
+        // Step 4. Set value to the largest integer not greater than value.
+        value = value.floor();
+        // Step 5. Let generator be store's key generator.
+        let current_number = self.key_generator_current_number.get()?;
+        // Step 6. If value is greater than or equal to generator's current number,
+        // then set generator's current number to value + 1.
+        if value < current_number as f64 {
+            return None;
+        }
+
+        let next = value + 1.0;
+        // Servo currently stores the key generator current number as i32.
+        // Saturate to keep "no more generated keys" behavior when this overflows.
+        if next >= i32::MAX as f64 {
+            return Some(i32::MAX);
+        }
+        Some(next as i32)
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#object-store-in-line-keys>
@@ -265,9 +302,10 @@ impl IDBObjectStore {
         let key_generator_current_number_for_put: Option<i32>;
 
         if !key.is_undefined() {
-            serialized_key = Some(convert_value_to_key(cx, key, None)?.into_result()?);
+            let key = convert_value_to_key(cx, key, None)?.into_result()?;
+            key_generator_current_number_for_put = self.possibly_update_the_key_generator(&key);
+            serialized_key = Some(key);
             maybe_modified_cloned_value = None;
-            key_generator_current_number_for_put = None;
         } else {
             match self.key_path.as_ref() {
                 Some(key_path) => {
@@ -294,8 +332,9 @@ impl IDBObjectStore {
                         ExtractionResult::Invalid => return Err(Error::Data(None)),
                         // Step 11.3. If kpk is not failure, let key be kpk.
                         ExtractionResult::Key(kpk) => {
+                            key_generator_current_number_for_put =
+                                self.possibly_update_the_key_generator(&kpk);
                             serialized_key = Some(kpk);
-                            key_generator_current_number_for_put = None;
                         },
                         ExtractionResult::Failure => {
                             // Step 11.4. Otherwise:
@@ -315,7 +354,7 @@ impl IDBObjectStore {
                             }
                             // Step 11.4.3. Let key be the result of generating a key for store.
                             let (generated_key, next_current_number) =
-                                self.reserve_generated_key_for_put()?;
+                                self.generate_key_for_put()?;
                             // Step 11.4.4. Inject key into value.
                             if !inject_key_into_value(
                                 cx,

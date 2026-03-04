@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use base::threadpool::ThreadPool;
-use log::{error, info};
+use log::{error, info, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
@@ -425,17 +425,23 @@ impl KvsEngine for SqliteEngine {
                             Some(key) => (key, key_generator_current_number),
                             None => {
                                 if object_store.auto_increment == 0 {
-                                    let _ = callback.send(Err(BackendError::DbErr(
+                                    if let Err(error) = callback.send(Err(BackendError::DbErr(
                                         "Missing key for PutItem request".to_string(),
-                                    )));
+                                    ))) {
+                                        warn!("Failed to send PutItem missing key error: {error:?}");
+                                    }
                                     continue;
                                 }
                                 let Some(next_key_generator_current_number) =
                                     object_store.auto_increment.checked_add(1)
                                 else {
-                                    let _ = callback.send(Err(BackendError::DbErr(
+                                    if let Err(error) = callback.send(Err(BackendError::DbErr(
                                         "Key generator overflow".to_string(),
-                                    )));
+                                    ))) {
+                                        warn!(
+                                            "Failed to send PutItem key generator overflow error: {error:?}"
+                                        );
+                                    }
                                     continue;
                                 };
                                 (
