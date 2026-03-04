@@ -364,6 +364,11 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
     }
 }
 
+/// Computes the range of the first letter. Returns the range and whether
+/// the letter is also the last letter. Returns a range 0..0 when no
+/// letter is found.
+///
+/// <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
 fn first_letter_range(text: &str) -> (std::ops::Range<usize>, bool) {
     use unicode_categories::UnicodeCategories;
 
@@ -379,7 +384,6 @@ fn first_letter_range(text: &str) -> (std::ops::Range<usize>, bool) {
     let mut end = 0;
     let mut state = State::Start;
 
-    // Zero or more punctuations interleaved with zero or more space
     for (i, c) in &mut iter {
         end = i;
         match state {
@@ -417,7 +421,8 @@ fn first_letter_range(text: &str) -> (std::ops::Range<usize>, bool) {
                 end += 1;
             },
             State::SucceedingPunc => {
-                // TODO: Intervening typographic space is allowed
+                // TODO: Implement support for intervening spaces
+                // <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
                 if c.is_punctuation() && !c.is_punctuation_open() && !c.is_punctuation_dash() {
                     continue;
                 } else {
