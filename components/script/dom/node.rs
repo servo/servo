@@ -28,7 +28,7 @@ use layout_api::wrapper_traits::SharedSelection;
 use layout_api::{
     BoxAreaType, CSSPixelRectIterator, GenericLayoutData, HTMLCanvasData, HTMLMediaData,
     LayoutElementType, LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData, StyleData,
-    TrustedNodeAddress,
+    TrustedNodeAddress, with_layout_state,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -1169,9 +1169,12 @@ impl Node {
 
         // SAFETY: traced_node is unrooted, but we have a reference to "self" so it won't be freed.
         let traced_node = Dom::from_ref(self);
-        let layout_node = unsafe { traced_node.to_layout() };
-        let first_matching_element = ServoLayoutNode::from_layout_js(layout_node)
-            .scope_match_a_selectors_string::<QueryFirst>(document_url, &selectors.str())?;
+
+        let first_matching_element = with_layout_state(|| {
+            let layout_node = unsafe { traced_node.to_layout() };
+            ServoLayoutNode::from_layout_js(layout_node)
+                .scope_match_a_selectors_string::<QueryFirst>(document_url, &selectors.str())
+        })?;
 
         Ok(first_matching_element
             .map(|element| DomRoot::from_ref(unsafe { element.to_layout_js().as_ref() })))
@@ -1187,9 +1190,11 @@ impl Node {
 
         // SAFETY: traced_node is unrooted, but we have a reference to "self" so it won't be freed.
         let traced_node = Dom::from_ref(self);
-        let layout_node = unsafe { traced_node.to_layout() };
-        let matching_elements = ServoLayoutNode::from_layout_js(layout_node)
-            .scope_match_a_selectors_string::<QueryAll>(document_url, &selectors.str())?;
+        let matching_elements = with_layout_state(|| {
+            let layout_node = unsafe { traced_node.to_layout() };
+            ServoLayoutNode::from_layout_js(layout_node)
+                .scope_match_a_selectors_string::<QueryAll>(document_url, &selectors.str())
+        })?;
         let iter = matching_elements
             .into_iter()
             .map(|element| DomRoot::from_ref(unsafe { element.to_layout_js().as_ref() }))

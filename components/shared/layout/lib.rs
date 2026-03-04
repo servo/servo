@@ -56,6 +56,7 @@ use style::properties::{ComputedValues, PropertyId};
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::str::char_is_whitespace;
 use style::stylesheets::{DocumentStyleSheet, Stylesheet, UrlExtraData};
+use style::thread_state::{self, ThreadState};
 use style::values::computed::Overflow;
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
@@ -868,6 +869,39 @@ impl AnimatingImages {
     pub fn is_empty(&self) -> bool {
         self.node_to_state_map.is_empty()
     }
+}
+
+struct ThreadStateRestorer;
+
+impl ThreadStateRestorer {
+    fn new() -> Self {
+        #[cfg(debug_assertions)]
+        {
+            thread_state::exit(ThreadState::SCRIPT);
+            thread_state::enter(ThreadState::LAYOUT);
+        }
+        Self
+    }
+}
+
+impl Drop for ThreadStateRestorer {
+    fn drop(&mut self) {
+        #[cfg(debug_assertions)]
+        {
+            thread_state::exit(ThreadState::LAYOUT);
+            thread_state::enter(ThreadState::SCRIPT);
+        }
+    }
+}
+
+/// Set up the thread-local state to reflect that layout code is about to run,
+/// then call the provided function.
+/// This must be used when running code that will interact with the DOM tree
+/// through types like `ServoLayoutNode`, `ServoLayoutElement`, and `LayoutDom`,
+/// which have rules about how they must be used from layout worker threads.
+pub fn with_layout_state<R>(f: impl FnOnce() -> R) -> R {
+    let _guard = ThreadStateRestorer::new();
+    f()
 }
 
 #[cfg(test)]
