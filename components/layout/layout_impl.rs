@@ -26,6 +26,7 @@ use layout_api::{
     OffsetParentResponse, PhysicalSides, PropertyRegistration, QueryMsg, ReflowGoal,
     ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult, ReflowStatistics,
     RegisterPropertyError, ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
+    with_layout_state,
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -71,7 +72,6 @@ use style::stylesheets::{
     CustomMediaMap, DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument,
 };
 use style::stylist::Stylist;
-use style::thread_state::{self, ThreadState};
 use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
 use style::values::computed::font::GenericFontFamily;
@@ -221,39 +221,6 @@ impl LayoutFactory for LayoutFactoryImpl {
     fn create(&self, config: LayoutConfig) -> Box<dyn Layout> {
         Box::new(LayoutThread::new(config))
     }
-}
-
-struct ThreadStateRestorer;
-
-impl ThreadStateRestorer {
-    fn new() -> Self {
-        #[cfg(debug_assertions)]
-        {
-            thread_state::exit(ThreadState::SCRIPT);
-            thread_state::enter(ThreadState::LAYOUT);
-        }
-        Self
-    }
-}
-
-impl Drop for ThreadStateRestorer {
-    fn drop(&mut self) {
-        #[cfg(debug_assertions)]
-        {
-            thread_state::exit(ThreadState::LAYOUT);
-            thread_state::enter(ThreadState::SCRIPT);
-        }
-    }
-}
-
-/// Set up the thread-local state to reflect that layout code is about to run,
-/// then call the provided function.
-/// This must be used when running code that will interact with the DOM tree
-/// through types like `ServoLayoutNode`, `ServoLayoutElement`, and `LayoutDom`,
-/// which have rules about how they must be used from layout worker threads.
-fn with_layout_state<R>(f: impl FnOnce() -> R) -> R {
-    let _guard = ThreadStateRestorer::new();
-    f()
 }
 
 impl Drop for LayoutThread {

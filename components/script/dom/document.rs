@@ -3614,6 +3614,7 @@ pub(crate) trait LayoutDocumentHelpers<'dom> {
     fn shadow_roots(self) -> Vec<LayoutDom<'dom, ShadowRoot>>;
     fn shadow_roots_styles_changed(self) -> bool;
     fn flush_shadow_roots_stylesheets(self);
+    fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>];
 }
 
 #[expect(unsafe_code)]
@@ -3657,6 +3658,12 @@ impl<'dom> LayoutDocumentHelpers<'dom> for LayoutDom<'dom, Document> {
     #[inline]
     fn flush_shadow_roots_stylesheets(self) {
         (*self.unsafe_get()).flush_shadow_roots_stylesheets()
+    }
+
+    fn elements_with_id(self, id: &Atom) -> &[LayoutDom<'dom, Element>] {
+        let id_map = unsafe { self.unsafe_get().id_map.borrow_for_layout() };
+        let matching_elements = id_map.get(id).map(Vec::as_slice).unwrap_or_default();
+        unsafe { LayoutDom::to_layout_slice(matching_elements) }
     }
 }
 
@@ -5996,14 +6003,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
-        let root = self.upcast::<Node>();
-        root.query_selector(selectors)
+        self.upcast::<Node>().query_selector(selectors)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
     fn QuerySelectorAll(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
-        let root = self.upcast::<Node>();
-        root.query_selector_all(selectors)
+        self.upcast::<Node>().query_selector_all(selectors)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-readystate>
