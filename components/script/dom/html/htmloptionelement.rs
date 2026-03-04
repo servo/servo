@@ -89,6 +89,9 @@ impl HTMLOptionElement {
 
     pub(crate) fn set_selectedness(&self, selected: bool) {
         self.selectedness.set(selected);
+        // Bump the tree version so that any live HTMLCollection (e.g. selectedOptions)
+        // rooted at an ancestor invalidates its cached length and cursor.
+        self.upcast::<Node>().rev_version();
     }
 
     pub(crate) fn set_dirtiness(&self, dirtiness: bool) {
@@ -373,7 +376,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-option-selected>
     fn SetSelected(&self, selected: bool, can_gc: CanGc) {
         self.dirtiness.set(true);
-        self.selectedness.set(selected);
+        self.set_selectedness(selected);
         self.pick_if_selected_and_reset();
         self.update_select_validity(can_gc);
     }
