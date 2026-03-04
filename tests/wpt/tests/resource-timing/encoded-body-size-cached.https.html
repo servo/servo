@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="timeout" content="long"/>
+  <title>PerformanceResourceTiming.encodedBodySize and transferSize for cached dictionary-compressed resources</title>
+  <link rel="help" href="https://www.w3.org/TR/resource-timing-2/#dom-performanceresourcetiming-encodedbodysize" />
+  <link rel="help" href="https://www.w3.org/TR/resource-timing-2/#dom-performanceresourcetiming-transfersize" />
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/fetch/compression-dictionary/resources/compression-dictionary-util.sub.js"></script>
+  <script>
+    const waitForResourceTiming = (url) => {
+      return new Promise(resolve => {
+        const observer = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          for (const entry of entries) {
+            if (entry.name.includes(url)) {
+              observer.disconnect();
+              resolve(entry);
+            }
+          }
+        });
+        observer.observe({ entryTypes: ["resource"] });
+      });
+    };
+
+    const registerDictionaryUrl = SAME_ORIGIN_RESOURCES_URL + '/register-dictionary.py';
+    const compressedDataUrl = SAME_ORIGIN_RESOURCES_URL + '/compressed-data.py';
+    const echoHeadersUrl = SAME_ORIGIN_RESOURCES_URL + '/echo-headers.py';
+
+    // The large test data: 10x the dictionary text plus extra content (348
+    // bytes decoded). This compresses well with the dictionary so the encoded
+    // size is genuinely smaller than the decoded size.
+    const kLargeExpectedData =
+        'This is a test dictionary. '.repeat(10) +
+        'This is additional test data that also references the test dictionary content.';
+
+    // Waits until the available-dictionary header is present in requests.
+    // We can't use waitUntilAvailableDictionaryHeader() from the shared util
+    // because it uses relative paths to echo-headers.py that don't resolve
+    // from the /resource-timing/ directory.
+    async function waitForDictionary(t) {
+      for (let i = 0; i < kCheckHeaderMaxRetry; i++) {
+        const headers = await (await fetch(echoHeadersUrl)).json();
+        if (headers['available-dictionary'] === kDefaultDictionaryHashBase64) {
+          return;
+        }
+        await new Promise(r => t.step_timeout(r, kCheckHeaderRetryTimeout));
+      }
+      assert_unreached('Dictionary was not registered in time');
+    }
+
+    // Runs a single encodedBodySize/transferSize cache preservation test.
+    async function runCacheTest(t, encoding, expectedData, expectedEncodedSize,
+                                expectedDecodedSize, queryExtra) {
+      const dict = await (await fetch(registerDictionaryUrl)).text();
+      assert_equals(dict, kDefaultDictionaryContent);
+      await waitForDictionary(t);
+
+      const unique = Date.now();
+      const url = `${compressedDataUrl}?content_encoding=${encoding}&cacheable${queryExtra}&unique=${unique}`;
+
+      // First fetch: from network with dictionary compression.
+      performance.clearResourceTimings();
+      const timingPromise1 = waitForResourceTiming(url);
+      const response1 = await fetch(url);
+      const text1 = await response1.text();
+      assert_equals(text1, expectedData,
+        "First fetch: resource should decompress correctly");
+      const entry1 = await timingPromise1;
+
+      assert_equals(entry1.contentEncoding, encoding,
+        "First fetch: contentEncoding should indicate dictionary compression");
+      assert_equals(entry1.decodedBodySize, expectedDecodedSize,
+        "First fetch: decodedBodySize should match uncompressed size");
+      assert_equals(entry1.encodedBodySize, expectedEncodedSize,
+        "First fetch: encodedBodySize should match compressed size");
+      assert_greater_than(entry1.transferSize, 0,
+        "First fetch: transferSize should be greater than 0 for a network fetch");
+
+      // Second fetch: should come from cache.
+      performance.clearResourceTimings();
+      const timingPromise2 = waitForResourceTiming(url);
+      const response2 = await fetch(url);
+      const text2 = await response2.text();
+      assert_equals(text2, expectedData,
+        "Cached fetch: resource should still decompress correctly");
+      const entry2 = await timingPromise2;
+
+      assert_equals(entry2.contentEncoding, encoding,
+        "Cached fetch: contentEncoding should still indicate dictionary compression");
+      assert_equals(entry2.decodedBodySize, expectedDecodedSize,
+        "Cached fetch: decodedBodySize should match uncompressed size");
+      assert_equals(entry2.encodedBodySize, expectedEncodedSize,
+        "Cached fetch: encodedBodySize should match the original compressed size, not the decompressed cache size");
+      assert_equals(entry2.transferSize, 0,
+        "Cached fetch: transferSize should be 0 for a cache hit");
+    }
+
+    // These tests use large payloads where the encoded size is genuinely
+    // smaller than the decoded size (the typical real-world case). This
+    // ensures the cache truncation check (Content-Length vs cached body size)
+    // does not incorrectly discard the cached entry.
+    // 348 bytes decoded -> 93 bytes DCB / 117 bytes DCZ.
+    compression_dictionary_promise_test(async (t) => {
+      await runCacheTest(t, 'dcb', kLargeExpectedData, 93, 348, '&large');
+    }, "encodedBodySize and transferSize for dictionary-compressed (dcb) resource served from cache");
+
+    compression_dictionary_promise_test(async (t) => {
+      await runCacheTest(t, 'dcz', kLargeExpectedData, 117, 348, '&large');
+    }, "encodedBodySize and transferSize for dictionary-compressed (dcz) resource served from cache");
+  </script>
+</head>
+<body>
+  <h1>Description</h1>
+  <p>
+    This test validates that PerformanceResourceTiming.encodedBodySize correctly
+    reports the original dictionary-compressed body size even when the resource
+    is served from the disk cache (where dictionary-compressed responses are
+    stored uncompressed), and that transferSize is 0 for cached responses.
+  </p>
+</body>
+</html>
+

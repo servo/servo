@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="help" href="https://www.w3.org/TR/css-view-transitions-2/">
-  <title>view-transition-scope: auto + display: contents</title>
+  <title>view-transition-scope: all + display: contents</title>
 </head>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -18,7 +18,7 @@
   }
 
   .scoped {
-    view-transition-scope: auto;
+    view-transition-scope: all;
   }
 
   .display-contents {
@@ -51,7 +51,7 @@
     await vt.ready;
     assert_array_equals(
         capturedNames(), ['inner', 'outer', 'root'],
-        'Retrieve all names in absence of view-transition-scope: auto');
+        'Retrieve all names in absence of view-transition-scope: all');
     vt.skipTransition();
 
     middle.classList.toggle('scoped');
@@ -59,7 +59,7 @@
     await vt.ready;
     assert_array_equals(
         capturedNames(), ['outer', 'root'],
-        'view-transition-scope: auto blocks tag discovery in subtree ' +
+        'view-transition-scope: all blocks tag discovery in subtree ' +
         'even if on a non-positioned element');
     vt.skipTransition();
 
@@ -68,7 +68,7 @@
     await vt.ready;
     assert_array_equals(
         capturedNames(), ['outer', 'root'],
-        'view-transition-scope: auto blocks tag discovery in subtree ' +
+        'view-transition-scope: all blocks tag discovery in subtree ' +
         'even if display: contents');
     vt.skipTransition();
   }, 'Setting view-transition-scope to auto blocks propagation of name ' +

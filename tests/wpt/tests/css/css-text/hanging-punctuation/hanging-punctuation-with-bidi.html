@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Text: hanging-punctuation first with bidi content</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hanging-punctuation-property">
+<link rel="match" href="reference/hanging-punctuation-with-bidi-ref.html">
+<meta name="assert" content="hanging-punctuation: first causes opening punctuation to hang regardless of whether the content following it uses bidi isolation, is wrapped in a span, or is in a ruby element.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div {
+  font-family: Ahem;
+  font-size: 20px;
+  background-color: blue;
+  hanging-punctuation: first;
+  color: green;
+  margin-left: 12px;
+}
+</style>
+<div>"content</div>
+<div>"<span>content</span></div>
+<div>"<span style="unicode-bidi: isolate">content</span></div>
+<div>"<ruby>content</ruby></div>

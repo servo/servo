@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: ::picker-icon & web animations</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-forms/#picker-icon">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/">
+<meta name="assert" content="This test checks that ::picker-icon can be animated with Web Animations.">
+<style>
+select { appearance: base-select; }
+</style>
+<div id="log"></div>
+<select id="target">
+  <option>option</option>
+</select>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const target = document.getElementById("target");
+
+test(function() {
+  const options = {
+    pseudoElement: "::picker-icon",
+    duration: 2,
+    delay: -1,
+  };
+  const cs = getComputedStyle(target, "::picker-icon");
+  const anim = target.animate([
+    {color: "rgb(0, 100, 200)"},
+    {color: "rgb(200, 0, 100)"},
+  ], options);
+  this.add_cleanup(() => anim.cancel());
+  assert_equals(cs.color, "rgb(100, 50, 150)", "color");
+}, "::picker-icon pseudo-element animates");
+</script>

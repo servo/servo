@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<head>
+
+<title>Long chained anchor crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position/">
+
+<style>
+  .box {
+    position: absolute;
+    position-anchor: --target-1;
+    top: anchor(top);
+    left: anchor(right);
+    width: 50px;
+    height: 50px;
+    background: red;
+  }
+
+  .container {
+    position: relative;
+    display: inline;
+  }
+
+  .anchor-node {
+    position: absolute;
+    top: anchor(top);
+    left: anchor(right);
+    width: 50px;
+    height: 50px;
+  }
+
+  /* The final anchor that positions the entire chain */
+  .root-anchor {
+    width: 50px;
+    height: 50px;
+    background: yellow;
+    margin-top: 300px;
+    margin-left: 100px;
+    position: absolute;
+  }
+</style>
+
+<script>
+function randombgcolor() {
+  const randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+  document.getElementById("thebox").style.backgroundColor = randomColor;
+  document.getElementById("theroot").style.backgroundColor = randomColor;
+}
+async function makechanges() {
+  for (let i = 0; i < 5; i++) {
+    randombgcolor();
+    await new Promise(r => requestAnimationFrame(r));
+  }
+  document.documentElement.classList.remove("test-wait");
+}
+document.documentElement.addEventListener("TestRendered", makechanges);
+</script>
+</head>
+<body>
+  <button onclick="randombgcolor()">change bg color</button>
+
+  <div id="thebox" class="box">Box</div>
+
+  <div id="root-container"></div>
+
+  <script>
+    const N = 100; // Total number of anchors to create
+    const rootContainer = document.getElementById('root-container');
+
+    let currentParent = rootContainer;
+
+    for (let i = 1; i <= N; i++) {
+      // 1. Create the container
+      const container = document.createElement('div');
+      container.className = 'container';
+
+      // 2. Create the anchor element
+      const anchor = document.createElement('div');
+      anchor.innerText = i;
+
+      // Set the anchor name so the previous element can find it
+      anchor.style.anchorName = `--target-${i}`;
+
+      if (i < N) {
+        // Continue the chain: point to the NEXT anchor
+        anchor.className = 'anchor-node';
+        anchor.style.positionAnchor = `--target-${i + 1}`;
+        anchor.style.background = `hsl(${(i * 40) % 360}, 60%, 50%)`;
+      } else {
+        // This is the final anchor
+        anchor.className = 'root-anchor';
+        anchor.id = "theroot"
+        anchor.innerText = "ROOT";
+      }
+
+      // 3. Nesting: Put the anchor and the next container inside the current container
+      container.appendChild(anchor);
+      currentParent.appendChild(container);
+
+      // Move the pointer so the next iteration nests inside this one
+      currentParent = container;
+    }
+  </script>
+</body>
+</html>

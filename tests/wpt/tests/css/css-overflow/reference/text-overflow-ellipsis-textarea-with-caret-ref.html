@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference for text-overflow ellipsis in textarea with caret selection</title>
+<style>
+  #textarea {
+    font: 20px/1;
+    width: 100px;
+    height: 25px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+    margin: 10px;
+    resize: none;
+    outline: none;
+    border: none;
+  }
+</style>
+<textarea id="textarea">This is a very long text that should be clipped</textarea>
+<script>
+  // Focus the textarea and place caret at the same position as test
+  const textarea = document.getElementById('textarea');
+  textarea.focus();
+  textarea.setSelectionRange(10, 10);
+</script>
