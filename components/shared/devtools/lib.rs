@@ -349,6 +349,7 @@ pub enum DevtoolScriptControlMsg {
     ClearBreakpoint(u32, u32, u32),
     Interrupt,
     Resume(Option<String>, Option<String>),
+    ListFrames(PipelineId, u32, u32),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]

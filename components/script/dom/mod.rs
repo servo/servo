@@ -257,6 +257,7 @@ pub(crate) mod datatransferitemlist;
 pub(crate) mod debuggeradddebuggeeevent;
 pub(crate) mod debuggerclearbreakpointevent;
 pub(crate) mod debuggerevalevent;
+pub(crate) mod debuggerframeevent;
 pub(crate) mod debuggergetpossiblebreakpointsevent;
 pub(crate) mod debuggerglobalscope;
 pub(crate) mod debuggerinterruptevent;

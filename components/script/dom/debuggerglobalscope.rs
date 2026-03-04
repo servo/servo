@@ -37,6 +37,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::debuggerclearbreakpointevent::DebuggerClearBreakpointEvent;
+use crate::dom::debuggerframeevent::DebuggerFrameEvent;
 use crate::dom::debuggerinterruptevent::DebuggerInterruptEvent;
 use crate::dom::debuggerresumeevent::DebuggerResumeEvent;
 use crate::dom::debuggersetbreakpointevent::DebuggerSetBreakpointEvent;
@@ -244,6 +245,29 @@ impl DebuggerGlobalScope {
         assert!(
             event.fire(self.upcast(), can_gc),
             "Guaranteed by DebuggerInterruptEvent::new"
+        );
+    }
+
+    pub(crate) fn fire_list_frames(
+        &self,
+        pipeline_id: PipelineId,
+        start: u32,
+        count: u32,
+        can_gc: CanGc,
+    ) {
+        let _realm = enter_realm(self);
+        let pipeline_id =
+            crate::dom::pipelineid::PipelineId::new(self.upcast(), pipeline_id, can_gc);
+        let event = DomRoot::upcast::<Event>(DebuggerFrameEvent::new(
+            self.upcast(),
+            &pipeline_id,
+            start,
+            count,
+            can_gc,
+        ));
+        assert!(
+            event.fire(self.upcast(), can_gc),
+            "Guaranteed by DebuggerFrameEvent::new"
         );
     }
 
@@ -517,5 +541,9 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         let _ = chan.send(msg);
 
         rx.recv().ok().map(DOMString::from)
+    }
+
+    fn ListFramesResult(&self, _frame_actor_ids: Vec<DOMString>) {
+        log::debug!("Not implemented yet")
     }
 }
