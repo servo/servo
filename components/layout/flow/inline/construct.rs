@@ -301,7 +301,7 @@ impl InlineFormattingContextBuilder {
         .inspect(|_| {
             character_count += 1;
         })
-        .collect();        
+        .collect();
 
         // TODO: text transform etc
         let new_text_range =
