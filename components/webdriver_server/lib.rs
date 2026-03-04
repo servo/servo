@@ -431,17 +431,16 @@ enum VerifyBrowsingContextIsOpen {
     No,
 }
 
-enum ImplicitWait {
-    Return,
-    #[expect(dead_code, reason = "This will be used in the next patch")]
-    Continue,
+enum ImplicitWaitCanEarlyReturn {
+    Yes,
+    No,
 }
 
-impl From<ImplicitWait> for bool {
-    fn from(implicit_wait: ImplicitWait) -> Self {
+impl From<ImplicitWaitCanEarlyReturn> for bool {
+    fn from(implicit_wait: ImplicitWaitCanEarlyReturn) -> Self {
         match implicit_wait {
-            ImplicitWait::Return => true,
-            ImplicitWait::Continue => false,
+            ImplicitWaitCanEarlyReturn::Yes => true,
+            ImplicitWaitCanEarlyReturn::No => false,
         }
     }
 }
@@ -1461,10 +1460,10 @@ impl Handler {
                 ),
             };
             self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)
-                .map_err(|error| (ImplicitWait::Return.into(), error))?;
+                .map_err(|error| (ImplicitWaitCanEarlyReturn::Yes.into(), error))?;
             wait_for_ipc_response_flatten(receiver)
                 .map(|value| (!value.is_empty(), value))
-                .map_err(|error| (ImplicitWait::Return.into(), error))
+                .map_err(|error| (ImplicitWaitCanEarlyReturn::Yes.into(), error))
         })
         .and_then(|response| {
             let resp_value: Vec<WebElement> = response.into_iter().map(WebElement).collect();
@@ -1535,10 +1534,10 @@ impl Handler {
                 ),
             };
             self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)
-                .map_err(|error| (ImplicitWait::Return.into(), error))?;
+                .map_err(|error| (ImplicitWaitCanEarlyReturn::Yes.into(), error))?;
             wait_for_ipc_response_flatten(receiver)
                 .map(|value| (!value.is_empty(), value))
-                .map_err(|error| (ImplicitWait::Return.into(), error))
+                .map_err(|error| (ImplicitWaitCanEarlyReturn::Yes.into(), error))
         })
         .and_then(|response| {
             let resp_value: Vec<Value> = response
@@ -1600,10 +1599,10 @@ impl Handler {
                 ),
             };
             self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)
-                .map_err(|error| (ImplicitWait::Return.into(), error))?;
+                .map_err(|error| (ImplicitWaitCanEarlyReturn::Yes.into(), error))?;
             wait_for_ipc_response_flatten(receiver)
                 .map(|value| (!value.is_empty(), value))
-                .map_err(|error| (ImplicitWait::Return.into(), error))
+                .map_err(|error| (ImplicitWaitCanEarlyReturn::Yes.into(), error))
         })
         .and_then(|response| {
             let resp_value: Vec<Value> = response
@@ -2272,12 +2271,23 @@ impl Handler {
         // Step 2. Try to handle any user prompt.
         self.handle_any_user_prompts(self.webview_id()?)?;
 
-        // Step 3-11 handled in script thread.
-        let (sender, receiver) = generic_channel::channel().unwrap();
-        let cmd = WebDriverScriptCommand::ElementClear(element.to_string(), sender);
-        self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)?;
+        // Step 3 - 11. Clear element with implicit wait.
+        self.implicit_wait(|| {
+            let (sender, receiver) = generic_channel::channel().unwrap();
+            let cmd = WebDriverScriptCommand::ElementClear(element.to_string(), sender);
+            self.browsing_context_script_command(cmd, VerifyBrowsingContextIsOpen::No)
+                .map_err(|error| (ImplicitWaitCanEarlyReturn::Yes.into(), error))?;
+            wait_for_ipc_response_flatten(receiver)
+                .map(|_| (ImplicitWaitCanEarlyReturn::Yes.into(), ()))
+                .map_err(|error| {
+                    if error.error == ErrorStatus::ElementNotInteractable {
+                        (ImplicitWaitCanEarlyReturn::No.into(), error)
+                    } else {
+                        (ImplicitWaitCanEarlyReturn::Yes.into(), error)
+                    }
+                })
+        })?;
 
-        wait_for_ipc_response_flatten(receiver)?;
         Ok(WebDriverResponse::Void)
     }
 
