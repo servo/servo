@@ -112,8 +112,11 @@ impl<T> DomRefCell<T> {
     /// # Panics
     ///
     /// Panics if the value is currently mutably borrowed.
+    /// Panics if this is called from anywhere other than the script thread.
+    /// Use borrow_for_layout if the borrowed data might used during layout.
     #[track_caller]
     pub(crate) fn borrow(&self) -> Ref<'_, T> {
+        assert_in_script();
         self.value.borrow()
     }
 
@@ -125,8 +128,10 @@ impl<T> DomRefCell<T> {
     /// # Panics
     ///
     /// Panics if the value is currently borrowed.
+    /// Panics if this is called from anywhere other than the script thread.
     #[track_caller]
     pub(crate) fn borrow_mut(&self) -> RefMut<'_, T> {
+        assert_in_script();
         self.value.borrow_mut()
     }
 

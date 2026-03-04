@@ -2006,14 +2006,14 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     fn is_single_line_text_inner_editor(&self) -> bool {
         matches!(
-            self.unsafe_get().implemented_pseudo_element(),
+            self.implemented_pseudo_element(),
             Some(PseudoElement::ServoTextControlInnerEditor)
         )
     }
 
     fn is_text_container_of_single_line_input(&self) -> bool {
         let is_single_line_text_inner_placeholder = matches!(
-            self.unsafe_get().implemented_pseudo_element(),
+            self.implemented_pseudo_element(),
             Some(PseudoElement::Placeholder)
         );
         // Currently `::placeholder` is only implemented for single line text input element.
@@ -2112,8 +2112,15 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         unsafe { OpaqueNode(self.get_jsobject() as usize) }
     }
 
+    #[expect(unsafe_code)]
     fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
-        self.unsafe_get().implemented_pseudo_element()
+        unsafe {
+            self.unsafe_get()
+                .rare_data
+                .borrow_for_layout()
+                .as_ref()
+                .and_then(|rare_data| rare_data.implemented_pseudo_element)
+        }
     }
 
     fn is_in_ua_widget(&self) -> bool {
