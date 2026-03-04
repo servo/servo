@@ -298,12 +298,10 @@ impl InlineFormattingContextBuilder {
             self.on_word_boundary,
             self.last_inline_box_ended_with_collapsible_white_space,
         )
-        .inspect(|&character| {
+        .inspect(|_| {
             character_count += 1;
-            self.is_empty =
-                self.is_empty && is_collapsible_whitespace(character, white_space_collapse);
         })
-        .collect();
+        .collect();        
 
         // TODO: text transform etc
         let new_text_range =
@@ -325,6 +323,7 @@ impl InlineFormattingContextBuilder {
                 new_text_range,
                 new_character_range,
             ))));
+        self.is_empty = false;
     }
 
     pub(crate) fn push_text<'dom>(&mut self, text: Cow<'dom, str>, info: &NodeAndStyleInfo<'dom>) {
@@ -355,8 +354,14 @@ impl InlineFormattingContextBuilder {
             .inspect(|&character| {
                 character_count += 1;
 
-                self.is_empty =
-                    self.is_empty && is_collapsible_whitespace(character, white_space_collapse);
+                self.is_empty = self.is_empty &&
+                    match white_space_collapse {
+                        WhiteSpaceCollapse::Collapse => character.is_ascii_whitespace(),
+                        WhiteSpaceCollapse::PreserveBreaks => {
+                            character.is_ascii_whitespace() && character != '\n'
+                        },
+                        WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces => false,
+                    };
             })
             .collect();
 
@@ -465,14 +470,6 @@ fn apply_whitespace_collapse_and_text_transform<'a>(
             // a `TextTransformation` iterator.
             Box::new(TextTransformation::new(collapsed, text_transform))
         },
-    }
-}
-
-fn is_collapsible_whitespace(c: char, white_space_collapse: WhiteSpaceCollapse) -> bool {
-    match white_space_collapse {
-        WhiteSpaceCollapse::Collapse => c.is_ascii_whitespace(),
-        WhiteSpaceCollapse::PreserveBreaks => c.is_ascii_whitespace() && c != '\n',
-        WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces => false,
     }
 }
 
