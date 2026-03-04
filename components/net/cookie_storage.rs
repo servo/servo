@@ -5,6 +5,8 @@
 //! Implementation of cookie storage as specified in
 //! <http://tools.ietf.org/html/rfc6265>
 
+use std::sync::{Arc, Mutex};
+
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry;
@@ -31,8 +33,7 @@ pub struct CookieStorage {
     // because we may have many webviews with the same url we also key on
     #[serde(skip)]
     cookie_change_listeners: HashSet<ServoUrl>,
-    #[serde(skip)]
-    cookie_change_sender: Option<GenericSender<CoreResourceMsg>>,
+    cookie_change_sender: Arc<Mutex<GenericSender<CoreResourceMsg>>>,
 }
 
 #[derive(Debug)]
@@ -48,7 +49,7 @@ impl CookieStorage {
             cookies_map: HashMap::new(),
             max_per_host: max_cookies,
             cookie_change_listeners: HashSet::new(),
-            cookie_change_sender: Some(cookie_change_sender),
+            cookie_change_sender: Arc::new(Mutex::new(cookie_change_sender)),
         }
     }
 
@@ -189,7 +190,8 @@ impl CookieStorage {
         }
         cookies.push(cookie.clone());
         if self.cookie_change_listeners.contains(url) {
-            self.cookie_change_sender.as_ref().map(|s| s.send(CoreResourceMsg::CookieChange(url.clone())));
+            let s = self.cookie_change_sender.lock().unwrap();
+            s.send(CoreResourceMsg::CookieChange(url.clone()));
         }
     }
 
