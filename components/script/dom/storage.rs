@@ -1,11 +1,13 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use base::generic_channel::{GenericSend, SendResult};
+use base::generic_channel::{GenericSend, GenericSender, ReceiveResult, SendResult};
 use base::id::WebViewId;
 use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use profile_traits::generic_channel;
+use profile_traits::generic_channel::GenericReceiver;
+use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
 
@@ -56,64 +58,81 @@ impl Storage {
         self.global().get_url()
     }
 
-    fn send_storage_msg(&self, msg: WebStorageThreadMsg) -> SendResult {
+    fn send_msg(&self, msg: WebStorageThreadMsg, error_msg: &str) -> SendResult {
         GenericSend::send(self.global().storage_threads(), msg)
+            .inspect_err(|err| error!("Failed to send WebStorageThreadMsg {error_msg}: {err}"))
+    }
+
+    fn recv_msg<T>(receiver: GenericReceiver<T>, error_msg: &str) -> ReceiveResult<T>
+    where
+        T: Serialize + for<'de> Deserialize<'de>,
+    {
+        receiver
+            .recv()
+            .inspect_err(|err| error!("Failed to receive response for {error_msg}: {err:?}"))
+    }
+
+    fn channel<T>(&self) -> (GenericSender<T>, GenericReceiver<T>)
+    where
+        T: Serialize + for<'de> Deserialize<'de>,
+    {
+        generic_channel::channel(self.global().time_profiler_chan().clone())
+            .expect("Failed to create channel")
     }
 }
 
 impl StorageMethods<crate::DomTypeHolder> for Storage {
     /// <https://html.spec.whatwg.org/multipage/#dom-storage-length>
     fn Length(&self) -> u32 {
-        let (sender, receiver) =
-            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = self.channel();
 
-        self.send_storage_msg(WebStorageThreadMsg::Length(
+        let msg = WebStorageThreadMsg::Length(
             sender,
             self.storage_type,
             self.webview_id(),
             self.get_url(),
-        ))
-        .unwrap();
-        receiver.recv().unwrap() as u32
+        );
+        if self.send_msg(msg, "Length").is_err() {
+            return 0;
+        }
+        Self::recv_msg(receiver, "Length").unwrap_or_default() as u32
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storage-key>
     fn Key(&self, index: u32) -> Option<DOMString> {
-        let (sender, receiver) =
-            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = self.channel();
 
-        self.send_storage_msg(WebStorageThreadMsg::Key(
+        let msg = WebStorageThreadMsg::Key(
             sender,
             self.storage_type,
             self.webview_id(),
             self.get_url(),
             index,
-        ))
-        .unwrap();
-        receiver.recv().unwrap().map(DOMString::from)
+        );
+        self.send_msg(msg, "Key").ok()?;
+        Self::recv_msg(receiver, "Key").ok()?.map(DOMString::from)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storage-getitem>
     fn GetItem(&self, name: DOMString) -> Option<DOMString> {
-        let (sender, receiver) =
-            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
-        let name = String::from(name);
+        let (sender, receiver) = self.channel();
 
         let msg = WebStorageThreadMsg::GetItem(
             sender,
             self.storage_type,
             self.webview_id(),
             self.get_url(),
-            name,
+            String::from(name),
         );
-        self.send_storage_msg(msg).unwrap();
-        receiver.recv().unwrap().map(DOMString::from)
+        self.send_msg(msg, "GetItem").ok()?;
+        Self::recv_msg(receiver, "GetItem")
+            .ok()?
+            .map(DOMString::from)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storage-setitem>
     fn SetItem(&self, name: DOMString, value: DOMString) -> ErrorResult {
-        let (sender, receiver) =
-            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = self.channel();
         let name = String::from(name);
         let value = String::from(value);
 
@@ -125,8 +144,11 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             name.clone(),
             value.clone(),
         );
-        self.send_storage_msg(msg).unwrap();
-        match receiver.recv().unwrap() {
+        self.send_msg(msg, "SetItem")
+            .map_err(|_| Error::Operation(Some("Failed to send SetItem msg".into())))?;
+        match Self::recv_msg(receiver, "SetItem")
+            .map_err(|_| Error::Operation(Some("Failed to recv SetItem response".into())))?
+        {
             Err(_) => Err(Error::QuotaExceeded {
                 quota: None,
                 requested: None,
@@ -142,8 +164,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storage-removeitem>
     fn RemoveItem(&self, name: DOMString) {
-        let (sender, receiver) =
-            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = self.channel();
         let name = String::from(name);
 
         let msg = WebStorageThreadMsg::RemoveItem(
@@ -153,44 +174,42 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             self.get_url(),
             name.clone(),
         );
-        self.send_storage_msg(msg).unwrap();
-        if let Some(old_value) = receiver.recv().unwrap() {
-            self.broadcast_change_notification(Some(name), Some(old_value), None);
+        if self.send_msg(msg, "RemoveItem").is_ok() {
+            if let Ok(Some(old_value)) = Self::recv_msg(receiver, "RemoveItem") {
+                self.broadcast_change_notification(Some(name), Some(old_value), None);
+            }
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storage-clear>
     fn Clear(&self) {
-        let (sender, receiver) =
-            generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (sender, receiver) = self.channel();
 
-        self.send_storage_msg(WebStorageThreadMsg::Clear(
+        let msg = WebStorageThreadMsg::Clear(
             sender,
             self.storage_type,
             self.webview_id(),
             self.get_url(),
-        ))
-        .unwrap();
-        if receiver.recv().unwrap() {
+        );
+        if self.send_msg(msg, "Clear").is_err() {
+            return;
+        }
+        if Self::recv_msg(receiver, "Clear").unwrap_or_default() {
             self.broadcast_change_notification(None, None, None);
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-storage-interface:supported-property-names>
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        let time_profiler = self.global().time_profiler_chan().clone();
-        let (sender, receiver) = generic_channel::channel(time_profiler).unwrap();
+        let (sender, receiver) = self.channel();
 
-        self.send_storage_msg(WebStorageThreadMsg::Keys(
-            sender,
-            self.storage_type,
-            self.webview_id(),
-            self.get_url(),
-        ))
-        .unwrap();
-        receiver
-            .recv()
-            .unwrap()
+        let msg =
+            WebStorageThreadMsg::Keys(sender, self.storage_type, self.webview_id(), self.get_url());
+        if self.send_msg(msg, "Keys").is_err() {
+            return vec![];
+        }
+        Self::recv_msg(receiver, "Keys")
+            .unwrap_or_default()
             .into_iter()
             .map(DOMString::from)
             .collect()
@@ -223,10 +242,7 @@ impl Storage {
         let msg = ScriptToConstellationMessage::BroadcastStorageEvent(
             storage, url, key, old_value, new_value,
         );
-        self.global()
-            .script_to_constellation_chan()
-            .send(msg)
-            .unwrap();
+        let _ = self.global().script_to_constellation_chan().send(msg);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#send-a-storage-notification>
