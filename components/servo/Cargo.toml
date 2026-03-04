@@ -145,6 +145,7 @@ gaol = "0.2.1"
 webxr = { workspace = true, features = ["glwindow", "headless", "openxr-api"] }
 
 [dev-dependencies]
+accesskit_consumer = "0.35.0"
 http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true }
