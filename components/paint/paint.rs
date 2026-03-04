@@ -534,13 +534,16 @@ impl Paint {
                     painter.handle_screenshot_readiness_reply(webview_id, pipelines_and_epochs);
                 }
             },
+            #[cfg(feature = "largest_contentful_paint")]
             PaintMessage::SendLCPCandidate(lcp_candidate, webview_id, pipeline_id, epoch) => {
                 if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
                     painter.append_lcp_candidate(lcp_candidate, webview_id, pipeline_id, epoch);
                 }
             },
+            #[cfg(feature = "largest_contentful_paint")]
             PaintMessage::EnableLCPCalculation(webview_id) => {
                 if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
+                    #[cfg(feature = "largest_contentful_paint")]
                     painter.enable_lcp_calculation(&webview_id);
                 }
             },

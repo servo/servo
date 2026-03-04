@@ -14,6 +14,7 @@ test = true
 doctest = false
 
 [features]
+largest_contentful_paint = []
 tracing = ["dep:tracing"]
 
 [dependencies]

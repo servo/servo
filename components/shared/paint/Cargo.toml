@@ -12,6 +12,7 @@ name = "paint_api"
 path = "lib.rs"
 
 [features]
+largest_contentful_paint = []
 no-wgl = ["surfman/sm-angle-default"]
 tracing = ["dep:tracing"]
 

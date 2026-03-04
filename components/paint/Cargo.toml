@@ -13,6 +13,7 @@ path = "lib.rs"
 
 [features]
 default = []
+largest_contentful_paint = []
 tracing = ["dep:tracing"]
 webgpu = ["dep:webgpu"]
 webxr = ["dep:webxr", "dep:webxr-api"]

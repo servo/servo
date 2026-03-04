@@ -102,14 +102,17 @@ impl PaintTimingHandler {
         self.lcp_candidate_updated = true;
     }
 
+    #[cfg(feature = "largest_contentful_paint")]
     pub(crate) fn did_lcp_candidate_update(&self) -> bool {
         self.lcp_candidate_updated
     }
 
+    #[cfg(feature = "largest_contentful_paint")]
     pub(crate) fn unset_lcp_candidate_updated(&mut self) {
         self.lcp_candidate_updated = false;
     }
 
+    #[cfg(feature = "largest_contentful_paint")]
     pub(crate) fn largest_contentful_paint_candidate(&self) -> Option<LCPCandidate> {
         self.lcp_candidate.clone()
     }
