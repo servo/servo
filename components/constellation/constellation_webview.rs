@@ -48,6 +48,14 @@ pub(crate) struct ConstellationWebView {
     /// The [`Theme`] that this [`ConstellationWebView`] uses. This is communicated to all
     /// `ScriptThread`s so that they know how to render the contents of a particular `WebView.
     theme: Theme,
+
+    /// Whether accessibility is active for this webview.
+    ///
+    /// Set by [`crate::Constellation::set_accessibility_active()`], and forwarded to the
+    /// webview’s *active* pipelines (of those that represent documents) at any given moment
+    /// via [`ScriptThreadMessage::SetAccessibilityActive`] in `set_accessibility_active()`
+    /// and [`crate::Constellation::set_frame_tree_for_webview()`].
+    pub accessibility_active: bool,
 }
 
 impl ConstellationWebView {
@@ -66,6 +74,7 @@ impl ConstellationWebView {
             last_mouse_move_point: Default::default(),
             session_history: JointSessionHistory::new(),
             theme: Theme::Light,
+            accessibility_active: false,
         }
     }
 

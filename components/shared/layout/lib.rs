@@ -238,7 +238,6 @@ pub struct LayoutConfig {
     pub viewport_details: ViewportDetails,
     pub user_stylesheets: Rc<Vec<DocumentStyleSheet>>,
     pub theme: Theme,
-    pub accessibility_active: bool,
 }
 
 pub struct PropertyRegistration {
