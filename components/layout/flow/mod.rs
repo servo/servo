@@ -14,7 +14,7 @@ use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_arc::Arc;
 use style::Zero;
 use style::computed_values::clear::T as StyleClear;
-use style::context::SharedStyleContext;
+use style::context::{QuirksMode, SharedStyleContext};
 use style::logical_geometry::Direction;
 use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
@@ -242,6 +242,12 @@ impl BlockLevelBox {
             Size::FitContent,
             Au::zero(),
             available_block_size,
+        );
+        let tentative_block_size = adjust_block_size_for_percentage_quirk(
+            layout_context,
+            tentative_block_size,
+            containing_block,
+            None,
         );
 
         let get_inline_content_sizes = || {
@@ -975,6 +981,7 @@ pub(crate) fn layout_in_flow_non_replaced_block_level_same_formatting_context(
         justify_self,
         ..
     } = solve_containing_block_padding_and_border_for_in_flow_box(
+        layout_context,
         containing_block,
         &layout_style,
         get_inline_content_sizes,
@@ -1245,6 +1252,7 @@ impl IndependentFormattingContext {
                 containing_block,
                 sequential_layout_state,
                 ignore_block_margins_for_stretch,
+                self,
             );
         }
 
@@ -1262,6 +1270,7 @@ impl IndependentFormattingContext {
             justify_self,
             preferred_aspect_ratio,
         } = solve_containing_block_padding_and_border_for_in_flow_box(
+            layout_context,
             containing_block,
             &layout_style,
             get_inline_content_sizes,
@@ -1343,6 +1352,7 @@ impl IndependentFormattingContext {
         containing_block: &ContainingBlock<'_>,
         sequential_layout_state: &mut SequentialLayoutState,
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
+        context: &IndependentFormattingContext,
     ) -> BoxFragment {
         let style = &self.base.style;
         let containing_block_writing_mode = containing_block.style.writing_mode;
@@ -1412,8 +1422,12 @@ impl IndependentFormattingContext {
                     available_block_size,
                 )
             };
-        let tentative_block_size =
-            SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
+        let tentative_block_size = adjust_block_size_for_percentage_quirk(
+            layout_context,
+            SizeConstraint::new(preferred_block_size, min_block_size, max_block_size),
+            containing_block,
+            Some(context),
+        );
 
         // With the tentative block size we can compute the inline min/max-content sizes.
         let get_inline_content_sizes = || {
@@ -1679,6 +1693,7 @@ struct ResolvedMargins {
 /// that establishes an independent formatting context (or is replaced), since the
 /// inline size could then be incorrect.
 fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
+    layout_context: &LayoutContext,
     containing_block: &ContainingBlock<'_>,
     layout_style: &'a LayoutStyle,
     get_inline_content_sizes: impl FnOnce(&ConstraintSpace) -> ContentSizes,
@@ -1755,6 +1770,12 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             available_block_size,
         )
     };
+    let tentative_block_size = adjust_block_size_for_percentage_quirk(
+        layout_context,
+        tentative_block_size,
+        containing_block,
+        context,
+    );
 
     // https://drafts.csswg.org/css2/#the-width-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-widths
@@ -2299,6 +2320,12 @@ impl IndependentFormattingContext {
                 .block
                 .resolve_extrinsic(Size::FitContent, Au::zero(), available_block_size)
         };
+        let tentative_block_size = adjust_block_size_for_percentage_quirk(
+            layout_context,
+            tentative_block_size,
+            containing_block,
+            Some(self),
+        );
 
         let get_content_size = || {
             let constraint_space =
@@ -2387,5 +2414,25 @@ impl IndependentFormattingContext {
             baselines,
             pbm_sums,
         }
+    }
+}
+
+// <https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk>
+fn adjust_block_size_for_percentage_quirk(
+    layout_context: &LayoutContext,
+    tentative_block_size: SizeConstraint,
+    containing_block: &ContainingBlock,
+    context: Option<&IndependentFormattingContext>,
+) -> SizeConstraint {
+    // This logic doesn't match the algorithm in the spec, but it should be roughly
+    // equivalent to the desired behavior. The spec is written very poorly anyways,
+    // and with a CSS2 mindset that ignores modern features.
+    if layout_context.style_context.quirks_mode() != QuirksMode::Quirks ||
+        tentative_block_size.is_definite() ||
+        context.is_some_and(|context| !context.is_block_container())
+    {
+        tentative_block_size
+    } else {
+        containing_block.size.block
     }
 }
