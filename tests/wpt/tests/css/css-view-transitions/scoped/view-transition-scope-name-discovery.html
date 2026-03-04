@@ -19,7 +19,7 @@
   }
 
   .scoped {
-    view-transition-scope: auto;
+    view-transition-scope: all;
   }
 </style>
 <body>
@@ -44,7 +44,7 @@
     await vt.ready;
     assert_array_equals(
         capturedNames(), ['inner', 'outer', 'root'],
-        'Retrieve all names in absence of view-transition-scope: auto');
+        'Retrieve all names in absence of view-transition-scope: all');
     vt.skipTransition();
 
     document.documentElement.classList.toggle('scoped');

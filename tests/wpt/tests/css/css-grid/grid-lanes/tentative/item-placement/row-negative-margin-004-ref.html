@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes: Dense Packing with Negative Margins</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+    .grid {
+      display: grid;
+      grid-template-rows: repeat(4, 100px);
+      gap: 10px;
+      margin-left: 100px;
+      border: solid 2px blue;
+      width: min-content;
+      font-family: Ahem;
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+  <p>Test that negative margins affect the item's size and contribution to dense-packing.</p>
+  <div class="grid">
+    <!-- Section 1: Items dense-packed into openings created by "block" + spanner -->
+    <div style="grid-row: 1; grid-column: 1; background-color: lightcoral; width: 100px;">block</div>
+    <div style="grid-row: 2; grid-column: 1; display: flex;">
+      <!-- Item 1 at position 0 (contribution 0, overlaps Item 2) -->
+      <div style="background-color: lightgreen; width: 30px; margin-left: -45px;">Item 1</div>
+      <!-- Item 2 at position 0 (fills opening) -->
+      <div style="background-color: lightblue; width: 100px; margin-left: 15px;">Item 2</div>
+    </div>
+    <div style="grid-row: 3; grid-column: 1; display: flex;">
+      <!-- Item 3 at position 0 (contribution 10, just the gap) -->
+      <div style="background-color: lightgreen; width: 30px; margin-left: -30px;">Item 3</div>
+      <!-- Item 4 at position 10 (fills remaining opening) -->
+      <div style="background-color: lightblue; width: 90px; margin-left: 10px;">Item 4</div>
+    </div>
+    <div style="grid-row: 4; grid-column: 1; display: flex;">
+      <!-- Item 5 at position 0 (contribution 0, overlaps Item 6) -->
+      <div style="background-color: lightgreen; width: 30px; margin-left: -40px;">Item 5</div>
+      <!-- Item 6 at position 0 (fills opening) -->
+      <div style="background-color: lightblue; width: 100px; margin-left: 10px;">Item 6</div>
+    </div>
+
+    <!-- Spanner 1 -->
+    <div style="grid-row: 1 / span 4; grid-column: 2; background-color: lightcoral;">spanner</div>
+
+    <!-- Section 2: Items dense-packed into openings created by "block 2" + spanner 2 -->
+    <div style="grid-row: 1; grid-column: 3; background-color: lightcoral; width: 100px;">block</div>
+    <div style="grid-row: 2; grid-column: 3; display: flex;">
+      <!-- Item 7 at position 0 (contribution 0, covered by Item 8) -->
+      <div style="background-color: lightgreen; width: 30px; margin-right: -45px; overflow: hidden;">Item 7</div>
+      <!-- Item 8 at position 0 (same as Item 7, contribution 25) -->
+      <div style="background-color: lightblue; width: 15px; margin-left: 15px; position: relative;">Item 8</div>
+      <!-- Item 9 at position 25 (contribution 30) -->
+      <div style="background-color: lightblue; width: 40px; margin-left: 10px; margin-right: -20px; position: relative;">Item 9</div>
+      <!-- Item 10 at position 55 (fills remaining opening) -->
+      <div style="background-color: steelblue; width: 45px; margin-left: 10px; position: relative;">Item 10</div>
+    </div>
+
+    <!-- Spanner 2 -->
+    <div style="grid-row: 1 / span 4; grid-column: 4; background-color: lightcoral;">spanner</div>
+  </div>
+</body>
+</html>

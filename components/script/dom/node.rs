@@ -28,7 +28,7 @@ use layout_api::wrapper_traits::SharedSelection;
 use layout_api::{
     BoxAreaType, CSSPixelRectIterator, GenericLayoutData, HTMLCanvasData, HTMLMediaData,
     LayoutElementType, LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData, StyleData,
-    TrustedNodeAddress,
+    TrustedNodeAddress, with_layout_state,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -36,12 +36,6 @@ use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
 use script_bindings::codegen::InheritTypes::DocumentFragmentTypeId;
 use script_traits::DocumentActivity;
-use selectors::bloom::BloomFilter;
-use selectors::matching::{
-    MatchingContext, MatchingForInvalidation, MatchingMode, NeedsSelectorFlags,
-    matches_selector_list,
-};
-use selectors::parser::SelectorList;
 use servo_arc::Arc as ServoArc;
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -49,9 +43,10 @@ use smallvec::SmallVec;
 use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
+use style::dom_apis::{QueryAll, QueryFirst};
 use style::properties::ComputedValues;
-use style::selector_parser::{PseudoElement, SelectorImpl, SelectorParser};
-use style::stylesheets::{Stylesheet, UrlExtraData};
+use style::selector_parser::PseudoElement;
+use style::stylesheets::Stylesheet;
 use style_traits::CSSPixel;
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
@@ -99,7 +94,7 @@ use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLD
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{
-    AttributeMutationReason, CustomElementCreationMode, Element, ElementCreator, SelectorWrapper,
+    AttributeMutationReason, CustomElementCreationMode, Element, ElementCreator,
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -131,6 +126,7 @@ use crate::dom::text::Text;
 use crate::dom::types::KeyboardEvent;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
+use crate::layout_dom::ServoLayoutNode;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 
@@ -593,52 +589,6 @@ impl Node {
                 None => return "ltr".to_owned(),
             }
         }
-    }
-}
-
-pub(crate) struct QuerySelectorIterator {
-    selectors: SelectorList<SelectorImpl>,
-    iterator: TreeIterator,
-}
-
-impl QuerySelectorIterator {
-    fn new(iter: TreeIterator, selectors: SelectorList<SelectorImpl>) -> QuerySelectorIterator {
-        QuerySelectorIterator {
-            selectors,
-            iterator: iter,
-        }
-    }
-}
-
-impl Iterator for QuerySelectorIterator {
-    type Item = DomRoot<Node>;
-
-    fn next(&mut self) -> Option<DomRoot<Node>> {
-        let selectors = &self.selectors;
-
-        let (quirks_mode, filter) = match self.iterator.by_ref().peek() {
-            Some(node) => (node.owner_doc().quirks_mode(), BloomFilter::default()),
-            None => return None,
-        };
-
-        self.iterator.by_ref().find_map(|node| {
-            if let Some(element) = DomRoot::downcast(node) {
-                let mut nth_index_cache = Default::default();
-                let mut ctx = MatchingContext::new(
-                    MatchingMode::Normal,
-                    Some(&filter),
-                    &mut nth_index_cache,
-                    quirks_mode,
-                    NeedsSelectorFlags::No,
-                    MatchingForInvalidation::No,
-                );
-                if matches_selector_list(selectors, &SelectorWrapper::Borrowed(&element), &mut ctx)
-                {
-                    return Some(DomRoot::upcast(element));
-                }
-            }
-            None
-        })
     }
 }
 
@@ -1207,71 +1157,56 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
+    #[allow(unsafe_code)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn query_selector(
         &self,
         selectors: DOMString,
     ) -> Fallible<Option<DomRoot<Element>>> {
-        // Step 1.
-        let doc = self.owner_doc();
-        match SelectorParser::parse_author_origin_no_namespace(
-            &selectors.str(),
-            &UrlExtraData(doc.url().get_arc()),
-        ) {
-            // Step 2.
-            Err(_) => Err(Error::Syntax(None)),
-            // Step 3.
-            Ok(selectors) => {
-                let mut nth_index_cache = Default::default();
-                let filter = BloomFilter::default();
-                let mut ctx = MatchingContext::new(
-                    MatchingMode::Normal,
-                    Some(&filter),
-                    &mut nth_index_cache,
-                    doc.quirks_mode(),
-                    NeedsSelectorFlags::No,
-                    MatchingForInvalidation::No,
-                );
-                let mut descendants = self.traverse_preorder(ShadowIncluding::No);
-                // Skip the root of the tree.
-                assert!(&*descendants.next().unwrap() == self);
-                Ok(descendants.filter_map(DomRoot::downcast).find(|element| {
-                    matches_selector_list(&selectors, &SelectorWrapper::Borrowed(element), &mut ctx)
-                }))
-            },
-        }
-    }
+        // > The querySelector(selectors) method steps are to return the first result of running scope-match
+        // > a selectors string selectors against this, if the result is not an empty list; otherwise null.
+        let document_url = self.owner_document().url().get_arc();
 
-    /// <https://dom.spec.whatwg.org/#scope-match-a-selectors-string>
-    /// Get an iterator over all nodes which match a set of selectors
-    /// Be careful not to do anything which may manipulate the DOM tree
-    /// whilst iterating, otherwise the iterator may be invalidated.
-    pub(crate) fn query_selector_iter(
-        &self,
-        selectors: DOMString,
-    ) -> Fallible<QuerySelectorIterator> {
-        // Step 1.
-        let url = self.owner_doc().url();
-        match SelectorParser::parse_author_origin_no_namespace(
-            &selectors.str(),
-            &UrlExtraData(url.get_arc()),
-        ) {
-            // Step 2.
-            Err(_) => Err(Error::Syntax(None)),
-            // Step 3.
-            Ok(selectors) => {
-                let mut descendants = self.traverse_preorder(ShadowIncluding::No);
-                // Skip the root of the tree.
-                assert!(&*descendants.next().unwrap() == self);
-                Ok(QuerySelectorIterator::new(descendants, selectors))
-            },
-        }
+        // SAFETY: traced_node is unrooted, but we have a reference to "self" so it won't be freed.
+        let traced_node = Dom::from_ref(self);
+
+        let first_matching_element = with_layout_state(|| {
+            let layout_node = unsafe { traced_node.to_layout() };
+            ServoLayoutNode::from_layout_js(layout_node)
+                .scope_match_a_selectors_string::<QueryFirst>(document_url, &selectors.str())
+        })?;
+
+        Ok(first_matching_element
+            .map(|element| DomRoot::from_ref(unsafe { element.to_layout_js().as_ref() })))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
+    #[allow(unsafe_code)]
+    #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn query_selector_all(&self, selectors: DOMString) -> Fallible<DomRoot<NodeList>> {
-        let window = self.owner_window();
-        let iter = self.query_selector_iter(selectors)?;
-        Ok(NodeList::new_simple_list(&window, iter, CanGc::note()))
+        // > The querySelectorAll(selectors) method steps are to return the static result of running scope-match
+        // > a selectors string selectors against this.
+        let document_url = self.owner_document().url().get_arc();
+
+        // SAFETY: traced_node is unrooted, but we have a reference to "self" so it won't be freed.
+        let traced_node = Dom::from_ref(self);
+        let matching_elements = with_layout_state(|| {
+            let layout_node = unsafe { traced_node.to_layout() };
+            ServoLayoutNode::from_layout_js(layout_node)
+                .scope_match_a_selectors_string::<QueryAll>(document_url, &selectors.str())
+        })?;
+        let iter = matching_elements
+            .into_iter()
+            .map(|element| DomRoot::from_ref(unsafe { element.to_layout_js().as_ref() }))
+            .map(DomRoot::upcast::<Node>);
+
+        // NodeList::new_simple_list immediately collects the iterator, so we're not leaking LayoutDom
+        // elements here.
+        Ok(NodeList::new_simple_list(
+            &self.owner_window(),
+            iter,
+            CanGc::note(),
+        ))
     }
 
     pub(crate) fn ancestors(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
@@ -2006,14 +1941,14 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     fn is_single_line_text_inner_editor(&self) -> bool {
         matches!(
-            self.unsafe_get().implemented_pseudo_element(),
+            self.implemented_pseudo_element(),
             Some(PseudoElement::ServoTextControlInnerEditor)
         )
     }
 
     fn is_text_container_of_single_line_input(&self) -> bool {
         let is_single_line_text_inner_placeholder = matches!(
-            self.unsafe_get().implemented_pseudo_element(),
+            self.implemented_pseudo_element(),
             Some(PseudoElement::Placeholder)
         );
         // Currently `::placeholder` is only implemented for single line text input element.
@@ -2112,8 +2047,15 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         unsafe { OpaqueNode(self.get_jsobject() as usize) }
     }
 
+    #[expect(unsafe_code)]
     fn implemented_pseudo_element(&self) -> Option<PseudoElement> {
-        self.unsafe_get().implemented_pseudo_element()
+        unsafe {
+            self.unsafe_get()
+                .rare_data
+                .borrow_for_layout()
+                .as_ref()
+                .and_then(|rare_data| rare_data.implemented_pseudo_element)
+        }
     }
 
     fn is_in_ua_widget(&self) -> bool {

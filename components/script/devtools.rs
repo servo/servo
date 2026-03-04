@@ -10,7 +10,8 @@ use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use devtools_traits::{
     AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty, EvaluateJSReply,
-    EventListenerInfo, NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
+    EvaluateJSReplyValue, EventListenerInfo, NodeInfo, NodeStyle, RuleModification, TimelineMarker,
+    TimelineMarkerType,
 };
 use js::context::JSContext;
 use js::conversions::jsstr_to_string;
@@ -129,7 +130,7 @@ pub(crate) fn handle_evaluate_js(
     reply: GenericSender<EvaluateJSReply>,
     cx: &mut JSContext,
 ) {
-    let result = unsafe {
+    let value = unsafe {
         let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut rval = UndefinedValue());
@@ -144,11 +145,11 @@ pub(crate) fn handle_evaluate_js(
         );
 
         if rval.is_undefined() {
-            EvaluateJSReply::VoidValue
+            EvaluateJSReplyValue::VoidValue
         } else if rval.is_boolean() {
-            EvaluateJSReply::BooleanValue(rval.to_boolean())
+            EvaluateJSReplyValue::BooleanValue(rval.to_boolean())
         } else if rval.is_double() || rval.is_int32() {
-            EvaluateJSReply::NumberValue(
+            EvaluateJSReplyValue::NumberValue(
                 match FromJSValConvertible::from_jsval(cx.raw_cx(), rval.handle(), ()) {
                     Ok(ConversionResult::Success(v)) => v,
                     _ => unreachable!(),
@@ -156,20 +157,26 @@ pub(crate) fn handle_evaluate_js(
             )
         } else if rval.is_string() {
             let jsstr = std::ptr::NonNull::new(rval.to_string()).unwrap();
-            EvaluateJSReply::StringValue(jsstr_to_string(cx.raw_cx(), jsstr))
+            EvaluateJSReplyValue::StringValue(jsstr_to_string(cx.raw_cx(), jsstr))
         } else if rval.is_null() {
-            EvaluateJSReply::NullValue
+            EvaluateJSReplyValue::NullValue
         } else {
             assert!(rval.is_object());
 
             let jsstr = std::ptr::NonNull::new(ToString(cx.raw_cx(), rval.handle())).unwrap();
             let class_name = jsstr_to_string(cx.raw_cx(), jsstr);
 
-            EvaluateJSReply::ActorValue {
+            EvaluateJSReplyValue::ActorValue {
                 class: class_name,
                 uuid: Uuid::new_v4().to_string(),
+                name: None,
             }
         }
+    };
+
+    let result = EvaluateJSReply {
+        value,
+        has_exception: false,
     };
     reply.send(result).unwrap();
 }

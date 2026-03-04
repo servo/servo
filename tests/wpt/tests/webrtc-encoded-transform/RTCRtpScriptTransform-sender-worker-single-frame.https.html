@@ -9,25 +9,10 @@
 <script src=/resources/testdriver-vendor.js></script>
 <script src='../../mediacapture-streams/permission-helper.js'></script>
 <script src="../../webrtc/RTCPeerConnection-helper.js"></script>
+<script src="helper.js"></script>
 </head>
 <body>
 <script>
-
-function areArrayBuffersEqual(buffer1, buffer2)
-{
-  if (buffer1.byteLength !== buffer2.byteLength) {
-    return false;
-  }
-  let array1 = new Int8Array(buffer1);
-  var array2 = new Int8Array(buffer2);
-  for (let i = 0 ; i < buffer1.byteLength ; ++i) {
-    if (array1[i] !== array2[i]) {
-      return false;
-    }
-  }
-  return true;
-}
-
 
 promise_test(async t => {
   const caller = new RTCPeerConnection();

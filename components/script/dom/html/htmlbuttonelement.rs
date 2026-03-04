@@ -349,6 +349,15 @@ impl HTMLButtonElement {
         // Step 6. Otherwise, return the result of running target's corresponding is valid command steps given command.
         vtable_for(target.upcast::<Node>()).is_valid_command_steps(command)
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#the-button-element:concept-fe-optional-value>
+    pub(crate) fn optional_value(&self) -> Option<DOMString> {
+        // The element's optional value is the value of the element's value attribute,
+        // if there is one; otherwise null.
+        self.upcast::<Element>()
+            .get_attribute(&ns!(), &local_name!("value"))
+            .map(|attribute| attribute.Value())
+    }
 }
 
 impl VirtualMethods for HTMLButtonElement {
@@ -501,7 +510,7 @@ impl Activatable for HTMLButtonElement {
             if button_type == ButtonType::Button &&
                 self.upcast::<Element>()
                     .get_string_attribute(&local_name!("type"))
-                    .to_ascii_lowercase() ==
+                    .to_ascii_lowercase() !=
                     "button"
             {
                 return;
@@ -527,7 +536,7 @@ impl Activatable for HTMLButtonElement {
                 atom!("command"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::Cancelable,
-                None,
+                Some(DomRoot::from_ref(self.upcast())),
                 self.upcast::<Element>()
                     .get_string_attribute(&local_name!("command")),
                 can_gc,

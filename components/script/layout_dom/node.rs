@@ -19,18 +19,23 @@ use layout_api::{
 };
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
+use script_bindings::error::Fallible;
 use selectors::Element as _;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style;
 use style::context::SharedStyleContext;
 use style::dom::{NodeInfo, TElement, TNode, TShadowRoot};
+use style::dom_apis::{MayUseInvalidation, SelectorQuery, query_selector};
 use style::properties::ComputedValues;
-use style::selector_parser::PseudoElement;
+use style::selector_parser::{PseudoElement, SelectorParser};
+use style::stylesheets::UrlExtraData;
+use url::Url;
 
 use super::{
     ServoLayoutDocument, ServoLayoutElement, ServoShadowRoot, ServoThreadSafeLayoutElement,
 };
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::NodeTypeId;
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::element::{Element, LayoutElementHelpers};
@@ -70,7 +75,7 @@ impl fmt::Debug for ServoLayoutNode<'_> {
 }
 
 impl<'dom> ServoLayoutNode<'dom> {
-    pub(super) fn from_layout_js(n: LayoutDom<'dom, Node>) -> Self {
+    pub(crate) fn from_layout_js(n: LayoutDom<'dom, Node>) -> Self {
         ServoLayoutNode { node: n }
     }
 
@@ -99,6 +104,39 @@ impl<'dom> ServoLayoutNode<'dom> {
             .as_ref()
             .map(LayoutDom::upcast)
             .map(ServoLayoutElement::from_layout_js)
+    }
+
+    /// <https://dom.spec.whatwg.org/#scope-match-a-selectors-string>
+    pub(crate) fn scope_match_a_selectors_string<Query>(
+        self,
+        document_url: Arc<Url>,
+        selector: &str,
+    ) -> Fallible<Query::Output>
+    where
+        Query: SelectorQuery<ServoLayoutElement<'dom>>,
+        Query::Output: Default,
+    {
+        let mut result = Query::Output::default();
+
+        // Step 1. Let selector be the result of parse a selector selectors.
+        let selector_or_error =
+            SelectorParser::parse_author_origin_no_namespace(selector, &UrlExtraData(document_url));
+
+        // Step 2. If selector is failure, then throw a "SyntaxError" DOMException.
+        let Ok(selector_list) = selector_or_error else {
+            return Err(Error::Syntax(None));
+        };
+
+        // Step 3. Return the result of match a selector against a tree with selector
+        // and node’s root using scoping root node.
+        query_selector::<ServoLayoutElement<'dom>, Query>(
+            self,
+            &selector_list,
+            &mut result,
+            MayUseInvalidation::No,
+        );
+
+        Ok(result)
     }
 }
 

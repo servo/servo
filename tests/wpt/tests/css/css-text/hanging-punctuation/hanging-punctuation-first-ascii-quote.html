@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Text: hanging-punctuation first with ASCII quote characters</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hanging-punctuation-property">
+<link rel="match" href="reference/hanging-punctuation-first-ascii-quote-ref.html">
+<meta name="assert" content="hanging-punctuation: first causes U+0022 QUOTATION MARK and U+0027 APOSTROPHE to hang at the start of the first line.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    body { font-family: 'Ahem'; color:green }
+    .hang { hanging-punctuation: first; margin:1em }
+</style>
+<div class="hang">"This should hang.</div>
+<div class="hang">'This should hang.</div>

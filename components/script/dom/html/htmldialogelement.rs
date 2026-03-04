@@ -6,7 +6,6 @@ use std::borrow::Borrow;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
-use script_bindings::codegen::GenericBindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use script_bindings::error::{Error, ErrorResult};
 use stylo_dom::ElementState;
 
@@ -409,7 +408,7 @@ impl VirtualMethods for HTMLDialogElement {
         // close the dialog element with source's optional value and source.
         if command == CommandState::Close && element.has_attribute(&local_name!("open")) {
             let button_element = DomRoot::from_ref(source.upcast::<Element>());
-            self.close_the_dialog(Some(source.Value()), Some(button_element), can_gc);
+            self.close_the_dialog(source.optional_value(), Some(button_element), can_gc);
             return true;
         }
 

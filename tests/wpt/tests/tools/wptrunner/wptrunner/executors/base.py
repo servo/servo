@@ -17,7 +17,7 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 from . import pytestrunner
 from .actions import actions
 from .asyncactions import async_actions
-from .protocol import Protocol, WdspecProtocol
+from .protocol import Protocol, WdspecProtocol, merge_dicts
 
 
 here = os.path.dirname(__file__)
@@ -686,6 +686,25 @@ class WdspecExecutor(TestExecutor):
         # Map OS to WebDriver specific platform names
         os_map = {"win": "windows"}
         self.target_platform = os_map.get(target_platform, target_platform)
+
+        # See also: executorwebdriver.py
+        if hasattr(browser, "capabilities"):
+            if self.capabilities is None:
+                self.capabilities = browser.capabilities
+            else:
+                merge_dicts(self.capabilities, browser.capabilities)
+
+        pac = browser.pac
+        if pac is not None:
+            if self.capabilities is None:
+                self.capabilities = {}
+            merge_dicts(self.capabilities, {"proxy":
+                {
+                    "proxyType": "pac",
+                    "proxyAutoconfigUrl": urljoin(self.server_url("http"), pac)
+                }
+            })
+
 
     def setup(self, runner, protocol=None):
         assert protocol is None, "Switch executor not allowed for wdspec tests."

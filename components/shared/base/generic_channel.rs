@@ -21,6 +21,8 @@ use servo_config::opts;
 
 mod callback;
 pub use callback::GenericCallback;
+mod lazy_callback;
+pub use lazy_callback::{CallbackSetter, LazyCallback, lazy_callback};
 mod oneshot;
 mod shared_memory;
 pub use oneshot::{GenericOneshotReceiver, GenericOneshotSender, oneshot};

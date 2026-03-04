@@ -58,6 +58,9 @@ pub struct IDBTransaction {
     abort_requested: Cell<bool>,
     committing: Cell<bool>,
     version_change_old_version: Cell<Option<u64>>,
+    // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
+    // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
+    version_change_old_object_store_names: DomRefCell<Option<Vec<DOMString>>>,
     // https://w3c.github.io/IndexedDB/#transaction-concept
     // “A transaction optionally has a cleanup event loop which is an event loop.”
     #[no_trace]
@@ -100,6 +103,10 @@ impl IDBTransaction {
             abort_requested: Cell::new(false),
             committing: Cell::new(false),
             version_change_old_version: Cell::new(None),
+            version_change_old_object_store_names: DomRefCell::new(
+                (mode == IDBTransactionMode::Versionchange)
+                    .then(|| connection.object_store_names_snapshot()),
+            ),
             cleanup_event_loop: Cell::new(None),
             registered_in_global: Cell::new(false),
             pending_request_count: Cell::new(0),
@@ -404,6 +411,19 @@ impl IDBTransaction {
         if self.finished.get() || self.abort_initiated.get() {
             return;
         }
+        if self.mode == IDBTransactionMode::Versionchange {
+            // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
+            // Step 4. Set connection’s object store set to the set of object stores in database if database previously existed,
+            // or the empty set if database was newly created.
+            if let Some(names) = self
+                .version_change_old_object_store_names
+                .borrow()
+                .as_ref()
+                .cloned()
+            {
+                self.db.restore_object_store_names(names);
+            }
+        }
         self.abort_initiated.set(true);
         // https://w3c.github.io/IndexedDB/#transaction-concept
         // A transaction has a error which is set if the transaction is aborted.
@@ -512,6 +532,7 @@ impl IDBTransaction {
                 // Step 6: When a transaction is committed or aborted, its state is set to finished.
                 this.finished.set(true);
                 this.version_change_old_version.set(None);
+                this.version_change_old_object_store_names.borrow_mut().take();
                 this.notify_backend_transaction_finished();
                 if this.registered_in_global.get() {
                     this.global().get_indexeddb().unregister_indexeddb_transaction(&this);
@@ -525,6 +546,9 @@ impl IDBTransaction {
         }
         self.committing.set(false);
         self.version_change_old_version.set(None);
+        self.version_change_old_object_store_names
+            .borrow_mut()
+            .take();
         // https://w3c.github.io/IndexedDB/#transaction-lifetime
         // Step 6: When a transaction is committed or aborted, its state is set to finished.
         self.finished.set(true);

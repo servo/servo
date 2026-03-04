@@ -477,7 +477,7 @@ impl ScriptThreadFactory for ScriptThread {
         thread::Builder::new()
             .name(format!("Script#{script_thread_id}"))
             .spawn(move || {
-                thread_state::initialize(ThreadState::SCRIPT | ThreadState::LAYOUT);
+                thread_state::initialize(ThreadState::SCRIPT);
                 PipelineNamespace::install(state.pipeline_namespace_id);
                 ScriptEventLoopId::install(state.id);
                 let memory_profiler_sender = state.memory_profiler_sender.clone();
@@ -2249,9 +2249,15 @@ impl ScriptThread {
                     node_id.as_deref(),
                 )
             },
-            DevtoolScriptControlMsg::Eval(code, id, reply) => {
-                self.debugger_global
-                    .fire_eval(CanGc::from_cx(cx), code.into(), id, None, reply);
+            DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
+                self.debugger_global.fire_eval(
+                    CanGc::from_cx(cx),
+                    code.into(),
+                    id,
+                    None,
+                    frame_actor_id,
+                    reply,
+                );
             },
             DevtoolScriptControlMsg::GetPossibleBreakpoints(spidermonkey_id, result_sender) => {
                 self.debugger_global.fire_get_possible_breakpoints(

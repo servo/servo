@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
-  <title>Apply view-transition-scope: auto during transition</title>
+  <title>Apply view-transition-scope: all during transition</title>
 </head>
 <style>
   #scope {
@@ -13,8 +13,8 @@
     width: 100px;
   }
 
-  .explicit-auto {
-    view-transition-scope: auto;
+  .explicit-all {
+    view-transition-scope: all;
   }
 </style>
 <script src="/resources/testharness.js"></script>
@@ -45,32 +45,32 @@ async function skip_transition(test, transition) {
 promise_test(async t => {
   assert_scope('none', 'before transition');
   const vt = scope.startViewTransition();
-  assert_scope('auto', 'during transition');
+  assert_scope('all', 'during transition');
   await finish_transition(vt);
   assert_scope('none', 'after finishing transition');
-}, 'view-transition-scope updated to auto during transition and reset after ' +
+}, 'view-transition-scope updated to all during transition and reset after ' +
    'finishing the transition');
 
 promise_test(async t => {
   assert_scope('none', 'before transition');
   const vt = scope.startViewTransition();
-  assert_scope('auto', 'during transition');
+  assert_scope('all', 'during transition');
   await skip_transition(t, vt);
   assert_scope('none', 'after aborted transition');
-}, 'view-transition-scope updated to auto during transition and reset after ' +
+}, 'view-transition-scope updated to all during transition and reset after ' +
    'aborting the transition');
 
 promise_test(async t => {
-  scope.classList.add('explicit-auto');
+  scope.classList.add('explicit-all');
   t.add_cleanup(() => {
-    scope.classList.remove('explicit-auto');
+    scope.classList.remove('explicit-all');
   });
-  assert_scope('auto', 'before transition');
+  assert_scope('all', 'before transition');
   const vt = scope.startViewTransition();
-  assert_scope('auto', 'during transition');
+  assert_scope('all', 'during transition');
   await finish_transition(t, vt);
-  assert_scope('auto', 'after transition');
-}, 'Auto-reset of "view-transition-scope: auto" does not clobber an ' +
+  assert_scope('all', 'after transition');
+}, 'Auto-reset of "view-transition-scope: all" does not clobber an ' +
    'explicitly set value');
 </script>
 </html>
