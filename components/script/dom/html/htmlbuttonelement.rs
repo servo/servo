@@ -375,7 +375,6 @@ impl VirtualMethods for HTMLButtonElement {
                         el.check_ancestors_disabled_state_for_form_control();
                     },
                 }
-                el.update_sequentially_focusable_status(can_gc);
                 self.validity_state(can_gc)
                     .perform_validation_and_update(ValidationFlags::all(), can_gc);
             },

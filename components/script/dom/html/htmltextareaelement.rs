@@ -620,7 +620,6 @@ impl VirtualMethods for HTMLTextAreaElement {
                         }
                     },
                 }
-                el.update_sequentially_focusable_status(CanGc::note());
             },
             local_name!("maxlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {

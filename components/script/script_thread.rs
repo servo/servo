@@ -1246,8 +1246,11 @@ impl ScriptThread {
                 );
             }
 
-            // TODO(#31870): Implement step 17: if the focused area of doc is not a focusable area,
-            // then run the focusing steps for document's viewport.
+            // <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
+            // > For each doc of docs, if the focused area of doc is not a focusable area, then run the
+            // > focusing steps for doc's viewport, and set doc's relevant global object's navigation API's
+            // > focus changed during ongoing navigation to false.
+            document.perform_focus_fixup_rule(CanGc::from_cx(cx));
 
             // TODO: Perform pending transition operations from
             // https://drafts.csswg.org/css-view-transitions/#perform-pending-transition-operations.
