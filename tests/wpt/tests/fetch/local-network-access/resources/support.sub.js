@@ -1,7 +1,4 @@
 // Maps protocol (without the trailing colon) and address space to port.
-//
-// TODO(crbug.com/418737577): change keys to be consistent with new address
-// space names.
 const SERVER_PORTS = {
   "http": {
     "loopback": {{ports[http][0]}},
@@ -253,3 +250,17 @@ async function navigateTest(t, {source, target, expected}) {
 
   assert_equals(result, expected);
 }
+
+const WebsocketTestResult = {
+  SUCCESS: 'open',
+
+  // The code is a best guess. It is not yet entirely specified, so it may need
+  // to be changed in the future based on implementation experience.
+  FAILURE: 'close: code 1006',
+};
+
+const WebTransportTestResult = {
+  SUCCESS: 'open',
+
+  FAILURE: 'error',
+};

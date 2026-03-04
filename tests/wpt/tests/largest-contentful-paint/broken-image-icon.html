@@ -29,10 +29,9 @@
       // emit an LCP entry.
       let LcpEntryListLength = await new Promise(resolve => {
         new PerformanceObserver((entryList, observer) => {
-          if (entryList.getEntries().filter(e => e.url.includes('colors-16x8.png'))) {
-            observer.disconnect();
-            resolve(entryList.getEntries().length);
-          }
+          const filteredEntries = entryList.getEntries().filter(e => e.url.includes('colors-16x8.png'));
+          observer.disconnect();
+          resolve(filteredEntries.length);
         }).observe({ type: 'largest-contentful-paint', buffered: true });
       });
 

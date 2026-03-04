@@ -364,7 +364,6 @@ class TestLoader:
                  chunk_number=1,
                  include_https=True,
                  include_h2=True,
-                 include_webtransport_h3=False,
                  skip_timeout=False,
                  skip_crash=False,
                  skip_implementation_status=None,
@@ -382,7 +381,6 @@ class TestLoader:
         self.disabled_tests = None
         self.include_https = include_https
         self.include_h2 = include_h2
-        self.include_webtransport_h3 = include_webtransport_h3
         self.skip_timeout = skip_timeout
         self.skip_crash = skip_crash
         self.skip_implementation_status = skip_implementation_status

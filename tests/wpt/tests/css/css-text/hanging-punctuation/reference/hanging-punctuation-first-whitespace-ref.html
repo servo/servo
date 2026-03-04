@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Reference</title>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+    body { font-family: 'Ahem'; color:green }
+    .hang { text-indent: -1em; margin:1em }
+</style>
+<div style="float:left" class="hang">(Hang test)</div>
+<div style="clear:both">
+<div class="hang">(This should hang.<br>(This should not.</div>
+<div class="hang" style="text-align:justify; width:300px;">(This should hang and justifybecause and now were fine.</div>
+<div class="hang" style="text-align:justify; width:300px;"><span>(</span>This should hang.</div>
+<div style="margin-left:1em; text-align:justify; width:300px;"><span style="border-left:1em solid blue">(</span>This should not hang.</div>
+<div class="hang" style="text-indent:1em; text-align:justify; width:300px;">(This should hang into the text-indent.</div>

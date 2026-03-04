@@ -14,7 +14,7 @@
 <!-- Priority Tier 1: focusgroupstart attribute -->
 <div id=before1 tabindex=0>Before test 1</div>
 
-<div id=fg1 focusgroup="toolbar no-memory">
+<div id=fg1 focusgroup="toolbar nomemory">
   <span id=item1 tabindex=0>Item 1 (no priority)</span>
   <span id=item2 tabindex=0 focusgroupstart>Item 2 (has priority)</span>
   <span id=item3 tabindex=0>Item 3 (no priority)</span>
@@ -25,7 +25,7 @@
 <!-- Priority Tier 2: First element in tree order when no priority attribute -->
 <div id=before2 tabindex=0>Before test 2</div>
 
-<div id=fg2 focusgroup="toolbar no-memory">
+<div id=fg2 focusgroup="toolbar nomemory">
   <span id=first tabindex=0>First (no priority)</span>
   <span id=second tabindex=0>Second (no priority)</span>
 </div>
@@ -35,7 +35,7 @@
 <!-- Priority Tier 3: First element with priority attribute when multiple have it -->
 <div id=before3 tabindex=0>Before test 3</div>
 
-<div id=fg3 focusgroup="toolbar no-memory">
+<div id=fg3 focusgroup="toolbar nomemory">
   <span id=early1 tabindex=0 focusgroupstart>Early (has priority)</span>
   <span id=early2 tabindex=0 focusgroupstart>Later (has priority)</span>
 </div>
@@ -45,7 +45,7 @@
 <!-- Test with buttons (natively focusable) -->
 <div id=before4 tabindex=0>Before test 4</div>
 
-<div id=fg4 focusgroup="toolbar no-memory">
+<div id=fg4 focusgroup="toolbar nomemory">
   <button id=btn1>Button 1</button>
   <button id=btn2 focusgroupstart>Button 2 (has priority)</button>
   <button id=btn3>Button 3</button>

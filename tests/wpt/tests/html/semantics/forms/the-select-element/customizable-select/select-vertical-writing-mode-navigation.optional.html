@@ -60,14 +60,21 @@ const ArrowDown = '\uE015';
 const Space = ' ';
 const Escape = '\uE00C';
 
+function pressKey(key) {
+  return (new test_driver.Actions()
+    .keyDown(key)
+    .keyUp(key))
+    .send();
+}
+
 async function openPicker(select) {
   select.focus();
-  await test_driver.send_keys(document.activeElement, Space);
+  await pressKey(Space);
   await new Promise(requestAnimationFrame);
 }
 
 async function closePicker(select) {
-  await test_driver.send_keys(document.activeElement, Escape);
+  await pressKey(Escape);
   await new Promise(requestAnimationFrame);
 }
 
@@ -90,18 +97,18 @@ function createWritingModeTests(selectId, writingMode, primaryNext, primaryPrev,
     assert_equals(document.activeElement, optionOne, 'First option should be focused initially.');
 
     // Primary "next" key
-    await test_driver.send_keys(document.activeElement, primaryNext);
+    await pressKey(primaryNext);
     await new Promise(requestAnimationFrame);
     assert_equals(document.activeElement, optionTwo,
       `${primaryNext === ArrowRight ? 'ArrowRight' : 'ArrowLeft'} should move to the next option.`);
 
-    await test_driver.send_keys(document.activeElement, primaryNext);
+    await pressKey(primaryNext);
     await new Promise(requestAnimationFrame);
     assert_equals(document.activeElement, optionThree,
       `${primaryNext === ArrowRight ? 'ArrowRight' : 'ArrowLeft'} should move to the third option.`);
 
     // Primary "previous" key
-    await test_driver.send_keys(document.activeElement, primaryPrev);
+    await pressKey(primaryPrev);
     await new Promise(requestAnimationFrame);
     assert_equals(document.activeElement, optionTwo,
       `${primaryPrev === ArrowLeft ? 'ArrowLeft' : 'ArrowRight'} should move to the previous option.`);
@@ -121,12 +128,12 @@ function createWritingModeTests(selectId, writingMode, primaryNext, primaryPrev,
     assert_equals(document.activeElement, optionOne, 'First option should be focused initially.');
 
     // Down/Up should work as secondary navigation keys
-    await test_driver.send_keys(document.activeElement, ArrowDown);
+    await pressKey(ArrowDown);
     await new Promise(requestAnimationFrame);
     assert_equals(document.activeElement, optionTwo,
       'ArrowDown should also move to the next option as secondary key.');
 
-    await test_driver.send_keys(document.activeElement, ArrowUp);
+    await pressKey(ArrowUp);
     await new Promise(requestAnimationFrame);
     assert_equals(document.activeElement, optionOne,
       'ArrowUp should also move to the previous option as secondary key.');

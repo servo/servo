@@ -32,4 +32,19 @@ test_computed_value("background-color", "contrast-color(currentcolor)", ["rgb(0,
 
 // Test color using calc().
 test_computed_value("background-color", "contrast-color(color(srgb calc(1 + 1 / 1) calc(1 + 1 / 1) calc(1 + 1 / 1)))", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+
+// Test contrast-color in other color functions.
+test_computed_value("background-color", "color-mix(in srgb, contrast-color(blue) 100%, purple)", ["color(srgb 0 0 0)", "color(srgb 1 1 1)"]);
+test_computed_value("background-color", "rgb(from contrast-color(blue) r g b)", ["color(srgb 0 0 0)", "color(srgb 1 1 1)"]);
+
+// Test color functions in contrast-color.
+test_computed_value("background-color", "contrast-color(color-mix(blue, green))", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+test_computed_value("background-color", "contrast-color(rgb(from orange r g b))", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+
+// Test color using system color.
+test_computed_value("background-color", "contrast-color(buttonface)", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+
+// Test color using alpha channel.
+test_computed_value("background-color", "contrast-color(transparent)", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
+test_computed_value("background-color", "contrast-color(rgba(255, 255, 255, 0.2))", ["rgb(0, 0, 0)", "rgb(255, 255, 255)"]);
 </script>
