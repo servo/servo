@@ -443,9 +443,15 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                     .and_then(|opt| opt.as_ref())
                     .map(|s| s.to_string())
                     .unwrap_or_else(|| "Object".to_string());
+                let name = result
+                    .name
+                    .as_ref()
+                    .and_then(|opt| opt.as_ref())
+                    .map(|s| s.to_string());
                 EvaluateJSReplyValue::ActorValue {
                     class,
                     uuid: uuid::Uuid::new_v4().to_string(),
+                    name,
                 }
             },
             _ => unreachable!(),

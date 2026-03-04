@@ -169,6 +169,7 @@ pub(crate) fn handle_evaluate_js(
             EvaluateJSReplyValue::ActorValue {
                 class: class_name,
                 uuid: Uuid::new_v4().to_string(),
+                name: None,
             }
         }
     };

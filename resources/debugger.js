@@ -91,6 +91,13 @@ function createValueResult(value) {
             }
             // Debugger.Object - use the `class` accessor property
             // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Object.html>
+            if (value.callable) {
+                return {
+                    valueType: "object",
+                    objectClass: value.class,
+                    name: value.name
+                };
+            }
             return { valueType: "object", objectClass: value.class };
         default:
             return { valueType: "string", stringValue: String(value) };
