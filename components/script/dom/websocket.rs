@@ -6,9 +6,9 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr::{self, NonNull};
 
+use base::generic_channel::{LazyCallback, lazy_callback};
 use constellation_traits::BlobImpl;
 use dom_struct::dom_struct;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
@@ -108,20 +108,20 @@ pub(crate) struct WebSocket {
     buffered_amount: Cell<u64>,
     clearing_buffer: Cell<bool>, // Flag to tell if there is a running thread to clear buffered_amount
     #[no_trace]
-    sender: IpcSender<WebSocketDomAction>,
+    callback: LazyCallback<WebSocketDomAction>,
     binary_type: Cell<BinaryType>,
     protocol: DomRefCell<String>, // Subprotocol selected by server
 }
 
 impl WebSocket {
-    fn new_inherited(url: ServoUrl, sender: IpcSender<WebSocketDomAction>) -> WebSocket {
+    fn new_inherited(url: ServoUrl, callback: LazyCallback<WebSocketDomAction>) -> WebSocket {
         WebSocket {
             eventtarget: EventTarget::new_inherited(),
             url,
             ready_state: Cell::new(WebSocketRequestState::Connecting),
             buffered_amount: Cell::new(0),
             clearing_buffer: Cell::new(false),
-            sender,
+            callback,
             binary_type: Cell::new(BinaryType::Blob),
             protocol: DomRefCell::new("".to_owned()),
         }
@@ -131,7 +131,7 @@ impl WebSocket {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         url: ServoUrl,
-        sender: IpcSender<WebSocketDomAction>,
+        sender: LazyCallback<WebSocketDomAction>,
         can_gc: CanGc,
     ) -> DomRoot<WebSocket> {
         let websocket = reflect_dom_object_with_proto(
@@ -263,14 +263,9 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         }
 
         // Create the interface for communication with the resource thread
-        let (dom_action_sender, resource_action_receiver): (
-            IpcSender<WebSocketDomAction>,
-            IpcReceiver<WebSocketDomAction>,
-        ) = ipc::channel().unwrap();
-        let (resource_event_sender, dom_event_receiver): (
-            IpcSender<WebSocketNetworkEvent>,
-            ProfiledIpc::IpcReceiver<WebSocketNetworkEvent>,
-        ) = ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
+        let (dom_action_sender, resource_action_receiver) = lazy_callback();
+        let (resource_event_sender, dom_event_receiver) =
+            ProfiledIpc::channel(global.time_profiler_chan().clone()).unwrap();
 
         // Step 12. Establish a WebSocket connection given urlRecord, protocols, and client.
         let ws = WebSocket::new(global, proto, url_record.clone(), dom_action_sender, can_gc);
@@ -390,7 +385,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
         if send_data {
             let _ = self
-                .sender
+                .callback
                 .send(WebSocketDomAction::SendMessage(MessageData::Text(data.0)));
         }
 
@@ -409,7 +404,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
         if send_data {
             let bytes = blob.get_bytes().unwrap_or_default();
             let _ = self
-                .sender
+                .callback
                 .send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
 
@@ -424,7 +419,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
         if send_data {
             let _ = self
-                .sender
+                .callback
                 .send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
         Ok(())
@@ -438,7 +433,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
 
         if send_data {
             let _ = self
-                .sender
+                .callback
                 .send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
         Ok(())
@@ -482,7 +477,7 @@ impl WebSocketMethods<crate::DomTypeHolder> for WebSocket {
                 // Kick off _Start the WebSocket Closing Handshake_
                 // https://tools.ietf.org/html/rfc6455#section-7.1.2
                 let reason = reason.map(|reason| reason.0);
-                let _ = self.sender.send(WebSocketDomAction::Close(code, reason));
+                let _ = self.callback.send(WebSocketDomAction::Close(code, reason));
             },
         }
         Ok(()) // Return Ok
