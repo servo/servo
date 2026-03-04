@@ -577,8 +577,20 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     }
 
     fn delete_object_store(&mut self, store_name: &str) -> DbResult<()> {
-        let result = self.engine.delete_store(store_name);
-        result.map_err(|err| format!("{err:?}"))
+        // IndexedDB §5.5: "For upgrade transactions this includes changes to the set of object stores and indexes".
+        // Delete index metadata first, then remove the store metadata row.
+        let indexes = self
+            .engine
+            .indexes(store_name)
+            .map_err(|err| format!("{err:?}"))?;
+        for index in indexes {
+            self.engine
+                .delete_index(store_name, index.name)
+                .map_err(|err| format!("{err:?}"))?;
+        }
+        self.engine
+            .delete_store(store_name)
+            .map_err(|err| format!("{err:?}"))
     }
 
     fn delete_database(self) -> BackendResult<()> {
@@ -1032,12 +1044,18 @@ impl IndexedDBManager {
                 return;
             };
             let VersionUpgrade { new, .. } = pending_upgrade;
+            let object_store_names = self
+                .databases
+                .get(&key)
+                .and_then(|db| db.object_store_names().ok())
+                .unwrap_or_default();
             if sender
                 .send(ConnectionMsg::Connection {
                     id,
                     name: db_name,
                     version: new,
                     upgraded: true,
+                    object_store_names,
                 })
                 .is_err()
             {
@@ -1358,7 +1376,7 @@ impl IndexedDBManager {
 
         // Step 4: Set db’s upgrade transaction to transaction.
         // Backend tracks the active upgrade transaction in `pending_upgrade` below.
-        db.register_transaction(transaction, IndexedDBTxnMode::Versionchange, scope);
+        db.register_transaction(transaction, IndexedDBTxnMode::Versionchange, scope.clone());
 
         // Step 5: Set transaction’s state to inactive.
         // Step 6: Start transaction.
@@ -1389,6 +1407,7 @@ impl IndexedDBManager {
                 version: new_version,
                 old_version,
                 transaction,
+                object_store_names: scope.clone(),
             })
             .is_err()
         {
@@ -1659,6 +1678,11 @@ impl IndexedDBManager {
         }
 
         // Step 11:
+        let object_store_names = self
+            .databases
+            .get(&key)
+            .and_then(|db| db.object_store_names().ok())
+            .unwrap_or_default();
         *processed = true;
         if sender
             .send(ConnectionMsg::Connection {
@@ -1666,6 +1690,7 @@ impl IndexedDBManager {
                 id: *id,
                 version: db_version,
                 upgraded: false,
+                object_store_names,
             })
             .is_err()
         {

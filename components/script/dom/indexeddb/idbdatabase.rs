@@ -96,6 +96,26 @@ impl IDBDatabase {
         )
     }
 
+    pub(crate) fn object_store_names_snapshot(&self) -> Vec<DOMString> {
+        // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
+        // Step 4. Set connection’s object store set to the set of object stores in database if database previously existed,
+        // or the empty set if database was newly created.
+        self.object_store_names.borrow().clone()
+    }
+
+    pub(crate) fn set_object_store_names_from_backend(&self, names: Vec<String>) {
+        // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
+        // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
+        *self.object_store_names.borrow_mut() =
+            names.into_iter().map(DOMString::from_string).collect();
+    }
+
+    pub(crate) fn restore_object_store_names(&self, names: Vec<DOMString>) {
+        // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
+        // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
+        *self.object_store_names.borrow_mut() = names;
+    }
+
     pub(crate) fn object_store_exists(&self, name: &DOMString) -> bool {
         self.object_store_names
             .borrow()

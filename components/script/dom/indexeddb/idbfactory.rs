@@ -260,6 +260,7 @@ impl IDBFactory {
                 id,
                 version,
                 upgraded,
+                object_store_names,
             } => {
                 let Some(request) = self.get_request(name.clone(), &id) else {
                     return debug_assert!(
@@ -267,6 +268,17 @@ impl IDBFactory {
                         "There should be a request to handle ConnectionMsg::Connection."
                     );
                 };
+
+                // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
+                // Step 3. Set transaction’s scope to connection’s object store set.
+                let connection = request.get_or_init_connection(
+                    &self.global(),
+                    name.clone(),
+                    version,
+                    upgraded,
+                    can_gc,
+                );
+                connection.set_object_store_names_from_backend(object_store_names);
 
                 // Step 2.2: Otherwise,
                 // set request’s result to result,
@@ -280,6 +292,7 @@ impl IDBFactory {
                 version,
                 old_version,
                 transaction,
+                object_store_names,
             } => {
                 let global = self.global();
 
@@ -292,6 +305,9 @@ impl IDBFactory {
 
                 let connection =
                     request.get_or_init_connection(&global, name, version, false, can_gc);
+                // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
+                // Step 3. Set transaction’s scope to connection’s object store set.
+                connection.set_object_store_names_from_backend(object_store_names);
                 request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
             },
             ConnectionMsg::VersionError { name, id } => {
