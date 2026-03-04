@@ -320,6 +320,10 @@ impl ModuleTree {
         if let Some(introduction_type) = introduction_type {
             compile_options.set_introduction_type(introduction_type);
         }
+        compile_options.set_muted_errors(false);
+        compile_options.set_is_run_once(true);
+        compile_options.set_no_script_rval(true);
+
         let mut module_source = ModuleSource {
             source,
             unminified_dir: global.unminified_js_dir(),
@@ -372,7 +376,7 @@ impl ModuleTree {
     /// <https://html.spec.whatwg.org/multipage/#creating-a-json-module-script>
     /// Although the CanGc argument appears unused, it represents the GC operations that
     /// can occur as part of compiling a script.
-    fn crate_a_json_module_script(
+    fn create_a_json_module_script(
         source: &str,
         global: &GlobalScope,
         url: &ServoUrl,
@@ -401,6 +405,9 @@ impl ModuleTree {
         if let Some(introduction_type) = introduction_type {
             compile_options.set_introduction_type(introduction_type);
         }
+        compile_options.set_muted_errors(false);
+        compile_options.set_is_run_once(true);
+        compile_options.set_no_script_rval(true);
 
         rooted!(in(*cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
 
@@ -826,7 +833,7 @@ impl FetchResponseListener for ModuleContext {
             // Step 7.4 If mimeType is a JSON MIME type and moduleType is "json",
             // then set moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
             if MimeClassifier::is_json(&mime) && matches!(module_type, ModuleType::JSON) {
-                let module_tree = Rc::new(ModuleTree::crate_a_json_module_script(
+                let module_tree = Rc::new(ModuleTree::create_a_json_module_script(
                     &source_text,
                     &global,
                     &final_url,
