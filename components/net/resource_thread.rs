@@ -12,10 +12,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
 use std::thread;
 
-use base::generic_channel::{self, GenericReceiver, GenericReceiverSet, GenericSelectionResult};
+use base::generic_channel::{self, GenericReceiver, GenericReceiverSet, GenericSelectionResult, GenericSender};
 use base::id::CookieStoreId;
 use cookie::Cookie;
-use crossbeam_channel::Sender;
+use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::GenericEmbedderProxy;
 use hyper_serde::Serde;
@@ -27,10 +27,7 @@ use net_traits::pub_domains::public_suffix_list_size_of;
 use net_traits::request::{Destination, PreloadEntry, PreloadId, RequestBuilder, RequestId};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::{
-    AsyncRuntime, CookieAsyncResponse, CookieData, CookieSource, CoreResourceMsg,
-    CoreResourceThread, CustomResponseMediator, DiscardFetch, FetchChannels, FetchTaskTarget,
-    ResourceFetchTiming, ResourceThreads, ResourceTimingType, WebSocketDomAction,
-    WebSocketNetworkEvent,
+    AsyncRuntime, CookieAsyncResponse, CookieChange, CookieData, CookieSource, CoreResourceMsg, CoreResourceThread, CustomResponseMediator, DiscardFetch, FetchChannels, FetchTaskTarget, ResourceFetchTiming, ResourceThreads, ResourceTimingType, WebSocketDomAction, WebSocketNetworkEvent
 };
 use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{
@@ -136,6 +133,8 @@ pub fn new_core_resource_thread(
     let (private_setup_chan, private_setup_port) = generic_channel::channel().unwrap();
     let (report_chan, report_port) = generic_channel::channel().unwrap();
 
+    let private_sender = private_setup_chan.clone();
+    let public_sender = public_setup_chan.clone();
     thread::Builder::new()
         .name("ResourceManager".to_owned())
         .spawn(move || {
@@ -154,13 +153,16 @@ pub fn new_core_resource_thread(
                 ignore_certificate_errors,
                 cancellation_listeners: Default::default(),
                 cookie_listeners: Default::default(),
+                cookie_change_listeners: Default::default(),
             };
 
             mem_profiler_chan.run_with_memory_reporting(
                 || {
                     channel_manager.start(
                         public_setup_port,
+                        public_sender.clone(),
                         private_setup_port,
+                        private_sender.clone(),
                         report_port,
                         protocols,
                         embedder_proxy,
@@ -182,6 +184,7 @@ struct ResourceChannelManager {
     ignore_certificate_errors: bool,
     cancellation_listeners: FxHashMap<RequestId, Weak<CancellationListener>>,
     cookie_listeners: FxHashMap<CookieStoreId, IpcSender<CookieAsyncResponse>>,
+    cookie_change_listeners: FxHashMap<ServoUrl, CookieStoreId>
 }
 
 /// This returns a tuple HttpState and a private HttpState.
@@ -190,10 +193,12 @@ fn create_http_states(
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
+    public_event_sender: GenericSender<CoreResourceMsg>,
+    private_event_sender: GenericSender<CoreResourceMsg>,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
     let mut hsts_list = HstsList::default();
     let mut auth_cache = AuthCache::default();
-    let mut cookie_jar = CookieStorage::new(150);
+    let mut cookie_jar = CookieStorage::new(150, public_event_sender.clone());
     if let Some(config_dir) = config_dir {
         base::read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
         base::read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
@@ -219,7 +224,7 @@ fn create_http_states(
     let override_manager = CertificateErrorOverrideManager::new();
     let private_http_state = HttpState {
         hsts_list: RwLock::new(HstsList::default()),
-        cookie_jar: RwLock::new(CookieStorage::new(150)),
+        cookie_jar: RwLock::new(CookieStorage::new(150, private_event_sender)),
         auth_cache: RwLock::new(AuthCache::default()),
         history_states: RwLock::new(FxHashMap::default()),
         http_cache: HttpCache::default(),
@@ -239,7 +244,9 @@ impl ResourceChannelManager {
     fn start(
         &mut self,
         public_receiver: GenericReceiver<CoreResourceMsg>,
+        public_sender: GenericSender<CoreResourceMsg>,
         private_receiver: GenericReceiver<CoreResourceMsg>,
+        private_sender: GenericSender<CoreResourceMsg>,
         memory_reporter: GenericReceiver<CoreResourceMsg>,
         protocols: Arc<ProtocolRegistry>,
         embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
@@ -249,6 +256,8 @@ impl ResourceChannelManager {
             self.ca_certificates.clone(),
             self.ignore_certificate_errors,
             embedder_proxy,
+            public_sender,
+            private_sender,
         );
 
         let mut rx_set = GenericReceiverSet::new();
@@ -502,12 +511,25 @@ impl ResourceChannelManager {
                     .collect();
                 self.send_cookie_response(cookie_store_id, CookieData::GetAll(cookies));
             },
-            CoreResourceMsg::NewCookieListener(cookie_store_id, sender, _url) => {
+            CoreResourceMsg::NewCookieListener(cookie_store_id, sender, url) => {
                 // TODO: Use the URL for setting up the actual monitoring
                 self.cookie_listeners.insert(cookie_store_id, sender);
+                self.cookie_change_listeners.insert(url.clone(), cookie_store_id);
+                let mut cookie_jar = http_state.cookie_jar.write();
+                cookie_jar.register_listener_for_url(&url);
             },
-            CoreResourceMsg::RemoveCookieListener(cookie_store_id) => {
+            CoreResourceMsg::RemoveCookieListener(cookie_store_id, url) => {
                 self.cookie_listeners.remove(&cookie_store_id);
+                let mut cookie_jar = http_state.cookie_jar.write();
+                cookie_jar.remove_listener_for_url(url);
+            },
+            CoreResourceMsg::CookieChange(url) => {
+                if let Some(pipline_id) = self.cookie_change_listeners.get(&url) {
+                    self.cookie_listeners.get(pipline_id).map(|chan| chan.send(CookieAsyncResponse { data: CookieData::Change(CookieChange{
+                        changed: vec![],
+                        deleted: vec![],
+                    }) }));
+                }
             },
             CoreResourceMsg::NetworkMediator(mediator_chan, origin) => {
                 self.resource_manager

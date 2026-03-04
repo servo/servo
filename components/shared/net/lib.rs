@@ -639,7 +639,8 @@ pub enum CoreResourceMsg {
     DeleteCookie(ServoUrl, String),
     DeleteCookieAsync(CookieStoreId, ServoUrl, String),
     NewCookieListener(CookieStoreId, IpcSender<CookieAsyncResponse>, ServoUrl),
-    RemoveCookieListener(CookieStoreId),
+    RemoveCookieListener(CookieStoreId, ServoUrl),
+    CookieChange(ServoUrl),
     ListCookies(GenericSender<Vec<SiteDescriptor>>),
     /// Get a history state by a given history state id
     GetHistoryState(HistoryStateId, IpcSender<Option<Vec<u8>>>),
@@ -1140,8 +1141,8 @@ pub enum CookieSource {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CookieChange {
-    changed: Vec<Serde<Cookie<'static>>>,
-    deleted: Vec<Serde<Cookie<'static>>>,
+    pub changed: Vec<Serde<Cookie<'static>>>,
+    pub deleted: Vec<Serde<Cookie<'static>>>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

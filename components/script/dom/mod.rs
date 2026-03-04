@@ -240,6 +240,7 @@ pub(crate) mod commandevent;
 pub(crate) mod comment;
 pub(crate) mod compositionevent;
 pub(crate) mod console;
+pub(crate) mod cookiechangeevent;
 pub(crate) mod cookiestore;
 mod create;
 pub(crate) mod credentialmanagement;

@@ -5,16 +5,20 @@
 //! Implementation of cookie storage as specified in
 //! <http://tools.ietf.org/html/rfc6265>
 
+use std::sync::{Arc, Mutex};
+
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry;
 use std::time::SystemTime;
+use base::generic_channel::GenericSender;
+use crossbeam_channel::Sender;
 
 use cookie::Cookie;
 use itertools::Itertools;
 use log::info;
 use net_traits::pub_domains::reg_suffix;
-use net_traits::{CookieSource, SiteDescriptor};
+use net_traits::{CookieSource, CoreResourceMsg, SiteDescriptor};
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 
@@ -25,6 +29,11 @@ pub struct CookieStorage {
     version: u32,
     cookies_map: HashMap<String, Vec<ServoCookie>>,
     max_per_host: usize,
+    // cookie changes are callbacks for "script visible" changes to the cookies for a given url
+    // because we may have many webviews with the same url we also key on
+    #[serde(skip)]
+    cookie_change_listeners: HashSet<ServoUrl>,
+    cookie_change_sender: Arc<Mutex<GenericSender<CoreResourceMsg>>>,
 }
 
 #[derive(Debug)]
@@ -34,11 +43,13 @@ pub enum RemoveCookieError {
 }
 
 impl CookieStorage {
-    pub fn new(max_cookies: usize) -> CookieStorage {
+    pub fn new(max_cookies: usize, cookie_change_sender: GenericSender<CoreResourceMsg>) -> CookieStorage {
         CookieStorage {
             version: 1,
             cookies_map: HashMap::new(),
             max_per_host: max_cookies,
+            cookie_change_listeners: HashSet::new(),
+            cookie_change_sender: Arc::new(Mutex::new(cookie_change_sender)),
         }
     }
 
@@ -177,7 +188,11 @@ impl CookieStorage {
                 return;
             }
         }
-        cookies.push(cookie);
+        cookies.push(cookie.clone());
+        if self.cookie_change_listeners.contains(url) {
+            let s = self.cookie_change_sender.lock().unwrap();
+            s.send(CoreResourceMsg::CookieChange(url.clone()));
+        }
     }
 
     pub fn cookie_comparator(a: &ServoCookie, b: &ServoCookie) -> Ordering {
@@ -288,6 +303,14 @@ impl CookieStorage {
             .cloned()
             .map(SiteDescriptor::new)
             .collect()
+    }
+
+    pub fn register_listener_for_url(&mut self, url: &ServoUrl) {
+        self.cookie_change_listeners.insert(url.clone());
+    }
+
+    pub fn remove_listener_for_url(&mut self, url: ServoUrl) {
+        self.cookie_change_listeners.remove(&url);
     }
 }
 
