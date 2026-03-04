@@ -3363,34 +3363,6 @@ impl Node {
         let _ = require_well_formed;
         self.xml_serialize(xml_serialize::TraversalScope::ChildrenOnly(None))
     }
-
-    /// Return true if this node establishes a "scrolling box".
-    pub(crate) fn establishes_scrolling_box(&self) -> bool {
-        // For now, `Document` represents the viewport.
-        //
-        // TODO: Is this the right thing to do? Maybe `Document` should be ignored and viewport
-        // should be represented by the root of the DOM flat tree.
-        if self.is::<Document>() {
-            return true;
-        }
-        let Some(element) = self.downcast::<Element>() else {
-            // Shadow roots and other nodes are not scrolling boxes.
-            return false;
-        };
-
-        // Element that has scrolling box must have a box as well.
-        if !element.has_css_layout_box() {
-            return true;
-        }
-
-        // > Elements and viewports have an associated scrolling box if the element or viewport has a scrolling mechanism,
-        // TODO: Handle checks for scrolling mechanism as required by spec.
-
-        // > or it overflows its content area and the used value of the overflow-x or overflow-y property is not
-        // > overflow/hidden or overflow/clip. [CSS3-BOX]
-        // The overflow-x and overflow-y scrolls is guaranteed as long as the element is a scroll container.
-        element.establishes_scroll_container() && element.has_overflow()
-    }
 }
 
 impl NodeMethods<crate::DomTypeHolder> for Node {

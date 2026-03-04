@@ -552,7 +552,7 @@ impl Layout for LayoutThread {
             process_effective_overflow_query(node)
         })
     }
-    
+
     fn exit_now(&mut self) {}
 
     fn collect_reports(&self, reports: &mut Vec<Report>, ops: &mut MallocSizeOfOps) {
