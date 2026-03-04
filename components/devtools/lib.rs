@@ -435,17 +435,20 @@ impl DevtoolsInstance {
         let actor = actors.find::<BrowsingContextActor>(actor_name);
         let mut id_map = self.id_map.lock().expect("Mutex poisoned");
         let mut connections = self.connections.lock().unwrap();
-        if let NavigationState::Start(url) = &state {
-            let watcher_actor = actors.find::<WatcherActor>(&actor.watcher);
-            watcher_actor.emit_will_navigate(
-                browsing_context_id,
-                url.clone(),
-                &mut connections.values_mut(),
-                &mut id_map,
-            );
-        };
-
-        actor.navigate(state, &mut id_map, connections.values_mut());
+        match &state {
+            NavigationState::Start(url) => {
+                let watcher_actor = actors.find::<WatcherActor>(&actor.watcher);
+                watcher_actor.emit_will_navigate(
+                    browsing_context_id,
+                    url.clone(),
+                    &mut connections.values_mut(),
+                    &mut id_map,
+                );
+            },
+            NavigationState::Stop(_, _) => {
+                actor.handle_navigate(state, &mut id_map, connections.values_mut());
+            },
+        }
     }
 
     // We need separate actor representations for each script global that exists;
@@ -503,21 +506,22 @@ impl DevtoolsInstance {
                 .browsing_contexts
                 .entry(browsing_context_id)
                 .or_insert_with(|| {
-                    let browsing_context_actor = BrowsingContextActor::new(
+                    let ctx_actor = BrowsingContextActor::new(
                         console_name.clone(),
                         devtools_browser_id,
                         devtools_browsing_context_id,
                         page_info,
                         pipeline_id,
                         devtools_outer_window_id,
-                        script_sender,
+                        script_sender.clone(),
                         actors,
                     );
-                    let name = browsing_context_actor.name();
-                    actors.register(browsing_context_actor);
+                    let name = ctx_actor.name();
+                    actors.register(ctx_actor);
                     name
                 });
-
+            let ctx_actor = actors.find::<BrowsingContextActor>(name);
+            ctx_actor.handle_new_global(pipeline_id, script_sender);
             Root::BrowsingContext(name.clone())
         };
 
