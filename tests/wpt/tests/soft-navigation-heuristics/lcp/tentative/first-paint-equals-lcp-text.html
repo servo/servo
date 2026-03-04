@@ -56,12 +56,12 @@ Notes:
 
     assert_less_than_equal(
       softNavigationEntries[0].startTime,
-      softLcpEntries[0].startTime,
+      softLcpEntries[0].renderTime,
       "Soft LCP should be after soft navigation.",
     );
     assert_equals(
-      softLcpEntries[0].startTime,
-      elementEntries[0].startTime,
+      softLcpEntries[0].renderTime,
+      elementEntries[0].renderTime,
       "Soft LCP and element entry should be at the same time.",
     );
 

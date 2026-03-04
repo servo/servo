@@ -1580,46 +1580,46 @@ impl InlineFormattingContextLayout<'_> {
             SegmentContentFlags::empty()
         };
 
-        // If the metrics of this font don't match the default font, we are likely using a fallback
-        // font and need to adjust the line size to account for a potentially different font.
-        // If somehow the metrics match, the line size won't change.
         let font_metrics = &font.metrics;
         let font_key = font.key(
             self.layout_context.painter_id,
             &self.layout_context.font_context,
         );
-        let using_fallback_font = !Arc::ptr_eq(
-            &self.current_inline_container_state().font_metrics,
-            font_metrics,
-        );
 
+        let mut block_contribution = LineBlockSizes::zero();
         let quirks_mode = self.layout_context.style_context.quirks_mode() != QuirksMode::NoQuirks;
-        let strut_size = if using_fallback_font {
+        if quirks_mode && !flags.is_collapsible_whitespace() {
+            // Normally, the strut is incorporated into the nested block size. In quirks mode though
+            // if we find any text that isn't collapsed whitespace, we need to incorporate the strut.
+            // TODO(mrobinson): This isn't quite right for situations where collapsible white space
+            // ultimately does not collapse because it is between two other pieces of content.
+            block_contribution.max_assign(&self.current_inline_container_state().strut_block_sizes);
+        }
+
+        // If the metrics of this font don't match the default font, we are likely using another
+        // font from the font list or a fallback and should incorporate its block size into the block
+        // size of the container.
+        if self
+            .current_inline_container_state()
+            .font_metrics
+            .block_metrics_meaningfully_differ(&font.metrics)
+        {
             // TODO(mrobinson): This value should probably be cached somewhere.
             let container_state = self.current_inline_container_state();
             let baseline_shift = effective_baseline_shift(
                 &container_state.style,
                 self.inline_box_state_stack.last().map(|c| &c.base),
             );
-            let mut block_size = container_state.get_block_size_contribution(
+            let mut font_block_conribution = container_state.get_block_size_contribution(
                 baseline_shift,
                 font_metrics,
                 &container_state.font_metrics,
             );
-            block_size.adjust_for_baseline_offset(container_state.baseline_offset);
-            block_size
-        } else if quirks_mode && !flags.is_collapsible_whitespace() {
-            // Normally, the strut is incorporated into the nested block size. In quirks mode though
-            // if we find any text that isn't collapsed whitespace, we need to incorporate the strut.
-            // TODO(mrobinson): This isn't quite right for situations where collapsible white space
-            // ultimately does not collapse because it is between two other pieces of content.
-            self.current_inline_container_state()
-                .strut_block_sizes
-                .clone()
-        } else {
-            LineBlockSizes::zero()
-        };
-        self.update_unbreakable_segment_for_new_content(&strut_size, inline_advance, flags);
+            font_block_conribution.adjust_for_baseline_offset(container_state.baseline_offset);
+            block_contribution.max_assign(&font_block_conribution);
+        }
+
+        self.update_unbreakable_segment_for_new_content(&block_contribution, inline_advance, flags);
 
         let current_inline_box_identifier = self.current_inline_box_identifier();
         if let Some(LineItem::TextRun(inline_box_identifier, line_item)) =

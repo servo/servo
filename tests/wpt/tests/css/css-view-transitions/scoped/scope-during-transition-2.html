@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="match" href="scope-during-transition-2-ref.html">
   <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
-  <title>View-transition-scope: auto applied during view transition</title>
+  <title>View-transition-scope: all applied during view transition</title>
 </head>
 <script src="/common/reftest-wait.js"></script>
 <script src="/web-animations/testcommon.js"></script>
@@ -67,7 +67,7 @@
     const animations = document.getAnimations();
     const vt2 = outer.startViewTransition();
     await vt2.ready;
-    // The inner element no longer has "view-transition-scope: auto". but
+    // The inner element no longer has "view-transition-scope: all". but
     // as the VT on outer has already started, the VT names are locked in
     // place. Ensure that an "inner" transition group was not created for
     // the VT on outer.

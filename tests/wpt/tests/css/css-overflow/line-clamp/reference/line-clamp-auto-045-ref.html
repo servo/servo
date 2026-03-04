@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Overflow: test reference</title>
+<style>
+  .clamp {
+    display: flow-root;
+    background-color: yellow;
+    width: 300px;
+  }
+  .float {
+    float: right;
+    background-color: pink;
+  }
+  .margin {
+    margin: 0.5lh;
+  }
+  .abspos {
+    position: absolute;
+    background-color: green;
+    left: auto;
+    right: auto;
+  }
+</style>
+<div class="clamp">
+  Line 1<br>
+  Line 2<br>
+  Line 3<br>
+  <div class="float">
+    Line A <br>
+    Line B
+  </div>
+  Line 4<br>
+  <div class="margin">
+    <div class="margin" style="min-height: 0.5lh">
+      <div class="margin" style="clear: right;">
+        <div class="abspos">Abspos</div>
+      </div>
+    </div>
+  </div>
+</div>

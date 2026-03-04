@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<title>CSS Color Test: Interpolate between contrast-color() and lime</title>
+<link rel="help" href="https://drafts.csswg.org/css-color-5/#contrast-color">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<style>
+  #t {
+    position: relative;
+    left: -100px;
+    width: 100px;
+    height: 100px;
+    animation: --anim 2000s steps(2, start) both;
+  }
+  @keyframes --anim {
+    from {
+      box-shadow: contrast-color(white) 100px 0px;
+    }
+    to {
+      box-shadow: lime 100px 0px;
+    }
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="t"></div>

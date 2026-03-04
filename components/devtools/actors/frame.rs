@@ -104,7 +104,7 @@ impl FrameActor {
         source_actor: String,
         frame_result: FrameInfo,
     ) -> String {
-        let object_actor = ObjectActor::register(registry, None);
+        let object_actor = ObjectActor::register(registry, None, "Object".to_owned());
 
         let name = registry.new_name::<Self>();
         let actor = Self {

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: ::checkmark & web animations</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-forms/#checkmark">
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/">
+<meta name="assert" content="This test checks that ::checkmark can be animated with Web Animations.">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+select, ::picker(select) { appearance: base-select; }
+</style>
+<div id="log"></div>
+<select id="target">
+  <option id="opt" selected>option</option>
+</select>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const opt = document.getElementById("opt");
+
+promise_test(async function() {
+  await test_driver.click(target);
+  const options = {
+    pseudoElement: "::checkmark",
+    duration: 2,
+    delay: -1,
+  };
+  const cs = getComputedStyle(opt, "::checkmark");
+  const anim = opt.animate([
+    {color: "rgb(0, 100, 200)"},
+    {color: "rgb(200, 0, 100)"},
+  ], options);
+  this.add_cleanup(() => anim.cancel());
+  assert_equals(cs.color, "rgb(100, 50, 150)", "color");
+}, "::checkmark pseudo-element animates");
+</script>

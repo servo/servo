@@ -136,10 +136,17 @@ impl PlatformWindow for EmbeddedPlatformWindow {
                         .results
                         .first()
                         .expect("We should have some memory report");
-                    for report in &reports.reports {
-                        let path = String::from("servo_memory_profiling:") + &report.path.join("/");
-                        hitrace::trace_metric_str(&path, report.size as i64);
-                    }
+                    let search_string = String::from("resident-according-to-smaps");
+                    let sum = reports
+                        .reports
+                        .iter()
+                        .filter(|report| report.path.contains(&search_string))
+                        .map(|report| report.size)
+                        .sum::<usize>();
+                    hitrace::trace_metric_str(
+                        "servo_memory_profiling:resident-according-to-smaps/sum",
+                        sum as i64,
+                    );
                 });
             }
         }

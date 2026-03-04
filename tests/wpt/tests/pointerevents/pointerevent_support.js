@@ -252,6 +252,18 @@ function checkPointerEventType(event) {
   assert_equals(event.pointerType, expectedPointerType, "pointerType should be the same as the requested device.");
 }
 
+function getInViewCenterPoint(rect) {
+  var left = Math.max(0, rect.left);
+  var right = Math.min(window.innerWidth, rect.right);
+  var top = Math.max(0, rect.top);
+  var bottom = Math.min(window.innerHeight, rect.bottom);
+
+  var x = 0.5 * (left + right);
+  var y = 0.5 * (top + bottom);
+
+  return [x, y];
+}
+
 function touchScrollInTarget(target, direction) {
   var x_delta = 0;
   var y_delta = 0;
@@ -270,16 +282,20 @@ function touchScrollInTarget(target, direction) {
   } else {
     throw("scroll direction '" + direction + "' is not expected, direction should be 'down', 'up', 'left' or 'right'");
   }
+  // Target's initial position relative to the viewport.
+  const rect = target.getBoundingClientRect();
+  const [startX, startY] = getInViewCenterPoint(rect);
+
   return new test_driver.Actions()
     .addPointer("touchPointer1", "touch")
-    .pointerMove(0, 0, {origin: target})
+    .pointerMove(startX, startY, {origin: 'viewport'})
     .pointerDown()
-    .pointerMove(x_delta, y_delta, {origin: target})
-    .pointerMove(2 * x_delta, 2 * y_delta, {origin: target})
-    .pointerMove(3 * x_delta, 3 * y_delta, {origin: target})
-    .pointerMove(4 * x_delta, 4 * y_delta, {origin: target})
-    .pointerMove(5 * x_delta, 5 * y_delta, {origin: target})
-    .pointerMove(6 * x_delta, 6 * y_delta, {origin: target})
+    .pointerMove(startX + x_delta, startY + y_delta, {origin: "viewport"})
+    .pointerMove(startX + 2 * x_delta, startY + 2 * y_delta, {origin: "viewport"})
+    .pointerMove(startX + 3 * x_delta, startY + 3 * y_delta, {origin: "viewport"})
+    .pointerMove(startX + 4 * x_delta, startY + 4 * y_delta, {origin: "viewport"})
+    .pointerMove(startX + 5 * x_delta, startY + 5 * y_delta, {origin: "viewport"})
+    .pointerMove(startX + 6 * x_delta, startY + 6 * y_delta, {origin: "viewport"})
     .pause(100)
     .pointerUp()
     .send();

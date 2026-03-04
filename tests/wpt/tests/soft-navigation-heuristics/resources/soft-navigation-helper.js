@@ -49,42 +49,62 @@ function getBufferedEntries(type) {
   });
 }
 
+function getElementTiming(id) {
+  return new Promise(resolve => {
+    new PerformanceObserver((list, observer) => {
+      const entries = list.getEntries().filter(e => e.identifier === id);
+      if (entries.length > 0) {
+        observer.disconnect();
+        resolve(entries[0]);
+      }
+    }).observe({ type: 'element', buffered: true });
+  });
+}
+
 /**
  * Helpers somewhat specific to these test types, "exported" and used by tests.
  */
 
-async function addImageToMain(url = DEFAULTIMG, id = 'imagelcp') {
+function assignRandomIdAndElementTiming(el) {
+  el.id = `${el.nodeName}-${Math.random().toString(36).substr(2, 9)}`;
+  el.setAttribute('elementtiming', el.id);
+}
+
+async function addImageToMain(url = DEFAULTIMG) {
   const main = document.getElementById('main');
   const img = new Image();
-  img.src = url + '?' + Math.random();
-  img.id = id;
-  img.setAttribute('elementtiming', id);
+  assignRandomIdAndElementTiming(img);
+  img.src = url + '?' + img.id;
   main.appendChild(img);
+  await getElementTiming(img.id);
   return img;
 }
 
-function addTextParagraphToMain(text, element_timing = '') {
+async function addTextParagraphToMain(text = 'Lorem Ipsum') {
   const main = document.getElementById('main');
   const p = document.createElement('p');
+  assignRandomIdAndElementTiming(p);
   const textNode = document.createTextNode(text);
-  p.setAttribute('elementtiming', element_timing);
   p.style = 'font-size: 3em';
   p.appendChild(textNode);
   main.appendChild(p);
+  await getElementTiming(p.id);
   return p;
 }
 
-function addTextToDivOnMain() {
+async function addTextToDivOnMain() {
   const main = document.getElementById('main');
   const prevDiv = document.getElementsByTagName('div')[0];
   if (prevDiv) {
     main.removeChild(prevDiv);
   }
   const div = document.createElement('div');
+  assignRandomIdAndElementTiming(div);
   const text = document.createTextNode('Lorem Ipsum');
   div.style = 'font-size: 3em';
   div.appendChild(text);
   main.appendChild(div);
+  await getElementTiming(div.id);
   return div;
 }
 
@@ -340,7 +360,6 @@ function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
   assert_equals(entry.name, '', "Entry name should be the empty string");
   assert_equals(entry.entryType, 'interaction-contentful-paint',
     "Entry type should be interaction-contentful-paint");
-  assert_equals(entry.duration, 0, "Entry duration should be 0");
   // The entry's url can be truncated.
   assert_equals(expectedUrl.substr(0, 100), entry.url.substr(0, 100),
     `Expected URL ${expectedUrl} should at least start with the entry's URL ${entry.url}`);
@@ -352,8 +371,6 @@ function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
   }
   assert_greater_than_equal(performance.now(), entry.renderTime,
     'renderTime should occur before the entry is dispatched to the observer.');
-  assert_approx_equals(entry.startTime, entry.renderTime, 0.001,
-    'startTime should be equal to renderTime to the precision of 1 millisecond.');
   if (options.includes('sizeLowerBound')) {
     assert_greater_than(entry.size, expectedSize);
   } else if (options.includes('approximateSize')) {
@@ -362,6 +379,7 @@ function checkImage(entry, expectedUrl, expectedID, expectedSize, timeLowerBound
     assert_equals(entry.size, expectedSize);
   }
 
+  assert_true("paintTime" in entry, "paintTime attribute should exist");
   assert_greater_than_equal(entry.paintTime, timeLowerBound,
     'paintTime should represent the time when the UA started painting');
 

@@ -5,7 +5,6 @@
 use std::marker::PhantomData;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use base::id::{BrowsingContextId, PipelineId};
 use html5ever::{local_name, ns};
 use layout_api::wrapper_traits::{LayoutDataTrait, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{
@@ -30,7 +29,7 @@ use crate::flow::{BlockLevelBox, BlockLevelCreator};
 use crate::fragment_tree::{Fragment, FragmentFlags};
 use crate::geom::PhysicalSize;
 use crate::layout_box_base::LayoutBoxBase;
-use crate::replaced::{CanvasInfo, ImageInfo, VideoInfo};
+use crate::replaced::{CanvasInfo, IFrameInfo, ImageInfo, VideoInfo};
 use crate::style_ext::{
     ComputedValuesExt, Display, DisplayGeneratingBox, DisplayLayoutInternal, DisplayOutside,
 };
@@ -309,7 +308,7 @@ pub(crate) trait NodeExt<'dom> {
     /// Returns the relevant data wrapping into respective struct and its size in pixels.
     fn as_image(&self) -> Option<(ImageInfo, PhysicalSize<f64>)>;
     fn as_canvas(&self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
-    fn as_iframe(&self) -> Option<(PipelineId, BrowsingContextId)>;
+    fn as_iframe(&self) -> Option<IFrameInfo>;
     fn as_video(&self) -> Option<(VideoInfo, Option<PhysicalSize<f64>>)>;
     fn as_svg(&self) -> Option<SVGElementData<'dom>>;
     fn as_typeless_object_with_data_attribute(&self) -> Option<String>;
@@ -401,11 +400,12 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         ))
     }
 
-    fn as_iframe(&self) -> Option<(PipelineId, BrowsingContextId)> {
+    fn as_iframe(&self) -> Option<IFrameInfo> {
         match (self.iframe_pipeline_id(), self.iframe_browsing_context_id()) {
-            (Some(pipeline_id), Some(browsing_context_id)) => {
-                Some((pipeline_id, browsing_context_id))
-            },
+            (Some(pipeline_id), Some(browsing_context_id)) => Some(IFrameInfo {
+                pipeline_id,
+                browsing_context_id,
+            }),
             _ => None,
         }
     }

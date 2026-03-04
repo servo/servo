@@ -218,6 +218,44 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(paused_data.get("type"), "paused")
             self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
 
+    def test_frame_scoped_eval(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/frame_scoped.html")
+        with Devtools.connect() as devtools:
+            thread_actor = devtools.targets[0]["threadActor"]
+            console_actor = devtools.targets[0]["consoleActor"]
+            devtools.client.send_receive({"to": thread_actor, "type": "attach"})
+
+            paused_future = Future()
+
+            def on_paused(data):
+                paused_future.set_result(data)
+
+            devtools.client.add_event_listener(thread_actor, "paused", on_paused)
+            devtools.client.send_receive({"to": thread_actor, "type": "interrupt", "when": "onNext"})
+
+            paused_data = paused_future.result(3)
+            frame_actor = paused_data.get("frame", {}).get("actor")
+            self.assertIsNotNone(frame_actor)
+
+            eval_future = Future()
+
+            def on_eval_result(data):
+                eval_future.set_result(data)
+
+            devtools.client.add_event_listener(console_actor, Events.WebConsole.EVALUATION_RESULT, on_eval_result)
+            devtools.client.send_receive(
+                {
+                    "to": console_actor,
+                    "type": "evaluateJSAsync",
+                    "text": "i",
+                    "frameActor": frame_actor,
+                }
+            )
+
+            eval_result = eval_future.result(2)
+            self.assertFalse(eval_result.get("hasException", True))
+            self.assertEqual(eval_result.get("result"), 42)
+
     def test_breakpoint_at_invalid_entry_point_does_not_crash(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:

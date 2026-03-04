@@ -32,30 +32,25 @@ pub fn set(preferences: Preferences) {
     // Map between Stylo preference names and Servo preference names as the This should be
     // kept in sync with components/script/dom/bindings/codegen/run.py which generates the
     // DOM CSS style accessors.
-    stylo_static_prefs::set_bool("layout.unimplemented", preferences.layout_unimplemented);
-    stylo_static_prefs::set_i32("layout.threads", preferences.layout_threads as i32);
-    stylo_static_prefs::set_bool("layout.flexbox.enabled", preferences.layout_flexbox_enabled);
-    stylo_static_prefs::set_bool("layout.columns.enabled", preferences.layout_columns_enabled);
-    stylo_static_prefs::set_bool("layout.grid.enabled", preferences.layout_grid_enabled);
-    stylo_static_prefs::set_bool(
+    stylo_static_prefs::set_pref!("layout.unimplemented", preferences.layout_unimplemented);
+    stylo_static_prefs::set_pref!("layout.threads", preferences.layout_threads as i32);
+    stylo_static_prefs::set_pref!("layout.columns.enabled", preferences.layout_columns_enabled);
+    stylo_static_prefs::set_pref!("layout.grid.enabled", preferences.layout_grid_enabled);
+    stylo_static_prefs::set_pref!(
         "layout.css.attr.enabled",
-        preferences.layout_css_attr_enabled,
+        preferences.layout_css_attr_enabled
     );
-    stylo_static_prefs::set_bool(
-        "layout.css.transition-behavior.enabled",
-        preferences.layout_css_transition_behavior_enabled,
-    );
-    stylo_static_prefs::set_bool(
+    stylo_static_prefs::set_pref!(
         "layout.writing-mode.enabled",
-        preferences.layout_writing_mode_enabled,
+        preferences.layout_writing_mode_enabled
     );
-    stylo_static_prefs::set_bool(
+    stylo_static_prefs::set_pref!(
         "layout.container-queries.enabled",
-        preferences.layout_container_queries_enabled,
+        preferences.layout_container_queries_enabled
     );
-    stylo_static_prefs::set_bool(
+    stylo_static_prefs::set_pref!(
         "layout.variable_fonts.enabled",
-        preferences.layout_variable_fonts_enabled,
+        preferences.layout_variable_fonts_enabled
     );
 
     let changed = preferences.diff(&PREFERENCES.read().unwrap());
@@ -258,9 +253,6 @@ pub struct Preferences {
     pub layout_grid_enabled: bool,
     pub layout_container_queries_enabled: bool,
     pub layout_css_attr_enabled: bool,
-    pub layout_css_transition_behavior_enabled: bool,
-    // feature: CSS Flexbox | #12453 | Web/CSS/Guides/Flexible_box_layout
-    pub layout_flexbox_enabled: bool,
     pub layout_style_sharing_cache_enabled: bool,
     pub layout_threads: i64,
     pub layout_unimplemented: bool,
@@ -457,8 +449,6 @@ impl Preferences {
             layout_columns_enabled: false,
             layout_container_queries_enabled: false,
             layout_css_attr_enabled: false,
-            layout_css_transition_behavior_enabled: true,
-            layout_flexbox_enabled: true,
             layout_grid_enabled: false,
             layout_style_sharing_cache_enabled: true,
             // TODO(mrobinson): This should likely be based on the number of processors.

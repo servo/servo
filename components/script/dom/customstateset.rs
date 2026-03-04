@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Ref;
-
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
 use script_bindings::codegen::GenericBindings::ElementInternalsBinding::CustomStateSetMethods;
@@ -52,8 +50,12 @@ impl CustomStateSet {
         }
     }
 
-    pub(crate) fn set<'a>(&'a self) -> Ref<'a, IndexSet<DOMString>> {
-        self.internal.borrow()
+    /// Returns a borrowed version of the set without the usual Ref wrapper.
+    /// Mutating the underlying refcell while this value is active is
+    /// undefined behaviour.
+    #[expect(unsafe_code)]
+    pub(crate) unsafe fn set_for_layout(&self) -> &IndexSet<DOMString> {
+        unsafe { self.internal.borrow_for_layout() }
     }
 
     fn states_did_change(&self) {

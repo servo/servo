@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebTransport</title>
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="support.sub.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/webtransport/resources/webtransport-test-helpers.sub.js"></script>
+<script>
+"use strict";
+
+// Set the 'loopback-network' permission then attempt to open a webtransport
+// connection to the loopback address space.
+//
+// By default, 'loopback-network' permission is set to 'granted'. This can
+// be changed by passing in a different value via the 'permission' URL parameter.
+// Valid values:
+//
+//    * granted
+//    * denied
+//    * prompt
+Promise.resolve().then(async () => {
+    const window_url = new URL(window.location.href);
+    let permission_name = 'loopback-network'
+    let permission_value = 'granted';
+    if (window_url.searchParams.has('permission')) {
+        permission_value = window_url.searchParams.get('permission');
+    }
+    test_driver.set_test_context(opener);
+    await test_driver.set_permission({ name: permission_name }, permission_value);
+
+    // WPT webtransport URLs are always loopback urls
+    const wt = new WebTransport(webtransport_url('custom-response.py?:status=204'));
+    wt.ready
+     .then((val) => {
+        opener.postMessage(WebTransportTestResult.SUCCESS, "*");
+      })
+     .catch((val) => {
+        opener.postMessage(WebTransportTestResult.FAILURE, "*");
+      });
+});
+</script>

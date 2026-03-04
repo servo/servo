@@ -20,6 +20,7 @@ pub(crate) struct DebuggerEvalEvent {
     code: DOMString,
     pipeline_id: Dom<PipelineId>,
     worker_id: Option<DOMString>,
+    frame_actor_id: Option<DOMString>,
 }
 
 impl DebuggerEvalEvent {
@@ -28,6 +29,7 @@ impl DebuggerEvalEvent {
         code: DOMString,
         pipeline_id: &PipelineId,
         worker_id: Option<DOMString>,
+        frame_actor_id: Option<DOMString>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         let result = Box::new(Self {
@@ -35,6 +37,7 @@ impl DebuggerEvalEvent {
             code,
             pipeline_id: Dom::from_ref(pipeline_id),
             worker_id,
+            frame_actor_id,
         });
         let result = reflect_dom_object(result, debugger_global, can_gc);
         result.event.init_event("eval".into(), false, false);
@@ -57,6 +60,10 @@ impl DebuggerEvalEventMethods<crate::DomTypeHolder> for DebuggerEvalEvent {
 
     fn GetWorkerId(&self) -> Option<DOMString> {
         self.worker_id.clone()
+    }
+
+    fn GetFrameActorId(&self) -> Option<DOMString> {
+        self.frame_actor_id.clone()
     }
 
     fn IsTrusted(&self) -> bool {

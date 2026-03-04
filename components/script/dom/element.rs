@@ -1538,7 +1538,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
     #[expect(unsafe_code)]
     fn each_custom_state_for_layout(self, mut callback: impl FnMut(&AtomIdent)) {
-        let rare_data = self.unsafe_get().rare_data();
+        let rare_data = unsafe { self.unsafe_get().rare_data.borrow_for_layout() };
         let Some(rare_data) = rare_data.as_ref() else {
             return;
         };
@@ -1548,7 +1548,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
 
         let element_internals = unsafe { element_internals.to_layout() };
         if let Some(states) = element_internals.unsafe_get().custom_states_for_layout() {
-            for state in states.unsafe_get().set().iter() {
+            for state in unsafe { states.unsafe_get().set_for_layout().iter() } {
                 // FIXME: This creates new atoms whenever it is called, which is not optimal.
                 callback(&AtomIdent::from(&*state.str()));
             }

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference for text-overflow ellipsis in editable div with caret selection</title>
+<style>
+  #editable {
+    font: 20px/1;
+    width: 100px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+    margin: 10px;
+    outline: none;
+  }
+</style>
+<body contenteditable="true">
+<div contenteditable="true" id="editable">This is a very long text that should be clipped</div>
+</body>
+<script>
+  // Focus the editable div and place caret at the same position as test
+  const editableDiv = document.getElementById('editable');
+  editableDiv.focus();
+  const range = document.createRange();
+  range.setStart(editableDiv.firstChild, 10);
+  range.setEnd(editableDiv.firstChild, 10);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+</script>

@@ -184,6 +184,14 @@ impl FontMetrics {
         static EMPTY: OnceLock<Arc<FontMetrics>> = OnceLock::new();
         EMPTY.get_or_init(Default::default).clone()
     }
+
+    /// Whether or not the block metrics of the two `FontMetrics` instances differ in a way
+    /// that requires the resulting block size of a containing inline box to change.
+    pub fn block_metrics_meaningfully_differ(&self, other: &Self) -> bool {
+        self.ascent != other.ascent ||
+            self.descent != other.descent ||
+            self.line_gap != other.line_gap
+    }
 }
 
 #[derive(Debug, Default)]

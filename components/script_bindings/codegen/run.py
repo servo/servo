@@ -116,11 +116,9 @@ def add_css_properties_attributes(css_properties_json: str, parser: Parser) -> N
         MAPPING = [
             ["layout.unimplemented", "layout_unimplemented"],
             ["layout.threads", "layout_threads"],
-            ["layout.flexbox.enabled", "layout_flexbox_enabled"],
             ["layout.columns.enabled", "layout_columns_enabled"],
             ["layout.grid.enabled", "layout_grid_enabled"],
             ["layout.css.attr.enabled", "layout_css_attr_enabled"],
-            ["layout.css.transition-behavior.enabled", "layout_css_transition_behavior_enabled"],
             ["layout.writing-mode.enabled", "layout_writing_mode_enabled"],
             ["layout.container-queries.enabled", "layout_container_queries_enabled"],
             ["layout.variable_fonts.enabled", "layout_variable_fonts_enabled"]

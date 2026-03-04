@@ -7,6 +7,7 @@
 <style>
   div {
     display: inline-block;
+    font-family: monospace;
   }
   canvas {
     display: block;
@@ -21,6 +22,7 @@
 </div>
 
 <canvas id="canvas" width="500" height="500"></canvas>
+<input id="input" value="aaaaaaaaaaaaaaaaaaaaaaaaaaa">
 
 <script>
   test(() => {
@@ -85,7 +87,7 @@
     const range = document.caretRangeFromPoint(x, y);
     let rangeRect = range.getBoundingClientRect();
     assert_approx_equals(rangeRect.x, x, 1);
-    assert_approx_equals(rangeRect.y, rect.height / 2, 3);
+    assert_approx_equals(rangeRect.y, rect.top, 3);
     assert_approx_equals(rangeRect.height, rect.height, 1);
     assert_approx_equals(rangeRect.width, 0, 0.02, "Caret range should be collapsed");
   }, "document.caretRangeFromPoint() should return a client rect close to the given coords");
@@ -118,5 +120,18 @@
     assert_equals(range.startOffset, 0);
     assert_equals(range.endOffset, 0);
     assert_true(range.collapsed);
-  }, "document.caretRangeFromPoint() on a textarea should return a Range pointing at canvas");
+  }, "document.caretRangeFromPoint() on a canvas should return a Range pointing at canvas");
+
+  test(() => {
+    const rect = input.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const range = document.caretRangeFromPoint(x, y);
+    assert_true(range instanceof Range);
+    assert_equals(range.startContainer, input);
+    assert_equals(range.endContainer, input);
+    assert_equals(range.startOffset, 0);
+    assert_equals(range.endOffset, 0);
+    assert_true(range.collapsed);
+  }, "document.caretRangeFromPoint() on an input should return a Range pointing at input with offset 0");
 </script>
