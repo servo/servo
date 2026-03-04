@@ -364,50 +364,68 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
     }
 }
 
-fn first_letter_range(text: &str) -> std::ops::RangeTo<usize> {
+fn first_letter_range(text: &str) -> std::ops::Range<usize> {
     use unicode_categories::UnicodeCategories;
 
     enum State {
+        Start,
         PrecedingPunc,
         Lns,
         SucceedingPunc,
     }
 
-    let mut index = 0;
-    let mut state = State::PrecedingPunc;
+    let mut start = 0;
+    let mut end = 0;
+    let mut state = State::Start;
 
     // Zero or more punctuations interleaved with zero or more space
     for (i, c) in text.char_indices() {
-        index = i;
+        end = i;
         match state {
+            State::Start => {
+                if c.is_punctuation() {
+                    start = i;
+                    state = State::PrecedingPunc;
+                } else if c.is_letter() || c.is_number() || c.is_symbol() {
+                    // If the ending letter is the first letter
+                    end += 1;
+                    state = State::Lns;
+                } else {
+                    start = i;
+                    continue;
+                }
+            },
             State::PrecedingPunc => {
                 if c.is_letter() || c.is_number() || c.is_symbol() {
+                    end += 1;
                     state = State::Lns;
                 } else if c.is_punctuation() || c.is_separator_space() {
                     continue;
                 } else {
-                    return ..0;
+                    return 0..0;
                 }
             },
             State::Lns => {
+                // If the ending letter is the first letter
+                end += 1;
                 if c.is_punctuation() {
                     state = State::SucceedingPunc;
                 } else {
-                    return ..i;
+                    return start..i;
                 }
             },
             State::SucceedingPunc => {
                 if c.is_punctuation() {
                     continue;
                 } else {
-                    return ..i;
+                    return start..i;
                 }
             },
         }
     }
 
-    index += 1;
-    ..index
+    // end += 1;
+    start..end
 }
 
 impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
@@ -481,9 +499,16 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
         {
             if builder.text_segments.iter().all(|seg| seg.is_empty()) {
                 let first_letter_range = first_letter_range(&text[..]);
+                range.start = first_letter_range.end;
+
+                // The first letter range may be some value larger than zero when
+                // there are proceding spaces.
+                if first_letter_range.start != 0 {
+                    builder.push_text(Cow::Borrowed(&text[0..first_letter_range.start]), info);
+                }
+
                 let first_letter = Cow::Borrowed(&text[first_letter_range]);
                 builder.push_first_letter(first_letter, &pseudo_info, context);
-                range.start = first_letter_range.end;
             }
         }
 
