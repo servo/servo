@@ -8,6 +8,7 @@ mod common;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
+use accesskit::Role;
 use servo::{LoadStatus, Preferences, WebViewBuilder};
 use url::Url;
 
@@ -46,11 +47,16 @@ fn test_basic_accessibility_update() {
     let load_webview = webview.clone();
     servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
     let tree = build_tree(updates);
+
     let root_node = tree.state().root();
-    find_first_matching_node(root_node, |node| node.role() == accesskit::Role::ScrollView)
+    let scroll_view = find_first_matching_node(root_node, |node| node.role() == Role::ScrollView)
         .expect("Tree should include a scroll view corresponding to the WebView.");
+    let scroll_view_children = scroll_view.children().collect::<Vec<_>>();
+    assert_eq!(scroll_view_children.len(), 1);
+    let graft_node = scroll_view_children[0];
+    assert!(graft_node.is_graft());
 }
 
 fn wait_for_min_updates(
@@ -76,12 +82,12 @@ fn build_tree(tree_updates: Vec<accesskit::TreeUpdate>) -> accesskit_consumer::T
 
     // We need to make a TreeUpdate with a TreeId of ROOT, which can have the subtrees grafted in
     let root_node_id = accesskit::NodeId(0x0);
-    let mut root_node = accesskit::Node::new(accesskit::Role::GenericContainer);
+    let mut root_node = accesskit::Node::new(Role::GenericContainer);
 
     // We need to make a graft node so that we have a non-graft node to set as the initial focused
     // node for the tree.
     let graft_node_id = accesskit::NodeId(0x1);
-    let mut graft_node = accesskit::Node::new(accesskit::Role::GenericContainer);
+    let mut graft_node = accesskit::Node::new(Role::GenericContainer);
     graft_node.set_tree_id(tree_id);
 
     root_node.set_children(vec![graft_node_id]);

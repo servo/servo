@@ -21,6 +21,7 @@ use std::hash::Hash;
 use std::ops::Range;
 use std::sync::Arc;
 
+use accesskit::{TreeId, TreeUpdate};
 use crossbeam_channel::Sender;
 use euclid::{Box2D, Point2D, Scale, Size2D, Vector2D};
 use http::{HeaderMap, Method, StatusCode};
@@ -538,8 +539,11 @@ pub enum EmbedderMsg {
     /// Inform the embedding layer that a particular `InputEvent` was handled by Servo
     /// and the embedder can continue processing it, if necessary.
     InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
+    /// Notifies the embedder that the AccessKit [`TreeId`] for the top-level document in this
+    /// WebView has been changed (or initially set).
+    AccessibilityTreeIdChanged(WebViewId, TreeId),
     /// Send the embedder an accessibility tree update.
-    AccessibilityTreeUpdate(WebViewId, accesskit::TreeUpdate),
+    AccessibilityTreeUpdate(WebViewId, TreeUpdate),
 }
 
 impl Debug for EmbedderMsg {
