@@ -95,6 +95,9 @@ pub(crate) struct WebViewInner {
     /// Set by [`WebView::set_accessibility_active()`], and forwarded to the constellation via
     /// [`EmbedderToConstellationMessage::SetAccessibilityActive`].
     pub(crate) accesskit_tree_id: Option<accesskit::TreeId>,
+    /// Tree id of the web contents of this webview’s active top-level pipeline,
+    /// which is grafted into the tree for this webview.
+    pub(crate) grafted_accesskit_tree_id: Option<accesskit::TreeId>,
 
     rendering_context: Rc<dyn RenderingContext>,
     user_content_manager: Option<Rc<UserContentManager>>,
@@ -140,6 +143,7 @@ impl WebView {
             #[cfg(feature = "gamepad")]
             gamepad_provider: Rc::new(DefaultGamepadProvider),
             accesskit_tree_id: None,
+            grafted_accesskit_tree_id: None,
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
@@ -820,6 +824,40 @@ impl WebView {
         );
 
         self.accesskit_tree_id()
+    }
+
+    pub fn notify_accessibility_tree_id(&self, grafted_tree_id: accesskit::TreeId) {
+        let Some(webview_accesskit_tree_id) = self.inner().accesskit_tree_id else {
+            return;
+        };
+        let old_grafted_tree_id = self
+            .inner_mut()
+            .grafted_accesskit_tree_id
+            .replace(grafted_tree_id);
+        // TODO(accessibility): try to avoid duplicate notifications in the first place
+        if old_grafted_tree_id == Some(grafted_tree_id) {
+            return;
+        }
+        let root_node_id = accesskit::NodeId(0);
+        let mut root_node = accesskit::Node::new(accesskit::Role::ScrollView);
+        let graft_node_id = accesskit::NodeId(1);
+        let mut graft_node = accesskit::Node::new(accesskit::Role::GenericContainer);
+        graft_node.set_label("graft");
+        graft_node.set_tree_id(grafted_tree_id);
+        root_node.set_children(vec![graft_node_id]);
+        self.delegate().notify_accessibility_tree_update(
+            self.clone(),
+            accesskit::TreeUpdate {
+                nodes: vec![(root_node_id, root_node), (graft_node_id, graft_node)],
+                tree: Some(accesskit::Tree {
+                    root: root_node_id,
+                    toolkit_name: None,
+                    toolkit_version: None,
+                }),
+                tree_id: webview_accesskit_tree_id,
+                focus: root_node_id,
+            },
+        );
     }
 }
 

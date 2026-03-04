@@ -46,11 +46,17 @@ fn test_basic_accessibility_update() {
     let load_webview = webview.clone();
     servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
     let tree = build_tree(updates);
+
     let root_node = tree.state().root();
-    find_first_matching_node(root_node, |node| node.role() == accesskit::Role::ScrollView)
-        .expect("Tree should include a scroll view corresponding to the WebView.");
+    let scroll_view =
+        find_first_matching_node(root_node, |node| node.role() == accesskit::Role::ScrollView)
+            .expect("Tree should include a scroll view corresponding to the WebView.");
+    let scroll_view_children: Vec<accesskit_consumer::Node<'_>> = scroll_view.children().collect();
+    assert_eq!(scroll_view_children.len(), 1);
+    let graft_node = scroll_view_children[0];
+    assert!(graft_node.is_graft());
 }
 
 fn wait_for_min_updates(

@@ -516,6 +516,8 @@ pub enum EmbedderMsg {
     /// Inform the embedding layer that a particular `InputEvent` was handled by Servo
     /// and the embedder can continue processing it, if necessary.
     InputEventHandled(WebViewId, InputEventId, InputEventResult),
+    /// Notifies the embedder of the accesskit TreeId for the top level frame of this WebView
+    AccessibilityTreeId(WebViewId, accesskit::TreeId),
     /// Send the embedder an accessibility tree update.
     AccessibilityTreeUpdate(WebViewId, accesskit::TreeUpdate),
 }

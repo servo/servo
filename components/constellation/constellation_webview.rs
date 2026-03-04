@@ -4,7 +4,7 @@
 
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use embedder_traits::user_contents::UserContentManagerId;
-use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
+use embedder_traits::{EmbedderMsg, EmbedderProxy, InputEvent, MouseLeftViewportEvent, Theme};
 use euclid::Point2D;
 use log::warn;
 use rustc_hash::FxHashMap;
@@ -60,11 +60,17 @@ pub(crate) struct ConstellationWebView {
 
 impl ConstellationWebView {
     pub(crate) fn new(
+        embedder_proxy: &EmbedderProxy,
         webview_id: WebViewId,
         active_top_level_pipeline_id: PipelineId,
         focused_browsing_context_id: BrowsingContextId,
         user_content_manager_id: Option<UserContentManagerId>,
     ) -> Self {
+        embedder_proxy.send(EmbedderMsg::AccessibilityTreeId(
+            webview_id,
+            active_top_level_pipeline_id.into(),
+        ));
+
         Self {
             webview_id,
             user_content_manager_id,
