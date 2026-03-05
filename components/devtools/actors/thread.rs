@@ -15,6 +15,7 @@ use super::source::{SourceManager, SourcesReply};
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::frame::{FrameActor, FrameActorMsg};
 use crate::actors::pause::PauseActor;
+use crate::generic_channel::channel;
 use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::{BrowsingContextActor, EmptyReplyMsg, StreamId};
 
@@ -222,22 +223,24 @@ impl Actor for ThreadActor {
                 let frames: FramesRequest =
                     serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;
 
+                let Some((tx, rx)) = channel() else {
+                    return Err(ActorError::Internal);
+                };
                 self.script_sender
                     .send(DevtoolScriptControlMsg::ListFrames(
                         browsing_context.pipeline_id(),
                         frames.start,
                         frames.count,
+                        tx,
                     ))
                     .map_err(|_| ActorError::Internal)?;
-                // TODO: This should get the youngest frame and its parents from debugger.js
-                // self.frames is not needed
+
+                let result = rx.recv().map_err(|_| ActorError::Internal)?;
                 // Frame actors should be registered here
                 // https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1425
                 let msg = FramesReply {
                     from: self.name(),
-                    frames: self
-                        .frames
-                        .borrow()
+                    frames: result
                         .iter()
                         .map(|frame| registry.encode::<FrameActor, _>(frame))
                         .collect(),

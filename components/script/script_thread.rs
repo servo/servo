@@ -2288,11 +2288,12 @@ impl ScriptThread {
             DevtoolScriptControlMsg::Interrupt => {
                 self.debugger_global.fire_interrupt(CanGc::from_cx(cx));
             },
-            DevtoolScriptControlMsg::ListFrames(pipeline_id, start, count) => {
+            DevtoolScriptControlMsg::ListFrames(pipeline_id, start, count, result_sender) => {
                 self.debugger_global.fire_list_frames(
                     pipeline_id,
                     start,
                     count,
+                    result_sender,
                     CanGc::from_cx(cx),
                 );
             },

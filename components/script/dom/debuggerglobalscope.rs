@@ -64,6 +64,8 @@ pub(crate) struct DebuggerGlobalScope {
         RefCell<Option<GenericSender<Vec<devtools_traits::RecommendedBreakpointLocation>>>>,
     #[no_trace]
     eval_result_sender: RefCell<Option<GenericSender<EvaluateJSReply>>>,
+    #[no_trace]
+    get_list_frame_result_sender: RefCell<Option<GenericSender<Vec<String>>>>,
 }
 
 impl DebuggerGlobalScope {
@@ -110,6 +112,7 @@ impl DebuggerGlobalScope {
             ),
             devtools_to_script_sender,
             get_possible_breakpoints_result_sender: RefCell::new(None),
+            get_list_frame_result_sender: RefCell::new(None),
             eval_result_sender: RefCell::new(None),
         });
         let global = DebuggerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, global);
@@ -253,8 +256,14 @@ impl DebuggerGlobalScope {
         pipeline_id: PipelineId,
         start: u32,
         count: u32,
+        result_sender: GenericSender<Vec<String>>,
         can_gc: CanGc,
     ) {
+        assert!(
+            self.get_list_frame_result_sender
+                .replace(Some(result_sender))
+                .is_none()
+        );
         let _realm = enter_realm(self);
         let pipeline_id =
             crate::dom::pipelineid::PipelineId::new(self.upcast(), pipeline_id, can_gc);
@@ -549,7 +558,13 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         rx.recv().ok().map(DOMString::from)
     }
 
-    fn ListFramesResult(&self, _frame_actor_ids: Vec<DOMString>) {
-        log::debug!("Not implemented yet")
+    fn ListFramesResult(&self, frame_actor_ids: Vec<DOMString>) {
+        info!("ListFramesResult: {frame_actor_ids:?}");
+        let sender = self
+            .get_list_frame_result_sender
+            .take()
+            .expect("Guaranteed by Self::fire_list_frames()");
+
+        let _ = sender.send(frame_actor_ids.into_iter().map(|i| i.into()).collect());
     }
 }
