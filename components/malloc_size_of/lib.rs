@@ -1140,7 +1140,7 @@ malloc_size_of_is_0!(std::sync::atomic::AtomicU32);
 malloc_size_of_is_0!(std::time::Duration);
 malloc_size_of_is_0!(std::time::Instant);
 malloc_size_of_is_0!(std::time::SystemTime);
-malloc_size_of_is_0!(style::data::ElementData);
+malloc_size_of_is_0!(style::data::ElementDataWrapper);
 malloc_size_of_is_0!(style::font_face::SourceList);
 malloc_size_of_is_0!(style::properties::ComputedValues);
 malloc_size_of_is_0!(style::properties::declaration_block::PropertyDeclarationBlock);

@@ -19,7 +19,6 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use app_units::Au;
-use atomic_refcell::AtomicRefCell;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::Epoch;
 use base::generic_channel::GenericSender;
@@ -47,7 +46,7 @@ use style::Atom;
 use style::animation::DocumentAnimationSet;
 use style::attr::{AttrValue, parse_integer, parse_unsigned_integer};
 use style::context::QuirksMode;
-use style::data::ElementData;
+use style::data::ElementDataWrapper;
 use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::Device;
@@ -68,25 +67,16 @@ pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
 
 pub type GenericLayoutData = dyn GenericLayoutDataTrait + Send + Sync;
 
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 pub struct StyleData {
     /// Data that the style system associates with a node. When the
     /// style system is being used standalone, this is all that hangs
     /// off the node. This must be first to permit the various
     /// transmutations between ElementData and PersistentLayoutData.
-    pub element_data: AtomicRefCell<ElementData>,
+    pub element_data: ElementDataWrapper,
 
     /// Information needed during parallel traversals.
     pub parallel: DomParallelInfo,
-}
-
-impl Default for StyleData {
-    fn default() -> Self {
-        Self {
-            element_data: AtomicRefCell::new(ElementData::default()),
-            parallel: DomParallelInfo::default(),
-        }
-    }
 }
 
 /// Information that we need stored in each DOM node.
