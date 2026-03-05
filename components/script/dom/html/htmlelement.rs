@@ -455,7 +455,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         let document = self.owner_document();
         document.request_focus_with_options(
             Some(self.upcast()),
-            FocusInitiator::Local,
+            FocusInitiator::Script,
             FocusOptions {
                 preventScroll: options.preventScroll,
             },
@@ -472,7 +472,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
         let document = self.owner_document();
-        document.request_focus(None, FocusInitiator::Local, can_gc);
+        document.request_focus(None, FocusInitiator::Script, can_gc);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>
@@ -1279,11 +1279,10 @@ impl VirtualMethods for HTMLElement {
         if let Some(super_type) = self.super_type() {
             super_type.bind_to_tree(context, can_gc);
         }
-        let element = self.as_element();
-        element.update_sequentially_focusable_status(can_gc);
 
         // Binding to a tree can disable a form control if one of the new
         // ancestors is a fieldset.
+        let element = self.as_element();
         if self.is_form_associated_custom_element() && element.enabled_state() {
             element.check_ancestors_disabled_state_for_form_control();
             if element.disabled_state() {
@@ -1296,16 +1295,42 @@ impl VirtualMethods for HTMLElement {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage#dom-trees:concept-node-remove-ext>
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        // 1. Let document be removedNode's node document.
+        let document = self.owner_document();
+
+        // 2. If document's focused area is removedNode, then set document's focused area to
+        // document's viewport, and set document's relevant global object's navigation API's focus
+        // changed during ongoing navigation to false.
+        //
+        // TODO: Should this also happen for non-HTML elements such as SVG elements?
+        let element = self.as_element();
+        if document
+            .get_focused_element()
+            .is_some_and(|focused_element| &*focused_element == element)
+        {
+            document.request_focus(None, FocusInitiator::Script, can_gc);
+        }
+
+        // 3. If removedNode is an element whose namespace is the HTML namespace, and this standard
+        // defines HTML element removing steps for removedNode's local name, then run the
+        // corresponding HTML element removing steps given removedNode, isSubtreeRoot, and
+        // oldAncestor.
         if let Some(super_type) = self.super_type() {
             super_type.unbind_from_tree(context, can_gc);
         }
 
+        // 4. If removedNode is a form-associated element with a non-null form owner and removedNode
+        // and its form owner are no longer in the same tree, then reset the form owner of
+        // removedNode.
+        //
         // Unbinding from a tree might enable a form control, if a
         // fieldset ancestor is the only reason it was disabled.
         // (The fact that it's enabled doesn't do much while it's
         // disconnected, but it is an observable fact to keep track of.)
-        let element = self.as_element();
+        //
+        // TODO: This should likely just call reset on form owner.
         if self.is_form_associated_custom_element() && element.disabled_state() {
             element.check_disabled_attribute();
             element.check_ancestors_disabled_state_for_form_control();

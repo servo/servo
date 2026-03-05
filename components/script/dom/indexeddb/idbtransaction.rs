@@ -608,7 +608,7 @@ impl IDBTransaction {
     fn object_store_parameters(
         &self,
         object_store_name: &DOMString,
-    ) -> Option<(IDBObjectStoreParameters, Vec<IndexedDBIndex>)> {
+    ) -> Option<(IDBObjectStoreParameters, Vec<IndexedDBIndex>, Option<i32>)> {
         let global = self.global();
         let idb_sender = global.storage_threads().sender();
         let (sender, receiver) =
@@ -645,6 +645,7 @@ impl IDBTransaction {
                 keyPath: key_path,
             },
             object_store.indexes,
+            object_store.key_generator_current_number,
         ))
     }
 }
@@ -686,11 +687,14 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
             &self.global(),
             self.db.get_name(),
             name.clone(),
-            parameters.as_ref().map(|(params, _)| params),
+            parameters.as_ref().map(|(params, _, _)| params),
+            parameters
+                .as_ref()
+                .and_then(|(_, _, key_generator_current_number)| *key_generator_current_number),
             can_gc,
             self,
         );
-        if let Some(indexes) = parameters.map(|(_, indexes)| indexes) {
+        if let Some(indexes) = parameters.map(|(_, indexes, _)| indexes) {
             for index in indexes {
                 store.add_index(
                     DOMString::from_string(index.name),

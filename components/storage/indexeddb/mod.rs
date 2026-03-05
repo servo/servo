@@ -27,8 +27,8 @@ use servo_config::pref;
 use servo_url::origin::ImmutableOrigin;
 use storage_traits::indexeddb::{
     AsyncOperation, BackendError, BackendResult, ConnectionMsg, CreateObjectResult, DatabaseInfo,
-    DbResult, IndexedDBIndex, IndexedDBKeyType, IndexedDBObjectStore, IndexedDBThreadMsg,
-    IndexedDBTxnMode, KeyPath, SyncOperation, TxnCompleteMsg,
+    DbResult, IndexedDBIndex, IndexedDBObjectStore, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath,
+    SyncOperation, TxnCompleteMsg,
 };
 use uuid::Uuid;
 
@@ -520,14 +520,8 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         self.pending_commit_callbacks.remove(&txn);
     }
 
-    fn has_key_generator(&self, store_name: &str) -> bool {
-        self.engine.has_key_generator(store_name)
-    }
-
-    fn generate_key(&self, store_name: &str) -> DbResult<IndexedDBKeyType> {
-        self.engine
-            .generate_key(store_name)
-            .map_err(|err| format!("{err:?}"))
+    fn key_generator_current_number(&self, store_name: &str) -> Option<i32> {
+        self.engine.key_generator_current_number(store_name)
     }
 
     fn key_path(&self, store_name: &str) -> Option<KeyPath> {
@@ -1982,22 +1976,17 @@ impl IndexedDBManager {
             },
             SyncOperation::GetObjectStore(sender, origin, db_name, store_name) => {
                 // FIXME:(arihant2math) Should we error out more aggressively here?
-                let result = self
-                    .get_database(origin, db_name)
-                    .map(|db| IndexedDBObjectStore {
+                let result = self.get_database(origin, db_name).map(|db| {
+                    let key_generator_current_number = db.key_generator_current_number(&store_name);
+                    IndexedDBObjectStore {
                         key_path: db.key_path(&store_name),
-                        has_key_generator: db.has_key_generator(&store_name),
+                        has_key_generator: key_generator_current_number.is_some(),
+                        key_generator_current_number,
                         indexes: db.indexes(&store_name).unwrap_or_default(),
                         name: store_name,
-                    });
+                    }
+                });
                 let _ = sender.send(result.ok_or(BackendError::DbNotFound));
-            },
-            SyncOperation::GenerateKey(sender, origin, db_name, store_name) => {
-                if let Some(db) = self.get_database(origin, db_name) {
-                    let _ = sender.send(db.generate_key(&store_name).map_err(BackendError::from));
-                } else {
-                    let _ = sender.send(Err(BackendError::DbNotFound));
-                }
             },
             SyncOperation::CreateIndex(
                 origin,

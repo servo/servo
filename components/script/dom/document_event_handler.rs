@@ -784,14 +784,14 @@ impl DocumentEventHandler {
                 // delegate the focus target into its shadow host.
                 // TODO: This focus delegation should be done
                 // with shadow DOM delegateFocus attribute.
-                let target_el = element.find_focusable_shadow_host_if_necessary();
+                let target_el = element.find_click_focusable_shadow_host_if_necessary();
 
                 let document = self.window.Document();
                 document.begin_focus_transaction();
 
                 // Try to focus `el`. If it's not focusable, focus the document instead.
-                document.request_focus(None, FocusInitiator::Local, can_gc);
-                document.request_focus(target_el.as_deref(), FocusInitiator::Local, can_gc);
+                document.request_focus(None, FocusInitiator::Click, can_gc);
+                document.request_focus(target_el.as_deref(), FocusInitiator::Click, can_gc);
 
                 // Step 7. Let result = dispatch event at target
                 let result = dom_event.dispatch(node.upcast(), false, can_gc);
@@ -799,7 +799,7 @@ impl DocumentEventHandler {
                 // Step 8. If result is true and target is a focusable area
                 // that is click focusable, then Run the focusing steps at target.
                 if result && document.has_focus_transaction() {
-                    document.commit_focus_transaction(FocusInitiator::Local, can_gc);
+                    document.commit_focus_transaction(FocusInitiator::Click, can_gc);
                 }
 
                 // Step 9. If mbutton is the secondary mouse button, then
@@ -883,7 +883,7 @@ impl DocumentEventHandler {
         // > The click event type MUST be dispatched on the topmost event target indicated by the
         // > pointer, when the user presses down and releases the primary pointer button.
         // For nodes inside a text input UA shadow DOM, dispatch dblclick at the shadow host.
-        let delegated = element.find_focusable_shadow_host_if_necessary();
+        let delegated = element.find_click_focusable_shadow_host_if_necessary();
         let element = delegated.as_deref().unwrap_or(element);
         self.most_recently_clicked_element.set(Some(element));
 
@@ -1349,7 +1349,7 @@ impl DocumentEventHandler {
             ImeEvent::Dismissed => {
                 document.request_focus(
                     document.GetBody().as_ref().map(|e| e.upcast()),
-                    FocusInitiator::Local,
+                    FocusInitiator::Keyboard,
                     can_gc,
                 );
                 return Default::default();
@@ -1855,11 +1855,11 @@ impl DocumentEventHandler {
             let document = self.window.Document();
             document.begin_focus_transaction();
 
-            document.request_focus(None, FocusInitiator::Local, can_gc);
-            document.request_focus(Some(&*element), FocusInitiator::Local, can_gc);
+            document.request_focus(None, FocusInitiator::Keyboard, can_gc);
+            document.request_focus(Some(&*element), FocusInitiator::Keyboard, can_gc);
 
             assert!(document.has_focus_transaction());
-            document.commit_focus_transaction(FocusInitiator::Local, can_gc);
+            document.commit_focus_transaction(FocusInitiator::Keyboard, can_gc);
         }
     }
 
@@ -1878,9 +1878,12 @@ impl DocumentEventHandler {
         focused_element: DomRoot<Element>,
     ) -> Option<DomRoot<Element>> {
         let root_node = self.window.Document().GetDocumentElement()?;
-        let focused_element_tab_index = focused_element.tab_index();
+        let focused_element_tab_index = focused_element
+            .explicitly_set_tab_index()
+            .unwrap_or_default();
         let mut winning_node_and_tab_index: Option<(DomRoot<Element>, i32)> = None;
         let mut saw_focused_element = false;
+
         for node in root_node
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::Yes)
@@ -1892,11 +1895,13 @@ impl DocumentEventHandler {
                 saw_focused_element = true;
                 continue;
             }
-            if !candidate_element.is_keyboard_focusable() {
+            if !candidate_element.is_sequentially_focusable() {
                 continue;
             }
 
-            let candidate_element_tab_index = candidate_element.tab_index();
+            let candidate_element_tab_index = candidate_element
+                .explicitly_set_tab_index()
+                .unwrap_or_default();
             let ordering =
                 compare_tab_indices(focused_element_tab_index, candidate_element_tab_index);
             match direction {
@@ -1977,17 +1982,19 @@ impl DocumentEventHandler {
             let Some(candidate_element) = DomRoot::downcast::<Element>(node) else {
                 continue;
             };
-            if !candidate_element.is_keyboard_focusable() {
+            if !candidate_element.is_sequentially_focusable() {
                 continue;
             }
 
-            let element_tab_index = candidate_element.tab_index();
+            let candidate_element_tab_index = candidate_element
+                .explicitly_set_tab_index()
+                .unwrap_or_default();
             match direction {
                 FocusDirection::Forward => {
                     // We can immediately return the first time we find an element with the lowest
                     // possible tab index (1). We are guaranteed not to find any lower tab index
                     // and all other equal tab indices are later in the DOM.
-                    if element_tab_index == 1 {
+                    if candidate_element_tab_index == 1 {
                         return Some(candidate_element);
                     }
 
@@ -1996,11 +2003,12 @@ impl DocumentEventHandler {
                     if winning_node_and_tab_index
                         .as_ref()
                         .is_none_or(|(_, winning_tab_index)| {
-                            compare_tab_indices(element_tab_index, *winning_tab_index) ==
+                            compare_tab_indices(candidate_element_tab_index, *winning_tab_index) ==
                                 Ordering::Less
                         })
                     {
-                        winning_node_and_tab_index = Some((candidate_element, element_tab_index));
+                        winning_node_and_tab_index =
+                            Some((candidate_element, candidate_element_tab_index));
                     }
                 },
                 FocusDirection::Backward => {
@@ -2010,11 +2018,12 @@ impl DocumentEventHandler {
                     if winning_node_and_tab_index
                         .as_ref()
                         .is_none_or(|(_, winning_tab_index)| {
-                            compare_tab_indices(element_tab_index, *winning_tab_index) !=
+                            compare_tab_indices(candidate_element_tab_index, *winning_tab_index) !=
                                 Ordering::Less
                         })
                     {
-                        winning_node_and_tab_index = Some((candidate_element, element_tab_index));
+                        winning_node_and_tab_index =
+                            Some((candidate_element, candidate_element_tab_index));
                     }
                 },
             }

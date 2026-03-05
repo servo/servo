@@ -1148,9 +1148,11 @@ pub(crate) fn handle_get_element_shadow_root(
         .unwrap();
 }
 
-/// <https://w3c.github.io/webdriver/#dfn-keyboard-interactable>
-fn is_keyboard_interactable(element: &Element) -> bool {
-    element.is_focusable_area() || element.is::<HTMLBodyElement>() || element.is_document_element()
+impl Element {
+    /// <https://w3c.github.io/webdriver/#dfn-keyboard-interactable>
+    fn is_keyboard_interactable(&self) -> bool {
+        self.is_focusable_area() || self.is::<HTMLBodyElement>() || self.is_document_element()
+    }
 }
 
 fn handle_send_keys_file(
@@ -1277,7 +1279,7 @@ pub(crate) fn handle_will_send_keys(
 
         // Step 7.6. If element is not keyboard-interactable,
         // return ErrorStatus::ElementNotInteractable.
-        if !is_keyboard_interactable(&element) {
+        if !element.is_keyboard_interactable() {
             let _ = reply.send(Err(ErrorStatus::ElementNotInteractable));
             return;
         }
@@ -1881,7 +1883,7 @@ pub(crate) fn handle_element_clear(
 
                 // Step 10. If element is not keyboard-interactable or not pointer-interactable,
                 // return error with error code element not interactable.
-                if !is_keyboard_interactable(&element) {
+                if !element.is_keyboard_interactable() {
                     return Err(ErrorStatus::ElementNotInteractable);
                 }
 
