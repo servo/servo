@@ -288,7 +288,7 @@ fn parse_user_stylesheets(string: String) -> Result<Vec<(Vec<u8>, ServoUrl)>, st
 /// check for long/short cmd. If there is the flag with this
 /// If the flag is not there, parse `None``
 /// If the flag is there but no argument, parse `Some(default)`
-/// If the flag is there and an argument parse the arugment
+/// If the flag is there and an argument parse the argument
 fn flag_with_default_parser<S, T>(
     short_cmd: Option<char>,
     long_cmd: &'static str,
