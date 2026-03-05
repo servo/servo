@@ -181,7 +181,6 @@ impl SqliteEngine {
         key_range: IndexedDBKeyRange,
         count: Option<u32>,
     ) -> Result<Vec<object_data_model::Model>, Error> {
-        let query = range_to_query(key_range);
         let mut sql_query = sea_query::Query::select();
         sql_query
             .from(object_data_model::Column::Table)
@@ -190,10 +189,7 @@ impl SqliteEngine {
                 object_data_model::Column::Key,
                 object_data_model::Column::Data,
             ])
-            .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)));
-        if let Some(count) = count {
-            sql_query.limit(count as u64);
-        }
+            .and_where(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id));
         let (sql, values) = sql_query.build_rusqlite(SqliteQueryBuilder);
         let mut stmt = connection.prepare(&sql)?;
         let models = stmt
@@ -201,6 +197,33 @@ impl SqliteEngine {
                 object_data_model::Model::try_from(row)
             })?
             .collect::<Result<Vec<_>, _>>()?;
+
+        let mut models_with_keys = models
+            .into_iter()
+            .map(|model| {
+                let key: IndexedDBKeyType = postcard::from_bytes(&model.key).unwrap();
+                (model, key)
+            })
+            .collect::<Vec<_>>();
+        // https://w3c.github.io/IndexedDB/#create-a-request-to-retrieve-multiple-items
+        // Step 8.2: Set direction to "next".
+        models_with_keys.sort_by(|(_, a_key), (_, b_key)| {
+            a_key
+                .partial_cmp(b_key)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        // https://w3c.github.io/IndexedDB/#retrieve-multiple-items-from-an-object-store
+        // Step 3.1: Let records be the first count records in store's list of records
+        // whose key is in range.
+        let mut models = models_with_keys
+            .into_iter()
+            .filter(|(_, key)| key_range.contains(key))
+            .map(|(model, _)| model)
+            .collect::<Vec<_>>();
+        if let Some(count) = count {
+            models.truncate(count as usize);
+        }
         Ok(models)
     }
 
