@@ -569,14 +569,14 @@ impl Element {
 
     /// Whether this element is styled such that it establishes a scroll container.
     /// <https://www.w3.org/TR/css-overflow-3/#scroll-container>
-    pub fn establishes_scroll_container(&self) -> bool {
+    pub(crate) fn establishes_scroll_container(&self) -> bool {
         // The CSS computed value has made sure that either both axes are scrollable or none are scrollable.
         self.upcast::<Node>()
             .effective_overflow()
             .is_some_and(|overflow| overflow.establishes_scroll_container())
     }
 
-    pub fn has_overflow(&self) -> bool {
+    pub(crate) fn has_overflow(&self) -> bool {
         self.ScrollHeight() > self.ClientHeight() || self.ScrollWidth() > self.ClientWidth()
     }
 
