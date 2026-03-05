@@ -74,15 +74,15 @@ impl fmt::Debug for ServoLayoutElement<'_> {
 }
 
 impl<'dom> ServoLayoutElement<'dom> {
-    pub(super) fn from_layout_js(el: LayoutDom<'dom, Element>) -> Self {
-        ServoLayoutElement { element: el }
+    pub(super) fn from_layout_dom(element: LayoutDom<'dom, Element>) -> Self {
+        ServoLayoutElement { element }
     }
 
     /// Returns the interior of this element as a `LayoutDom`.
     ///
     /// This method must never be exposed to layout as it returns
     /// a `LayoutDom`.
-    pub(crate) fn to_layout_js(self) -> LayoutDom<'dom, Element> {
+    pub(crate) fn to_layout_dom(self) -> LayoutDom<'dom, Element> {
         self.element
     }
 
@@ -197,7 +197,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     type TraversalChildrenIterator = DOMDescendantIterator<Self>;
 
     fn as_node(&self) -> ServoLayoutNode<'dom> {
-        ServoLayoutNode::from_layout_js(self.element.upcast())
+        ServoLayoutNode::from_layout_dom(self.element.upcast())
     }
 
     fn traversal_children(&self) -> LayoutIterator<Self::TraversalChildrenIterator> {
@@ -429,12 +429,12 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     }
 
     unsafe fn clear_data(&self) {
-        unsafe { self.as_node().get_jsmanaged().clear_style_and_layout_data() }
+        unsafe { self.as_node().to_layout_dom().clear_style_and_layout_data() }
     }
 
     unsafe fn ensure_data(&self) -> AtomicRefMut<'_, ElementData> {
         unsafe {
-            self.as_node().get_jsmanaged().initialize_style_data();
+            self.as_node().to_layout_dom().initialize_style_data();
         };
         self.mutate_data().unwrap()
     }
@@ -535,7 +535,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     fn shadow_root(&self) -> Option<ServoShadowRoot<'dom>> {
         self.element
             .get_shadow_root_for_layout()
-            .map(ServoShadowRoot::from_layout_js)
+            .map(ServoShadowRoot::from_layout_dom)
     }
 
     /// The shadow root which roots the subtree this element is contained in.
@@ -543,7 +543,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
         self.element
             .upcast()
             .containing_shadow_root_for_layout()
-            .map(ServoShadowRoot::from_layout_js)
+            .map(ServoShadowRoot::from_layout_dom)
     }
 
     fn local_name(&self) -> &LocalName {
@@ -1041,7 +1041,7 @@ impl<'dom> ServoThreadSafeLayoutElement<'dom> {
         self.element
             .element
             .get_shadow_root_for_layout()
-            .map(ServoShadowRoot::from_layout_js)
+            .map(ServoShadowRoot::from_layout_dom)
     }
 
     pub fn slotted_nodes(&self) -> &[ServoLayoutNode<'dom>] {
