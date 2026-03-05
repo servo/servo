@@ -99,6 +99,9 @@ impl Actor for TabDescriptorActor {
         msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
+        let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
+        let pipeline = ctx_actor.pipeline_id();
+
         match msg_type {
             "getTarget" => request.reply_final(&GetTargetReply {
                 from: self.name(),
@@ -111,16 +114,11 @@ impl Actor for TabDescriptorActor {
                     favicon: String::new(),
                 })?
             },
-            "getWatcher" => {
-                let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-                request.reply_final(&GetWatcherReply {
-                    from: self.name(),
-                    watcher: registry.encode::<WatcherActor, _>(&ctx_actor.watcher),
-                })?
-            },
+            "getWatcher" => request.reply_final(&GetWatcherReply {
+                from: self.name(),
+                watcher: registry.encode::<WatcherActor, _>(&ctx_actor.watcher),
+            })?,
             "goBack" => {
-                let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-                let pipeline = ctx_actor.pipeline_id();
                 ctx_actor
                     .script_chan
                     .send(DevtoolScriptControlMsg::GoBack(pipeline))
@@ -128,8 +126,6 @@ impl Actor for TabDescriptorActor {
                 request.reply_final(&EmptyReplyMsg { from: self.name() })?
             },
             "goForward" => {
-                let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-                let pipeline = ctx_actor.pipeline_id();
                 ctx_actor
                     .script_chan
                     .send(DevtoolScriptControlMsg::GoForward(pipeline))
@@ -147,8 +143,6 @@ impl Actor for TabDescriptorActor {
                     .ok_or(ActorError::Internal)?
                     .map_err(|_| ActorError::Internal)?;
 
-                let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-                let pipeline = ctx_actor.pipeline_id();
                 ctx_actor
                     .script_chan
                     .send(DevtoolScriptControlMsg::NavigateTo(pipeline, url))
@@ -158,8 +152,6 @@ impl Actor for TabDescriptorActor {
             },
             "reloadDescriptor" => {
                 // There is an extra bypassCache parameter that we don't currently use.
-                let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-                let pipeline = ctx_actor.pipeline_id();
                 ctx_actor
                     .script_chan
                     .send(DevtoolScriptControlMsg::Reload(pipeline))
