@@ -765,98 +765,7 @@ fn append_text_node_to_fragment(
         .unwrap();
 }
 
-// https://html.spec.whatwg.org/multipage/#attr-data-*
-
-static DATA_PREFIX: &str = "data-";
-static DATA_HYPHEN_SEPARATOR: char = '\x2d';
-
-fn to_snake_case(name: DOMString) -> DOMString {
-    let mut attr_name = String::with_capacity(name.len() + DATA_PREFIX.len());
-    attr_name.push_str(DATA_PREFIX);
-    for ch in name.str().chars() {
-        if ch.is_ascii_uppercase() {
-            attr_name.push(DATA_HYPHEN_SEPARATOR);
-            attr_name.push(ch.to_ascii_lowercase());
-        } else {
-            attr_name.push(ch);
-        }
-    }
-    DOMString::from(attr_name)
-}
-
-// https://html.spec.whatwg.org/multipage/#attr-data-*
-// if this attribute is in snake case with a data- prefix,
-// this function returns a name converted to camel case
-// without the data prefix.
-
-fn to_camel_case(name: &str) -> Option<DOMString> {
-    if !name.starts_with(DATA_PREFIX) {
-        return None;
-    }
-    let name = &name[5..];
-    let has_uppercase = name.chars().any(|curr_char| curr_char.is_ascii_uppercase());
-    if has_uppercase {
-        return None;
-    }
-    let mut result = String::with_capacity(name.len().saturating_sub(DATA_PREFIX.len()));
-    let mut name_chars = name.chars();
-    while let Some(curr_char) = name_chars.next() {
-        // check for hyphen followed by character
-        if curr_char == DATA_HYPHEN_SEPARATOR {
-            if let Some(next_char) = name_chars.next() {
-                if next_char.is_ascii_lowercase() {
-                    result.push(next_char.to_ascii_uppercase());
-                } else {
-                    result.push(curr_char);
-                    result.push(next_char);
-                }
-            } else {
-                result.push(curr_char);
-            }
-        } else {
-            result.push(curr_char);
-        }
-    }
-    Some(DOMString::from(result))
-}
-
 impl HTMLElement {
-    pub(crate) fn set_custom_attr(
-        &self,
-        name: DOMString,
-        value: DOMString,
-        can_gc: CanGc,
-    ) -> ErrorResult {
-        if name
-            .str()
-            .chars()
-            .skip_while(|&ch| ch != '\u{2d}')
-            .nth(1)
-            .is_some_and(|ch| ch.is_ascii_lowercase())
-        {
-            return Err(Error::Syntax(None));
-        }
-        self.as_element()
-            .set_custom_attribute(to_snake_case(name), value, can_gc)
-    }
-
-    pub(crate) fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
-        // FIXME(ajeffrey): Convert directly from DOMString to LocalName
-        let local_name = LocalName::from(to_snake_case(local_name));
-        self.as_element()
-            .get_attribute(&ns!(), &local_name)
-            .map(|attr| {
-                DOMString::from(&**attr.value()) // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
-            })
-    }
-
-    pub(crate) fn delete_custom_attr(&self, local_name: DOMString, can_gc: CanGc) {
-        // FIXME(ajeffrey): Convert directly from DOMString to LocalName
-        let local_name = LocalName::from(to_snake_case(local_name));
-        self.as_element()
-            .remove_attribute(&ns!(), &local_name, can_gc);
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#category-label>
     pub(crate) fn is_labelable_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
@@ -927,18 +836,6 @@ impl HTMLElement {
             },
             _ => false,
         }
-    }
-
-    pub(crate) fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
-        let element = self.as_element();
-        element
-            .attrs()
-            .iter()
-            .filter_map(|attr| {
-                let raw_name = attr.local_name();
-                to_camel_case(raw_name)
-            })
-            .collect()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
