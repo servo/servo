@@ -16,7 +16,7 @@ use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::frame::{FrameActor, FrameActorMsg};
 use crate::actors::pause::PauseActor;
 use crate::protocol::{ClientRequest, JsonPacketStream};
-use crate::{EmptyReplyMsg, StreamId};
+use crate::{BrowsingContextActor, EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -90,6 +90,12 @@ struct ResumeRequest {
     frame_actor_id: Option<String>,
 }
 
+#[derive(Deserialize, Debug)]
+struct FramesRequest {
+    start: u32,
+    count: u32,
+}
+
 impl ResumeRequest {
     fn get_type(&self) -> Option<String> {
         let resume_limit = self.resume_limit.as_ref()?;
@@ -105,15 +111,21 @@ pub(crate) struct ThreadActor {
     pub source_manager: SourceManager,
     script_sender: GenericSender<DevtoolScriptControlMsg>,
     pub frames: AtomicRefCell<HashSet<String>>,
+    browsing_context: Option<String>,
 }
 
 impl ThreadActor {
-    pub fn new(name: String, script_sender: GenericSender<DevtoolScriptControlMsg>) -> ThreadActor {
+    pub fn new(
+        name: String,
+        script_sender: GenericSender<DevtoolScriptControlMsg>,
+        browsing_context: Option<String>,
+    ) -> ThreadActor {
         ThreadActor {
             name: name.clone(),
             source_manager: SourceManager::new(),
             script_sender,
             frames: Default::default(),
+            browsing_context,
         }
     }
 }
@@ -202,6 +214,21 @@ impl Actor for ThreadActor {
             },
 
             "frames" => {
+                let Some(ref browsing_context) = self.browsing_context else {
+                    return Err(ActorError::Internal);
+                };
+                let browsing_context = registry.find::<BrowsingContextActor>(browsing_context);
+
+                let frames: FramesRequest =
+                    serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;
+
+                self.script_sender
+                    .send(DevtoolScriptControlMsg::ListFrames(
+                        browsing_context.pipeline_id(),
+                        frames.start,
+                        frames.count,
+                    ))
+                    .map_err(|_| ActorError::Internal)?;
                 // TODO: This should get the youngest frame and its parents from debugger.js
                 // self.frames is not needed
                 // Frame actors should be registered here

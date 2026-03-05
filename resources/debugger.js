@@ -155,17 +155,7 @@ addEventListener("getPossibleBreakpoints", event => {
     getPossibleBreakpointsResult(event, result);
 });
 
-function handlePauseAndRespond(frame, pauseReason) {
-    dbg.onEnterFrame = undefined;
-    clearSteppingHooks();
-
-    // Get the pipeline ID for this debuggee
-    const pipelineId = debuggeesToPipelineIds.get(frame.script.global);
-    if (!pipelineId) {
-        console.error("[debugger] No pipeline ID for frame's global");
-        return undefined;
-    }
-
+function createFrameActor(frame, pipelineId) {
     let frameActorId = findKeyByValue(frameActorsToFrames, frame);
     if (!frameActorId) {
         // TODO: Check if we already have an actor for this frame
@@ -187,6 +177,22 @@ function handlePauseAndRespond(frame, pauseReason) {
         frameActorsToFrames.set(frameActorId, frame);
     }
 
+    return frameActorId;
+}
+
+function handlePauseAndRespond(frame, pauseReason) {
+    dbg.onEnterFrame = undefined;
+    clearSteppingHooks();
+
+    // Get the pipeline ID for this debuggee
+    const pipelineId = debuggeesToPipelineIds.get(frame.script.global);
+    if (!pipelineId) {
+        console.error("[debugger] No pipeline ID for frame's global");
+        return undefined;
+    }
+
+    let frameActorId = createFrameActor(frame, pipelineId);
+
     // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Script.html#getoffsetmetadata-offset>
     const offset = frame.offset;
     const offsetMetadata = frame.script.getOffsetMetadata(offset);
@@ -206,6 +212,46 @@ function handlePauseAndRespond(frame, pauseReason) {
     // <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#resumption-values>
     // Return undefined to continue execution normally after resume.
     return undefined;
+}
+
+addEventListener("frames", event => {
+    const {pipelineId, start, count} = event;
+    let frameList = handleListFrames(pipelineId, start, count);
+
+    listFramesResult(frameList);
+})
+
+// <https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1425>
+function handleListFrames(pipelineId, start, count) {
+    let frame = dbg.getNewestFrame()
+
+    const walkToParentFrame = () => {
+        if (!frame) {
+            return;
+        }
+
+        const currentFrame = frame;
+        frame = null;
+
+        if (currentFrame.older) {
+            frame = currentFrame.older;
+        }
+    }
+
+    let i = 0;
+    while (frame && i < start) {
+      walkToParentFrame();
+      i++;
+    }
+
+    // Return count frames, or all remaining frames if count is not defined.
+    const frames = [];
+    for (; frame && (!count || i < start + count); i++, walkToParentFrame()) {
+      const frameActorId = createFrameActor(frame, pipelineId);
+      frames.push(frameActorId);
+    }
+
+    return frames;
 }
 
 addEventListener("setBreakpoint", event => {
