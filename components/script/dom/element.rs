@@ -567,18 +567,28 @@ impl Element {
         true
     }
 
-    /// <https://drafts.csswg.org/cssom-view/#scrolling-box>
-    fn has_scrolling_box(&self) -> bool {
-        // TODO: scrolling mechanism, such as scrollbar (We don't have scrollbar yet)
-        //       self.has_scrolling_mechanism()
-        self.style().is_some_and(|style| {
-            style.get_box().clone_overflow_x().is_scrollable() ||
-                style.get_box().clone_overflow_y().is_scrollable()
-        })
+    /// Whether this element is styled such that it establishes a scroll container.
+    /// <https://www.w3.org/TR/css-overflow-3/#scroll-container>
+    pub(crate) fn establishes_scroll_container(&self) -> bool {
+        // The CSS computed value has made sure that either both axes are scrollable or none are scrollable.
+        self.upcast::<Node>()
+            .effective_overflow()
+            .is_some_and(|overflow| overflow.establishes_scroll_container())
     }
 
-    fn has_overflow(&self) -> bool {
+    pub(crate) fn has_overflow(&self) -> bool {
         self.ScrollHeight() > self.ClientHeight() || self.ScrollWidth() > self.ClientWidth()
+    }
+
+    /// Whether or not this element has a scrolling box according to
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-box>.
+    ///
+    /// This is true if:
+    ///  1. The element has a layout box.
+    ///  2. The style specifies that overflow should be scrollable (`auto`, `hidden` or `scroll`).
+    ///  3. The fragment actually has content that overflows the box.
+    fn has_scrolling_box(&self) -> bool {
+        self.has_css_layout_box() && self.establishes_scroll_container() && self.has_overflow()
     }
 
     pub(crate) fn shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
@@ -2787,7 +2797,7 @@ impl Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() || !self.has_scrolling_box() || !self.has_overflow() {
+        if !self.has_scrolling_box() {
             return;
         }
 
@@ -3471,7 +3481,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() || !self.has_scrolling_box() || !self.has_overflow() {
+        if !self.has_scrolling_box() {
             return;
         }
 
@@ -3568,7 +3578,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() || !self.has_scrolling_box() || !self.has_overflow() {
+        if !self.has_scrolling_box() {
             return;
         }
 
