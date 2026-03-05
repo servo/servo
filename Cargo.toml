@@ -318,6 +318,13 @@ codegen-units = 1
 egui = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e051785b4fd3af9ef92eda5b61177f" }
 egui-winit = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e051785b4fd3af9ef92eda5b61177f" }
 #
+# Pending glslopt-rs bumping the version to include a patch at glsl-optimizer:
+# https://github.com/jamienicol/glsl-optimizer/pull/18
+# Servo issue for tracking: https://github.com/servo/servo/issues/42695
+# This is required for building servo with glibc 2.43.
+# TODO: When this is no longer needed remove the exception in deny.toml as well.
+glslopt = { git = "https://github.com/kkoyung/glslopt-rs", rev = "e32e57d8c260f7e3c51a41e8c5399ca928260dce" }
+#
 # Or for Stylo:
 #
 # [patch."https://github.com/servo/stylo"]

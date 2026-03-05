@@ -231,4 +231,7 @@ github = [
 
     # Temporarily needed by servoshell: see root Cargo.toml
     "emilk",
+
+    # Temporarily needed for building with glibc 2.43: see root Cargo.toml
+    "kkoyung",
 ]
