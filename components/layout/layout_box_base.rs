@@ -7,18 +7,27 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
+use euclid::Point2D;
 use layout_api::LayoutDamage;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc;
+use style::computed_values::position::T as Position;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
+use style::values::specified::align::AlignFlags;
+use style_traits::CSSPixel;
 
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, WeakLayoutBox};
+use crate::flow::CollapsibleWithParentStartMargin;
 use crate::formatting_contexts::Baselines;
-use crate::fragment_tree::{BaseFragmentInfo, CollapsedBlockMargins, Fragment, SpecificLayoutInfo};
-use crate::positioned::PositioningContext;
+use crate::fragment_tree::{
+    BaseFragmentInfo, BoxFragment, CollapsedBlockMargins, Fragment, SpecificLayoutInfo,
+};
+use crate::geom::LogicalSides1D;
+use crate::positioned::{PositioningContext, relative_adjustement};
 use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult, SizeConstraint};
-use crate::{ConstraintSpace, ContainingBlockSize};
+use crate::{ArcRefCell, ConstraintSpace, ContainingBlock, ContainingBlockSize};
 
 /// A box tree node that handles containing information about style and the original DOM
 /// node or pseudo-element that it is based on. This also handles caching of layout values
@@ -33,7 +42,7 @@ pub(crate) struct LayoutBoxBase {
     pub cached_inline_content_size:
         AtomicRefCell<Option<Box<(SizeConstraint, InlineContentSizesResult)>>>,
     pub outer_inline_content_sizes_depend_on_content: AtomicBool,
-    pub cached_layout_result: AtomicRefCell<Option<Box<CacheableLayoutResultAndInputs>>>,
+    pub cached_layout_result: AtomicRefCell<Option<LayoutResultAndInputs>>,
     pub fragments: AtomicRefCell<Vec<Fragment>>,
     pub parent_box: Option<WeakLayoutBox>,
 }
@@ -146,12 +155,94 @@ impl LayoutBoxBase {
 
         damage_for_parent
     }
+
+    pub(crate) fn cached_same_formatting_context_block_if_valid(
+        &self,
+        containing_block: &ContainingBlock,
+        collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
+        ignore_block_margins_for_stretch: LogicalSides1D<bool>,
+    ) -> Option<ArcRefCell<BoxFragment>> {
+        let mut cached_layout_result = self.cached_layout_result.borrow_mut();
+        let Some(LayoutResultAndInputs::SameFormattingContextBlock(result)) =
+            &mut *cached_layout_result
+        else {
+            return None;
+        };
+
+        if result.containing_block_size != containing_block.size ||
+            result.containing_block_writing_mode != containing_block.style.writing_mode ||
+            result.containing_block_justify_items !=
+                containing_block.style.clone_justify_items().computed.0.0 ||
+            result.collapsible_with_parent_start_margin != collapsible_with_parent_start_margin ||
+            result.ignore_block_margins_for_stretch != ignore_block_margins_for_stretch
+        {
+            return None;
+        }
+
+        let fragment = result.result.fragment.clone();
+
+        {
+            let mut borrowed_fragment = fragment.borrow_mut();
+            borrowed_fragment.base.rect.origin = result.result.original_offset;
+            if self.style.clone_position() == Position::Relative {
+                borrowed_fragment.base.rect.origin +=
+                    relative_adjustement(&self.style, containing_block)
+                        .to_physical_vector(containing_block.style.writing_mode)
+            }
+        }
+
+        Some(fragment)
+    }
+
+    pub(crate) fn cache_same_formatting_context_block_layout(
+        &self,
+        containing_block: &ContainingBlock,
+        collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
+        ignore_block_margins_for_stretch: LogicalSides1D<bool>,
+        fragment: ArcRefCell<BoxFragment>,
+    ) {
+        let mut original_offset;
+        {
+            let borrowed_fragment = fragment.borrow();
+            original_offset = borrowed_fragment.content_rect().origin;
+            if self.style.clone_position() == Position::Relative {
+                original_offset -= relative_adjustement(&self.style, containing_block)
+                    .to_physical_vector(containing_block.style.writing_mode)
+            }
+        }
+
+        *self.cached_layout_result.borrow_mut() =
+            Some(LayoutResultAndInputs::SameFormattingContextBlock(Box::new(
+                SameFormattingContextBlockLayoutResultAndInputs {
+                    result: SameFormattingContextBlockLayoutResult {
+                        fragment,
+                        original_offset,
+                    },
+                    containing_block_size: containing_block.size.clone(),
+                    containing_block_writing_mode: containing_block.style.writing_mode,
+                    containing_block_justify_items: containing_block
+                        .style
+                        .clone_justify_items()
+                        .computed
+                        .0
+                        .0,
+                    collapsible_with_parent_start_margin,
+                    ignore_block_margins_for_stretch,
+                },
+            )));
+    }
 }
 
 impl Debug for LayoutBoxBase {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         f.debug_struct("LayoutBoxBase").finish()
     }
+}
+
+#[derive(MallocSizeOf)]
+pub(crate) enum LayoutResultAndInputs {
+    IndependentFormattingContext(Box<IndependentFormattingContextLayoutResultAndInputs>),
+    SameFormattingContextBlock(Box<SameFormattingContextBlockLayoutResultAndInputs>),
 }
 
 #[derive(Clone, MallocSizeOf)]
@@ -182,9 +273,10 @@ pub(crate) struct CacheableLayoutResult {
     pub specific_layout_info: Option<SpecificLayoutInfo>,
 }
 
-/// A collection of layout inputs and a cached layout result for a [`LayoutBoxBase`].
+/// A collection of layout inputs and a cached layout result for an IndependentFormattingContext for
+/// use in [`LayoutBoxBase`].
 #[derive(MallocSizeOf)]
-pub(crate) struct CacheableLayoutResultAndInputs {
+pub(crate) struct IndependentFormattingContextLayoutResultAndInputs {
     /// The [`CacheableLayoutResult`] for this layout.
     pub result: CacheableLayoutResult,
 
@@ -195,4 +287,30 @@ pub(crate) struct CacheableLayoutResultAndInputs {
     /// A [`PositioningContext`] holding absolutely-positioned descendants
     /// collected during the layout of this box.
     pub positioning_context: PositioningContext,
+}
+
+#[derive(Clone, MallocSizeOf)]
+pub(crate) struct SameFormattingContextBlockLayoutResult {
+    pub fragment: ArcRefCell<BoxFragment>,
+    /// The original offset applied to the content rect of the layout results, before
+    /// relative positioning has been applied.
+    original_offset: Point2D<Au, CSSPixel>,
+}
+
+/// A collection of layout inputs and a cached layout result for a SameFormattingContextBlock for
+/// use in [`LayoutBoxBase`].
+#[derive(MallocSizeOf)]
+pub(crate) struct SameFormattingContextBlockLayoutResultAndInputs {
+    pub result: SameFormattingContextBlockLayoutResult,
+    /// The [`ContainingBlockSize`] used when this block was laid out.
+    pub containing_block_size: ContainingBlockSize,
+    /// The containing block's [`WritingMode`]  used when this block was laid out.
+    pub containing_block_writing_mode: WritingMode,
+    /// The containing block's `justify-items` [`AlignFlags`] used when this block was laid out.
+    pub containing_block_justify_items: AlignFlags,
+    /// Whether or not the margin in this block was collapsible with the parent's start margin
+    /// when this block was laid out.
+    collapsible_with_parent_start_margin: Option<CollapsibleWithParentStartMargin>,
+    /// Whether or not block margins were ignored for stretch when this block was laid out.
+    ignore_block_margins_for_stretch: LogicalSides1D<bool>,
 }
