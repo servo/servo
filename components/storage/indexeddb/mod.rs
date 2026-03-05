@@ -1158,9 +1158,45 @@ impl IndexedDBManager {
         }
     }
 
+    fn rollback_newly_created_database(&mut self, key: &IndexedDBDescription) {
+        // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
+        // IndexedDB §5.8 Step 3: "or 0 (zero) if database was newly created."
+        // IndexedDB §5.8 Step 4: "or the empty set if database was newly created."
+        // Keep the SQLite backing file on disk for interop, but reset the logical
+        // database state (version 0 with no object stores) and drop the active
+        // in-memory handle.
+        let Some(mut db) = self.databases.remove(key) else {
+            return;
+        };
+
+        let version_result = db.set_version(0);
+        debug_assert!(
+            version_result.is_ok(),
+            "Setting a db version should not fail."
+        );
+
+        let store_names = match db.object_store_names() {
+            Ok(names) => names,
+            Err(err) => {
+                debug_assert!(
+                    false,
+                    "Fetching object store names should not fail: {}",
+                    err
+                );
+                Vec::new()
+            },
+        };
+        for store_name in store_names {
+            let delete_result = db.delete_object_store(&store_name);
+            debug_assert!(
+                delete_result.is_ok(),
+                "Deleting object store during rollback should not fail."
+            );
+        }
+    }
+
     /// Aborting the current upgrade for an origin.
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-    /// Note: this only reverts the version at this point.
     fn abort_pending_upgrade(&mut self, name: String, id: Uuid, origin: ImmutableOrigin) {
         let key = IndexedDBDescription {
             name,
@@ -1186,17 +1222,7 @@ impl IndexedDBManager {
         };
         if let Some(old_version) = old {
             if old_version == 0 {
-                // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-                // IndexedDB §5.8 Step 3: "or 0 (zero) if database was newly created."
-                // IndexedDB §5.8 Step 4: "or the empty set if database was newly created."
-                // During open we eagerly create the backing DB with version 0 and no stores.
-                // If that first upgrade aborts, the required rollback target is the
-                // pre creation state (database does not exist), not a persisted placeholder.
-                // Removing it from `self.databases` and deleting the backing store restores
-                // that state in one step.
-                if let Some(db) = self.databases.remove(&key) {
-                    let _ = db.delete_database();
-                }
+                self.rollback_newly_created_database(&key);
             } else {
                 let Some(db) = self.databases.get_mut(&key) else {
                     return debug_assert!(false, "Db should have been created");
@@ -1215,7 +1241,6 @@ impl IndexedDBManager {
 
     /// Aborting all upgrades for an origin
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-    /// Note: this only reverts the version at this point.
     fn abort_pending_upgrades(
         &mut self,
         pending_upgrades: HashMap<String, HashSet<Uuid>>,
@@ -1256,17 +1281,7 @@ impl IndexedDBManager {
             }
             if let Some(version) = version_to_revert {
                 if version == 0 {
-                    // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-                    // IndexedDB §5.8 Step 3: "or 0 (zero) if database was newly created."
-                    // IndexedDB §5.8 Step 4: "or the empty set if database was newly created."
-                    // During open we eagerly create the backing DB with version 0 and no stores.
-                    // If that first upgrade aborts, the required rollback target is the
-                    // pre creation state (database does not exist), not a persisted placeholder.
-                    // Removing it from `self.databases` and deleting the backing store restores
-                    // that state in one step.
-                    if let Some(db) = self.databases.remove(&key) {
-                        let _ = db.delete_database();
-                    }
+                    self.rollback_newly_created_database(&key);
                 } else {
                     let Some(db) = self.databases.get_mut(&key) else {
                         return debug_assert!(false, "Db should have been created");
