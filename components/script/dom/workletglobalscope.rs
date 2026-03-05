@@ -12,7 +12,6 @@ use crossbeam_channel::Sender;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
-use js::jsval::UndefinedValue;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
@@ -146,13 +145,12 @@ impl WorkletGlobalScope {
         let cx = &mut realm.current_realm();
 
         debug!("Evaluating Dom in a worklet.");
-        rooted!(&in(cx) let mut rval = UndefinedValue());
         self.globalscope.evaluate_js_on_global(
             cx,
             script,
             "",
             Some(IntroductionType::WORKLET),
-            rval.handle_mut(),
+            None,
         )
     }
 

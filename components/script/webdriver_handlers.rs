@@ -638,7 +638,6 @@ pub(crate) fn handle_execute_async_script(
         Some(window) => {
             let reply_sender = reply.clone();
             window.set_webdriver_script_chan(Some(reply));
-            rooted!(&in(cx) let mut rval = UndefinedValue());
 
             let global_scope = window.as_global_scope();
 
@@ -649,7 +648,7 @@ pub(crate) fn handle_execute_async_script(
                 eval.into(),
                 "",
                 None, // No known `introductionType` for JS code from WebDriver
-                rval.handle_mut(),
+                None,
             ) {
                 reply_sender.send(Err(error)).unwrap_or_else(|error| {
                     error!("ExecuteAsyncScript Failed to send reply: {error}");

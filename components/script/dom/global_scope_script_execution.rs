@@ -329,7 +329,10 @@ pub(crate) fn compile_script(
         options.set_introduction_type(introduction_type);
     }
 
+    // https://searchfox.org/firefox-main/rev/46fa95cd7f10222996ec267947ab94c5107b1475/js/public/CompileOptions.h#284
     options.set_muted_errors(muted_errors);
+
+    // https://searchfox.org/firefox-main/rev/46fa95cd7f10222996ec267947ab94c5107b1475/js/public/CompileOptions.h#518
     options.set_is_run_once(true);
     options.set_no_script_rval(no_script_rval);
 
