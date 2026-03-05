@@ -75,8 +75,8 @@ impl fmt::Debug for ServoLayoutNode<'_> {
 }
 
 impl<'dom> ServoLayoutNode<'dom> {
-    pub(crate) fn from_layout_js(n: LayoutDom<'dom, Node>) -> Self {
-        ServoLayoutNode { node: n }
+    pub(crate) fn from_layout_dom(node: LayoutDom<'dom, Node>) -> Self {
+        ServoLayoutNode { node }
     }
 
     /// Create a new [`ServoLayoutNode`] for this given [`TrustedNodeAddress`].
@@ -86,7 +86,7 @@ impl<'dom> ServoLayoutNode<'dom> {
     /// The address pointed to by `address` should point to a valid node in memory.
     pub unsafe fn new(address: &TrustedNodeAddress) -> Self {
         let node = unsafe { LayoutDom::from_trusted_node_address(*address) };
-        ServoLayoutNode::from_layout_js(node)
+        ServoLayoutNode::from_layout_dom(node)
     }
 
     pub(super) fn script_type_id(&self) -> NodeTypeId {
@@ -94,7 +94,10 @@ impl<'dom> ServoLayoutNode<'dom> {
     }
 
     /// Returns the interior of this node as a `LayoutDom`.
-    pub(crate) fn get_jsmanaged(self) -> LayoutDom<'dom, Node> {
+    ///
+    /// This method must never be exposed to layout as it returns
+    /// a `LayoutDom`.
+    pub(crate) fn to_layout_dom(self) -> LayoutDom<'dom, Node> {
         self.node
     }
 
@@ -103,7 +106,7 @@ impl<'dom> ServoLayoutNode<'dom> {
             .assigned_slot_for_layout()
             .as_ref()
             .map(LayoutDom::upcast)
-            .map(ServoLayoutElement::from_layout_js)
+            .map(ServoLayoutElement::from_layout_dom)
     }
 
     /// <https://dom.spec.whatwg.org/#scope-match-a-selectors-string>
@@ -156,27 +159,27 @@ impl<'dom> style::dom::TNode for ServoLayoutNode<'dom> {
     type ConcreteShadowRoot = ServoShadowRoot<'dom>;
 
     fn parent_node(&self) -> Option<Self> {
-        self.node.parent_node_ref().map(Self::from_layout_js)
+        self.node.parent_node_ref().map(Self::from_layout_dom)
     }
 
     fn first_child(&self) -> Option<Self> {
-        self.node.first_child_ref().map(Self::from_layout_js)
+        self.node.first_child_ref().map(Self::from_layout_dom)
     }
 
     fn last_child(&self) -> Option<Self> {
-        self.node.last_child_ref().map(Self::from_layout_js)
+        self.node.last_child_ref().map(Self::from_layout_dom)
     }
 
     fn prev_sibling(&self) -> Option<Self> {
-        self.node.prev_sibling_ref().map(Self::from_layout_js)
+        self.node.prev_sibling_ref().map(Self::from_layout_dom)
     }
 
     fn next_sibling(&self) -> Option<Self> {
-        self.node.next_sibling_ref().map(Self::from_layout_js)
+        self.node.next_sibling_ref().map(Self::from_layout_dom)
     }
 
     fn owner_doc(&self) -> Self::ConcreteDocument {
-        ServoLayoutDocument::from_layout_js(self.node.owner_doc_for_layout())
+        ServoLayoutDocument::from_layout_dom(self.node.owner_doc_for_layout())
     }
 
     fn traversal_parent(&self) -> Option<ServoLayoutElement<'dom>> {
@@ -191,7 +194,7 @@ impl<'dom> style::dom::TNode for ServoLayoutNode<'dom> {
     }
 
     fn opaque(&self) -> style::dom::OpaqueNode {
-        self.get_jsmanaged().opaque()
+        self.to_layout_dom().opaque()
     }
 
     fn debug_id(self) -> usize {
@@ -199,17 +202,19 @@ impl<'dom> style::dom::TNode for ServoLayoutNode<'dom> {
     }
 
     fn as_element(&self) -> Option<ServoLayoutElement<'dom>> {
-        self.node.downcast().map(ServoLayoutElement::from_layout_js)
+        self.node
+            .downcast()
+            .map(ServoLayoutElement::from_layout_dom)
     }
 
     fn as_document(&self) -> Option<ServoLayoutDocument<'dom>> {
         self.node
             .downcast()
-            .map(ServoLayoutDocument::from_layout_js)
+            .map(ServoLayoutDocument::from_layout_dom)
     }
 
     fn as_shadow_root(&self) -> Option<ServoShadowRoot<'dom>> {
-        self.node.downcast().map(ServoShadowRoot::from_layout_js)
+        self.node.downcast().map(ServoShadowRoot::from_layout_dom)
     }
 
     fn is_in_document(&self) -> bool {
@@ -229,7 +234,7 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
     }
 
     unsafe fn initialize_style_and_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self) {
-        let inner = self.get_jsmanaged();
+        let inner = self.to_layout_dom();
         if inner.style_data().is_none() {
             unsafe { inner.initialize_style_data() };
         }
@@ -243,11 +248,11 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
     }
 
     fn style_data(&self) -> Option<&'dom StyleData> {
-        self.get_jsmanaged().style_data()
+        self.to_layout_dom().style_data()
     }
 
     fn layout_data(&self) -> Option<&'dom GenericLayoutData> {
-        self.get_jsmanaged().layout_data()
+        self.to_layout_dom().layout_data()
     }
 }
 
@@ -275,7 +280,7 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
     /// Returns the interior of this node as a `LayoutDom`. This is highly unsafe for layout to
     /// call and as such is marked `unsafe`.
     unsafe fn get_jsmanaged(&self) -> LayoutDom<'dom, Node> {
-        self.node.get_jsmanaged()
+        self.node.to_layout_dom()
     }
 
     /// Get the first child of this node. Important: this is not safe for
@@ -284,7 +289,7 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
         let js_managed = unsafe { self.get_jsmanaged() };
         js_managed
             .first_child_ref()
-            .map(ServoLayoutNode::from_layout_js)
+            .map(ServoLayoutNode::from_layout_dom)
             .map(Self::new)
     }
 
@@ -294,7 +299,7 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
         let js_managed = unsafe { self.get_jsmanaged() };
         js_managed
             .next_sibling_ref()
-            .map(ServoLayoutNode::from_layout_js)
+            .map(ServoLayoutNode::from_layout_dom)
             .map(Self::new)
     }
 
@@ -382,7 +387,7 @@ impl<'dom> ThreadSafeLayoutNode<'dom> for ServoThreadSafeLayoutNode<'dom> {
     }
 
     fn initialize_layout_data<RequestedLayoutDataType: LayoutDataTrait>(&self) {
-        let inner = self.node.get_jsmanaged();
+        let inner = self.node.to_layout_dom();
         if inner.layout_data().is_none() {
             unsafe {
                 inner.initialize_layout_data(Box::<RequestedLayoutDataType>::default());

@@ -1168,12 +1168,12 @@ impl Node {
 
         let first_matching_element = with_layout_state(|| {
             let layout_node = unsafe { traced_node.to_layout() };
-            ServoLayoutNode::from_layout_js(layout_node)
+            ServoLayoutNode::from_layout_dom(layout_node)
                 .scope_match_a_selectors_string::<QueryFirst>(document_url, &selectors.str())
         })?;
 
         Ok(first_matching_element
-            .map(|element| DomRoot::from_ref(unsafe { element.to_layout_js().as_ref() })))
+            .map(|element| DomRoot::from_ref(unsafe { element.to_layout_dom().as_ref() })))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
@@ -1188,12 +1188,12 @@ impl Node {
         let traced_node = Dom::from_ref(self);
         let matching_elements = with_layout_state(|| {
             let layout_node = unsafe { traced_node.to_layout() };
-            ServoLayoutNode::from_layout_js(layout_node)
+            ServoLayoutNode::from_layout_dom(layout_node)
                 .scope_match_a_selectors_string::<QueryAll>(document_url, &selectors.str())
         })?;
         let iter = matching_elements
             .into_iter()
-            .map(|element| DomRoot::from_ref(unsafe { element.to_layout_js().as_ref() }))
+            .map(|element| DomRoot::from_ref(unsafe { element.to_layout_dom().as_ref() }))
             .map(DomRoot::upcast::<Node>);
 
         // NodeList::new_simple_list immediately collects the iterator, so we're not leaking LayoutDom
