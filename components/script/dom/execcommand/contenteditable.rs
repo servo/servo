@@ -1548,6 +1548,7 @@ pub(crate) trait SelectionExecCommandSupport {
     fn delete_the_selection(
         &self,
         cx: &mut js::context::JSContext,
+        context_object: &Document,
         block_merging: SelectionDeletionBlockMerging,
         strip_wrappers: SelectionDeletionStripWrappers,
         direction: SelectionDeleteDirection,
@@ -1559,6 +1560,7 @@ impl SelectionExecCommandSupport for Selection {
     fn delete_the_selection(
         &self,
         cx: &mut js::context::JSContext,
+        context_object: &Document,
         block_merging: SelectionDeletionBlockMerging,
         strip_wrappers: SelectionDeletionStripWrappers,
         direction: SelectionDeleteDirection,
@@ -1567,8 +1569,6 @@ impl SelectionExecCommandSupport for Selection {
         let Some(active_range) = self.active_range() else {
             return;
         };
-
-        let context_object = self.owner_document();
 
         // Step 2. Canonicalize whitespace at the active range's start.
         active_range

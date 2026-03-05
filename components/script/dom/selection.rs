@@ -111,10 +111,6 @@ impl Selection {
         // > The active range is the range of the selection given by calling getSelection() on the context object. (Thus the active range may be null.)
         self.range.get()
     }
-
-    pub(crate) fn owner_document(&self) -> DomRoot<Document> {
-        self.document.as_rooted()
-    }
 }
 
 impl SelectionMethods<crate::DomTypeHolder> for Selection {

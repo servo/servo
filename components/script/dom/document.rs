@@ -139,6 +139,7 @@ use crate::dom::element::{
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::execcommand::basecommand::DefaultSingleLineContainerName;
 use crate::dom::execcommand::contenteditable::ContentEditableRange;
 use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 use crate::dom::focusevent::FocusEvent;
@@ -632,6 +633,13 @@ pub(crate) struct Document {
 
     /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
     value_override: DomRefCell<Option<DOMString>>,
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#default-single-line-container-name>
+    #[no_trace]
+    default_single_line_container_name: Cell<DefaultSingleLineContainerName>,
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#css-styling-flag>
+    css_styling_flag: Cell<bool>,
 }
 
 impl Document {
@@ -3931,6 +3939,8 @@ impl Document {
             layout_animations_test_enabled: pref!(layout_animations_test_enabled),
             state_override: Default::default(),
             value_override: Default::default(),
+            default_single_line_container_name: Default::default(),
+            css_styling_flag: Default::default(),
         }
     }
 
@@ -5048,6 +5058,29 @@ impl Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
     pub(crate) fn value_override(&self) -> Option<DOMString> {
         self.value_override.borrow().clone()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#default-single-line-container-name>
+    pub(crate) fn default_single_line_container_name(&self) -> DefaultSingleLineContainerName {
+        self.default_single_line_container_name.get()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#default-single-line-container-name>
+    pub(crate) fn set_default_single_line_container_name(
+        &self,
+        value: DefaultSingleLineContainerName,
+    ) {
+        self.default_single_line_container_name.set(value)
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#css-styling-flag>
+    pub(crate) fn css_styling_flag(&self) -> bool {
+        self.css_styling_flag.get()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#css-styling-flag>
+    pub(crate) fn set_css_styling_flag(&self, value: bool) {
+        self.css_styling_flag.set(value)
     }
 }
 
@@ -6505,7 +6538,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandenabled()>
     fn QueryCommandEnabled(&self, cx: &mut js::context::JSContext, command_id: DOMString) -> bool {
         // Step 2. Return true if command is both supported and enabled, false otherwise.
-        self.check_support_and_enabled(cx, command_id).is_some()
+        self.check_support_and_enabled(cx, &command_id).is_some()
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandsupported()>
