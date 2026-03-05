@@ -448,6 +448,7 @@ fn test_viewport_meta_tag_initial_zoom() {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
         preferences.viewport_meta_enabled = true;
+        preferences.dom_visual_viewport_enabled = true;
         builder.preferences(preferences)
     });
 
@@ -464,12 +465,10 @@ fn test_viewport_meta_tag_initial_zoom() {
         )
         .build();
 
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
-    // Wait for at least one frame after the load completes.
-    delegate.reset();
-    servo_test.spin(move || webview.page_zoom() != 5.0);
+    let scale = evaluate_javascript(&servo_test, webview.clone(), "window.visualViewport.scale;");
+    assert_eq!(scale, Ok(JSValue::Number(5.0)))
 }
 
 #[test]
