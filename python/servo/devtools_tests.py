@@ -47,6 +47,7 @@ class Source:
 @dataclass
 class Devtools:
     client: RDPClient
+    tab: TabActor
     watcher: WatcherActor
     targets: list
     exited: bool = False
@@ -90,7 +91,7 @@ class Devtools:
         if result:
             raise result
 
-        return Devtools(client, watcher, targets)
+        return Devtools(client, tab, watcher, targets)
 
     def __getattribute__(self, name: str) -> Any:
         """
@@ -1036,6 +1037,34 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             time.sleep(1)
             self.assertFalse(did_see_new_mutations)
             self.assertEquals(walker.get_mutations(False), [])
+
+    def test_navigation(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/tab/page1.html")
+        with Devtools.connect() as devtools:
+            for message_data, target_path in [
+                ({"type": "navigateTo", "url": f"{self.base_urls[0]}/tab/page2.html"}, "/tab/page2.html"),
+                ({"type": "goBack"}, "/tab/page1.html"),
+                ({"type": "goForward"}, "/tab/page2.html"),
+            ]:
+                done = Future()
+
+                def on_tab_navigated(data):
+                    if data.get("url").endswith(target_path):
+                        done.set_result(None)
+                        return
+
+                devtools.client.add_event_listener(
+                    devtools.targets[0]["actor"],
+                    "tabNavigated",
+                    on_tab_navigated,
+                )
+                devtools.client.send_receive({"to": devtools.tab.actor_id, **message_data})
+
+                done.result(1)
+                # History may momentarily report stale state when navigating
+                # rapidly. The code under test does not seem to be responsible,
+                # so wait it out.
+                time.sleep(0.1)
 
     # Sets `base_url` and `web_server` and `web_server_thread`.
     @classmethod
