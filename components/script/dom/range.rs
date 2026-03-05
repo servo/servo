@@ -59,10 +59,10 @@ pub(crate) struct Range {
     associated_selections: DomRefCell<Vec<Dom<Selection>>>,
 }
 
-struct ContainedChildren {
+pub(crate) struct ContainedChildren {
     first_partially_contained_child: Option<DomRoot<Node>>,
     last_partially_contained_child: Option<DomRoot<Node>>,
-    contained_children: Vec<DomRoot<Node>>,
+    pub(crate) contained_children: Vec<DomRoot<Node>>,
 }
 
 impl Range {
@@ -162,7 +162,7 @@ impl Range {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-range-clone>
-    fn contained_children(&self) -> Fallible<ContainedChildren> {
+    pub(crate) fn contained_children(&self) -> Fallible<ContainedChildren> {
         let start_node = self.start_container();
         let end_node = self.end_container();
         // Steps 5-6.

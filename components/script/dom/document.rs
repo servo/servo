@@ -6480,17 +6480,17 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#execcommand()>
     fn ExecCommand(
         &self,
+        cx: &mut js::context::JSContext,
         command_id: DOMString,
         _show_ui: bool,
         value: TrustedHTMLOrString,
-        can_gc: CanGc,
     ) -> Fallible<bool> {
         let value = if command_id == "insertHTML" {
             TrustedHTML::get_trusted_script_compliant_string(
                 self.window.as_global_scope(),
                 value,
                 "Document execCommand",
-                can_gc,
+                CanGc::from_cx(cx),
             )?
         } else {
             match value {
@@ -6499,13 +6499,13 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             }
         };
 
-        Ok(self.exec_command_for_command_id(command_id, value, can_gc))
+        Ok(self.exec_command_for_command_id(cx, command_id, value))
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandenabled()>
-    fn QueryCommandEnabled(&self, command_id: DOMString, can_gc: CanGc) -> bool {
+    fn QueryCommandEnabled(&self, cx: &mut js::context::JSContext, command_id: DOMString) -> bool {
         // Step 2. Return true if command is both supported and enabled, false otherwise.
-        self.check_support_and_enabled(command_id, can_gc).is_some()
+        self.check_support_and_enabled(cx, command_id).is_some()
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandsupported()>
