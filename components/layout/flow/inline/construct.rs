@@ -312,12 +312,13 @@ impl InlineFormattingContextBuilder {
         });
 
         // Append a zero-width joiner if the writing style changes when letters are joined
-        const LANG_ARAB: Language = language!("ar");
+        const LANG_ARABIC: Language = language!("ar");
+        const LANG_PERSIAN: Language = language!("fa");
         let should_append_zwj = !is_last_letter &&
             matches!(
                 LanguageIdentifier::from_str(&pseudo_info.style.clone__x_lang().0)
                     .map(|locid| locid.language),
-                Ok(LANG_ARAB)
+                Ok(LANG_ARABIC) | Ok(LANG_PERSIAN)
             );
 
         let new_first_letter: String = if should_append_zwj {
