@@ -515,22 +515,25 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
         let builder = self.inline_formatting_context_builder.as_mut().unwrap();
 
         let mut range = 0..;
-        if let Some(pseudo_info) = self
-            .info
-            .with_pseudo_element(context, PseudoElement::FirstLetter)
-        {
-            if builder.text_segments.iter().all(|seg| seg.is_empty()) {
-                let (first_letter_range, is_last_letter) = first_letter_range(&text[..]);
-                range.start = first_letter_range.end;
+        // first-letter is an eager pseudo element and should not be nested
+        if self.info.pseudo_element_chain().is_empty() {
+            if let Some(pseudo_info) = self
+                .info
+                .with_pseudo_element(context, PseudoElement::FirstLetter)
+            {
+                if builder.text_segments.iter().all(|seg| seg.is_empty()) {
+                    let (first_letter_range, is_last_letter) = first_letter_range(&text[..]);
+                    range.start = first_letter_range.end;
 
-                // The first letter range may be some value larger than zero when
-                // there are proceding spaces.
-                if first_letter_range.start != 0 {
-                    builder.push_text(Cow::Borrowed(&text[0..first_letter_range.start]), info);
+                    // The first letter range may be some value larger than zero when
+                    // there are proceding spaces.
+                    if first_letter_range.start != 0 {
+                        builder.push_text(Cow::Borrowed(&text[0..first_letter_range.start]), info);
+                    }
+
+                    let first_letter = Cow::Borrowed(&text[first_letter_range]);
+                    builder.push_first_letter(first_letter, &pseudo_info, context, is_last_letter);
                 }
-
-                let first_letter = Cow::Borrowed(&text[first_letter_range]);
-                builder.push_first_letter(first_letter, &pseudo_info, context, is_last_letter);
             }
         }
 
