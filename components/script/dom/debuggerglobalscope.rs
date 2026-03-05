@@ -14,7 +14,6 @@ use dom_struct::dom_struct;
 use embedder_traits::ScriptToEmbedderChan;
 use embedder_traits::resources::{self, Resource};
 use js::context::JSContext;
-use js::jsval::UndefinedValue;
 use js::rust::wrappers2::JS_DefineDebuggerObject;
 use net_traits::ResourceThreads;
 use profile_traits::{mem, time};
@@ -130,13 +129,12 @@ impl DebuggerGlobalScope {
         let mut realm = enter_auto_realm(cx, self);
         let cx = &mut realm.current_realm();
 
-        rooted!(&in(cx) let mut rval = UndefinedValue());
         let _ = self.global_scope.evaluate_js_on_global(
             cx,
             resources::read_string(Resource::DebuggerJS).into(),
             "",
             None,
-            rval.handle_mut(),
+            None,
         );
     }
 
