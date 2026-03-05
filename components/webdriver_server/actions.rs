@@ -315,11 +315,9 @@ impl Handler {
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-pause-action>
-    fn dispatch_pause_action(&mut self, input_id: &str) {
-        self.input_state_table_mut()
-            .entry(input_id.to_string())
-            .or_insert(InputSourceState::Null);
-    }
+    /// This is a dummy action. The sole effect of the action is that
+    /// its `duration` parameter may decide "tick duration".
+    fn dispatch_pause_action(&mut self, _input_id: &str) {}
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action>
     fn dispatch_keydown_action(&mut self, input_id: &str, action: &KeyDownAction) {
