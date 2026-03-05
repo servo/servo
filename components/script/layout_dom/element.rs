@@ -185,9 +185,9 @@ where
 }
 
 impl<'dom> style::dom::AttributeProvider for ServoLayoutElement<'dom> {
-    fn get_attr(&self, attr: &style::LocalName) -> Option<String> {
+    fn get_attr(&self, attr: &style::LocalName, namespace: &style::Namespace) -> Option<String> {
         self.element
-            .get_attr_val_for_layout(&ns!(), attr)
+            .get_attr_val_for_layout(namespace, attr)
             .map(String::from)
     }
 }
