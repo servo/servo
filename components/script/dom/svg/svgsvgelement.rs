@@ -121,7 +121,16 @@ impl SVGSVGElement {
         can_gc: CanGc,
     ) -> Option<DomRoot<Node>> {
         let href = use_element.get_string_attribute(&local_name!("href"));
-        let href_view = href.str();
+        // If the `href` attribute is missing or empty, the spec requires us to look for
+        // the deprecated `xlink:href` attribute instead.
+        let fallback;
+        let href_view = if href.str().is_empty() {
+            fallback =
+                use_element.get_string_attribute_with_namespace(&ns!(xlink), &local_name!("href"));
+            fallback.str()
+        } else {
+            href.str()
+        };
         let id_str = href_view.strip_prefix("#")?;
         let id = DOMString::from(id_str);
         let document = self.upcast::<Node>().owner_doc();
