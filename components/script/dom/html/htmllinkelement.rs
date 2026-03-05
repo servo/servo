@@ -24,6 +24,7 @@ use script_bindings::root::Dom;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
+use style::media_queries::MediaList as StyleMediaList;
 use style::stylesheets::Stylesheet;
 use stylo_atoms::Atom;
 use webrender_api::units::DeviceIntSize;
@@ -252,10 +253,22 @@ impl VirtualMethods for HTMLLinkElement {
             self.handle_disabled_attribute_change(is_removal);
             return;
         }
+        let node = self.upcast::<Node>();
 
-        if !self.upcast::<Node>().is_connected() {
+        if !node.is_connected() {
             return;
         }
+
+        // For stylesheets, we should only refetch when the actual attribute value
+        // has been changed.
+        if self.relations.get().contains(LinkRelations::STYLESHEET) {
+            if let AttributeMutation::Set(Some(previous_value), _) = mutation {
+                if **previous_value == **attr.value() {
+                    return;
+                }
+            }
+        }
+
         match *local_name {
             local_name!("rel") | local_name!("rev") => {
                 let previous_relations = self.relations.get();
@@ -374,6 +387,21 @@ impl VirtualMethods for HTMLLinkElement {
                         },
                         _ => {},
                     };
+                } else if self.relations.get().contains(LinkRelations::STYLESHEET) {
+                    if let Some(ref stylesheet) = *self.stylesheet.borrow_mut() {
+                        let document = self.owner_document();
+                        let shared_lock = document.style_shared_lock().clone();
+                        let mut guard = shared_lock.write();
+                        let media = stylesheet.media.write_with(&mut guard);
+                        match mutation {
+                            AttributeMutation::Set(..) => {
+                                *media =
+                                    MediaList::parse_media_list(&attr.value(), document.window())
+                            },
+                            AttributeMutation::Removed => *media = StyleMediaList::empty(),
+                        };
+                        self.owner_document().invalidate_stylesheets();
+                    }
                 }
 
                 let matches_media_environment =
@@ -616,6 +644,17 @@ impl HTMLLinkElement {
 
         let element = self.upcast::<Element>();
 
+        // https://html.spec.whatwg.org/multipage/#processing-the-type-attribute
+        // > If the UA does not support the given MIME type for the given link relationship,
+        // > then the UA should not fetch and process the linked resource
+        //
+        // https://html.spec.whatwg.org/multipage/#link-type-stylesheet
+        // > The default type for resources given by the stylesheet keyword is text/css.
+        let type_ = element.get_string_attribute(&local_name!("type"));
+        if !type_.is_empty() && type_ != "text/css" {
+            return;
+        }
+
         // Step 1.
         let href = element.get_string_attribute(&local_name!("href"));
         if href.is_empty() {
@@ -640,10 +679,6 @@ impl HTMLLinkElement {
             Some(ref value) => &***value,
             None => "",
         };
-
-        if !MediaList::matches_environment(&document, mq_str) {
-            return;
-        }
 
         let media = MediaList::parse_media_list(mq_str, document.window());
         let media = Arc::new(document.style_shared_lock().wrap(media));
