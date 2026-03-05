@@ -62,7 +62,9 @@ use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
 use crate::dom::htmlbuttonelement::CommandState;
 use crate::dom::htmldialogelement::HTMLDialogElement;
-use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
+use crate::dom::node::{
+    BindContext, ChildrenMutation, CloneChildrenFlag, MoveContext, Node, UnbindContext,
+};
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::svg::svgelement::SVGElement;
 use crate::dom::svg::svgimageelement::SVGImageElement;
@@ -108,6 +110,13 @@ pub(crate) trait VirtualMethods {
     fn post_connection_steps(&self, cx: &mut JSContext) {
         if let Some(s) = self.super_type() {
             s.post_connection_steps(cx);
+        }
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-node-move-ext>
+    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+        if let Some(s) = self.super_type() {
+            s.moving_steps(context, can_gc);
         }
     }
 
