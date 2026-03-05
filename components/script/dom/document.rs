@@ -1347,29 +1347,21 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
-    pub(crate) fn perform_focus_fixup_rule(&self, not_focusable: &Element, can_gc: CanGc) {
-        // Return if `not_focusable` is not the designated focused area of the
-        // `Document`.
-        if Some(not_focusable) != self.focused.get().as_deref() {
+    /// > For each doc of docs, if the focused area of doc is not a focusable area, then run the
+    /// > focusing steps for doc's viewport, and set doc's relevant global object's navigation API's
+    /// > focus changed during ongoing navigation to false.
+    ///
+    /// TODO: Handle the "focus changed during ongoing navigation" flag.
+    pub(crate) fn perform_focus_fixup_rule(&self, can_gc: CanGc) {
+        if self
+            .focused
+            .get()
+            .as_deref()
+            .is_none_or(|focused| focused.is_focusable_area())
+        {
             return;
         }
-
-        let implicit_transaction = self.focus_transaction.borrow().is_none();
-
-        if implicit_transaction {
-            self.begin_focus_transaction();
-        }
-
-        // Designate the viewport as the new focused area of the `Document`, but
-        // do not run the focusing steps.
-        {
-            let mut focus_transaction = self.focus_transaction.borrow_mut();
-            focus_transaction.as_mut().unwrap().element = None;
-        }
-
-        if implicit_transaction {
-            self.commit_focus_transaction(FocusInitiator::Local, can_gc);
-        }
+        self.request_focus(None, FocusInitiator::Script, can_gc);
     }
 
     /// Request that the given element receive focus with default options.
@@ -1397,14 +1389,17 @@ impl Document {
     /// commits an implicit transaction.
     pub(crate) fn request_focus_with_options(
         &self,
-        elem: Option<&Element>,
+        target: Option<&Element>,
         focus_initiator: FocusInitiator,
         focus_options: FocusOptions,
         can_gc: CanGc,
     ) {
-        // If an element is specified, and it's non-focusable, ignore the
-        // request.
-        if elem.is_some_and(|e| !e.is_focusable_area()) {
+        // If a target element is specified, and it's non-focusable, ignore the request.
+        if target.is_some_and(|target| match focus_initiator {
+            FocusInitiator::Keyboard => !target.is_sequentially_focusable(),
+            FocusInitiator::Click => !target.is_click_focusable(),
+            FocusInitiator::Script | FocusInitiator::Remote => !target.is_focusable_area(),
+        }) {
             return;
         }
 
@@ -1417,7 +1412,7 @@ impl Document {
         {
             let mut focus_transaction = self.focus_transaction.borrow_mut();
             let focus_transaction = focus_transaction.as_mut().unwrap();
-            focus_transaction.element = elem.map(Dom::from_ref);
+            focus_transaction.element = target.map(Dom::from_ref);
             focus_transaction.has_focus = true;
             focus_transaction.focus_options = focus_options;
         }
@@ -1572,7 +1567,7 @@ impl Document {
             }
         }
 
-        if focus_initiator != FocusInitiator::Local {
+        if focus_initiator == FocusInitiator::Remote {
             return;
         }
 
@@ -6700,9 +6695,15 @@ pub(crate) enum FocusType {
 /// Specifies the initiator of a focus operation.
 #[derive(Clone, Copy, PartialEq)]
 pub enum FocusInitiator {
-    /// The operation is initiated by this document and to be broadcasted
-    /// through the constellation.
-    Local,
+    /// The operation is initiated by this document via a keyboard event to be broadcast through the
+    /// constellation.
+    Keyboard,
+    /// The operation is initiated by this document via a click event to be broadcast through the
+    /// constellation.
+    Click,
+    /// The operation is initiated by this document via script to be broadcast through the
+    /// constellation.
+    Script,
     /// The operation is initiated somewhere else, and we are updating our
     /// internal state accordingly.
     Remote,

@@ -210,11 +210,7 @@ bitflags! {
         /// this element.
         const CLICK_IN_PROGRESS = 1 << 2;
 
-        /// Specifies whether this node is focusable and whether it is supposed
-        /// to be reachable with using sequential focus navigation."]
-        const SEQUENTIALLY_FOCUSABLE = 1 << 3;
-
-        // There are two free bits here.
+        // There are three free bits here.
 
         /// Specifies whether the parser has set an associated form owner for
         /// this element. Only applicable for form-associatable elements.

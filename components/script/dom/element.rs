@@ -1772,51 +1772,101 @@ impl Element {
         }
     }
 
-    pub(crate) fn is_keyboard_focusable(&self) -> bool {
-        self.is_focusable_area() && self.tab_index() != -1
+    fn is_editing_host(&self) -> bool {
+        self.downcast::<HTMLElement>()
+            .is_some_and(|element| element.IsContentEditable())
+    }
+
+    /// This is an implementation of <https://html.spec.whatwg.org/multipage/#sequentially-focusable>.
+    ///
+    /// These are the parts of <https://html.spec.whatwg.org/multipage/#focusable-area> that apply
+    /// for sequential (keyboard) focusability. See also [`Self::is_click_focusable`].
+    pub(crate) fn is_sequentially_focusable(&self) -> bool {
+        if self.explicitly_set_tab_index() == Some(-1) {
+            return false;
+        }
+        if self.is_click_focusable() {
+            return true;
+        }
+        false
+    }
+
+    /// This is an implementation of <https://html.spec.whatwg.org/multipage/#click-focusable>
+    ///
+    /// These are the parts of <https://html.spec.whatwg.org/multipage/#focusable-area> that apply
+    /// for click focusability. See [`Self::is_sequentially_focusable`].
+    pub(crate) fn is_click_focusable(&self) -> bool {
+        let node: &Node = self.upcast();
+        let is_being_rendered = node.is_connected() && self.has_css_layout_box();
+        let is_actually_disabled = self.is_actually_disabled();
+        if !is_being_rendered || is_actually_disabled {
+            return false;
+        }
+
+        // > Elements that meet all the following criteria:
+        // > the element's tabindex value is non-null, or the element is determined by the user agent to be focusable;
+        // > the element is either not a shadow host, or has a shadow root whose delegates focus is false;
+        // TODO: Handle this.
+        // > the element is not actually disabled;
+        // Note: Checked above
+        // > the element is not inert;
+        // TODO: Handle this.
+        // > the element is either being rendered, delegating its rendering to its children, or
+        // > being used as relevant canvas fallback content.
+        // Note: Checked above
+        // TODO: Handle fallback canvas content.
+        if self.explicitly_set_tab_index().is_some() {
+            return true;
+        }
+
+        // > If the value is null
+        // > ...
+        // > Modulo platform conventions, it is suggested that the following elements should be
+        // > considered as focusable areas and be sequentially focusable:
+        match node.type_id() {
+            // >  - a elements that have an href attribute
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLAnchorElement,
+            )) => self.has_attribute(&local_name!("href")),
+
+            // >  - input elements whose type attribute are not in the Hidden state
+            // >  - button elements
+            // >  - select elements
+            // >  - textarea elements
+            // >  - Navigable containers
+            //
+            // Note: the `hidden` attribute is checked above for all elements.
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLInputElement |
+                HTMLElementTypeId::HTMLButtonElement |
+                HTMLElementTypeId::HTMLSelectElement |
+                HTMLElementTypeId::HTMLTextAreaElement |
+                HTMLElementTypeId::HTMLIFrameElement,
+            )) => true,
+
+            _ => {
+                // >  - summary elements that are the first summary element child of a details element
+                // >  - Editing hosts
+                // > -  Elements with a draggable attribute set, if that would enable the user agent to allow
+                // >    the user to begin drag operations for those elements without the use of a pointing device
+                self.downcast::<HTMLElement>()
+                    .is_some_and(|html_element| html_element.is_a_summary_for_its_parent_details()) ||
+                    self.is_editing_host() ||
+                    self.get_string_attribute(&local_name!("draggable")) == "true"
+            },
+        }
     }
 
     pub(crate) fn is_focusable_area(&self) -> bool {
-        if self.is_actually_disabled() {
-            return false;
-        }
-        let node = self.upcast::<Node>();
-        if node.get_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE) {
-            return true;
-        }
-
-        // <a>, <input>, <select>, and <textrea> are inherently focusable.
-        if matches!(
-            node.type_id(),
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLAnchorElement,
-            )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLInputElement,
-            )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLSelectElement,
-            )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLTextAreaElement,
-            ))
-        ) {
-            return true;
-        }
-
-        if node
-            .downcast::<HTMLElement>()
-            .is_some_and(|el| el.IsContentEditable())
-        {
-            return true;
-        }
-
-        false
+        self.is_click_focusable() || self.is_sequentially_focusable()
     }
 
     /// Returns the focusable shadow host if this is a text control inner editor.
     /// This is a workaround for the focus delegation of shadow DOM and should be
     /// used only to delegate focusable inner editor of [HTMLInputElement] and
     /// [HTMLTextAreaElement].
-    pub(crate) fn find_focusable_shadow_host_if_necessary(&self) -> Option<DomRoot<Element>> {
-        if self.is_focusable_area() {
+    pub(crate) fn find_click_focusable_shadow_host_if_necessary(&self) -> Option<DomRoot<Element>> {
+        if self.is_click_focusable() {
             return Some(DomRoot::from_ref(self));
         }
 
@@ -1828,7 +1878,7 @@ impl Element {
                 .containing_shadow_root()
                 .map(|root| root.Host())
                 .expect("Text control inner shadow DOM should always have a shadow host.");
-            if !containing_shadow_host.is_focusable_area() {
+            if !containing_shadow_host.is_click_focusable() {
                 return None;
             }
             return Some(containing_shadow_host);
@@ -2835,66 +2885,6 @@ impl Element {
         self.rare_data().as_ref()?.name_attribute.clone()
     }
 
-    fn is_sequentially_focusable(&self) -> bool {
-        let element = self.upcast::<Element>();
-        let node = self.upcast::<Node>();
-        if !node.is_connected() {
-            return false;
-        }
-
-        if element.has_attribute(&local_name!("hidden")) {
-            return false;
-        }
-
-        if self.disabled_state() {
-            return false;
-        }
-
-        if element.has_attribute(&local_name!("tabindex")) {
-            return true;
-        }
-
-        match node.type_id() {
-            // <button>, <select>, <iframe>, and <textarea> are implicitly focusable.
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLButtonElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLSelectElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLIFrameElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLTextAreaElement,
-            )) => true,
-
-            // Links that generate actual links are focusable.
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLAnchorElement,
-            )) => element.has_attribute(&local_name!("href")),
-
-            // TODO focusable if editing host
-            // TODO focusable if "sorting interface th elements"
-            _ => {
-                // Draggable elements are focusable.
-                element.get_string_attribute(&local_name!("draggable")) == "true"
-            },
-        }
-    }
-
-    pub(crate) fn update_sequentially_focusable_status(&self, can_gc: CanGc) {
-        let node = self.upcast::<Node>();
-        let is_sequentially_focusable = self.is_sequentially_focusable();
-        node.set_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE, is_sequentially_focusable);
-
-        // https://html.spec.whatwg.org/multipage/#focus-fixup-rule
-        if !is_sequentially_focusable {
-            self.owner_document().perform_focus_fixup_rule(self, can_gc);
-        }
-    }
-
     pub(crate) fn get_element_internals(&self) -> Option<DomRoot<ElementInternals>> {
         self.rare_data()
             .as_ref()?
@@ -2928,6 +2918,14 @@ impl Element {
         }
     }
 
+    pub(crate) fn explicitly_set_tab_index(&self) -> Option<i32> {
+        if self.has_attribute(&local_name!("tabindex")) {
+            Some(self.get_int_attribute(&local_name!("tabindex"), 0))
+        } else {
+            None
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
     pub(crate) fn tab_index(&self) -> i32 {
         // > The tabIndex getter steps are:
@@ -2935,8 +2933,8 @@ impl Element {
         // > 2. If attribute is not null:
         // >    1. Let parsedValue be the result of integer parsing attribute's value.
         // >    2. If parsedValue is not an error and is within the long range, then return parsedValue.
-        if self.has_attribute(&local_name!("tabindex")) {
-            return self.get_int_attribute(&local_name!("tabindex"), 0);
+        if let Some(tab_index) = self.explicitly_set_tab_index() {
+            return tab_index;
         }
 
         // > 3. Return 0 if this is an a, area, button, frame, iframe, input, object, select, textarea,
@@ -4513,12 +4511,9 @@ impl VirtualMethods for Element {
             .attribute_mutated(attr, mutation, can_gc);
         let node = self.upcast::<Node>();
         let doc = node.owner_doc();
-        match attr.local_name() {
-            &local_name!("tabindex") | &local_name!("draggable") | &local_name!("hidden") => {
-                self.update_sequentially_focusable_status(can_gc)
-            },
-            &local_name!("style") => self.update_style_attribute(attr, mutation),
-            &local_name!("id") => {
+        match *attr.local_name() {
+            local_name!("style") => self.update_style_attribute(attr, mutation),
+            local_name!("id") => {
                 // https://dom.spec.whatwg.org/#ref-for-concept-element-attributes-change-ext%E2%91%A2
                 *self.id_attribute.borrow_mut() = mutation.new_value(attr).and_then(|value| {
                     let value = value.as_atom();
@@ -4564,7 +4559,7 @@ impl VirtualMethods for Element {
                     }
                 }
             },
-            &local_name!("name") => {
+            local_name!("name") => {
                 // Keep the name in rare data for fast access
                 self.ensure_rare_data().name_attribute =
                     mutation.new_value(attr).and_then(|value| {
@@ -4597,7 +4592,7 @@ impl VirtualMethods for Element {
                     }
                 }
             },
-            &local_name!("slot") => {
+            local_name!("slot") => {
                 // Update slottable data
                 let cx = GlobalScope::get_cx();
 
@@ -4687,8 +4682,6 @@ impl VirtualMethods for Element {
             return;
         }
 
-        self.update_sequentially_focusable_status(can_gc);
-
         if let Some(ref id) = *self.id_attribute.borrow() {
             if let Some(shadow_root) = self.containing_shadow_root() {
                 shadow_root.register_element_id(self, id.clone(), can_gc);
@@ -4719,8 +4712,6 @@ impl VirtualMethods for Element {
         if !context.tree_is_in_a_document_tree && !context.tree_is_in_a_shadow_tree {
             return;
         }
-
-        self.update_sequentially_focusable_status(can_gc);
 
         let doc = self.owner_document();
 
