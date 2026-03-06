@@ -14,6 +14,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{fmt, mem};
 
 use app_units::Au;
+use bitflags::bitflags;
 use cssparser::match_ignore_ascii_case;
 use devtools_traits::{AttrInfo, DomMutation, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
@@ -1786,30 +1787,21 @@ impl Element {
             .is_some_and(|element| element.IsContentEditable())
     }
 
-    /// This is an implementation of <https://html.spec.whatwg.org/multipage/#sequentially-focusable>.
+    /// <https://html.spec.whatwg.org/multipage/#focusable-area>
     ///
-    /// These are the parts of <https://html.spec.whatwg.org/multipage/#focusable-area> that apply
-    /// for sequential (keyboard) focusability. See also [`Self::is_click_focusable`].
-    pub(crate) fn is_sequentially_focusable(&self) -> bool {
-        if self.explicitly_set_tab_index() == Some(-1) {
-            return false;
-        }
-        if self.is_click_focusable() {
-            return true;
-        }
-        false
-    }
-
-    /// This is an implementation of <https://html.spec.whatwg.org/multipage/#click-focusable>
-    ///
-    /// These are the parts of <https://html.spec.whatwg.org/multipage/#focusable-area> that apply
-    /// for click focusability. See [`Self::is_sequentially_focusable`].
-    pub(crate) fn is_click_focusable(&self) -> bool {
+    /// The list of focusable areas at this point in the specification is both incomplete and leaves
+    /// a lot up to the user agent. In addition, the specifications for "click focusable" and
+    /// "sequentially focusable" are written in a way that they are subsets of all focusable areas.
+    /// In order to avoid having to first determine whether an element is a focusable area and then
+    /// work backwards to figure out what kind it is, this function attempts to classify the
+    /// different types of focusable areas ahead of time so that the logic is useful for answering
+    /// both "Is this element a focusable area?" and "Is this element click (or sequentially)
+    /// focusable."
+    fn focusable_area_kind(&self) -> FocusableAreaKind {
+        // Do not allow unrendered, disconnected, or disabled nodes to be focusable areas ever.
         let node: &Node = self.upcast();
-        let is_being_rendered = node.is_connected() && self.has_css_layout_box();
-        let is_actually_disabled = self.is_actually_disabled();
-        if !is_being_rendered || is_actually_disabled {
-            return false;
+        if !node.is_connected() || !self.has_css_layout_box() || self.is_actually_disabled() {
+            return Default::default();
         }
 
         // > Elements that meet all the following criteria:
@@ -1824,15 +1816,26 @@ impl Element {
         // > being used as relevant canvas fallback content.
         // Note: Checked above
         // TODO: Handle fallback canvas content.
-        if self.explicitly_set_tab_index().is_some() {
-            return true;
+        match self.explicitly_set_tab_index() {
+            // From <https://html.spec.whatwg.org/multipage/#tabindex-ordered-focus-navigation-scope>:
+            // > A tabindex-ordered focus navigation scope is a list of focusable areas and focus
+            // > navigation scope owners. Every focus navigation scope owner owner has tabindex-ordered
+            // > focus navigation scope, whose contents are determined as follows:
+            // >  - It contains all elements in owner's focus navigation scope that are themselves focus
+            // >    navigation scope owners, except the elements whose tabindex value is a negative integer.
+            // >  - It contains all of the focusable areas whose DOM anchor is an element in owner's focus
+            // >    navigation scope, except the focusable areas whose tabindex value is a negative integer.
+            Some(tab_index) if tab_index < 0 => return FocusableAreaKind::Click,
+            Some(_) => return FocusableAreaKind::Click | FocusableAreaKind::Sequential,
+            None => {},
         }
 
+        // From <https://html.spec.whatwg.org/multipage/#tabindex-value>
         // > If the value is null
         // > ...
         // > Modulo platform conventions, it is suggested that the following elements should be
         // > considered as focusable areas and be sequentially focusable:
-        match node.type_id() {
+        let is_focusable_area_due_to_type = match node.type_id() {
             // >  - a elements that have an href attribute
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLAnchorElement,
@@ -1852,7 +1855,6 @@ impl Element {
                 HTMLElementTypeId::HTMLTextAreaElement |
                 HTMLElementTypeId::HTMLIFrameElement,
             )) => true,
-
             _ => {
                 // >  - summary elements that are the first summary element child of a details element
                 // >  - Editing hosts
@@ -1863,11 +1865,30 @@ impl Element {
                     self.is_editing_host() ||
                     self.get_string_attribute(&local_name!("draggable")) == "true"
             },
+        };
+
+        if is_focusable_area_due_to_type {
+            return FocusableAreaKind::Click | FocusableAreaKind::Sequential;
         }
+
+        Default::default()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#sequentially-focusable>.
+    pub(crate) fn is_sequentially_focusable(&self) -> bool {
+        self.focusable_area_kind()
+            .contains(FocusableAreaKind::Sequential)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#click-focusable>
+    pub(crate) fn is_click_focusable(&self) -> bool {
+        self.focusable_area_kind()
+            .contains(FocusableAreaKind::Click)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#focusable-area>
     pub(crate) fn is_focusable_area(&self) -> bool {
-        self.is_click_focusable() || self.is_sequentially_focusable()
+        !self.focusable_area_kind().is_empty()
     }
 
     /// Returns the focusable shadow host if this is a text control inner editor.
@@ -5765,4 +5786,25 @@ pub(crate) fn is_element_affected_by_legacy_background_presentational_hint(
                 local_name!("td") |
                 local_name!("th")
         )
+}
+
+/// What kind of focusable area an [`Element`] is.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct FocusableAreaKind(u8);
+
+bitflags! {
+    impl FocusableAreaKind: u8 {
+        /// <https://html.spec.whatwg.org/multipage/#click-focusable>
+        ///
+        /// > A focusable area is said to be click focusable if the user agent determines that it is
+        /// > click focusable. User agents should consider focusable areas with non-null tabindex values
+        /// > to be click focusable.
+        const Click = 1 << 0;
+        /// <https://html.spec.whatwg.org/multipage/#sequentially-focusable>.
+        ///
+        /// > A focusable area is said to be sequentially focusable if it is included in its
+        /// > Document's sequential focus navigation order and the user agent determines that it is
+        /// > sequentially focusable.
+        const Sequential = 1 << 1;
+    }
 }
