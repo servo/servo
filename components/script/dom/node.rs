@@ -8,6 +8,7 @@ use std::borrow::Cow;
 use std::cell::{Cell, LazyCell, UnsafeCell};
 use std::default::Default;
 use std::f64::consts::PI;
+use std::marker::PhantomData;
 use std::slice::from_ref;
 use std::{cmp, fmt, iter};
 
@@ -21,6 +22,7 @@ use euclid::default::Size2D;
 use euclid::{Point2D, Rect};
 use html5ever::serialize::HtmlSerializer;
 use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
+use js::context::NoGC;
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
@@ -82,7 +84,9 @@ use crate::dom::bindings::inheritance::{
     SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId,
 };
 use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto};
-use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout};
+use crate::dom::bindings::root::{
+    Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout, UnrootedDom,
+};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
@@ -837,6 +841,18 @@ impl Node {
     /// Iterates over this node and all its descendants, in preorder.
     pub(crate) fn traverse_preorder(&self, shadow_including: ShadowIncluding) -> TreeIterator {
         TreeIterator::new(self, shadow_including)
+    }
+
+    /// Iterates over this node and all its descendants, in preorder. We take &NoGC to prevent GC which allows us to avoid rooting.
+    pub(crate) fn traverse_preorder_non_rooting<'a, 'b>(
+        &'a self,
+        no_gc: &'b NoGC,
+        shadow_including: ShadowIncluding,
+    ) -> UnrootedTreeIterator<'a, 'b>
+    where
+        'b: 'a,
+    {
+        UnrootedTreeIterator::new(self, shadow_including, no_gc)
     }
 
     pub(crate) fn inclusively_following_siblings(
@@ -2185,7 +2201,7 @@ pub(crate) enum ShadowIncluding {
 pub(crate) struct TreeIterator {
     current: Option<DomRoot<Node>>,
     depth: usize,
-    shadow_including: bool,
+    shadow_including: ShadowIncluding,
 }
 
 impl TreeIterator {
@@ -2193,7 +2209,7 @@ impl TreeIterator {
         TreeIterator {
             current: Some(DomRoot::from_ref(root)),
             depth: 0,
-            shadow_including: shadow_including == ShadowIncluding::Yes,
+            shadow_including,
         }
     }
 
@@ -2204,11 +2220,7 @@ impl TreeIterator {
     }
 
     fn next_skipping_children_impl(&mut self, current: DomRoot<Node>) -> Option<DomRoot<Node>> {
-        let iter = current.inclusive_ancestors(if self.shadow_including {
-            ShadowIncluding::Yes
-        } else {
-            ShadowIncluding::No
-        });
+        let iter = current.inclusive_ancestors(self.shadow_including);
 
         for ancestor in iter {
             if self.depth == 0 {
@@ -2249,7 +2261,7 @@ impl Iterator for TreeIterator {
         // Handle a potential shadow root on the element
         if let Some(element) = current.downcast::<Element>() {
             if let Some(shadow_root) = element.shadow_root() {
-                if self.shadow_including {
+                if self.shadow_including == ShadowIncluding::Yes {
                     self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()));
                     self.depth += 1;
                     return Some(current);
@@ -2264,6 +2276,117 @@ impl Iterator for TreeIterator {
         };
 
         self.next_skipping_children_impl(current)
+    }
+}
+
+/// An efficient TreeIterator because it skips rooting if there are no GC pauses.
+///
+/// Use this if you have a `&JSContext` or `NoGC`.
+///
+/// Normally we need to root every `Node` we come across as we do not know if we will have a GC pause.
+/// This does not root the required children. Taking a `&NoGC` enforces that there is no `&mut JSContext`
+/// while this iterator is alive.
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+pub(crate) struct UnrootedTreeIterator<'a, 'b> {
+    current: Option<UnrootedDom<'b, Node>>,
+    depth: usize,
+    shadow_including: ShadowIncluding,
+    /// This is unused and only used for lifetime guarantee of NoGC
+    no_gc: &'b NoGC,
+    phantom: PhantomData<&'a Node>,
+}
+
+impl<'a, 'b> UnrootedTreeIterator<'a, 'b>
+where
+    'b: 'a,
+{
+    pub(crate) fn new(
+        root: &'a Node,
+        shadow_including: ShadowIncluding,
+        no_gc: &'b NoGC,
+    ) -> UnrootedTreeIterator<'a, 'b> {
+        UnrootedTreeIterator {
+            current: Some(UnrootedDom::from_dom(Dom::from_ref(root), no_gc)),
+            depth: 0,
+            shadow_including,
+            no_gc,
+            phantom: PhantomData,
+        }
+    }
+
+    pub(crate) fn next_skipping_children(&mut self) -> Option<UnrootedDom<'b, Node>> {
+        let current = self.current.take()?;
+
+        let iter = current.inclusive_ancestors(self.shadow_including);
+
+        for ancestor in iter {
+            if self.depth == 0 {
+                break;
+            }
+
+            let next_sibling_option = ancestor.get_next_sibling_unrooted(self.no_gc);
+
+            if let Some(next_sibling) = next_sibling_option {
+                self.current = Some(next_sibling);
+                return Some(current);
+            }
+
+            if let Some(shadow_root) = ancestor.downcast::<ShadowRoot>() {
+                // Shadow roots don't have sibling, so after we're done traversing
+                // one we jump to the first child of the host
+                let child_option = shadow_root
+                    .Host()
+                    .upcast::<Node>()
+                    .get_first_child_unrooted(self.no_gc);
+
+                if let Some(child) = child_option {
+                    self.current = Some(child);
+                    return Some(current);
+                }
+            }
+            self.depth -= 1;
+        }
+        debug_assert_eq!(self.depth, 0);
+        self.current = None;
+        Some(current)
+    }
+}
+
+impl<'a, 'b> Iterator for UnrootedTreeIterator<'a, 'b>
+where
+    'b: 'a,
+{
+    type Item = UnrootedDom<'b, Node>;
+
+    /// <https://dom.spec.whatwg.org/#concept-tree-order>
+    /// <https://dom.spec.whatwg.org/#concept-shadow-including-tree-order>
+    fn next(&mut self) -> Option<UnrootedDom<'b, Node>> {
+        let current = self.current.take()?;
+
+        // Handle a potential shadow root on the element
+        if let Some(element) = current.downcast::<Element>() {
+            if let Some(shadow_root) = element.shadow_root() {
+                if self.shadow_including == ShadowIncluding::Yes {
+                    self.current = Some(UnrootedDom::from_dom(
+                        Dom::from_ref(shadow_root.upcast::<Node>()),
+                        self.no_gc,
+                    ));
+                    self.depth += 1;
+                    return Some(current);
+                }
+            }
+        }
+
+        let first_child_option = current.get_first_child_unrooted(self.no_gc);
+        if let Some(first_child) = first_child_option {
+            self.current = Some(first_child);
+            self.depth += 1;
+            return Some(current);
+        };
+
+        // current is empty.
+        let _ = self.current.insert(current);
+        self.next_skipping_children()
     }
 }
 
@@ -3358,6 +3481,14 @@ impl Node {
         // TODO: xml5ever doesn't seem to want require_well_formed
         let _ = require_well_formed;
         self.xml_serialize(xml_serialize::TraversalScope::ChildrenOnly(None))
+    }
+
+    fn get_next_sibling_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Node>> {
+        self.next_sibling.get_unrooted(no_gc)
+    }
+
+    fn get_first_child_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Node>> {
+        self.first_child.get_unrooted(no_gc)
     }
 }
 

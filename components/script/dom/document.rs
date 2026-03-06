@@ -6351,7 +6351,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 9
         for node in self
             .upcast::<Node>()
-            .traverse_preorder(ShadowIncluding::Yes)
+            .traverse_preorder_non_rooting(cx.no_gc(), ShadowIncluding::Yes)
         {
             node.upcast::<EventTarget>().remove_all_listeners();
         }
