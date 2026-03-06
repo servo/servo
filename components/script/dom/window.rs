@@ -2322,14 +2322,18 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-structuredclone>
     fn StructuredClone(
         &self,
-        cx: SafeJSContext,
+        cx: &mut JSContext,
         value: HandleValue,
         options: RootedTraceableBox<StructuredSerializeOptions>,
-        can_gc: CanGc,
         retval: MutableHandleValue,
     ) -> Fallible<()> {
-        self.as_global_scope()
-            .structured_clone(cx, value, options, retval, can_gc)
+        self.as_global_scope().structured_clone(
+            cx.into(),
+            value,
+            options,
+            retval,
+            CanGc::from_cx(cx),
+        )
     }
 
     fn TrustedTypes(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
