@@ -75,10 +75,15 @@ class PackageCommands(CommandBase):
     @CommandArgument("--android", default=None, action="store_true", help="Package Android")
     @CommandArgument("--ohos", default=None, action="store_true", help="Package OpenHarmony")
     @CommandArgument("--target", "-t", default=None, help="Package for given target platform")
+    @CommandArgument("--preserve-app", action="store_true", help="On macOS, keep the .app bundle after packaging")
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True, package_configuration=True)
     @CommandBase.allow_target_configuration
     def package(
-        self, build_type: BuildType, flavor: str | None = None, sanitizer: SanitizerKind = SanitizerKind.NONE
+        self,
+        build_type: BuildType,
+        flavor: str | None = None,
+        sanitizer: SanitizerKind = SanitizerKind.NONE,
+        preserve_app: bool = False,
     ) -> int | None:
         env = self.build_env()
         binary_path = self.get_binary_path(build_type, sanitizer=sanitizer)
@@ -267,6 +272,13 @@ class PackageCommands(CommandBase):
             except subprocess.CalledProcessError as e:
                 print("Packaging MacOS dmg exited with return value %d" % e.returncode)
                 return e.returncode
+
+            if preserve_app:
+                preserved_app = path.join(target_dir, "Servo.app")
+                if path.exists(preserved_app):
+                    delete(preserved_app)
+                shutil.copytree(dir_to_app, preserved_app)
+                print("Preserved app bundle at " + preserved_app)
 
             print("Cleaning up")
             delete(dir_to_dmg)
