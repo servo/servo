@@ -64,7 +64,7 @@ impl UIEvent {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         view: Option<&Window>,
@@ -73,7 +73,7 @@ impl UIEvent {
         can_gc: CanGc,
     ) -> DomRoot<UIEvent> {
         Self::new_with_proto(
-            window, None, type_, can_bubble, cancelable, view, detail, which, can_gc,
+            window, None, event_type, can_bubble, cancelable, view, detail, which, can_gc,
         )
     }
 
@@ -81,7 +81,7 @@ impl UIEvent {
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         view: Option<&Window>,
@@ -91,7 +91,7 @@ impl UIEvent {
     ) -> DomRoot<UIEvent> {
         let ev = UIEvent::new_uninitialized_with_proto(window, proto, can_gc);
         ev.initialize_ui_event(
-            type_,
+            event_type,
             view.map(|window| window.upcast::<EventTarget>()),
             can_bubble,
             cancelable,
@@ -104,14 +104,14 @@ impl UIEvent {
     /// <https://w3c.github.io/uievents/#initialize-a-uievent>
     pub(crate) fn initialize_ui_event(
         &self,
-        type_: DOMString,
+        event_type: Atom,
         target_: Option<&EventTarget>,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
     ) {
         // 1. Initialize the base Event attributes:
         self.event
-            .init_event(type_.into(), bool::from(bubbles), bool::from(cancelable));
+            .init_event(event_type, bool::from(bubbles), bool::from(cancelable));
         self.event.set_target(target_);
         // 2. Initialize view/detail:
         if let Some(target_) = target_ {
@@ -128,6 +128,25 @@ impl UIEvent {
     pub(crate) fn set_detail(&self, detail_: i32) {
         self.detail.set(detail_);
     }
+
+    /// <https://w3c.github.io/uievents/#widl-UIEvent-initUIEvent>
+    pub(crate) fn init_event(
+        &self,
+        event_type: Atom,
+        can_bubble: bool,
+        cancelable: bool,
+        view: Option<&Window>,
+        detail: i32,
+    ) {
+        let event = self.upcast::<Event>();
+        if event.dispatching() {
+            return;
+        }
+
+        event.init_event(event_type, can_bubble, cancelable);
+        self.view.set(view);
+        self.detail.set(detail);
+    }
 }
 
 impl UIEventMethods<crate::DomTypeHolder> for UIEvent {
@@ -136,7 +155,7 @@ impl UIEventMethods<crate::DomTypeHolder> for UIEvent {
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        type_: DOMString,
+        event_type: DOMString,
         init: &UIEventBinding::UIEventInit,
     ) -> Fallible<DomRoot<UIEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
@@ -144,7 +163,7 @@ impl UIEventMethods<crate::DomTypeHolder> for UIEvent {
         let event = UIEvent::new_with_proto(
             window,
             proto,
-            type_,
+            event_type.into(),
             bubbles,
             cancelable,
             init.view.as_deref(),
@@ -168,20 +187,13 @@ impl UIEventMethods<crate::DomTypeHolder> for UIEvent {
     /// <https://w3c.github.io/uievents/#widl-UIEvent-initUIEvent>
     fn InitUIEvent(
         &self,
-        type_: DOMString,
+        event_type: DOMString,
         can_bubble: bool,
         cancelable: bool,
         view: Option<&Window>,
         detail: i32,
     ) {
-        let event = self.upcast::<Event>();
-        if event.dispatching() {
-            return;
-        }
-
-        event.init_event(Atom::from(type_), can_bubble, cancelable);
-        self.view.set(view);
-        self.detail.set(detail);
+        self.init_event(event_type.into(), can_bubble, cancelable, view, detail);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>

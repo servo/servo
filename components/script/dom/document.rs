@@ -2976,8 +2976,8 @@ impl Document {
         can_gc: CanGc,
     ) {
         let (event_name, does_bubble) = match focus_event_type {
-            FocusEventType::Focus => (DOMString::from("focus"), EventBubbles::DoesNotBubble),
-            FocusEventType::Blur => (DOMString::from("blur"), EventBubbles::DoesNotBubble),
+            FocusEventType::Focus => ("focus".into(), EventBubbles::DoesNotBubble),
+            FocusEventType::Blur => ("blur".into(), EventBubbles::DoesNotBubble),
         };
         let event = FocusEvent::new(
             &self.window,

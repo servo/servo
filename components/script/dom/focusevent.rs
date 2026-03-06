@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
+use style::Atom;
 
 use crate::dom::bindings::codegen::Bindings::FocusEventBinding;
 use crate::dom::bindings::codegen::Bindings::FocusEventBinding::FocusEventMethods;
@@ -46,7 +47,7 @@ impl FocusEvent {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         view: Option<&Window>,
@@ -57,7 +58,7 @@ impl FocusEvent {
         Self::new_with_proto(
             window,
             None,
-            type_,
+            event_type,
             can_bubble,
             cancelable,
             view,
@@ -71,7 +72,7 @@ impl FocusEvent {
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         view: Option<&Window>,
@@ -80,8 +81,8 @@ impl FocusEvent {
         can_gc: CanGc,
     ) -> DomRoot<FocusEvent> {
         let ev = FocusEvent::new_uninitialized_with_proto(window, proto, can_gc);
-        ev.upcast::<UIEvent>().InitUIEvent(
-            type_,
+        ev.upcast::<UIEvent>().init_event(
+            event_type,
             bool::from(can_bubble),
             bool::from(cancelable),
             view,
@@ -98,7 +99,7 @@ impl FocusEventMethods<crate::DomTypeHolder> for FocusEvent {
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        type_: DOMString,
+        event_type: DOMString,
         init: &FocusEventBinding::FocusEventInit,
     ) -> Fallible<DomRoot<FocusEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.bubbles);
@@ -106,7 +107,7 @@ impl FocusEventMethods<crate::DomTypeHolder> for FocusEvent {
         let event = FocusEvent::new_with_proto(
             window,
             proto,
-            type_,
+            event_type.into(),
             bubbles,
             cancelable,
             init.parent.view.as_deref(),

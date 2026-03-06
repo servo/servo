@@ -45,6 +45,7 @@ use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 use script_traits::ConstellationInputEvent;
 use servo_config::pref;
+use style::Atom;
 use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
 
@@ -603,7 +604,7 @@ impl DocumentEventHandler {
         );
 
         // Send pointermove event before mousemove.
-        let pointer_event = mouse_event.to_pointer_event("pointermove", can_gc);
+        let pointer_event = mouse_event.to_pointer_event(Atom::from("pointermove"), can_gc);
         pointer_event
             .upcast::<Event>()
             .fire(new_target.upcast(), can_gc);
@@ -736,9 +737,9 @@ impl DocumentEventHandler {
             return;
         }
 
-        let mouse_event_type_string = match event.action {
-            embedder_traits::MouseButtonAction::Up => "mouseup",
-            embedder_traits::MouseButtonAction::Down => "mousedown",
+        let mouse_event_type = match event.action {
+            embedder_traits::MouseButtonAction::Up => atom!("mouseup"),
+            embedder_traits::MouseButtonAction::Down => atom!("mousedown"),
         };
 
         // From <https://w3c.github.io/uievents/#event-type-mousedown>
@@ -754,7 +755,7 @@ impl DocumentEventHandler {
         }
 
         let dom_event = DomRoot::upcast::<Event>(MouseEvent::for_platform_button_event(
-            mouse_event_type_string,
+            mouse_event_type,
             event,
             input_event.pressed_mouse_buttons,
             &self.window,
@@ -780,7 +781,7 @@ impl DocumentEventHandler {
                 let pointer_event = dom_event
                     .downcast::<MouseEvent>()
                     .unwrap()
-                    .to_pointer_event(event_type, can_gc);
+                    .to_pointer_event(event_type.into(), can_gc);
 
                 pointer_event.upcast::<Event>().fire(node.upcast(), can_gc);
 
@@ -836,7 +837,7 @@ impl DocumentEventHandler {
                 let pointer_event = dom_event
                     .downcast::<MouseEvent>()
                     .unwrap()
-                    .to_pointer_event(event_type, can_gc);
+                    .to_pointer_event(event_type.into(), can_gc);
 
                 pointer_event.upcast::<Event>().fire(node.upcast(), can_gc);
 
@@ -896,7 +897,7 @@ impl DocumentEventHandler {
         let click_count = self.click_counting_info.borrow().count;
         element.set_click_in_progress(true);
         MouseEvent::for_platform_button_event(
-            "click",
+            atom!("click"),
             event,
             input_event.pressed_mouse_buttons,
             &self.window,
@@ -919,7 +920,7 @@ impl DocumentEventHandler {
         // even numbered clicks is a series of double clicks.
         if click_count % 2 == 0 {
             MouseEvent::for_platform_button_event(
-                "dblclick",
+                Atom::from("dblclick"),
                 event,
                 input_event.pressed_mouse_buttons,
                 &self.window,
@@ -943,12 +944,12 @@ impl DocumentEventHandler {
     ) {
         // <https://w3c.github.io/uievents/#contextmenu>
         let menu_event = PointerEvent::new(
-            &self.window,                   // window
-            DOMString::from("contextmenu"), // type
-            EventBubbles::Bubbles,          // can_bubble
-            EventCancelable::Cancelable,    // cancelable
-            Some(&self.window),             // view
-            0,                              // detail
+            &self.window,                // window
+            "contextmenu".into(),        // type
+            EventBubbles::Bubbles,       // can_bubble
+            EventCancelable::Cancelable, // cancelable
+            Some(&self.window),          // view
+            0,                           // detail
             hit_test_result.point_in_frame.to_i32(),
             hit_test_result.point_in_frame.to_i32(),
             hit_test_result
@@ -1199,7 +1200,7 @@ impl DocumentEventHandler {
 
         let touch_event = TouchEvent::new(
             window,
-            DOMString::from(event_name),
+            event_name.into(),
             EventBubbles::Bubbles,
             EventCancelable::from(event.is_cancelable()),
             EventComposed::Composed,
@@ -1267,7 +1268,7 @@ impl DocumentEventHandler {
 
         let keyevent = KeyboardEvent::new(
             &self.window,
-            DOMString::from(keyboard_event.event.state.event_type()),
+            keyboard_event.event.state.event_type().into(),
             true,
             true,
             Some(&self.window),
@@ -1307,7 +1308,7 @@ impl DocumentEventHandler {
             // https://w3c.github.io/uievents/#keypress-event-order
             let keypress_event = KeyboardEvent::new(
                 &self.window,
-                DOMString::from("keypress"),
+                atom!("keypress"),
                 true,
                 true,
                 Some(&self.window),
@@ -1342,7 +1343,7 @@ impl DocumentEventHandler {
         {
             if let Some(elem) = target.downcast::<Element>() {
                 elem.upcast::<Node>()
-                    .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc);
+                    .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
             }
         }
 
@@ -1378,7 +1379,7 @@ impl DocumentEventHandler {
         let cancelable = composition_event.state == keyboard_types::CompositionState::Start;
         let event = CompositionEvent::new(
             &self.window,
-            DOMString::from(composition_event.state.event_type()),
+            composition_event.state.event_type().into(),
             true,
             cancelable,
             Some(&self.window),
@@ -1412,10 +1413,8 @@ impl DocumentEventHandler {
         };
 
         let node = el.upcast::<Node>();
-        let wheel_event_type_string = "wheel".to_owned();
         debug!(
-            "{}: on {:?} at {:?}",
-            wheel_event_type_string,
+            "wheel: on {:?} at {:?}",
             node.debug_str(),
             hit_test_result.point_in_frame
         );
@@ -1423,7 +1422,7 @@ impl DocumentEventHandler {
         // https://w3c.github.io/uievents/#event-wheelevents
         let dom_event = WheelEvent::new(
             &self.window,
-            DOMString::from(wheel_event_type_string),
+            "wheel".into(),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             Some(&self.window),
@@ -1668,7 +1667,7 @@ impl DocumentEventHandler {
         let clipboard_event = ClipboardEvent::new(
             &self.window,
             None,
-            DOMString::from(clipboard_event_type.as_str()),
+            clipboard_event_type.as_str().into(),
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             None,
