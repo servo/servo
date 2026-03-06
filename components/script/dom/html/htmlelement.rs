@@ -750,6 +750,34 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         self.element
             .set_int_attribute(&local_name!("tabindex"), tab_index, can_gc);
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-accesskey
+    make_getter!(AccessKey, "accesskey");
+
+    // https://html.spec.whatwg.org/multipage/#dom-accesskey
+    make_setter!(SetAccessKey, "accesskey");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-accesskeylabel>
+    fn AccessKeyLabel(&self) -> DOMString {
+        // The accessKeyLabel IDL attribute must return a string that represents the element's
+        // assigned access key, if any. If the element does not have one, then the IDL attribute
+        // must return the empty string.
+        if !self.element.has_attribute(&local_name!("accesskey")) {
+            return Default::default();
+        }
+
+        let access_key_string = self
+            .element
+            .get_string_attribute(&local_name!("accesskey"))
+            .to_string();
+
+        #[cfg(target_os = "macos")]
+        let access_key_label = format!("⌃⌥{access_key_string}");
+        #[cfg(not(target_os = "macos"))]
+        let access_key_label = format!("Alt+Shift+{access_key_string}");
+
+        access_key_label.into()
+    }
 }
 
 fn append_text_node_to_fragment(
@@ -1080,6 +1108,65 @@ impl HTMLElement {
         // Step 4:Remove next.
         next.remove_self(can_gc);
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#keyboard-shortcuts-processing-model>
+    /// > Whenever an element's accesskey attribute is set, changed, or removed, the user agent must
+    /// > update the element's assigned access key by running the following steps:
+    fn update_assigned_access_key(&self) {
+        // 1. If the element has no accesskey attribute, then skip to the fallback step below.
+        if !self.element.has_attribute(&local_name!("accesskey")) {
+            // This is the same as steps 4 and 5 below.
+            self.owner_document()
+                .event_handler()
+                .unassign_access_key(self);
+        }
+
+        // 2. Otherwise, split the attribute's value on ASCII whitespace, and let keys be the resulting tokens.
+        let attribute_value = self.element.get_string_attribute(&local_name!("accesskey"));
+        let string_view = attribute_value.str();
+        let values = string_view.split_html_space_characters();
+
+        // 3. For each value in keys in turn, in the order the tokens appeared in the attribute's
+        //    value, run the following substeps:
+        for value in values {
+            // 1. If the value is not a string exactly one code point in length, then skip the
+            //    remainder of these steps for this value.
+            let mut characters = value.chars();
+            let Some(character) = characters.next() else {
+                continue;
+            };
+            if characters.count() > 0 {
+                continue;
+            }
+
+            // 2. If the value does not correspond to a key on the system's keyboard, then skip the
+            //    remainder of these steps for this value.
+            //    TODO: This is just a heuristic for whether or not the character is on the keyboard.
+            //    We should do better here, but as we don't know anything about the keyboard hardware,
+            //    it's quite difficult at the moment.
+            if !character.is_ascii_graphic() {
+                continue;
+            }
+
+            // 3. If the user agent can find a mix of zero or more modifier keys that, combined with
+            //    the key that corresponds to the value given in the attribute, can be used as the
+            //    access key, then the user agent may assign that combination of keys as the element's
+            //    assigned access key and return.
+            self.owner_document()
+                .event_handler()
+                .assign_access_key(self, character);
+            return;
+        }
+
+        // 4. Fallback: Optionally, the user agent may assign a key combination of its choosing as
+        //    the element's assigned access key and then return.
+        // We do not do this.
+
+        // 5. If this step is reached, the element has no assigned access key.
+        self.owner_document()
+            .event_handler()
+            .unassign_access_key(self);
+    }
 }
 
 impl VirtualMethods for HTMLElement {
@@ -1118,6 +1205,9 @@ impl VirtualMethods for HTMLElement {
                 }
             },
 
+            (&local_name!("accesskey"), ..) => {
+                self.update_assigned_access_key();
+            },
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
                 self.form_attribute_mutated(mutation, can_gc);
             },
@@ -1190,6 +1280,10 @@ impl VirtualMethods for HTMLElement {
                 );
             }
         }
+
+        if element.has_attribute(&local_name!("accesskey")) {
+            self.update_assigned_access_key();
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-trees:concept-node-remove-ext>
@@ -1238,6 +1332,12 @@ impl VirtualMethods for HTMLElement {
                     None,
                 );
             }
+        }
+
+        if element.has_attribute(&local_name!("accesskey")) {
+            self.owner_document()
+                .event_handler()
+                .unassign_access_key(self);
         }
     }
 

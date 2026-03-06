@@ -155,7 +155,7 @@ impl HTMLOptionElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#option-element-nearest-ancestor-select>
-    fn nearest_ancestor_select(&self) -> Option<DomRoot<HTMLSelectElement>> {
+    pub(crate) fn nearest_ancestor_select(&self) -> Option<DomRoot<HTMLSelectElement>> {
         // Step 1. Let ancestorOptgroup be null.
         // NOTE: We only care whether the value is non-null, so a boolean is enough
         let mut did_see_ancestor_optgroup = false;
