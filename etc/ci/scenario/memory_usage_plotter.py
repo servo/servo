@@ -7,6 +7,8 @@ import subprocess
 from typing import List, Optional
 import matplotlib.pyplot as plt
 import datetime as dt
+from pathlib import Path
+import sys
 
 PACKAGE_NAME = "org.servo.servo"
 
@@ -22,6 +24,7 @@ class MemoryLoggingOptions:
     pre_time: int = 0
     post_time: int = 0
     set_minimal_history: bool = False
+    from_dump: str = None
 
 @dataclass
 class MemoryInfo:
@@ -92,6 +95,19 @@ def get_memory_info(pid: int) -> Optional[MemoryInfo]:
         rss_shmem_kb=fields["RssShmem"],
     )
 
+class InvalidInputFile(Exception):
+    pass
+
+def raise_if_input_invalid(file_path: str) -> None:
+    p = Path(file_path)
+
+    if not p.is_file():
+        raise InvalidInputFile(f"{file_path} is not a file")
+    with p.open("r", encoding="utf-8") as f:
+        first_line = f.readline().strip()
+
+    if not  first_line.startswith("timestamp,rss"):
+        raise InvalidInputFile("Invalid CSV header")
 
 def run_hdc(cmd: List[str]) -> Optional[str]:
     try:
@@ -130,8 +146,34 @@ class MemoryLog:
     def clear(self):
         self.samples.clear()
 
+def load_memory_log(path: str) -> MemoryLog:
+    log = MemoryLog()
+
+    with open(path, newline="") as f:
+        reader = csv.DictReader(f)
+
+        for row in reader:
+            event: Optional[str] = row["event"] or None
+
+            sample = MemorySample(
+                timestamp=float(row["timestamp"]),
+                RSS_MB=float(row["rss (kb)"]),
+                Swap_MB=float(row["swap (kb)"]),
+                event_name=event,
+            )
+
+            log.add(sample)
+
+    return log
+
 class NonBlockingMemoryLogging:
-    def __init__(self, options = None):
+
+    def from_dump(self):
+        self.log= load_memory_log(self.options.from_dump)
+        self.plot_memory_log()
+        # print(len(log.samples))
+
+    def __init__(self, options: MemoryLoggingOptions = None):
         # Defaults:
         self.options = MemoryLoggingOptions()
         if options is not None:
@@ -140,6 +182,11 @@ class NonBlockingMemoryLogging:
         if self.options.verbose:
             print(f"Memory plotter options: {self.options}")
 
+        # check for the `file` mode
+        if options.from_dump is not None:
+            raise_if_input_invalid(options.from_dump)
+            self.from_dump()
+            sys.exit(0)
         self.log = MemoryLog()
         if self.options.log_to_file:
             self.csv_file = open(
@@ -304,6 +351,7 @@ if __name__ == "__main__":
     parser.add_argument("--file_name", type=str, default=default_options.file_name, help="rename the output files")
     parser.add_argument("--frequency", type=int, default=default_options.frequency, help="Samples per second")
     parser.add_argument("--pid", type=int, help="set Servo PID manually if applicable")
+    parser.add_argument("--from_dump", type=str, help="In case you want to plot from file")
 
     args = parser.parse_args()
     worker = NonBlockingMemoryLogging(args)
