@@ -1841,6 +1841,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         // Step 3: If pseudoElt is provided, is not the empty string, and starts with a colon, then:
         // Step 3.1: Parse pseudoElt as a <pseudo-element-selector>, and let type be the result.
+        // TODO: This is quite hacky and it is better to have a parsing function that is integrated with
+        //       stylo `PseudoElement` itself. Comparing with stylo, we are now currently missing
+        //       `::backdrop`, `::color-swatch`, and `::details-content`.
         let pseudo = pseudo.map(|mut s| {
             s.make_ascii_lowercase();
             s
@@ -1854,6 +1857,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             },
             Some(ref pseudo) if pseudo == "::selection" => Some(PseudoElement::Selection),
             Some(ref pseudo) if pseudo == "::marker" => Some(PseudoElement::Marker),
+            Some(ref pseudo) if pseudo == "::placeholder" => Some(PseudoElement::Placeholder),
             Some(ref pseudo) if pseudo.starts_with(':') => {
                 // Step 3.2: If type is failure, or is a ::slotted() or ::part()
                 // pseudo-element, let obj be null.
