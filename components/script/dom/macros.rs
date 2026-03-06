@@ -129,7 +129,7 @@ macro_rules! make_form_action_getter(
             use $crate::dom::element::Element;
             let element = self.upcast::<Element>();
             let doc = $crate::dom::node::NodeTraits::owner_document(self);
-            let attr = element.get_attribute(&html5ever::ns!(), &html5ever::local_name!($htmlname));
+            let attr = element.get_attribute(&html5ever::local_name!($htmlname));
             let value = attr.as_ref().map(|attr| attr.value());
             let value = match value {
                 Some(ref value) if !value.is_empty() => &***value,
@@ -175,7 +175,7 @@ macro_rules! make_enumerated_getter(
             use $crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
 
             let attr_or_none = self.upcast::<Element>()
-                .get_attribute(&html5ever::ns!(), &html5ever::local_name!($htmlname));
+                .get_attribute(&html5ever::local_name!($htmlname));
             match attr_or_none  {
                 // Step 1. If the attribute is not specified:
                 None => {
@@ -427,7 +427,7 @@ macro_rules! make_dimension_uint_getter(
             use $crate::dom::values::UNSIGNED_LONG_MAX;
             let element = self.upcast::<Element>();
             element
-                .get_attribute(&html5ever::ns!(), &html5ever::local_name!($htmlname))
+                .get_attribute(&html5ever::local_name!($htmlname))
                 .map_or($default, |attribute| parse_unsigned_integer(attribute.value().chars())
                     .map_or($default, |value| {
                         if value > UNSIGNED_LONG_MAX {

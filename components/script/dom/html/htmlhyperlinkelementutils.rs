@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use html5ever::{local_name, ns};
+use html5ever::local_name;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -185,10 +185,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         // Step 2. Let url be this's url.
         USVString(match *self.get_url().borrow() {
             None => {
-                match self
-                    .upcast::<Element>()
-                    .get_attribute(&ns!(), &local_name!("href"))
-                {
+                match self.upcast::<Element>().get_attribute(&local_name!("href")) {
                     // Step 3. If url is null and this has no href content attribute, return the
                     // empty string.
                     None => String::new(),
@@ -428,9 +425,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         // Step 1. Set this element's url to null.
         *self.get_url().borrow_mut() = None;
 
-        let attribute = self
-            .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("href"));
+        let attribute = self.upcast::<Element>().get_attribute(&local_name!("href"));
 
         // Step 2. If this element's href content attribute is absent, then return.
         let Some(attribute) = attribute else {

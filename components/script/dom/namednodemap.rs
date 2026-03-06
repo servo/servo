@@ -62,7 +62,8 @@ impl NamedNodeMapMethods<crate::DomTypeHolder> for NamedNodeMap {
         local_name: DOMString,
     ) -> Option<DomRoot<Attr>> {
         let ns = namespace_from_domstring(namespace);
-        self.owner.get_attribute(&ns, &LocalName::from(local_name))
+        self.owner
+            .get_attribute_with_namespace(&ns, &LocalName::from(local_name))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-namednodemap-setnameditem>

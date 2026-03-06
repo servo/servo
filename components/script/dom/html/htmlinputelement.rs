@@ -870,10 +870,7 @@ impl HTMLInputElement {
 
         // Step 2. Otherwise, if the attribute is absent, then the allowed value step
         // is the default step multiplied by the step scale factor.
-        let Some(attribute) = self
-            .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("step"))
-        else {
+        let Some(attribute) = self.upcast::<Element>().get_attribute(&local_name!("step")) else {
             return Some(default_step * self.step_scale_factor());
         };
 
@@ -901,7 +898,7 @@ impl HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage#concept-input-min>
     fn minimum(&self) -> Option<f64> {
         self.upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("min"))
+            .get_attribute(&local_name!("min"))
             .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
             .or_else(|| self.default_minimum())
     }
@@ -909,7 +906,7 @@ impl HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage#concept-input-max>
     fn maximum(&self) -> Option<f64> {
         self.upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("max"))
+            .get_attribute(&local_name!("max"))
             .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
             .or_else(|| self.default_maximum())
     }
@@ -1006,7 +1003,7 @@ impl HTMLInputElement {
         // is not an error, then return that result.
         if let Some(minimum) = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("min"))
+            .get_attribute(&local_name!("min"))
             .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
         {
             return minimum;
@@ -1017,7 +1014,7 @@ impl HTMLInputElement {
         // is not an error, then return that result.
         if let Some(value) = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("value"))
+            .get_attribute(&local_name!("value"))
             .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
         {
             return value;
@@ -1489,7 +1486,7 @@ impl HTMLInputElement {
             _ => {
                 if let Some(attribute_value) = self
                     .upcast::<Element>()
-                    .get_attribute(&ns!(), &local_name!("value"))
+                    .get_attribute(&local_name!("value"))
                     .map(|attribute| attribute.Value())
                 {
                     return attribute_value;
@@ -1693,13 +1690,13 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             ValueMode::Value => self.textinput.borrow().get_content(),
             ValueMode::Default => self
                 .upcast::<Element>()
-                .get_attribute(&ns!(), &local_name!("value"))
+                .get_attribute(&local_name!("value"))
                 .map_or(DOMString::from(""), |a| {
                     DOMString::from(a.summarize().value)
                 }),
             ValueMode::DefaultOn => self
                 .upcast::<Element>()
-                .get_attribute(&ns!(), &local_name!("value"))
+                .get_attribute(&local_name!("value"))
                 .map_or(DOMString::from("on"), |a| {
                     DOMString::from(a.summarize().value)
                 }),
@@ -3119,7 +3116,7 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Value) if old_value_mode != ValueMode::Value => {
                                 self.SetValue(
                                     self.upcast::<Element>()
-                                        .get_attribute(&ns!(), &local_name!("value"))
+                                        .get_attribute(&local_name!("value"))
                                         .map_or(DOMString::from(""), |a| {
                                             DOMString::from(a.summarize().value)
                                         }),

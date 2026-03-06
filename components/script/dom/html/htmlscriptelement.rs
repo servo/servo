@@ -12,7 +12,7 @@ use std::rc::Rc;
 use base::id::WebViewId;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::{HandleObject, Stencil};
 use net_traits::http_status::HttpStatus;
@@ -676,8 +676,8 @@ impl HTMLScriptElement {
 
         // Step 20. If el has an event attribute and a for attribute, and el's type is "classic", then:
         if script_type == ScriptType::Classic {
-            let for_attribute = element.get_attribute(&ns!(), &local_name!("for"));
-            let event_attribute = element.get_attribute(&ns!(), &local_name!("event"));
+            let for_attribute = element.get_attribute(&local_name!("for"));
+            let event_attribute = element.get_attribute(&local_name!("event"));
             if let (Some(ref for_attribute), Some(ref event_attribute)) =
                 (for_attribute, event_attribute)
             {
@@ -700,7 +700,7 @@ impl HTMLScriptElement {
         // If el does not have a charset attribute, or if getting an encoding failed,
         // then let encoding be el's node document's the encoding.
         let encoding = element
-            .get_attribute(&ns!(), &local_name!("charset"))
+            .get_attribute(&local_name!("charset"))
             .and_then(|charset| Encoding::for_label(charset.value().as_bytes()))
             .unwrap_or_else(|| doc.encoding());
 
@@ -734,7 +734,7 @@ impl HTMLScriptElement {
 
         // Step 25. If el has an integrity attribute, then let integrity metadata be that attribute's value.
         // Otherwise, let integrity metadata be the empty string.
-        let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
+        let im_attribute = element.get_attribute(&local_name!("integrity"));
         let integrity_val = im_attribute.as_ref().map(|a| a.value());
         let integrity_metadata = match integrity_val {
             Some(ref value) => &***value,
@@ -769,7 +769,7 @@ impl HTMLScriptElement {
         // What we actually need is global's import map eventually.
 
         let base_url = doc.base_url();
-        if let Some(src) = element.get_attribute(&ns!(), &local_name!("src")) {
+        if let Some(src) = element.get_attribute(&local_name!("src")) {
             // Step 31. If el has a src content attribute, then:
 
             // Step 31.1. If el's type is "importmap".
@@ -1066,8 +1066,8 @@ impl HTMLScriptElement {
     pub(crate) fn get_script_type(&self) -> Option<ScriptType> {
         let element = self.upcast::<Element>();
 
-        let type_attr = element.get_attribute(&ns!(), &local_name!("type"));
-        let language_attr = element.get_attribute(&ns!(), &local_name!("language"));
+        let type_attr = element.get_attribute(&local_name!("type"));
+        let language_attr = element.get_attribute(&local_name!("language"));
 
         match (
             type_attr.as_ref().map(|t| t.value()),

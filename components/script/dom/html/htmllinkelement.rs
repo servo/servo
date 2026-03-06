@@ -8,7 +8,7 @@ use std::default::Default;
 
 use base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
@@ -230,7 +230,7 @@ impl HTMLLinkElement {
 }
 
 fn get_attr(element: &Element, local_name: &LocalName) -> Option<String> {
-    let elem = element.get_attribute(&ns!(), local_name);
+    let elem = element.get_attribute(local_name);
     elem.map(|e| {
         let value = e.value();
         (**value).to_owned()
@@ -472,7 +472,7 @@ impl HTMLLinkElement {
         // representing the state of el's as attribute.
         let element = self.upcast::<Element>();
         element
-            .get_attribute(&ns!(), &local_name!("as"))
+            .get_attribute(&local_name!("as"))
             .and_then(|attr| LinkProcessingOptions::translate_a_preload_destination(&attr.value()))
     }
 
@@ -504,19 +504,18 @@ impl HTMLLinkElement {
         };
 
         // Step 3. If el has an href attribute, then set options's href to the value of el's href attribute.
-        if let Some(href_attribute) = element.get_attribute(&ns!(), &local_name!("href")) {
+        if let Some(href_attribute) = element.get_attribute(&local_name!("href")) {
             options.href = (**href_attribute.value()).to_owned();
         }
 
         // Step 4. If el has an integrity attribute, then set options's integrity
         //         to the value of el's integrity content attribute.
-        if let Some(integrity_attribute) = element.get_attribute(&ns!(), &local_name!("integrity"))
-        {
+        if let Some(integrity_attribute) = element.get_attribute(&local_name!("integrity")) {
             options.integrity = (**integrity_attribute.value()).to_owned();
         }
 
         // Step 5. If el has a type attribute, then set options's type to the value of el's type attribute.
-        if let Some(type_attribute) = element.get_attribute(&ns!(), &local_name!("type")) {
+        if let Some(type_attribute) = element.get_attribute(&local_name!("type")) {
             options.link_type = (**type_attribute.value()).to_owned();
         }
 
@@ -673,7 +672,7 @@ impl HTMLLinkElement {
         // Step 3
         let cors_setting = cors_setting_for_element(element);
 
-        let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
+        let mq_attribute = element.get_attribute(&local_name!("media"));
         let value = mq_attribute.as_ref().map(|a| a.value());
         let mq_str = match value {
             Some(ref value) => &***value,
@@ -683,7 +682,7 @@ impl HTMLLinkElement {
         let media = MediaList::parse_media_list(mq_str, document.window());
         let media = Arc::new(document.style_shared_lock().wrap(media));
 
-        let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
+        let im_attribute = element.get_attribute(&local_name!("integrity"));
         let integrity_val = im_attribute.as_ref().map(|a| a.value());
         let integrity_metadata = match integrity_val {
             Some(ref value) => &***value,
