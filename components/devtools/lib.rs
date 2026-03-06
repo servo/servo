@@ -830,7 +830,6 @@ impl DevtoolsInstance {
         };
 
         let frame = FrameActor::register(actors, source, frame);
-        thread.frames.borrow_mut().insert(frame.clone());
 
         let _ = result_sender.send(frame);
     }
