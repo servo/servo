@@ -45,7 +45,7 @@ jobs:
           git config --local user.email "ghbot+book-sync@servo.org"
           git config --local user.name "Book Sync Bot"
           git add src/building/linux_packages/
-          git commit -m "linux: Update dependency list based on servo@${GITHUB_SHA::7}"
+          git commit -m "linux: Update dependency list based on servo@${GITHUB_SHA::13}"
       - name: Push changes
         if: ${{ steps.changes.outputs.CHANGES == 'true'}}
         # Pin to SHA of v1.0.0 to reduce supply chain attack risk.
