@@ -1871,6 +1871,26 @@ impl Element {
             return FocusableAreaKind::Click | FocusableAreaKind::Sequential;
         }
 
+        // > The scrollable regions of elements that are being rendered and are not inert.
+        //
+        // Note that these kind of focusable areas are only focusable via the keyboard.
+        //
+        // TODO: Handle inert.
+        if self
+            .upcast::<Node>()
+            .effective_overflow()
+            .is_some_and(|axes_overflow| {
+                // This is checking whether there is an input event scrollable overflow value in
+                // a given axis and also overflow in that same axis.
+                (matches!(axes_overflow.x, Overflow::Auto | Overflow::Scroll) &&
+                    self.ScrollWidth() > self.ClientWidth()) ||
+                    (matches!(axes_overflow.y, Overflow::Auto | Overflow::Scroll) &&
+                        self.ScrollHeight() > self.ClientHeight())
+            })
+        {
+            return FocusableAreaKind::Sequential;
+        }
+
         Default::default()
     }
 
