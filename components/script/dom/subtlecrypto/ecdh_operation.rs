@@ -25,7 +25,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_ECDH, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
     NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521, SUPPORTED_CURVES, SubtleEcKeyAlgorithm,
     SubtleEcKeyGenParams, SubtleEcKeyImportParams, SubtleEcdhKeyDeriveParams,
 };
@@ -98,7 +98,7 @@ pub(crate) fn generate_key(
     // Step 6. Set the namedCurve attribute of algorithm to equal the namedCurve member of
     // normalizedAlgorithm.
     let algorithm = SubtleEcKeyAlgorithm {
-        name: ALG_ECDH.to_string(),
+        name: CryptoAlgorithm::Ecdh,
         named_curve: normalized_algorithm.named_curve.clone(),
     };
 
@@ -444,7 +444,7 @@ pub(crate) fn import_key(
             // Step 2.16. Set the namedCurve attribute of algorithm to namedCurve.
             // Step 2.17. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleEcKeyAlgorithm {
-                name: ALG_ECDH.to_string(),
+                name: CryptoAlgorithm::Ecdh,
                 named_curve: named_curve
                     .expect("named_curve must exist here")
                     .to_string(),
@@ -612,7 +612,7 @@ pub(crate) fn import_key(
             // Step 2.16. Set the namedCurve attribute of algorithm to namedCurve.
             // Step 2.17. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleEcKeyAlgorithm {
-                name: ALG_ECDH.to_string(),
+                name: CryptoAlgorithm::Ecdh,
                 named_curve: named_curve
                     .expect("named_curve must exist here")
                     .to_string(),
@@ -870,7 +870,7 @@ pub(crate) fn import_key(
             // Step 2.14. Set the namedCurve attribute of algorithm to namedCurve.
             // Step 2.15. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleEcKeyAlgorithm {
-                name: ALG_ECDH.to_string(),
+                name: CryptoAlgorithm::Ecdh,
                 named_curve,
             };
             CryptoKey::new(
@@ -954,7 +954,7 @@ pub(crate) fn import_key(
             // Step 2.6. Set the namedCurve attribute of algorithm to equal the namedCurve member
             // of normalizedAlgorithm.
             let algorithm = SubtleEcKeyAlgorithm {
-                name: ALG_ECDH.to_string(),
+                name: CryptoAlgorithm::Ecdh,
                 named_curve: normalized_algorithm.named_curve.clone(),
             };
 

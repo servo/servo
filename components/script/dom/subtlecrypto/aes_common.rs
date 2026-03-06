@@ -17,9 +17,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_AES_CBC, ALG_AES_CTR, ALG_AES_GCM, ALG_AES_KW, ALG_AES_OCB, ExportedKey, JsonWebKeyExt,
-    JwkStringField, KeyAlgorithmAndDerivatives, SubtleAesDerivedKeyParams, SubtleAesKeyAlgorithm,
-    SubtleAesKeyGenParams,
+    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    SubtleAesDerivedKeyParams, SubtleAesKeyAlgorithm, SubtleAesKeyGenParams,
 };
 
 #[expect(clippy::enum_variant_names)]
@@ -120,27 +119,27 @@ pub(crate) fn generate_key(
     let algorithm_name = match aes_algorithm {
         AesAlgorithm::AesCtr => {
             // Step 7. Set the name attribute of algorithm to "AES-CTR".
-            "AES-CTR"
+            CryptoAlgorithm::AesCtr
         },
         AesAlgorithm::AesCbc => {
             // Step 7. Set the name attribute of algorithm to "AES-CBC".
-            "AES-CBC"
+            CryptoAlgorithm::AesCbc
         },
         AesAlgorithm::AesGcm => {
             // Step 7. Set the name attribute of algorithm to "AES-GCM".
-            "AES-GCM"
+            CryptoAlgorithm::AesGcm
         },
         AesAlgorithm::AesKw => {
             // Step 7. Set the name attribute of algorithm to "AES-KW".
-            "AES-KW"
+            CryptoAlgorithm::AesKw
         },
         AesAlgorithm::AesOcb => {
             // Step 7. Set the name attribute of algorithm to "AES-OCB".
-            "AES-OCB"
+            CryptoAlgorithm::AesOcb
         },
     };
     let algorithm = SubtleAesKeyAlgorithm {
-        name: algorithm_name.to_string(),
+        name: algorithm_name,
         length: normalized_algorithm.length,
     };
     let key = CryptoKey::new(
@@ -476,23 +475,23 @@ pub(crate) fn import_key(
         name: match &aes_algorithm {
             AesAlgorithm::AesCtr => {
                 // Step 6. Set the name attribute of algorithm to "AES-CTR".
-                ALG_AES_CTR.to_string()
+                CryptoAlgorithm::AesCtr
             },
             AesAlgorithm::AesCbc => {
                 // Step 6. Set the name attribute of algorithm to "AES-CBC".
-                ALG_AES_CBC.to_string()
+                CryptoAlgorithm::AesCbc
             },
             AesAlgorithm::AesGcm => {
                 // Step 6. Set the name attribute of algorithm to "AES-GCM".
-                ALG_AES_GCM.to_string()
+                CryptoAlgorithm::AesGcm
             },
             AesAlgorithm::AesKw => {
                 // Step 6. Set the name attribute of algorithm to "AES-KW".
-                ALG_AES_KW.to_string()
+                CryptoAlgorithm::AesKw
             },
             AesAlgorithm::AesOcb => {
                 // Step 6. Set the name attribute of algorithm to "AES-OCB".
-                ALG_AES_OCB.to_string()
+                CryptoAlgorithm::AesOcb
             },
         },
         length: data.len() as u16 * 8,

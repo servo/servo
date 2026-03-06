@@ -16,9 +16,9 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_HMAC, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, JsonWebKeyExt,
-    JwkStringField, KeyAlgorithmAndDerivatives, NormalizedAlgorithm, SubtleHmacImportParams,
-    SubtleHmacKeyAlgorithm, SubtleHmacKeyGenParams, SubtleKeyAlgorithm,
+    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    NormalizedAlgorithm, SubtleHmacImportParams, SubtleHmacKeyAlgorithm, SubtleHmacKeyGenParams,
+    SubtleKeyAlgorithm,
 };
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
@@ -28,11 +28,11 @@ pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
     // the hash function identified by the hash attribute of the [[algorithm]] internal slot of key
     // and message as the input data text.
     let hash_function = match key.algorithm() {
-        KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name.as_str() {
-            ALG_SHA1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
-            ALG_SHA256 => hmac::HMAC_SHA256,
-            ALG_SHA384 => hmac::HMAC_SHA384,
-            ALG_SHA512 => hmac::HMAC_SHA512,
+        KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name {
+            CryptoAlgorithm::Sha1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
+            CryptoAlgorithm::Sha256 => hmac::HMAC_SHA256,
+            CryptoAlgorithm::Sha384 => hmac::HMAC_SHA384,
+            CryptoAlgorithm::Sha512 => hmac::HMAC_SHA512,
             _ => return Err(Error::NotSupported(None)),
         },
         _ => return Err(Error::NotSupported(None)),
@@ -51,11 +51,11 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
     // the hash function identified by the hash attribute of the [[algorithm]] internal slot of key
     // and message as the input data text.
     let hash_function = match key.algorithm() {
-        KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name.as_str() {
-            ALG_SHA1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
-            ALG_SHA256 => hmac::HMAC_SHA256,
-            ALG_SHA384 => hmac::HMAC_SHA384,
-            ALG_SHA512 => hmac::HMAC_SHA512,
+        KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name {
+            CryptoAlgorithm::Sha1 => hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY,
+            CryptoAlgorithm::Sha256 => hmac::HMAC_SHA256,
+            CryptoAlgorithm::Sha384 => hmac::HMAC_SHA384,
+            CryptoAlgorithm::Sha512 => hmac::HMAC_SHA512,
             _ => return Err(Error::NotSupported(None)),
         },
         _ => return Err(Error::NotSupported(None)),
@@ -118,10 +118,10 @@ pub(crate) fn generate_key(
     // normalizedAlgorithm.
     // Step 11. Set the hash attribute of algorithm to hash.
     let hash = SubtleKeyAlgorithm {
-        name: normalized_algorithm.hash.name().to_string(),
+        name: normalized_algorithm.hash.name(),
     };
     let algorithm = SubtleHmacKeyAlgorithm {
-        name: ALG_HMAC.to_string(),
+        name: CryptoAlgorithm::Hmac,
         hash,
         length,
     };
@@ -206,28 +206,28 @@ pub(crate) fn import_key(
             // Step 2.6.
             match hash.name() {
                 // If the name attribute of hash is "SHA-1":
-                ALG_SHA1 => {
+                CryptoAlgorithm::Sha1 => {
                     // If the alg field of jwk is present and is not "HS1", then throw a DataError.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != "HS1") {
                         return Err(Error::Data(None));
                     }
                 },
                 // If the name attribute of hash is "SHA-256":
-                ALG_SHA256 => {
+                CryptoAlgorithm::Sha256 => {
                     // If the alg field of jwk is present and is not "HS256", then throw a DataError.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != "HS256") {
                         return Err(Error::Data(None));
                     }
                 },
                 // If the name attribute of hash is "SHA-384":
-                ALG_SHA384 => {
+                CryptoAlgorithm::Sha384 => {
                     // If the alg field of jwk is present and is not "HS384", then throw a DataError.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != "HS384") {
                         return Err(Error::Data(None));
                     }
                 },
                 // If the name attribute of hash is "SHA-512":
-                ALG_SHA512 => {
+                CryptoAlgorithm::Sha512 => {
                     // If the alg field of jwk is present and is not "HS512", then throw a DataError.
                     if jwk.alg.as_ref().is_some_and(|alg| alg != "HS512") {
                         return Err(Error::Data(None));
@@ -294,10 +294,8 @@ pub(crate) fn import_key(
     // Step 12. Set the length attribute of algorithm to length.
     // Step 13. Set the hash attribute of algorithm to hash.
     let algorithm = SubtleHmacKeyAlgorithm {
-        name: ALG_HMAC.to_string(),
-        hash: SubtleKeyAlgorithm {
-            name: hash.name().to_string(),
-        },
+        name: CryptoAlgorithm::Hmac,
+        hash: SubtleKeyAlgorithm { name: hash.name() },
         length,
     };
 
@@ -357,12 +355,14 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             //     format and key and obtaining alg.
             //     Set the alg attribute of jwk to alg.
             let hash_algorithm = match key.algorithm() {
-                KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(alg) => match &*alg.hash.name {
-                    ALG_SHA1 => "HS1",
-                    ALG_SHA256 => "HS256",
-                    ALG_SHA384 => "HS384",
-                    ALG_SHA512 => "HS512",
-                    _ => return Err(Error::NotSupported(None)),
+                KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm) => {
+                    match algorithm.hash.name {
+                        CryptoAlgorithm::Sha1 => "HS1",
+                        CryptoAlgorithm::Sha256 => "HS256",
+                        CryptoAlgorithm::Sha384 => "HS384",
+                        CryptoAlgorithm::Sha512 => "HS512",
+                        _ => return Err(Error::NotSupported(None)),
+                    }
                 },
                 _ => return Err(Error::NotSupported(None)),
             };
@@ -415,12 +415,12 @@ pub(crate) fn get_key_length(
 
 /// Return the block size in bits of a hash function, according to Figure 1 of
 /// <https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf>.
-fn hash_function_block_size_in_bits(hash: &str) -> Result<u32, Error> {
+fn hash_function_block_size_in_bits(hash: CryptoAlgorithm) -> Result<u32, Error> {
     match hash {
-        ALG_SHA1 => Ok(512),
-        ALG_SHA256 => Ok(512),
-        ALG_SHA384 => Ok(1024),
-        ALG_SHA512 => Ok(1024),
+        CryptoAlgorithm::Sha1 => Ok(512),
+        CryptoAlgorithm::Sha256 => Ok(512),
+        CryptoAlgorithm::Sha384 => Ok(1024),
+        CryptoAlgorithm::Sha512 => Ok(1024),
         _ => Err(Error::NotSupported(Some(
             "Unidentified hash member".to_string(),
         ))),

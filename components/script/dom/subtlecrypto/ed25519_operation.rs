@@ -18,7 +18,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_ED25519, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
     SubtleKeyAlgorithm,
 };
 
@@ -114,7 +114,7 @@ pub(crate) fn generate_key(
     // Step 3. Let algorithm be a new KeyAlgorithm object.
     // Step 4. Set the name attribute of algorithm to "Ed25519".
     let algorithm = SubtleKeyAlgorithm {
-        name: ALG_ED25519.to_string(),
+        name: CryptoAlgorithm::Ed25519,
     };
 
     // Step 5. Let publicKey be a new CryptoKey representing the public key of the generated key pair.
@@ -211,7 +211,7 @@ pub(crate) fn import_key(
             // Step 2.9. Let algorithm be a new KeyAlgorithm.
             // Step 2.10. Set the name attribute of algorithm to "Ed25519".
             let algorithm = SubtleKeyAlgorithm {
-                name: ALG_ED25519.to_string(),
+                name: CryptoAlgorithm::Ed25519,
             };
 
             // Step 2.7. Let key be a new CryptoKey that represents publicKey.
@@ -273,7 +273,7 @@ pub(crate) fn import_key(
             // Step 2.10. Let algorithm be a new KeyAlgorithm.
             // Step 2.11. Set the name attribute of algorithm to "Ed25519".
             let algorithm = SubtleKeyAlgorithm {
-                name: ALG_ED25519.to_string(),
+                name: CryptoAlgorithm::Ed25519,
             };
 
             // Step 2.8. Let key be a new CryptoKey that represents the Ed25519 private key
@@ -319,7 +319,7 @@ pub(crate) fn import_key(
             }
 
             // Step 2.4 If the crv field of jwk is not "Ed25519", then throw a DataError.
-            if jwk.crv.as_ref().is_none_or(|crv| crv != ALG_ED25519) {
+            if jwk.crv.as_ref().is_none_or(|crv| crv != "Ed25519") {
                 return Err(Error::Data(Some(
                     "The 'crv' field of the key is different from 'Ed25519'".into(),
                 )));
@@ -330,7 +330,7 @@ pub(crate) fn import_key(
             if jwk
                 .alg
                 .as_ref()
-                .is_some_and(|alg| !matches!(alg.str().as_ref(), ALG_ED25519 | "EdDSA"))
+                .is_some_and(|alg| !matches!(alg.str().as_ref(), "Ed25519" | "EdDSA"))
             {
                 return Err(Error::Data(Some(
                     "The 'alg' field is different from 'Ed25519' and 'EdDSA'".into(),
@@ -361,7 +361,7 @@ pub(crate) fn import_key(
             // Step 2.10. Let algorithm be a new instance of a KeyAlgorithm object.
             // Step 2.11. Set the name attribute of algorithm to "Ed25519".
             let algorithm = SubtleKeyAlgorithm {
-                name: ALG_ED25519.to_string(),
+                name: CryptoAlgorithm::Ed25519,
             };
 
             // Step 2.9
@@ -431,7 +431,7 @@ pub(crate) fn import_key(
             // Step 2.3. Let algorithm be a new KeyAlgorithm object.
             // Step 2.4. Set the name attribute of algorithm to "Ed25519".
             let algorithm = SubtleKeyAlgorithm {
-                name: ALG_ED25519.to_string(),
+                name: CryptoAlgorithm::Ed25519,
             };
 
             // Step 2.5. Let key be a new CryptoKey representing the key data provided in keyData.
@@ -551,8 +551,8 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // Step 3.4. Set the crv attribute of jwk to "Ed25519".
             let mut jwk = JsonWebKey {
                 kty: Some(DOMString::from("OKP")),
-                alg: Some(DOMString::from(ALG_ED25519)),
-                crv: Some(DOMString::from(ALG_ED25519)),
+                alg: Some(DOMString::from("Ed25519")),
+                crv: Some(DOMString::from("Ed25519")),
                 ..Default::default()
             };
 

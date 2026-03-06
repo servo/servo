@@ -14,8 +14,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_PBKDF2, ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, KeyAlgorithmAndDerivatives,
-    NormalizedAlgorithm, SubtleKeyAlgorithm, SubtlePbkdf2Params,
+    CryptoAlgorithm, KeyAlgorithmAndDerivatives, NormalizedAlgorithm, SubtleKeyAlgorithm,
+    SubtlePbkdf2Params,
 };
 
 /// <https://w3c.github.io/webcrypto/#pbkdf2-operations-derive-bits>
@@ -45,10 +45,10 @@ pub(crate) fn derive_bits(
     // Step 4. Let prf be the MAC Generation function described in Section 4 of [FIPS-198-1] using
     // the hash function described by the hash member of normalizedAlgorithm.
     let prf = match normalized_algorithm.hash.name() {
-        ALG_SHA1 => pbkdf2::PBKDF2_HMAC_SHA1,
-        ALG_SHA256 => pbkdf2::PBKDF2_HMAC_SHA256,
-        ALG_SHA384 => pbkdf2::PBKDF2_HMAC_SHA384,
-        ALG_SHA512 => pbkdf2::PBKDF2_HMAC_SHA512,
+        CryptoAlgorithm::Sha1 => pbkdf2::PBKDF2_HMAC_SHA1,
+        CryptoAlgorithm::Sha256 => pbkdf2::PBKDF2_HMAC_SHA256,
+        CryptoAlgorithm::Sha384 => pbkdf2::PBKDF2_HMAC_SHA384,
+        CryptoAlgorithm::Sha512 => pbkdf2::PBKDF2_HMAC_SHA512,
         _ => {
             return Err(Error::NotSupported(None));
         },
@@ -111,7 +111,7 @@ pub(crate) fn import_key(
     // Step 7. Set the name attribute of algorithm to "PBKDF2".
     // Step 8. Set the [[algorithm]] internal slot of key to algorithm.
     let algorithm = SubtleKeyAlgorithm {
-        name: ALG_PBKDF2.to_string(),
+        name: CryptoAlgorithm::Pbkdf2,
     };
     let key = CryptoKey::new(
         cx,

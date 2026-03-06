@@ -16,7 +16,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    ALG_CHACHA20_POLY1305, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
+    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
     SubtleAeadParams, SubtleKeyAlgorithm,
 };
 
@@ -180,7 +180,7 @@ pub(crate) fn generate_key(
     // Step 9. Set the [[extractable]] internal slot of key to be extractable.
     // Step 10. Set the [[usages]] internal slot of key to be usages.
     let algorithm = SubtleKeyAlgorithm {
-        name: ALG_CHACHA20_POLY1305.to_string(),
+        name: CryptoAlgorithm::ChaCha20Poly1305,
     };
     let key = CryptoKey::new(
         cx,
@@ -308,7 +308,7 @@ pub(crate) fn import_key(
         Some("ChaCha20-Poly1305 fails to create key from data".to_string()),
     ))?);
     let algorithm = SubtleKeyAlgorithm {
-        name: ALG_CHACHA20_POLY1305.to_string(),
+        name: CryptoAlgorithm::ChaCha20Poly1305,
     };
     let key = CryptoKey::new(
         cx,

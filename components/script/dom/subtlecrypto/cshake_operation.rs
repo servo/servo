@@ -6,7 +6,7 @@ use digest::{ExtendableOutput, Update};
 use sha3::{CShake128, CShake128Core, CShake256, CShake256Core};
 
 use crate::dom::bindings::error::Error;
-use crate::dom::subtlecrypto::{ALG_CSHAKE_128, ALG_CSHAKE_256, SubtleCShakeParams};
+use crate::dom::subtlecrypto::{CryptoAlgorithm, SubtleCShakeParams};
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#cshake-operations-digest>
 pub(crate) fn digest(
@@ -36,14 +36,14 @@ pub(crate) fn digest(
     //     parameter, functionName as the N input parameter, and customization as the S input
     //     parameter.
     // Step 5. If performing the operation results in an error, then throw an OperationError.
-    let result = match normalized_algorithm.name.as_str() {
-        ALG_CSHAKE_128 => {
+    let result = match normalized_algorithm.name {
+        CryptoAlgorithm::CShake128 => {
             let core = CShake128Core::new_with_function_name(function_name, customization);
             let mut hasher = CShake128::from_core(core);
             hasher.update(message);
             hasher.finalize_boxed(length / 8).to_vec()
         },
-        ALG_CSHAKE_256 => {
+        CryptoAlgorithm::CShake256 => {
             let core = CShake256Core::new_with_function_name(function_name, customization);
             let mut hasher = CShake256::from_core(core);
             hasher.update(message);
@@ -51,7 +51,8 @@ pub(crate) fn digest(
         },
         algorithm_name => {
             return Err(Error::NotSupported(Some(format!(
-                "{algorithm_name} is not supported"
+                "{} is not supported",
+                algorithm_name.as_str()
             ))));
         },
     };
