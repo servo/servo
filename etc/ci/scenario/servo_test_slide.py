@@ -17,14 +17,9 @@ import common_function_for_servo_test
 import common_function_for_mossel
 from memory_usage_plotter import NonBlockingMemoryLogging, MemoryLoggingOptions
 
+
 def operator():
-    memory_logging_options = MemoryLoggingOptions(
-        log_to_file=True,
-        plot=True,
-        pre_time=2,
-        post_time=20,
-        verbose=True
-    )
+    memory_logging_options = MemoryLoggingOptions(log_to_file=True, plot=True, pre_time=2, post_time=20, verbose=True)
     memory_logging = NonBlockingMemoryLogging(memory_logging_options)
     memory_logging.start()
     IMPLICIT_WAIT_TIME = 6
@@ -65,5 +60,6 @@ def operator():
         raise RuntimeError("The screenshots before and after sliding are the same; the slide failed.")
     memory_logging.stop()
 
+
 if __name__ == "__main__":
-    common_function_for_servo_test.run_test(operator, "mossel_slide", minimal_history_mode = True)
+    common_function_for_servo_test.run_test(operator, "mossel_slide", minimal_history_mode=True)

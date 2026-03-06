@@ -1,3 +1,14 @@
+#!/usr/bin/env python3
+
+# Copyright 2026 The Servo Project Developers. See the COPYRIGHT
+# file at the top-level directory of this distribution.
+#
+# Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+# http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+# <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+# option. This file may not be copied, modified, or distributed
+# except according to those terms.
+
 import argparse
 import threading
 import time
@@ -12,6 +23,7 @@ import sys
 
 PACKAGE_NAME = "org.servo.servo"
 
+
 ### Use this MemoryLoggingOptions dataclass definition to setup default values
 @dataclass
 class MemoryLoggingOptions:
@@ -25,6 +37,8 @@ class MemoryLoggingOptions:
     post_time: int = 0
     set_minimal_history: bool = False
     from_dump: str = None
+    mode: str = None
+
 
 @dataclass
 class MemoryInfo:
@@ -50,8 +64,10 @@ class MemoryInfo:
             f"(RSS={self.vm_rss_kb / 1024:.2f} MB, "
             f"Swap={self.vm_swap_kb / 1024:.2f} MB)"
         )
+
     def get_rss_mb(self) -> float:
         return self.vm_rss_kb / 1024
+
     __repr__ = __str__
 
 
@@ -95,8 +111,10 @@ def get_memory_info(pid: int) -> Optional[MemoryInfo]:
         rss_shmem_kb=fields["RssShmem"],
     )
 
+
 class InvalidInputFile(Exception):
     pass
+
 
 def raise_if_input_invalid(file_path: str) -> None:
     p = Path(file_path)
@@ -106,8 +124,9 @@ def raise_if_input_invalid(file_path: str) -> None:
     with p.open("r", encoding="utf-8") as f:
         first_line = f.readline().strip()
 
-    if not  first_line.startswith("timestamp,rss"):
+    if not first_line.startswith("timestamp,rss"):
         raise InvalidInputFile("Invalid CSV header")
+
 
 def run_hdc(cmd: List[str]) -> Optional[str]:
     try:
@@ -129,12 +148,14 @@ def pidof(package_name: str) -> List[int]:
 
     return [int(pid) for pid in output.split() if pid.isdigit()]
 
+
 @dataclass(slots=True)
 class MemorySample:
     timestamp: float  # epoch seconds (time.time())
     RSS_MB: float
     Swap_MB: float
     event_name: Optional[str]
+
 
 @dataclass(slots=True)
 class MemoryLog:
@@ -145,6 +166,7 @@ class MemoryLog:
 
     def clear(self):
         self.samples.clear()
+
 
 def load_memory_log(path: str) -> MemoryLog:
     log = MemoryLog()
@@ -166,10 +188,10 @@ def load_memory_log(path: str) -> MemoryLog:
 
     return log
 
-class NonBlockingMemoryLogging:
 
+class NonBlockingMemoryLogging:
     def from_dump(self):
-        self.log= load_memory_log(self.options.from_dump)
+        self.log = load_memory_log(self.options.from_dump)
         self.plot_memory_log()
         # print(len(log.samples))
 
@@ -183,15 +205,16 @@ class NonBlockingMemoryLogging:
             print(f"Memory plotter options: {self.options}")
 
         # check for the `file` mode
+        if options.mode is None:
+            print("No mode has been specified. Exiting")
+            sys.exit(1)
         if options.from_dump is not None:
             raise_if_input_invalid(options.from_dump)
             self.from_dump()
             sys.exit(0)
         self.log = MemoryLog()
         if self.options.log_to_file:
-            self.csv_file = open(
-                self.options.file_name + ".csv", "w", newline="", encoding="utf-8"
-            )
+            self.csv_file = open(self.options.file_name + ".csv", "w", newline="", encoding="utf-8")
             self.writer = csv.writer(self.csv_file)
             self.writer.writerow(["timestamp", "rss (kb)", "swap (kb)", "event"])
         self._stop_event = threading.Event()
@@ -235,33 +258,31 @@ class NonBlockingMemoryLogging:
             self.event()
             time.sleep(1 / self.options.frequency)
 
-    def event(self, event_name:str=None):
+    def event(self, event_name: str = None):
         memory_point = get_memory_info(self.options.pid)
         if self.options.verbose:
-                print(memory_point)
+            print(memory_point)
         sample = MemorySample(
             timestamp=time.time(),
-            RSS_MB=  memory_point.vm_rss_kb/1024,
-            Swap_MB= memory_point.vm_swap_kb/1024,
-            event_name=event_name
+            RSS_MB=memory_point.vm_rss_kb / 1024,
+            Swap_MB=memory_point.vm_swap_kb / 1024,
+            event_name=event_name,
         )
         if self.options.log_to_file:
             self.writer.writerow([sample.timestamp, sample.RSS_MB, sample.Swap_MB, event_name])
             self.csv_file.flush()
         self.log.add(sample)
 
-    def verbose_print(self, to_print:str) -> None:
+    def verbose_print(self, to_print: str) -> None:
         if self.options.verbose:
             print(to_print)
-        
+
     def plot_memory_log(self) -> None:
         if not self.log.samples:
             raise ValueError("MemoryLog is empty")
 
         # Extract data
-        times = [
-            dt.datetime.fromtimestamp(s.timestamp) for s in self.log.samples
-        ]
+        times = [dt.datetime.fromtimestamp(s.timestamp) for s in self.log.samples]
         rss = [s.RSS_MB for s in self.log.samples]
         swap = [s.Swap_MB for s in self.log.samples]
         total = [r + s for r, s in zip(rss, swap)]
@@ -294,7 +315,7 @@ class NonBlockingMemoryLogging:
         date_str = dt.datetime.now().strftime("%d %b %Y")
         plt.xlabel(f"Time ({date_str})")
         plt.ylabel("Memory (MB)")
-        if self.options.file_name != MemoryLoggingOptions().file_name:
+        if self.options.file_name is not None:
             plt.title(self.options.file_name)
         else:
             plt.title("Memory Usage Over Time")
@@ -305,18 +326,19 @@ class NonBlockingMemoryLogging:
         # plt.show()
         plt.savefig(self.options.file_name, dpi=150)
 
+
 class MoreThanOneInstanceOfServo(Exception):
     pass
+
 
 def get_servo_pid(package_name: str) -> int | None:
     pids = pidof(package_name)
     if not pids:
         raise ProcessLookupError(f"No running instances of {package_name}")
     if len(pids) > 1:
-        raise MoreThanOneInstanceOfServo(
-            f"Expected only 1 instance of {package_name}, found {len(pids)}"
-        )
+        raise MoreThanOneInstanceOfServo(f"Expected only 1 instance of {package_name}, found {len(pids)}")
     return pids[0]
+
 
 # def get_total_memory_for_package(package_name: str) -> List[MemoryInfo]:
 #     pids = pidof(package_name)
@@ -332,26 +354,59 @@ if __name__ == "__main__":
         "-v",
         "--verbose",
         action="store_true",
-        help="to print out each time sample is taken",
+        help="print each time sample is taken",
     )
-    parser.add_argument(
+
+    subparsers = parser.add_subparsers(dest="mode", required=True)
+
+    collect = subparsers.add_parser("collect", help="collect data from phone")
+    collect.add_argument(
         "-l",
         "--log_to_file",
         action="store_true",
-        help="to store the log data in the `memory_usage_plotter.csv` file",
+        help="store log data in csv",
     )
-    parser.add_argument(
+    collect.add_argument(
         "-p",
         "--plot",
         action="store_true",
-        help="WIP create plot for the memory",
+        help="create plot after collection",
     )
-    parser.add_argument("--pre_time", type=int, default=default_options.pre_time, help="time in positive seconds of sampling before starting the test")
-    parser.add_argument("--post_time", type=int, default=default_options.post_time, help="time in positive seconds of sampling after finishing the test")
-    parser.add_argument("--file_name", type=str, default=default_options.file_name, help="rename the output files")
-    parser.add_argument("--frequency", type=int, default=default_options.frequency, help="Samples per second")
-    parser.add_argument("--pid", type=int, help="set Servo PID manually if applicable")
-    parser.add_argument("--from_dump", type=str, help="In case you want to plot from file")
+
+    collect.add_argument(
+        "--pre_time",
+        type=int,
+        default=default_options.pre_time,
+        help="time in positive seconds of sampling before starting the test",
+    )
+    collect.add_argument(
+        "--post_time",
+        type=int,
+        default=default_options.post_time,
+    )
+    collect.add_argument(
+        "--file_name",
+        type=str,
+        default=default_options.file_name,
+    )
+    collect.add_argument(
+        "--frequency",
+        type=int,
+        default=default_options.frequency,
+    )
+    collect.add_argument("--pid", type=int)
+
+    plot = subparsers.add_parser("plot", help="plot from csv dump")
+    plot.add_argument(
+        "from_dump",
+        type=str,
+        help="csv file to analyze",
+    )
+    plot.add_argument(
+        "--file_name",
+        type=str,
+        default=default_options.file_name,
+    )
 
     args = parser.parse_args()
     worker = NonBlockingMemoryLogging(args)
