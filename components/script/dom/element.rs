@@ -102,7 +102,6 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::xmlname::matches_name_production;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
 use crate::dom::csp::{CspReporting, InlineCheckType, SourcePosition};
@@ -2133,31 +2132,24 @@ impl Element {
         );
     }
 
-    // https://html.spec.whatwg.org/multipage/#attr-data-*
-    pub(crate) fn set_custom_attribute(
+    pub(crate) fn set_attribute_with_namespace(
         &self,
-        name: DOMString,
-        value: DOMString,
-        can_gc: CanGc,
-    ) -> ErrorResult {
-        // Step 1.
-        if !matches_name_production(&name.str()) {
-            return Err(Error::InvalidCharacter(None));
-        }
-
-        // Steps 2-5.
-        let name = LocalName::from(name);
-        let value = self.parse_attribute(&ns!(), &name, value);
+        cx: &mut js::context::JSContext,
+        local_name: LocalName,
+        value: AttrValue,
+        name: LocalName,
+        namespace: Namespace,
+        prefix: Option<Prefix>,
+    ) {
         self.set_first_matching_attribute(
-            name.clone(),
+            local_name.clone(),
             value,
-            name.clone(),
-            ns!(),
-            None,
-            |attr| *attr.name() == name && *attr.namespace() == ns!(),
-            can_gc,
+            name,
+            namespace.clone(),
+            prefix,
+            |attr| *attr.local_name() == local_name && *attr.namespace() == namespace,
+            CanGc::from_cx(cx),
         );
-        Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-set-value>
@@ -3223,14 +3215,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         )?;
         // Step 3. Set an attribute value for this using localName, verifiedValue, and also prefix and namespace.
         let value = self.parse_attribute(&namespace, &local_name, value);
-        self.set_first_matching_attribute(
-            local_name.clone(),
+        self.set_attribute_with_namespace(
+            cx,
+            local_name,
             value,
             LocalName::from(qualified_name),
-            namespace.clone(),
+            namespace,
             prefix,
-            |attr| *attr.local_name() == local_name && *attr.namespace() == namespace,
-            CanGc::from_cx(cx),
         );
         Ok(())
     }
