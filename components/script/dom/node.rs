@@ -42,6 +42,7 @@ use servo_arc::Arc as ServoArc;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
+use style::Atom;
 use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
@@ -519,7 +520,7 @@ impl Node {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fire-a-synthetic-pointer-event>
-    pub(crate) fn fire_synthetic_pointer_event_not_trusted(&self, name: DOMString, can_gc: CanGc) {
+    pub(crate) fn fire_synthetic_pointer_event_not_trusted(&self, event_type: Atom, can_gc: CanGc) {
         // Spec says the choice of which global to create the pointer event
         // on is not well-defined,
         // and refers to heycam/webidl#135
@@ -528,7 +529,7 @@ impl Node {
         // <https://w3c.github.io/pointerevents/#the-click-auxclick-and-contextmenu-events>
         let pointer_event = PointerEvent::new(
             &window, // ambiguous in spec
-            name,
+            event_type,
             EventBubbles::Bubbles,              // Step 3: bubbles
             EventCancelable::Cancelable,        // Step 3: cancelable
             Some(&window),                      // Step 7: view

@@ -11,7 +11,6 @@ use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
 use script_bindings::script_runtime::CanGc;
-use script_bindings::str::DOMString;
 
 use crate::dom::document::FocusInitiator;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
@@ -163,18 +162,18 @@ impl InteractiveElementCommand {
             // > Firing a click event at target means firing a synthetic pointer event named click at target.
             InteractiveElementCommand::Anchor(anchor_element) => anchor_element
                 .upcast::<Node>()
-                .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc),
+                .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc),
             // <https://html.spec.whatwg.org/multipage/#using-the-button-element-to-define-a-command>
             // > The Label, Access Key, Hidden State, and Action facets of the command are
             // > determined as for a elements (see the previous section).
             InteractiveElementCommand::Button(button_element) => button_element
                 .upcast::<Node>()
-                .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc),
+                .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc),
             // <https://html.spec.whatwg.org/multipage/#using-the-input-element-to-define-a-command>
             // > The Action of the command is to fire a click event at the element.
             InteractiveElementCommand::Input(input_element) => input_element
                 .upcast::<Node>()
-                .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc),
+                .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc),
             // <https://html.spec.whatwg.org/multipage/#using-the-option-element-to-define-a-command>
             // > If the option's nearest ancestor select element has a multiple attribute, the
             // > Action of the command is to toggle the option element. Otherwise, the Action is to
@@ -194,7 +193,7 @@ impl InteractiveElementCommand {
                 );
                 html_element
                     .upcast::<Node>()
-                    .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc);
+                    .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
             },
         }
     }

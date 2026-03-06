@@ -1125,7 +1125,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 let event = InputEvent::new(
                     window,
                     None,
-                    DOMString::from("input"),
+                    atom!("input"),
                     true,
                     false,
                     Some(window),

@@ -3455,7 +3455,7 @@ impl Window {
         if size_type == WindowSizeType::Resize {
             let uievent = UIEvent::new(
                 self,
-                DOMString::from("resize"),
+                atom!("resize"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::NotCancelable,
                 Some(self),
@@ -3481,7 +3481,7 @@ impl Window {
 
             let uievent = UIEvent::new(
                 self,
-                DOMString::from("resize"),
+                atom!("resize"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::NotCancelable,
                 Some(self),
