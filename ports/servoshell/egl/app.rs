@@ -45,6 +45,8 @@ pub(crate) struct EmbeddedPlatformWindow {
     current_can_go_forward: Cell<bool>,
     /// The current load status of the active WebView.
     current_load_status: Cell<Option<LoadStatus>>,
+
+    id: ServoShellWindowId,
 }
 
 impl PlatformWindow for EmbeddedPlatformWindow {
@@ -53,7 +55,7 @@ impl PlatformWindow for EmbeddedPlatformWindow {
     }
 
     fn id(&self) -> ServoShellWindowId {
-        0.into()
+        self.id
     }
 
     fn screen_geometry(&self) -> ScreenGeometry {
@@ -267,7 +269,7 @@ pub(crate) struct AppInitOptions {
 }
 
 pub struct App {
-    state: Rc<RunningAppState>,
+    pub(crate) state: Rc<RunningAppState>,
     // TODO: multi-window support, like desktop version.
     // This is just an intermediate state, to split refactoring into
     // multiple PRs.
@@ -327,7 +329,9 @@ impl App {
             )
             .expect("Could not create RenderingContext"),
         );
+        let id = ServoShellWindowId::next();
         let platform_window = Rc::new(EmbeddedPlatformWindow {
+            id,
             host: self.host.clone(),
             rendering_context,
             refresh_driver,
@@ -354,10 +358,8 @@ impl App {
 
     pub(crate) fn window(&self) -> Rc<ServoShellWindow> {
         self.state
-            .windows()
-            .values()
-            .nth(0)
-            .expect("Should always have one open window")
+            .focused_window()
+            .expect("There is always an active window")
             .clone()
     }
 
