@@ -314,15 +314,7 @@ impl ModuleTree {
             loaded_modules: DomRefCell::new(IndexMap::new()),
         };
 
-        let c_url = cformat!("{url}");
-        let mut compile_options =
-            unsafe { CompileOptionsWrapper::new_raw(*cx, c_url, line_number) };
-        if let Some(introduction_type) = introduction_type {
-            compile_options.set_introduction_type(introduction_type);
-        }
-        compile_options.set_muted_errors(false);
-        compile_options.set_is_run_once(true);
-        compile_options.set_no_script_rval(true);
+        let compile_options = fill_module_compile_options(cx, url, introduction_type, line_number);
 
         let mut module_source = ModuleSource {
             source,
@@ -400,14 +392,7 @@ impl ModuleTree {
         // Step 3. Set script's base URL and fetch options to null.
         // Note: We don't need to call `SetModulePrivate` for json scripts
 
-        let c_url = cformat!("{url}");
-        let mut compile_options = unsafe { CompileOptionsWrapper::new_raw(*cx, c_url, 1) };
-        if let Some(introduction_type) = introduction_type {
-            compile_options.set_introduction_type(introduction_type);
-        }
-        compile_options.set_muted_errors(false);
-        compile_options.set_is_run_once(true);
-        compile_options.set_no_script_rval(true);
+        let compile_options = fill_module_compile_options(cx, url, introduction_type, 1);
 
         rooted!(in(*cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
 
@@ -1461,6 +1446,29 @@ pub(crate) fn fetch_a_single_module_script(
             None => global.fetch_with_network_listener(request, network_listener),
         };
     })
+}
+
+#[expect(unsafe_code)]
+fn fill_module_compile_options(
+    cx: SafeJSContext,
+    url: &ServoUrl,
+    introduction_type: Option<&'static CStr>,
+    line_number: u32,
+) -> CompileOptionsWrapper {
+    let mut options =
+        unsafe { CompileOptionsWrapper::new_raw(*cx, cformat!("{url}"), line_number) };
+    if let Some(introduction_type) = introduction_type {
+        options.set_introduction_type(introduction_type);
+    }
+
+    // https://searchfox.org/firefox-main/rev/46fa95cd7f10222996ec267947ab94c5107b1475/js/public/CompileOptions.h#284
+    options.set_muted_errors(false);
+
+    // https://searchfox.org/firefox-main/rev/46fa95cd7f10222996ec267947ab94c5107b1475/js/public/CompileOptions.h#518
+    options.set_is_run_once(true);
+    options.set_no_script_rval(true);
+
+    options
 }
 
 pub(crate) type ModuleSpecifierMap = IndexMap<String, Option<ServoUrl>>;
