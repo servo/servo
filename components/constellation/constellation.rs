@@ -3123,7 +3123,12 @@ where
         // its focused browsing context to be itself.
         self.webviews.insert(
             webview_id,
-            ConstellationWebView::new(webview_id, browsing_context_id, user_content_manager_id),
+            ConstellationWebView::new(
+                webview_id,
+                pipeline_id,
+                browsing_context_id,
+                user_content_manager_id,
+            ),
         );
 
         // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context-group
@@ -3512,6 +3517,7 @@ where
             new_webview_id,
             ConstellationWebView::new(
                 new_webview_id,
+                new_pipeline_id,
                 new_browsing_context_id,
                 user_content_manager_id,
             ),
@@ -5634,6 +5640,12 @@ where
         // with low-resource scenarios.
         let browsing_context_id = BrowsingContextId::from(webview_id);
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
+            if let Some(webview) = self.webviews.get_mut(&webview_id) {
+                if frame_tree.pipeline.id != webview.active_top_level_pipeline_id {
+                    webview.active_top_level_pipeline_id = frame_tree.pipeline.id;
+                }
+            }
+
             debug!("{}: Sending frame tree", browsing_context_id);
             self.paint_proxy
                 .send(PaintMessage::SetFrameTreeForWebView(webview_id, frame_tree));
