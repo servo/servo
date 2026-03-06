@@ -687,6 +687,11 @@ impl ServoInner {
                     warn!("Failed to respond to GetScreenMetrics: {error}");
                 }
             },
+            EmbedderMsg::AccessibilityTreeId(webview_id, tree_id) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.notify_accessibility_tree_id(tree_id);
+                }
+            },
             EmbedderMsg::AccessibilityTreeUpdate(webview_id, tree_update) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
                     webview
@@ -926,14 +931,6 @@ impl Servo {
 
     pub fn site_data_manager<'a>(&'a self) -> Ref<'a, SiteDataManager> {
         self.0.site_data_manager.borrow()
-    }
-
-    pub fn set_accessibility_active(&self, active: bool) {
-        self.0
-            .constellation_proxy
-            .send(EmbedderToConstellationMessage::SetAccessibilityActive(
-                active,
-            ));
     }
 
     pub(crate) fn paint<'a>(&'a self) -> Ref<'a, Paint> {

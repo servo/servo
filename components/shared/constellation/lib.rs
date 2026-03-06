@@ -116,8 +116,8 @@ pub enum EmbedderToConstellationMessage {
     UserContentManagerAction(UserContentManagerId, UserContentManagerAction),
     /// Update pinch zoom details stored in the top level window
     UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
-    /// Activate or deactivate accessibility features.
-    SetAccessibilityActive(bool),
+    /// Activate or deactivate accessibility features for the given WebView.
+    SetAccessibilityActive(WebViewId, bool),
 }
 
 pub enum UserContentManagerAction {

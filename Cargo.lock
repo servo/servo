@@ -4681,6 +4681,7 @@ name = "libservo"
 version = "0.0.1"
 dependencies = [
  "accesskit",
+ "accesskit_consumer",
  "arboard",
  "bitflags 2.11.0",
  "crossbeam-channel",
@@ -7390,6 +7391,7 @@ dependencies = [
 name = "servo-base"
 version = "0.0.1"
 dependencies = [
+ "accesskit",
  "crossbeam-channel",
  "ipc-channel",
  "libc",
@@ -7511,6 +7513,7 @@ dependencies = [
 name = "servo-constellation"
 version = "0.0.1"
 dependencies = [
+ "accesskit",
  "backtrace",
  "content-security-policy",
  "crossbeam-channel",
@@ -7559,6 +7562,7 @@ dependencies = [
 name = "servo-constellation-traits"
 version = "0.0.1"
 dependencies = [
+ "accesskit",
  "content-security-policy",
  "encoding_rs",
  "euclid",
@@ -7820,6 +7824,7 @@ dependencies = [
  "rayon",
  "rustc-hash 2.1.1",
  "selectors",
+ "serde",
  "servo-base",
  "servo-config",
  "servo-embedder-traits",

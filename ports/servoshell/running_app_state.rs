@@ -216,6 +216,8 @@ pub(crate) struct RunningAppState {
 
     /// The currently focused [`ServoShellWindow`], if one is focused.
     focused_window: RefCell<Option<Rc<ServoShellWindow>>>,
+
+    accessibility_active: Cell<bool>,
 }
 
 impl RunningAppState {
@@ -265,6 +267,7 @@ impl RunningAppState {
             exit_scheduled: Default::default(),
             user_content_manager,
             experimental_preferences_enabled,
+            accessibility_active: Cell::new(false),
         }
     }
 
@@ -274,10 +277,13 @@ impl RunningAppState {
         initial_url: Url,
     ) -> Rc<ServoShellWindow> {
         let window = Rc::new(ServoShellWindow::new(platform_window.clone()));
-        window.create_and_activate_toplevel_webview(self.clone(), initial_url);
+        let webview = window.create_and_activate_toplevel_webview(self.clone(), initial_url);
         self.windows
             .borrow_mut()
             .insert(window.id(), window.clone());
+        if self.accessibility_active.get() {
+            webview.set_accessibility_active(true);
+        }
 
         // If the window already has platform focus, mark it as focused in our application state.
         if platform_window.has_platform_focus() {
@@ -659,6 +665,19 @@ impl RunningAppState {
                     "Notify dialog appear failed. Maybe the channel to webdriver is closed: {err}"
                 );
             });
+        }
+    }
+
+    pub(crate) fn set_accessibility_active(&self, active: bool) {
+        let was_active = self.accessibility_active.replace(active);
+        if active == was_active {
+            return;
+        }
+
+        for window in self.windows().values() {
+            for (_, webview) in window.webviews() {
+                webview.set_accessibility_active(active);
+            }
         }
     }
 }

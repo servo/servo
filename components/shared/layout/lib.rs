@@ -238,7 +238,6 @@ pub struct LayoutConfig {
     pub viewport_details: ViewportDetails,
     pub user_stylesheets: Rc<Vec<DocumentStyleSheet>>,
     pub theme: Theme,
-    pub accessibility_active: bool,
 }
 
 pub struct PropertyRegistration {
@@ -395,7 +394,11 @@ pub trait Layout {
         property_registration: PropertyRegistration,
     ) -> Result<(), RegisterPropertyError>;
 
-    fn set_accessibility_active(&self, active: bool);
+    fn set_accessibility_active(&self, enabled: bool);
+
+    fn needs_accessibility_update(&self) -> bool;
+
+    fn set_needs_accessibility_update(&self);
 }
 
 /// This trait is part of `layout_api` because it depends on both `script_traits`
@@ -601,6 +604,7 @@ bitflags! {
         /// updating style or layout. This is used when updating canvas contents and
         /// progressing to a new animated image frame.
         const UpdatedImageData = 1 << 5;
+        const UpdatedAccessibilityTree = 1 << 6;
     }
 }
 

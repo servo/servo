@@ -308,8 +308,15 @@ pub enum ScriptThreadMessage {
     /// Update the pinch zoom details of a pipeline. Each `Window` stores a `VisualViewport` DOM
     /// instance that gets updated according to the changes from the `Compositor``.
     UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
-    /// Activate or deactivate accessibility features.
-    SetAccessibilityActive(bool),
+    /// Activate or deactivate accessibility features for the given pipeline, assuming it represents
+    /// a document.
+    ///
+    /// Why only one pipeline? In the Servo API, accessibility is activated on a per-webview basis,
+    /// and webviews have a simple one-to-many mapping to pipelines that represent documents. But
+    /// those pipelines run in script threads, which complicates things: the pipelines in a webview
+    /// may be split across multiple script threads, and the pipelines in a script thread may belong
+    /// to multiple webviews. So the simplest approach is to activate it for one pipeline at a time.
+    SetAccessibilityActive(PipelineId, bool),
     /// Force a garbage collection in this script thread.
     TriggerGarbageCollection,
 }
@@ -393,8 +400,6 @@ pub struct InitialScriptState {
     pub privileged_urls: Vec<ServoUrl>,
     /// A copy of constellation's `UserContentManagerId` to `UserContents` map.
     pub user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
-    /// Whether this script should be initialized with accessibility already active.
-    pub accessibility_active: bool,
 }
 
 /// Errors from executing a paint worklet

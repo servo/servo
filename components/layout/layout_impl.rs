@@ -85,6 +85,7 @@ use url::Url;
 use webrender_api::ExternalScrollId;
 use webrender_api::units::{DevicePixel, LayoutVector2D};
 
+use crate::accessibility_tree::AccessibilityTree;
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
 use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
 use crate::query::{
@@ -210,9 +211,10 @@ pub struct LayoutThread {
     /// Handler for all Paint Timings
     paint_timing_handler: RefCell<Option<PaintTimingHandler>>,
 
-    /// Whether accessibility is active in this layout.
-    /// (Note: this is a temporary field which will be replaced with an optional accessibility tree member.)
-    accessibility_active: Cell<bool>,
+    /// The accessibility tree
+    accessibility_tree: RefCell<Option<AccessibilityTree>>,
+
+    needs_accessibility_update: Cell<bool>,
 }
 
 pub struct LayoutFactoryImpl();
@@ -756,11 +758,24 @@ impl Layout for LayoutThread {
     }
 
     fn set_accessibility_active(&self, active: bool) {
-        if !(pref!(accessibility_enabled)) {
+        if !active {
+            self.accessibility_tree.replace(None);
             return;
         }
+        let mut accessibility_tree = self.accessibility_tree.borrow_mut();
+        if accessibility_tree.is_some() {
+            return;
+        }
+        *accessibility_tree = Some(AccessibilityTree::new(self.id.into()));
+        self.set_needs_accessibility_update();
+    }
 
-        self.accessibility_active.replace(active);
+    fn needs_accessibility_update(&self) -> bool {
+        self.needs_accessibility_update.get()
+    }
+
+    fn set_needs_accessibility_update(&self) {
+        self.needs_accessibility_update.set(true);
     }
 }
 
@@ -809,6 +824,7 @@ impl LayoutThread {
             need_new_stacking_context_tree: Cell::new(false),
             box_tree: Default::default(),
             fragment_tree: Default::default(),
+            accessibility_tree: Default::default(),
             stacking_context_tree: Default::default(),
             paint_api: config.paint_api,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
@@ -817,7 +833,7 @@ impl LayoutThread {
             previously_highlighted_dom_node: Cell::new(None),
             paint_timing_handler: Default::default(),
             user_stylesheets: config.user_stylesheets,
-            accessibility_active: Cell::new(config.accessibility_active),
+            needs_accessibility_update: Cell::new(false),
         }
     }
 
@@ -883,6 +899,10 @@ impl LayoutThread {
         if self.fragment_tree.borrow().is_none() {
             return false;
         }
+        // If accessibility was just activated, we need reflow to build the accessibility tree.
+        if self.needs_accessibility_update.take() {
+            return false;
+        }
 
         // If we have a fragment tree and it's up-to-date and this reflow
         // doesn't need more reflow results, we can skip the rest of layout.
@@ -933,6 +953,26 @@ impl LayoutThread {
         } else {
             false
         }
+    }
+
+    fn handle_accessibility_tree_update(&self, root_element: &ServoLayoutNode) -> bool {
+        let mut accessibility_tree = self.accessibility_tree.borrow_mut();
+        let Some(accessibility_tree) = accessibility_tree.as_mut() else {
+            return false;
+        };
+        let accessibility_tree = &mut *accessibility_tree;
+        if let Some(tree_update) = accessibility_tree.update_tree(root_element.to_threadsafe()) {
+            // FIXME: Handle send error. Could have a method on accessibility tree to
+            // finalise after sending, removing accessibility damage? On fail, retain damage
+            // for next reflow, as well as retaining document.needs_accessibility_update.
+            let _ = self
+                .script_chan
+                .send(ScriptThreadMessage::AccessibilityTreeUpdate(
+                    self.webview_id,
+                    tree_update,
+                ));
+        }
+        true
     }
 
     /// The high-level routine that performs layout.
@@ -986,6 +1026,11 @@ impl LayoutThread {
         }
         if self.handle_update_scroll_node_request(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::UpdatedScrollNodeOffset);
+        }
+        if self.accessibility_tree.borrow().is_some() &&
+            self.handle_accessibility_tree_update(&root_element.as_node())
+        {
+            reflow_phases_run.insert(ReflowPhasesRun::UpdatedAccessibilityTree);
         }
 
         let pending_images = std::mem::take(&mut *image_resolver.pending_images.lock());
