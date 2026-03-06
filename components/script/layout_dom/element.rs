@@ -6,7 +6,6 @@ use std::hash::Hash;
 use std::sync::atomic::Ordering;
 use std::{fmt, slice};
 
-use atomic_refcell::{AtomicRef, AtomicRefMut};
 use embedder_traits::UntrustedNodeAddress;
 use html5ever::{LocalName, Namespace, local_name, ns};
 use js::jsapi::JSObject;
@@ -26,7 +25,7 @@ use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::AttrValue;
 use style::bloom::each_relevant_element_hash;
 use style::context::SharedStyleContext;
-use style::data::ElementData;
+use style::data::{ElementDataMut, ElementDataRef};
 use style::dom::{DomChildren, LayoutIterator, TDocument, TElement, TNode, TShadowRoot};
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_parser::{
@@ -185,9 +184,9 @@ where
 }
 
 impl<'dom> style::dom::AttributeProvider for ServoLayoutElement<'dom> {
-    fn get_attr(&self, attr: &style::LocalName) -> Option<String> {
+    fn get_attr(&self, attr: &style::LocalName, namespace: &style::Namespace) -> Option<String> {
         self.element
-            .get_attr_val_for_layout(&ns!(), attr)
+            .get_attr_val_for_layout(namespace, attr)
             .map(String::from)
     }
 }
@@ -432,7 +431,7 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
         unsafe { self.as_node().to_layout_dom().clear_style_and_layout_data() }
     }
 
-    unsafe fn ensure_data(&self) -> AtomicRefMut<'_, ElementData> {
+    unsafe fn ensure_data(&self) -> ElementDataMut<'_> {
         unsafe {
             self.as_node().to_layout_dom().initialize_style_data();
         };
@@ -445,12 +444,12 @@ impl<'dom> style::dom::TElement for ServoLayoutElement<'dom> {
     }
 
     /// Immutably borrows the ElementData.
-    fn borrow_data(&self) -> Option<AtomicRef<'_, ElementData>> {
+    fn borrow_data(&self) -> Option<ElementDataRef<'_>> {
         self.get_style_data().map(|data| data.element_data.borrow())
     }
 
     /// Mutably borrows the ElementData.
-    fn mutate_data(&self) -> Option<AtomicRefMut<'_, ElementData>> {
+    fn mutate_data(&self) -> Option<ElementDataMut<'_>> {
         self.get_style_data()
             .map(|data| data.element_data.borrow_mut())
     }
@@ -1122,7 +1121,7 @@ impl<'dom> ThreadSafeLayoutElement<'dom> for ServoThreadSafeLayoutElement<'dom> 
         self.element.get_attr(namespace, name)
     }
 
-    fn style_data(&self) -> AtomicRef<'_, ElementData> {
+    fn style_data(&self) -> ElementDataRef<'_> {
         self.element.borrow_data().expect("Unstyled layout node?")
     }
 

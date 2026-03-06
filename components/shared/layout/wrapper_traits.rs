@@ -8,7 +8,7 @@ use std::borrow::Cow;
 use std::fmt::Debug;
 use std::ops::Range;
 
-use atomic_refcell::{AtomicRef, AtomicRefCell};
+use atomic_refcell::AtomicRefCell;
 use base::id::{BrowsingContextId, PipelineId};
 use fonts::TextByteRange;
 use html5ever::{LocalName, Namespace};
@@ -19,7 +19,7 @@ use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use style::context::SharedStyleContext;
-use style::data::ElementData;
+use style::data::ElementDataRef;
 use style::dom::{LayoutIterator, NodeInfo, OpaqueNode, TElement, TNode};
 use style::properties::ComputedValues;
 use style::selector_parser::{PseudoElement, PseudoElementCascadeType, SelectorImpl};
@@ -306,7 +306,7 @@ pub trait ThreadSafeLayoutElement<'dom>:
 
     fn get_attr_enum(&self, namespace: &Namespace, name: &LocalName) -> Option<&AttrValue>;
 
-    fn style_data(&self) -> AtomicRef<'_, ElementData>;
+    fn style_data(&self) -> ElementDataRef<'_>;
 
     fn pseudo_element_chain(&self) -> PseudoElementChain;
 

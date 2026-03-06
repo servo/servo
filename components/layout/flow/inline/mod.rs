@@ -2317,6 +2317,13 @@ impl InlineContainerState {
                     self.font_metrics.descent -
                         child_block_size.size_for_baseline_positioning.descent
                 },
+                AlignmentBaseline::Alphabetic |
+                AlignmentBaseline::Ideographic |
+                AlignmentBaseline::Central |
+                AlignmentBaseline::Mathematical |
+                AlignmentBaseline::Hanging => {
+                    unreachable!("Got alignment-baseline value that should be disabled in Stylo")
+                },
             } +
             match child_baseline_shift {
                 // `top` and `bottom are not actually relative to the baseline, but this value is unused

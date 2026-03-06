@@ -703,7 +703,7 @@ impl Layout for LayoutThread {
                 let parsed = Parser::new(&mut input)
                     .parse_entirely(|input| {
                         input.skip_whitespace();
-                        SpecifiedValue::parse(input, &property_registration.url_data)
+                        SpecifiedValue::parse(input, None, &property_registration.url_data)
                             .map(servo_arc::Arc::new)
                     })
                     .ok();
