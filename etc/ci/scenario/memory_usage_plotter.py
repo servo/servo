@@ -19,6 +19,7 @@ from typing import List, Optional
 import matplotlib.pyplot as plt
 import datetime as dt
 from pathlib import Path
+from selenium import webdriver
 import sys
 
 PACKAGE_NAME = "org.servo.servo"
@@ -37,7 +38,9 @@ class MemoryLoggingOptions:
     post_time: int = 0
     set_minimal_history: bool = False
     from_dump: str = None
-    mode: str = None
+    mode: str = "collect"
+    reset_the_tab: bool = False
+    set_reset_to_memory: bool = False
 
 
 @dataclass
@@ -189,7 +192,14 @@ def load_memory_log(path: str) -> MemoryLog:
     return log
 
 
+class WebDriverIsNotSet(Exception):
+    pass
+
+
 class NonBlockingMemoryLogging:
+    def set_webdriver(self, webdriver: webdriver):
+        self.driver = webdriver
+
     def from_dump(self):
         self.log = load_memory_log(self.options.from_dump)
         self.plot_memory_log()
@@ -197,6 +207,7 @@ class NonBlockingMemoryLogging:
 
     def __init__(self, options: MemoryLoggingOptions = None):
         # Defaults:
+        self.driver = None
         self.options = MemoryLoggingOptions()
         if options is not None:
             self.options = options
@@ -208,7 +219,7 @@ class NonBlockingMemoryLogging:
         if options.mode is None:
             print("No mode has been specified. Exiting")
             sys.exit(1)
-        if options.from_dump is not None:
+        if options.mode == "plot" and options.from_dump is not None:
             raise_if_input_invalid(options.from_dump)
             self.from_dump()
             sys.exit(0)
@@ -230,17 +241,23 @@ class NonBlockingMemoryLogging:
             except (MoreThanOneInstanceOfServo, ProcessLookupError) as e:
                 print(f"Failed to get servo PID: {e}")
             else:
-                # self.event("start")
                 self._thread.start()
                 if self.options.pre_time is not None:
                     self.verbose_print(f"started sampling, with {self.options.pre_time}s delay")
                     time.sleep(abs(self.options.pre_time))
-                    # self.event("start pre_time passed")
+                self.event("start")
 
     def stop(self):
         self.event("stop")
         if self.options.post_time is not None:
             self.verbose_print(f"post-logging for {self.options.post_time}s...")
+            if self.options.reset_the_tab:
+                if self.driver is None:
+                    raise WebDriverIsNotSet("The `-r` argument or Tab Reset was passed, but the webdriver is not set")
+                if self.options.set_reset_to_memory:
+                    self.driver.get("about:memory")
+                else:
+                    self.driver.get("about:blank")
             time.sleep(self.options.post_time)
         self.verbose_print("Memory plotter stop")
         if self.options.pid is not None:
@@ -300,16 +317,21 @@ class NonBlockingMemoryLogging:
         )
 
         for t, tot, sample in zip(times, total, self.log.samples):
+            pos = (0, 8)
+            color = "red"
             if sample.event_name:
-                plt.scatter(t, tot, color="red", zorder=5)
+                if sample.event_name in ["start", "stop"]:
+                    pos = (0, -12)
+                    color = "blue"
+                plt.scatter(t, tot, color=color, zorder=5)
                 plt.annotate(
                     sample.event_name,
                     (t, tot),
                     textcoords="offset points",
-                    xytext=(0, 8),
+                    xytext=pos,
                     ha="center",
                     fontsize=9,
-                    color="red",
+                    color=color,
                 )
 
         date_str = dt.datetime.now().strftime("%d %b %Y")
@@ -340,13 +362,6 @@ def get_servo_pid(package_name: str) -> int | None:
     return pids[0]
 
 
-# def get_total_memory_for_package(package_name: str) -> List[MemoryInfo]:
-#     pids = pidof(package_name)
-#     if not pids:
-
-#     return [mem for pid in pids if (mem := get_memory_info(pid)) is not None]
-
-
 if __name__ == "__main__":
     default_options = MemoryLoggingOptions()
     parser = argparse.ArgumentParser()
@@ -371,6 +386,18 @@ if __name__ == "__main__":
         "--plot",
         action="store_true",
         help="create plot after collection",
+    )
+    collect.add_argument(
+        "-r",
+        "--reset_the_tab",
+        action="store_true",
+        help="on stop event, reset the tap to `about:blank`",
+    )
+    collect.add_argument(
+        "-m",
+        "--set_reset_to_memory",
+        action="store_true",
+        help="when doing reset_the_tab, reset the tap to `about:memory` instead of `about:blank`",
     )
 
     collect.add_argument(

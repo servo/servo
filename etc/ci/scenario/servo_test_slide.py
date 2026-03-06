@@ -19,11 +19,14 @@ from memory_usage_plotter import NonBlockingMemoryLogging, MemoryLoggingOptions
 
 
 def operator():
-    memory_logging_options = MemoryLoggingOptions(log_to_file=True, plot=True, pre_time=2, post_time=20, verbose=True)
+    memory_logging_options = MemoryLoggingOptions(
+        log_to_file=True, plot=True, pre_time=2, post_time=5, verbose=True, reset_the_tab=True
+    )
     memory_logging = NonBlockingMemoryLogging(memory_logging_options)
     memory_logging.start()
     IMPLICIT_WAIT_TIME = 6
     driver = common_function_for_servo_test.create_driver()
+    memory_logging.set_webdriver(driver)
     # This is used to wait for element retrieval if not found
     # and certain element click, element send key exceptions.
     driver.implicitly_wait(IMPLICIT_WAIT_TIME)
