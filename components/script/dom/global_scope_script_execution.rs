@@ -16,7 +16,9 @@ use js::panic::maybe_resume_unwind;
 use js::rust::wrappers::{
     JS_ExecuteScript, JS_GetPendingException, JS_GetScriptPrivate, JS_SetPendingException,
 };
-use js::rust::{CompileOptionsWrapper, MutableHandleValue, transform_str_to_source_text};
+use js::rust::{
+    CompileOptionsWrapper, HandleValue, MutableHandleValue, transform_str_to_source_text,
+};
 use script_bindings::cformat;
 use script_bindings::settings_stack::run_a_script;
 use servo_url::ServoUrl;
@@ -97,7 +99,11 @@ impl GlobalScope {
 
         rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
 
-        // TODO Step 1. If mutedErrors is true, then set baseURL to about:blank.
+        // Step 1. If mutedErrors is true, then set baseURL to about:blank.
+        let url = match muted_errors {
+            ErrorReporting::Muted => ServoUrl::parse("about:blank").unwrap(),
+            ErrorReporting::Unmuted => url,
+        };
 
         // TODO Step 2. If scripting is disabled for settings, then set source to the empty string.
 
@@ -192,23 +198,29 @@ impl GlobalScope {
             if !evaluation_status.is_undefined() {
                 warn!("Error evaluating script");
 
-                match (rethrow_errors, script.muted_errors) {
-                    // Step 8.1. If rethrow errors is true and script's muted errors is false, then:
-                    (RethrowErrors::Yes, ErrorReporting::Unmuted) => {
-                        // Rethrow evaluationStatus.[[Value]].
-                        return Err(Error::JSFailed);
-                    },
-                    // Step 8.2. If rethrow errors is true and script's muted errors is true, then:
-                    (RethrowErrors::Yes, ErrorReporting::Muted) => {
-                        unsafe { JS_ClearPendingException(*cx) };
-                        // Throw a "NetworkError" DOMException.
-                        return Err(Error::Network(None));
+                match rethrow_errors {
+                    RethrowErrors::Yes => {
+                        match script.muted_errors {
+                            // Step 8.1. If rethrow errors is true and script's muted errors is false, then:
+                            // Rethrow evaluationStatus.[[Value]].
+                            ErrorReporting::Unmuted => return Err(Error::JSFailed),
+                            // Step 8.2. If rethrow errors is true and script's muted errors is true, then:
+                            ErrorReporting::Muted => {
+                                unsafe { JS_ClearPendingException(*cx) };
+                                // Throw a "NetworkError" DOMException.
+                                return Err(Error::Network(None));
+                            },
+                        }
                     },
                     // Step 8.3. Otherwise, rethrow errors is false. Perform the following steps:
-                    _ => {
+                    RethrowErrors::No => {
+                        let exception = match script.muted_errors {
+                            ErrorReporting::Muted => HandleValue::null(),
+                            ErrorReporting::Unmuted => evaluation_status.handle(),
+                        };
                         unsafe { JS_ClearPendingException(*cx) };
                         // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
-                        self.report_an_exception(cx, evaluation_status.handle(), can_gc);
+                        self.report_an_exception(cx, exception, can_gc);
 
                         // Return evaluationStatus.
                         return Err(Error::JSFailed);
