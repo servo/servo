@@ -393,7 +393,7 @@ jobs:
             etc/ci/scenario
       - name: Get mitmproxy cache
         id: mitmproxy-cache
-        uses: actions/cache@v6
+        uses: actions/cache@v5
         with:
           path: /tmp/mitmproxy-dump
           key: ${{ env.MITMDUMP_CACHE_KEY }}
