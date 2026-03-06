@@ -562,6 +562,7 @@ impl WebView {
     ///
     /// The final pinch zoom values will be clamped to reasonable defaults (currently to
     /// the inclusive range [1.0, 10.0]).
+    /// For Mobile Devices this range is from Viewport Meta Parsed Scale.
     pub fn pinch_zoom(&self, pinch_zoom_delta: f32, center: DevicePoint) {
         self.inner()
             .servo
