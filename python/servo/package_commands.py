@@ -343,7 +343,7 @@ class PackageCommands(CommandBase):
             except subprocess.CalledProcessError as e:
                 print("WiX light exited with return value %d" % e.returncode)
                 return e.returncode
-            print("Packaged Servo into " + path.join(dir_to_msi, "Servoshell.exe"))
+            print("Packaged Servo into " + path.join(dir_to_msi, "servoshell.exe"))
 
             print("Creating ZIP")
             zip_path = path.join(dir_to_msi, "Servo.zip")

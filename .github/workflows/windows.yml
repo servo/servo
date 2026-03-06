@@ -197,14 +197,14 @@ jobs:
         run: .\mach package --profile ${{ inputs.profile }}
       # These files are available
       # MSI Installer: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Installer.msi
-      # Bundle: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servoshell.exe
+      # Bundle: C:\a\servo\servo\target\${{ inputs.profile }}\msi\servoshell.exe
       # Zip: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.zip
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v6
         id: upload-exe
         with:
           name: ${{ inputs.profile }}-binary-windows
-          path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\Servoshell.exe
+          path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\servoshell.exe
       - name: Upload artifact for mach package (zip)
         uses: actions/upload-artifact@v6
         id: upload-zip
@@ -230,7 +230,7 @@ jobs:
       target: 'windows'
       profile: ${{ inputs.profile }}
       compressed-file-path: ''
-      binary-path: ${{ inputs.profile }}-binary-windows/Servoshell.exe
+      binary-path: ${{ inputs.profile }}-binary-windows/servoshell.exe
       file-size: true
       speedometer: false
       dromaeo: false
