@@ -7,6 +7,7 @@ use script_bindings::inheritance::Castable;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::BaseCommand;
 use crate::dom::execcommand::contenteditable::{
     NodeExecCommandSupport, SelectionExecCommandSupport,
@@ -26,6 +27,7 @@ impl BaseCommand for DeleteCommand {
     fn execute(
         &self,
         cx: &mut js::context::JSContext,
+        document: &Document,
         selection: &Selection,
         _value: DOMString,
     ) -> bool {
@@ -36,6 +38,7 @@ impl BaseCommand for DeleteCommand {
         if !active_range.collapsed() {
             selection.delete_the_selection(
                 cx,
+                document,
                 Default::default(),
                 Default::default(),
                 Default::default(),
@@ -144,6 +147,7 @@ impl BaseCommand for DeleteCommand {
             // Step 5.3. Delete the selection.
             selection.delete_the_selection(
                 cx,
+                document,
                 Default::default(),
                 Default::default(),
                 Default::default(),
