@@ -34,9 +34,7 @@ fn to_camel_case(name: &str) -> Option<DOMString> {
     // are listed in the element's attribute list,
     // add a name-value pair to list whose name is the attribute's name with the first
     // five characters removed and whose value is the attribute's value.
-    let Some(name) = name.strip_prefix(DATA_PREFIX) else {
-        return None;
-    };
+    let name = name.strip_prefix(DATA_PREFIX)?;
     let has_uppercase = name.chars().any(|curr_char| curr_char.is_ascii_uppercase());
     if has_uppercase {
         return None;
