@@ -2087,7 +2087,12 @@ impl Element {
         self.handle_attribute_changes(attr, None, Some(new_value), reason, can_gc);
     }
 
-    pub(crate) fn get_attribute(
+    /// This is the inner logic for:
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-namespace>
+    ///
+    /// In addition to taking a namespace argument, this version does not require the attribute
+    /// to be lowercase ASCII, in accordance with the specification.
+    pub(crate) fn get_attribute_with_namespace(
         &self,
         namespace: &Namespace,
         local_name: &LocalName,
@@ -2097,6 +2102,19 @@ impl Element {
             .iter()
             .find(|attr| attr.local_name() == local_name && attr.namespace() == namespace)
             .map(|js| DomRoot::from_ref(&**js))
+    }
+
+    /// This is the inner logic for:
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name>
+    ///
+    /// Callers should convert the `LocalName` to ASCII lowercase before calling.
+    pub(crate) fn get_attribute(&self, local_name: &LocalName) -> Option<DomRoot<Attr>> {
+        debug_assert_eq!(
+            *local_name,
+            local_name.to_ascii_lowercase(),
+            "All namespace-less attribute accesses should use a lowercase ASCII name"
+        );
+        self.get_attribute_with_namespace(&ns!(), local_name)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name>
@@ -2159,8 +2177,12 @@ impl Element {
     }
 
     pub(crate) fn set_attribute(&self, name: &LocalName, value: AttrValue, can_gc: CanGc) {
-        assert!(name == &name.to_ascii_lowercase());
-        assert!(!name.contains(':'));
+        debug_assert_eq!(
+            *name,
+            name.to_ascii_lowercase(),
+            "All attribute accesses should use a lowercase ASCII name"
+        );
+        debug_assert!(!name.contains(':'));
 
         self.set_first_matching_attribute(
             name.clone(),
@@ -2296,7 +2318,7 @@ impl Element {
     }
 
     pub(crate) fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        self.get_attribute(&ns!(), &local_name!("class"))
+        self.get_attribute(&local_name!("class"))
             .is_some_and(|attr| {
                 attr.value()
                     .as_tokens()
@@ -2306,7 +2328,7 @@ impl Element {
     }
 
     pub(crate) fn is_part(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        self.get_attribute(&ns!(), &LocalName::from("part"))
+        self.get_attribute(&LocalName::from("part"))
             .is_some_and(|attr| {
                 attr.value()
                     .as_tokens()
@@ -2321,13 +2343,16 @@ impl Element {
         value: DOMString,
         can_gc: CanGc,
     ) {
-        assert!(*local_name == local_name.to_ascii_lowercase());
-        let value = AttrValue::from_atomic(value.into());
-        self.set_attribute(local_name, value, can_gc);
+        self.set_attribute(local_name, AttrValue::from_atomic(value.into()), can_gc);
     }
 
     pub(crate) fn has_attribute(&self, local_name: &LocalName) -> bool {
-        assert!(local_name.bytes().all(|b| b.to_ascii_lowercase() == b));
+        debug_assert_eq!(
+            *local_name,
+            local_name.to_ascii_lowercase(),
+            "All attribute accesses should use a lowercase ASCII name"
+        );
+        debug_assert!(!local_name.contains(':'));
         self.attrs
             .borrow()
             .iter()
@@ -2346,12 +2371,10 @@ impl Element {
     }
 
     pub(crate) fn get_url_attribute(&self, local_name: &LocalName) -> USVString {
-        assert!(*local_name == local_name.to_ascii_lowercase());
-        let attr = match self.get_attribute(&ns!(), local_name) {
-            Some(attr) => attr,
-            None => return USVString::default(),
+        let Some(attribute) = self.get_attribute(local_name) else {
+            return Default::default();
         };
-        let value = &**attr.value();
+        let value = &**attribute.value();
         // XXXManishearth this doesn't handle `javascript:` urls properly
         self.owner_document()
             .base_url()
@@ -2366,7 +2389,6 @@ impl Element {
         value: USVString,
         can_gc: CanGc,
     ) {
-        assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::String(value.to_string()), can_gc);
     }
 
@@ -2374,12 +2396,10 @@ impl Element {
         &self,
         local_name: &LocalName,
     ) -> TrustedScriptURLOrUSVString {
-        assert_eq!(*local_name, local_name.to_ascii_lowercase());
-        let attr = match self.get_attribute(&ns!(), local_name) {
-            Some(attr) => attr,
-            None => return TrustedScriptURLOrUSVString::USVString(USVString::default()),
+        let Some(attribute) = self.get_attribute(local_name) else {
+            return TrustedScriptURLOrUSVString::USVString(USVString::default());
         };
-        let value = &**attr.value();
+        let value = &**attribute.value();
         // XXXManishearth this doesn't handle `javascript:` urls properly
         self.owner_document()
             .base_url()
@@ -2389,19 +2409,13 @@ impl Element {
     }
 
     pub(crate) fn get_trusted_html_attribute(&self, local_name: &LocalName) -> TrustedHTMLOrString {
-        assert_eq!(*local_name, local_name.to_ascii_lowercase());
-        let value = match self.get_attribute(&ns!(), local_name) {
-            Some(attr) => (&**attr.value()).into(),
-            None => "".into(),
-        };
-        TrustedHTMLOrString::String(value)
+        TrustedHTMLOrString::String(self.get_string_attribute(local_name))
     }
 
     pub(crate) fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {
-        match self.get_attribute(&ns!(), local_name) {
-            Some(x) => x.Value(),
-            None => DOMString::new(),
-        }
+        self.get_attribute(local_name)
+            .map(|attribute| attribute.Value())
+            .unwrap_or_default()
     }
 
     pub(crate) fn set_string_attribute(
@@ -2410,7 +2424,6 @@ impl Element {
         value: DOMString,
         can_gc: CanGc,
     ) {
-        assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::String(value.into()), can_gc);
     }
 
@@ -2443,8 +2456,8 @@ impl Element {
     }
 
     pub(crate) fn get_tokenlist_attribute(&self, local_name: &LocalName) -> Vec<Atom> {
-        self.get_attribute(&ns!(), local_name)
-            .map(|attr| attr.value().as_tokens().to_vec())
+        self.get_attribute(local_name)
+            .map(|attribute| attribute.value().as_tokens().to_vec())
             .unwrap_or_default()
     }
 
@@ -2454,7 +2467,6 @@ impl Element {
         value: DOMString,
         can_gc: CanGc,
     ) {
-        assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(
             local_name,
             AttrValue::from_serialized_tokenlist(value.into()),
@@ -2468,53 +2480,33 @@ impl Element {
         tokens: Vec<Atom>,
         can_gc: CanGc,
     ) {
-        assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens), can_gc);
     }
 
     pub(crate) fn get_int_attribute(&self, local_name: &LocalName, default: i32) -> i32 {
-        // TODO: Is this assert necessary?
-        assert!(
-            local_name
-                .chars()
-                .all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch)
-        );
-        let attribute = self.get_attribute(&ns!(), local_name);
-
-        match attribute {
+        match self.get_attribute(local_name) {
             Some(ref attribute) => match *attribute.value() {
                 AttrValue::Int(_, value) => value,
-                _ => panic!(
-                    "Expected an AttrValue::Int: \
-                     implement parse_plain_attribute"
-                ),
+                _ => unreachable!("Expected an AttrValue::Int: implement parse_plain_attribute"),
             },
             None => default,
         }
     }
 
     pub(crate) fn set_int_attribute(&self, local_name: &LocalName, value: i32, can_gc: CanGc) {
-        assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::Int(value.to_string(), value), can_gc);
     }
 
     pub(crate) fn get_uint_attribute(&self, local_name: &LocalName, default: u32) -> u32 {
-        assert!(
-            local_name
-                .chars()
-                .all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch)
-        );
-        let attribute = self.get_attribute(&ns!(), local_name);
-        match attribute {
+        match self.get_attribute(local_name) {
             Some(ref attribute) => match *attribute.value() {
                 AttrValue::UInt(_, value) => value,
-                _ => panic!("Expected an AttrValue::UInt: implement parse_plain_attribute"),
+                _ => unreachable!("Expected an AttrValue::UInt: implement parse_plain_attribute"),
             },
             None => default,
         }
     }
     pub(crate) fn set_uint_attribute(&self, local_name: &LocalName, value: u32, can_gc: CanGc) {
-        assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(
             local_name,
             AttrValue::UInt(value.to_string(), value),
@@ -3133,7 +3125,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         local_name: DOMString,
     ) -> Option<DomRoot<Attr>> {
         let namespace = &namespace_from_domstring(namespace);
-        self.get_attribute(namespace, &LocalName::from(local_name))
+        self.get_attribute_with_namespace(namespace, &LocalName::from(local_name))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-toggleattribute>
@@ -4943,7 +4935,7 @@ impl SelectorsElement for SelectorWrapper<'_> {
     ) -> bool {
         match *ns {
             NamespaceConstraint::Specific(ns) => self
-                .get_attribute(ns, local_name)
+                .get_attribute_with_namespace(ns, local_name)
                 .is_some_and(|attr| attr.value().eval_selector(operation)),
             NamespaceConstraint::Any => self.attrs.borrow().iter().any(|attr| {
                 *attr.local_name() == **local_name && attr.value().eval_selector(operation)
@@ -5124,7 +5116,7 @@ impl SelectorsElement for SelectorWrapper<'_> {
             f(id.get_hash());
         }
 
-        if let Some(attr) = self.get_attribute(&ns!(), &local_name!("class")) {
+        if let Some(attr) = self.get_attribute(&local_name!("class")) {
             for class in attr.value().as_tokens() {
                 f(AtomIdent::cast(class).get_hash());
             }
@@ -5728,7 +5720,7 @@ impl TaskOnce for ElementPerformFullscreenExit {
 /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute>
 pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMString> {
     element
-        .get_attribute(&ns!(), &local_name!("crossorigin"))
+        .get_attribute(&local_name!("crossorigin"))
         .map(|attribute| {
             let value = attribute.value().to_ascii_lowercase();
             if value == "anonymous" || value == "use-credentials" {
@@ -5757,7 +5749,7 @@ pub(crate) fn set_cross_origin_attribute(
 /// <https://html.spec.whatwg.org/multipage/#referrer-policy-attribute>
 pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString {
     element
-        .get_attribute(&ns!(), &local_name!("referrerpolicy"))
+        .get_attribute(&local_name!("referrerpolicy"))
         .map(|attribute| {
             let value = attribute.value().to_ascii_lowercase();
             if value == "no-referrer" ||
@@ -5779,14 +5771,14 @@ pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString 
 
 pub(crate) fn referrer_policy_for_element(element: &Element) -> ReferrerPolicy {
     element
-        .get_attribute(&ns!(), &local_name!("referrerpolicy"))
+        .get_attribute(&local_name!("referrerpolicy"))
         .map(|attribute| ReferrerPolicy::from(&**attribute.value()))
         .unwrap_or(element.owner_document().get_referrer_policy())
 }
 
 pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
     element
-        .get_attribute(&ns!(), &local_name!("crossorigin"))
+        .get_attribute(&local_name!("crossorigin"))
         .map(|attribute| CorsSettings::from_enumerated_attribute(&attribute.value()))
 }
 

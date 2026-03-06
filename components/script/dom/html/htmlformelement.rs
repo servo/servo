@@ -10,7 +10,7 @@ use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentType, HeaderMapExt};
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use http::Method;
 use js::context::JSContext;
 use js::rust::HandleObject;
@@ -1043,7 +1043,7 @@ impl HTMLFormElement {
         //    then set referrerPolicy to "no-referrer".
         // Note: both steps done below.
         let elem = self.upcast::<Element>();
-        let referrer = match elem.get_attribute(&ns!(), &local_name!("rel")) {
+        let referrer = match elem.get_attribute(&local_name!("rel")) {
             Some(ref link_types) if link_types.Value().contains("noreferrer") => {
                 Referrer::NoReferrer
             },

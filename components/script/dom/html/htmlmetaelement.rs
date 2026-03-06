@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use content_security_policy::{Policy, PolicyDisposition, PolicySource};
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
 use net_traits::ReferrerPolicy;
 use paint_api::viewport_description::ViewportDescription;
@@ -114,7 +114,7 @@ impl HTMLMetaElement {
         // empty string, then return.
         if let Some(content) = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("content"))
+            .get_attribute(&local_name!("content"))
             .filter(|attr| !attr.value().is_empty())
         {
             // Step 4. Let value be the value of element's content attribute, converted to ASCII
@@ -138,7 +138,7 @@ impl HTMLMetaElement {
             return;
         }
         let element = self.upcast::<Element>();
-        let Some(content) = element.get_attribute(&ns!(), &local_name!("content")) else {
+        let Some(content) = element.get_attribute(&local_name!("content")) else {
             return;
         };
 
@@ -162,7 +162,7 @@ impl HTMLMetaElement {
         // Step 2. If the meta element has no content attribute, or if that attribute's value is the empty string, then return.
         let Some(content) = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("content"))
+            .get_attribute(&local_name!("content"))
         else {
             return;
         };

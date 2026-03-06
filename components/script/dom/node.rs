@@ -1535,8 +1535,8 @@ impl Node {
         self.inclusive_ancestors(ShadowIncluding::Yes)
             .find_map(|node| {
                 node.downcast::<Element>().and_then(|el| {
-                    el.get_attribute(&ns!(xml), &local_name!("lang"))
-                        .or_else(|| el.get_attribute(&ns!(), &local_name!("lang")))
+                    el.get_attribute_with_namespace(&ns!(xml), &local_name!("lang"))
+                        .or_else(|| el.get_attribute(&local_name!("lang")))
                         .map(|attr| String::from(attr.Value()))
                 })
                 // TODO: Check meta tags for a pragma-set default language

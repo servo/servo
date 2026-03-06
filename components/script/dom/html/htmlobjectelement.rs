@@ -5,7 +5,7 @@
 use std::default::Default;
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use pixels::RasterImage;
@@ -81,8 +81,8 @@ impl ProcessDataURL for &HTMLObjectElement {
 
         // TODO: support other values
         if let (None, Some(_uri)) = (
-            element.get_attribute(&ns!(), &local_name!("type")),
-            element.get_attribute(&ns!(), &local_name!("data")),
+            element.get_attribute(&local_name!("type")),
+            element.get_attribute(&local_name!("data")),
         ) {
             // TODO(gw): Prefetch the image here.
         }

@@ -158,7 +158,7 @@ impl HTMLElement {
         // a string consisting of only ASCII whitespace, or is a media query list that
         // matches the user's environment according to the definitions given in Media Queries. [MQ]
         self.upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("media"))
+            .get_attribute(&local_name!("media"))
             .is_none_or(|media| {
                 MediaList::matches_environment(&self.owner_document(), &media.value())
             })
