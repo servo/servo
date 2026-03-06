@@ -2825,7 +2825,6 @@ impl GlobalScope {
         // using ErrorEvent, with the cancelable attribute initialized to true,
         // and additional attributes initialized according to errorInfo.
 
-        // FIXME(#13195): muted errors.
         let event = ErrorEvent::new(
             self,
             atom!("error"),
