@@ -117,7 +117,7 @@ jobs:
       - name: Install wixtoolset
         if: ${{ runner.environment != 'self-hosted' }}
         run: |
-          choco install wixtoolset
+          winget install --silent --exact WiXToolset.WiXToolset
           echo "C:\\Program Files (x86)\\WiX Toolset v3.11\\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
       - name: Setup Python
         if: ${{ runner.environment != 'self-hosted' }}
