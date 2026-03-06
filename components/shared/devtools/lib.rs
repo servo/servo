@@ -333,6 +333,15 @@ pub enum DevtoolScriptControlMsg {
     /// Request a callback directed at the given actor name from the next animation frame
     /// executed in the given pipeline.
     RequestAnimationFrame(PipelineId, String),
+    /// Direct the WebView containing the given pipeline to load a new URL,
+    /// as if it was typed by the user.
+    NavigateTo(PipelineId, ServoUrl),
+    /// Direct the WebView containing the given pipeline to traverse history backward
+    /// up to one step.
+    GoBack(PipelineId),
+    /// Direct the WebView containing the given pipeline to traverse history forward
+    /// up to one step.
+    GoForward(PipelineId),
     /// Direct the given pipeline to reload the current page.
     Reload(PipelineId),
     /// Gets the list of all allowed CSS rules and possible values.

@@ -43,7 +43,7 @@ use chrono::{DateTime, Local};
 use constellation_traits::{
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
     ScriptToConstellationChan, ScriptToConstellationMessage, ScrollStateUpdate,
-    StructuredSerializedData, WindowSizeType,
+    StructuredSerializedData, TraversalDirection, WindowSizeType,
 };
 use crossbeam_channel::unbounded;
 use data_url::mime::Mime;
@@ -2232,6 +2232,15 @@ impl ScriptThread {
             DevtoolScriptControlMsg::RequestAnimationFrame(id, name) => {
                 devtools::handle_request_animation_frame(&documents, id, name)
             },
+            DevtoolScriptControlMsg::NavigateTo(pipeline_id, url) => {
+                self.handle_navigate_to(pipeline_id, url)
+            },
+            DevtoolScriptControlMsg::GoBack(pipeline_id) => {
+                self.handle_traverse_history(pipeline_id, TraversalDirection::Back(1))
+            },
+            DevtoolScriptControlMsg::GoForward(pipeline_id) => {
+                self.handle_traverse_history(pipeline_id, TraversalDirection::Forward(1))
+            },
             DevtoolScriptControlMsg::Reload(id) => self.handle_reload(id, CanGc::from_cx(cx)),
             DevtoolScriptControlMsg::GetCssDatabase(reply) => {
                 devtools::handle_get_css_database(reply)
@@ -4106,6 +4115,39 @@ impl ScriptThread {
                 let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
                 sender.send(message).unwrap();
             }
+        }
+    }
+
+    fn handle_navigate_to(&self, pipeline_id: PipelineId, url: ServoUrl) {
+        // The constellation only needs to know the WebView ID for navigation,
+        // but actors don't keep track of it. Infer WebView ID from pipeline ID instead.
+        if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+            self.senders
+                .pipeline_to_constellation_sender
+                .send((
+                    document.webview_id(),
+                    pipeline_id,
+                    ScriptToConstellationMessage::LoadUrl(
+                        LoadData::new_for_new_unrelated_webview(url),
+                        NavigationHistoryBehavior::Push,
+                    ),
+                ))
+                .unwrap();
+        }
+    }
+
+    fn handle_traverse_history(&self, pipeline_id: PipelineId, direction: TraversalDirection) {
+        // The constellation only needs to know the WebView ID for navigation,
+        // but actors don't keep track of it. Infer WebView ID from pipeline ID instead.
+        if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+            self.senders
+                .pipeline_to_constellation_sender
+                .send((
+                    document.webview_id(),
+                    pipeline_id,
+                    ScriptToConstellationMessage::TraverseHistory(direction),
+                ))
+                .unwrap();
         }
     }
 
