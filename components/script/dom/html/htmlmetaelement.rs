@@ -4,6 +4,7 @@
 
 use std::str::FromStr;
 
+use content_security_policy::{Policy, PolicyDisposition, PolicySource};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
@@ -150,11 +151,40 @@ impl HTMLMetaElement {
 
     /// <https://html.spec.whatwg.org/multipage/#attr-meta-http-equiv-content-security-policy>
     fn apply_csp_list(&self) {
-        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-            if let Some(head) = parent.downcast::<HTMLHeadElement>() {
-                head.set_content_security_policy();
-            }
+        // Step 1. If the meta element is not a child of a head element, return.
+        if self
+            .upcast::<Node>()
+            .GetParentElement()
+            .is_none_or(|parent| !parent.is::<HTMLHeadElement>())
+        {
+            return;
+        };
+        // Step 2. If the meta element has no content attribute, or if that attribute's value is the empty string, then return.
+        let Some(content) = self
+            .upcast::<Element>()
+            .get_attribute(&ns!(), &local_name!("content"))
+        else {
+            return;
+        };
+        let content = content.value();
+        if content.is_empty() {
+            return;
         }
+        // Step 3. Let policy be the result of executing Content Security Policy's
+        // parse a serialized Content Security Policy algorithm
+        // on the meta element's content attribute's value,
+        // with a source of "meta", and a disposition of "enforce".
+        let mut policy = Policy::parse(&content, PolicySource::Meta, PolicyDisposition::Enforce);
+        // Step 4. Remove all occurrences of the report-uri, frame-ancestors,
+        // and sandbox directives from policy.
+        policy.directive_set.retain(|directive| {
+            !matches!(
+                directive.name.as_str(),
+                "report-uri" | "frame-ancestors" | "sandbox"
+            )
+        });
+        // Step 5. Enforce the policy policy.
+        self.owner_document().enforce_csp_policy(policy);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>

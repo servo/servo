@@ -21,7 +21,7 @@ use bitflags::bitflags;
 use chrono::Local;
 use constellation_traits::{NavigationHistoryBehavior, ScriptToConstellationMessage};
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
-use content_security_policy::{CspList, PolicyDisposition};
+use content_security_policy::{CspList, Policy as CspPolicy, PolicyDisposition};
 use cookie::Cookie;
 use data_url::mime::Mime;
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -1971,6 +1971,16 @@ impl Document {
 
     pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
         self.policy_container.borrow_mut().set_csp_list(csp_list);
+    }
+
+    /// <https://www.w3.org/TR/CSP/#enforced>
+    pub(crate) fn enforce_csp_policy(&self, policy: CspPolicy) {
+        // > A policy is enforced or monitored for a global object by inserting it into the global object’s CSP list.
+        let mut csp_list = self.get_csp_list().clone().unwrap_or(CspList(vec![]));
+        csp_list.push(policy);
+        self.policy_container
+            .borrow_mut()
+            .set_csp_list(Some(csp_list));
     }
 
     pub(crate) fn get_csp_list(&self) -> Ref<'_, Option<CspList>> {
