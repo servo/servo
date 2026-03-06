@@ -1404,6 +1404,10 @@ impl<'a> BuilderForBoxFragment<'a> {
                             )
                         },
                     }
+
+                    // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+                    // First paint ... includes non-default background paint and the enclosing box of an iframe.
+                    builder.mark_first_paint();
                 },
                 Ok(ResolvedImage::Image { image, size }) => {
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
