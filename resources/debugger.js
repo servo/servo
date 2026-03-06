@@ -332,7 +332,11 @@ function attachSteppingHooks(steppingType, frame) {
     }
 }
 
-function clearSteppingHooks() {
+function clearSteppingHooks(suspendedFrame) {
+    if (suspendedFrame) {
+        suspendedFrame.onStep = undefined;
+        suspendedFrame.onPop = undefined;
+    }
     let frame = this.youngestFrame;
     if (frame?.onStack) {
         while (frame) {
@@ -346,12 +350,17 @@ function clearSteppingHooks() {
 // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#resuming-a-thread>
 addEventListener("resume", event => {
     const {resumeLimitType: steppingType, frameActorID} = event;
-    console.log("\n\n\n---------", steppingType);
+    let frame = dbg.getNewestFrame();
+    if (frameActorID) {
+        frame = frameActorsToFrames.get(frameActorID);
+        if (!frame) {
+            console.error("[debugger] Couldn't find frame");
+        }
+    }
     if (steppingType) {
-        const frame = frameActorsToFrames.get(frameActorID);
         attachSteppingHooks(steppingType, frame);
     } else {
-        clearSteppingHooks();
+        clearSteppingHooks(frame);
     }
 });
 
