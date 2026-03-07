@@ -185,7 +185,9 @@ use crate::dom::touchevent::TouchEvent as DomTouchEvent;
 use crate::dom::touchlist::TouchList;
 use crate::dom::treewalker::TreeWalker;
 use crate::dom::trustedhtml::TrustedHTML;
-use crate::dom::types::{HTMLCanvasElement, HTMLDialogElement, VisibilityStateEntry};
+use crate::dom::types::{
+    HTMLCanvasElement, HTMLDialogElement, VisibilityStateEntry, VisualViewport,
+};
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;
 use crate::dom::websocket::WebSocket;
@@ -580,7 +582,10 @@ pub(crate) struct Document {
     /// Cached frozen array of [`Self::adopted_stylesheets`]
     #[ignore_malloc_size_of = "mozjs"]
     adopted_stylesheets_frozen_types: CachedFrozenArray,
-    /// <https://drafts.csswg.org/cssom-view/#document-pending-scroll-event-targets>
+    /// <https://drafts.csswg.org/cssom-view/#document-pending-scroll-events>
+    // TODO(31665): Instead of having separate list for `scroll` and `scrollend` event, the updated spec
+    //              make it store both the event target and the event type. Need to update this along with
+    //              the implementation of `scrollend`.
     pending_scroll_event_targets: DomRefCell<Vec<Dom<EventTarget>>>,
     /// Other reasons that a rendering update might be required for this [`Document`].
     rendering_update_reasons: Cell<RenderingUpdateReason>,
@@ -1732,7 +1737,7 @@ impl Document {
                 // Step 2.1
                 // > If target is a Document, fire an event named scroll that bubbles at target.
                 target.fire_bubbling_event(Atom::from("scroll"), can_gc);
-            } else if target.downcast::<Element>().is_some() {
+            } else {
                 // Step 2.2
                 // > Otherwise, fire an event named scroll at target.
                 target.fire_event(Atom::from("scroll"), can_gc);
@@ -1798,6 +1803,29 @@ impl Document {
 
         // Step 4.
         // > Append the element to doc’s pending scroll event targets.
+        self.pending_scroll_event_targets
+            .borrow_mut()
+            .push(Dom::from_ref(target));
+    }
+
+    /// From <https://drafts.csswg.org/cssom-view/#scrolling-events>:
+    /// > Whenever a visual viewport gets scrolled (whether in response to user interaction or by an
+    /// > API), the user agent must run these steps:
+    pub(crate) fn handle_visual_viewport_scroll_event(&self, visual_viewport: &VisualViewport) {
+        // Step 3.
+        // > If (vv, "scroll") is already in doc’s pending scroll events, abort these steps.
+        let target = visual_viewport.upcast::<EventTarget>();
+        if self
+            .pending_scroll_event_targets
+            .borrow()
+            .iter()
+            .any(|other_target| *other_target == target)
+        {
+            return;
+        }
+
+        // Step 4.
+        // > Append (vv, "scroll") to doc’s pending scroll events.
         self.pending_scroll_event_targets
             .borrow_mut()
             .push(Dom::from_ref(target));
