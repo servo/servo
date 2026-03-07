@@ -142,6 +142,8 @@ impl Range {
 
     /// <https://dom.spec.whatwg.org/#contained>
     fn contains(&self, node: &Node) -> bool {
+        // > A node node is contained in a live range range if node’s root is range’s root,
+        // > and (node, 0) is after range’s start, and (node, node’s length) is before range’s end.
         matches!(
             (
                 bp_position(node, 0, &self.start_container(), self.start_offset()),
@@ -153,6 +155,8 @@ impl Range {
 
     /// <https://dom.spec.whatwg.org/#partially-contained>
     fn partially_contains(&self, node: &Node) -> bool {
+        // > A node is partially contained in a live range if it’s an inclusive ancestor
+        // > of the live range’s start node but not its end node, or vice versa.
         self.start_container()
             .inclusive_ancestors(ShadowIncluding::No)
             .any(|n| &*n == node) !=
@@ -1063,20 +1067,23 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let start_node = self.start_container();
         let end_node = self.end_container();
 
-        // Step 1.
+        // Step 1. Let string be the empty string.
         let mut s = DOMString::new();
 
         if let Some(text_node) = start_node.downcast::<Text>() {
             let char_data = text_node.upcast::<CharacterData>();
 
-            // Step 2.
+            // Step 2. If this’s start node is this’s end node and it is a Text node,
+            // then return the substring of that Text node’s data beginning at
+            // this’s start offset and ending at this’s end offset.
             if start_node == end_node {
                 return char_data
                     .SubstringData(self.start_offset(), self.end_offset() - self.start_offset())
                     .unwrap();
             }
 
-            // Step 3.
+            // Step 3. If this’s start node is a Text node, then append the substring of
+            // that node’s data from this’s start offset until the end to string.
             s.push_str(
                 &char_data
                     .SubstringData(
@@ -1088,7 +1095,8 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             );
         }
 
-        // Step 4.
+        // Step 4. Append the concatenation of the data of all Text nodes that are contained in this,
+        // in tree order, to string.
         let ancestor = self.CommonAncestorContainer();
         let iter = start_node
             .following_nodes(&ancestor)
@@ -1100,13 +1108,14 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             }
         }
 
-        // Step 5.
+        // Step 5. If this’s end node is a Text node, then append the substring of
+        // that node’s data from its start until this’s end offset to string.
         if let Some(text_node) = end_node.downcast::<Text>() {
             let char_data = text_node.upcast::<CharacterData>();
             s.push_str(&char_data.SubstringData(0, self.end_offset()).unwrap().str());
         }
 
-        // Step 6.
+        // Step 6. Return string.
         s
     }
 

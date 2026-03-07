@@ -470,7 +470,7 @@ fn is_allowed_child(child: NodeOrString, parent: NodeOrString) -> bool {
 }
 
 /// <https://w3c.github.io/editing/docs/execCommand/#split-the-parent>
-fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &'a [&'a Node]) {
+pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &'a [&'a Node]) {
     assert!(!node_list.is_empty());
     // Step 1. Let original parent be the parent of the first member of node list.
     let Some(original_parent) = node_list.first().and_then(|first| first.GetParentNode()) else {
@@ -624,24 +624,17 @@ fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &'a [&'a Nod
         !original_parent.is_inline_node()
     {
         if let Some(first_of_original) = original_parent.children().next() {
-            if first_of_original.is::<HTMLBRElement>() &&
-                original_parent
-                    .RemoveChild(&first_of_original, CanGc::from_cx(cx))
-                    .is_err()
-            {
-                unreachable!("Must always have a parent");
+            if first_of_original.is::<HTMLBRElement>() {
+                assert!(first_of_original.has_parent());
+                first_of_original.remove_self(CanGc::from_cx(cx));
             }
         }
     }
     // Step 11. If original parent has no children:
     if original_parent.children_count() == 0 {
         // Step 11.1. Remove original parent from its parent.
-        if parent_of_original_parent
-            .RemoveChild(&original_parent, CanGc::from_cx(cx))
-            .is_err()
-        {
-            unreachable!("Must always have a parent");
-        }
+        assert!(original_parent.has_parent());
+        original_parent.remove_self(CanGc::from_cx(cx));
         // Step 11.2. If precedes line break is true, and the last member of node list does not precede a line break,
         // call createElement("br") on the context object and insert the result immediately after the last member of node list.
         if precedes_line_break {
@@ -678,6 +671,12 @@ fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &'a [&'a Nod
     }
 }
 
+impl Node {
+    fn resolved_display_value(&self) -> Option<DisplayOutside> {
+        self.style().map(|style| style.get_box().display.outside())
+    }
+}
+
 pub(crate) trait NodeExecCommandSupport {
     fn same_editing_host(&self, other: &Node) -> bool;
     fn is_block_node(&self) -> bool;
@@ -699,7 +698,7 @@ pub(crate) trait NodeExecCommandSupport {
     fn canonicalize_whitespace(&self, offset: u32, fix_collapsed_space: bool);
     fn remove_extraneous_line_breaks_before(&self, cx: &mut js::context::JSContext);
     fn remove_extraneous_line_breaks_at_the_end_of(&self, cx: &mut js::context::JSContext);
-    fn remove_preserving_its_descendants(&self, cx: &mut js::context::JSContext, parent: &Node);
+    fn remove_preserving_its_descendants(&self, cx: &mut js::context::JSContext);
 }
 
 impl NodeExecCommandSupport for Node {
@@ -713,10 +712,11 @@ impl NodeExecCommandSupport for Node {
     /// <https://w3c.github.io/editing/docs/execCommand/#block-node>
     fn is_block_node(&self) -> bool {
         // > A block node is either an Element whose "display" property does not have resolved value "inline" or "inline-block" or "inline-table" or "none",
-        if self.downcast::<Element>().is_some_and(|el| {
-            !el.style()
-                .is_none_or(|style| style.get_box().display.outside() == DisplayOutside::Inline)
-        }) {
+        if self.is::<Element>() &&
+            self.resolved_display_value().is_some_and(|display| {
+                display != DisplayOutside::Inline && display != DisplayOutside::None
+            })
+        {
             return true;
         }
         // > or a document, or a DocumentFragment.
@@ -749,9 +749,13 @@ impl NodeExecCommandSupport for Node {
 
     /// <https://w3c.github.io/editing/docs/execCommand/#visible>
     fn is_visible(&self) -> bool {
-        for parent in self.inclusive_ancestors(ShadowIncluding::Yes) {
+        for parent in self.inclusive_ancestors(ShadowIncluding::No) {
             // > excluding any node with an inclusive ancestor Element whose "display" property has resolved value "none".
-            if parent.is_display_none() {
+            if parent.is::<Element>() &&
+                parent
+                    .resolved_display_value()
+                    .is_some_and(|display| display == DisplayOutside::None)
+            {
                 return false;
             }
         }
@@ -864,10 +868,7 @@ impl NodeExecCommandSupport for Node {
             // Step 2.2. If offset is zero or node has no children, set offset to node's index, then set node to its parent.
             if offset == 0 || node.children_count() == 0 {
                 offset = node.index();
-                node = match node.GetParentNode() {
-                    None => return false,
-                    Some(node) => node,
-                };
+                node = node.GetParentNode().expect("Must always have a parent");
                 continue;
             }
             // Step 2.1. If node has a visible child with index offset minus one, return false.
@@ -904,10 +905,7 @@ impl NodeExecCommandSupport for Node {
             // Step 2.2. If offset is node's length or node has no children, set offset to one plus node's index, then set node to its parent.
             if offset == node.len() || node.children_count() == 0 {
                 offset = 1 + node.index();
-                node = match node.GetParentNode() {
-                    None => return false,
-                    Some(node) => node,
-                };
+                node = node.GetParentNode().expect("Must always have a parent");
                 continue;
             }
             // Step 2.3. Otherwise, set node to its child with index offset and set offset to zero.
@@ -1085,7 +1083,11 @@ impl NodeExecCommandSupport for Node {
                     }
                     // Step 7.3.2. Set collapse spaces to true if the end offsetth code unit of
                     // end node's data is a space (0x0020), false otherwise.
-                    collapse_spaces = has_space_at_offset;
+                    collapse_spaces = text
+                        .data()
+                        .chars()
+                        .nth(end_offset as usize)
+                        .is_some_and(|c| c == '\u{0020}');
                     // Step 7.3.3. Add one to end offset.
                     end_offset += 1;
                     // Step 7.3.4. Add one to length.
@@ -1174,10 +1176,9 @@ impl NodeExecCommandSupport for Node {
             let start_node_as_text = start_node.downcast::<Text>();
             if start_node_as_text.is_none() || start_offset == start_node.len() {
                 start_offset = 1 + start_node.index();
-                start_node = match start_node.GetParentNode() {
-                    None => break,
-                    Some(node) => node,
-                };
+                start_node = start_node
+                    .GetParentNode()
+                    .expect("Must always have a parent");
                 continue;
             }
             let start_node_as_text =
@@ -1242,6 +1243,7 @@ impl NodeExecCommandSupport for Node {
             ref_.downcast::<HTMLBRElement>()
                 .is_some_and(|br| br.is_extraneous_line_break())
         {
+            assert!(ref_.has_parent());
             ref_.remove_self(CanGc::from_cx(cx));
         }
     }
@@ -1288,26 +1290,19 @@ impl NodeExecCommandSupport for Node {
                 break;
             }
             // Step 4.2. Remove ref from its parent.
-            if ref_
-                .GetParentNode()
-                .expect("Must always have a parent")
-                .RemoveChild(&ref_, CanGc::from_cx(cx))
-                .is_err()
-            {
-                unreachable!("Must always have a parent");
-            }
+            assert!(ref_.has_parent());
+            ref_.remove_self(CanGc::from_cx(cx));
         }
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#preserving-its-descendants>
-    fn remove_preserving_its_descendants(&self, cx: &mut js::context::JSContext, parent: &Node) {
+    fn remove_preserving_its_descendants(&self, cx: &mut js::context::JSContext) {
         // > To remove a node node while preserving its descendants,
         // > split the parent of node's children if it has any.
         // > If it has no children, instead remove it from its parent.
         if self.children_count() == 0 {
-            if parent.RemoveChild(self, CanGc::from_cx(cx)).is_err() {
-                unreachable!("Must always have a parent to be able to remove from");
-            }
+            assert!(self.has_parent());
+            self.remove_self(CanGc::from_cx(cx));
         } else {
             rooted_vec!(let children <- self.children().map(|child| DomRoot::as_traced(&child)));
             split_the_parent(cx, children.r());
@@ -1542,6 +1537,7 @@ pub(crate) enum SelectionDeletionStripWrappers {
 pub(crate) enum SelectionDeleteDirection {
     #[default]
     Forward,
+    Backward,
 }
 
 pub(crate) trait SelectionExecCommandSupport {
@@ -1610,20 +1606,16 @@ impl SelectionExecCommandSupport for Selection {
         // then set start node to its parent.
         if start_node.is::<Text>() && start_offset == 0 {
             start_offset = start_node.index();
-            start_node = match start_node.GetParentNode() {
-                None => return,
-                Some(node) => node,
-            };
+            start_node = start_node
+                .GetParentNode()
+                .expect("Must always have a parent");
         }
 
         // Step 8. If end node is a Text node and end offset is its length, set end offset to one plus the index of end node,
         // then set end node to its parent.
         if end_node.is::<Text>() && end_offset == end_node.len() {
             end_offset = end_node.index() + 1;
-            end_node = match end_node.GetParentNode() {
-                None => return,
-                Some(node) => node,
-            };
+            end_node = end_node.GetParentNode().expect("Must always have a parent");
         }
 
         // Step 9. Call collapse(start node, start offset) on the context object's selection.
@@ -1803,14 +1795,10 @@ impl SelectionExecCommandSupport for Selection {
         // Step 25. For each node in node list:
         for node in node_list.iter() {
             // Step 25.1. Let parent be the parent of node.
-            let parent = match node.GetParentNode() {
-                None => continue,
-                Some(node) => node,
-            };
+            let parent = node.GetParentNode().expect("Must always have a parent");
             // Step 25.2. Remove node from parent.
-            if parent.RemoveChild(node, CanGc::from_cx(cx)).is_err() {
-                unreachable!("Must always have a parent");
-            }
+            assert!(node.has_parent());
+            node.remove_self(CanGc::from_cx(cx));
             // Step 25.3. If the block node of parent has no visible children, and parent is editable or an editing host,
             // call createElement("br") on the context object and append the result as the last child of parent.
             if parent
@@ -1832,16 +1820,10 @@ impl SelectionExecCommandSupport for Selection {
                 let mut parent = parent;
                 loop {
                     if parent.is_editable() && parent.is_inline_node() && parent.is_empty() {
-                        let grand_parent = match parent.GetParentNode() {
-                            None => break,
-                            Some(node) => node,
-                        };
-                        if grand_parent
-                            .RemoveChild(&parent, CanGc::from_cx(cx))
-                            .is_err()
-                        {
-                            unreachable!("Must always have a grand parent");
-                        }
+                        let grand_parent =
+                            parent.GetParentNode().expect("Must always have a parent");
+                        assert!(parent.has_parent());
+                        parent.remove_self(CanGc::from_cx(cx));
                         parent = grand_parent;
                         continue;
                     }
@@ -1912,10 +1894,9 @@ impl SelectionExecCommandSupport for Selection {
             let Some(child) = start_block.children().nth(0) else {
                 unreachable!("Must always have a single child");
             };
-            if child.is_collapsed_block_prop() &&
-                start_block.RemoveChild(&child, CanGc::from_cx(cx)).is_err()
-            {
-                unreachable!("Must always be able to remove child");
+            if child.is_collapsed_block_prop() {
+                assert!(child.has_parent());
+                child.remove_self(CanGc::from_cx(cx));
             }
         }
 
@@ -1956,9 +1937,8 @@ impl SelectionExecCommandSupport for Selection {
                     {
                         if let Some(parent) = end_block.GetParentNode() {
                             if parent.children_count() == 1 {
-                                if parent.RemoveChild(&end_block, CanGc::from_cx(cx)).is_err() {
-                                    unreachable!("Must always have a parent");
-                                }
+                                assert!(end_block.has_parent());
+                                end_block.remove_self(CanGc::from_cx(cx));
                                 end_block = parent;
                                 continue;
                             }
@@ -1995,14 +1975,9 @@ impl SelectionExecCommandSupport for Selection {
                     }
                 }
                 // Step 32.4.3. If end block is editable, remove it from its parent.
-                if end_block.is_editable() &&
-                    end_block
-                        .GetParentNode()
-                        .expect("Must always have a parent")
-                        .RemoveChild(&end_block, CanGc::from_cx(cx))
-                        .is_err()
-                {
-                    unreachable!("Must always have a parent to remove child");
+                if end_block.is_editable() {
+                    assert!(end_block.has_parent());
+                    end_block.remove_self(CanGc::from_cx(cx));
                 }
                 // Step 32.4.4. Restore states and values from overrides.
                 //
@@ -2065,14 +2040,8 @@ impl SelectionExecCommandSupport for Selection {
             if let Some(first) = children.first() {
                 if let Some(previous_of_first) = first.GetPreviousSibling() {
                     if previous_of_first.is_editable() && previous_of_first.is::<HTMLBRElement>() {
-                        if let Some(parent) = previous_of_first.GetParentNode() {
-                            if parent
-                                .RemoveChild(&previous_of_first, CanGc::from_cx(cx))
-                                .is_err()
-                            {
-                                unreachable!("Must always have a parent");
-                            }
-                        }
+                        assert!(previous_of_first.has_parent());
+                        previous_of_first.remove_self(CanGc::from_cx(cx));
                     }
                 }
             }
@@ -2105,10 +2074,9 @@ impl SelectionExecCommandSupport for Selection {
                 .is_some_and(|next| next.is_inline_node())
             {
                 if let Some(last) = start_block.children().last() {
-                    if last.is::<HTMLBRElement>() &&
-                        start_block.RemoveChild(&last, CanGc::from_cx(cx)).is_err()
-                    {
-                        unreachable!("Must always have a parent");
+                    if last.is::<HTMLBRElement>() {
+                        assert!(last.has_parent());
+                        last.remove_self(CanGc::from_cx(cx));
                     }
                 }
             }
@@ -2166,10 +2134,9 @@ impl SelectionExecCommandSupport for Selection {
                 .is_some_and(|next| next.is_inline_node())
             {
                 if let Some(last) = start_block.children().last() {
-                    if last.is::<HTMLBRElement>() &&
-                        start_block.RemoveChild(&last, CanGc::from_cx(cx)).is_err()
-                    {
-                        unreachable!("Must always have a parent");
+                    if last.is::<HTMLBRElement>() {
+                        assert!(last.has_parent());
+                        last.remove_self(CanGc::from_cx(cx));
                     }
                 }
             }
@@ -2198,9 +2165,8 @@ impl SelectionExecCommandSupport for Selection {
             loop {
                 if end_block.children_count() == 0 {
                     if let Some(parent) = end_block.GetParentNode() {
-                        if parent.RemoveChild(&end_block, CanGc::from_cx(cx)).is_err() {
-                            unreachable!("Must always have a parent");
-                        }
+                        assert!(end_block.has_parent());
+                        end_block.remove_self(CanGc::from_cx(cx));
                         end_block = parent;
                         continue;
                     }

@@ -665,7 +665,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-iscontenteditable>
     fn IsContentEditable(&self) -> bool {
         // > The isContentEditable IDL attribute, on getting, must return true if the element is either an editing host or editable, and false otherwise.
-        self.is_editing_host() || self.upcast::<Node>().is_editable()
+        self.upcast::<Node>().is_editable_or_editing_host()
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-attachinternals>
