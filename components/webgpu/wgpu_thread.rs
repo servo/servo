@@ -733,7 +733,7 @@ impl WGPU {
                         command_encoder_id,
                         compute_pass_id,
                         label,
-                        device_id: _device_id,
+                        device_id,
                     } => {
                         let global = &self.global;
                         let (pass, error) = global.command_encoder_begin_compute_pass(
@@ -750,7 +750,7 @@ impl WGPU {
                             "ComputePass should not exist yet."
                         );
                         // TODO: Command encoder state errors
-                        // self.maybe_dispatch_wgpu_error(device_id, error);
+                        self.maybe_dispatch_wgpu_error(device_id, error);
                     },
                     WebGPURequest::ComputePassSetPipeline {
                         compute_pass_id,
@@ -860,12 +860,14 @@ impl WGPU {
                         if let Pass::Open { mut pass, valid } = pass.take() {
                             // `pass.end` does step 1-4
                             // and if it returns ok we check the validity of the pass at step 5
-                            if self.global.compute_pass_end(&mut pass).is_ok() && !valid {
+                            let result = self.global.compute_pass_end(&mut pass);
+                            if result.is_ok() && !valid {
                                 self.encoder_record_error(
                                     command_encoder_id,
                                     &Err::<(), _>("Pass is invalid".to_string()),
                                 );
                             }
+                            self.maybe_dispatch_wgpu_error(device_id, result.err());
                         } else {
                             self.dispatch_error(
                                 device_id,
@@ -879,7 +881,7 @@ impl WGPU {
                         label,
                         color_attachments,
                         depth_stencil_attachment,
-                        device_id: _device_id,
+                        device_id,
                     } => {
                         let global = &self.global;
                         let desc = &RenderPassDescriptor {
@@ -898,7 +900,7 @@ impl WGPU {
                             "RenderPass should not exist yet."
                         );
                         // TODO: Command encoder state errors
-                        // self.maybe_dispatch_wgpu_error(device_id, error);
+                        self.maybe_dispatch_wgpu_error(device_id, error);
                     },
                     WebGPURequest::RenderPassCommand {
                         render_pass_id,
@@ -933,12 +935,14 @@ impl WGPU {
                         if let Pass::Open { mut pass, valid } = pass.take() {
                             // `pass.end` does step 1-4
                             // and if it returns ok we check the validity of the pass at step 5
-                            if self.global.render_pass_end(&mut pass).is_ok() && !valid {
+                            let result = self.global.render_pass_end(&mut pass);
+                            if result.is_ok() && !valid {
                                 self.encoder_record_error(
                                     command_encoder_id,
                                     &Err::<(), _>("Pass is invalid".to_string()),
                                 );
                             }
+                            self.maybe_dispatch_wgpu_error(device_id, result.err());
                         } else {
                             self.dispatch_error(
                                 device_id,
