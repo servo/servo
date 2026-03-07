@@ -369,7 +369,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
 /// letter is found.
 ///
 /// <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
-fn first_letter_range(text: &str) -> (std::ops::Range<usize>, bool) {
+fn first_letter_range(text: &str) -> std::ops::Range<usize> {
     use unicode_categories::UnicodeCategories;
 
     enum State {
@@ -398,7 +398,7 @@ fn first_letter_range(text: &str) -> (std::ops::Range<usize>, bool) {
                     start = i;
                     continue;
                 } else {
-                    return (0..0, false);
+                    return 0..0;
                 }
             },
             State::PrecedingPunc => {
@@ -408,7 +408,7 @@ fn first_letter_range(text: &str) -> (std::ops::Range<usize>, bool) {
                 } else if c.is_punctuation() || c.is_separator_space() {
                     continue;
                 } else {
-                    return (0..0, false);
+                    return 0..0;
                 }
             },
             State::Lns => {
@@ -433,21 +433,7 @@ fn first_letter_range(text: &str) -> (std::ops::Range<usize>, bool) {
         }
     }
 
-    let range = start..end;
-    let is_last_letter = iter.next().map_or_else(
-        || true,
-        |(_i, c)| {
-            // <https://www.w3.org/TR/css-text-4/#word-separator>
-            c == '\u{0020}' ||
-                c == '\u{00A0}' ||
-                c == '\u{1361}' ||
-                c == '\u{10100}' ||
-                c == '\u{10101}' ||
-                c == '\u{1039f}'
-        },
-    );
-
-    (range, is_last_letter)
+    start..end
 }
 
 impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
@@ -522,7 +508,7 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
                 .with_pseudo_element(context, PseudoElement::FirstLetter)
             {
                 if builder.text_segments.iter().all(|seg| seg.is_empty()) {
-                    let (first_letter_range, is_last_letter) = first_letter_range(&text[..]);
+                    let first_letter_range = first_letter_range(&text[..]);
                     range.start = first_letter_range.end;
 
                     // The first letter range may be some value larger than zero when
@@ -532,7 +518,13 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
                     }
 
                     let first_letter = Cow::Borrowed(&text[first_letter_range]);
-                    builder.push_first_letter(first_letter, &pseudo_info, context, is_last_letter);
+                    let first_letter_inline_styles =
+                        SharedInlineStyles::from_info_and_context(&pseudo_info, context);
+                    builder
+                        .shared_inline_styles_stack
+                        .push(first_letter_inline_styles);
+                    builder.push_text(first_letter, &pseudo_info);
+                    builder.shared_inline_styles_stack.pop();
                 }
             }
         }
