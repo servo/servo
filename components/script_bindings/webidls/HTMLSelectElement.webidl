@@ -37,7 +37,7 @@ interface HTMLSelectElement : HTMLElement {
   undefined remove(long index);
   [CEReactions, Throws] setter undefined (unsigned long index, HTMLOptionElement? option);
 
-  // readonly attribute HTMLCollection selectedOptions;
+  [SameObject] readonly attribute HTMLCollection selectedOptions;
   attribute long selectedIndex;
   attribute DOMString value;
 

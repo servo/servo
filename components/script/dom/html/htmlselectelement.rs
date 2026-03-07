@@ -39,7 +39,7 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::html::htmlcollection::CollectionFilter;
+use crate::dom::html::htmlcollection::{CollectionFilter, CollectionSource, HTMLCollection};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, FormDatum, FormDatumValue, HTMLFormElement};
@@ -90,10 +90,29 @@ impl CollectionFilter for OptionsFilter {
     }
 }
 
+/// Provides selected options directly via [`HTMLSelectElement::list_of_options`],
+/// avoiding a full subtree traversal.
+#[derive(JSTraceable, MallocSizeOf)]
+struct SelectedOptionsSource;
+impl CollectionSource for SelectedOptionsSource {
+    fn iter<'a>(&'a self, root: &'a Node) -> Box<dyn Iterator<Item = DomRoot<Element>> + 'a> {
+        let select = root
+            .downcast::<HTMLSelectElement>()
+            .expect("SelectedOptionsSource must be rooted on an HTMLSelectElement");
+        Box::new(
+            select
+                .list_of_options()
+                .filter(|option| option.Selected())
+                .map(DomRoot::upcast::<Element>),
+        )
+    }
+}
+
 #[dom_struct]
 pub(crate) struct HTMLSelectElement {
     htmlelement: HTMLElement,
     options: MutNullableDom<HTMLOptionsCollection>,
+    selected_options: MutNullableDom<HTMLCollection>,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
@@ -121,6 +140,7 @@ impl HTMLSelectElement {
                 document,
             ),
             options: Default::default(),
+            selected_options: Default::default(),
             form_owner: Default::default(),
             labels_node_list: Default::default(),
             validity_state: Default::default(),
@@ -531,6 +551,19 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         self.options.or_init(|| {
             let window = self.owner_window();
             HTMLOptionsCollection::new(&window, self, Box::new(OptionsFilter), CanGc::note())
+        })
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-selectedoptions>
+    fn SelectedOptions(&self) -> DomRoot<HTMLCollection> {
+        self.selected_options.or_init(|| {
+            let window = self.owner_window();
+            HTMLCollection::new_with_source(
+                &window,
+                self.upcast(),
+                Box::new(SelectedOptionsSource),
+                CanGc::note(),
+            )
         })
     }
 
