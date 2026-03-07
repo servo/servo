@@ -277,6 +277,8 @@ jobs:
         with:
           toolchain: ${{ steps.msrv.outputs.rust_version }}
       - name: Compile libservo with MSRV
+        env:
+          RUSTFLAGS: "-C link-arg=-fuse-ld=lld"
         run: |
           cargo +${{ steps.msrv.outputs.rust_version }} build -p libservo --locked --all-targets
 
