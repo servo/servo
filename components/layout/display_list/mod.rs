@@ -702,6 +702,16 @@ impl Fragment {
                                 common.clip_rect,
                                 style.clone_opacity(),
                             );
+
+                            // Broken Images should not be considered as LCP candidates, but available images are.
+                            if !image.showing_broken_image_icon {
+                                builder.check_for_lcp_candidate(
+                                    common.clip_rect,
+                                    rect,
+                                    image.base.tag,
+                                    image.url.clone(),
+                                );
+                            }
                         }
 
                         if image.showing_broken_image_icon {
@@ -711,13 +721,6 @@ impl Fragment {
                                 &common,
                             );
                         }
-
-                        builder.check_for_lcp_candidate(
-                            common.clip_rect,
-                            rect,
-                            image.base.tag,
-                            image.url.clone(),
-                        );
                     },
                     Visibility::Hidden => (),
                     Visibility::Collapse => (),
