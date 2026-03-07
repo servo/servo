@@ -269,7 +269,7 @@ impl DocumentEventHandler {
     pub(crate) fn handle_pending_input_events(&self, can_gc: CanGc) {
         let _realm = enter_realm(&*self.window);
 
-        // Reset the mouse event index.
+        // Reset the mouse and wheel event indices.
         *self.mouse_move_event_index.borrow_mut() = None;
         *self.wheel_event_index.borrow_mut() = None;
         let pending_input_events = mem::take(&mut *self.pending_input_events.borrow_mut());
