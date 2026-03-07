@@ -693,6 +693,25 @@ impl DOMString {
                 .any(|c| *c == 0x7f || (*c <= 0x1f && *c != 0x09)),
         }
     }
+
+    fn with_str_reference<Result>(&self, callback: fn(&str) -> Result) -> Result {
+        match self.view().encoded_bytes() {
+            // If the Latin1 string is all ASCII bytes, then it is safe to interpret it as UTF-8.
+            EncodedBytes::Latin1Bytes(latin1_bytes) => {
+                if latin1_bytes.iter().all(|character| character.is_ascii()) {
+                    // SAFETY: All characters are ASCII, so it is safe to interpret this string as
+                    // UTF-8.
+                    return callback(unsafe { str::from_utf8_unchecked(latin1_bytes) });
+                }
+            },
+            EncodedBytes::Utf8Bytes(utf8_bytes) => {
+                // SAFETY: These are the bytes of a UTF-8 string already, so they can be interpreted
+                // as UTF-8.
+                return callback(unsafe { str::from_utf8_unchecked(utf8_bytes) });
+            },
+        };
+        callback(self.str().deref())
+    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values>
@@ -886,101 +905,26 @@ impl From<std::string::String> for DOMString {
 }
 
 impl From<DOMString> for LocalName {
-    fn from(contents: DOMString) -> LocalName {
-        {
-            let view = contents.view();
-            let bytes = view.encoded_bytes();
-            let str = match bytes {
-                EncodedBytes::Latin1Bytes(items) => {
-                    if items.iter().all(|c| c.is_ascii()) {
-                        unsafe { Some(str::from_utf8_unchecked(items)) }
-                    } else {
-                        None
-                    }
-                },
-                EncodedBytes::Utf8Bytes(s) => Some(unsafe { str::from_utf8_unchecked(s) }),
-            };
-            if let Some(s) = str {
-                return LocalName::from(s);
-            }
-        }
-        contents.make_rust();
-        LocalName::from(contents.str().deref())
+    fn from(dom_string: DOMString) -> LocalName {
+        dom_string.with_str_reference(|string| LocalName::from(string))
     }
 }
 
 impl From<&DOMString> for LocalName {
-    fn from(contents: &DOMString) -> LocalName {
-        {
-            let view = contents.view();
-            let bytes = view.encoded_bytes();
-            let str = match bytes {
-                EncodedBytes::Latin1Bytes(items) => {
-                    if items.iter().all(|c| c.is_ascii()) {
-                        // This is safe as the string is ascii and it comes from a DOMString
-                        unsafe { Some(str::from_utf8_unchecked(items)) }
-                    } else {
-                        None
-                    }
-                },
-                EncodedBytes::Utf8Bytes(s) => Some(unsafe { str::from_utf8_unchecked(s) }),
-            };
-            if let Some(s) = str {
-                return LocalName::from(s);
-            }
-        }
-        contents.make_rust();
-        LocalName::from(contents.str().deref())
+    fn from(dom_string: &DOMString) -> LocalName {
+        dom_string.with_str_reference(|string| LocalName::from(string))
     }
 }
 
 impl From<DOMString> for Namespace {
-    fn from(contents: DOMString) -> Namespace {
-        {
-            let view = contents.view();
-            let bytes = view.encoded_bytes();
-            let str = match bytes {
-                EncodedBytes::Latin1Bytes(items) => {
-                    if items.iter().all(|c| c.is_ascii()) {
-                        // This is safe as the string is ascii and it comes from a DOMString
-                        unsafe { Some(str::from_utf8_unchecked(items)) }
-                    } else {
-                        None
-                    }
-                },
-                EncodedBytes::Utf8Bytes(s) => Some(unsafe { str::from_utf8_unchecked(s) }),
-            };
-            if let Some(s) = str {
-                return Namespace::from(s);
-            }
-        }
-        contents.make_rust();
-        Namespace::from(contents.str().deref())
+    fn from(dom_string: DOMString) -> Namespace {
+        dom_string.with_str_reference(|string| Namespace::from(string))
     }
 }
 
 impl From<DOMString> for Atom {
-    fn from(contents: DOMString) -> Atom {
-        {
-            let view = contents.view();
-            let bytes = view.encoded_bytes();
-            let str = match bytes {
-                EncodedBytes::Latin1Bytes(items) => {
-                    if items.iter().all(|c| c.is_ascii()) {
-                        // Safety: The string only has ascii chars, hence this is ok.
-                        unsafe { Some(str::from_utf8_unchecked(items)) }
-                    } else {
-                        None
-                    }
-                },
-                EncodedBytes::Utf8Bytes(s) => Some(unsafe { str::from_utf8_unchecked(s) }),
-            };
-            if let Some(s) = str {
-                return Atom::from(s);
-            }
-        }
-        contents.make_rust();
-        Atom::from(contents.str().deref())
+    fn from(dom_string: DOMString) -> Atom {
+        dom_string.with_str_reference(|string| Atom::from(string))
     }
 }
 
