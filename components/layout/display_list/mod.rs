@@ -250,6 +250,10 @@ impl DisplayListBuilder<'_> {
         self.paint_info.pipeline_id
     }
 
+    fn mark_first_paint(&mut self) {
+        self.paint_info.first_paint = true;
+    }
+
     fn mark_is_contentful(&mut self) {
         self.paint_info.is_contentful = true;
     }
@@ -528,14 +532,17 @@ impl DisplayListBuilder<'_> {
         }
     }
 
-    fn check_for_contentful_paint(
-        &mut self,
-        bounds: LayoutRect,
-        clip_rect: LayoutRect,
-        opacity: f32,
-    ) {
+    fn check_if_paintable(&mut self, bounds: LayoutRect, clip_rect: LayoutRect, opacity: f32) {
         // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
         // An element el is paintable when all of the following apply:
+        // > el is being rendered.
+        // > el’s used visibility is visible.
+
+        // > > From <https://w3c.github.io/paint-timing/#first-paint>:
+        // > > First paint entry contains a DOMHighResTimeStamp reporting the time when the user agent first rendered after navigation.
+        // > > Hence, This is sufficient to mark the first paint.
+        self.mark_first_paint();
+
         // > el and all of its ancestors' used opacity is greater than zero.
         if opacity <= 0.0 {
             return;
@@ -697,7 +704,7 @@ impl Fragment {
                             // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
                             // An element target is contentful when one or more of the following apply:
                             // > target is a replaced element representing an available image.
-                            builder.check_for_contentful_paint(
+                            builder.check_if_paintable(
                                 rect,
                                 common.clip_rect,
                                 style.clone_opacity(),
@@ -884,11 +891,7 @@ impl Fragment {
         // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
         // An element target is contentful when one or more of the following apply:
         // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
-        builder.check_for_contentful_paint(
-            glyph_bounds,
-            common.clip_rect,
-            parent_style.clone_opacity(),
-        );
+        builder.check_if_paintable(glyph_bounds, common.clip_rect, parent_style.clone_opacity());
 
         for text_decoration in text_decorations.iter() {
             if text_decoration
@@ -1287,7 +1290,21 @@ impl<'a> BuilderForBoxFragment<'a> {
             let common = painter.common_properties(self, builder, layer_index, bounds);
             builder
                 .wr()
-                .push_rect(&common, bounds, rgba(background_color))
+                .push_rect(&common, bounds, rgba(background_color));
+
+            // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+            // First paint ... includes non-default background paint and the enclosing box of an iframe.
+            let default_background_color = servo_config::pref!(shell_background_color_rgba);
+            let default_background_color = AbsoluteColor::new(
+                ColorSpace::Srgb,
+                default_background_color[0] as f32,
+                default_background_color[1] as f32,
+                default_background_color[2] as f32,
+                default_background_color[3] as f32,
+            );
+            if background_color != default_background_color {
+                builder.mark_first_paint();
+            }
         }
 
         self.build_background_image(builder, painter);
@@ -1387,6 +1404,10 @@ impl<'a> BuilderForBoxFragment<'a> {
                             )
                         },
                     }
+
+                    // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+                    // First paint ... includes non-default background paint and the enclosing box of an iframe.
+                    builder.mark_first_paint();
                 },
                 Ok(ResolvedImage::Image { image, size }) => {
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
@@ -1452,7 +1473,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                         // An element target is contentful when one or more of the following apply:
                         // > target has a background-image which is a contentful image, and its used
                         // > background-size has non-zero width and height values.
-                        builder.check_for_contentful_paint(
+                        builder.check_if_paintable(
                             layer.bounds,
                             layer.common.clip_rect,
                             style.clone_opacity(),
@@ -1633,7 +1654,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 // An element target is contentful when one or more of the following apply:
                 // > target has a background-image which is a contentful image,
                 // > and its used background-size has non-zero width and height values.
-                builder.check_for_contentful_paint(
+                builder.check_if_paintable(
                     Box2D::from_size(size.cast_unit()),
                     common.clip_rect,
                     style.clone_opacity(),
