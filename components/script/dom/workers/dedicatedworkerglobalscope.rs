@@ -783,6 +783,10 @@ impl DedicatedWorkerGlobalScope {
             ))
             .expect("Sending to parent failed");
     }
+
+    pub(crate) fn worker(&self) -> Option<TrustedWorkerAddress> {
+        self.worker.borrow().clone()
+    }
 }
 
 #[expect(unsafe_code)]

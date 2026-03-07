@@ -650,12 +650,14 @@ impl ModuleOwner {
 
     fn notify_owner_to_finish(&self, module_tree: Option<Rc<ModuleTree>>, can_gc: CanGc) {
         match &self {
-            ModuleOwner::Worker(worker, scope) => {
+            ModuleOwner::Worker(_, scope) => {
                 #[expect(unsafe_code)]
                 let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+                // FIXME(pylbrecht): PoC
+                let worker = scope.root().downcast::<DedicatedWorkerGlobalScope>().unwrap().worker().unwrap();
                 scope
                     .root()
-                    .on_complete(module_tree.map(Script::Module), worker.clone(), &mut cx);
+                    .on_complete(module_tree.map(Script::Module), worker, &mut cx);
             },
             ModuleOwner::DynamicModule(_) => unimplemented!(),
             ModuleOwner::Window(script) => {
