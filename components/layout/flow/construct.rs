@@ -526,7 +526,7 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
                     range.start = first_letter_range.end;
 
                     // The first letter range may be some value larger than zero when
-                    // there are proceding spaces.
+                    // there are preceding spaces.
                     if first_letter_range.start != 0 {
                         builder.push_text(Cow::Borrowed(&text[0..first_letter_range.start]), info);
                     }
