@@ -48,13 +48,8 @@ jobs:
           git commit -m "linux: Update dependency list based on servo@${GITHUB_SHA::13}"
       - name: Push changes
         if: ${{ steps.changes.outputs.CHANGES == 'true'}}
-        # Pin to SHA of v1.0.0 to reduce supply chain attack risk.
-        uses: ad-m/github-push-action@77c5b412c50b723d2a4fbc6d71fb5723bcd439aa
-        with:
-          branch: linux_pkgs_sync_${{ github.sha }}
-          directory: book
-          repository: servo-bot/book
-          github_token: ${{ secrets.BOOK_SYNC_TOKEN }}
+        working-directory: book
+        run: git push 'https://${{ secrets.BOOK_SYNC_TOKEN }}@github.com/servo-bot/book.git' 'HEAD:linux_pkgs_sync_${{ github.sha }}'
       - name: Open PR
         if: ${{ steps.changes.outputs.CHANGES == 'true'}}
         env:
