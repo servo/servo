@@ -1489,8 +1489,9 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_collapsed_table_borders(&mut self, builder: &mut DisplayListBuilder) {
+        let layout_info = self.fragment.specific_layout_info();
         let Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(table_info)) =
-            self.fragment.specific_layout_info()
+            layout_info.as_deref()
         else {
             return;
         };
