@@ -1393,45 +1393,68 @@ impl IndependentFormattingContext {
             .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
         let is_table = self.is_table();
         let preferred_aspect_ratio = self.preferred_aspect_ratio(&pbm.padding_border_sums);
-        let tentative_block_content_size =
-            self.tentative_block_content_size(preferred_aspect_ratio);
-        let (preferred_block_size, min_block_size, max_block_size) =
-            if let Some(block_content_size) = tentative_block_content_size {
-                let (preferred, min, max) = content_box_sizes.block.resolve_each(
-                    Size::FitContent,
-                    Au::zero,
-                    available_block_size,
-                    || block_content_size,
-                    is_table,
-                );
-                (Some(preferred), min, max)
-            } else {
-                content_box_sizes.block.resolve_each_extrinsic(
-                    Size::FitContent,
-                    Au::zero(),
-                    available_block_size,
-                )
-            };
-        let tentative_block_size =
-            SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
+
+        #[derive(Default)]
+        struct Cache {
+            min_block_size: Au,
+            max_block_size: Option<Au>,
+            tentative_block_size: SizeConstraint,
+            depends_on_stretch_size: bool,
+        }
+        let mut cache = Cache {
+            depends_on_stretch_size: true,
+            ..Default::default()
+        };
+
+        let update_cache = |cache: &mut Cache, stretch_size| {
+            let tentative_block_content_size = self
+                .tentative_block_content_size_with_dependency(preferred_aspect_ratio, stretch_size);
+            let (preferred_block_size, min_block_size, max_block_size, depends_on_stretch_size) =
+                if let Some(result) = tentative_block_content_size {
+                    let (block_content_size, depends_on_stretch_size) = result;
+                    let (preferred, min, max) = content_box_sizes.block.resolve_each(
+                        Size::FitContent,
+                        Au::zero,
+                        available_block_size,
+                        || block_content_size,
+                        is_table,
+                    );
+                    (Some(preferred), min, max, depends_on_stretch_size)
+                } else {
+                    let (preferred, min, max) = content_box_sizes.block.resolve_each_extrinsic(
+                        Size::FitContent,
+                        Au::zero(),
+                        available_block_size,
+                    );
+                    (preferred, min, max, false)
+                };
+            cache.min_block_size = min_block_size;
+            cache.max_block_size = max_block_size;
+            cache.tentative_block_size =
+                SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
+            cache.depends_on_stretch_size = depends_on_stretch_size;
+        };
 
         // With the tentative block size we can compute the inline min/max-content sizes.
-        let get_inline_content_sizes = || {
+        let get_inline_content_sizes = |cache: &Cache| {
             let constraint_space =
-                ConstraintSpace::new(tentative_block_size, style, preferred_aspect_ratio);
+                ConstraintSpace::new(cache.tentative_block_size, style, preferred_aspect_ratio);
             self.inline_content_sizes(layout_context, &constraint_space)
                 .sizes
         };
 
         let justify_self = resolve_justify_self(style, containing_block.style);
         let automatic_inline_size = automatic_inline_size(justify_self, Some(self));
-        let compute_inline_size = |stretch_size| {
+        let compute_inline_size = |cache: &mut Cache, stretch_size| {
+            if cache.depends_on_stretch_size {
+                update_cache(cache, stretch_size);
+            }
             content_box_sizes.inline.resolve(
                 Direction::Inline,
                 automatic_inline_size,
                 Au::zero,
                 Some(stretch_size),
-                get_inline_content_sizes,
+                || get_inline_content_sizes(cache),
                 is_table,
             )
         };
@@ -1455,8 +1478,9 @@ impl IndependentFormattingContext {
         // TODO: `compute_inline_size()` may not be monotonic with `calc-size()`. For example,
         // `calc-size(stretch, (1px / (size + 1px) + sign(size)) * 1px)` would result in 1px
         // both when the available space is zero and infinity, but it's not constant.
-        let inline_size_with_no_available_space = compute_inline_size(Au::zero());
-        if inline_size_with_no_available_space == compute_inline_size(MAX_AU) {
+        let inline_size_with_max_available_space = compute_inline_size(&mut cache, MAX_AU);
+        let inline_size_with_no_available_space = compute_inline_size(&mut cache, Au::zero());
+        if inline_size_with_no_available_space == inline_size_with_max_available_space {
             // If the inline size doesn't depend on the available inline space, we can just
             // compute it with an available inline space of zero. Then, after layout we can
             // compute the block size, and finally place among floats.
@@ -1468,7 +1492,10 @@ impl IndependentFormattingContext {
                 &ContainingBlock {
                     size: ContainingBlockSize {
                         inline: inline_size,
-                        block: tentative_block_size,
+                        // `cache.tentative_block_size` can only depend on the inline stretch size
+                        // for replaced elements, whose layout doesn't use the block size of the
+                        // containing block for children.
+                        block: cache.tentative_block_size,
                     },
                     style,
                 },
@@ -1500,13 +1527,20 @@ impl IndependentFormattingContext {
                 // TODO: this won't work for things like `calc-size(stretch, 100px - size)`,
                 // which should result in a bigger size when the available space gets smaller.
                 inline: inline_size_with_no_available_space,
-                block: match tentative_block_size {
+                // For the lower bound of the block size, also use the cached data that was
+                // computed with no inline available space. If there is a dependency, it will
+                // be monotonically increasing.
+                // TODO: won't work e.g. for `block-size: calc-size(max-content, 100px - size)`
+                // on a stretchable replaced element with an aspect ratio of 1/1: when the
+                // inline available space is 0, it will resolve to 100px, but for 100px it
+                // will resolve to 0.
+                block: match cache.tentative_block_size {
                     // If we were able to resolve the preferred and maximum block sizes,
                     // use the tentative block size (it takes the 3 sizes into account).
-                    SizeConstraint::Definite(size) if max_block_size.is_some() => size,
+                    SizeConstraint::Definite(size) if cache.max_block_size.is_some() => size,
                     // Oherwise the preferred or maximum block size might end up being zero,
                     // so can only rely on the minimum block size.
-                    _ => min_block_size,
+                    _ => cache.min_block_size,
                 },
             } + pbm.padding_border_sums;
             let mut placement = PlacementAmongFloats::new(
@@ -1521,7 +1555,7 @@ impl IndependentFormattingContext {
                 placement_rect = placement.place();
                 let available_inline_size =
                     placement_rect.size.inline - pbm.padding_border_sums.inline;
-                let proposed_inline_size = compute_inline_size(available_inline_size);
+                let proposed_inline_size = compute_inline_size(&mut cache, available_inline_size);
 
                 // Now lay out the block using the inline size we calculated from the placement.
                 // Later we'll check to see if the resulting block size is compatible with the
@@ -1534,7 +1568,7 @@ impl IndependentFormattingContext {
                     &ContainingBlock {
                         size: ContainingBlockSize {
                             inline: proposed_inline_size,
-                            block: tentative_block_size,
+                            block: cache.tentative_block_size,
                         },
                         style,
                     },
@@ -1737,8 +1771,9 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
 
     // https://drafts.csswg.org/css2/#the-height-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-heights
-    let tentative_block_content_size =
-        context.and_then(|context| context.tentative_block_content_size(preferred_aspect_ratio));
+    let tentative_block_content_size = context.and_then(|context| {
+        context.tentative_block_content_size(preferred_aspect_ratio, available_inline_size)
+    });
     let tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
         SizeConstraint::Definite(content_box_sizes.block.resolve(
             Direction::Block,
@@ -2283,7 +2318,7 @@ impl IndependentFormattingContext {
             .map(|block_size| Au::zero().max(block_size - pbm_sums.block_sum()));
 
         let tentative_block_content_size =
-            self.tentative_block_content_size(preferred_aspect_ratio);
+            self.tentative_block_content_size(preferred_aspect_ratio, available_inline_size);
         let tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
             SizeConstraint::Definite(content_box_sizes_and_pbm.content_box_sizes.block.resolve(
                 Direction::Block,
