@@ -276,9 +276,15 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ steps.msrv.outputs.rust_version }}
+      # We can remove this after upgrading to Rust 1.90, but for now
+      # installing lld is the easiest way to get it in path.
+      - name: install lld
+        run: sudo apt-get install -y lld
       - name: Compile libservo with MSRV
         env:
-          RUSTFLAGS: "-C link-arg=-fuse-ld=lld"
+          # lld seems to use less memory and prevents OOM errors during linking.
+          # We can remove this after upgrading to Rust 1.90, where lld will be the default.
+          RUSTFLAGS: "-Z linker-features=+lld"
         run: |
           cargo +${{ steps.msrv.outputs.rust_version }} build -p libservo --locked --all-targets
 
