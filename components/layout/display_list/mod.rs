@@ -1621,11 +1621,24 @@ impl<'a> BuilderForBoxFragment<'a> {
         {
             Err(_) => return false,
             Ok(ResolvedImage::Image { image, size }) => {
-                let Some(image) = image.as_raster_image() else {
-                    return false;
+                let image_key = match image {
+                    CachedImage::Raster(raster_image) => raster_image.id,
+                    CachedImage::Vector(vector_image) => {
+                        let scale = builder.device_pixel_ratio.get();
+                        let size = Size2D::new(size.width * scale, size.height * scale).to_i32();
+                        node.and_then(|node| {
+                            builder.image_resolver.rasterize_vector_image(
+                                vector_image.id,
+                                size,
+                                node,
+                                vector_image.svg_id,
+                            )
+                        })
+                        .and_then(|rasterized_image| rasterized_image.id)
+                    },
                 };
 
-                let Some(key) = image.id else {
+                let Some(key) = image_key else {
                     return false;
                 };
 
