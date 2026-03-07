@@ -58,10 +58,10 @@ jobs:
         working-directory: book
         run: |
           BODY=$(cat <<EOF
-          Update dependency list based on servo/servo@${GITHUB_SHA::13}
+          Update dependency list based on servo/servo@${GITHUB_SHA}
           EOF
           )
           gh pr create \
-            --title "Sync Linux packages with servo/servo (${GITHUB_SHA::13})" \
+            --title "Sync Linux packages with servo (${GITHUB_SHA::7})" \
             --repo servo/book \
             --body "$BODY" --head servo-bot:${{ env.UPDATE_BRANCH }}
