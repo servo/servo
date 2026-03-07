@@ -364,6 +364,78 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
     }
 }
 
+/// Computes the range of the first letter. Returns the range and whether
+/// the letter is also the last letter. Returns a range 0..0 when no
+/// letter is found.
+///
+/// <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
+fn first_letter_range(text: &str) -> std::ops::Range<usize> {
+    use unicode_categories::UnicodeCategories;
+
+    enum State {
+        Start,
+        PrecedingPunc,
+        Lns,
+        SucceedingPunc,
+    }
+
+    let mut iter = text.char_indices();
+    let mut start = 0;
+    let mut end = 0;
+    let mut state = State::Start;
+
+    for (i, c) in &mut iter {
+        end = i;
+        match state {
+            State::Start => {
+                if c.is_punctuation() {
+                    start = i;
+                    state = State::PrecedingPunc;
+                } else if c.is_letter() || c.is_number() || c.is_symbol() {
+                    end += 1;
+                    state = State::Lns;
+                } else if c.is_separator_space() {
+                    start = i;
+                    continue;
+                } else {
+                    return 0..0;
+                }
+            },
+            State::PrecedingPunc => {
+                if c.is_letter() || c.is_number() || c.is_symbol() {
+                    end += 1;
+                    state = State::Lns;
+                } else if c.is_punctuation() || c.is_separator_space() {
+                    continue;
+                } else {
+                    return 0..0;
+                }
+            },
+            State::Lns => {
+                if c.is_punctuation() && !c.is_punctuation_open() && !c.is_punctuation_dash() {
+                    state = State::SucceedingPunc;
+                } else {
+                    end = i;
+                    break;
+                }
+                end += 1;
+            },
+            State::SucceedingPunc => {
+                // TODO: Implement support for intervening spaces
+                // <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
+                if c.is_punctuation() && !c.is_punctuation_open() && !c.is_punctuation_dash() {
+                    continue;
+                } else {
+                    end = i;
+                    break;
+                }
+            },
+        }
+    }
+
+    start..end
+}
+
 impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
     fn handle_element(
         &mut self,
@@ -424,8 +496,40 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
             self.finish_anonymous_table_if_needed();
         }
 
-        self.ensure_inline_formatting_context_builder()
-            .push_text(text, info);
+        self.ensure_inline_formatting_context_builder();
+        let context = self.context;
+        let builder = self.inline_formatting_context_builder.as_mut().unwrap();
+
+        let mut range = 0..;
+        // first-letter is an eager pseudo element and should not be nested
+        if self.info.pseudo_element_chain().is_empty() {
+            if let Some(pseudo_info) = self
+                .info
+                .with_pseudo_element(context, PseudoElement::FirstLetter)
+            {
+                if builder.text_segments.iter().all(|seg| seg.is_empty()) {
+                    let first_letter_range = first_letter_range(&text[..]);
+                    range.start = first_letter_range.end;
+
+                    // The first letter range may be some value larger than zero when
+                    // there are preceding spaces.
+                    if first_letter_range.start != 0 {
+                        builder.push_text(Cow::Borrowed(&text[0..first_letter_range.start]), info);
+                    }
+
+                    let first_letter = Cow::Borrowed(&text[first_letter_range]);
+                    let first_letter_inline_styles =
+                        SharedInlineStyles::from_info_and_context(&pseudo_info, context);
+                    builder
+                        .shared_inline_styles_stack
+                        .push(first_letter_inline_styles);
+                    builder.push_text(first_letter, &pseudo_info);
+                    builder.shared_inline_styles_stack.pop();
+                }
+            }
+        }
+
+        builder.push_text(Cow::Borrowed(&text[range]), info);
     }
 
     fn enter_display_contents(&mut self, styles: SharedInlineStyles) {

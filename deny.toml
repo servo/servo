@@ -227,7 +227,9 @@ skip = [
 # github.com organizations to allow git sources for
 [sources.allow-org]
 github = [
-    "servo",
+    # "servo",
+    # TODO: remove once stylo PR lands
+    "minghuaw",
 
     # Temporarily needed by servoshell: see root Cargo.toml
     "emilk",

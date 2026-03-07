@@ -886,8 +886,12 @@ impl TextRunLineItem {
         new_bidi_level: Level,
         new_glyph_store: &Arc<GlyphStore>,
         new_offsets: &Option<TextRunOffsets>,
+        new_inline_styles: &SharedInlineStyles,
     ) -> bool {
-        if self.font_key != new_font_key || self.bidi_level != new_bidi_level {
+        if self.font_key != new_font_key ||
+            self.bidi_level != new_bidi_level ||
+            !self.inline_styles.ptr_eq(new_inline_styles)
+        {
             return false;
         }
         self.text.push(new_glyph_store.clone());
