@@ -45,7 +45,7 @@ jobs:
           git config --local user.email "ghbot+book-sync@servo.org"
           git config --local user.name "Book Sync Bot"
           git add src/building/linux_packages/
-          git commit -m "linux: Update dependency list based on servo@${GITHUB_SHA::13}"
+          git commit -m "linux: Update dependency list based on servo/servo@${GITHUB_SHA::13}"
       - name: Push changes
         if: ${{ steps.changes.outputs.CHANGES == 'true'}}
         working-directory: book
@@ -58,10 +58,10 @@ jobs:
         working-directory: book
         run: |
           BODY=$(cat <<EOF
-          Update dependency list based on servo@${GITHUB_SHA::7}
+          Update dependency list based on servo/servo@${GITHUB_SHA::13}
           EOF
           )
           gh pr create \
-            --title "Sync Linux packages with servo/servo (${GITHUB_SHA::7})" \
+            --title "Sync Linux packages with servo/servo (${GITHUB_SHA::13})" \
             --repo servo/book \
             --body "$BODY" --head servo-bot:${{ env.UPDATE_BRANCH }}
