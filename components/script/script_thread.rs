@@ -3126,6 +3126,17 @@ impl ScriptThread {
             unreachable!("Pipeline shouldn't have finished loading.");
         };
 
+        {
+            let loads = self.incomplete_loads.borrow();
+            if let Some(body) = loads[idx].load_data.data.as_ref() {
+                // Lifecycle: Non-Navigate redirects can span multiple net fetch calls.
+                // This hook runs only for terminal (Non-Navigate) navigation responses, so no
+                // later redirect replay can reach `extract_source()`.
+                // we can close the stream.
+                body.close_stream();
+            }
+        }
+
         // https://html.spec.whatwg.org/multipage/#process-a-navigate-response
         // 2. If response's status is 204 or 205, then abort these steps.
         let is_204_205 = match metadata {

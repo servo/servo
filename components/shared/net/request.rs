@@ -11,6 +11,7 @@ use http::header::{AUTHORIZATION, HeaderName};
 use http::{HeaderMap, Method};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
+use log::error;
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use parking_lot::Mutex;
@@ -310,11 +311,13 @@ pub enum BodyChunkRequest {
 }
 
 /// The net component's view into <https://fetch.spec.whatwg.org/#bodies>
+/// After the last call to `extract_source`, `close_stream` must be called
+/// to not leak resources.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBody {
     /// Net's channel to communicate with script re this body.
-    #[conditional_malloc_size_of]
-    chan: Arc<Mutex<IpcSender<BodyChunkRequest>>>,
+    #[ignore_malloc_size_of = "Channels are hard"]
+    body_chunk_request_channel: Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>>,
     /// <https://fetch.spec.whatwg.org/#concept-body-source>
     source: BodySource,
     /// <https://fetch.spec.whatwg.org/#concept-body-total-bytes>
@@ -323,12 +326,12 @@ pub struct RequestBody {
 
 impl RequestBody {
     pub fn new(
-        chan: IpcSender<BodyChunkRequest>,
+        body_chunk_request_channel: IpcSender<BodyChunkRequest>,
         source: BodySource,
         total_bytes: Option<usize>,
     ) -> Self {
         RequestBody {
-            chan: Arc::new(Mutex::new(chan)),
+            body_chunk_request_channel: Arc::new(Mutex::new(Some(body_chunk_request_channel))),
             source,
             total_bytes,
         }
@@ -340,15 +343,26 @@ impl RequestBody {
             BodySource::Null => panic!("Null sources should never be re-directed."),
             BodySource::Object => {
                 let (chan, port) = ipc::channel().unwrap();
-                let mut selfchan = self.chan.lock();
+                let mut lock = self.body_chunk_request_channel.lock();
+                let Some(selfchan) = lock.as_mut() else {
+                    error!("Could not extract_source because the stream already got closed.");
+                    return;
+                };
                 let _ = selfchan.send(BodyChunkRequest::Extract(port));
                 *selfchan = chan;
             },
         }
     }
 
-    pub fn take_stream(&self) -> Arc<Mutex<IpcSender<BodyChunkRequest>>> {
-        self.chan.clone()
+    /// This is a shared optional sender to request BodyChunks.
+    pub fn clone_stream(&self) -> Arc<Mutex<Option<IpcSender<BodyChunkRequest>>>> {
+        self.body_chunk_request_channel.clone()
+    }
+
+    /// This needs to be called the last time the body stream sender is used to not leak resources.
+    /// Can be called multiple times.
+    pub fn close_stream(&self) {
+        self.body_chunk_request_channel.lock().take();
     }
 
     pub fn source_is_null(&self) -> bool {
