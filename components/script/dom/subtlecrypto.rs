@@ -2173,6 +2173,103 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
             }));
         promise
     }
+
+    /// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+    fn GetPublicKey(
+        &self,
+        cx: &mut CurrentRealm,
+        key: &CryptoKey,
+        usages: Vec<KeyUsage>,
+    ) -> Rc<Promise> {
+        // Step 1. Let key and usages be the key and keyUsages parameters passed to the
+        // getPublicKey() method, respectively.
+
+        // Step 2. Let algorithm be the [[algorithm]] internal slot of key.
+        let algorithm = key.algorithm();
+
+        // Step 3. If the cryptographic algorithm identified by algorithm does not support deriving
+        // a public key from a private key, then return a Promise rejected with a
+        // NotSupportedError.
+        //
+        // NOTE: We rely on [`normalize_algorithm`] to check whether the algorithm supports the
+        // getPublicKey operation.
+        let get_public_key_algorithm = match normalize_algorithm::<GetPublicKeyOperation>(
+            cx,
+            &AlgorithmIdentifier::String(DOMString::from(algorithm.name().as_str())),
+        ) {
+            Ok(normalized_algorithm) => normalized_algorithm,
+            Err(error) => {
+                let promise = Promise::new_in_realm(cx);
+                promise.reject_error(error, CanGc::from_cx(cx));
+                return promise;
+            },
+        };
+
+        // Step 4. Let realm be the relevant realm of this.
+        // Step 5. Let promise be a new Promise.
+        let promise = Promise::new_in_realm(cx);
+
+        // Step 6. Return promise and perform the remaining steps in parallel.
+        let trusted_subtle = Trusted::new(self);
+        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_key = Trusted::new(key);
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(get_public_key: move |cx| {
+                let subtle = trusted_subtle.root();
+                let promise = trusted_promise.root();
+                let key = trusted_key.root();
+
+                // Step 7. If the following steps or referenced procedures say to throw an error,
+                // queue a global task on the crypto task source, given realm's global object, to
+                // reject promise with the returned error; and then terminate the algorithm.
+
+                // Step 8. If the [[type]] internal slot of key is not "private", then throw an
+                // InvalidAccessError.
+                if key.Type() != KeyType::Private {
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "[[type]] internal slot of key is not \"private\"".to_string()
+                    )));
+                    return;
+                }
+
+                // Step 9. If usages contains an entry which is not supported for a public key by
+                // the algorithm identified by algorithm, then throw a SyntaxError.
+                // Step 10. Let publicKey be a new CryptoKey representing the public key
+                // corresponding to the private key represented by the [[handle]] internal slot of
+                // key.
+                // Step 11. If an error occurred, then throw a OperationError.
+                // Step 12. Set the [[type]] internal slot of publicKey to "public".
+                // Step 13. Set the [[algorithm]] internal slot of publicKey to algorithm.
+                // Step 14. Set the [[extractable]] internal slot of publicKey to true.
+                // Step 15. Set the [[usages]] internal slot of publicKey to usages.
+                //
+                // NOTE: We run these steps in the "getPublicKey" operations of the supported
+                // cryptographic algorithms.
+                let result = match get_public_key_algorithm.get_public_key(
+                    cx,
+                    &subtle.global(),
+                    &key,
+                    key.algorithm(),
+                    usages.clone(),
+                ) {
+                    Ok(public_key) => public_key,
+                    Err(error) => {
+                        subtle.reject_promise_with_error(promise, error);
+                        return;
+                    },
+                };
+
+                // Step 16. Queue a global task on the crypto task source, given realm's global
+                // object, to perform the remaining steps.
+                // Step 17. Let result be the result of converting publicKey to an ECMAScript
+                // Object in realm, as defined by [WebIDL].
+                // Step 18. Resolve promise with result.
+                subtle.resolve_promise_with_key(promise, result);
+            }));
+        promise
+    }
 }
 
 /// Alternative to std::convert::TryFrom, with `&mut js::context::JSContext`
@@ -4907,6 +5004,60 @@ impl DecapsulateAlgorithm {
         match self {
             DecapsulateAlgorithm::MlKem(algorithm) => {
                 ml_kem_operation::decapsulate(algorithm, key, ciphertext)
+            },
+        }
+    }
+}
+
+// The value of the key "getPublicKey" in the internal object supportedAlgorithms
+struct GetPublicKeyOperation {}
+
+impl Operation for GetPublicKeyOperation {
+    type RegisteredAlgorithm = GetPublicKeyAlgorithm;
+}
+
+/// Normalized algorithm for the "getPublicKey" operation, used as output of
+/// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
+enum GetPublicKeyAlgorithm {
+    X25519(SubtleAlgorithm),
+}
+
+impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
+    fn from_object_value(
+        cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
+        value: HandleValue,
+    ) -> Fallible<Self> {
+        match algorithm_name {
+            CryptoAlgorithm::X25519 => {
+                Ok(GetPublicKeyAlgorithm::X25519(value.try_into_with_cx(cx)?))
+            },
+            _ => Err(Error::NotSupported(Some(format!(
+                "{} does not support \"getPublicKey\" operation",
+                algorithm_name.as_str()
+            )))),
+        }
+    }
+
+    fn name(&self) -> CryptoAlgorithm {
+        match self {
+            GetPublicKeyAlgorithm::X25519(algorithm) => algorithm.name,
+        }
+    }
+}
+
+impl GetPublicKeyAlgorithm {
+    fn get_public_key(
+        &self,
+        cx: &mut js::context::JSContext,
+        global: &GlobalScope,
+        key: &CryptoKey,
+        algorithm: &KeyAlgorithmAndDerivatives,
+        usages: Vec<KeyUsage>,
+    ) -> Result<DomRoot<CryptoKey>, Error> {
+        match self {
+            GetPublicKeyAlgorithm::X25519(_algorithm) => {
+                x25519_operation::get_public_key(cx, global, key, algorithm, usages)
             },
         }
     }
