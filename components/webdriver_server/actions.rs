@@ -73,7 +73,6 @@ pub(crate) struct PendingPointerMove {
     start_y: f64,
     target_x: f64,
     target_y: f64,
-    tick_start: Instant,
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-pointer-input-source>
@@ -178,11 +177,11 @@ impl Handler {
                 return Err(ErrorStatus::InvalidArgument);
             }
 
-            let now = Instant::now();
+            let tick_start = Instant::now();
 
             // Step 1.3. Try to dispatch tick actions
-            self.dispatch_tick_actions(tick_actions, tick_duration)?;
-            self.process_pending_pointer_moves();
+            self.dispatch_tick_actions(tick_actions, tick_duration, &tick_start)?;
+            self.process_pending_pointer_moves(&tick_start);
             // Step 1.4.1
             // There are no pending asynchronous waits arising
             // from the last invocation of the dispatch tick actions steps.
@@ -200,10 +199,9 @@ impl Handler {
             // You can guarantee to catch it with `time.sleep` in the test.
             self.wait_for_input_event_handled()?;
             // At least tick duration milliseconds have passed.
-            let elapsed = now.elapsed().as_millis() as u64;
+            let elapsed = tick_start.elapsed().as_millis() as u64;
             if elapsed < tick_duration {
-                let sleep_duration = tick_duration - elapsed;
-                thread::sleep(Duration::from_millis(sleep_duration));
+                thread::sleep(Duration::from_millis(tick_duration - elapsed));
             }
         }
 
@@ -217,7 +215,7 @@ impl Handler {
     /// Step 9.1. Asynchronously wait for an implementation defined amount of time to pass.
     /// Step 9.2. Perform a pointer move with arguments input state,
     /// duration, start x, start y, target x, target y.
-    fn process_pending_pointer_moves(&mut self) {
+    fn process_pending_pointer_moves(&mut self, tick_start: &Instant) {
         while !self.pending_pointer_moves.is_empty() {
             let moves = std::mem::take(&mut self.pending_pointer_moves);
             thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
@@ -228,7 +226,6 @@ impl Handler {
                 start_y,
                 target_x,
                 target_y,
-                tick_start,
             } in moves
             {
                 self.perform_pointer_move(
@@ -253,6 +250,7 @@ impl Handler {
         &mut self,
         tick_actions: &TickActions,
         tick_duration: u64,
+        tick_start: &Instant,
     ) -> Result<(), ErrorStatus> {
         // Step 1. For each action object in tick actions:
         // Step 1.1. Let input_id be the value of the id property of action object.
@@ -301,7 +299,12 @@ impl Handler {
                 ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Move(
                     pointer_move_action,
                 ))) => {
-                    self.dispatch_pointermove_action(input_id, pointer_move_action, tick_duration)?;
+                    self.dispatch_pointermove_action(
+                        input_id,
+                        pointer_move_action,
+                        tick_duration,
+                        tick_start,
+                    )?;
                 },
                 ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Up(
                     pointer_up_action,
@@ -309,7 +312,12 @@ impl Handler {
                     self.dispatch_pointerup_action(input_id, pointer_up_action);
                 },
                 ActionItem::Wheel(WheelActionItem::Wheel(WheelAction::Scroll(scroll_action))) => {
-                    self.dispatch_scroll_action(input_id, scroll_action, tick_duration)?;
+                    self.dispatch_scroll_action(
+                        input_id,
+                        scroll_action,
+                        tick_duration,
+                        tick_start,
+                    )?;
                 },
                 ActionItem::Pointer(PointerActionItem::Pointer(PointerAction::Cancel)) => {
                     self.dispatch_pointercancel_action(input_id);
@@ -497,9 +505,8 @@ impl Handler {
         input_id: &str,
         action: &PointerMoveAction,
         tick_duration: u64,
+        tick_start: &Instant,
     ) -> Result<(), ErrorStatus> {
-        let tick_start = Instant::now();
-
         // Step 1. Let x offset be equal to the x property of action object.
         let x_offset = action.x;
 
@@ -561,7 +568,7 @@ impl Handler {
         start_y: f64,
         target_x: f64,
         target_y: f64,
-        tick_start: Instant,
+        tick_start: &Instant,
     ) {
         // Step 1. Let time delta be the time since the beginning of the
         // current tick, measured in milliseconds on a monotonic clock.
@@ -669,7 +676,6 @@ impl Handler {
             start_y,
             target_x,
             target_y,
-            tick_start,
         });
     }
 
@@ -679,12 +685,11 @@ impl Handler {
         input_id: &str,
         action: &WheelScrollAction,
         tick_duration: u64,
+        tick_start: &Instant,
     ) -> Result<(), ErrorStatus> {
         // <https://w3c.github.io/webdriver/#dfn-process-a-wheel-action>
         // The validation is normally done already by webdriver crate,
         // but it is not the case for this action currently.
-
-        let tick_start = Instant::now();
 
         // Step 1. Let x offset be equal to the x property of action object.
         let Some(x_offset) = action.x else {
@@ -767,7 +772,7 @@ impl Handler {
         target_delta_y: f64,
         mut curr_delta_x: f64,
         mut curr_delta_y: f64,
-        tick_start: Instant,
+        tick_start: &Instant,
     ) {
         loop {
             // Step 1. Let time delta be the time since the beginning of the current tick,
