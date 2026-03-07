@@ -292,10 +292,10 @@ partial interface SubtleCrypto {
     BufferSource ciphertext
   );
 
-  // Promise<CryptoKey> getPublicKey(
-  //   CryptoKey key,
-  //   sequence<KeyUsage> keyUsages
-  // );
+  Promise<CryptoKey> getPublicKey(
+    CryptoKey key,
+    sequence<KeyUsage> keyUsages
+  );
 
   // static boolean supports(DOMString operation,
   //                  AlgorithmIdentifier algorithm,
