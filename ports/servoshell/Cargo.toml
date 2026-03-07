@@ -14,7 +14,7 @@ path = "lib.rs"
 bench = false
 
 [[bin]]
-name = "servo"
+name = "servoshell"
 path = "main.rs"
 bench = false
 
@@ -33,10 +33,10 @@ cc = "1.2"
 winresource = "0.1"
 
 [package.metadata.winresource]
-FileDescription = "Servo"
+FileDescription = "ServoShell"
 LegalCopyright = "© The Servo Project Developers"
-OriginalFilename = "servo.exe"
-ProductName = "Servo"
+OriginalFilename = "servoshell.exe"
+ProductName = "ServoShell"
 
 [features]
 default = ["gamepad", "libservo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]

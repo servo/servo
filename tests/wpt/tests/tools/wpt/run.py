@@ -721,7 +721,7 @@ class Servo(BrowserSetup):
             binary = self.browser.find_binary(self.venv.path, None)
 
             if binary is None:
-                raise WptrunError("Unable to find servo binary in PATH")
+                raise WptrunError("Unable to find servoshell binary in PATH")
             kwargs["binary"] = binary
 
 
@@ -738,7 +738,7 @@ class ServoLegacy(Servo):
             binary = self.browser.find_binary(self.venv.path, None)
 
             if binary is None:
-                raise WptrunError("Unable to find servo binary in PATH")
+                raise WptrunError("Unable to find servoshell binary in PATH")
             kwargs["binary"] = binary
 
 

@@ -68,7 +68,7 @@ class BuildTarget(object):
         return self.target_triple
 
     def binary_name(self) -> str:
-        return f"servo{servo.platform.get().executable_suffix()}"
+        return f"servoshell{servo.platform.get().executable_suffix()}"
 
     def configure_build_environment(self, env: dict[str, str], config: dict[str, Any], topdir: pathlib.Path) -> None:
         pass

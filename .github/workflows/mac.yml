@@ -195,7 +195,7 @@ jobs:
         run: |
           echo "artifact_ids=${{ steps.upload-dmg.outputs.artifact-id }}" >> $GITHUB_OUTPUT
       - name: Build package for target
-        run: gtar -czf target.tar.gz target/${{ inputs.profile }}/servo target/${{ inputs.profile }}/lib/*.dylib resources
+        run: gtar -czf target.tar.gz target/${{ inputs.profile }}/servoshell target/${{ inputs.profile }}/lib/*.dylib resources
       - name: Upload package for target
         uses: actions/upload-artifact@v6
         with:
@@ -221,7 +221,7 @@ jobs:
       target: 'macos'
       profile: ${{ inputs.profile }}
       compressed-file-path: ${{ inputs.profile }}-binary-macos/target.tar.gz
-      binary-path: target/${{ inputs.profile }}/servo
+      binary-path: target/${{ inputs.profile }}/servoshell
       file-size: true
       speedometer: false
       dromaeo: false
