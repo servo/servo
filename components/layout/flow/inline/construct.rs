@@ -4,10 +4,7 @@
 
 use std::borrow::Cow;
 use std::char::{ToLowercase, ToUppercase};
-use std::str::FromStr;
 
-use icu_locid::LanguageIdentifier;
-use icu_locid::subtags::{Language, language};
 use icu_segmenter::WordSegmenter;
 use layout_api::wrapper_traits::{SharedSelection, ThreadSafeLayoutNode};
 use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
