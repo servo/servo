@@ -157,6 +157,7 @@ impl ReplacedContents {
                     node,
                     context,
                     &ComputedUrl::Valid(ServoArc::new(url)),
+                    None,
                 );
             }
         }
@@ -329,13 +330,16 @@ impl ReplacedContents {
         node: ServoThreadSafeLayoutNode<'_>,
         context: &LayoutContext,
         image_url: &ComputedUrl,
+        scale_factor: Option<CSSFloat>,
     ) -> Option<Self> {
         if let ComputedUrl::Valid(image_url) = image_url {
-            let (image, width, height) = match context.image_resolver.get_or_request_image_or_meta(
-                node.opaque(),
-                image_url.clone().into(),
-                LayoutImageDestination::BoxTreeConstruction,
-            ) {
+            let (image, mut width, mut height) = match context
+                .image_resolver
+                .get_or_request_image_or_meta(
+                    node.opaque(),
+                    image_url.clone().into(),
+                    LayoutImageDestination::BoxTreeConstruction,
+                ) {
                 LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                     ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
                         if let Image::Raster(image) = &image {
@@ -356,6 +360,14 @@ impl ReplacedContents {
                 },
                 LayoutImageCacheResult::Pending | LayoutImageCacheResult::LoadError => return None,
             };
+
+            if let Some((scale, image)) = scale_factor.zip(image.as_ref()) {
+                if image.as_raster_image().is_some() {
+                    width /= scale;
+                    height /= scale;
+                }
+            }
+
             return Some(Self {
                 kind: ReplacedContentKind::Image(ImageInfo {
                     image,
@@ -375,7 +387,9 @@ impl ReplacedContents {
         image: &ComputedImage,
     ) -> Option<Self> {
         match image {
-            ComputedImage::Url(image_url) => Self::from_image_url(element, context, image_url),
+            ComputedImage::Url(image_url) => {
+                Self::from_image_url(element, context, image_url, None)
+            },
             _ => None, // TODO
         }
     }
