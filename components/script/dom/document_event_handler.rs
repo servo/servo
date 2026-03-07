@@ -149,6 +149,8 @@ pub(crate) struct DocumentEventHandler {
     pending_input_events: DomRefCell<Vec<ConstellationInputEvent>>,
     /// The index of the last mouse move event in the pending input events queue.
     mouse_move_event_index: DomRefCell<Option<usize>>,
+    /// The index of the last wheel event in the pending input events queue.
+    wheel_event_index: DomRefCell<Option<usize>>,
     /// <https://w3c.github.io/uievents/#event-type-dblclick>
     click_counting_info: DomRefCell<ClickCountingInfo>,
     #[no_trace]
@@ -186,6 +188,7 @@ impl DocumentEventHandler {
             window: Dom::from_ref(window),
             pending_input_events: Default::default(),
             mouse_move_event_index: Default::default(),
+            wheel_event_index: Default::default(),
             click_counting_info: Default::default(),
             last_mouse_button_down_point: Default::default(),
             down_button_count: Cell::new(0),
@@ -218,6 +221,27 @@ impl DocumentEventHandler {
             *self.mouse_move_event_index.borrow_mut() = Some(pending_input_events.len());
         }
 
+        if let InputEvent::Wheel(ref new_wheel) = event.event.event {
+            // Coalesce with any existing pending wheel event by summing deltas.
+            if let Some(existing) = self
+                .wheel_event_index
+                .borrow()
+                .and_then(|index| pending_input_events.get_mut(index))
+            {
+                if let InputEvent::Wheel(ref mut existing_wheel) = existing.event.event {
+                    if existing_wheel.delta.mode == new_wheel.delta.mode {
+                        existing_wheel.delta.x += new_wheel.delta.x;
+                        existing_wheel.delta.y += new_wheel.delta.y;
+                        existing_wheel.delta.z += new_wheel.delta.z;
+                        existing_wheel.point = new_wheel.point;
+                        return;
+                    }
+                }
+            }
+
+            *self.wheel_event_index.borrow_mut() = Some(pending_input_events.len());
+        }
+
         pending_input_events.push(event);
     }
 
@@ -247,6 +271,7 @@ impl DocumentEventHandler {
 
         // Reset the mouse event index.
         *self.mouse_move_event_index.borrow_mut() = None;
+        *self.wheel_event_index.borrow_mut() = None;
         let pending_input_events = mem::take(&mut *self.pending_input_events.borrow_mut());
 
         for event in pending_input_events {
