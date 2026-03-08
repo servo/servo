@@ -65,9 +65,9 @@ impl From<StringOrStringSequence> for KeyPath {
 impl From<indexeddb::KeyPath> for KeyPath {
     fn from(value: indexeddb::KeyPath) -> Self {
         match value {
-            indexeddb::KeyPath::String(s) => KeyPath::String(DOMString::from_string(s)),
+            indexeddb::KeyPath::String(string) => KeyPath::String(string.into()),
             indexeddb::KeyPath::Sequence(ss) => {
-                KeyPath::StringSequence(ss.into_iter().map(DOMString::from_string).collect())
+                KeyPath::StringSequence(ss.into_iter().map(Into::into).collect())
             },
         }
     }

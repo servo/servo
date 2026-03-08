@@ -1130,7 +1130,7 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
         let value = HandleValue::from_raw(args.get(0));
 
         match NonNull::new(ToString(cx.raw_cx(), value)) {
-            Some(jsstr) => DOMString::from_string(jsstr_to_string(cx.raw_cx(), jsstr)),
+            Some(jsstr) => jsstr_to_string(cx.raw_cx(), jsstr).into(),
             None => return false,
         }
     };

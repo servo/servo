@@ -26,7 +26,6 @@ use crate::dom::bindings::codegen::Bindings::MediaSessionBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::weakref::MutableWeakRef;
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
@@ -145,9 +144,9 @@ impl MediaSessionMethods<crate::DomTypeHolder> for MediaSession {
     fn GetMetadata(&self, can_gc: CanGc) -> Option<DomRoot<MediaMetadata>> {
         if let Some(ref metadata) = *self.metadata.borrow() {
             let mut init = MediaMetadataInit::empty();
-            init.title = DOMString::from_string(metadata.title.clone());
-            init.artist = DOMString::from_string(metadata.artist.clone());
-            init.album = DOMString::from_string(metadata.album.clone());
+            init.title = metadata.title.clone().into();
+            init.artist = metadata.artist.clone().into();
+            init.album = metadata.album.clone().into();
             let global = self.global();
             Some(MediaMetadata::new(global.as_window(), &init, can_gc))
         } else {

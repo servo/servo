@@ -201,11 +201,8 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
 
     /// <https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
     fn set_href(&self, value: USVString, can_gc: CanGc) {
-        self.upcast::<Element>().set_string_attribute(
-            &local_name!("href"),
-            DOMString::from_string(value.0),
-            can_gc,
-        );
+        self.upcast::<Element>()
+            .set_string_attribute(&local_name!("href"), value.into(), can_gc);
 
         self.set_url();
     }

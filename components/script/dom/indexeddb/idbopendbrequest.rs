@@ -19,7 +19,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
@@ -141,13 +140,7 @@ impl IDBOpenDBRequest {
     ) -> DomRoot<IDBDatabase> {
         self.pending_connection.or_init(|| {
             debug_assert!(!upgraded, "A connection should exist for the upgraded db.");
-            IDBDatabase::new(
-                global,
-                DOMString::from_string(name.clone()),
-                self.get_id(),
-                version,
-                can_gc,
-            )
+            IDBDatabase::new(global, name.into(), self.get_id(), version, can_gc)
         })
     }
 

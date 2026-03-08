@@ -106,8 +106,7 @@ impl IDBDatabase {
     pub(crate) fn set_object_store_names_from_backend(&self, names: Vec<String>) {
         // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
         // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
-        *self.object_store_names.borrow_mut() =
-            names.into_iter().map(DOMString::from_string).collect();
+        *self.object_store_names.borrow_mut() = names.into_iter().map(Into::into).collect();
     }
 
     pub(crate) fn restore_object_store_names(&self, names: Vec<DOMString>) {

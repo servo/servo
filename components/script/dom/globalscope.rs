@@ -1315,9 +1315,7 @@ impl GlobalScope {
             }
 
             // - Check for a case-sensitive match for the name of the channel.
-            let channel_name = DOMString::from_string(channel_name);
-
-            if let Some(channels) = channels.get(&channel_name) {
+            if let Some(channels) = channels.get(&channel_name.into()) {
                 channels
                     .iter()
                     .filter(|channel| {

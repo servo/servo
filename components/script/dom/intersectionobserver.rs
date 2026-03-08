@@ -717,7 +717,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-rootmargin>
     fn RootMargin(&self) -> DOMString {
-        DOMString::from_string(self.root_margin.borrow().to_css_string())
+        self.root_margin.borrow().to_css_string().into()
     }
 
     /// > Offsets are applied to scrollports on the path from intersection root to target,
@@ -725,7 +725,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-scrollmargin>
     fn ScrollMargin(&self) -> DOMString {
-        DOMString::from_string(self.scroll_margin.borrow().to_css_string())
+        self.scroll_margin.borrow().to_css_string().into()
     }
 
     /// > A list of thresholds, sorted in increasing numeric order, where each threshold

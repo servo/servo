@@ -83,7 +83,7 @@ impl CSSLayerStatementRuleMethods<crate::DomTypeHolder> for CSSLayerStatementRul
             .borrow()
             .names
             .iter()
-            .map(|name| DOMString::from_string(name.to_css_string()))
+            .map(|name| name.to_css_string().into())
             .collect();
         to_frozen_array(names.as_slice(), cx, retval, can_gc)
     }

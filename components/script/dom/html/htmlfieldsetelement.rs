@@ -149,7 +149,7 @@ impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fieldset-type>
     fn Type(&self) -> DOMString {
-        DOMString::from_string(String::from("fieldset"))
+        "fieldset".into()
     }
 }
 

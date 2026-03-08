@@ -130,7 +130,7 @@ unsafe fn handle_value_to_string(cx: *mut jsapi::JSContext, value: HandleValue) 
     match std::ptr::NonNull::new(unsafe { JS_ValueToSource(cx, value) }) {
         Some(js_str) => {
             js_string.set(js_str.as_ptr());
-            DOMString::from_string(unsafe { jsstr_to_string(cx, js_str) })
+            unsafe { jsstr_to_string(cx, js_str) }.into()
         },
         None => "<error converting value to string>".into(),
     }
@@ -275,7 +275,7 @@ fn stringify_handle_value(message: HandleValue) -> DOMString {
     unsafe {
         if message.is_string() {
             let jsstr = std::ptr::NonNull::new(message.to_string()).unwrap();
-            return DOMString::from_string(jsstr_to_string(*cx, jsstr));
+            return jsstr_to_string(*cx, jsstr).into();
         }
         unsafe fn stringify_object_from_handle_value(
             cx: *mut jsapi::JSContext,

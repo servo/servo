@@ -477,7 +477,7 @@ impl DedicatedWorkerGlobalScope {
                 let global = DedicatedWorkerGlobalScope::new(
                     init,
                     webview_id,
-                    DOMString::from_string(worker_name),
+                    worker_name.into(),
                     worker_type,
                     worker_url,
                     devtools_mpsc_port,
