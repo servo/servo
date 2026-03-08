@@ -4,7 +4,7 @@
 
 #![allow(clippy::non_canonical_partial_ord_impl)]
 use std::borrow::{Cow, ToOwned};
-use std::cell::{Ref, RefCell};
+use std::cell::{Ref, RefCell, RefMut};
 use std::default::Default;
 use std::ops::Deref;
 use std::ptr::{self, NonNull};
@@ -110,6 +110,31 @@ impl DOMStringType {
             #[cfg(test)]
             DOMStringType::Latin1Vec(items) => items,
         }
+    }
+
+    fn ensure_rust_string(&mut self) -> &mut String {
+        let new_string = match self {
+            DOMStringType::Rust(string) => return string,
+            DOMStringType::JSString(rooted_traceable_box) => unsafe {
+                jsstr_to_string(
+                    Runtime::get().expect("JS runtime has shut down").as_ptr(),
+                    NonNull::new(rooted_traceable_box.get()).unwrap(),
+                )
+            },
+            #[cfg(test)]
+            DOMStringType::Latin1Vec(items) => {
+                let mut v = vec![0; items.len() * 2];
+                let real_size =
+                    encoding_rs::mem::convert_latin1_to_utf8(items.as_slice(), v.as_mut_slice());
+                v.truncate(real_size);
+
+                // Safety: convert_latin1_to_utf8 converts the raw bytes to utf8 and the
+                // buffer is the size specified in the documentation, so this should be safe.
+                unsafe { String::from_utf8_unchecked(v) }
+            },
+        };
+        *self = DOMStringType::Rust(new_string);
+        self.ensure_rust_string()
     }
 }
 
@@ -305,12 +330,7 @@ pub struct DOMString(RefCell<DOMStringType>);
 
 impl Clone for DOMString {
     fn clone(&self) -> Self {
-        self.make_rust();
-        if let DOMStringType::Rust(ref s) = *self.0.borrow() {
-            DOMString::from(s.to_owned())
-        } else {
-            unreachable!()
-        }
+        self.ensure_rust_string().clone().into()
     }
 }
 
@@ -349,34 +369,11 @@ impl DOMString {
         }
     }
 
-    /// Transforms the string into rust string if not yet a rust string.
-    fn make_rust(&self) {
-        let string = {
-            let inner = self.0.borrow();
-            match *inner {
-                DOMStringType::Rust(_) => return,
-                DOMStringType::JSString(ref rooted_traceable_box) => unsafe {
-                    jsstr_to_string(
-                        Runtime::get().expect("JS runtime has shut down").as_ptr(),
-                        NonNull::new(rooted_traceable_box.get()).unwrap(),
-                    )
-                },
-                #[cfg(test)]
-                DOMStringType::Latin1Vec(ref items) => {
-                    let mut v = vec![0; items.len() * 2];
-                    let real_size = encoding_rs::mem::convert_latin1_to_utf8(
-                        items.as_slice(),
-                        v.as_mut_slice(),
-                    );
-                    v.truncate(real_size);
-
-                    // Safety: convert_latin1_to_utf8 converts the raw bytes to utf8 and the
-                    // buffer is the size specified in the documentation, so this should be safe.
-                    unsafe { String::from_utf8_unchecked(v) }
-                },
-            }
-        };
-        *self.0.borrow_mut() = DOMStringType::Rust(string);
+    /// Transforms the internal storage of this [`DOMString`] into a Rust string if it is not
+    /// yet one. This will make a copy of the underlying string data.
+    fn ensure_rust_string(&self) -> RefMut<'_, String> {
+        let inner = self.0.borrow_mut();
+        RefMut::map(inner, |inner| inner.ensure_rust_string())
     }
 
     /// Debug the current  state of the string without modifying it.
@@ -400,7 +397,14 @@ impl DOMString {
 
     /// Returns the underlying rust string.
     pub fn str(&self) -> StringView<'_> {
-        self.make_rust();
+        {
+            let inner = self.0.borrow();
+            if let DOMStringType::Rust(..) = &*inner {
+                return StringView(inner);
+            }
+        }
+
+        self.ensure_rust_string();
         StringView(self.0.borrow())
     }
 
@@ -445,17 +449,17 @@ impl DOMString {
     }
 
     pub fn make_ascii_lowercase(&mut self) {
-        self.make_rust();
-        if let DOMStringType::Rust(ref mut s) = *self.0.borrow_mut() {
-            s.make_ascii_lowercase();
-        }
+        self.0
+            .borrow_mut()
+            .ensure_rust_string()
+            .make_ascii_lowercase();
     }
 
-    pub fn push_str(&mut self, s: &str) {
-        self.make_rust();
-        if let DOMStringType::Rust(ref mut string) = *self.0.borrow_mut() {
-            string.push_str(s)
-        }
+    pub fn push_str(&mut self, string_to_push: &str) {
+        self.0
+            .borrow_mut()
+            .ensure_rust_string()
+            .push_str(string_to_push);
     }
 
     pub fn strip_leading_and_trailing_ascii_whitespace(&mut self) {
@@ -463,19 +467,20 @@ impl DOMString {
             return;
         }
 
-        self.make_rust();
-        if let DOMStringType::Rust(ref mut s) = *self.0.borrow_mut() {
-            let trailing_whitespace_len = s
-                .trim_end_matches(|ref c| char::is_ascii_whitespace(c))
-                .len();
-            s.truncate(trailing_whitespace_len);
-            if s.is_empty() {
-                return;
-            }
-
-            let first_non_whitespace = s.find(|ref c| !char::is_ascii_whitespace(c)).unwrap();
-            s.replace_range(0..first_non_whitespace, "");
+        let mut inner = self.0.borrow_mut();
+        let string = inner.ensure_rust_string();
+        let trailing_whitespace_len = string
+            .trim_end_matches(|character: char| character.is_ascii_whitespace())
+            .len();
+        string.truncate(trailing_whitespace_len);
+        if string.is_empty() {
+            return;
         }
+
+        let first_non_whitespace = string
+            .find(|character: char| !character.is_ascii_whitespace())
+            .unwrap();
+        string.replace_range(0..first_non_whitespace, "");
     }
 
     /// This is a dom spec
@@ -483,23 +488,17 @@ impl DOMString {
         static RE: LazyLock<Regex> = LazyLock::new(|| {
             Regex::new(r"^-?(?:\d+\.\d+|\d+|\.\d+)(?:(e|E)(\+|\-)?\d+)?$").unwrap()
         });
-        self.make_rust();
 
-        if let DOMStringType::Rust(ref s) = *self.0.borrow() {
-            RE.is_match(s) && self.parse_floating_point_number().is_some()
-        } else {
-            unreachable!()
-        }
+        RE.is_match(self.0.borrow_mut().ensure_rust_string()) &&
+            self.parse_floating_point_number().is_some()
     }
 
     pub fn parse<T: FromStr>(&self) -> Result<T, <T as FromStr>::Err> {
-        self.make_rust();
         self.str().parse::<T>()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values>
     pub fn parse_floating_point_number(&self) -> Option<f64> {
-        self.make_rust();
         parse_floating_point_number(&self.str())
     }
 
@@ -514,37 +513,33 @@ impl DOMString {
     }
 
     pub fn to_lowercase(&self) -> String {
-        self.make_rust();
         self.str().to_lowercase()
     }
 
     pub fn to_uppercase(&self) -> String {
-        self.make_rust();
         self.str().to_uppercase()
     }
 
     pub fn strip_newlines(&mut self) {
         // > To strip newlines from a string, remove any U+000A LF and U+000D CR code
         // > points from the string.
-        self.make_rust();
-        if let DOMStringType::Rust(ref mut s) = *self.0.borrow_mut() {
-            s.retain(|c| c != '\r' && c != '\n');
-        }
+        self.0
+            .borrow_mut()
+            .ensure_rust_string()
+            .retain(|character| character != '\r' && character != '\n');
     }
 
     /// Normalize newlines according to <https://infra.spec.whatwg.org/#normalize-newlines>.
     pub fn normalize_newlines(&mut self) {
-        self.make_rust();
         // > To normalize newlines in a string, replace every U+000D CR U+000A LF code point
         // > pair with a single U+000A LF code point, and then replace every remaining
         // > U+000D CR code point with a U+000A LF code point.
-        if let DOMStringType::Rust(ref mut s) = *self.0.borrow_mut() {
-            *s = s.replace("\r\n", "\n").replace("\r", "\n")
-        }
+        let mut inner = self.0.borrow_mut();
+        let string = inner.ensure_rust_string();
+        *string = string.replace("\r\n", "\n").replace("\r", "\n")
     }
 
     pub fn replace(self, needle: &str, replace_char: &str) -> DOMString {
-        self.make_rust();
         let new_string = self.str().to_owned();
         DOMString(RefCell::new(DOMStringType::Rust(
             new_string.replace(needle, replace_char),
@@ -554,7 +549,6 @@ impl DOMString {
     /// Pattern is not yet stable in rust, hence, we need different methods for str and char
     pub fn starts_with(&self, c: char) -> bool {
         if !c.is_ascii() {
-            self.make_rust();
             self.str().starts_with(c)
         } else {
             match self.view().encoded_bytes() {
@@ -567,12 +561,10 @@ impl DOMString {
     }
 
     pub fn starts_with_str(&self, needle: &str) -> bool {
-        self.make_rust();
         self.str().starts_with(needle)
     }
 
     pub fn contains(&self, needle: &str) -> bool {
-        self.make_rust();
         self.str().contains(needle)
     }
 
@@ -608,7 +600,6 @@ impl DOMString {
         if let Some(conversion) = conversion {
             conversion
         } else {
-            self.make_rust();
             self.str().to_ascii_lowercase()
         }
     }
@@ -658,7 +649,7 @@ impl DOMString {
         if self.is_ascii() {
             BytesView(self.0.borrow())
         } else {
-            self.make_rust();
+            self.ensure_rust_string();
             BytesView(self.0.borrow())
         }
     }
@@ -743,26 +734,19 @@ impl Deref for BytesView<'_> {
 
 impl Ord for DOMString {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.make_rust();
-        other.make_rust();
         self.str().cmp(&other.str())
     }
 }
 
 impl PartialOrd for DOMString {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.make_rust();
-        other.make_rust();
         self.str().partial_cmp(&other.str())
     }
 }
 
 impl Extend<char> for DOMString {
     fn extend<T: IntoIterator<Item = char>>(&mut self, iter: T) {
-        self.make_rust();
-        if let DOMStringType::Rust(ref mut s) = *self.0.borrow_mut() {
-            s.extend(iter)
-        }
+        self.0.borrow_mut().ensure_rust_string().extend(iter)
     }
 }
 
@@ -793,14 +777,12 @@ impl ToJSValConvertible for DOMString {
 
 impl std::hash::Hash for DOMString {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.make_rust();
         self.str().hash(state);
     }
 }
 
 impl std::fmt::Display for DOMString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        self.make_rust();
         fmt::Display::fmt(self.str().deref(), f)
     }
 }
@@ -814,7 +796,6 @@ impl std::cmp::PartialEq<str> for DOMString {
                     EncodedBytes::Utf8Bytes(s) => s,
                 }
         } else {
-            self.make_rust();
             self.str().deref() == other
         }
     }
@@ -829,7 +810,6 @@ impl std::cmp::PartialEq<&str> for DOMString {
                     EncodedBytes::Utf8Bytes(s) => s,
                 }
         } else {
-            self.make_rust();
             self.str().deref() == *other
         }
     }
@@ -844,7 +824,6 @@ impl std::cmp::PartialEq<String> for DOMString {
                     EncodedBytes::Utf8Bytes(s) => s,
                 }
         } else {
-            self.make_rust();
             self.str().deref() == other
         }
     }
@@ -885,8 +864,6 @@ impl std::cmp::PartialEq for DOMString {
         if let Some(eq_result) = result {
             eq_result
         } else {
-            self.make_rust();
-            other.make_rust();
             self.str() == other.str()
         }
     }
@@ -932,14 +909,12 @@ impl From<DOMString> for Atom {
 
 impl From<DOMString> for String {
     fn from(val: DOMString) -> Self {
-        val.make_rust();
         val.str().to_owned()
     }
 }
 
 impl From<DOMString> for Vec<u8> {
     fn from(value: DOMString) -> Self {
-        value.make_rust();
         value.str().as_bytes().to_vec()
     }
 }
@@ -1091,12 +1066,12 @@ mod tests {
         assert_eq!(s5.len(), s5_utf8.len());
         assert_eq!(s6.len(), s6_utf8.len());
 
-        s1.make_rust();
-        s2.make_rust();
-        s3.make_rust();
-        s4.make_rust();
-        s5.make_rust();
-        s6.make_rust();
+        s1.ensure_rust_string();
+        s2.ensure_rust_string();
+        s3.ensure_rust_string();
+        s4.ensure_rust_string();
+        s5.ensure_rust_string();
+        s6.ensure_rust_string();
         assert_eq!(s1.len(), s1_utf8.len());
         assert_eq!(s2.len(), s2_utf8.len());
         assert_eq!(s3.len(), s3_utf8.len());
@@ -1108,7 +1083,7 @@ mod tests {
     #[test]
     fn test_convert() {
         let s = from_latin1(vec![b'a', b'b', b'c', b'%', b'$']);
-        s.make_rust();
+        s.ensure_rust_string();
         assert_eq!(&*s.str(), "abc%$");
     }
 
@@ -1156,7 +1131,7 @@ mod tests {
 
         let s = from_latin1(vec![b'a', b'b', b'c', b'%', b'$', 0xB2]);
         let s_converted = from_latin1(vec![b'a', b'b', b'c', b'%', b'$', 0xB2]);
-        s_converted.make_rust();
+        s_converted.ensure_rust_string();
         let s2 = DOMString::from("abc%$²");
 
         let hash_s = hash_value(&s);
@@ -1312,14 +1287,14 @@ mod tests {
             ]);
 
             s.strip_leading_and_trailing_ascii_whitespace();
-            s.make_rust();
+            s.ensure_rust_string();
             assert_eq!(&*s.str(), "abc%$²");
         }
         {
             let mut s = DOMString::from("   \n  abc%$ ");
 
             s.strip_leading_and_trailing_ascii_whitespace();
-            s.make_rust();
+            s.ensure_rust_string();
             assert_eq!(&*s.str(), "abc%$");
         }
     }
@@ -1329,32 +1304,32 @@ mod tests {
     fn contains_html_space_characters() {
         let s = from_latin1(vec![b'a', b'a', b'a', ASCII_TAB, b'a', b'a']); // TAB
         assert!(s.contains_html_space_characters());
-        s.make_rust();
+        s.ensure_rust_string();
         assert!(s.contains_html_space_characters());
 
         let s = from_latin1(vec![b'a', b'a', b'a', ASCII_NEWLINE, b'a', b'a']); // NEWLINE
         assert!(s.contains_html_space_characters());
-        s.make_rust();
+        s.ensure_rust_string();
         assert!(s.contains_html_space_characters());
 
         let s = from_latin1(vec![b'a', b'a', b'a', ASCII_FORMFEED, b'a', b'a']); // FF
         assert!(s.contains_html_space_characters());
-        s.make_rust();
+        s.ensure_rust_string();
         assert!(s.contains_html_space_characters());
 
         let s = from_latin1(vec![b'a', b'a', b'a', ASCII_CR, b'a', b'a']); // Carriage Return
         assert!(s.contains_html_space_characters());
-        s.make_rust();
+        s.ensure_rust_string();
         assert!(s.contains_html_space_characters());
 
         let s = from_latin1(vec![b'a', b'a', b'a', ASCII_SPACE, b'a', b'a']); // SPACE
         assert!(s.contains_html_space_characters());
-        s.make_rust();
+        s.ensure_rust_string();
         assert!(s.contains_html_space_characters());
 
         let s = from_latin1(vec![b'a', b'a', b'a', b'a', b'a']);
         assert!(!s.contains_html_space_characters());
-        s.make_rust();
+        s.ensure_rust_string();
         assert!(!s.contains_html_space_characters());
     }
 
