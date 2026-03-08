@@ -5,6 +5,7 @@
 use std::cell::UnsafeCell;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
+use std::rc::Rc;
 use std::{fmt, mem, ptr};
 
 use js::gc::Traceable as JSTraceable;
@@ -259,6 +260,17 @@ where
     pub unsafe fn from_box(value: Box<T>) -> Self {
         Self {
             ptr: Box::leak(value).into(),
+        }
+    }
+
+    /// Create a new MaybeUnreflectedDom value from the given boxed DOM object.
+    ///
+    /// # Safety
+    /// TODO: unclear why this is marked unsafe.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    pub unsafe fn from_rc(value: Rc<T>) -> Self {
+        Self {
+            ptr: ptr::NonNull::new(Rc::into_raw(value) as *mut T).unwrap(),
         }
     }
 }
