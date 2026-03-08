@@ -12,6 +12,7 @@ from typing import Optional
 from .base import Base
 from .build_target import BuildTarget
 
+
 class FreeBSD(Base):
     def gstreamer_root(self, target: BuildTarget) -> Optional[str]:
         return None

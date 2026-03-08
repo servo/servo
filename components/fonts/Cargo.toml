@@ -62,11 +62,11 @@ objc2-core-foundation = { workspace = true }
 objc2-core-graphics = { workspace = true }
 objc2-core-text = { workspace = true }
 
-[target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
+[target.'cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))'.dependencies]
 freetype-sys = { workspace = true }
 servo_allocator = { package = "servo-allocator", path = "../allocator" }
 
-[target.'cfg(all(target_os = "linux", not(target_env = "ohos")))'.dependencies]
+[target.'cfg(all(any(target_os = "linux", target_os = "freebsd"), not(target_env = "ohos")))'.dependencies]
 fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }
 
 [target.'cfg(target_os = "android")'.dependencies]
