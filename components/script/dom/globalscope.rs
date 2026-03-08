@@ -114,7 +114,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::global_scope_script_execution::{compile_script, evaluate_script};
+use crate::dom::global_scope_script_execution::{ErrorReporting, compile_script, evaluate_script};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -2849,7 +2849,7 @@ impl GlobalScope {
         code: Cow<'_, str>,
         filename: &str,
         introduction_type: Option<&'static CStr>,
-        rval: MutableHandleValue,
+        rval: Option<MutableHandleValue>,
     ) -> Result<(), JavaScriptEvaluationError> {
         let in_realm_proof = cx.into();
         let in_realm = InRealm::Already(&in_realm_proof);
@@ -2858,6 +2858,8 @@ impl GlobalScope {
             let url = self.api_base_url();
             let fetch_options = ScriptFetchOptions::default_classic_script(self);
 
+            let no_script_rval = rval.is_none();
+
             rooted!(&in(cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
             compiled_script.set(compile_script(
                 cx.into(),
@@ -2865,6 +2867,8 @@ impl GlobalScope {
                 filename,
                 1,
                 introduction_type,
+                ErrorReporting::Unmuted,
+                no_script_rval,
             ));
 
             if compiled_script.is_null() {
@@ -2874,6 +2878,12 @@ impl GlobalScope {
             }
 
             let script = NonNull::new(*compiled_script).expect("Can't be null");
+
+            rooted!(&in(cx) let mut value = UndefinedValue());
+            let rval = match rval {
+                Some(rval) => rval,
+                None => value.handle_mut(),
+            };
 
             if !evaluate_script(cx.into(), script, url, fetch_options, rval) {
                 let error_info = take_and_report_pending_exception_for_api(cx);

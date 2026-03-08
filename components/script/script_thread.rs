@@ -3786,7 +3786,7 @@ impl ScriptThread {
             script_source,
             "",
             Some(IntroductionType::JAVASCRIPT_URL),
-            jsval.handle_mut(),
+            Some(jsval.handle_mut()),
         );
 
         load_data.js_eval_result = if jsval.get().is_string() {
@@ -4246,7 +4246,7 @@ impl ScriptThread {
             script.into(),
             "",
             None, // No known `introductionType` for JS code from embedder
-            return_value.handle_mut(),
+            Some(return_value.handle_mut()),
         ) {
             _ = self.senders.pipeline_to_constellation_sender.send((
                 webview_id,
