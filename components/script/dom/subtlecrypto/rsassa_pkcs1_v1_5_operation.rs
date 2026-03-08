@@ -182,3 +182,22 @@ pub(crate) fn import_key(
 pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     rsa_common::export_key(RsaAlgorithm::RsassaPkcs1v1_5, format, key)
 }
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+/// Step 9 - 15, for RSASSA-PKCS1-v1_5
+pub(crate) fn get_public_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    key: &CryptoKey,
+    algorithm: &KeyAlgorithmAndDerivatives,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    rsa_common::get_public_key(
+        RsaAlgorithm::RsassaPkcs1v1_5,
+        cx,
+        global,
+        key,
+        algorithm,
+        usages,
+    )
+}
