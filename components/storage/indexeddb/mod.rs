@@ -1171,21 +1171,16 @@ impl IndexedDBManager {
 
         let store_names = match db.object_store_names() {
             Ok(names) => names,
-            Err(err) => {
-                debug_assert!(
-                    false,
-                    "Fetching object store names should not fail: {}",
-                    err
-                );
-                Vec::new()
-            },
+            Err(_) => Vec::new(),
         };
         for store_name in store_names {
             let delete_result = db.delete_object_store(&store_name);
-            debug_assert!(
-                delete_result.is_ok(),
-                "Deleting object store during rollback should not fail."
-            );
+            if let Err(err) = delete_result {
+                error!(
+                    "Failed to delete object store '{}' during upgrade abort: {:?}",
+                    store_name, err
+                );
+            }
         }
     }
 
