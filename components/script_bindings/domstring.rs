@@ -78,6 +78,12 @@ enum DOMStringType {
     Latin1Vec(Vec<u8>),
 }
 
+impl Default for DOMStringType {
+    fn default() -> Self {
+        Self::Rust(Default::default())
+    }
+}
+
 impl DOMStringType {
     /// Returns the str if Rust and otherwise panic. You need to call `make_rust`.
     fn str(&self) -> &str {
@@ -294,7 +300,7 @@ impl EncodedBytesView<'_> {
 /// You should assume that all the functions incur the conversion cost.
 ///
 #[repr(transparent)]
-#[derive(Debug, MallocSizeOf, JSTraceable)]
+#[derive(Debug, Default, MallocSizeOf, JSTraceable)]
 pub struct DOMString(RefCell<DOMStringType>);
 
 impl Clone for DOMString {
@@ -315,7 +321,7 @@ pub enum DOMStringErrorType {
 impl DOMString {
     /// Creates a new `DOMString`.
     pub fn new() -> DOMString {
-        DOMString(RefCell::new(DOMStringType::Rust(String::new())))
+        Default::default()
     }
 
     /// Creates the string from js. If the string can be encoded in latin1, just take the reference
@@ -796,12 +802,6 @@ impl std::fmt::Display for DOMString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.make_rust();
         fmt::Display::fmt(self.str().deref(), f)
-    }
-}
-
-impl Default for DOMString {
-    fn default() -> Self {
-        DOMString::new()
     }
 }
 
