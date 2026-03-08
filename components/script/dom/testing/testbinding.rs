@@ -895,12 +895,11 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             .unwrap_or(false)
     }
     fn StringMozPreference(&self, pref_name: DOMString) -> DOMString {
-        DOMString::from_string(
-            prefs::get()
-                .get_value(&pref_name.str())
-                .try_into()
-                .unwrap_or_default(),
-        )
+        let string: String = prefs::get()
+            .get_value(&pref_name.str())
+            .try_into()
+            .unwrap_or_default();
+        string.into()
     }
     fn PrefControlledAttributeDisabled(&self) -> bool {
         false

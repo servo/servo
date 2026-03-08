@@ -634,10 +634,10 @@ impl IDBTransaction {
         // First unwrap for ipc
         // Second unwrap will never happen unless this db gets manually deleted somehow
         let key_path = object_store.key_path.map(|key_path| match key_path {
-            KeyPath::String(s) => StringOrStringSequence::String(DOMString::from_string(s)),
-            KeyPath::Sequence(seq) => StringOrStringSequence::StringSequence(
-                seq.into_iter().map(DOMString::from_string).collect(),
-            ),
+            KeyPath::String(string) => StringOrStringSequence::String(string.into()),
+            KeyPath::Sequence(seq) => {
+                StringOrStringSequence::StringSequence(seq.into_iter().map(Into::into).collect())
+            },
         });
         Some((
             IDBObjectStoreParameters {
@@ -697,7 +697,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         if let Some(indexes) = parameters.map(|(_, indexes, _)| indexes) {
             for index in indexes {
                 store.add_index(
-                    DOMString::from_string(index.name),
+                    index.name.into(),
                     &IDBIndexParameters {
                         multiEntry: index.multi_entry,
                         unique: index.unique,

@@ -2469,7 +2469,7 @@ impl HTMLInputElement {
                     .parse_local_date_time_string()
                     .map(|date_time| date_time.to_local_date_time_string());
                 match time {
-                    Some(normalized_string) => *value = DOMString::from_string(normalized_string),
+                    Some(normalized_string) => *value = normalized_string.into(),
                     None => value.clear(),
                 }
             },
@@ -2847,7 +2847,7 @@ impl HTMLInputElement {
     /// This does the safe Rust part of conversion; the unsafe JS Date part
     /// is in SetValueAsDate
     fn convert_datetime_to_dom_string(&self, value: OffsetDateTime) -> DOMString {
-        DOMString::from_string(match self.input_type() {
+        match self.input_type() {
             InputType::Date => value.to_date_string(),
             InputType::Month => value.to_month_string(),
             InputType::Week => value.to_week_string(),
@@ -2856,7 +2856,8 @@ impl HTMLInputElement {
             _ => {
                 unreachable!("Should not have called convert_datetime_to_string for non-Date types")
             },
-        })
+        }
+        .into()
     }
 
     fn update_related_validity_states(&self, can_gc: CanGc) {

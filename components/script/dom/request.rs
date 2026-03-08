@@ -686,8 +686,7 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
 
     /// <https://fetch.spec.whatwg.org/#dom-request-integrity>
     fn Integrity(&self) -> DOMString {
-        let r = self.request.borrow();
-        DOMString::from_string(r.integrity_metadata.clone())
+        self.request.borrow().integrity_metadata.clone().into()
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-keepalive>

@@ -125,7 +125,7 @@ impl GPUAdapter {
         // adapterInfo.vendor to the empty string or a reasonable approximation of the vendor as a
         // normalized identifier string.
         let vendor = if info.vendor != 0 {
-            DOMString::from_string(info.vendor.to_string())
+            info.vendor.to_string().into()
         } else {
             DOMString::new()
         };
@@ -144,7 +144,7 @@ impl GPUAdapter {
         // agent may instead set adapterInfo.device to to the empty string or a reasonable
         // approximation of a vendor-specific identifier as a normalized identifier string.
         let device = if info.device != 0 {
-            DOMString::from_string(info.device.to_string())
+            info.device.to_string().into()
         } else {
             DOMString::new()
         };
@@ -153,7 +153,7 @@ impl GPUAdapter {
         // adapter as reported by the driver. To preserve privacy, the user agent may instead set
         // adapterInfo.description to the empty string or a reasonable approximation of a
         // description.
-        let description = DOMString::from_string(info.name.clone());
+        let description = info.name.clone().into();
 
         // Step 6. If "subgroups" is supported, set subgroupMinSize to the smallest supported
         // subgroup size. Otherwise, set this value to 4.
