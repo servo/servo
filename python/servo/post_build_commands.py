@@ -30,6 +30,7 @@ from servo.command_base import (
     CommandBase,
     check_call,
     is_linux,
+    is_freebsd,
 )
 from servo.platform.build_target import is_android
 
@@ -101,8 +102,8 @@ class PostBuildCommands(CommandBase):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
         if software:
-            if not is_linux():
-                print("Software rendering is only supported on Linux at the moment.")
+            if not (is_linux() or is_freebsd()):
+                print("Software rendering is only supported on Linux and FreeBSD at the moment.")
                 return
 
             env["LIBGL_ALWAYS_SOFTWARE"] = "1"
