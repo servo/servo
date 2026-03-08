@@ -1169,10 +1169,7 @@ impl IndexedDBManager {
             "Setting a db version should not fail."
         );
 
-        let store_names = match db.object_store_names() {
-            Ok(names) => names,
-            Err(_) => Vec::new(),
-        };
+        let store_names = db.object_store_names().unwrap_or_default();
         for store_name in store_names {
             let delete_result = db.delete_object_store(&store_name);
             if let Err(err) = delete_result {
