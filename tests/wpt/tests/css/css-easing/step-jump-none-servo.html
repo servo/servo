@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Animations Test: animation-timing-function steps(3, jump-none)</title>
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<link rel="help" href="https://github.com/servo/servo/issues/43060">
+<link rel="help" href="https://drafts.csswg.org/css-easing/#typedef-step-position">
+<link rel="match" href="step-jump-none-servo-ref.html">
+
+<style>
+  .container {
+    width: 150px;
+    height: 50px;
+    background: #eee;
+  }
+  .box {
+    width: 50px;
+    height: 50px;
+    background: green;
+    animation: move 3s steps(3, jump-none) paused -1s;
+  }
+
+  @keyframes move {
+    from { transform: translateX(0px); }
+    to   { transform: translateX(100px); }
+  }
+</style>
+
+<p>Test passes if the green box is in the <strong>middle</strong> of the gray bar.</p>
+<div class="container">
+  <div class="box"></div>
+</div>
