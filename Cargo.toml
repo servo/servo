@@ -306,6 +306,12 @@ codegen-units = 1
 # web_atoms = { path = "../html5ever/web_atoms" }
 # xml5ever = { path = "../html5ever/xml5ever" }
 # tendril = { path = "../html5ever/tendril" }
+
+# For WebRender:
+#
+# webrender = { path = "../webrender/webrender" }
+# webrender_api = { path = "../webrender/webrender_api" }
+# wr_malloc_size_of = { path = "../webrender/wr_malloc_size_of" }
 #
 # Or for mozjs:
 #
@@ -329,13 +335,6 @@ egui-winit = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e0517
 # stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
 # stylo_static_prefs = { path = "../stylo/stylo_static_prefs" }
 # stylo_traits = { path = "../stylo/style_traits" }
-#
-# Or for WebRender:
-#
-# [patch."https://github.com/servo/webrender"]
-# webrender = { path = "../webrender/webrender" }
-# webrender_api = { path = "../webrender/webrender_api" }
-# wr_malloc_size_of = { path = "../webrender/wr_malloc_size_of" }
 #
 # Or for another Git dependency:
 #
