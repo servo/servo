@@ -5019,6 +5019,9 @@ impl Operation for GetPublicKeyOperation {
 /// Normalized algorithm for the "getPublicKey" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
 enum GetPublicKeyAlgorithm {
+    RsassaPkcs1v1_5(SubtleAlgorithm),
+    RsaPss(SubtleAlgorithm),
+    RsaOaep(SubtleAlgorithm),
     X25519(SubtleAlgorithm),
 }
 
@@ -5029,6 +5032,15 @@ impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
         value: HandleValue,
     ) -> Fallible<Self> {
         match algorithm_name {
+            CryptoAlgorithm::RsassaPkcs1V1_5 => Ok(GetPublicKeyAlgorithm::RsassaPkcs1v1_5(
+                value.try_into_with_cx(cx)?,
+            )),
+            CryptoAlgorithm::RsaPss => {
+                Ok(GetPublicKeyAlgorithm::RsaPss(value.try_into_with_cx(cx)?))
+            },
+            CryptoAlgorithm::RsaOaep => {
+                Ok(GetPublicKeyAlgorithm::RsaOaep(value.try_into_with_cx(cx)?))
+            },
             CryptoAlgorithm::X25519 => {
                 Ok(GetPublicKeyAlgorithm::X25519(value.try_into_with_cx(cx)?))
             },
@@ -5041,6 +5053,9 @@ impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
 
     fn name(&self) -> CryptoAlgorithm {
         match self {
+            GetPublicKeyAlgorithm::RsassaPkcs1v1_5(algorithm) => algorithm.name,
+            GetPublicKeyAlgorithm::RsaPss(algorithm) => algorithm.name,
+            GetPublicKeyAlgorithm::RsaOaep(algorithm) => algorithm.name,
             GetPublicKeyAlgorithm::X25519(algorithm) => algorithm.name,
         }
     }
@@ -5056,6 +5071,15 @@ impl GetPublicKeyAlgorithm {
         usages: Vec<KeyUsage>,
     ) -> Result<DomRoot<CryptoKey>, Error> {
         match self {
+            GetPublicKeyAlgorithm::RsassaPkcs1v1_5(_algorithm) => {
+                rsassa_pkcs1_v1_5_operation::get_public_key(cx, global, key, algorithm, usages)
+            },
+            GetPublicKeyAlgorithm::RsaPss(_algorithm) => {
+                rsa_pss_operation::get_public_key(cx, global, key, algorithm, usages)
+            },
+            GetPublicKeyAlgorithm::RsaOaep(_algorithm) => {
+                rsa_oaep_operation::get_public_key(cx, global, key, algorithm, usages)
+            },
             GetPublicKeyAlgorithm::X25519(_algorithm) => {
                 x25519_operation::get_public_key(cx, global, key, algorithm, usages)
             },
