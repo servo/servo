@@ -5420,9 +5420,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://dom.spec.whatwg.org/#dom-document-createelement>
     fn CreateElement(
         &self,
+        cx: &mut js::context::JSContext,
         mut local_name: DOMString,
         options: StringOrElementCreationOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
         // Step 1. If localName is not a valid element local name,
         //      then throw an "InvalidCharacterError" DOMException.
@@ -5455,17 +5455,17 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         ))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createelementns>
     fn CreateElementNS(
         &self,
+        cx: &mut js::context::JSContext,
         namespace: Option<DOMString>,
         qualified_name: DOMString,
         options: StringOrElementCreationOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Element>> {
         // Step 1. Let (namespace, prefix, localName) be the result of
         //      validating and extracting namespace and qualifiedName given "element".
@@ -5491,7 +5491,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         ))
     }
 
@@ -5764,7 +5764,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#document.title>
-    fn SetTitle(&self, title: DOMString, can_gc: CanGc) {
+    fn SetTitle(&self, cx: &mut js::context::JSContext, title: DOMString) {
         let root = match self.GetDocumentElement() {
             Some(root) => root,
             None => return,
@@ -5785,12 +5785,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                         ElementCreator::ScriptCreated,
                         CustomElementCreationMode::Synchronous,
                         None,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent
-                        .InsertBefore(child, parent.GetFirstChild().as_deref(), can_gc)
+                        .InsertBefore(child, parent.GetFirstChild().as_deref(), CanGc::from_cx(cx))
                         .unwrap()
                 },
             }
@@ -5811,10 +5811,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                             ElementCreator::ScriptCreated,
                             CustomElementCreationMode::Synchronous,
                             None,
-                            can_gc,
+                            CanGc::from_cx(cx),
                         );
                         head.upcast::<Node>()
-                            .AppendChild(elem.upcast(), can_gc)
+                            .AppendChild(elem.upcast(), CanGc::from_cx(cx))
                             .unwrap()
                     },
                     None => return,
@@ -5824,7 +5824,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return;
         };
 
-        node.set_text_content_for_element(Some(title), can_gc);
+        node.set_text_content_for_element(Some(title), CanGc::from_cx(cx));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-head>

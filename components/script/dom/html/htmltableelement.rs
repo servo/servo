@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_unsigned_integer};
 use style::color::AbsoluteColor;
@@ -144,8 +145,8 @@ impl HTMLTableElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-table-createtfoot>
     fn create_section_of_type(
         &self,
+        cx: &mut JSContext,
         atom: &LocalName,
-        can_gc: CanGc,
     ) -> DomRoot<HTMLTableSectionElement> {
         if let Some(section) = self.get_first_section_of_type(atom) {
             return section;
@@ -158,7 +159,7 @@ impl HTMLTableElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         let section = DomRoot::downcast::<HTMLTableSectionElement>(section).unwrap();
@@ -231,7 +232,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-createcaption>
-    fn CreateCaption(&self, can_gc: CanGc) -> DomRoot<HTMLTableCaptionElement> {
+    fn CreateCaption(&self, cx: &mut JSContext) -> DomRoot<HTMLTableCaptionElement> {
         match self.GetCaption() {
             Some(caption) => caption,
             None => {
@@ -242,7 +243,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Asynchronous,
                     None,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 let caption = DomRoot::downcast::<HTMLTableCaptionElement>(caption).unwrap();
 
@@ -276,8 +277,8 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-createthead>
-    fn CreateTHead(&self, can_gc: CanGc) -> DomRoot<HTMLTableSectionElement> {
-        self.create_section_of_type(&local_name!("thead"), can_gc)
+    fn CreateTHead(&self, cx: &mut JSContext) -> DomRoot<HTMLTableSectionElement> {
+        self.create_section_of_type(cx, &local_name!("thead"))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-deletethead>
@@ -314,8 +315,8 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-createtfoot>
-    fn CreateTFoot(&self, can_gc: CanGc) -> DomRoot<HTMLTableSectionElement> {
-        self.create_section_of_type(&local_name!("tfoot"), can_gc)
+    fn CreateTFoot(&self, cx: &mut JSContext) -> DomRoot<HTMLTableSectionElement> {
+        self.create_section_of_type(cx, &local_name!("tfoot"))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-deletetfoot>
@@ -340,7 +341,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-createtbody>
-    fn CreateTBody(&self, can_gc: CanGc) -> DomRoot<HTMLTableSectionElement> {
+    fn CreateTBody(&self, cx: &mut JSContext) -> DomRoot<HTMLTableSectionElement> {
         let tbody = Element::create(
             QualName::new(None, ns!(html), local_name!("tbody")),
             None,
@@ -348,7 +349,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         let tbody = DomRoot::downcast::<HTMLTableSectionElement>(tbody).unwrap();
         let node = self.upcast::<Node>();
@@ -358,13 +359,17 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &local_name!("tbody"));
         let reference_element = last_tbody.and_then(|t| t.upcast::<Node>().GetNextSibling());
 
-        node.InsertBefore(tbody.upcast(), reference_element.as_deref(), can_gc)
-            .expect("Insertion failed");
+        node.InsertBefore(
+            tbody.upcast(),
+            reference_element.as_deref(),
+            CanGc::from_cx(cx),
+        )
+        .expect("Insertion failed");
         tbody
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-table-insertrow>
-    fn InsertRow(&self, index: i32, can_gc: CanGc) -> Fallible<DomRoot<HTMLTableRowElement>> {
+    fn InsertRow(&self, cx: &mut JSContext, index: i32) -> Fallible<DomRoot<HTMLTableRowElement>> {
         let rows = self.Rows();
         let number_of_row_elements = rows.Length();
 
@@ -379,7 +384,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         let new_row = DomRoot::downcast::<HTMLTableRowElement>(new_row).unwrap();
         let node = self.upcast::<Node>();
@@ -395,16 +400,16 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             {
                 last_tbody
                     .upcast::<Node>()
-                    .AppendChild(new_row.upcast::<Node>(), can_gc)
+                    .AppendChild(new_row.upcast::<Node>(), CanGc::from_cx(cx))
                     .expect("InsertRow failed to append first row.");
             } else {
-                let tbody = self.CreateTBody(can_gc);
-                node.AppendChild(tbody.upcast(), can_gc)
+                let tbody = self.CreateTBody(cx);
+                node.AppendChild(tbody.upcast(), CanGc::from_cx(cx))
                     .expect("InsertRow failed to append new tbody.");
 
                 tbody
                     .upcast::<Node>()
-                    .AppendChild(new_row.upcast::<Node>(), can_gc)
+                    .AppendChild(new_row.upcast::<Node>(), CanGc::from_cx(cx))
                     .expect("InsertRow failed to append first row.");
             }
         } else if index == number_of_row_elements as i32 || index == -1 {
@@ -420,7 +425,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
 
             last_row_parent
                 .upcast::<Node>()
-                .AppendChild(new_row.upcast::<Node>(), can_gc)
+                .AppendChild(new_row.upcast::<Node>(), CanGc::from_cx(cx))
                 .expect("InsertRow failed to append last row.");
         } else {
             // insert new row before the index-th row in rows using the same parent
@@ -438,7 +443,7 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
                 .InsertBefore(
                     new_row.upcast::<Node>(),
                     Some(ith_row.upcast::<Node>()),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
                 .expect("InsertRow failed to append row");
         }

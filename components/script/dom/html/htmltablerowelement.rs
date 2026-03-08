@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::color::AbsoluteColor;
@@ -101,12 +102,13 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tr-insertcell>
-    fn InsertCell(&self, index: i32, can_gc: CanGc) -> Fallible<DomRoot<HTMLElement>> {
+    fn InsertCell(&self, cx: &mut JSContext, index: i32) -> Fallible<DomRoot<HTMLElement>> {
         let node = self.upcast::<Node>();
         node.insert_cell_or_row(
+            cx,
             index,
             || self.Cells(),
-            || {
+            |cx| {
                 let cell = Element::create(
                     QualName::new(None, ns!(html), local_name!("td")),
                     None,
@@ -114,11 +116,10 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Asynchronous,
                     None,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 DomRoot::downcast::<HTMLTableCellElement>(cell).unwrap()
             },
-            can_gc,
         )
     }
 
