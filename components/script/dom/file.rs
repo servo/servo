@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
 use std::time::SystemTime;
 
 use constellation_traits::BlobImpl;
@@ -15,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object_with_proto;
+use crate::dom::bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::{Blob, blob_parts_to_bytes, normalize_type_string};
@@ -58,8 +59,8 @@ impl File {
         modified: Option<SystemTime>,
         can_gc: CanGc,
     ) -> DomRoot<File> {
-        let file = reflect_dom_object_with_proto(
-            Box::new(File::new_inherited(&blob_impl, name, modified)),
+        let file = reflect_weak_referenceable_dom_object_with_proto(
+            Rc::new(File::new_inherited(&blob_impl, name, modified)),
             global,
             proto,
             can_gc,
