@@ -65,8 +65,8 @@ use servo_base::id::{
     ServiceWorkerId, ServiceWorkerRegistrationId, WebViewId,
 };
 use servo_constellation_traits::{
-    BlobData, BlobImpl, BroadcastChannelMsg, FileBlob, MessagePortImpl, MessagePortMsg,
-    PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
+    BlobData, BlobImpl, BroadcastChannelMsg, ConstellationInterest, FileBlob, MessagePortImpl,
+    MessagePortMsg, PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -217,6 +217,12 @@ pub(crate) struct GlobalScope {
 
     /// The broadcast channels state this global, if it is managing any.
     broadcast_channel_state: DomRefCell<BroadcastChannelState>,
+
+    /// Tracks the number of active listeners per constellation interest category.
+    /// When the count transitions from 0 to 1, a RegisterInterest message is sent.
+    /// When it transitions from 1 to 0, an UnregisterInterest message is sent.
+    #[no_trace]
+    constellation_interest_counts: RefCell<HashMap<ConstellationInterest, usize>>,
 
     /// The blobs managed by this global, if any.
     blob_state: DomRefCell<HashMapTracedValues<BlobId, BlobInfo, FxBuildHasher>>,
@@ -769,6 +775,7 @@ impl GlobalScope {
             task_manager: Default::default(),
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
             broadcast_channel_state: DomRefCell::new(BroadcastChannelState::UnManaged),
+            constellation_interest_counts: RefCell::new(HashMap::new()),
             blob_state: Default::default(),
             eventtarget: EventTarget::new_inherited(),
             registration_map: DomRefCell::new(HashMapTracedValues::new_fx()),
@@ -2474,6 +2481,34 @@ impl GlobalScope {
     /// Get the `PipelineId` for this global scope.
     pub(crate) fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id
+    }
+
+    /// Register interest in a notification category. Sends a `RegisterInterest`
+    /// message to the constellation when the first listener is registered.
+    pub(crate) fn register_interest(&self, interest: ConstellationInterest) {
+        let mut counts = self.constellation_interest_counts.borrow_mut();
+        let count = counts.entry(interest).or_insert(0);
+        *count += 1;
+        if *count == 1 {
+            let _ = self
+                .script_to_constellation_chan()
+                .send(ScriptToConstellationMessage::RegisterInterest(interest));
+        }
+    }
+
+    /// Unregister interest in a notification category. Sends an `UnregisterInterest`
+    /// message to the constellation when the last listener is removed.
+    pub(crate) fn unregister_interest(&self, interest: ConstellationInterest) {
+        let mut counts = self.constellation_interest_counts.borrow_mut();
+        if let Some(count) = counts.get_mut(&interest) {
+            *count = count.saturating_sub(1);
+            if *count == 0 {
+                counts.remove(&interest);
+                let _ = self
+                    .script_to_constellation_chan()
+                    .send(ScriptToConstellationMessage::UnregisterInterest(interest));
+            }
+        }
     }
 
     /// Get the origin for this global scope

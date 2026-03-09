@@ -21,6 +21,7 @@ use js::rust::{CompileOptionsWrapper, HandleObject, transform_u16_to_source_text
 use libc::c_char;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use script_bindings::cformat;
+use servo_constellation_traits::ConstellationInterest;
 use servo_url::ServoUrl;
 use style::str::HTML_SPACE_CHARACTERS;
 use stylo_atoms::Atom;
@@ -435,6 +436,30 @@ impl EventTarget {
         )
     }
 
+    /// Returns the [`ConstellationInterest`] associated with a given event type
+    /// on this specific target, if any. The mapping depends on the concrete type
+    /// of the EventTarget since the same event name can be used in multiple contexts.
+    fn interest_for_event_type(&self, ty: &Atom) -> Option<ConstellationInterest> {
+        if self.is::<Window>() && *ty == atom!("storage") {
+            return Some(ConstellationInterest::StorageEvent);
+        }
+        None
+    }
+
+    /// Notify the global about a listener being added for a given event type.
+    fn notify_listener_added(&self, ty: &Atom) {
+        if let Some(interest) = self.interest_for_event_type(ty) {
+            self.global().register_interest(interest);
+        }
+    }
+
+    /// Notify the global about a listener being removed for a given event type.
+    fn notify_listener_removed(&self, ty: &Atom) {
+        if let Some(interest) = self.interest_for_event_type(ty) {
+            self.global().unregister_interest(interest);
+        }
+    }
+
     /// Determine if there are any listeners for a given event type.
     /// See <https://github.com/whatwg/dom/issues/453>.
     pub(crate) fn has_listeners_for(&self, type_: &Atom) -> bool {
@@ -457,10 +482,11 @@ impl EventTarget {
 
     pub(crate) fn remove_all_listeners(&self) {
         let mut handlers = self.handlers.borrow_mut();
-        for (_, entries) in handlers.iter() {
+        for (ty, entries) in handlers.iter() {
             entries
                 .iter()
                 .for_each(|entry| entry.borrow_mut().removed = true);
+            self.notify_listener_removed(ty);
         }
 
         *handlers = Default::default();
@@ -523,6 +549,7 @@ impl EventTarget {
                 },
                 None => {
                     entries.remove(idx).borrow_mut().removed = true;
+                    self.notify_listener_removed(&ty);
                 },
             },
             None => {
@@ -534,6 +561,7 @@ impl EventTarget {
                         passive: self.default_passive_value(&ty),
                         removed: false,
                     })));
+                    self.notify_listener_added(&ty)
                 }
             },
         }
@@ -545,6 +573,7 @@ impl EventTarget {
         if let Some(entries) = handlers.get_mut(ty) {
             if let Some(position) = entries.iter().position(|e| *e == *entry) {
                 entries.remove(position).borrow_mut().removed = true;
+                self.notify_listener_removed(ty);
             }
         }
     }
@@ -866,8 +895,8 @@ impl EventTarget {
             Some(l) => l,
             None => return,
         };
-        let mut handlers = self.handlers.borrow_mut();
         let ty = Atom::from(ty);
+        let mut handlers = self.handlers.borrow_mut();
         let entries = match handlers.entry(ty.clone()) {
             Occupied(entry) => entry.into_mut(),
             Vacant(entry) => entry.insert(EventListeners(vec![])),
@@ -892,6 +921,7 @@ impl EventTarget {
         // and capture is listener’s capture, then append listener to eventTarget’s event listener list.
         if !entries.contains(&new_entry) {
             entries.push(new_entry);
+            self.notify_listener_added(&ty);
         }
     }
 
@@ -906,8 +936,9 @@ impl EventTarget {
         let Some(listener) = listener else {
             return;
         };
+        let ty_atom = Atom::from(ty);
         let mut handlers = self.handlers.borrow_mut();
-        if let Some(entries) = handlers.get_mut(&Atom::from(ty)) {
+        if let Some(entries) = handlers.get_mut(&ty_atom) {
             let phase = if options.capture {
                 ListenerPhase::Capturing
             } else {
@@ -920,6 +951,7 @@ impl EventTarget {
             {
                 // Step 2. Set listener’s removed to true and remove listener from eventTarget’s event listener list.
                 entries.remove(position).borrow_mut().removed = true;
+                self.notify_listener_removed(&ty_atom);
             }
         }
     }

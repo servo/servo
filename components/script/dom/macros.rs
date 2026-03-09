@@ -543,6 +543,41 @@ macro_rules! event_handler(
     )
 );
 
+/// Similar to `event_handler!`, but also registers/unregisters a [`ConstellationInterest`]
+/// with the global scope when the handler is set or cleared.
+/// Use this macro for event handlers whose corresponding events are sent by the constellation
+/// only to interested pipelines.
+macro_rules! registered_event_handler(
+    ($interest:expr, $event_type: ident, $getter: ident, $setter: ident) => (
+        fn $getter(&self) -> Option<::std::rc::Rc<
+            crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull,
+        >> {
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::eventtarget::EventTarget;
+            use crate::script_runtime::CanGc;
+            let eventtarget = self.upcast::<EventTarget>();
+            eventtarget.get_event_handler_common(stringify!($event_type), CanGc::deprecated_note())
+        }
+
+        fn $setter(&self, listener: Option<::std::rc::Rc<
+            crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull,
+        >>) {
+            use crate::dom::bindings::inheritance::Castable;
+            use crate::dom::bindings::reflector::DomGlobal;
+            use crate::dom::eventtarget::EventTarget;
+            let had_handler = self.$getter().is_some();
+            let has_handler = listener.is_some();
+            let eventtarget = self.upcast::<EventTarget>();
+            eventtarget.set_event_handler_common(stringify!($event_type), listener);
+            if !had_handler && has_handler {
+                self.global().register_interest($interest);
+            } else if had_handler && !has_handler {
+                self.global().unregister_interest($interest);
+            }
+        }
+    )
+);
+
 macro_rules! error_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
         define_event_handler!(
@@ -718,7 +753,10 @@ macro_rules! window_event_handlers(
         event_handler!(popstate, GetOnpopstate, SetOnpopstate);
         event_handler!(rejectionhandled, GetOnrejectionhandled,
                        SetOnrejectionhandled);
-        event_handler!(storage, GetOnstorage, SetOnstorage);
+        registered_event_handler!(
+            servo_constellation_traits::ConstellationInterest::StorageEvent,
+            storage, GetOnstorage, SetOnstorage
+        );
         event_handler!(unhandledrejection, GetOnunhandledrejection,
                        SetOnunhandledrejection);
         event_handler!(unload, GetOnunload, SetOnunload);
