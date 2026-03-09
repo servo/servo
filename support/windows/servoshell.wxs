@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:bal="http://schemas.microsoft.com/wix/BalExtension">
-  <Bundle Name="Servo"
+  <Bundle Name="Servoshell"
           Version="1.0"
           UpgradeCode="91b09c7e-6c0d-4166-b806-1dc724acf728">
 
@@ -18,7 +18,7 @@
       <MsiPackage
           SourceFile="Installer.msi"
           Compressed="yes"
-          DisplayName="Servo"
+          DisplayName="Servoshell"
           ForcePerMachine="yes">
           <MsiProperty Name="INSTALLDIR" Value="[InstallFolder]" />
       </MsiPackage>
