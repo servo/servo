@@ -200,7 +200,7 @@ impl HTMLOptionElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#maybe-clone-an-option-into-selectedcontent>
-    pub(crate) fn maybe_clone_an_option_into_selectedcontent(&self, can_gc: CanGc) {
+    pub(crate) fn maybe_clone_an_option_into_selectedcontent(&self, cx: &mut JSContext) {
         // Step 1. Let select be option's option element nearest ancestor select.
         let select = self.nearest_ancestor_select();
 
@@ -213,33 +213,32 @@ impl HTMLOptionElement {
             if let Some(selectedcontent) =
                 select.and_then(|select| select.get_enabled_selectedcontent())
             {
-                self.clone_an_option_into_selectedcontent(&selectedcontent, can_gc);
+                self.clone_an_option_into_selectedcontent(cx, &selectedcontent);
             }
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#clone-an-option-into-a-selectedcontent>
-    fn clone_an_option_into_selectedcontent(&self, selectedcontent: &Element, can_gc: CanGc) {
+    fn clone_an_option_into_selectedcontent(&self, cx: &mut JSContext, selectedcontent: &Element) {
         // Step 1. Let documentFragment be a new DocumentFragment whose node document is option's node document.
-        let document_fragment = DocumentFragment::new(&self.owner_document(), can_gc);
+        let document_fragment = DocumentFragment::new(&self.owner_document(), CanGc::from_cx(cx));
 
         // Step 2. For each child of option's children:
         for child in self.upcast::<Node>().children() {
             // Step 2.1 Let childClone be the result of running clone given child with subtree set to true.
-            let child_clone =
-                Node::clone(&child, None, CloneChildrenFlag::CloneChildren, None, can_gc);
+            let child_clone = Node::clone(cx, &child, None, CloneChildrenFlag::CloneChildren, None);
 
             // Step 2.2 Append childClone to documentFragment.
             let _ = document_fragment
                 .upcast::<Node>()
-                .AppendChild(&child_clone, can_gc);
+                .AppendChild(&child_clone, CanGc::from_cx(cx));
         }
 
         // Step 3. Replace all with documentFragment within selectedcontent.
         Node::replace_all(
             Some(document_fragment.upcast()),
             selectedcontent.upcast(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
     }
 }

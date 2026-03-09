@@ -5606,9 +5606,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     /// <https://dom.spec.whatwg.org/#dom-document-importnode>
     fn ImportNode(
         &self,
+        cx: &mut js::context::JSContext,
         node: &Node,
         options: BooleanOrImportNodeOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Node>> {
         // Step 1. If node is a document or shadow root, then throw a "NotSupportedError" DOMException.
         if node.is::<Document>() || node.is::<ShadowRoot>() {
@@ -5638,7 +5638,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         // Step 7. Return the result of cloning a node given node with
         // document set to this, subtree set to subtree, and fallbackRegistry set to registry.
-        Ok(Node::clone(node, Some(self), subtree, registry, can_gc))
+        Ok(Node::clone(cx, node, Some(self), subtree, registry))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-adoptnode>
