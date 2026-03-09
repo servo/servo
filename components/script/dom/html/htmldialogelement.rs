@@ -310,7 +310,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
 
         // Step 2. If this has an open attribute, then throw an "InvalidStateError" DOMException.
         if element.has_attribute(&local_name!("open")) {
-            return Err(Error::InvalidState(Show(
+            return Err(Error::InvalidState(Some(
                 "Cannot call show() on an already open dialog.".into(),
             )));
         }
