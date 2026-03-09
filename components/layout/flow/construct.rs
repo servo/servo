@@ -364,9 +364,14 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
     }
 }
 
-/// Computes the range of the first letter. Returns the range and whether
-/// the letter is also the last letter. Returns a range 0..0 when no
-/// letter is found.
+/// Computes the range of the first letter.
+///
+/// Any preceding punctuation and any intervening spaces in
+/// the preceding punctuations and between the preceding punctuations
+/// and the first letter/number/symbol are included in the range.
+/// Succeeding punctuations are included in the range, but any spaces
+/// following the letter/number/symbol ends the range. Intervening
+/// succeeding spaces is not supported yet.
 ///
 /// <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
 fn first_letter_range(text: &str) -> std::ops::Range<usize> {
@@ -381,33 +386,32 @@ fn first_letter_range(text: &str) -> std::ops::Range<usize> {
 
     let mut iter = text.char_indices();
     let mut start = 0;
-    let mut end = 0;
+    let mut end = None;
     let mut state = State::Start;
 
     for (i, c) in &mut iter {
-        end = i;
-        match state {
+        match &mut state {
             State::Start => {
                 if c.is_punctuation() {
                     start = i;
                     state = State::PrecedingPunc;
                 } else if c.is_letter() || c.is_number() || c.is_symbol() {
-                    end += 1;
+                    start = i;
                     state = State::Lns;
                 } else if c.is_separator_space() {
-                    start = i;
                     continue;
                 } else {
+                    // Found invalid character
                     return 0..0;
                 }
             },
             State::PrecedingPunc => {
                 if c.is_letter() || c.is_number() || c.is_symbol() {
-                    end += 1;
                     state = State::Lns;
                 } else if c.is_punctuation() || c.is_separator_space() {
                     continue;
                 } else {
+                    // Found invalid character
                     return 0..0;
                 }
             },
@@ -415,10 +419,9 @@ fn first_letter_range(text: &str) -> std::ops::Range<usize> {
                 if c.is_punctuation() && !c.is_punctuation_open() && !c.is_punctuation_dash() {
                     state = State::SucceedingPunc;
                 } else {
-                    end = i;
+                    end = Some(i);
                     break;
                 }
-                end += 1;
             },
             State::SucceedingPunc => {
                 // TODO: Implement support for intervening spaces
@@ -426,14 +429,24 @@ fn first_letter_range(text: &str) -> std::ops::Range<usize> {
                 if c.is_punctuation() && !c.is_punctuation_open() && !c.is_punctuation_dash() {
                     continue;
                 } else {
-                    end = i;
+                    end = Some(i);
                     break;
                 }
             },
         }
     }
 
-    start..end
+    match state {
+        State::Start | State::PrecedingPunc => 0..0,
+        State::Lns => {
+            let end = end.unwrap_or_else(|| text.len());
+            start..end
+        },
+        State::SucceedingPunc => {
+            let end = end.unwrap_or_else(|| text.len());
+            start..end
+        },
+    }
 }
 
 impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
@@ -904,5 +917,72 @@ impl IntermediateBlockContainer {
             } => BlockContainer::construct(context, info, contents, propagated_data, is_list_item),
             IntermediateBlockContainer::InlineFormattingContext(block_container) => block_container,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_first_letter_eq(text: &str, expected: &str) {
+        let range = first_letter_range(text);
+        assert_eq!(&text[range], expected);
+    }
+
+    #[test]
+    fn test_first_letter_range() {
+        // All spaces
+        assert_first_letter_eq("", "");
+        assert_first_letter_eq("  ", "");
+
+        // Invalid chars
+        assert_first_letter_eq("\u{0903}", "");
+
+        // First letter only
+        assert_first_letter_eq("A", "A");
+        assert_first_letter_eq(" A", "A");
+        assert_first_letter_eq("A ", "A");
+        assert_first_letter_eq(" A ", "A");
+
+        // Word
+        assert_first_letter_eq("App", "A");
+        assert_first_letter_eq(" App", "A");
+        assert_first_letter_eq("App ", "A");
+
+        // Preceding punctuation(s), intervening spaces and first letter
+        assert_first_letter_eq(r#""A"#, r#""A"#);
+        assert_first_letter_eq(r#" "A"#, r#""A"#);
+        assert_first_letter_eq(r#""A "#, r#""A"#);
+        assert_first_letter_eq(r#"" A"#, r#"" A"#);
+        assert_first_letter_eq(r#" "A "#, r#""A"#);
+        assert_first_letter_eq(r#"("A"#, r#"("A"#);
+        assert_first_letter_eq(r#" ("A"#, r#"("A"#);
+        assert_first_letter_eq(r#"( "A"#, r#"( "A"#);
+        assert_first_letter_eq(r#"[ ( "A"#, r#"[ ( "A"#);
+
+        // First letter and succeeding punctuation(s)
+        // TODO: modify test cases when intervening spaces in succeeding puntuations is supported
+        assert_first_letter_eq(r#"A""#, r#"A""#);
+        assert_first_letter_eq(r#"A" "#, r#"A""#);
+        assert_first_letter_eq(r#"A)]"#, r#"A)]"#);
+        assert_first_letter_eq(r#"A" )]"#, r#"A""#);
+        assert_first_letter_eq(r#"A)] >"#, r#"A)]"#);
+
+        // All
+        assert_first_letter_eq(r#" ("A" )]"#, r#"("A""#);
+        assert_first_letter_eq(r#" ("A")] >"#, r#"("A")]"#);
+
+        // Non ASCII chars
+        assert_first_letter_eq("一", "一");
+        assert_first_letter_eq(" 一 ", "一");
+        assert_first_letter_eq("一二三", "一");
+        assert_first_letter_eq(" 一二三 ", "一");
+        assert_first_letter_eq("（一二三）", "（一");
+        assert_first_letter_eq(" （一二三） ", "（一");
+        assert_first_letter_eq("（（一", "（（一");
+        assert_first_letter_eq(" （ （一", "（ （一");
+        assert_first_letter_eq("一）", "一）");
+        assert_first_letter_eq("一））", "一））");
+        assert_first_letter_eq("一） ）", "一）");
     }
 }
