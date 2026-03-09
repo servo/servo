@@ -219,9 +219,10 @@ fn parse_size(input: &DOMString) -> AttrValue {
         ParseMode::Absolute => (),
     }
 
-    // Steps 10, 11
+    // Step 10: If value is greater than 7, let it be 7.
+    // Step 11: If value is less than 1, let it be 1.
     value = value.clamp(1, 7);
 
-    // Steps 12
+    // Step 12
     AttrValue::UInt(original_input.str().into(), value as u32)
 }
