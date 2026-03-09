@@ -130,7 +130,7 @@ jobs:
       - name: Build (${{ inputs.profile }})
         run: |
           ./mach build --use-crown --locked --profile ${{ inputs.profile }}  ${{ inputs.build-args }}
-          cp -r target/cargo-timings target/cargo-timings-macos-arm64
+          mv target/cargo-timings target/cargo-timings-macos-arm64
       - name: Smoketest
         uses: nick-fields/retry@v3
         with: # See https://github.com/servo/servo/issues/30757
@@ -170,17 +170,19 @@ jobs:
           max_attempts: 2
           command: ./etc/ci/macos_package_smoketest.sh target/${{ inputs.profile }}/servo-tech-demo.dmg
       - name: Archive build timing
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cargo-timings-macos-arm64-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
+          if-no-files-found: error
       - name: Upload artifact for mach package
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-dmg
         with:
           name: ${{ inputs.profile }}-binary-mac-arm64
           path: target/${{ inputs.profile }}/servo-tech-demo.dmg
+          if-no-files-found: error
       - name: Collect artifact IDs needed by the release workflow
         id: artifact_ids
         shell: bash
@@ -189,10 +191,11 @@ jobs:
       - name: Build package for target
         run: gtar -czf target.tar.gz target/${{ inputs.profile }}/servoshell target/${{ inputs.profile }}/lib/*.dylib resources
       - name: Upload package for target
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.profile }}-binary-macos-arm64
           path: target.tar.gz
+          if-no-files-found: error
 
   wpt-2020:
     if: ${{ inputs.wpt }}

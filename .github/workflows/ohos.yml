@@ -108,13 +108,14 @@ jobs:
           OHOS_BASE_SDK_HOME: ${{ steps.setup_sdk.outputs.ohos-base-sdk-home }}
         run: |
           ./mach build --locked --target ${{ matrix.target }} --profile ${{ inputs.profile }}
-          cp -r target/cargo-timings target/cargo-timings-ohos-${{ matrix.target }}
+          mv target/cargo-timings target/cargo-timings-ohos-${{ matrix.target }}
       - name: Archive build timing
         uses: actions/upload-artifact@v7
         with:
           name: cargo-timings-ohos-${{ matrix.target }}-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
+          if-no-files-found: error
       - name: Upload shared library
         if: ${{ inputs.upload_library }}
         uses: actions/upload-artifact@v7
@@ -122,6 +123,7 @@ jobs:
         with:
           name: ${{ inputs.profile }}-library-ohos-${{ matrix.target }}
           path: target/aarch64-unknown-linux-ohos/production/libservoshell.so
+          if-no-files-found: error
       - name: Upload signed HAP artifact
         if: ${{ env.SERVO_OHOS_SIGNING_CONFIG != '' }} # Build output has different name if not signed.
         uses: actions/upload-artifact@v7
@@ -129,6 +131,7 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
           path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-signed.hap
+          if-no-files-found: error
       - name: Upload unsigned HAP artifact
         if: ${{ env.SERVO_OHOS_SIGNING_CONFIG == '' }} # Build output has different name if not signed.
         uses: actions/upload-artifact@v7
@@ -136,6 +139,7 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-ohos-${{ matrix.target }}
           path: target/openharmony/${{ matrix.target }}/${{ inputs.profile }}/entry/build/default/outputs/default/servoshell-default-unsigned.hap
+          if-no-files-found: error
       - name: Collect artifact IDs needed by the release workflow
         # The implicit assumption here is that `upload_library` is true and the signed hap is uploaded,
         # since this output will only be consumed by the release workflow.
@@ -191,6 +195,7 @@ jobs:
           # Upload the **unsigned** artifact - We don't have the signing materials in pull request workflows
           name: servoshell-hos-${{ inputs.profile }}.hap
           path: target/openharmony/aarch64-unknown-linux-ohos/${{ inputs.profile }}/entry/build/harmonyos/outputs/default/servoshell-default-unsigned.hap
+          if-no-files-found: error
       - name: Save result as job output
         id: result
         if: always()
@@ -309,6 +314,7 @@ jobs:
         with:
           name: bencher-${{ inputs.profile }}-failure-screenshot
           path: "/tmp/servo.jpeg"
+          if-no-files-found: error
       - name: Run speedometer
         id: speedometer
         run: uv run ./etc/ci/scenario/servo_speedometer.py ${{ inputs.profile }}
@@ -328,6 +334,7 @@ jobs:
         with:
           name: ohos-speedometer-failure-${{ matrix.target }}-${{ inputs.profile }}
           path: speedometer_error_logs
+          if-no-files-found: error
       - name: Combining bencher files
         if: ${{ !cancelled() && steps.setup_complete.outcome == 'success' }}
         run: jq --compact-output --slurp add speedometer.json bench.json > combined-bencher.json
@@ -420,10 +427,11 @@ jobs:
         run: uv run ./etc/ci/scenario/servo_test_slide.py
       - name: Upload failure screenshots
         if: ${{ steps.install_hap.outcome == 'success' && failure() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: hos-${{ inputs.profile }}-scenario-failures-screenshots
           path: "servo_scenario_*_error.jpg"
+          if-no-files-found: error
       - name: Save result as job output
         id: result
         if: always()

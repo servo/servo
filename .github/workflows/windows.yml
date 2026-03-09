@@ -149,7 +149,7 @@ jobs:
       - name: Build (${{ inputs.profile }})
         run: |
           .\mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }}
-          cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
+          mv C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows
       - name: Copy resources
         # GitHub-hosted runners sometimes check out the repo on D: drive.
         if: ${{ runner.environment != 'self-hosted' && startsWith(github.workspace, 'D:\') }}
@@ -188,11 +188,12 @@ jobs:
         if: ${{ false && inputs.unit-tests }}  # FIXME #39273
         run: .\mach test-devtools --profile ${{ inputs.profile }}
       - name: Archive build timing
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cargo-timings-windows-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
+          if-no-files-found: error
       - name: Build mach package
         run: .\mach package --profile ${{ inputs.profile }}
       # These files are available
@@ -200,18 +201,20 @@ jobs:
       # Bundle: C:\a\servo\servo\target\${{ inputs.profile }}\msi\ServoShell.exe
       # Zip: C:\a\servo\servo\target\${{ inputs.profile }}\msi\ServoShell.zip
       - name: Upload artifact for mach package
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-exe
         with:
           name: ${{ inputs.profile }}-binary-windows
           path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\ServoShell.exe
+          if-no-files-found: error
       - name: Upload artifact for mach package (zip)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-zip
         if: ${{ inputs.upload_zip }}
         with:
           name: ${{ inputs.profile }}-binary-windows-zip
           path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\ServoShell.zip
+          if-no-files-found: error
       - name: Collect artifact IDs needed by the release workflow
         id: artifact_ids
         shell: bash
