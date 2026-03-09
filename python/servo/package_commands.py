@@ -298,10 +298,10 @@ class PackageCommands(CommandBase):
             shutil.copy(binary_path, dir_to_temp)
             copy_windows_dependencies(target_dir, dir_to_temp)
 
-            # generate servoshell.wxs
+            # generate ServoShell.wxs
             import mako.template
 
-            template_path = path.join(dir_to_root, "support", "windows", "servoshell.wxs.mako")
+            template_path = path.join(dir_to_root, "support", "windows", "ServoShell.wxs.mako")
             template = mako.template.Template(open(template_path).read())
             wxs_path = path.join(dir_to_msi, "Installer.wxs")
             open(wxs_path, "w").write(
@@ -328,8 +328,8 @@ class PackageCommands(CommandBase):
 
             # Generate bundle with Servo installer.
             print("Creating bundle")
-            shutil.copy(path.join(dir_to_root, "support", "windows", "servoshell.wxs"), dir_to_msi)
-            bundle_wxs_path = path.join(dir_to_msi, "servoshell.wxs")
+            shutil.copy(path.join(dir_to_root, "support", "windows", "ServoShell.wxs"), dir_to_msi)
+            bundle_wxs_path = path.join(dir_to_msi, "ServoShell.wxs")
             try:
                 with cd(dir_to_msi):
                     subprocess.check_call(["candle", bundle_wxs_path, "-ext", "WixBalExtension"])
@@ -343,10 +343,10 @@ class PackageCommands(CommandBase):
             except subprocess.CalledProcessError as e:
                 print("WiX light exited with return value %d" % e.returncode)
                 return e.returncode
-            print("Packaged Servo into " + path.join(dir_to_msi, "servoshell.exe"))
+            print("Packaged Servo into " + path.join(dir_to_msi, "ServoShell.exe"))
 
             print("Creating ZIP")
-            zip_path = path.join(dir_to_msi, "servoshell.zip")
+            zip_path = path.join(dir_to_msi, "ServoShell.zip")
             archive_deterministically(dir_to_temp, zip_path, prepend_path="servo/")
             print("Packaged Servo into " + zip_path)
 
@@ -464,7 +464,7 @@ class PackageCommands(CommandBase):
         replacements = {
             "ports/servoshell/Cargo.toml": r'^version ?= ?"(?P<version>.*?)"',
             "ports/servoshell/platform/windows/servoshell.exe.manifest": r'assemblyIdentity[^\/>]+version="(?P<version>.*?).0\"[^\/>]*\/>',
-            "support/windows/servoshell.wxs.mako": r'<Product(.|\n)*Version="(?P<version>.*?)".*>',
+            "support/windows/ServoShell.wxs.mako": r'<Product(.|\n)*Version="(?P<version>.*?)".*>',
             "ports/servoshell/platform/macos/Info.plist": r"<key>CFBundleShortVersionString</key>\n\s*<string>(?P<version>.*?)</string>",
             "support/android/apk/servoapp/build.gradle.kts": r'versionName\s*=\s*"(?P<version>.*?)"',
             "support/openharmony/oh-package.json5": r'"version"\s*:\s*"(?P<version>.*?)"',
