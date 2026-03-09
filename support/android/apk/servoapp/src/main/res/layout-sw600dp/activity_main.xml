@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="org.servo.servoshell.MainActivity"
+>
+
+    <org.servo.servoview.ServoView
+        android:id="@+id/servoview"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:focusable="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/navigationRail"
+        />
+
+    <!--androidx.appcompat.widget.Toolbar
+        android:id="@+id/my_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:layout_weight="0"
+        android:elevation="4dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/urlfield"
+                style="@android:style/Widget.Material.EditText"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:ems="10"
+                android:hint="URL or Search"
+                android:imeOptions="actionDone"
+                android:inputType="textUri"
+                android:selectAllOnFocus="true"
+                android:singleLine="true" />
+
+            <ProgressBar
+                android:id="@+id/progressbar"
+                style="@android:style/Widget.ProgressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:indeterminate="true" />
+
+            <ViewSwitcher
+                android:id="@+id/reloadbuttonswitcher"
+                android:layout_width="5dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1">
+
+                <ImageButton
+                    android:id="@+id/reloadbutton"
+                    style="@android:style/Widget.Material.ImageButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:gravity="center"
+                    android:onClick="onReloadClicked"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/refresh" />
+
+                <ImageButton
+                    android:id="@+id/stopbutton"
+                    style="@android:style/Widget.Material.ImageButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:gravity="center"
+                    android:onClick="onStopClicked"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/cancel" />
+            </ViewSwitcher>
+
+            <TextView
+                android:id="@+id/redrawing"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="monospace"
+                android:gravity="center"
+                android:text="idle"
+                android:textAlignment="center"
+                android:textSize="10sp"
+                android:visibility="visible" />
+
+        </LinearLayout>
+
+    </androidx.appcompat.widget.Toolbar-->
+
+    <com.google.android.material.navigationrail.NavigationRailView
+        android:id="@+id/navigationRail"
+        android:layout_width="60dp"
+        android:layout_height="match_parent"
+        app:menu="@menu/bottom_menu"
+        android:layout_weight="0"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

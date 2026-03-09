@@ -17,6 +17,7 @@ import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -25,6 +26,10 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.ViewSwitcher;
+
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.progressindicator.CircularProgressIndicator;
 
 import org.servo.servoview.Servo;
 import org.servo.servoview.ServoView;
@@ -33,20 +38,23 @@ import java.io.File;
 
 public class MainActivity extends Activity implements Servo.Client {
 
-    private static final String LOGTAG = "MainActivity";
+    private static final String TAG = "MainActivity";
 
     ServoView mServoView;
-    ImageButton mBackButton;
-    ImageButton mFwdButton;
-    ImageButton mReloadButton;
-    ImageButton mStopButton;
+    BottomNavigationView mBottomNav;
+    MenuItem mBackMenuItem;
+    MenuItem mForwardMenuItem;
+
+    MenuItem mReloadMenuItem;
+    MenuItem mStopMenuItem;
+
     EditText mUrlField;
     boolean mUrlFieldIsFocused;
-    ProgressBar mProgressBar;
+
+    CircularProgressIndicator mProgressBar;
     TextView mIdleText;
     boolean mCanGoBack;
     MediaSession mMediaSession;
-
     class Settings {
         Settings(SharedPreferences preferences) {
             showAnimatingIndicator = preferences.getBoolean("animating_indicator", false);
@@ -63,11 +71,13 @@ public class MainActivity extends Activity implements Servo.Client {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mBottomNav = findViewById(R.id.bottom_bar);
+        mBackMenuItem = mBottomNav.getMenu().findItem(R.id.history_back_menu_item);
+        mForwardMenuItem = mBottomNav.getMenu().findItem(R.id.history_forward_menu_item);
+        mReloadMenuItem = mBottomNav.getMenu().findItem(R.id.refresh_menu_item);
+        mStopMenuItem = mBottomNav.getMenu().findItem(R.id.cancel_menu_item);
+
         mServoView = findViewById(R.id.servoview);
-        mBackButton = findViewById(R.id.backbutton);
-        mFwdButton = findViewById(R.id.forwardbutton);
-        mReloadButton = findViewById(R.id.reloadbutton);
-        mStopButton = findViewById(R.id.stopbutton);
         mUrlField = findViewById(R.id.urlfield);
         mUrlFieldIsFocused = false;
         mProgressBar = findViewById(R.id.progressbar);
@@ -75,12 +85,6 @@ public class MainActivity extends Activity implements Servo.Client {
         mCanGoBack = false;
 
         updateSettingsIfNecessary(true);
-
-        mBackButton.setEnabled(false);
-        mFwdButton.setEnabled(false);
-
-        // Avoid reload/stop icons doubling up on launch
-        mReloadButton.setVisibility(View.GONE);
 
         mServoView.setClient(this);
         mServoView.requestFocus();
@@ -141,24 +145,26 @@ public class MainActivity extends Activity implements Servo.Client {
     }
 
     // From activity_main.xml:
-    public void onSettingsClicked(View v) {
+
+    public void onSettingsItemClicked(MenuItem m) {
         Intent myIntent = new Intent(this, SettingsActivity.class);
         startActivity(myIntent);
     }
 
-    public void onReloadClicked(View v) {
+    public void onReloadItemClicked(MenuItem m) {
         mServoView.reload();
     }
 
-    public void onBackClicked(View v) {
+    public void onBackItemClicked(MenuItem m) {
         mServoView.goBack();
     }
 
-    public void onForwardClicked(View v) {
+    public void onForwardItemClicked(MenuItem m) {
         mServoView.goForward();
     }
 
-    public void onStopClicked(View v) {
+    public void onStopItemClicked(MenuItem m) {
+        Log.i(TAG, "onStopItemClicked");
         mServoView.stop();
     }
 
@@ -200,19 +206,17 @@ public class MainActivity extends Activity implements Servo.Client {
 
     @Override
     public void onLoadStarted() {
-        mReloadButton.setEnabled(false);
-        mStopButton.setEnabled(true);
-        mReloadButton.setVisibility(View.GONE);
-        mStopButton.setVisibility(View.VISIBLE);
+        Log.i(TAG, "onLoadStarted: ");
+        mStopMenuItem.setVisible(true);
+        mReloadMenuItem.setVisible(false);
         mProgressBar.setVisibility(View.VISIBLE);
     }
 
     @Override
     public void onLoadEnded() {
-        mReloadButton.setEnabled(true);
-        mStopButton.setEnabled(false);
-        mReloadButton.setVisibility(View.VISIBLE);
-        mStopButton.setVisibility(View.GONE);
+        Log.i(TAG, "onLoadEnded: ");
+        mStopMenuItem.setVisible(false);
+        mReloadMenuItem.setVisible(true);
         mProgressBar.setVisibility(View.INVISIBLE);
     }
 
@@ -227,8 +231,9 @@ public class MainActivity extends Activity implements Servo.Client {
 
     @Override
     public void onHistoryChanged(boolean canGoBack, boolean canGoForward) {
-        mBackButton.setEnabled(canGoBack);
-        mFwdButton.setEnabled(canGoForward);
+        Log.i(TAG, "onHistoryChanged: " + canGoBack + "<->" + canGoForward);
+        mBackMenuItem.setEnabled(canGoBack);
+        mForwardMenuItem.setEnabled(canGoForward);
         mCanGoBack = canGoBack;
     }
 
