@@ -43,7 +43,8 @@ pub(crate) enum Handle {
     HkdfSecret(Vec<u8>),
     Pbkdf2(Vec<u8>),
     Hmac(Vec<u8>),
-    Ed25519(Vec<u8>),
+    Ed25519PrivateKey(Vec<u8>),
+    Ed25519PublicKey(Vec<u8>),
     MlKem512PrivateKey((ml_kem::B32, ml_kem::B32)),
     MlKem768PrivateKey((ml_kem::B32, ml_kem::B32)),
     MlKem1024PrivateKey((ml_kem::B32, ml_kem::B32)),
@@ -227,7 +228,8 @@ impl Handle {
         match self {
             Self::Pbkdf2(bytes) => bytes,
             Self::Hmac(bytes) => bytes,
-            Self::Ed25519(bytes) => bytes,
+            Self::Ed25519PrivateKey(bytes) => bytes,
+            Self::Ed25519PublicKey(bytes) => bytes,
             _ => unreachable!(),
         }
     }
@@ -252,7 +254,8 @@ impl MallocSizeOf for Handle {
             Handle::HkdfSecret(secret) => secret.size_of(ops),
             Handle::Pbkdf2(bytes) => bytes.size_of(ops),
             Handle::Hmac(bytes) => bytes.size_of(ops),
-            Handle::Ed25519(bytes) => bytes.size_of(ops),
+            Handle::Ed25519PrivateKey(bytes) => bytes.size_of(ops),
+            Handle::Ed25519PublicKey(bytes) => bytes.size_of(ops),
             Handle::MlKem512PrivateKey(seed) => seed.0.size_of(ops) + seed.1.size_of(ops),
             Handle::MlKem768PrivateKey(seed) => seed.0.size_of(ops) + seed.1.size_of(ops),
             Handle::MlKem1024PrivateKey(seed) => seed.0.size_of(ops) + seed.1.size_of(ops),

@@ -134,7 +134,7 @@ pub(crate) fn generate_key(
             .filter(|&usage| *usage == KeyUsage::Verify)
             .cloned()
             .collect(),
-        Handle::Ed25519(key_pair.public_key().as_ref().to_vec()),
+        Handle::Ed25519PublicKey(key_pair.public_key().as_ref().to_vec()),
     );
 
     // Step 10. Let privateKey be a new CryptoKey representing the private key of the generated key pair.
@@ -154,7 +154,7 @@ pub(crate) fn generate_key(
             .filter(|&usage| *usage == KeyUsage::Sign)
             .cloned()
             .collect(),
-        Handle::Ed25519(seed),
+        Handle::Ed25519PrivateKey(seed),
     );
 
     // Step 16. Let result be a new CryptoKeyPair dictionary.
@@ -224,7 +224,7 @@ pub(crate) fn import_key(
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
-                Handle::Ed25519(public_key.as_ref().to_vec()),
+                Handle::Ed25519PublicKey(public_key.as_ref().to_vec()),
             )
         },
         // If format is "pkcs8":
@@ -287,7 +287,7 @@ pub(crate) fn import_key(
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
-                Handle::Ed25519(curve_private_key),
+                Handle::Ed25519PrivateKey(curve_private_key),
             )
         },
         // If format is "jwk":
@@ -388,7 +388,7 @@ pub(crate) fn import_key(
                     extractable,
                     KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                     usages,
-                    Handle::Ed25519(d),
+                    Handle::Ed25519PrivateKey(d),
                 )
             }
             // Otherwise:
@@ -407,7 +407,7 @@ pub(crate) fn import_key(
                     extractable,
                     KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                     usages,
-                    Handle::Ed25519(x),
+                    Handle::Ed25519PublicKey(x),
                 )
             }
 
@@ -444,7 +444,7 @@ pub(crate) fn import_key(
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
                 usages,
-                Handle::Ed25519(key_data.to_vec()),
+                Handle::Ed25519PublicKey(key_data.to_vec()),
             )
         },
         // Otherwise:
@@ -458,6 +458,47 @@ pub(crate) fn import_key(
 
     // Step 3. Return key
     Ok(key)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+pub(crate) fn get_public_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    key: &CryptoKey,
+    algorithm: &KeyAlgorithmAndDerivatives,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    // Step 9. If usages contains an entry which is not "verify" then throw a SyntaxError.
+    if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
+        return Err(Error::Syntax(Some(
+            "Usages contains an entry which is not \"verify\"".into(),
+        )));
+    }
+
+    // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
+    // private key represented by the [[handle]] internal slot of key.
+    // Step 11. If an error occurred, then throw a OperationError.
+    let seed = key.handle().as_bytes();
+    let key_pair = Ed25519KeyPair::from_seed_unchecked(seed).map_err(|error| {
+        Error::Operation(Some(format!(
+            "The key was rejected for the following reason: {error}"
+        )))
+    })?;
+    let public_key_bytes = key_pair.public_key().as_ref().to_vec();
+
+    // Step 12. Set the [[type]] internal slot of publicKey to "public".
+    // Step 13. Set the [[algorithm]] internal slot of publicKey to algorithm.
+    // Step 14. Set the [[extractable]] internal slot of publicKey to true.
+    // Step 15. Set the [[usages]] internal slot of publicKey to usages.
+    Ok(CryptoKey::new(
+        cx,
+        global,
+        KeyType::Public,
+        true,
+        algorithm.clone(),
+        usages,
+        Handle::Ed25519PublicKey(public_key_bytes),
+    ))
 }
 
 /// <https://w3c.github.io/webcrypto/#ed25519-operations-export-key>
