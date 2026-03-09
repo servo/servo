@@ -197,21 +197,21 @@ jobs:
         run: .\mach package --profile ${{ inputs.profile }}
       # These files are available
       # MSI Installer: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Installer.msi
-      # Bundle: C:\a\servo\servo\target\${{ inputs.profile }}\msi\servoshell.exe
-      # Zip: C:\a\servo\servo\target\${{ inputs.profile }}\msi\Servo.zip
+      # Bundle: C:\a\servo\servo\target\${{ inputs.profile }}\msi\ServoShell.exe
+      # Zip: C:\a\servo\servo\target\${{ inputs.profile }}\msi\ServoShell.zip
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v6
         id: upload-exe
         with:
           name: ${{ inputs.profile }}-binary-windows
-          path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\servoshell.exe
+          path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\ServoShell.exe
       - name: Upload artifact for mach package (zip)
         uses: actions/upload-artifact@v6
         id: upload-zip
         if: ${{ inputs.upload_zip }}
         with:
           name: ${{ inputs.profile }}-binary-windows-zip
-          path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\Servo.zip
+          path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\ServoShell.zip
       - name: Collect artifact IDs needed by the release workflow
         id: artifact_ids
         shell: bash
@@ -230,7 +230,7 @@ jobs:
       target: 'windows'
       profile: ${{ inputs.profile }}
       compressed-file-path: ''
-      binary-path: ${{ inputs.profile }}-binary-windows/servoshell.exe
+      binary-path: ${{ inputs.profile }}-binary-windows/ServoShell.exe
       file-size: true
       speedometer: false
       dromaeo: false
