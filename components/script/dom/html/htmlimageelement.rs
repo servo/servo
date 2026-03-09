@@ -2175,10 +2175,10 @@ impl VirtualMethods for HTMLImageElement {
         let cx = &mut cx;
 
         // Step 1. If oldParent is a picture element, then, count this as a relevant mutation for movedNode.
-        if let Some(old_parent) = context.old_parent &&
-            old_parent.is::<HTMLPictureElement>()
-        {
-            self.update_the_image_data(cx);
+        if let Some(old_parent) = context.old_parent {
+            if old_parent.is::<HTMLPictureElement>() {
+                self.update_the_image_data(cx);
+            }
         }
     }
 }

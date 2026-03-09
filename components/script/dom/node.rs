@@ -4672,12 +4672,11 @@ impl VirtualMethods for Node {
         // including descendants. If we're in a shadow tree at this point then the
         // unbind operation happened further up in the tree and we should not
         // drain any ranges.
-        if let Some(old_parent) = context.old_parent &&
-            !self.is_in_a_shadow_tree() &&
-            !self.ranges_is_empty()
-        {
-            self.ranges()
-                .drain_to_parent(old_parent, context.index(), self);
+        if let Some(old_parent) = context.old_parent {
+            if !self.is_in_a_shadow_tree() && !self.ranges_is_empty() {
+                self.ranges()
+                    .drain_to_parent(old_parent, context.index(), self);
+            }
         }
     }
 
