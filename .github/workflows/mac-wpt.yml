@@ -67,12 +67,14 @@ jobs:
         with:
           name: wpt-filtered-logs-${{ env.NAME }}-${{ matrix.chunk_id }}
           path: wpt-filtered-logs/*/
+          if-no-files-found: error
       - name: Archive results (full)
         uses: actions/upload-artifact@v6
         if: ${{ always() }}
         with:
           name: wpt-full-logs-${{ env.NAME }}-${{ matrix.chunk_id }}
           path: wpt-full-logs/*/
+          if-no-files-found: error
 
   report-test-results:
     name: Process WPT Results
@@ -107,6 +109,7 @@ jobs:
         with:
           name: stable-unexpected-results-${{ env.NAME }}
           path: stable-unexpected-results.log
+          if-no-files-found: error
       - uses: actions/download-artifact@v4
         if: ${{ !cancelled() }}
         with:

@@ -175,12 +175,14 @@ jobs:
           name: cargo-timings-macos-arm64-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
+          if-no-files-found: error
       - name: Upload artifact for mach package
         uses: actions/upload-artifact@v6
         id: upload-dmg
         with:
           name: ${{ inputs.profile }}-binary-mac-arm64
           path: target/${{ inputs.profile }}/servo-tech-demo.dmg
+          if-no-files-found: error
       - name: Collect artifact IDs needed by the release workflow
         id: artifact_ids
         shell: bash
@@ -193,6 +195,7 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-macos-arm64
           path: target.tar.gz
+          if-no-files-found: error
 
   wpt-2020:
     if: ${{ inputs.wpt }}

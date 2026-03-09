@@ -200,6 +200,7 @@ jobs:
           name: cargo-timings-linux-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
+          if-no-files-found: error
       - name: Build mach package
         run: ./mach package --profile ${{ inputs.profile }}
       - name: Upload artifact for mach package
@@ -208,6 +209,7 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-linux
           path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
+          if-no-files-found: error
       - name: Collect artifact IDs needed by the release workflow
         id: artifact_ids
         shell: bash

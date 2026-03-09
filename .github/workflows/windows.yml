@@ -193,6 +193,7 @@ jobs:
           name: cargo-timings-windows-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: C:\\a\\servo\\servo\\target\\cargo-timings-*
+          if-no-files-found: error
       - name: Build mach package
         run: .\mach package --profile ${{ inputs.profile }}
       # These files are available
@@ -205,6 +206,7 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-windows
           path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\ServoShell.exe
+          if-no-files-found: error
       - name: Upload artifact for mach package (zip)
         uses: actions/upload-artifact@v6
         id: upload-zip
@@ -212,6 +214,7 @@ jobs:
         with:
           name: ${{ inputs.profile }}-binary-windows-zip
           path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\ServoShell.zip
+          if-no-files-found: error
       - name: Collect artifact IDs needed by the release workflow
         id: artifact_ids
         shell: bash

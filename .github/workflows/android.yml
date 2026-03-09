@@ -118,18 +118,21 @@ jobs:
           name: cargo-timings-android-${{ matrix.target }}-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
+          if-no-files-found: error
       - name: Upload APK artifact
         uses: actions/upload-artifact@v6
         id: upload-apk
         with:
           name: ${{ inputs.profile }}-binary-android-${{ matrix.target }}
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoapp.apk
+          if-no-files-found: error
       - name: Upload AAR artifact
         uses: actions/upload-artifact@v6
         id: upload-aar
         with:
           name: ${{ inputs.profile }}-library-android-${{ matrix.target }}
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoview.aar
+          if-no-files-found: error
       - name: Collect artifact IDs needed by the release workflow
         if: matrix.target == 'aarch64-linux-android'
         id: artifact_ids
