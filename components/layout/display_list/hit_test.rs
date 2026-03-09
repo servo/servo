@@ -309,7 +309,7 @@ impl Fragment {
                     box_fragment.border_radius(),
                     box_fragment.base.flags,
                     Cursor::Default,
-                )
+                ) // MYTODO: also add hit test for scrollbar here.
             },
             Fragment::Text(text) => {
                 let text = &*text.borrow();

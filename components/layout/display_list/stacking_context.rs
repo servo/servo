@@ -10,8 +10,10 @@ use std::sync::Arc;
 use app_units::Au;
 use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
+use bitflags::bitflags;
 use embedder_traits::ViewportDetails;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Vector2D};
+use layout_api::AxesOverflow;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::display_list::{
@@ -329,6 +331,7 @@ pub(crate) enum StackingContextContent {
         is_collapsed_table_borders: bool,
         #[conditional_malloc_size_of]
         text_decorations: Arc<Vec<FragmentTextDecoration>>,
+        scrollbar_descriptor: Option<Box<ScrollbarDescriptor>>,
     },
 
     /// An index into [StackingContext::atomic_inline_stacking_containers].
@@ -346,6 +349,7 @@ impl StackingContextContent {
     }
 
     fn build_display_list_with_section_override(
+        // MYTODO need to modify here IG?
         &self,
         builder: &mut DisplayListBuilder,
         inline_stacking_containers: &[StackingContext],
@@ -362,6 +366,7 @@ impl StackingContextContent {
                 is_hit_test_for_scrollable_overflow,
                 is_collapsed_table_borders,
                 text_decorations,
+                scrollbar_descriptor,
             } => {
                 builder.current_scroll_node_id = *scroll_node_id;
                 builder.current_reference_frame_scroll_node_id = *reference_frame_scroll_node_id;
@@ -373,6 +378,7 @@ impl StackingContextContent {
                     *is_hit_test_for_scrollable_overflow,
                     *is_collapsed_table_borders,
                     text_decorations,
+                    scrollbar_descriptor,
                 );
             },
             Self::AtomicInlineStackingContainer { index } => {
@@ -401,6 +407,18 @@ impl StackingContextContent {
                 _ => false,
             },
             StackingContextContent::AtomicInlineStackingContainer { .. } => false,
+        }
+    }
+
+    fn has_scrollbar_descriptor(&self) -> bool {
+        if let StackingContextContent::Fragment {
+            scrollbar_descriptor,
+            ..
+        } = self
+        {
+            scrollbar_descriptor.is_some()
+        } else {
+            false
         }
     }
 }
@@ -715,6 +733,7 @@ impl StackingContext {
             &fragment_tree.initial_containing_block,
             false, /* is_hit_test_for_scrollable_overflow */
             false, /* is_collapsed_table_borders */
+            None,
         );
         let painter = super::background::BackgroundPainter {
             style: &source_style,
@@ -739,11 +758,16 @@ impl StackingContext {
 
         // Steps 1 and 2: Borders and background for the root
         let mut content_with_outlines = Vec::new();
+        let mut content_with_scrollbar = Vec::new();
         let mut contents = self.contents.iter().enumerate().peekable();
         while contents.peek().is_some_and(|(_, child)| {
             child.section() == StackingContextSection::OwnBackgroundsAndBorders
         }) {
             let (i, child) = contents.next().unwrap();
+            if child.has_scrollbar_descriptor() {
+                content_with_scrollbar.push(child);
+                continue;
+            }
             self.debug_push_print_item(DebugPrintField::Contents, i);
             child.build_display_list(builder, &self.atomic_inline_stacking_containers);
 
@@ -777,6 +801,11 @@ impl StackingContext {
             child.section() == StackingContextSection::DescendantBackgroundsAndBorders
         }) {
             let (i, child) = contents.next().unwrap();
+            if child.has_scrollbar_descriptor() {
+                content_with_scrollbar.push(child);
+                continue;
+            }
+
             self.debug_push_print_item(DebugPrintField::Contents, i);
             child.build_display_list(builder, &self.atomic_inline_stacking_containers);
 
@@ -797,6 +826,10 @@ impl StackingContext {
             .is_some_and(|(_, child)| child.section() == StackingContextSection::Foreground)
         {
             let (i, child) = contents.next().unwrap();
+            if child.has_scrollbar_descriptor() {
+                content_with_scrollbar.push(child);
+                continue;
+            }
             self.debug_push_print_item(DebugPrintField::Contents, i);
             child.build_display_list(builder, &self.atomic_inline_stacking_containers);
 
@@ -822,6 +855,10 @@ impl StackingContext {
                 &self.atomic_inline_stacking_containers,
                 Some(StackingContextSection::Outline),
             );
+        }
+
+        for content in content_with_scrollbar {
+            content.build_display_list(builder, &self.atomic_inline_stacking_containers);
         }
 
         if pushed_context {
@@ -942,6 +979,8 @@ impl Fragment {
                     stacking_context,
                     text_decorations,
                 );
+
+                // MYTODO: After building stackign context tree checks whether the scrollbar need to be built(?).
             },
             Fragment::AbsoluteOrFixedPositioned(fragment) => {
                 let shared_fragment = fragment.borrow();
@@ -983,6 +1022,7 @@ impl Fragment {
                         is_hit_test_for_scrollable_overflow: false,
                         is_collapsed_table_borders: false,
                         text_decorations: text_decorations.clone(),
+                        scrollbar_descriptor: None,
                     });
             },
         }
@@ -999,9 +1039,93 @@ struct ScrollFrameData {
     scroll_frame_rect: LayoutRect,
 }
 
+#[derive(MallocSizeOf)]
+pub(crate) struct ScrollbarDescriptor {
+    pub horizontal_thumb: Option<LayoutRect>,
+    pub vertical_thumb: Option<LayoutRect>,
+}
+
+impl ScrollbarDescriptor {
+    fn should_render_vertical_scrollbar(
+        overflow: &AxesOverflow,
+        padding_rect: &PhysicalRect<Au>,
+        scrollable_overflow_size: &Size2D<Au, CSSPixel>,
+    ) -> bool {
+        matches!(
+            overflow.x,
+            ComputedOverflow::Scroll | ComputedOverflow::Auto
+        ) && scrollable_overflow_size.width > padding_rect.width()
+    }
+
+    fn should_horizontal_vertical_scrollbar(
+        overflow: &AxesOverflow,
+        padding_rect: &PhysicalRect<Au>,
+        scrollable_overflow_size: &Size2D<Au, CSSPixel>,
+    ) -> bool {
+        matches!(
+            overflow.y,
+            ComputedOverflow::Scroll | ComputedOverflow::Auto
+        ) && scrollable_overflow_size.height > padding_rect.height()
+    }
+
+    fn compute_scrollbar_if_necessary(
+        overflow: &AxesOverflow,
+        padding_rect: &PhysicalRect<Au>,
+        scrollable_overflow_size: &Size2D<Au, CSSPixel>,
+        containing_block_rect: &PhysicalRect<Au>,
+    ) -> Option<Box<Self>> {
+        let SCROLLBAR_THICKNESS = Au::from_px(8);
+        let horizontal_thumb = if Self::should_render_vertical_scrollbar(overflow, padding_rect, scrollable_overflow_size)
+        {
+            let scrollbar_width =
+                padding_rect.width() * padding_rect.width().0 / scrollable_overflow_size.width.0;
+            Some(
+                Rect::new(
+                    Point2D::new(
+                        padding_rect.min_x(),
+                        padding_rect.max_y() - SCROLLBAR_THICKNESS,
+                    ),
+                    Size2D::new(scrollbar_width, SCROLLBAR_THICKNESS),
+                )
+                .translate(containing_block_rect.origin.to_vector())
+                .to_webrender(),
+            )
+        } else {
+            None
+        };
+        let vertical_thumb = if Self::should_horizontal_vertical_scrollbar(overflow, padding_rect, scrollable_overflow_size)
+        {
+            let scrollbar_height =
+                padding_rect.height() * padding_rect.height().0 / scrollable_overflow_size.height.0;
+            Some(
+                Rect::new(
+                    Point2D::new(
+                        padding_rect.max_x() - SCROLLBAR_THICKNESS,
+                        padding_rect.min_y(),
+                    ),
+                    Size2D::new(SCROLLBAR_THICKNESS, scrollbar_height),
+                )
+                .translate(containing_block_rect.origin.to_vector())
+                .to_webrender(),
+            )
+        } else {
+            None
+        };
+        if horizontal_thumb.is_some() || vertical_thumb.is_some() {
+            Some(Box::new(Self {
+                horizontal_thumb,
+                vertical_thumb,
+            }))
+        } else {
+            None
+        }
+    }
+}
+
 struct OverflowFrameData {
     clip_id: ClipId,
     scroll_frame_data: Option<ScrollFrameData>,
+    frame_scrollbar_data: Option<Box<ScrollbarDescriptor>>,
 }
 
 impl BoxFragment {
@@ -1185,6 +1309,7 @@ impl BoxFragment {
                     &containing_block.rect,
                     false, /* is_hit_test_for_scrollable_overflow */
                     false, /* is_collapsed_table_borders */
+                    None,
                 ),
             )
             .unwrap_or(containing_block.clip_id);
@@ -1270,6 +1395,7 @@ impl BoxFragment {
                 &containing_block.rect,
                 false, /* is_hit_test_for_scrollable_overflow */
                 false, /* is_collapsed_table_borders */
+                None,
             ),
         ) {
             new_clip_id = clip_id;
@@ -1302,6 +1428,7 @@ impl BoxFragment {
                     is_hit_test_for_scrollable_overflow: false,
                     is_collapsed_table_borders: false,
                     text_decorations: text_decorations.clone(),
+                    scrollbar_descriptor: None,
                 });
         };
 
@@ -1316,12 +1443,30 @@ impl BoxFragment {
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
         if let Some(overflow_frame_data) = self.build_overflow_frame_if_necessary(
+            // MYTODO: need to store the information as well
             stacking_context_tree,
             new_scroll_node_id,
             new_clip_id,
             &containing_block.rect,
         ) {
             new_clip_id = overflow_frame_data.clip_id;
+            if overflow_frame_data.scroll_frame_data.is_some() {
+                stacking_context
+                    .contents
+                    .push(StackingContextContent::Fragment {
+                        scroll_node_id: new_scroll_node_id,
+                        reference_frame_scroll_node_id:
+                            reference_frame_scroll_node_id_for_fragments,
+                        clip_id: new_clip_id,
+                        section,
+                        containing_block: containing_block.rect,
+                        fragment: fragment.clone(),
+                        is_hit_test_for_scrollable_overflow: false,
+                        is_collapsed_table_borders: false,
+                        text_decorations: text_decorations.clone(),
+                        scrollbar_descriptor: overflow_frame_data.frame_scrollbar_data,
+                    });
+            }
             if let Some(scroll_frame_data) = overflow_frame_data.scroll_frame_data {
                 new_scroll_node_id = scroll_frame_data.scroll_tree_node_id;
                 new_scroll_frame_size = Some(scroll_frame_data.scroll_frame_rect.size());
@@ -1338,6 +1483,7 @@ impl BoxFragment {
                         is_hit_test_for_scrollable_overflow: true,
                         is_collapsed_table_borders: false,
                         text_decorations: text_decorations.clone(),
+                        scrollbar_descriptor: None,
                     });
             }
         }
@@ -1421,6 +1567,8 @@ impl BoxFragment {
             );
         }
 
+        // MYTODO: Or maybe built the scrollbar here
+
         if matches!(
             self.specific_layout_info(),
             Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_))
@@ -1437,6 +1585,7 @@ impl BoxFragment {
                     is_hit_test_for_scrollable_overflow: false,
                     is_collapsed_table_borders: true,
                     text_decorations: text_decorations.clone(),
+                    scrollbar_descriptor: None,
                 });
         }
     }
@@ -1509,7 +1658,8 @@ impl BoxFragment {
             // https://drafts.csswg.org/css-overflow-3/#corner-clipping
             let radii;
             if overflow.x == ComputedOverflow::Clip && overflow.y == ComputedOverflow::Clip {
-                let builder = BuilderForBoxFragment::new(self, containing_block_rect, false, false);
+                let builder =
+                    BuilderForBoxFragment::new(self, containing_block_rect, false, false, None);
                 let mut offsets_from_border = SideOffsets2D::new_all_same(clip_margin_offset);
                 match overflow_clip_margin.visual_box {
                     OverflowClipMarginBox::ContentBox => {
@@ -1541,6 +1691,7 @@ impl BoxFragment {
             return Some(OverflowFrameData {
                 clip_id,
                 scroll_frame_data: None,
+                frame_scrollbar_data: None,
             });
         }
 
@@ -1550,7 +1701,8 @@ impl BoxFragment {
             .to_webrender();
 
         let clip_id = stacking_context_tree.clip_store.add(
-            BuilderForBoxFragment::new(self, containing_block_rect, false, false).border_radius,
+            BuilderForBoxFragment::new(self, containing_block_rect, false, false, None)
+                .border_radius,
             scroll_frame_rect,
             parent_scroll_node_id,
             parent_clip_id,
@@ -1575,12 +1727,20 @@ impl BoxFragment {
             sensitivity,
         );
 
+        let frame_scrollbar_data = ScrollbarDescriptor::compute_scrollbar_if_necessary(
+            &overflow,
+            &self.padding_rect(),
+            &self.scrollable_overflow().size,
+            containing_block_rect,
+        );
+
         Some(OverflowFrameData {
             clip_id,
             scroll_frame_data: Some(ScrollFrameData {
                 scroll_tree_node_id,
                 scroll_frame_rect,
             }),
+            frame_scrollbar_data,
         })
     }
 

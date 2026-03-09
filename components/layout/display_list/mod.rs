@@ -31,7 +31,7 @@ use style::properties::longhands::visibility::computed_value::T as Visibility;
 use style::properties::style_structs::Border;
 use style::values::computed::{
     BorderImageSideWidth, BorderImageWidth, BorderStyle, LengthPercentage,
-    NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
+    NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle, Overflow,
 };
 use style::values::generics::NonNegative;
 use style::values::generics::color::ColorOrAuto;
@@ -622,6 +622,7 @@ impl Fragment {
         is_hit_test_for_scrollable_overflow: bool,
         is_collapsed_table_borders: bool,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
+        scrollbar_descriptor: &Option<Box<ScrollbarDescriptor>>,
     ) {
         if let Some(mut base) = self.base_mut() {
             match base.status {
@@ -659,6 +660,7 @@ impl Fragment {
                         containing_block,
                         is_hit_test_for_scrollable_overflow,
                         is_collapsed_table_borders,
+                        scrollbar_descriptor.as_deref(),
                     )
                     .build(builder, section),
                     Visibility::Hidden => (),
@@ -1110,6 +1112,7 @@ struct BuilderForBoxFragment<'a> {
     content_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     is_hit_test_for_scrollable_overflow: bool,
     is_collapsed_table_borders: bool,
+    scrollbar_descriptor: Option<&'a ScrollbarDescriptor>,
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
@@ -1118,6 +1121,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         containing_block: &'a PhysicalRect<Au>,
         is_hit_test_for_scrollable_overflow: bool,
         is_collapsed_table_borders: bool,
+        scrollbar_descriptor: Option<&'a ScrollbarDescriptor>,
     ) -> Self {
         let border_rect = fragment
             .border_rect()
@@ -1135,6 +1139,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             content_edge_clip_chain_id: RefCell::new(None),
             is_hit_test_for_scrollable_overflow,
             is_collapsed_table_borders,
+            scrollbar_descriptor,
         }
     }
 
@@ -1239,6 +1244,11 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
+        if let Some(scorllbar_descriptor) = self.scrollbar_descriptor {
+            self.build_scroll_bar(builder, scorllbar_descriptor);
+            return;
+        }
+
         if self
             .fragment
             .base
@@ -1251,6 +1261,31 @@ impl<'a> BuilderForBoxFragment<'a> {
         self.build_background(builder);
         self.build_box_shadow(builder);
         self.build_border(builder);
+    }
+
+    // MYTODO update this to include scrollnodeId
+    fn build_scroll_bar(
+        &self,
+        builder: &mut DisplayListBuilder,
+        scrollbar_descriptor: &ScrollbarDescriptor,
+    ) {
+        let style = &self.fragment.base.style();
+        let SCROLLBAR_COLOR = AbsoluteColor::srgb_legacy(169, 169, 169, 0.7f32);
+
+        if let Some(horizontal_thumb) = scrollbar_descriptor.horizontal_thumb {
+            println!("horizontal_thumb: {:?}", horizontal_thumb);
+            let commons = builder.common_properties(horizontal_thumb, style);
+            builder
+                .wr()
+                .push_rect(&commons, horizontal_thumb, rgba(SCROLLBAR_COLOR))
+        }
+        if let Some(vertical_thumb) = scrollbar_descriptor.vertical_thumb {
+            println!("vertical_thumb: {:?}", vertical_thumb);
+            let commons = builder.common_properties(vertical_thumb, style);
+            builder
+                .wr()
+                .push_rect(&commons, vertical_thumb, rgba(SCROLLBAR_COLOR))
+        }
     }
 
     fn build_hit_test(&self, builder: &mut DisplayListBuilder, rect: LayoutRect) {
