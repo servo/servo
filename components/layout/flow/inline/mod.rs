@@ -1642,8 +1642,45 @@ impl InlineFormattingContextLayout<'_> {
                 font_key,
                 bidi_level,
                 offsets: offsets.map(Box::new),
+                is_empty_for_text_cursor: false,
             },
         ));
+    }
+
+    /// If the current unbreakable line segment is empty and this [`InlineFormattingContext`] has a
+    /// selection, push [`LineItem::TextRun`]. This is used as a placeholder for rendering cursors
+    /// on empty lines.
+    fn possibly_push_empty_text_run_to_unbreakable_segment(
+        &mut self,
+        text_run: &TextRun,
+        font: &FontRef,
+        bidi_level: Level,
+        offsets: Option<TextRunOffsets>,
+    ) {
+        if offsets.is_none() || self.current_line_segment.has_content {
+            return;
+        }
+
+        let font_metrics = &font.metrics;
+        let font_key = font.key(
+            self.layout_context.painter_id,
+            &self.layout_context.font_context,
+        );
+
+        self.push_line_item_to_unbreakable_segment(LineItem::TextRun(
+            self.current_inline_box_identifier(),
+            TextRunLineItem {
+                text: Default::default(),
+                base_fragment_info: text_run.base_fragment_info,
+                inline_styles: text_run.inline_styles.clone(),
+                font_metrics: font_metrics.clone(),
+                font_key,
+                bidi_level,
+                offsets: offsets.map(Box::new),
+                is_empty_for_text_cursor: true,
+            },
+        ));
+        self.current_line_segment.has_content = true;
     }
 
     fn update_unbreakable_segment_for_new_content(

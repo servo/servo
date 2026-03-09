@@ -535,7 +535,7 @@ impl LineItemLayout<'_, '_> {
     }
 
     fn layout_text_run(&mut self, text_item: TextRunLineItem) {
-        if text_item.text.is_empty() {
+        if text_item.text.is_empty() && !text_item.is_empty_for_text_cursor {
             return;
         }
 
@@ -586,6 +586,7 @@ impl LineItemLayout<'_, '_> {
                 glyphs: text_item.text,
                 justification_adjustment: self.justification_adjustment,
                 offsets: text_item.offsets,
+                is_empty_for_text_cursor: text_item.is_empty_for_text_cursor,
             })),
             content_rect,
         ));
@@ -798,7 +799,7 @@ impl LineItem {
     }
 }
 
-#[derive(MallocSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct TextRunOffsets {
     /// The selection range of the containing inline formatting context.
     #[ignore_malloc_size_of = "This is stored primarily in the DOM"]
@@ -819,6 +820,9 @@ pub(super) struct TextRunLineItem {
     /// When necessary, this field store the [`TextRunOffsets`] for a particular
     /// [`TextRunLineItem`]. This is currently only used inside of text inputs.
     pub offsets: Option<Box<TextRunOffsets>>,
+    /// Whether or not this [`TextFragment`] is an empty fragment added for the
+    /// benefit of placing a text cursor on an otherwise empty editable line.
+    pub is_empty_for_text_cursor: bool,
 }
 
 impl TextRunLineItem {
