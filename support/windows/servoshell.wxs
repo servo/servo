@@ -18,7 +18,7 @@
       <MsiPackage
           SourceFile="Installer.msi"
           Compressed="yes"
-          DisplayName="Servoshell"
+          DisplayName="ServoShell"
           ForcePerMachine="yes">
           <MsiProperty Name="INSTALLDIR" Value="[InstallFolder]" />
       </MsiPackage>
