@@ -73,7 +73,9 @@ impl HTMLDialogElement {
 
         // Step 2. If subject has an open attribute, then throw an "InvalidStateError" DOMException.
         if subject.has_attribute(&local_name!("open")) {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Cannot call showModal() on an already open dialog.".into(),
+            )));
         }
 
         // Step 3. If subject's node document is not fully active, then throw an "InvalidStateError" DOMException.
