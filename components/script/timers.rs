@@ -12,13 +12,16 @@ use std::time::{Duration, Instant};
 use deny_public_fields::DenyPublicFields;
 use js::context::JSContext;
 use js::jsapi::Heap;
-use js::jsval::JSVal;
-use js::rust::HandleValue;
+use js::jsval::{JSVal, UndefinedValue};
+use js::rust::wrappers2::JS_GetScriptedCallerPrivate;
+use js::rust::{HandleValue, IntoHandle};
+use net_traits::request::ParserMetadata;
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PipelineId;
 use servo_config::pref;
+use servo_url::ServoUrl;
 use timers::{BoxedTimerCallback, TimerEventRequest};
 
 use crate::dom::bindings::callback::ExceptionHandling::Report;
@@ -40,7 +43,7 @@ use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::types::{Window, WorkerGlobalScope};
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
-use crate::script_module::ScriptFetchOptions;
+use crate::script_module::{ScriptFetchOptions, module_script_from_reference_private};
 use crate::script_runtime::IntroductionType;
 use crate::script_thread::ScriptThread;
 use crate::task_source::SendableTaskSource;
@@ -597,7 +600,7 @@ pub(crate) enum TimerCallback {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
 enum InternalTimerCallback {
-    StringTimerCallback(DOMString),
+    StringTimerCallback(DOMString, InitiatingScriptFetchInfo),
     FunctionTimerCallback(
         #[conditional_malloc_size_of] Rc<Function>,
         #[ignore_malloc_size_of = "mozjs"] Rc<Box<[Heap<JSVal>]>>,
@@ -653,6 +656,9 @@ impl JsTimers {
                     trusted_script_or_string,
                     &sink,
                 )?;
+
+                let initiating_script_fetch_info = active_script_fetch_info(cx, global);
+
                 // Step 9.6.3. Perform EnsureCSPDoesNotBlockStringCompilation(realm, « », handler, handler, timer, « », handler).
                 // If this throws an exception, catch it, report it for global, and abort these steps.
                 if global
@@ -660,7 +666,10 @@ impl JsTimers {
                     .is_js_evaluation_allowed(global, &code_str.str())
                 {
                     // Step 9.6.2. Assert: handler is a string.
-                    InternalTimerCallback::StringTimerCallback(code_str)
+                    InternalTimerCallback::StringTimerCallback(
+                        code_str,
+                        initiating_script_fetch_info,
+                    )
                 } else {
                     return Ok(0);
                 }
@@ -774,7 +783,7 @@ fn clamp_duration(nesting_level: u32, unclamped: Duration) -> Duration {
 
 impl JsTimerTask {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    pub(crate) fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers, cx: &mut JSContext) {
+    fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers, cx: &mut JSContext) {
         // step 9.2 can be ignored, because we proactively prevent execution
         // of this task when its scheduled execution is canceled.
 
@@ -783,26 +792,17 @@ impl JsTimerTask {
 
         let _guard = ScriptThread::user_interacting_guard();
         match self.callback {
-            InternalTimerCallback::StringTimerCallback(ref code_str) => {
+            InternalTimerCallback::StringTimerCallback(ref code_str, ref fetch_info) => {
                 // Step 6.4. Let settings object be global's relevant settings object.
                 // Step 6. Let realm be global's relevant realm.
                 let global = this.global();
-                // TODO Step 7. Let initiating script be the active script.
 
-                // Step 9.6.5. Let fetch options be the default script fetch options.
-                let fetch_options = ScriptFetchOptions::default_classic_script();
-
-                // Step 9.6.6. Let base URL be settings object's API base URL.
-                let base_url = global.api_base_url();
-
-                // TODO Step 9.6.7. If initiating script is not null, then:
-                // Step 9.6.7.1. Set fetch options to a script fetch options whose cryptographic nonce
-                // is initiating script's fetch options's cryptographic nonce,
-                // integrity metadata is the empty string, parser metadata is "not-parser-inserted",
-                // credentials mode is initiating script's fetch options's credentials mode,
-                // referrer policy is initiating script's fetch options's referrer policy,
-                // and fetch priority is "auto".
-                // Step 9.6.7.2. Set base URL to initiating script's base URL.
+                // Note: the steps to retrieve *fetch options* and *base URL* are performed in
+                // `active_script_fetch_info`.
+                let InitiatingScriptFetchInfo {
+                    fetch_options,
+                    base_url,
+                } = fetch_info.clone();
 
                 // Step 9.6.8. Let script be the result of creating a classic script given handler,
                 // settings object, base URL, and fetch options.
@@ -904,5 +904,55 @@ impl TimerListener {
     fn into_callback(self) -> BoxedTimerCallback {
         let timer_event = TimerEvent(self.source, self.id);
         Box::new(move || self.handle(timer_event))
+    }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+struct InitiatingScriptFetchInfo {
+    fetch_options: ScriptFetchOptions,
+    #[no_trace]
+    base_url: ServoUrl,
+}
+
+#[expect(unsafe_code)]
+fn active_script_fetch_info(cx: &mut JSContext, global: &GlobalScope) -> InitiatingScriptFetchInfo {
+    rooted!(&in(cx) let mut value = UndefinedValue());
+    unsafe { JS_GetScriptedCallerPrivate(cx, value.handle_mut()) };
+
+    let reference_private = value.handle().into_handle();
+    let initiating_script = unsafe { module_script_from_reference_private(&reference_private) };
+
+    // Step 7. Let initiating script be the active script.
+    let (fetch_options, base_url) = match initiating_script {
+        // Step 9.6.7. If initiating script is not null, then:
+        Some(script) => (
+            // Step 9.6.7.1. Set fetch options to a script fetch options whose
+            ScriptFetchOptions {
+                // cryptographic nonce is initiating script's fetch options's cryptographic nonce,
+                cryptographic_nonce: script.options.cryptographic_nonce.clone(),
+                // integrity metadata is the empty string,
+                integrity_metadata: String::new(),
+                //  parser metadata is "not-parser-inserted",
+                parser_metadata: ParserMetadata::NotParserInserted,
+                // credentials mode is initiating script's fetch options's credentials mode,
+                credentials_mode: script.options.credentials_mode,
+                // referrer policy is initiating script's fetch options's referrer policy,
+                referrer_policy: script.options.referrer_policy,
+                // TODO and fetch priority is "auto".
+                render_blocking: false,
+            },
+            // Step 9.6.7.2. Set base URL to initiating script's base URL.
+            script.base_url.clone(),
+        ),
+        None => (
+            // Step 9.6.5. Let fetch options be the default script fetch options.
+            ScriptFetchOptions::default_classic_script(),
+            // Step 9.6.6. Let base URL be settings object's API base URL.
+            global.api_base_url(),
+        ),
+    };
+    InitiatingScriptFetchInfo {
+        fetch_options,
+        base_url,
     }
 }
