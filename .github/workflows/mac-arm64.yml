@@ -130,7 +130,7 @@ jobs:
       - name: Build (${{ inputs.profile }})
         run: |
           ./mach build --use-crown --locked --profile ${{ inputs.profile }}  ${{ inputs.build-args }}
-          cp -r target/cargo-timings target/cargo-timings-macos-arm64
+          mv target/cargo-timings target/cargo-timings-macos-arm64
       - name: Smoketest
         uses: nick-fields/retry@v3
         with: # See https://github.com/servo/servo/issues/30757

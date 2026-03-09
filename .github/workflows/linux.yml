@@ -166,7 +166,7 @@ jobs:
       - name: Build (${{ inputs.profile }})
         run: |
           ./mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }}
-          cp -r target/cargo-timings target/cargo-timings-linux
+          mv target/cargo-timings target/cargo-timings-linux
       - name: Smoketest
         run: xvfb-run ./mach smoketest --profile ${{ inputs.profile  }}
       - name: Script tests

@@ -149,7 +149,7 @@ jobs:
       - name: Build (${{ inputs.profile }})
         run: |
           .\mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }}
-          cp C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows -Recurse
+          mv C:\a\servo\servo\target\cargo-timings C:\a\servo\servo\target\cargo-timings-windows
       - name: Copy resources
         # GitHub-hosted runners sometimes check out the repo on D: drive.
         if: ${{ runner.environment != 'self-hosted' && startsWith(github.workspace, 'D:\') }}
