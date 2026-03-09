@@ -7,6 +7,7 @@ use std::convert::TryInto;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use style::str::{split_html_space_chars, str_join};
 use stylo_dom::ElementState;
@@ -246,9 +247,9 @@ impl HTMLOptionElement {
 impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-option>
     fn Option(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         text: DOMString,
         value: Option<DOMString>,
         default_selected: bool,
@@ -261,7 +262,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             proto,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         let option = DomRoot::downcast::<HTMLOptionElement>(element).unwrap();
@@ -269,7 +270,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
         if !text.is_empty() {
             option
                 .upcast::<Node>()
-                .set_text_content_for_element(Some(text), can_gc)
+                .set_text_content_for_element(Some(text), CanGc::from_cx(cx))
         }
 
         if let Some(val) = value {
@@ -278,7 +279,7 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
 
         option.SetDefaultSelected(default_selected);
         option.set_selectedness(selected);
-        option.update_select_validity(can_gc);
+        option.update_select_validity(CanGc::from_cx(cx));
         Ok(option)
     }
 

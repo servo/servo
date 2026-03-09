@@ -22,7 +22,7 @@ use euclid::default::Size2D;
 use euclid::{Point2D, Rect};
 use html5ever::serialize::HtmlSerializer;
 use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
-use js::context::NoGC;
+use js::context::{JSContext, NoGC};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
@@ -342,7 +342,7 @@ impl Node {
         target: &Node,
         context_element: &Element,
         html: DOMString,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) {
         // Step 1. Let newChildren be the result of the HTML fragment parsing algorithm.
         let new_children = ServoParser::parse_html_fragment(context_element, html, true, cx);
@@ -1412,26 +1412,26 @@ impl Node {
     /// Used by `HTMLTableSectionElement::InsertRow` and `HTMLTableRowElement::InsertCell`
     pub(crate) fn insert_cell_or_row<F, G, I>(
         &self,
+        cx: &mut JSContext,
         index: i32,
         get_items: F,
         new_child: G,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<HTMLElement>>
     where
         F: Fn() -> DomRoot<HTMLCollection>,
-        G: Fn() -> DomRoot<I>,
+        G: Fn(&mut JSContext) -> DomRoot<I>,
         I: DerivedFrom<Node> + DerivedFrom<HTMLElement> + DomObject,
     {
         if index < -1 {
             return Err(Error::IndexSize(None));
         }
 
-        let tr = new_child();
+        let tr = new_child(cx);
 
         {
             let tr_node = tr.upcast::<Node>();
             if index == -1 {
-                self.InsertBefore(tr_node, None, can_gc)?;
+                self.InsertBefore(tr_node, None, CanGc::from_cx(cx))?;
             } else {
                 let items = get_items();
                 let node = match items
@@ -1444,7 +1444,7 @@ impl Node {
                     None => return Err(Error::IndexSize(None)),
                     Some(node) => node,
                 };
-                self.InsertBefore(tr_node, node.as_deref(), can_gc)?;
+                self.InsertBefore(tr_node, node.as_deref(), CanGc::from_cx(cx))?;
             }
         }
 

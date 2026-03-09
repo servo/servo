@@ -201,7 +201,7 @@ impl Document {
             StringOrElementCreationOptions::ElementCreationOptions(ElementCreationOptions {
                 is: None,
             });
-        match self.CreateElement("br".into(), element_options, CanGc::from_cx(cx)) {
+        match self.CreateElement(cx, "br".into(), element_options) {
             Err(_) => unreachable!("Must always be able to create br"),
             Ok(br) => br,
         }

@@ -1747,9 +1747,9 @@ fn parse_a_sizes_attribute(value: &str) -> SourceSizeList {
 impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-image>
     fn Image(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         width: Option<u32>,
         height: Option<u32>,
     ) -> Fallible<DomRoot<HTMLImageElement>> {
@@ -1765,7 +1765,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             proto,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         let image = DomRoot::downcast::<HTMLImageElement>(element).unwrap();
