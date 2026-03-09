@@ -208,6 +208,7 @@ jobs:
       - name: Upload artifact for mach package (zip)
         uses: actions/upload-artifact@v6
         id: upload-zip
+        if: ${{ inputs.upload_zip }}
         with:
           name: ${{ inputs.profile }}-binary-windows-zip
           path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\servoshell.zip
