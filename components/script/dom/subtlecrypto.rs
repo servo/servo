@@ -11,6 +11,7 @@ mod aes_ocb_operation;
 mod argon2_operation;
 mod chacha20_poly1305_operation;
 mod cshake_operation;
+mod ec_common;
 mod ecdh_operation;
 mod ecdsa_operation;
 mod ed25519_operation;
@@ -5022,6 +5023,8 @@ enum GetPublicKeyAlgorithm {
     RsassaPkcs1v1_5(SubtleAlgorithm),
     RsaPss(SubtleAlgorithm),
     RsaOaep(SubtleAlgorithm),
+    Ecdsa(SubtleAlgorithm),
+    Ecdh(SubtleAlgorithm),
     X25519(SubtleAlgorithm),
 }
 
@@ -5041,6 +5044,8 @@ impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
             CryptoAlgorithm::RsaOaep => {
                 Ok(GetPublicKeyAlgorithm::RsaOaep(value.try_into_with_cx(cx)?))
             },
+            CryptoAlgorithm::Ecdsa => Ok(GetPublicKeyAlgorithm::Ecdsa(value.try_into_with_cx(cx)?)),
+            CryptoAlgorithm::Ecdh => Ok(GetPublicKeyAlgorithm::Ecdh(value.try_into_with_cx(cx)?)),
             CryptoAlgorithm::X25519 => {
                 Ok(GetPublicKeyAlgorithm::X25519(value.try_into_with_cx(cx)?))
             },
@@ -5056,6 +5061,8 @@ impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
             GetPublicKeyAlgorithm::RsassaPkcs1v1_5(algorithm) => algorithm.name,
             GetPublicKeyAlgorithm::RsaPss(algorithm) => algorithm.name,
             GetPublicKeyAlgorithm::RsaOaep(algorithm) => algorithm.name,
+            GetPublicKeyAlgorithm::Ecdsa(algorithm) => algorithm.name,
+            GetPublicKeyAlgorithm::Ecdh(algorithm) => algorithm.name,
             GetPublicKeyAlgorithm::X25519(algorithm) => algorithm.name,
         }
     }
@@ -5079,6 +5086,12 @@ impl GetPublicKeyAlgorithm {
             },
             GetPublicKeyAlgorithm::RsaOaep(_algorithm) => {
                 rsa_oaep_operation::get_public_key(cx, global, key, algorithm, usages)
+            },
+            GetPublicKeyAlgorithm::Ecdsa(_algorithm) => {
+                ecdsa_operation::get_public_key(cx, global, key, algorithm, usages)
+            },
+            GetPublicKeyAlgorithm::Ecdh(_algorithm) => {
+                ecdh_operation::get_public_key(cx, global, key, algorithm, usages)
             },
             GetPublicKeyAlgorithm::X25519(_algorithm) => {
                 x25519_operation::get_public_key(cx, global, key, algorithm, usages)

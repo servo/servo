@@ -33,6 +33,7 @@ use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
     NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521, NormalizedAlgorithm, SUPPORTED_CURVES,
     SubtleEcKeyAlgorithm, SubtleEcKeyGenParams, SubtleEcKeyImportParams, SubtleEcdsaParams,
+    ec_common,
 };
 
 const P256_PREHASH_LENGTH: usize = 32;
@@ -1264,6 +1265,18 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
     // Step 4. Return result.
     Ok(result)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+/// Step 9 - 15, for ECDSA
+pub(crate) fn get_public_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    key: &CryptoKey,
+    algorithm: &KeyAlgorithmAndDerivatives,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    ec_common::get_public_key(cx, global, key, algorithm, usages)
 }
 
 /// A helper function that expand a prehash to a specified length if the prehash is shorter than
