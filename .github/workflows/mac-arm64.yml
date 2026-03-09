@@ -170,14 +170,14 @@ jobs:
           max_attempts: 2
           command: ./etc/ci/macos_package_smoketest.sh target/${{ inputs.profile }}/servo-tech-demo.dmg
       - name: Archive build timing
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cargo-timings-macos-arm64-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
           if-no-files-found: error
       - name: Upload artifact for mach package
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-dmg
         with:
           name: ${{ inputs.profile }}-binary-mac-arm64
@@ -191,7 +191,7 @@ jobs:
       - name: Build package for target
         run: gtar -czf target.tar.gz target/${{ inputs.profile }}/servoshell target/${{ inputs.profile }}/lib/*.dylib resources
       - name: Upload package for target
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.profile }}-binary-macos-arm64
           path: target.tar.gz

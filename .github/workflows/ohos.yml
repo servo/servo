@@ -427,7 +427,7 @@ jobs:
         run: uv run ./etc/ci/scenario/servo_test_slide.py
       - name: Upload failure screenshots
         if: ${{ steps.install_hap.outcome == 'success' && failure() }}
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: hos-${{ inputs.profile }}-scenario-failures-screenshots
           path: "servo_scenario_*_error.jpg"

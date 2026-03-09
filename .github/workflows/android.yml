@@ -113,21 +113,21 @@ jobs:
       # - name: Script tests
       #   run: ./mach test-android-startup
       - name: Archive build timing
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cargo-timings-android-${{ matrix.target }}-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
           if-no-files-found: error
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-apk
         with:
           name: ${{ inputs.profile }}-binary-android-${{ matrix.target }}
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoapp.apk
           if-no-files-found: error
       - name: Upload AAR artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-aar
         with:
           name: ${{ inputs.profile }}-library-android-${{ matrix.target }}

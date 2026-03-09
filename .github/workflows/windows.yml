@@ -188,7 +188,7 @@ jobs:
         if: ${{ false && inputs.unit-tests }}  # FIXME #39273
         run: .\mach test-devtools --profile ${{ inputs.profile }}
       - name: Archive build timing
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cargo-timings-windows-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
@@ -201,14 +201,14 @@ jobs:
       # Bundle: C:\a\servo\servo\target\${{ inputs.profile }}\msi\ServoShell.exe
       # Zip: C:\a\servo\servo\target\${{ inputs.profile }}\msi\ServoShell.zip
       - name: Upload artifact for mach package
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-exe
         with:
           name: ${{ inputs.profile }}-binary-windows
           path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\ServoShell.exe
           if-no-files-found: error
       - name: Upload artifact for mach package (zip)
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-zip
         if: ${{ inputs.upload_zip }}
         with:
