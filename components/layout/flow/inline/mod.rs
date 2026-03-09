@@ -129,7 +129,7 @@ use crate::flow::{
 };
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
-    BaseFragmentInfo, BoxFragment, CollapsedMargin, Fragment, FragmentFlags, PositioningFragment,
+    BoxFragment, CollapsedMargin, Fragment, FragmentFlags, PositioningFragment,
 };
 use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2, ToLogical};
 use crate::layout_box_base::LayoutBoxBase;
@@ -888,7 +888,7 @@ struct InlineFormattingContextLayout<'layout_data> {
     /// as soon as we encounter the `<br>` the `<span>`'s ending inline borders would be
     /// placed on the second line, because we add those borders in
     /// [`InlineFormattingContextLayout::finish_inline_box()`].
-    linebreak_before_new_content: Option<DeferredLineBreak>,
+    linebreak_before_new_content: bool,
 
     /// When a `<br>` element has `clear`, this needs to be applied after the linebreak,
     /// which will be processed *after* the `<br>` element is processed. This member
@@ -915,14 +915,6 @@ struct InlineFormattingContextLayout<'layout_data> {
     /// by the boundary between two characters, the text-wrap-mode property of their nearest
     /// common ancestor is used.
     text_wrap_mode: TextWrapMode,
-}
-
-struct DeferredLineBreak {
-    base_fragment_info: BaseFragmentInfo,
-    inline_styles: SharedInlineStyles,
-    font: FontRef,
-    bidi_level: Level,
-    offsets: Option<TextRunOffsets>,
 }
 
 impl InlineFormattingContextLayout<'_> {
@@ -1526,7 +1518,7 @@ impl InlineFormattingContextLayout<'_> {
         inline_would_overflow
     }
 
-    fn defer_forced_line_break(&mut self, line_break: DeferredLineBreak) {
+    fn defer_forced_line_break(&mut self) {
         // If the current portion of the unbreakable segment does not fit on the current line
         // we need to put it on a new line *before* actually triggering the hard line break.
         if !self.unbreakable_segment_fits_on_line() {
@@ -1534,7 +1526,7 @@ impl InlineFormattingContextLayout<'_> {
         }
 
         // Defer the actual line break until we've cleared all ending inline boxes.
-        self.linebreak_before_new_content = Some(line_break);
+        self.linebreak_before_new_content = true;
 
         // In quirks mode, the line-height isn't automatically added to the line. If we consider a
         // forced line break a kind of preserved white space, quirks mode requires that we add the
@@ -1558,24 +1550,14 @@ impl InlineFormattingContextLayout<'_> {
         }
     }
 
-    fn possibly_flush_deferred_forced_line_break(&mut self, is_ifc_end: bool) {
-        if let Some(line_break) = self.linebreak_before_new_content.take() {
-            self.push_glyph_store_to_unbreakable_segment(
-                None,
-                line_break.base_fragment_info,
-                line_break.inline_styles,
-                &line_break.font,
-                line_break.bidi_level,
-                line_break.offsets,
-            );
-
-            if !is_ifc_end {
-                self.commit_current_segment_to_line();
-                self.process_line_break(true /* forced_line_break */);
-            }
-
-            self.linebreak_before_new_content = None;
+    fn possibly_flush_deferred_forced_line_break(&mut self) {
+        if !self.linebreak_before_new_content {
+            return;
         }
+
+        self.commit_current_segment_to_line();
+        self.process_line_break(true /* forced_line_break */);
+        self.linebreak_before_new_content = false;
     }
 
     fn push_line_item_to_unbreakable_segment(&mut self, line_item: LineItem) {
@@ -1585,23 +1567,15 @@ impl InlineFormattingContextLayout<'_> {
 
     fn push_glyph_store_to_unbreakable_segment(
         &mut self,
-        glyph_store: Option<Arc<GlyphStore>>,
-        base_fragment_info: BaseFragmentInfo,
-        inline_styles: SharedInlineStyles,
+        glyph_store: Arc<GlyphStore>,
+        text_run: &TextRun,
         font: &FontRef,
         bidi_level: Level,
         offsets: Option<TextRunOffsets>,
     ) {
-        let inline_advance = glyph_store
-            .as_ref()
-            .map(|gs| gs.total_advance())
-            .unwrap_or_default();
-        let flags = if glyph_store
-            .as_ref()
-            .map(|gs| gs.is_whitespace())
-            .unwrap_or(false)
-        {
-            SegmentContentFlags::from(inline_styles.style.borrow().get_inherited_text())
+        let inline_advance = glyph_store.total_advance();
+        let flags = if glyph_store.is_whitespace() {
+            SegmentContentFlags::from(text_run.inline_styles.style.borrow().get_inherited_text())
         } else {
             SegmentContentFlags::empty()
         };
@@ -1648,31 +1622,65 @@ impl InlineFormattingContextLayout<'_> {
         self.update_unbreakable_segment_for_new_content(&block_contribution, inline_advance, flags);
 
         let current_inline_box_identifier = self.current_inline_box_identifier();
-        if let Some(glyphs) = &glyph_store {
-            if let Some(LineItem::TextRun(inline_box_identifier, line_item)) =
-                self.current_line_segment.line_items.last_mut()
+        if let Some(LineItem::TextRun(inline_box_identifier, line_item)) =
+            self.current_line_segment.line_items.last_mut()
+        {
+            if *inline_box_identifier == current_inline_box_identifier &&
+                line_item.merge_if_possible(font_key, bidi_level, &glyph_store, &offsets)
             {
-                if *inline_box_identifier == current_inline_box_identifier &&
-                    line_item.merge_if_possible(font_key, bidi_level, glyphs, &offsets)
-                {
-                    return;
-                }
+                return;
             }
         }
 
-        let text = glyph_store.map(|gs| vec![gs]).unwrap_or_default();
         self.push_line_item_to_unbreakable_segment(LineItem::TextRun(
             current_inline_box_identifier,
             TextRunLineItem {
-                text,
-                base_fragment_info,
-                inline_styles,
+                text: vec![glyph_store],
+                base_fragment_info: text_run.base_fragment_info,
+                inline_styles: text_run.inline_styles.clone(),
                 font_metrics: font_metrics.clone(),
                 font_key,
                 bidi_level,
                 offsets: offsets.map(Box::new),
+                is_empty_for_text_cursor: false,
             },
         ));
+    }
+
+    /// If the current unbreakable line segment is empty and this [`InlineFormattingContext`] has a
+    /// selection, push [`LineItem::TextRun`]. This is used as a placeholder for rendering cursors
+    /// on empty lines.
+    fn possibly_push_empty_text_run_to_unbreakable_segment(
+        &mut self,
+        text_run: &TextRun,
+        font: &FontRef,
+        bidi_level: Level,
+        offsets: Option<TextRunOffsets>,
+    ) {
+        if offsets.is_none() || self.current_line_segment.has_content {
+            return;
+        }
+
+        let font_metrics = &font.metrics;
+        let font_key = font.key(
+            self.layout_context.painter_id,
+            &self.layout_context.font_context,
+        );
+
+        self.push_line_item_to_unbreakable_segment(LineItem::TextRun(
+            self.current_inline_box_identifier(),
+            TextRunLineItem {
+                text: Default::default(),
+                base_fragment_info: text_run.base_fragment_info,
+                inline_styles: text_run.inline_styles.clone(),
+                font_metrics: font_metrics.clone(),
+                font_key,
+                bidi_level,
+                offsets: offsets.map(Box::new),
+                is_empty_for_text_cursor: true,
+            },
+        ));
+        self.current_line_segment.has_content = true;
     }
 
     fn update_unbreakable_segment_for_new_content(
@@ -2005,7 +2013,7 @@ impl InlineFormattingContext {
             inline_box_state_stack: Vec::new(),
             inline_box_states: Vec::with_capacity(self.inline_boxes.len()),
             current_line_segment: UnbreakableSegmentUnderConstruction::new(),
-            linebreak_before_new_content: None,
+            linebreak_before_new_content: false,
             deferred_br_clear: Clear::None,
             have_deferred_soft_wrap_opportunity: false,
             depends_on_block_constraints: false,
@@ -2016,7 +2024,7 @@ impl InlineFormattingContext {
         for item in self.inline_items.iter() {
             // Any new box should flush a pending hard line break.
             if !matches!(item, InlineItem::EndInlineBox) {
-                layout.possibly_flush_deferred_forced_line_break(false);
+                layout.possibly_flush_deferred_forced_line_break();
             }
 
             match item {
@@ -2053,7 +2061,6 @@ impl InlineFormattingContext {
             }
         }
 
-        layout.possibly_flush_deferred_forced_line_break(true);
         layout.finish_last_line();
         let (content_block_size, collapsible_margins_in_children, baselines) =
             layout.placement_state.finish();

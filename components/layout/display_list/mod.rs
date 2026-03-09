@@ -794,7 +794,7 @@ impl Fragment {
             include_whitespace,
         );
 
-        if glyphs.is_empty() && fragment.offsets.is_none() {
+        if glyphs.is_empty() && !fragment.is_empty_for_text_cursor {
             return;
         }
 
@@ -1008,6 +1008,18 @@ impl Fragment {
 
         if offsets.character_range.start > shared_selection.character_range.end ||
             offsets.character_range.end < shared_selection.character_range.start
+        {
+            return;
+        }
+
+        // When there is an active selection, the line is empty, and there is a forced linebreak,
+        // layout will push an empty fragment in order to trigger painting of the cursor on an empty line.
+        // This code ensure that it is only painted if the cursor is on the starting index of the empty
+        // fragment.
+        if fragment.is_empty_for_text_cursor &&
+            !offsets
+                .character_range
+                .contains(&shared_selection.character_range.start)
         {
             return;
         }
