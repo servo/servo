@@ -439,11 +439,11 @@ fn first_letter_range(text: &str) -> std::ops::Range<usize> {
     match state {
         State::Start | State::PrecedingPunc => 0..0,
         State::Lns => {
-            let end = end.unwrap_or_else(|| text.len());
+            let end = end.unwrap_or(text.len());
             start..end
         },
         State::SucceedingPunc => {
-            let end = end.unwrap_or_else(|| text.len());
+            let end = end.unwrap_or(text.len());
             start..end
         },
     }
