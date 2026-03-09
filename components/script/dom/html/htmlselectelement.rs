@@ -573,8 +573,8 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-length>
-    fn SetLength(&self, length: u32, can_gc: CanGc) {
-        self.Options().SetLength(length, can_gc)
+    fn SetLength(&self, cx: &mut JSContext, length: u32) {
+        self.Options().SetLength(cx, length)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-item>
@@ -590,11 +590,11 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-select-setter>
     fn IndexedSetter(
         &self,
+        cx: &mut JSContext,
         index: u32,
         value: Option<&HTMLOptionElement>,
-        can_gc: CanGc,
     ) -> ErrorResult {
-        self.Options().IndexedSetter(index, value, can_gc)
+        self.Options().IndexedSetter(cx, index, value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-nameditem>

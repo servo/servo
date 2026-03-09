@@ -6,6 +6,7 @@ use std::cmp::Ordering;
 
 use dom_struct::dom_struct;
 use html5ever::{QualName, local_name, ns};
+use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
@@ -56,7 +57,7 @@ impl HTMLOptionsCollection {
         )
     }
 
-    fn add_new_elements(&self, count: u32, can_gc: CanGc) -> ErrorResult {
+    fn add_new_elements(&self, cx: &mut JSContext, count: u32) -> ErrorResult {
         let root = self.upcast().root_node();
         let document = root.owner_document();
 
@@ -68,10 +69,10 @@ impl HTMLOptionsCollection {
                 ElementCreator::ScriptCreated,
                 CustomElementCreationMode::Asynchronous,
                 None,
-                can_gc,
+                CanGc::from_cx(cx),
             );
             let node = element.upcast::<Node>();
-            root.AppendChild(node, can_gc)?;
+            root.AppendChild(node, CanGc::from_cx(cx))?;
         }
         Ok(())
     }
@@ -104,9 +105,9 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-setter>
     fn IndexedSetter(
         &self,
+        cx: &mut JSContext,
         index: u32,
         value: Option<&HTMLOptionElement>,
-        can_gc: CanGc,
     ) -> ErrorResult {
         if let Some(value) = value {
             // Step 2
@@ -117,19 +118,20 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
 
             // Step 4
             if n > 0 {
-                self.add_new_elements(n as u32, can_gc)?;
+                self.add_new_elements(cx, n as u32)?;
             }
 
             // Step 5
             let node = value.upcast::<Node>();
             let root = self.upcast().root_node();
             if n >= 0 {
-                Node::pre_insert(node, &root, None, can_gc).map(|_| ())
+                Node::pre_insert(node, &root, None, CanGc::from_cx(cx)).map(|_| ())
             } else {
                 let child = self.upcast().IndexedGetter(index).unwrap();
                 let child_node = child.upcast::<Node>();
 
-                root.ReplaceChild(node, child_node, can_gc).map(|_| ())
+                root.ReplaceChild(node, child_node, CanGc::from_cx(cx))
+                    .map(|_| ())
             }
         } else {
             // Step 1
@@ -144,7 +146,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length>
-    fn SetLength(&self, length: u32, can_gc: CanGc) {
+    fn SetLength(&self, cx: &mut JSContext, length: u32) {
         // Step 1. Let current be the number of nodes represented by the collection.
         let current = self.upcast().Length();
 
@@ -161,7 +163,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
 
                 // Step 2.3 Append n new option elements with no attributes and no child
                 // nodes to the select element on which this is rooted.
-                self.add_new_elements(n, can_gc).unwrap();
+                self.add_new_elements(cx, n).unwrap();
             },
             // Step 3. If the given value is less than current, then:
             Ordering::Less => {
