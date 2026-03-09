@@ -21,6 +21,7 @@ use style::values::specified::Quotes;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::flow::inline::SharedInlineStyles;
+use crate::lists::generate_counter_representation;
 use crate::quotes::quotes_for_lang;
 use crate::replaced::ReplacedContents;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
@@ -391,12 +392,13 @@ fn generate_pseudo_element_content(
                             vec.push(PseudoElementContentItem::Text(quote));
                         }
                     },
-                    ContentItem::Counter(_, _) |
-                    ContentItem::Counters(_, _, _) |
-                    ContentItem::NoOpenQuote |
-                    ContentItem::NoCloseQuote => {
-                        // TODO: Add support for counters and quotes.
+                    ContentItem::Counter(_, style) | ContentItem::Counters(_, _, style) => {
+                        // TODO: Add support for counters, this assumes a value of 0.
+                        vec.push(PseudoElementContentItem::Text(
+                            generate_counter_representation(style).to_string(),
+                        ));
                     },
+                    ContentItem::NoOpenQuote | ContentItem::NoCloseQuote => {},
                 }
             }
             vec
