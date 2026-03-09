@@ -865,8 +865,8 @@ impl Node {
         }
     }
 
-    pub(crate) fn inclusively_following_siblings_unrooted<'a, 'b>(
-        &'a self,
+    pub(crate) fn inclusively_following_siblings_unrooted<'b>(
+        &self,
         no_gc: &'b NoGC,
     ) -> impl Iterator<Item = UnrootedDom<'b, Node>> + use<'b> {
         UnrootedSimpleNodeIterator {
@@ -886,8 +886,8 @@ impl Node {
         }
     }
 
-    pub(crate) fn inclusively_preceding_siblings_unrooted<'a, 'b>(
-        &'a self,
+    pub(crate) fn inclusively_preceding_siblings_unrooted<'b>(
+        &self,
         no_gc: &'b NoGC,
     ) -> impl Iterator<Item = UnrootedDom<'b, Node>> + use<'b> {
         UnrootedSimpleNodeIterator {
