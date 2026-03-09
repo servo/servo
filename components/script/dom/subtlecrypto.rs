@@ -5025,8 +5025,8 @@ enum GetPublicKeyAlgorithm {
     RsaOaep(SubtleAlgorithm),
     Ecdsa(SubtleAlgorithm),
     Ecdh(SubtleAlgorithm),
-    X25519(SubtleAlgorithm),
     Ed25519(SubtleAlgorithm),
+    X25519(SubtleAlgorithm),
 }
 
 impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
@@ -5047,11 +5047,11 @@ impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
             },
             CryptoAlgorithm::Ecdsa => Ok(GetPublicKeyAlgorithm::Ecdsa(value.try_into_with_cx(cx)?)),
             CryptoAlgorithm::Ecdh => Ok(GetPublicKeyAlgorithm::Ecdh(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::X25519 => {
-                Ok(GetPublicKeyAlgorithm::X25519(value.try_into_with_cx(cx)?))
-            },
             CryptoAlgorithm::Ed25519 => {
                 Ok(GetPublicKeyAlgorithm::Ed25519(value.try_into_with_cx(cx)?))
+            },
+            CryptoAlgorithm::X25519 => {
+                Ok(GetPublicKeyAlgorithm::X25519(value.try_into_with_cx(cx)?))
             },
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"getPublicKey\" operation",
@@ -5067,8 +5067,8 @@ impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
             GetPublicKeyAlgorithm::RsaOaep(algorithm) => algorithm.name,
             GetPublicKeyAlgorithm::Ecdsa(algorithm) => algorithm.name,
             GetPublicKeyAlgorithm::Ecdh(algorithm) => algorithm.name,
-            GetPublicKeyAlgorithm::X25519(algorithm) => algorithm.name,
             GetPublicKeyAlgorithm::Ed25519(algorithm) => algorithm.name,
+            GetPublicKeyAlgorithm::X25519(algorithm) => algorithm.name,
         }
     }
 }
@@ -5098,11 +5098,11 @@ impl GetPublicKeyAlgorithm {
             GetPublicKeyAlgorithm::Ecdh(_algorithm) => {
                 ecdh_operation::get_public_key(cx, global, key, algorithm, usages)
             },
-            GetPublicKeyAlgorithm::X25519(_algorithm) => {
-                x25519_operation::get_public_key(cx, global, key, algorithm, usages)
-            },
             GetPublicKeyAlgorithm::Ed25519(_algorithm) => {
                 ed25519_operation::get_public_key(cx, global, key, algorithm, usages)
+            },
+            GetPublicKeyAlgorithm::X25519(_algorithm) => {
+                x25519_operation::get_public_key(cx, global, key, algorithm, usages)
             },
         }
     }

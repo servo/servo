@@ -460,7 +460,7 @@ pub(crate) fn import_key(
     Ok(key)
 }
 
-/// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+/// Steps 9-15 <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
 pub(crate) fn get_public_key(
     cx: &mut JSContext,
     global: &GlobalScope,
@@ -468,21 +468,24 @@ pub(crate) fn get_public_key(
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
-    // Step 9. If usages contains an entry which is not "verify" then throw a SyntaxError.
+    // NOTE: Steps 1-8 and 16-18 are handled by `SubtleCrypto::GetPublicKey`.
+
+    // Step 9. If usages contains an entry which is not supported for a public key by the algorithm
+    // identified by algorithm, then throw a SyntaxError.
     if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
         return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"verify\"".into(),
+            "Usages contains an entry which is not supported for a public key by the algorithm \
+             identified by algorithm"
+                .into(),
         )));
     }
 
     // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
     // private key represented by the [[handle]] internal slot of key.
-    // Step 11. If an error occurred, then throw a OperationError.
     let seed = key.handle().as_bytes();
-    let key_pair = Ed25519KeyPair::from_seed_unchecked(seed).map_err(|error| {
-        Error::Operation(Some(format!(
-            "The key was rejected for the following reason: {error}"
-        )))
+    let key_pair = Ed25519KeyPair::from_seed_unchecked(seed).map_err(|_| {
+        // Step 11. If an error occurred, then throw a OperationError.
+        Error::Operation(None)
     })?;
     let public_key_bytes = key_pair.public_key().as_ref().to_vec();
 
