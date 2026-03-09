@@ -80,12 +80,16 @@ impl HTMLDialogElement {
 
         // Step 3. If subject's node document is not fully active, then throw an "InvalidStateError" DOMException.
         if !subject.owner_document().is_fully_active() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Cannot call showModal() on a dialog whose document is not fully active.".into(),
+            )));
         }
 
         // Step 4. If subject is not connected, then throw an "InvalidStateError" DOMException.
         if !subject.is_connected() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Cannot call showModal() on a dialog that is not connected.".into(),
+            )));
         }
 
         // TODO: Step 5. If subject is in the popover showing state, then throw an "InvalidStateError" DOMException.
@@ -306,7 +310,9 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
 
         // Step 2. If this has an open attribute, then throw an "InvalidStateError" DOMException.
         if element.has_attribute(&local_name!("open")) {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Show(
+                "Cannot call show() on an already open dialog.".into(),
+            )));
         }
 
         // Step 3. If the result of firing an event named beforetoggle, using ToggleEvent, with the cancelable attribute initialized to true, the oldState attribute initialized to "closed", and the newState attribute initialized to "open" at this is false, then return.
