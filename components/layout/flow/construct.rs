@@ -935,6 +935,12 @@ mod tests {
         assert_first_letter_eq("", "");
         assert_first_letter_eq("  ", "");
 
+        // Spaces and punctuation only
+        assert_first_letter_eq("(", "");
+        assert_first_letter_eq(" (", "");
+        assert_first_letter_eq("( ", "");
+        assert_first_letter_eq("()", "");
+
         // Invalid chars
         assert_first_letter_eq("\u{0903}", "");
 
