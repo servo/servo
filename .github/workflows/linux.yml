@@ -288,7 +288,7 @@ jobs:
           # We can remove this after upgrading to Rust 1.90, where lld will be the default.
           RUSTFLAGS: "-C link-arg=-fuse-ld=lld"
         run: |
-          cargo +${{ steps.msrv.outputs.rust_version }} build -p libservo --locked --all-targets
+          cargo +${{ steps.msrv.outputs.rust_version }} build -p servo --locked --all-targets
 
   # Runs the underlying job (“workload”) on a self-hosted runner if available.
   runner-select-coverage:

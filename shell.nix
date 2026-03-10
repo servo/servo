@@ -152,7 +152,7 @@ stdenv.mkDerivation (androidEnvironment // {
     # TLA Err: Error: Couldn't request WebGPU adapter.
     vulkan-loader
 
-    # $ cargo run -p libservo --example winit_minimal
+    # $ cargo run -p servo --example winit_minimal
     # Unable to load the libEGL shared object
     libGL
   ];
