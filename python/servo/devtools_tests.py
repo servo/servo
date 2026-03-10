@@ -1005,6 +1005,15 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         # properly yet. The important part is that we didn't crash and didn't time out waiting for
         # a console notification (meaning we got *something*).
 
+    def test_console_actor_log_window_object(self):
+        self.run_servoshell(url="data:text/html,")
+
+        self.evaluate_and_capture_console_log_output("console.log(window);")
+
+        # We don't run any assertions on the result because we don't implement previews for the window object
+        # yet. The important part is that we didn't crash and didn't time out waiting for
+        # a console notification (meaning we got *something*).
+
     def test_inspector_doesnt_crash_when_attribute_on_element_it_doesnt_know_about_is_mutated(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/inspector/demo_dom.html")
         with Devtools.connect() as devtools:
