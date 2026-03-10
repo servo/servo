@@ -44,6 +44,79 @@ class Source:
     url: str
 
 
+# Attach to the thread actor and return it.
+def attach_thread(devtools):
+    thread_actor = devtools.targets[0]["threadActor"]
+    devtools.client.send_receive({"to": thread_actor, "type": "attach"})
+    return thread_actor
+
+
+# Wait for a source matching url_pattern and return its actor
+def wait_for_source(devtools, url_pattern, timeout=2):
+    source_future = Future()
+
+    def on_source(data):
+        for [resource_type, sources] in data.get("array", []):
+            if resource_type == "source":
+                for source in sources:
+                    if url_pattern in source.get("url", ""):
+                        source_future.set_result(source["actor"])
+
+    devtools.client.add_event_listener(
+        devtools.targets[0]["actor"],
+        Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+        on_source,
+    )
+    devtools.watcher.watch_resources([Resources.SOURCE])
+    return source_future.result(timeout)
+
+
+def set_breakpoint(devtools, source_url, line, column):
+    breakpoint_list = devtools.watcher.get_breakpoint_list_actor()
+    devtools.client.send_receive(
+        {
+            "to": breakpoint_list["breakpointList"]["actor"],
+            "type": "setBreakpoint",
+            "location": {"sourceUrl": source_url, "line": line, "column": column},
+        }
+    )
+
+
+# Wait for the debugger to pause and return the data of that paused location
+def wait_for_pause(client, thread_actor, timeout=3):
+    future = Future()
+
+    def on_paused(data):
+        future.set_result(data)
+
+    client.add_event_listener(thread_actor, "paused", on_paused)
+    return future.result(timeout)
+
+
+# Execute a step and wait for pause.
+def step(client, thread_actor, step_type, timeout=3):
+    future = Future()
+
+    def on_paused(data):
+        future.set_result(data)
+
+    client.add_event_listener(thread_actor, "paused", on_paused)
+    client.send_receive({"to": thread_actor, "type": "resume", "resumeLimit": {"type": step_type}})
+    return future.result(timeout)
+
+
+# Resume execution and wait for next pause (e.g: breakpoint)
+def resume_and_wait(client, thread_actor, timeout=3):
+    future = Future()
+
+    def on_paused(data):
+        future.set_result(data)
+
+    client.add_event_listener(thread_actor, "paused", on_paused)
+    client.send_receive({"to": thread_actor, "type": "resume"})
+    return future.result(timeout)
+
+
 @dataclass
 class Devtools:
     client: RDPClient
@@ -164,26 +237,8 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     def test_breakpoint_pause(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:
-            thread_actor = devtools.targets[0]["threadActor"]
-            devtools.client.send_receive({"to": thread_actor, "type": "attach"})
-
-            # Wait for source
-            source_future = Future()
-
-            def on_source(data):
-                for [resource_type, sources] in data.get("array", []):
-                    if resource_type == "source":
-                        for source in sources:
-                            if "debugger/loop.html" in source.get("url", ""):
-                                source_future.set_result(source["actor"])
-
-            devtools.client.add_event_listener(
-                devtools.targets[0]["actor"],
-                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-                on_source,
-            )
-            devtools.watcher.watch_resources([Resources.SOURCE])
-            source_actor = source_future.result(2)
+            thread_actor = attach_thread(devtools)
+            source_actor = wait_for_source(devtools, "debugger/loop.html")
 
             # Get valid breakpoint position
             positions = devtools.client.send_receive(
@@ -192,49 +247,21 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             line_str = min(positions.keys(), key=int)
             line, column = int(line_str), positions[line_str][0]
 
-            # Set breakpoint at the first available position
-            breakpoint_list = devtools.watcher.get_breakpoint_list_actor()
-            devtools.client.send_receive(
-                {
-                    "to": breakpoint_list["breakpointList"]["actor"],
-                    "type": "setBreakpoint",
-                    "location": {
-                        "sourceUrl": f"{self.base_urls[0]}/debugger/loop.html",
-                        "line": line,
-                        "column": column,
-                    },
-                }
-            )
+            set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/loop.html", line, column)
 
-            # Listen for paused event
-            paused_future = Future()
-
-            def on_paused(data):
-                paused_future.set_result(data)
-
-            devtools.client.add_event_listener(thread_actor, "paused", on_paused)
-
-            # Verify pause
-            paused_data = paused_future.result(3)
+            paused_data = wait_for_pause(devtools.client, thread_actor)
             self.assertEqual(paused_data.get("type"), "paused")
             self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
 
     def test_frame_scoped_eval(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/debugger/frame_scoped.html")
         with Devtools.connect() as devtools:
-            thread_actor = devtools.targets[0]["threadActor"]
+            thread_actor = attach_thread(devtools)
             console_actor = devtools.targets[0]["consoleActor"]
-            devtools.client.send_receive({"to": thread_actor, "type": "attach"})
 
-            paused_future = Future()
-
-            def on_paused(data):
-                paused_future.set_result(data)
-
-            devtools.client.add_event_listener(thread_actor, "paused", on_paused)
             devtools.client.send_receive({"to": thread_actor, "type": "interrupt", "when": "onNext"})
 
-            paused_data = paused_future.result(3)
+            paused_data = wait_for_pause(devtools.client, thread_actor)
             frame_actor = paused_data.get("frame", {}).get("actor")
             self.assertIsNotNone(frame_actor)
 
@@ -277,28 +304,11 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     def test_manual_pause(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:
-            thread_actor = devtools.targets[0]["threadActor"]
-            devtools.client.send_receive({"to": thread_actor, "type": "attach"})
+            thread_actor = attach_thread(devtools)
 
-            # Listen for paused event
-            paused_future = Future()
+            devtools.client.send_receive({"to": thread_actor, "type": "interrupt", "when": "onNext"})
 
-            def on_paused(data):
-                paused_future.set_result(data)
-
-            devtools.client.add_event_listener(thread_actor, "paused", on_paused)
-
-            # Interrupt when entering the next frame
-            devtools.client.send_receive(
-                {
-                    "to": thread_actor,
-                    "type": "interrupt",
-                    "when": "onNext",
-                }
-            )
-
-            # Verify pause
-            paused_data = paused_future.result(3)
+            paused_data = wait_for_pause(devtools.client, thread_actor)
             self.assertEqual(paused_data.get("type"), "paused")
             why = paused_data.get("why", {})
             self.assertEqual(why.get("type"), "interrupted")
@@ -307,26 +317,8 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
     def test_stepping_hooks(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/debugger/stepping.html")
         with Devtools.connect() as devtools:
-            thread_actor = devtools.targets[0]["threadActor"]
-            devtools.client.send_receive({"to": thread_actor, "type": "attach"})
-
-            # Wait for source
-            source_future = Future()
-
-            def on_source(data):
-                for [resource_type, sources] in data.get("array", []):
-                    if resource_type == "source":
-                        for source in sources:
-                            if "debugger/stepping.html" in source.get("url", ""):
-                                source_future.set_result(source["actor"])
-
-            devtools.client.add_event_listener(
-                devtools.targets[0]["actor"],
-                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-                on_source,
-            )
-            devtools.watcher.watch_resources([Resources.SOURCE])
-            source_actor = source_future.result(2)
+            thread_actor = attach_thread(devtools)
+            source_actor = wait_for_source(devtools, "debugger/stepping.html")
 
             # Get the breakpoint positions and find the line with `end()` call(should be line 10)
             positions = devtools.client.send_receive(
@@ -338,142 +330,54 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             line, column = 10, positions["10"][0]
 
             # Set breakpoint at the end() call
-            breakpoint_list = devtools.watcher.get_breakpoint_list_actor()
-            devtools.client.send_receive(
-                {
-                    "to": breakpoint_list["breakpointList"]["actor"],
-                    "type": "setBreakpoint",
-                    "location": {
-                        "sourceUrl": f"{self.base_urls[0]}/debugger/stepping.html",
-                        "line": line,
-                        "column": column,
-                    },
-                }
-            )
+            set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/stepping.html", line, column)
 
             # Pause and breakpoint hit, this is necessary for stepping hooks
-            paused_future = Future()
-
-            def on_paused(data):
-                paused_future.set_result(data)
-
-            devtools.client.add_event_listener(thread_actor, "paused", on_paused)
-
-            paused_data = paused_future.result(3)
+            paused_data = wait_for_pause(devtools.client, thread_actor)
             self.assertEqual(paused_data.get("type"), "paused")
             self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
 
             # Did we pause at line 10?
-            initial_line = paused_data.get("frame", {}).get("where", {}).get("line")
-            self.assertEqual(initial_line, 10)
-
-            # Next pause after stepping
-            step_paused_future = Future()
-
-            def on_step_paused(data):
-                step_paused_future.set_result(data)
-
-            devtools.client.add_event_listener(thread_actor, "paused", on_step_paused)
+            self.assertEqual(paused_data.get("frame", {}).get("where", {}).get("line"), 10)
 
             # Step over! This should execute end() and pause at line 11
-            devtools.client.send_receive(
-                {
-                    "to": thread_actor,
-                    "type": "resume",
-                    "resumeLimit": {"type": "next"},
-                }
-            )
-
-            # Did we pause at line 11 - should be after end() returned, not inside end
-            step_paused_data = step_paused_future.result(3)
-            self.assertEqual(step_paused_data.get("type"), "paused")
-            self.assertEqual(step_paused_data.get("why", {}).get("type"), "resumeLimit")
-
-            # We're at line 11 (the line after the function call)
-            stepped_line = step_paused_data.get("frame", {}).get("where", {}).get("line")
-            self.assertEqual(stepped_line, 11)
+            step_data = step(devtools.client, thread_actor, "next")
+            self.assertEqual(step_data.get("type"), "paused")
+            self.assertEqual(step_data.get("why", {}).get("type"), "resumeLimit")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 11)
 
             # Step over
-            step_future2 = Future()
-
-            def on_step2(data):
-                step_future2.set_result(data)
-
-            devtools.client.add_event_listener(thread_actor, "paused", on_step2)
-            devtools.client.send_receive({"to": thread_actor, "type": "resume", "resumeLimit": {"type": "next"}})
-            step_data2 = step_future2.result(3)
-            self.assertEqual(step_data2.get("frame", {}).get("where", {}).get("line"), 12)
+            step_data = step(devtools.client, thread_actor, "next")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 12)
 
             # Step over to line 13
-            step_future3 = Future()
-
-            def on_step3(data):
-                step_future3.set_result(data)
-
-            devtools.client.add_event_listener(thread_actor, "paused", on_step3)
-            devtools.client.send_receive({"to": thread_actor, "type": "resume", "resumeLimit": {"type": "next"}})
-            step_data3 = step_future3.result(3)
-            self.assertEqual(step_data3.get("frame", {}).get("where", {}).get("line"), 13)
+            step_data = step(devtools.client, thread_actor, "next")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 13)
 
             # We should let the loop continue and hit breakpoint again at line 10
-            breakpoint_future2 = Future()
-
-            def on_breakpoint2(data):
-                breakpoint_future2.set_result(data)
-
-            devtools.client.add_event_listener(thread_actor, "paused", on_breakpoint2)
-            devtools.client.send_receive({"to": thread_actor, "type": "resume"})
-            breakpoint_data2 = breakpoint_future2.result(3)
-            self.assertEqual(breakpoint_data2.get("why", {}).get("type"), "breakpoint")
-            self.assertEqual(breakpoint_data2.get("frame", {}).get("where", {}).get("line"), 10)
+            paused_data = resume_and_wait(devtools.client, thread_actor)
+            self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
+            self.assertEqual(paused_data.get("frame", {}).get("where", {}).get("line"), 10)
 
             # STEP IN to end() function
-            step_in_future = Future()
-
-            def on_step_in(data):
-                step_in_future.set_result(data)
-
-            devtools.client.add_event_listener(thread_actor, "paused", on_step_in)
-            devtools.client.send_receive({"to": thread_actor, "type": "resume", "resumeLimit": {"type": "step"}})
-            step_in_data = step_in_future.result(3)
-            self.assertEqual(step_in_data.get("why", {}).get("type"), "resumeLimit")
-            self.assertEqual(step_in_data.get("frame", {}).get("where", {}).get("line"), 4)
-            self.assertEqual(step_in_data.get("frame", {}).get("displayName"), "end")
+            step_data = step(devtools.client, thread_actor, "step")
+            self.assertEqual(step_data.get("why", {}).get("type"), "resumeLimit")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 4)
+            self.assertEqual(step_data.get("frame", {}).get("displayName"), "end")
 
             # Step over inside end() to line 5
-            step_in_future2 = Future()
-
-            def on_step_in2(data):
-                step_in_future2.set_result(data)
-
-            devtools.client.add_event_listener(thread_actor, "paused", on_step_in2)
-            devtools.client.send_receive({"to": thread_actor, "type": "resume", "resumeLimit": {"type": "next"}})
-            step_in_data2 = step_in_future2.result(3)
-            self.assertEqual(step_in_data2.get("frame", {}).get("where", {}).get("line"), 5)
+            step_data = step(devtools.client, thread_actor, "next")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 5)
 
             # Step over inside end() to line 6
-            step_in_future3 = Future()
-
-            def on_step_in3(data):
-                step_in_future3.set_result(data)
-
-            devtools.client.add_event_listener(thread_actor, "paused", on_step_in3)
-            devtools.client.send_receive({"to": thread_actor, "type": "resume", "resumeLimit": {"type": "next"}})
-            step_in_data3 = step_in_future3.result(3)
-            self.assertEqual(step_in_data3.get("frame", {}).get("where", {}).get("line"), 6)
+            step_data = step(devtools.client, thread_actor, "next")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 6)
 
             # Step out of end() back to loop() at line 11
-            step_out_future = Future()
-
-            def on_step_out(data):
-                step_out_future.set_result(data)
-
-            devtools.client.add_event_listener(thread_actor, "paused", on_step_out)
-            devtools.client.send_receive({"to": thread_actor, "type": "resume", "resumeLimit": {"type": "finish"}})
-            step_out_data = step_out_future.result(3)
-            self.assertEqual(step_out_data.get("why", {}).get("type"), "resumeLimit")
-            self.assertEqual(step_out_data.get("frame", {}).get("where", {}).get("line"), 11)
-            self.assertEqual(step_out_data.get("frame", {}).get("displayName"), "loop")
+            step_data = step(devtools.client, thread_actor, "finish")
+            self.assertEqual(step_data.get("why", {}).get("type"), "resumeLimit")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 11)
+            self.assertEqual(step_data.get("frame", {}).get("displayName"), "loop")
 
     # Sources list
     # Classic script vs module script:
