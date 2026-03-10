@@ -535,13 +535,14 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
                     }
 
                     let first_letter = Cow::Borrowed(&text[first_letter_range]);
-                    let first_letter_inline_styles =
-                        SharedInlineStyles::from_info_and_context(&pseudo_info, context);
-                    builder
-                        .shared_inline_styles_stack
-                        .push(first_letter_inline_styles);
+
+                    let old_layout_box = info.node.box_slot().take_layout_box();
+                    builder.start_inline_box(
+                        || ArcRefCell::new(InlineBox::new(&pseudo_info, context)),
+                        old_layout_box,
+                    );
                     builder.push_text(first_letter, &pseudo_info);
-                    builder.shared_inline_styles_stack.pop();
+                    builder.end_inline_box();
                 }
             }
         }
