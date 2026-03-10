@@ -111,8 +111,6 @@ impl Actor for InspectorActor {
 }
 
 impl InspectorActor {
-    // TODO: Passing the pipeline id here isn't correct. We should query the browsing
-    // context for the active pipeline, otherwise reloading or navigating will break the inspector.
     pub fn register(registry: &ActorRegistry, browsing_context: String) -> String {
         let highlighter = HighlighterActor {
             name: registry.new_name::<HighlighterActor>(),
