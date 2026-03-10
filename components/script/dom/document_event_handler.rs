@@ -221,19 +221,22 @@ impl DocumentEventHandler {
             *self.mouse_move_event_index.borrow_mut() = Some(pending_input_events.len());
         }
 
-        if let InputEvent::Wheel(ref new_wheel) = event.event.event {
+        if let InputEvent::Wheel(ref new_wheel_event) = event.event.event {
             // Coalesce with any existing pending wheel event by summing deltas.
-            if let Some(existing) = self
+            if let Some(existing_constellation_wheel_event) = self
                 .wheel_event_index
                 .borrow()
                 .and_then(|index| pending_input_events.get_mut(index))
             {
-                if let InputEvent::Wheel(ref mut existing_wheel) = existing.event.event {
-                    if existing_wheel.delta.mode == new_wheel.delta.mode {
-                        existing_wheel.delta.x += new_wheel.delta.x;
-                        existing_wheel.delta.y += new_wheel.delta.y;
-                        existing_wheel.delta.z += new_wheel.delta.z;
-                        existing_wheel.point = new_wheel.point;
+                if let InputEvent::Wheel(ref mut existing_wheel_event) =
+                    existing_constellation_wheel_event.event.event
+                {
+                    if existing_wheel_event.delta.mode == new_wheel_event.delta.mode {
+                        existing_wheel_event.delta.x += new_wheel_event.delta.x;
+                        existing_wheel_event.delta.y += new_wheel_event.delta.y;
+                        existing_wheel_event.delta.z += new_wheel_event.delta.z;
+                        existing_wheel_event.point = new_wheel_event.point;
+                        existing_constellation_wheel_event.event.id = event.event.id;
                         return;
                     }
                 }
