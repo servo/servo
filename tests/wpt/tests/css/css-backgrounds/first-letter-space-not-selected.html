@@ -8,19 +8,18 @@
     <meta name="assert" content="::first-letter should not include initial spaces. Test non-breaking space, em space, en space, and thin space, both alone and preceeding a real letter.">
     <style type="text/css">
         .test::first-letter {
-            background: red;
+            background: green;
             font-size: 3em;
         }
     </style>
 </head>
 <body>
-    <p>Test passes if there is no red.</p>
     <div class="test">&nbsp;</div>
     <div class="test">&nbsp;A</div>
     <div class="test">&ensp;</div>
-    <div class="test">&ensp;B</div></body>
+    <div class="test">&ensp;B</div>
     <div class="test">&emsp;</div>
-    <div class="test">&emsp;C</div></body>
+    <div class="test">&emsp;C</div>
     <div class="test">&thinsp;</div>
     <div class="test">&thinsp;D</div>
 </body>
