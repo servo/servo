@@ -1185,10 +1185,6 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                 devtools.client.send_receive({"to": devtools.tab.actor_id, **message_data})
 
                 done.result(1)
-                # History may momentarily report stale state when navigating
-                # rapidly. The code under test does not seem to be responsible,
-                # so wait it out.
-                time.sleep(0.1)
 
     # Sets `base_url` and `web_server` and `web_server_thread`.
     @classmethod
