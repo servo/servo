@@ -304,6 +304,177 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(why.get("type"), "interrupted")
             self.assertEqual(why.get("onNext"), True)
 
+    def test_stepping_hooks(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/stepping.html")
+        with Devtools.connect() as devtools:
+            thread_actor = devtools.targets[0]["threadActor"]
+            devtools.client.send_receive({"to": thread_actor, "type": "attach"})
+
+            # Wait for source
+            source_future = Future()
+
+            def on_source(data):
+                for [resource_type, sources] in data.get("array", []):
+                    if resource_type == "source":
+                        for source in sources:
+                            if "debugger/stepping.html" in source.get("url", ""):
+                                source_future.set_result(source["actor"])
+
+            devtools.client.add_event_listener(
+                devtools.targets[0]["actor"],
+                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+                on_source,
+            )
+            devtools.watcher.watch_resources([Resources.SOURCE])
+            source_actor = source_future.result(2)
+
+            # Get the breakpoint positions and find the line with `end()` call(should be line 10)
+            positions = devtools.client.send_receive(
+                {"to": source_actor, "type": "getBreakpointPositionsCompressed"}
+            ).get("positions", {})
+
+            # Line 10 - should be the `end()` call
+            self.assertIn("10", positions)
+            line, column = 10, positions["10"][0]
+
+            # Set breakpoint at the end() call
+            breakpoint_list = devtools.watcher.get_breakpoint_list_actor()
+            devtools.client.send_receive(
+                {
+                    "to": breakpoint_list["breakpointList"]["actor"],
+                    "type": "setBreakpoint",
+                    "location": {
+                        "sourceUrl": f"{self.base_urls[0]}/debugger/stepping.html",
+                        "line": line,
+                        "column": column,
+                    },
+                }
+            )
+
+            # Pause and breakpoint hit, this is necessary for stepping hooks
+            paused_future = Future()
+
+            def on_paused(data):
+                paused_future.set_result(data)
+
+            devtools.client.add_event_listener(thread_actor, "paused", on_paused)
+
+            paused_data = paused_future.result(3)
+            self.assertEqual(paused_data.get("type"), "paused")
+            self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
+
+            # Did we pause at line 10?
+            initial_line = paused_data.get("frame", {}).get("where", {}).get("line")
+            self.assertEqual(initial_line, 10)
+
+            # Next pause after stepping
+            step_paused_future = Future()
+
+            def on_step_paused(data):
+                step_paused_future.set_result(data)
+
+            devtools.client.add_event_listener(thread_actor, "paused", on_step_paused)
+
+            # Step over! This should execute end() and pause at line 11
+            devtools.client.send_receive(
+                {
+                    "to": thread_actor,
+                    "type": "resume",
+                    "resumeLimit": {"type": "next"},
+                }
+            )
+
+            # Did we pause at line 11 - should be after end() returned, not inside end
+            step_paused_data = step_paused_future.result(3)
+            self.assertEqual(step_paused_data.get("type"), "paused")
+            self.assertEqual(step_paused_data.get("why", {}).get("type"), "resumeLimit")
+
+            # We're at line 11 (the line after the function call)
+            stepped_line = step_paused_data.get("frame", {}).get("where", {}).get("line")
+            self.assertEqual(stepped_line, 11)
+
+            # Step over
+            step_future2 = Future()
+
+            def on_step2(data):
+                step_future2.set_result(data)
+
+            devtools.client.add_event_listener(thread_actor, "paused", on_step2)
+            devtools.client.send_receive({"to": thread_actor, "type": "resume", "resumeLimit": {"type": "next"}})
+            step_data2 = step_future2.result(3)
+            self.assertEqual(step_data2.get("frame", {}).get("where", {}).get("line"), 12)
+
+            # Step over to line 13
+            step_future3 = Future()
+
+            def on_step3(data):
+                step_future3.set_result(data)
+
+            devtools.client.add_event_listener(thread_actor, "paused", on_step3)
+            devtools.client.send_receive({"to": thread_actor, "type": "resume", "resumeLimit": {"type": "next"}})
+            step_data3 = step_future3.result(3)
+            self.assertEqual(step_data3.get("frame", {}).get("where", {}).get("line"), 13)
+
+            # We should let the loop continue and hit breakpoint again at line 10
+            breakpoint_future2 = Future()
+
+            def on_breakpoint2(data):
+                breakpoint_future2.set_result(data)
+
+            devtools.client.add_event_listener(thread_actor, "paused", on_breakpoint2)
+            devtools.client.send_receive({"to": thread_actor, "type": "resume"})
+            breakpoint_data2 = breakpoint_future2.result(3)
+            self.assertEqual(breakpoint_data2.get("why", {}).get("type"), "breakpoint")
+            self.assertEqual(breakpoint_data2.get("frame", {}).get("where", {}).get("line"), 10)
+
+            # STEP IN to end() function
+            step_in_future = Future()
+
+            def on_step_in(data):
+                step_in_future.set_result(data)
+
+            devtools.client.add_event_listener(thread_actor, "paused", on_step_in)
+            devtools.client.send_receive({"to": thread_actor, "type": "resume", "resumeLimit": {"type": "step"}})
+            step_in_data = step_in_future.result(3)
+            self.assertEqual(step_in_data.get("why", {}).get("type"), "resumeLimit")
+            self.assertEqual(step_in_data.get("frame", {}).get("where", {}).get("line"), 4)
+            self.assertEqual(step_in_data.get("frame", {}).get("displayName"), "end")
+
+            # Step over inside end() to line 5
+            step_in_future2 = Future()
+
+            def on_step_in2(data):
+                step_in_future2.set_result(data)
+
+            devtools.client.add_event_listener(thread_actor, "paused", on_step_in2)
+            devtools.client.send_receive({"to": thread_actor, "type": "resume", "resumeLimit": {"type": "next"}})
+            step_in_data2 = step_in_future2.result(3)
+            self.assertEqual(step_in_data2.get("frame", {}).get("where", {}).get("line"), 5)
+
+            # Step over inside end() to line 6
+            step_in_future3 = Future()
+
+            def on_step_in3(data):
+                step_in_future3.set_result(data)
+
+            devtools.client.add_event_listener(thread_actor, "paused", on_step_in3)
+            devtools.client.send_receive({"to": thread_actor, "type": "resume", "resumeLimit": {"type": "next"}})
+            step_in_data3 = step_in_future3.result(3)
+            self.assertEqual(step_in_data3.get("frame", {}).get("where", {}).get("line"), 6)
+
+            # Step out of end() back to loop() at line 11
+            step_out_future = Future()
+
+            def on_step_out(data):
+                step_out_future.set_result(data)
+
+            devtools.client.add_event_listener(thread_actor, "paused", on_step_out)
+            devtools.client.send_receive({"to": thread_actor, "type": "resume", "resumeLimit": {"type": "finish"}})
+            step_out_data = step_out_future.result(3)
+            self.assertEqual(step_out_data.get("why", {}).get("type"), "resumeLimit")
+            self.assertEqual(step_out_data.get("frame", {}).get("where", {}).get("line"), 11)
+            self.assertEqual(step_out_data.get("frame", {}).get("displayName"), "loop")
+
     # Sources list
     # Classic script vs module script:
     # - <https://html.spec.whatwg.org/multipage/#classic-script>
