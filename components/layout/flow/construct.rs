@@ -389,7 +389,7 @@ fn first_letter_range(text: &str) -> std::ops::Range<usize> {
     let mut end = None;
     let mut state = State::Start;
 
-    for (i, c) in &mut iter {
+    for (i, c) in text.char_indices() {
         match &mut state {
             State::Start => {
                 if c.is_punctuation() {
