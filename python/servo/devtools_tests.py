@@ -1122,6 +1122,46 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             self.assertFalse(did_see_new_mutations)
             self.assertEquals(walker.get_mutations(False), [])
 
+    def test_walker_observes_new_dom_after_nav(self):
+        # This tests that the walker actor can correctly recognize a new DOM across distinct
+        # pipelines and script threads. It does not exercise the full exchange of messages required
+        # for the Firefox toolbox to successfully refresh its inspector panel.
+
+        self.run_servoshell(url=f"{self.base_urls[0]}/tab/page1.html")
+        with Devtools.connect() as devtools:
+            nav_done = Future()
+
+            def on_tab_navigated(data):
+                if data.get("url").endswith("/tab/page2.html"):
+                    nav_done.set_result(None)
+                    return
+
+            devtools.client.add_event_listener(
+                devtools.targets[0]["actor"],
+                "tabNavigated",
+                on_tab_navigated,
+            )
+            devtools.client.send_receive(
+                {
+                    "to": devtools.tab.actor_id,
+                    "type": "navigateTo",
+                    # Use a different base URL to test walker across script threads.
+                    "url": f"{self.base_urls[1]}/tab/page2.html",
+                },
+            )
+            # Wait for navigation to complete.
+            nav_done.result(1)
+
+            inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
+            walker_info = inspector.get_walker()
+            walker = WalkerActor(devtools.client, walker_info["actor"])
+            root_node = walker_info["root"]["actor"]
+
+            title_node = walker.query_selector(root_node, "title")
+            self.assertIsNotNone(title_node.get("node"))
+            self.assertIsNotNone(title_node["node"].get("inlineTextChild"))
+            self.assertEquals(title_node["node"]["inlineTextChild"].get("nodeValue"), "Page 2")
+
     def test_navigation(self):
         self.run_servoshell(url=f"{self.base_urls[0]}/tab/page1.html")
         with Devtools.connect() as devtools:
