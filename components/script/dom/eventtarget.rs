@@ -605,7 +605,7 @@ impl EventTarget {
             entries
                 .iter()
                 .for_each(|entry| entry.borrow_mut().removed = true);
-            self.notify_listener_removed(&ty);
+            self.notify_listener_removed(ty);
         }
 
         *handlers = Default::default();
