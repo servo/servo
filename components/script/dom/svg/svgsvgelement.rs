@@ -6,6 +6,7 @@ use base64::Engine as _;
 use cssparser::{Parser, ParserInput};
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::SVGElementData;
 use servo_url::ServoUrl;
@@ -74,15 +75,18 @@ impl SVGSVGElement {
         )
     }
 
+    #[expect(unsafe_code)]
     pub(crate) fn serialize_and_cache_subtree(&self) {
-        let can_gc = CanGc::note();
-        let cloned_nodes = self.process_use_elements(can_gc);
+        // TODO: https://github.com/servo/servo/issues/43142
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+        let cloned_nodes = self.process_use_elements(cx);
 
         let serialize_result = self
             .upcast::<Node>()
             .xml_serialize(TraversalScope::IncludeNode);
 
-        self.cleanup_cloned_nodes(&cloned_nodes, can_gc);
+        self.cleanup_cloned_nodes(&cloned_nodes, CanGc::from_cx(cx));
 
         let Ok(xml_source) = serialize_result else {
             *self.cached_serialized_data_url.borrow_mut() = Some(Err(()));
@@ -98,14 +102,14 @@ impl SVGSVGElement {
         };
     }
 
-    fn process_use_elements(&self, can_gc: CanGc) -> Vec<DomRoot<Node>> {
+    fn process_use_elements(&self, cx: &mut JSContext) -> Vec<DomRoot<Node>> {
         let mut cloned_nodes = Vec::new();
         let root_node = self.upcast::<Node>();
 
         for node in root_node.traverse_preorder(ShadowIncluding::No) {
             if let Some(element) = node.downcast::<Element>() {
                 if element.local_name() == &local_name!("use") {
-                    if let Some(cloned) = self.process_single_use_element(element, can_gc) {
+                    if let Some(cloned) = self.process_single_use_element(cx, element) {
                         cloned_nodes.push(cloned);
                     }
                 }
@@ -117,8 +121,8 @@ impl SVGSVGElement {
 
     fn process_single_use_element(
         &self,
+        cx: &mut JSContext,
         use_element: &Element,
-        can_gc: CanGc,
     ) -> Option<DomRoot<Node>> {
         let href = use_element.get_string_attribute(&local_name!("href"));
         let href_view = href.str();
@@ -134,14 +138,14 @@ impl SVGSVGElement {
             return None;
         }
         let cloned_node = Node::clone(
+            cx,
             referenced_node,
             None,
             CloneChildrenFlag::CloneChildren,
             None,
-            can_gc,
         );
         let root_node = self.upcast::<Node>();
-        let _ = root_node.AppendChild(&cloned_node, can_gc);
+        let _ = root_node.AppendChild(&cloned_node, CanGc::from_cx(cx));
 
         Some(cloned_node)
     }

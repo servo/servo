@@ -3471,11 +3471,11 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#concept-node-clone>
     pub(crate) fn clone(
+        cx: &mut JSContext,
         node: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
         registry: Option<DomRoot<CustomElementRegistry>>,
-        can_gc: CanGc,
     ) -> DomRoot<Node> {
         // Step 1. If document is not given, let document be node’s node document.
         let document = match maybe_doc {
@@ -3493,7 +3493,7 @@ impl Node {
                     Some(doctype.public_id().clone()),
                     Some(doctype.system_id().clone()),
                     &document,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 DomRoot::upcast::<Node>(doctype)
             },
@@ -3507,17 +3507,17 @@ impl Node {
                     attr.namespace().clone(),
                     attr.prefix().cloned(),
                     None,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 DomRoot::upcast::<Node>(attr)
             },
             NodeTypeId::DocumentFragment(_) => {
-                let doc_fragment = DocumentFragment::new(&document, can_gc);
+                let doc_fragment = DocumentFragment::new(&document, CanGc::from_cx(cx));
                 DomRoot::upcast::<Node>(doc_fragment)
             },
             NodeTypeId::CharacterData(_) => {
                 let cdata = node.downcast::<CharacterData>().unwrap();
-                cdata.clone_with_data(cdata.Data(), &document, can_gc)
+                cdata.clone_with_data(cdata.Data(), &document, CanGc::from_cx(cx))
             },
             NodeTypeId::Document(_) => {
                 // Step 1. Set copy’s encoding, content type, URL, origin, type, mode,
@@ -3552,7 +3552,7 @@ impl Node {
                     document.has_trustworthy_ancestor_or_current_origin(),
                     document.custom_element_reaction_stack(),
                     document.creation_sandboxing_flag_set(),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 // Step 2. If node’s custom element registry’s is scoped is true,
                 // then set copy’s custom element registry to node’s custom element registry.
@@ -3588,7 +3588,7 @@ impl Node {
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Asynchronous,
                     None,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 // TODO: Move this into `Element::create`
                 element.set_custom_element_registry(registry);
@@ -3629,7 +3629,7 @@ impl Node {
                         attr.namespace().clone(),
                         attr.prefix().cloned(),
                         AttributeMutationReason::ByCloning,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                 }
             },
@@ -3638,14 +3638,14 @@ impl Node {
 
         // Step 5: Run any cloning steps defined for node in other applicable specifications and pass copy,
         // node, document, and the clone children flag if set, as parameters.
-        vtable_for(node).cloning_steps(&copy, maybe_doc, clone_children, can_gc);
+        vtable_for(node).cloning_steps(cx, &copy, maybe_doc, clone_children);
 
         // Step 6. If the clone children flag is set, then for each child child of node, in tree order: append the
         // result of cloning child with document and the clone children flag set, to copy.
         if clone_children == CloneChildrenFlag::CloneChildren {
             for child in node.children() {
-                let child_copy = Node::clone(&child, Some(&document), clone_children, None, can_gc);
-                let _inserted_node = Node::pre_insert(&child_copy, &copy, None, can_gc);
+                let child_copy = Node::clone(cx, &child, Some(&document), clone_children, None);
+                let _inserted_node = Node::pre_insert(&child_copy, &copy, None, CanGc::from_cx(cx));
             }
         }
 
@@ -3670,7 +3670,7 @@ impl Node {
                         shadow_root.Serializable(),
                         shadow_root.DelegatesFocus(),
                         shadow_root.SlotAssignment(),
-                        can_gc
+                        CanGc::from_cx(cx),
                     )
                     .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
 
@@ -3681,11 +3681,11 @@ impl Node {
                 // cloning child with document and the clone children flag set, to copy’s shadow root.
                 for child in shadow_root.upcast::<Node>().children() {
                     let child_copy = Node::clone(
+                        cx,
                         &child,
                         Some(&document),
                         CloneChildrenFlag::CloneChildren,
                         None,
-                        can_gc,
                     );
 
                     // TODO: Should we handle the error case here and in step 6?
@@ -3693,7 +3693,7 @@ impl Node {
                         &child_copy,
                         copy_shadow_root.upcast::<Node>(),
                         None,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                 }
             }
@@ -4311,7 +4311,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-clonenode>
-    fn CloneNode(&self, subtree: bool, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+    fn CloneNode(&self, cx: &mut JSContext, subtree: bool) -> Fallible<DomRoot<Node>> {
         // Step 1. If this is a shadow root, then throw a "NotSupportedError" DOMException.
         if self.is::<ShadowRoot>() {
             return Err(Error::NotSupported(None));
@@ -4319,6 +4319,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
         // Step 2. Return the result of cloning a node given this with subtree set to subtree.
         let result = Node::clone(
+            cx,
             self,
             None,
             if subtree {
@@ -4327,7 +4328,6 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 CloneChildrenFlag::DoNotCloneChildren
             },
             None,
-            can_gc,
         );
         Ok(result)
     }

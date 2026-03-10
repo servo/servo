@@ -2866,9 +2866,9 @@ impl Element {
     /// Step 4 of <https://html.spec.whatwg.org/multipage/#dom-element-insertadjacenthtml>
     /// and step 6. of <https://html.spec.whatwg.org/multipage/#dom-range-createcontextualfragment>
     pub(crate) fn fragment_parsing_context(
+        cx: &mut JSContext,
         owner_doc: &Document,
         element: Option<&Self>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
         // If context is not an Element or all of the following are true:
         match element {
@@ -2890,7 +2890,7 @@ impl Element {
                 ElementCreator::ScriptCreated,
                 CustomElementCreationMode::Asynchronous,
                 None,
-                can_gc,
+                CanGc::from_cx(cx),
             ),
         }
     }
@@ -4078,9 +4078,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 4.
         let context = Element::fragment_parsing_context(
+            cx,
             &context.owner_doc(),
             context.downcast::<Element>(),
-            CanGc::from_cx(cx),
         );
 
         // Step 5: Let fragment be the result of invoking the
@@ -4824,13 +4824,13 @@ impl VirtualMethods for Element {
     /// <https://html.spec.whatwg.org/multipage/#nonce-attributes%3Aconcept-node-clone-ext>
     fn cloning_steps(
         &self,
+        cx: &mut JSContext,
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
-        can_gc: CanGc,
     ) {
         if let Some(s) = self.super_type() {
-            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
+            s.cloning_steps(cx, copy, maybe_doc, clone_children);
         }
         let elem = copy.downcast::<Element>().unwrap();
         if let Some(rare_data) = self.rare_data().as_ref() {

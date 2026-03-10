@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
+use js::context::JSContext;
 use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
@@ -132,31 +133,33 @@ impl VirtualMethods for HTMLTemplateElement {
     /// <https://html.spec.whatwg.org/multipage/#the-template-element:concept-node-clone-ext>
     fn cloning_steps(
         &self,
+        cx: &mut JSContext,
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
-        can_gc: CanGc,
     ) {
         self.super_type()
             .unwrap()
-            .cloning_steps(copy, maybe_doc, clone_children, can_gc);
+            .cloning_steps(cx, copy, maybe_doc, clone_children);
         if clone_children == CloneChildrenFlag::DoNotCloneChildren {
             // Step 1.
             return;
         }
         let copy = copy.downcast::<HTMLTemplateElement>().unwrap();
         // Steps 2-3.
-        let copy_contents = DomRoot::upcast::<Node>(copy.Content(CanGc::note()));
+        let copy_contents = DomRoot::upcast::<Node>(copy.Content(CanGc::from_cx(cx)));
         let copy_contents_doc = copy_contents.owner_doc();
-        for child in self.Content(CanGc::note()).upcast::<Node>().children() {
+        for child in self.Content(CanGc::from_cx(cx)).upcast::<Node>().children() {
             let copy_child = Node::clone(
+                cx,
                 &child,
                 Some(&copy_contents_doc),
                 CloneChildrenFlag::CloneChildren,
                 None,
-                CanGc::note(),
             );
-            copy_contents.AppendChild(&copy_child, can_gc).unwrap();
+            copy_contents
+                .AppendChild(&copy_child, CanGc::from_cx(cx))
+                .unwrap();
         }
     }
 }

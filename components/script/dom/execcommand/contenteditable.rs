@@ -552,7 +552,7 @@ fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &'a [&'a Nod
     // Step 7. If the first child of original parent is not in node list:
     if first_child_is_in_node_list {
         // Step 7.1. Let cloned parent be the result of calling cloneNode(false) on original parent.
-        let Ok(cloned_parent) = original_parent.CloneNode(false, CanGc::from_cx(cx)) else {
+        let Ok(cloned_parent) = original_parent.CloneNode(cx, false) else {
             unreachable!("Must always be able to clone node");
         };
         // Step 7.2. If original parent has an id attribute, unset it.
