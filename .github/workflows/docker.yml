@@ -1,0 +1,52 @@
+#
+name: Build Docker image and push to GitHub Packages
+
+# This workflow file is adapted from the example at https://docs.github.com/en/packages/managing-github-packages-using-github-actions-workflows/publishing-and-installing-a-package-with-github-actions#upgrading-a-workflow-that-accesses-a-registry-using-a-personal-access-token
+on:
+  push:
+    branches:
+      - main
+    # Only rebuild if the Dockerfile or dependencies change.
+    paths:
+      - '.devcontainer/**'
+      - 'python/servo/platform/linux_packages/**'
+  workflow_dispatch:
+
+jobs:
+  devcontainer_ubuntu:
+    runs-on: ubuntu-latest
+    # We probably don't want to spam the package registry of every developer
+    # thats working on servo and has actions enabled on their fork.
+    # You can comment this if to test changes to the workflow locally in your fork,
+    # use manual workflow dispatch in your fork.
+    if: github.repository_owner == 'servo' || github.event_name == 'workflow_dispatch'
+    permissions:
+      packages: write
+      contents: read
+    env:
+      IMAGE_NAME: devcontainer-ubuntu
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build image
+        run: docker build . --file .devcontainer/Ubuntu.Dockerfile --tag ${{ env.IMAGE_NAME }} --label "runnumber=${GITHUB_RUN_ID}"
+
+      - name: Log in to registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push image
+        run: |
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/servo/$IMAGE_NAME
+
+          # This changes all uppercase characters to lowercase.
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+          # This strips the git ref prefix from the version.
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+
+          # This uses the Docker `latest` tag convention.
+          [ "$VERSION" == "main" ] && VERSION=latest
+          echo IMAGE_ID=$IMAGE_ID
+          echo VERSION=$VERSION
+          # Todo: It would be nice to add another tag here, that has a version number, or a date-tag.
+          docker tag $IMAGE_NAME $IMAGE_ID:$VERSION
+          docker push $IMAGE_ID:$VERSION
