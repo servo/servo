@@ -80,7 +80,7 @@ futures-util = { version = "0.3", default-features = false }
 gleam = "0.15"
 glib = "0.22"
 glib-sys = "0.22"
-glow = "0.16.0"
+glow = "0.17.0"
 gstreamer = { version = "0.25", features = ["v1_18"] }
 gstreamer-app = "0.25"
 gstreamer-audio = "0.25"
