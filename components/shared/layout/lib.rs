@@ -698,7 +698,13 @@ pub enum FragmentType {
     AfterPseudoContent,
     /// A StackingContextContent to represent the scrollbar. // MYTODO: need to expand the fragment type to include vertical scrollbar
     HorizontalScrollbar,
+    /// A StackingContextContent to represent the scrollbar. // MYTODO: need to expand the fragment type to include vertical scrollbar
+    VerticalScrollbar,
 }
+
+const SIZE_OF_FRAGMENT_TYPE: usize = 3;
+const FRAGMENT_TYPE_MASK: usize = (1 << SIZE_OF_FRAGMENT_TYPE) - 1;
+const SCROLL_ID_SHIFT: usize = SIZE_OF_FRAGMENT_TYPE - 2;
 
 impl From<Option<PseudoElement>> for FragmentType {
     fn from(value: Option<PseudoElement>) -> Self {
@@ -717,29 +723,31 @@ static NEXT_SPECIAL_SCROLL_ROOT_ID: AtomicU64 = AtomicU64::new(0);
 
 /// If none of the bits outside this mask are set, the scroll root is a special scroll root.
 /// Note that we assume that the top 16 bits of the address space are unused on the platform.
-const SPECIAL_SCROLL_ROOT_ID_MASK: u64 = 0xffff;
+const SPECIAL_SCROLL_ROOT_ID_MASK: u64 = 0xffff; //MYTODO: what is this
 
 /// Returns a new scroll root ID for a scroll root.
 fn next_special_id() -> u64 {
     // We shift this left by 2 to make room for the fragment type ID.
-    ((NEXT_SPECIAL_SCROLL_ROOT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
+    ((NEXT_SPECIAL_SCROLL_ROOT_ID.fetch_add(1, Ordering::SeqCst) + 1) << SIZE_OF_FRAGMENT_TYPE) &
         SPECIAL_SCROLL_ROOT_ID_MASK
 }
 
 pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> u64 {
-    debug_assert_eq!(id & (fragment_type as usize), 0);
+    debug_assert_eq!(id & FRAGMENT_TYPE_MASK, 0);
+    let shifted_id = (id as u64) << SCROLL_ID_SHIFT;
     if fragment_type == FragmentType::FragmentBody {
-        id as u64
-    } else if fragment_type == FragmentType::HorizontalScrollbar {
-        id as u64 | (fragment_type as u64)
+        shifted_id
+    } else if matches!(fragment_type, FragmentType::HorizontalScrollbar | FragmentType::VerticalScrollbar) {
+        shifted_id | (fragment_type as u64)
     } else {
         next_special_id() | (fragment_type as u64) // I have no idea why are we using next_special_id instead of node_id
     }
 }
 
-pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
-    if (id as u64 & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
-        return Some(id & !3);
+pub fn node_id_from_scroll_id(id: u64) -> Option<usize> {
+    if (id & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
+        let node_id = (id & (!FRAGMENT_TYPE_MASK as u64)) >> SCROLL_ID_SHIFT;
+        return Some(node_id.try_into().expect("We have ensured that this fits in u32"));
     }
     None
 }

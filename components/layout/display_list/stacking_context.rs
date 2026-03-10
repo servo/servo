@@ -12,7 +12,7 @@ use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use embedder_traits::ViewportDetails;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use layout_api::AxesOverflow;
+use layout_api::{AxesOverflow, FragmentType, combine_id_with_fragment_type};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::display_list::{
@@ -1838,7 +1838,7 @@ impl BoxFragment {
                 );
 
             let external_scroll_id = wr::ExternalScrollId(
-                tag.to_display_list_fragment_id_for_scrollbar(),
+                combine_id_with_fragment_type(tag.node.id(), FragmentType::VerticalScrollbar),
                 stacking_context_tree.paint_info.pipeline_id,
             );
 
@@ -1873,7 +1873,7 @@ impl BoxFragment {
                 );
 
             let external_scroll_id = wr::ExternalScrollId(
-                tag.to_display_list_fragment_id_for_scrollbar(),
+                combine_id_with_fragment_type(tag.node.id(), FragmentType::HorizontalScrollbar),
                 stacking_context_tree.paint_info.pipeline_id,
             );
 
