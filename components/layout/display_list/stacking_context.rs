@@ -10,9 +10,8 @@ use std::sync::Arc;
 use app_units::Au;
 use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
-use bitflags::bitflags;
 use embedder_traits::ViewportDetails;
-use euclid::{Point2D, Rect, SideOffsets2D, Size2D, Vector2D};
+use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use layout_api::AxesOverflow;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
@@ -52,6 +51,8 @@ use crate::fragment_tree::{
 };
 use crate::geom::{AuOrAuto, LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides};
 use crate::style_ext::{ComputedValuesExt, TransformExt};
+
+const SCROLLBAR_THICKNESS: i32 = 8;
 
 #[derive(Clone)]
 pub(crate) struct ContainingBlock {
@@ -230,6 +231,7 @@ impl StackingContextTree {
         external_id: wr::ExternalScrollId,
         content_rect: LayoutRect,
         clip_rect: LayoutRect,
+        offset: LayoutVector2D,
         scroll_sensitivity: AxesScrollSensitivity,
     ) -> ScrollTreeNodeId {
         self.paint_info.scroll_tree.add_scroll_tree_node(
@@ -239,8 +241,9 @@ impl StackingContextTree {
                 content_rect,
                 clip_rect,
                 scroll_sensitivity,
-                offset: LayoutVector2D::zero(),
+                offset,
                 offset_changed: Cell::new(false),
+                linked_nodes: None,
             }),
         )
     }
@@ -331,7 +334,7 @@ pub(crate) enum StackingContextContent {
         is_collapsed_table_borders: bool,
         #[conditional_malloc_size_of]
         text_decorations: Arc<Vec<FragmentTextDecoration>>,
-        scrollbar_descriptor: Option<Box<ScrollbarDescriptor>>,
+        scrollbar_slider: Option<Box<ScrollbarSlider>>,
     },
 
     /// An index into [StackingContext::atomic_inline_stacking_containers].
@@ -366,7 +369,7 @@ impl StackingContextContent {
                 is_hit_test_for_scrollable_overflow,
                 is_collapsed_table_borders,
                 text_decorations,
-                scrollbar_descriptor,
+                scrollbar_slider,
             } => {
                 builder.current_scroll_node_id = *scroll_node_id;
                 builder.current_reference_frame_scroll_node_id = *reference_frame_scroll_node_id;
@@ -378,7 +381,7 @@ impl StackingContextContent {
                     *is_hit_test_for_scrollable_overflow,
                     *is_collapsed_table_borders,
                     text_decorations,
-                    scrollbar_descriptor,
+                    scrollbar_slider,
                 );
             },
             Self::AtomicInlineStackingContainer { index } => {
@@ -410,13 +413,12 @@ impl StackingContextContent {
         }
     }
 
-    fn has_scrollbar_descriptor(&self) -> bool {
+    fn for_scrollbar_slider(&self) -> bool {
         if let StackingContextContent::Fragment {
-            scrollbar_descriptor,
-            ..
+            scrollbar_slider, ..
         } = self
         {
-            scrollbar_descriptor.is_some()
+            scrollbar_slider.is_some()
         } else {
             false
         }
@@ -764,7 +766,7 @@ impl StackingContext {
             child.section() == StackingContextSection::OwnBackgroundsAndBorders
         }) {
             let (i, child) = contents.next().unwrap();
-            if child.has_scrollbar_descriptor() {
+            if child.for_scrollbar_slider() {
                 content_with_scrollbar.push(child);
                 continue;
             }
@@ -801,7 +803,7 @@ impl StackingContext {
             child.section() == StackingContextSection::DescendantBackgroundsAndBorders
         }) {
             let (i, child) = contents.next().unwrap();
-            if child.has_scrollbar_descriptor() {
+            if child.for_scrollbar_slider() {
                 content_with_scrollbar.push(child);
                 continue;
             }
@@ -826,7 +828,7 @@ impl StackingContext {
             .is_some_and(|(_, child)| child.section() == StackingContextSection::Foreground)
         {
             let (i, child) = contents.next().unwrap();
-            if child.has_scrollbar_descriptor() {
+            if child.for_scrollbar_slider() {
                 content_with_scrollbar.push(child);
                 continue;
             }
@@ -1022,7 +1024,7 @@ impl Fragment {
                         is_hit_test_for_scrollable_overflow: false,
                         is_collapsed_table_borders: false,
                         text_decorations: text_decorations.clone(),
-                        scrollbar_descriptor: None,
+                        scrollbar_slider: None,
                     });
             },
         }
@@ -1040,13 +1042,25 @@ struct ScrollFrameData {
 }
 
 #[derive(MallocSizeOf)]
+pub(crate) struct ScrollbarSlider {
+    /// The rectangle representing the moving part of the scrollbar.
+    pub thumb: LayoutRect,
+
+    /// The rectangle representing the track.
+    pub track: LayoutRect,
+
+    /// The scroll node which represent the thumb's offset.
+    pub scroll_node_id: ScrollTreeNodeId,
+}
+
+#[derive(MallocSizeOf)]
 pub(crate) struct ScrollbarDescriptor {
-    pub horizontal_thumb: Option<LayoutRect>,
-    pub vertical_thumb: Option<LayoutRect>,
+    pub horizontal: Option<ScrollbarSlider>,
+    pub vertical: Option<ScrollbarSlider>,
 }
 
 impl ScrollbarDescriptor {
-    fn should_render_vertical_scrollbar(
+    fn should_render_horizontal_scrollbar(
         overflow: &AxesOverflow,
         padding_rect: &PhysicalRect<Au>,
         scrollable_overflow_size: &Size2D<Au, CSSPixel>,
@@ -1057,7 +1071,7 @@ impl ScrollbarDescriptor {
         ) && scrollable_overflow_size.width > padding_rect.width()
     }
 
-    fn should_horizontal_vertical_scrollbar(
+    fn should_render_vertical_scrollbar(
         overflow: &AxesOverflow,
         padding_rect: &PhysicalRect<Au>,
         scrollable_overflow_size: &Size2D<Au, CSSPixel>,
@@ -1068,64 +1082,93 @@ impl ScrollbarDescriptor {
         ) && scrollable_overflow_size.height > padding_rect.height()
     }
 
-    fn compute_scrollbar_if_necessary(
-        overflow: &AxesOverflow,
+    fn place_horizontal_scrollbar(
         padding_rect: &PhysicalRect<Au>,
         scrollable_overflow_size: &Size2D<Au, CSSPixel>,
         containing_block_rect: &PhysicalRect<Au>,
-    ) -> Option<Box<Self>> {
-        let SCROLLBAR_THICKNESS = Au::from_px(8);
-        let horizontal_thumb = if Self::should_render_vertical_scrollbar(overflow, padding_rect, scrollable_overflow_size)
-        {
-            let scrollbar_width =
-                padding_rect.width() * padding_rect.width().0 / scrollable_overflow_size.width.0;
-            Some(
-                Rect::new(
-                    Point2D::new(
-                        padding_rect.min_x(),
-                        padding_rect.max_y() - SCROLLBAR_THICKNESS,
-                    ),
-                    Size2D::new(scrollbar_width, SCROLLBAR_THICKNESS),
-                )
-                .translate(containing_block_rect.origin.to_vector())
-                .to_webrender(),
-            )
-        } else {
-            None
-        };
-        let vertical_thumb = if Self::should_horizontal_vertical_scrollbar(overflow, padding_rect, scrollable_overflow_size)
-        {
-            let scrollbar_height =
-                padding_rect.height() * padding_rect.height().0 / scrollable_overflow_size.height.0;
-            Some(
-                Rect::new(
-                    Point2D::new(
-                        padding_rect.max_x() - SCROLLBAR_THICKNESS,
-                        padding_rect.min_y(),
-                    ),
-                    Size2D::new(SCROLLBAR_THICKNESS, scrollbar_height),
-                )
-                .translate(containing_block_rect.origin.to_vector())
-                .to_webrender(),
-            )
-        } else {
-            None
-        };
-        if horizontal_thumb.is_some() || vertical_thumb.is_some() {
-            Some(Box::new(Self {
-                horizontal_thumb,
-                vertical_thumb,
-            }))
-        } else {
-            None
-        }
+    ) -> (LayoutRect, LayoutRect, LayoutRect) {
+        let scrollbar_thickness = Au::from_px(SCROLLBAR_THICKNESS);
+
+        let scrollbar_track_width = padding_rect.width();
+        let scrollbar_thumb_width =
+            scrollbar_track_width * scrollbar_track_width.0 / scrollable_overflow_size.width.0;
+
+        let scroll_node_overflow_width = scrollbar_track_width * 2 - scrollbar_thumb_width;
+
+        let scrollbar_origin = Point2D::new(
+            padding_rect.min_x(),
+            padding_rect.max_y() - scrollbar_thickness,
+        ) + containing_block_rect.origin.to_vector();
+
+        let scrollbar_rect = Rect::new(
+            scrollbar_origin,
+            Size2D::new(scrollbar_thumb_width, scrollbar_thickness),
+        )
+        .to_webrender();
+        let scroll_node_clip_rect = Rect::new(
+            scrollbar_origin,
+            Size2D::new(scrollbar_track_width, scrollbar_thickness),
+        )
+        .to_webrender();
+        let scroll_node_content_rect = Rect::new(
+            scrollbar_origin,
+            Size2D::new(scroll_node_overflow_width, scrollbar_thickness),
+        )
+        .to_webrender();
+
+        (
+            scrollbar_rect,
+            scroll_node_clip_rect,
+            scroll_node_content_rect,
+        )
+    }
+
+    fn place_vertical_scrollbar(
+        padding_rect: &PhysicalRect<Au>,
+        scrollable_overflow_size: &Size2D<Au, CSSPixel>,
+        containing_block_rect: &PhysicalRect<Au>,
+    ) -> (LayoutRect, LayoutRect, LayoutRect) {
+        let scrollbar_thickness = Au::from_px(SCROLLBAR_THICKNESS);
+
+        let scrollbar_track_height = padding_rect.height();
+        let scrollbar_thumb_height =
+            scrollbar_track_height * scrollbar_track_height.0 / scrollable_overflow_size.height.0;
+
+        let scroll_node_overflow_height = scrollbar_track_height * 2 - scrollbar_thumb_height;
+
+        let scrollbar_origin = Point2D::new(
+            padding_rect.max_x() - scrollbar_thickness,
+            padding_rect.min_y(),
+        ) + containing_block_rect.origin.to_vector();
+
+        let scrollbar_rect = Rect::new(
+            scrollbar_origin,
+            Size2D::new(scrollbar_thickness, scrollbar_thumb_height),
+        )
+        .to_webrender();
+        let scroll_node_clip_rect = Rect::new(
+            scrollbar_origin,
+            Size2D::new(scrollbar_thickness, scrollbar_track_height),
+        )
+        .to_webrender();
+        let scroll_node_content_rect = Rect::new(
+            scrollbar_origin,
+            Size2D::new(scrollbar_thickness, scroll_node_overflow_height),
+        )
+        .to_webrender();
+
+        (
+            scrollbar_rect,
+            scroll_node_clip_rect,
+            scroll_node_content_rect,
+        )
     }
 }
 
 struct OverflowFrameData {
     clip_id: ClipId,
     scroll_frame_data: Option<ScrollFrameData>,
-    frame_scrollbar_data: Option<Box<ScrollbarDescriptor>>,
+    scrollbar_descriptor: Option<Box<ScrollbarDescriptor>>,
 }
 
 impl BoxFragment {
@@ -1428,7 +1471,7 @@ impl BoxFragment {
                     is_hit_test_for_scrollable_overflow: false,
                     is_collapsed_table_borders: false,
                     text_decorations: text_decorations.clone(),
-                    scrollbar_descriptor: None,
+                    scrollbar_slider: None,
                 });
         };
 
@@ -1443,30 +1486,51 @@ impl BoxFragment {
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
         if let Some(overflow_frame_data) = self.build_overflow_frame_if_necessary(
-            // MYTODO: need to store the information as well
             stacking_context_tree,
             new_scroll_node_id,
             new_clip_id,
             &containing_block.rect,
         ) {
             new_clip_id = overflow_frame_data.clip_id;
-            if overflow_frame_data.scroll_frame_data.is_some() {
-                stacking_context
-                    .contents
-                    .push(StackingContextContent::Fragment {
-                        scroll_node_id: new_scroll_node_id,
-                        reference_frame_scroll_node_id:
-                            reference_frame_scroll_node_id_for_fragments,
-                        clip_id: new_clip_id,
-                        section,
-                        containing_block: containing_block.rect,
-                        fragment: fragment.clone(),
-                        is_hit_test_for_scrollable_overflow: false,
-                        is_collapsed_table_borders: false,
-                        text_decorations: text_decorations.clone(),
-                        scrollbar_descriptor: overflow_frame_data.frame_scrollbar_data,
-                    });
+
+            // MYTODO: need to document or tidy this
+            if let Some(scrollbar_descriptor) = overflow_frame_data.scrollbar_descriptor {
+                if let Some(horizontal_slider) = scrollbar_descriptor.horizontal {
+                    stacking_context
+                        .contents
+                        .push(StackingContextContent::Fragment {
+                            scroll_node_id: horizontal_slider.scroll_node_id,
+                            reference_frame_scroll_node_id:
+                                reference_frame_scroll_node_id_for_fragments,
+                            clip_id: new_clip_id,
+                            section,
+                            containing_block: containing_block.rect,
+                            fragment: fragment.clone(),
+                            is_hit_test_for_scrollable_overflow: false,
+                            is_collapsed_table_borders: false,
+                            text_decorations: text_decorations.clone(),
+                            scrollbar_slider: Some(Box::new(horizontal_slider)),
+                        });
+                }
+                if let Some(vertical_slider) = scrollbar_descriptor.vertical {
+                    stacking_context
+                        .contents
+                        .push(StackingContextContent::Fragment {
+                            scroll_node_id: vertical_slider.scroll_node_id,
+                            reference_frame_scroll_node_id:
+                                reference_frame_scroll_node_id_for_fragments,
+                            clip_id: new_clip_id,
+                            section,
+                            containing_block: containing_block.rect,
+                            fragment: fragment.clone(),
+                            is_hit_test_for_scrollable_overflow: false,
+                            is_collapsed_table_borders: false,
+                            text_decorations: text_decorations.clone(),
+                            scrollbar_slider: Some(Box::new(vertical_slider)),
+                        });
+                }
             }
+
             if let Some(scroll_frame_data) = overflow_frame_data.scroll_frame_data {
                 new_scroll_node_id = scroll_frame_data.scroll_tree_node_id;
                 new_scroll_frame_size = Some(scroll_frame_data.scroll_frame_rect.size());
@@ -1483,7 +1547,7 @@ impl BoxFragment {
                         is_hit_test_for_scrollable_overflow: true,
                         is_collapsed_table_borders: false,
                         text_decorations: text_decorations.clone(),
-                        scrollbar_descriptor: None,
+                        scrollbar_slider: None,
                     });
             }
         }
@@ -1585,7 +1649,7 @@ impl BoxFragment {
                     is_hit_test_for_scrollable_overflow: false,
                     is_collapsed_table_borders: true,
                     text_decorations: text_decorations.clone(),
-                    scrollbar_descriptor: None,
+                    scrollbar_slider: None,
                 });
         }
     }
@@ -1691,7 +1755,7 @@ impl BoxFragment {
             return Some(OverflowFrameData {
                 clip_id,
                 scroll_frame_data: None,
-                frame_scrollbar_data: None,
+                scrollbar_descriptor: None,
             });
         }
 
@@ -1724,14 +1788,17 @@ impl BoxFragment {
             external_scroll_id,
             self.scrollable_overflow().to_webrender(),
             scroll_frame_rect,
+            LayoutVector2D::zero(),
             sensitivity,
         );
 
-        let frame_scrollbar_data = ScrollbarDescriptor::compute_scrollbar_if_necessary(
-            &overflow,
-            &self.padding_rect(),
-            &self.scrollable_overflow().size,
+        let scrollbar_descriptor = self.build_scrollbar_if_necessary(
+            stacking_context_tree,
+            parent_scroll_node_id,
+            scroll_tree_node_id,
             containing_block_rect,
+            &overflow,
+            &sensitivity,
         );
 
         Some(OverflowFrameData {
@@ -1740,8 +1807,109 @@ impl BoxFragment {
                 scroll_tree_node_id,
                 scroll_frame_rect,
             }),
-            frame_scrollbar_data,
+            scrollbar_descriptor,
         })
+    }
+
+    /// Need to define axes scroll sensitivity well for scrollbar
+    fn build_scrollbar_if_necessary(
+        &self,
+        stacking_context_tree: &mut StackingContextTree,
+        parent_scroll_node_id: ScrollTreeNodeId,
+        main_scroll_tree_node_id: ScrollTreeNodeId,
+        containing_block_rect: &PhysicalRect<Au>,
+        overflow: &AxesOverflow,
+        sensitivity: &AxesScrollSensitivity,
+    ) -> Option<Box<ScrollbarDescriptor>> {
+        let padding_rect = self.padding_rect();
+        let scrollable_overflow_size = self.scrollable_overflow().size;
+        let tag = self.base.tag?;
+
+        let vertical_slider = if ScrollbarDescriptor::should_render_vertical_scrollbar(
+            overflow,
+            &padding_rect,
+            &scrollable_overflow_size,
+        ) {
+            let (vertical_thumb, vertical_track, vertical_overflow_rect) =
+                ScrollbarDescriptor::place_vertical_scrollbar(
+                    &padding_rect,
+                    &scrollable_overflow_size,
+                    containing_block_rect,
+                );
+
+            let external_scroll_id = wr::ExternalScrollId(
+                tag.to_display_list_fragment_id_for_scrollbar(),
+                stacking_context_tree.paint_info.pipeline_id,
+            );
+
+            let vertical_scroll_tree_node_id = stacking_context_tree.define_scroll_frame(
+                parent_scroll_node_id,
+                external_scroll_id,
+                vertical_overflow_rect,
+                vertical_track,
+                (vertical_overflow_rect.size() - vertical_track.size()).to_vector(), // MYTODO: maybe tidy up this
+                *sensitivity,
+            );
+
+            Some(ScrollbarSlider {
+                thumb: vertical_thumb,
+                track: vertical_track,
+                scroll_node_id: vertical_scroll_tree_node_id,
+            })
+        } else {
+            None
+        };
+
+        let horizontal_slider = if ScrollbarDescriptor::should_render_horizontal_scrollbar(
+            overflow,
+            &padding_rect,
+            &scrollable_overflow_size,
+        ) {
+            let (horizontal_thumb, horizontal_track, horizontal_overflow_rect) =
+                ScrollbarDescriptor::place_horizontal_scrollbar(
+                    &padding_rect,
+                    &scrollable_overflow_size,
+                    containing_block_rect,
+                );
+
+            let external_scroll_id = wr::ExternalScrollId(
+                tag.to_display_list_fragment_id_for_scrollbar(),
+                stacking_context_tree.paint_info.pipeline_id,
+            );
+
+            let horizontal_scroll_tree_node_id = stacking_context_tree.define_scroll_frame(
+                parent_scroll_node_id,
+                external_scroll_id,
+                horizontal_overflow_rect,
+                horizontal_track,
+                (horizontal_overflow_rect.size() - horizontal_track.size()).to_vector(), // MYTODO: maybe tidy up this
+                *sensitivity,
+            );
+
+            Some(ScrollbarSlider {
+                thumb: horizontal_thumb,
+                track: horizontal_track,
+                scroll_node_id: horizontal_scroll_tree_node_id,
+            })
+        } else {
+            None
+        };
+
+        stacking_context_tree
+            .paint_info
+            .scroll_tree
+            .set_linked_nodes(
+                main_scroll_tree_node_id,
+                horizontal_slider
+                    .as_ref()
+                    .map(|slider| slider.scroll_node_id),
+                vertical_slider.as_ref().map(|slider| slider.scroll_node_id),
+            );
+
+        Some(Box::new(ScrollbarDescriptor {
+            horizontal: horizontal_slider,
+            vertical: vertical_slider,
+        }))
     }
 
     fn build_sticky_frame_if_necessary(

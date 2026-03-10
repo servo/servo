@@ -696,6 +696,8 @@ pub enum FragmentType {
     BeforePseudoContent,
     /// A StackingContext created to contain ::after pseudo-element content.
     AfterPseudoContent,
+    /// A StackingContextContent to represent the scrollbar. // MYTODO: need to expand the fragment type to include vertical scrollbar
+    HorizontalScrollbar,
 }
 
 impl From<Option<PseudoElement>> for FragmentType {
@@ -728,8 +730,10 @@ pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> 
     debug_assert_eq!(id & (fragment_type as usize), 0);
     if fragment_type == FragmentType::FragmentBody {
         id as u64
+    } else if fragment_type == FragmentType::HorizontalScrollbar {
+        id as u64 | (fragment_type as u64)
     } else {
-        next_special_id() | (fragment_type as u64)
+        next_special_id() | (fragment_type as u64) // I have no idea why are we using next_special_id instead of node_id
     }
 }
 

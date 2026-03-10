@@ -31,7 +31,7 @@ use style::properties::longhands::visibility::computed_value::T as Visibility;
 use style::properties::style_structs::Border;
 use style::values::computed::{
     BorderImageSideWidth, BorderImageWidth, BorderStyle, LengthPercentage,
-    NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle, Overflow,
+    NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
 };
 use style::values::generics::NonNegative;
 use style::values::generics::color::ColorOrAuto;
@@ -622,7 +622,7 @@ impl Fragment {
         is_hit_test_for_scrollable_overflow: bool,
         is_collapsed_table_borders: bool,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
-        scrollbar_descriptor: &Option<Box<ScrollbarDescriptor>>,
+        scrollbar_slider: &Option<Box<ScrollbarSlider>>,
     ) {
         if let Some(mut base) = self.base_mut() {
             match base.status {
@@ -660,7 +660,7 @@ impl Fragment {
                         containing_block,
                         is_hit_test_for_scrollable_overflow,
                         is_collapsed_table_borders,
-                        scrollbar_descriptor.as_deref(),
+                        scrollbar_slider.as_deref(),
                     )
                     .build(builder, section),
                     Visibility::Hidden => (),
@@ -1112,7 +1112,7 @@ struct BuilderForBoxFragment<'a> {
     content_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     is_hit_test_for_scrollable_overflow: bool,
     is_collapsed_table_borders: bool,
-    scrollbar_descriptor: Option<&'a ScrollbarDescriptor>,
+    scrollbar_slider: Option<&'a ScrollbarSlider>,
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
@@ -1121,7 +1121,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         containing_block: &'a PhysicalRect<Au>,
         is_hit_test_for_scrollable_overflow: bool,
         is_collapsed_table_borders: bool,
-        scrollbar_descriptor: Option<&'a ScrollbarDescriptor>,
+        scrollbar_slider: Option<&'a ScrollbarSlider>,
     ) -> Self {
         let border_rect = fragment
             .border_rect()
@@ -1139,7 +1139,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             content_edge_clip_chain_id: RefCell::new(None),
             is_hit_test_for_scrollable_overflow,
             is_collapsed_table_borders,
-            scrollbar_descriptor,
+            scrollbar_slider,
         }
     }
 
@@ -1244,8 +1244,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        if let Some(scorllbar_descriptor) = self.scrollbar_descriptor {
-            self.build_scroll_bar(builder, scorllbar_descriptor);
+        if let Some(scrollbar_descriptor) = self.scrollbar_slider {
+            self.build_scroll_bar(builder, scrollbar_descriptor);
             return;
         }
 
@@ -1267,25 +1267,19 @@ impl<'a> BuilderForBoxFragment<'a> {
     fn build_scroll_bar(
         &self,
         builder: &mut DisplayListBuilder,
-        scrollbar_descriptor: &ScrollbarDescriptor,
+        scrollbar_slider: &ScrollbarSlider,
     ) {
         let style = &self.fragment.base.style();
         let SCROLLBAR_COLOR = AbsoluteColor::srgb_legacy(169, 169, 169, 0.7f32);
 
-        if let Some(horizontal_thumb) = scrollbar_descriptor.horizontal_thumb {
-            println!("horizontal_thumb: {:?}", horizontal_thumb);
-            let commons = builder.common_properties(horizontal_thumb, style);
-            builder
-                .wr()
-                .push_rect(&commons, horizontal_thumb, rgba(SCROLLBAR_COLOR))
-        }
-        if let Some(vertical_thumb) = scrollbar_descriptor.vertical_thumb {
-            println!("vertical_thumb: {:?}", vertical_thumb);
-            let commons = builder.common_properties(vertical_thumb, style);
-            builder
-                .wr()
-                .push_rect(&commons, vertical_thumb, rgba(SCROLLBAR_COLOR))
-        }
+        // Because scroll node offset's move in an opposite direction we need to offset the scrollbar position.
+        let scrollable_size = scrollbar_slider.track.size() - scrollbar_slider.thumb.size();
+        let scrollbar_thumb_rect = scrollbar_slider.thumb.translate(scrollable_size.to_vector());
+
+        let commons = builder.common_properties(scrollbar_slider.track, style);
+        builder
+            .wr()
+            .push_rect(&commons, scrollbar_thumb_rect, rgba(SCROLLBAR_COLOR))
     }
 
     fn build_hit_test(&self, builder: &mut DisplayListBuilder, rect: LayoutRect) {

@@ -874,13 +874,16 @@ impl Painter {
         };
 
         let mut transaction = Transaction::new();
-        transaction.set_scroll_offsets(
-            external_scroll_id,
-            vec![SampledScrollOffset {
-                offset,
-                generation: 0,
-            }],
-        );
+        for (external_scroll_id, offset) in pipeline_details.scroll_tree.scroll_offsets() {
+            println!("[ztp] external_scroll_id {:?}, offset {:?}", external_scroll_id, offset);
+            transaction.set_scroll_offsets(
+                external_scroll_id,
+                vec![SampledScrollOffset {
+                    offset,
+                    generation: 0,
+                }],
+            );
+        }
 
         self.generate_frame(&mut transaction, RenderReasons::APZ);
         self.send_transaction(transaction);

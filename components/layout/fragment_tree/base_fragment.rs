@@ -285,6 +285,9 @@ impl Tag {
     pub(crate) fn to_display_list_fragment_id(self) -> u64 {
         combine_id_with_fragment_type(self.node.id(), self.pseudo_element_chain.primary.into())
     }
+    pub(crate) fn to_display_list_fragment_id_for_scrollbar(self) -> u64 {
+        combine_id_with_fragment_type(self.node.id(), layout_api::FragmentType::HorizontalScrollbar)
+    }
 }
 
 impl From<ServoThreadSafeLayoutNode<'_>> for Tag {
