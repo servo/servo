@@ -29,7 +29,7 @@ jobs:
 
       - name: Push image
         run: |
-          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/servo/$IMAGE_NAME
 
           # This changes all uppercase characters to lowercase.
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
