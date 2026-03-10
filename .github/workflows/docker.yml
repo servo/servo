@@ -8,11 +8,20 @@ on:
       - main
       # For testing purposes. Remove before merging
       - prebuilt_devcontainer
+    # Only rebuild if the Dockerfile or dependencies change.
+    paths:
+      - '.devcontainer/**'
+      - 'python/servo/platform/linux_packages/**'
   workflow_dispatch:
 
 jobs:
   devcontainer_ubuntu:
     runs-on: ubuntu-latest
+    # We probably don't want to spam the package registry of every developer
+    # thats working on servo and has actions enabled on their fork.
+    # You can comment this if to test changes to the workflow locally in your fork,
+    # use manual workflow dispatch in your fork.
+    if: github.repository_owner == 'servo' || github.event_name == 'workflow_dispatch'
     permissions:
       packages: write
       contents: read
