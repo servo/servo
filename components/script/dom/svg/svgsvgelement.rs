@@ -77,7 +77,7 @@ impl SVGSVGElement {
 
     #[expect(unsafe_code)]
     pub(crate) fn serialize_and_cache_subtree(&self) {
-        // TODO: CanGc started here, need to propagate JSContext inside reflow code.
+        // TODO: https://github.com/servo/servo/issues/43142
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let cx = &mut cx;
         let cloned_nodes = self.process_use_elements(cx);
