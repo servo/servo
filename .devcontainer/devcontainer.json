@@ -2,10 +2,12 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
 {
 	"name": "Ubuntu",
-	"build": {
-		"dockerfile": "Ubuntu.Dockerfile",
-		"context": ".."
-	},
+	"image": "ghcr.io/servo/servo/devcontainer-ubuntu:latest",
+	// Alternatively, uncomment the "build" property below to build the image from the Dockerfile in this folder.
+	// "build": {
+	// 	"dockerfile": "Ubuntu.Dockerfile",
+	// 	"context": ".."
+	// },
 
 
 	// Most dependencies are installed in the image, but we run mach bootstrap to ensure
