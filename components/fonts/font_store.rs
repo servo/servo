@@ -155,7 +155,7 @@ struct SimpleFamily {
 impl SimpleFamily {
     /// Find a font in this family that matches a given descriptor.
     fn find_for_descriptor(&self, descriptor_to_match: &FontDescriptor) -> Option<FontTemplateRef> {
-        let want_bold = descriptor_to_match.weight >= FontWeight::BOLD_THRESHOLD;
+        let want_bold = descriptor_to_match.weight > FontWeight::PREFER_BOLD_THRESHOLD;
         let want_italic = descriptor_to_match.style != FontStyle::NORMAL;
 
         // This represents the preference of which font to return from the [`SimpleFamily`],
