@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Build image
-        run: docker build . --file .devcontainer/Ubuntu.Dockerfile --tag $IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
+        run: docker build . --file .devcontainer/Ubuntu.Dockerfile --tag ${{ env.IMAGE_NAME }} --label "runnumber=${GITHUB_RUN_ID}"
 
       - name: Log in to registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
