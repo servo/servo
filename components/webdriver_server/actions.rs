@@ -28,8 +28,7 @@ use webdriver::error::{ErrorStatus, WebDriverError};
 use crate::{Handler, VerifyBrowsingContextIsOpen, WebElement, wait_for_oneshot_response};
 
 /// Interval between wheelScroll and pointerMove increments in ms, based on common vsync
-static POINTERMOVE_INTERVAL: u64 = 16;
-static WHEELSCROLL_INTERVAL: u64 = 16;
+static MOVESCROLL_INTERVAL: u64 = 16;
 
 /// <https://w3c.github.io/webdriver/#dfn-element-click>
 /// This is hard-coded as 0 in spec.
@@ -66,7 +65,28 @@ pub(crate) enum InputSourceState {
     Wheel,
 }
 
-pub(crate) struct PendingPointerMove {
+#[expect(private_interfaces)]
+pub(crate) enum PendingActions {
+    Scroll(PendingScroll),
+    PointerMove(PendingPointerMove),
+}
+
+/// <https://github.com/w3c/webdriver/issues/1952>
+/// For some unknown reason, unlike Pointer Actions,
+/// Wheel Actions in spec has precision of integer.
+/// We just use double precision, since our [`WheelEvent`] also uses double precision.
+struct PendingScroll {
+    input_id: String,
+    duration: u64,
+    x: f64,
+    y: f64,
+    current_delta_x: f64,
+    current_delta_y: f64,
+    target_delta_x: f64,
+    target_delta_y: f64,
+}
+
+struct PendingPointerMove {
     input_id: String,
     duration: u64,
     start_x: f64,
@@ -181,7 +201,7 @@ impl Handler {
 
             // Step 1.3. Try to dispatch tick actions
             self.dispatch_tick_actions(tick_actions, tick_duration, &tick_start)?;
-            self.process_pending_pointer_moves(&tick_start);
+            self.process_pending_actions(&tick_start);
             // Step 1.4.1
             // There are no pending asynchronous waits arising
             // from the last invocation of the dispatch tick actions steps.
@@ -215,22 +235,52 @@ impl Handler {
     /// Step 9.1. Asynchronously wait for an implementation defined amount of time to pass.
     /// Step 9.2. Perform a pointer move with arguments input state,
     /// duration, start x, start y, target x, target y.
-    fn process_pending_pointer_moves(&mut self, tick_start: &Instant) {
-        while !self.pending_pointer_moves.is_empty() {
-            let moves = std::mem::take(&mut self.pending_pointer_moves);
-            thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
-            for PendingPointerMove {
-                input_id,
-                duration,
-                start_x,
-                start_y,
-                target_x,
-                target_y,
-            } in moves
-            {
-                self.perform_pointer_move(
-                    &input_id, duration, start_x, start_y, target_x, target_y, tick_start,
-                );
+    /// <https://w3c.github.io/webdriver/#dfn-perform-a-scroll>
+    /// Step 7. Run the following substeps in parallel:
+    /// Step 7.1. Asynchronously wait for an implementation defined amount of time to pass.
+    /// Step 7.2. Perform a scroll with arguments duration, x, y,
+    /// target delta x, target delta y, current delta x, current delta y.
+    fn process_pending_actions(&mut self, tick_start: &Instant) {
+        while !self.pending_actions.is_empty() {
+            let pending_actions = std::mem::take(&mut self.pending_actions);
+            thread::sleep(Duration::from_millis(MOVESCROLL_INTERVAL));
+            for action in pending_actions {
+                match action {
+                    PendingActions::PointerMove(PendingPointerMove {
+                        input_id,
+                        duration,
+                        start_x,
+                        start_y,
+                        target_x,
+                        target_y,
+                    }) => {
+                        self.perform_pointer_move(
+                            &input_id, duration, start_x, start_y, target_x, target_y, tick_start,
+                        );
+                    },
+                    PendingActions::Scroll(PendingScroll {
+                        input_id,
+                        duration,
+                        x,
+                        y,
+                        current_delta_x,
+                        current_delta_y,
+                        target_delta_x,
+                        target_delta_y,
+                    }) => {
+                        self.perform_scroll(
+                            &input_id,
+                            duration,
+                            x,
+                            y,
+                            target_delta_x,
+                            target_delta_y,
+                            current_delta_x,
+                            current_delta_y,
+                            tick_start,
+                        );
+                    },
+                }
             }
         }
     }
@@ -540,7 +590,7 @@ impl Handler {
         // Asynchronously wait means do not block browser to process event loop.
         // In the context of Servo, it means block the webdriver server thread.
         if duration > 0 {
-            thread::sleep(Duration::from_millis(POINTERMOVE_INTERVAL));
+            thread::sleep(Duration::from_millis(MOVESCROLL_INTERVAL));
         }
 
         let (start_x, start_y) = {
@@ -669,14 +719,15 @@ impl Handler {
         // We use [`PendingPointerMove`] to achieve the same effect as asynchronous wait and
         // parallelism required by spec.
         // This conveniently unify the wait interval between ticks.
-        self.pending_pointer_moves.push(PendingPointerMove {
-            input_id: input_id.to_owned(),
-            duration,
-            start_x,
-            start_y,
-            target_x,
-            target_y,
-        });
+        self.pending_actions
+            .push(PendingActions::PointerMove(PendingPointerMove {
+                input_id: input_id.to_owned(),
+                duration,
+                start_x,
+                start_y,
+                target_x,
+                target_y,
+            }));
     }
 
     /// <https://w3c.github.io/webdriver/#dfn-dispatch-a-scroll-action>
@@ -742,11 +793,12 @@ impl Handler {
         // Step 10. If duration is greater than 0 and inside any implementation-defined bounds,
         // asynchronously wait for an implementation defined amount of time to pass.
         if duration > 0 {
-            thread::sleep(Duration::from_millis(WHEELSCROLL_INTERVAL));
+            thread::sleep(Duration::from_millis(MOVESCROLL_INTERVAL));
         }
 
         // Step 11. Perform a scroll with arguments global key state, duration, x, y, delta x, delta y, 0, 0.
         self.perform_scroll(
+            input_id,
             duration,
             x,
             y,
@@ -839,13 +891,32 @@ impl Handler {
             return;
         }
 
-        // Step 7
-        // TODO: The two steps should be done in parallel
-        // 7.1. Asynchronously wait for an implementation defined amount of time to pass.
-        thread::sleep(Duration::from_millis(MOVESCROLL_INTERVAL));
-        // 7.2. Perform a scroll with arguments duration, x, y, target delta x,
-        // target delta y, current delta x, current delta y.
-        // Notice that this simply repeat what we have done until last is true.
+        // Step 7. Run the following substeps in parallel:
+        // Step 7.1. Asynchronously wait for an implementation defined amount of time to pass.
+        // Step 7.2. Perform a scroll with arguments duration, x, y,
+        // target delta x, target delta y, current delta x, current delta y.
+        // This is done in `fn process_pending_actions`.
+
+        // NOTE: The initial scroll is performed synchronously.
+        // This ensures determinism in the sequence of the first event
+        // triggered by each action in the tick.
+        // Subsequent scrolls (if any) are performed asynchronously.
+        // This allows events from two scroll actions in the tick to be interspersed.
+
+        // We use [`PendingScroll`] to achieve the same effect as asynchronous wait and
+        // parallelism required by spec.
+        // This conveniently unify the wait interval between ticks.
+        self.pending_actions
+            .push(PendingActions::Scroll(PendingScroll {
+                input_id: input_id.to_owned(),
+                duration,
+                x,
+                y,
+                current_delta_x,
+                current_delta_y,
+                target_delta_x,
+                target_delta_y,
+            }));
     }
 
     /// Verify that the given coordinates are within the boundary of the viewport.
