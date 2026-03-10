@@ -27,20 +27,22 @@
                 android:inputType="textUri"
                 android:selectAllOnFocus="true"
                 android:singleLine="true"
-                app:layout_constraintEnd_toEndOf="@+id/progressbar"
+                android:layout_marginEnd="10dp"
+                app:layout_constraintEnd_toStartOf="@+id/progressbar"
                 app:layout_constraintHorizontal_bias="0.0"
                 app:layout_constraintStart_toStartOf="parent"
                 tools:layout_editor_absoluteY="0dp" />
 
             <com.google.android.material.progressindicator.CircularProgressIndicator
                 android:id="@+id/progressbar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="0dp"
+                android:layout_height="22dp"
                 android:layout_marginTop="8dp"
+                android:layout_marginEnd="10dp"
                 android:layout_weight="0"
                 android:indeterminate="true"
+                android:visibility="gone"
                 app:indicatorSize="20dp"
-                android:layout_marginEnd="10dp"
                 app:layout_constraintEnd_toStartOf="@+id/redrawing"
                 app:layout_constraintTop_toTopOf="parent" />
 

@@ -217,7 +217,7 @@ public class MainActivity extends Activity implements Servo.Client {
         Log.i(TAG, "onLoadEnded: ");
         mStopMenuItem.setVisible(false);
         mReloadMenuItem.setVisible(true);
-        mProgressBar.setVisibility(View.INVISIBLE);
+        mProgressBar.setVisibility(View.GONE);
     }
 
     @Override
