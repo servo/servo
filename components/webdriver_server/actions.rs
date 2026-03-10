@@ -765,85 +765,87 @@ impl Handler {
     #[expect(clippy::too_many_arguments)]
     fn perform_scroll(
         &mut self,
+        input_id: &str,
         duration: u64,
         x: f64,
         y: f64,
         target_delta_x: f64,
         target_delta_y: f64,
-        mut curr_delta_x: f64,
-        mut curr_delta_y: f64,
+        mut current_delta_x: f64,
+        mut current_delta_y: f64,
         tick_start: &Instant,
     ) {
-        loop {
-            // Step 1. Let time delta be the time since the beginning of the current tick,
-            // measured in milliseconds on a monotonic clock.
-            let time_delta = tick_start.elapsed().as_millis();
+        // Step 1. Let time delta be the time since the beginning of the current tick,
+        // measured in milliseconds on a monotonic clock.
+        let time_delta = tick_start.elapsed().as_millis();
 
-            // Step 2. Let duration ratio be the ratio of time delta and duration,
-            // if duration is greater than 0, or 1 otherwise.
-            let duration_ratio = if duration > 0 {
-                time_delta as f64 / duration as f64
-            } else {
-                1.0
+        // Step 2. Let duration ratio be the ratio of time delta and duration,
+        // if duration is greater than 0, or 1 otherwise.
+        let duration_ratio = if duration > 0 {
+            time_delta as f64 / duration as f64
+        } else {
+            1.0
+        };
+
+        // Step 3. If duration ratio is 1, or close enough to 1 that
+        // the implementation will not further subdivide the move action,
+        // let last be true. Otherwise let last be false.
+        let last = 1.0 - duration_ratio < 0.001;
+
+        // Step 4. If last is true,
+        // let delta x equal target delta x - current delta x and delta y equal target delta y - current delta y.
+        // Otherwise
+        // let delta x equal an approximation to duration ratio × target delta x - current delta x,
+        // and delta y equal an approximation to duration ratio × target delta y - current delta y.
+        let (delta_x, delta_y) = if last {
+            (
+                target_delta_x - current_delta_x,
+                target_delta_y - current_delta_y,
+            )
+        } else {
+            (
+                duration_ratio * target_delta_x - current_delta_x,
+                duration_ratio * target_delta_y - current_delta_y,
+            )
+        };
+
+        // Step 5. If delta x != 0 or delta y != 0, run the following steps:
+        // Actually "last" should not be checked here based on spec.
+        // However, we need to send the webdriver id at the final perform.
+        if delta_x != 0.0 || delta_y != 0.0 || last {
+            // Step 5.1. Perform implementation-specific action dispatch steps
+            let delta = WheelDelta {
+                x: -delta_x,
+                y: -delta_y,
+                z: 0.0,
+                mode: WheelMode::DeltaPixel,
             };
-
-            // Step 3. If duration ratio is 1, or close enough to 1 that
-            // the implementation will not further subdivide the move action,
-            // let last be true. Otherwise let last be false.
-            let last = 1.0 - duration_ratio < 0.001;
-
-            // Step 4. If last is true,
-            // let delta x equal target delta x - current delta x and delta y equal target delta y - current delta y.
-            // Otherwise
-            // let delta x equal an approximation to duration ratio × target delta x - current delta x,
-            // and delta y equal an approximation to duration ratio × target delta y - current delta y.
-            let (delta_x, delta_y) = if last {
-                (target_delta_x - curr_delta_x, target_delta_y - curr_delta_y)
-            } else {
-                (
-                    duration_ratio * target_delta_x - curr_delta_x,
-                    duration_ratio * target_delta_y - curr_delta_y,
-                )
-            };
-
-            // Step 5. If delta x != 0 or delta y != 0, run the following steps:
-            // Actually "last" should not be checked here based on spec.
-            // However, we need to send the webdriver id at the final perform.
-            if delta_x != 0.0 || delta_y != 0.0 || last {
-                // Step 5.1. Perform implementation-specific action dispatch steps
-                let delta = WheelDelta {
-                    x: -delta_x,
-                    y: -delta_y,
-                    z: 0.0,
-                    mode: WheelMode::DeltaPixel,
-                };
-                let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
-                let input_event = InputEvent::Wheel(WheelEvent::new(delta, point));
-                if last {
-                    self.send_blocking_input_event_to_embedder(input_event);
-                } else {
-                    self.send_input_event_to_embedder(input_event);
-                }
-
-                // Step 5.2. Let current delta x property equal delta x + current delta x
-                // and current delta y property equal delta y + current delta y.
-                curr_delta_x += delta_x;
-                curr_delta_y += delta_y;
-            }
-
-            // Step 6. If last is true, return.
+            let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
+            let input_event = InputEvent::Wheel(WheelEvent::new(delta, point));
             if last {
-                return;
+                self.send_blocking_input_event_to_embedder(input_event);
+            } else {
+                self.send_input_event_to_embedder(input_event);
             }
 
-            // Step 7
-            // TODO: The two steps should be done in parallel
-            // 7.1. Asynchronously wait for an implementation defined amount of time to pass.
-            thread::sleep(Duration::from_millis(WHEELSCROLL_INTERVAL));
-            // 7.2. Perform a scroll with arguments duration, x, y, target delta x,
-            // target delta y, current delta x, current delta y.
-            // Notice that this simply repeat what we have done until last is true.
+            // Step 5.2. Let current delta x property equal delta x + current delta x
+            // and current delta y property equal delta y + current delta y.
+            current_delta_x += delta_x;
+            current_delta_y += delta_y;
         }
+
+        // Step 6. If last is true, return.
+        if last {
+            return;
+        }
+
+        // Step 7
+        // TODO: The two steps should be done in parallel
+        // 7.1. Asynchronously wait for an implementation defined amount of time to pass.
+        thread::sleep(Duration::from_millis(MOVESCROLL_INTERVAL));
+        // 7.2. Perform a scroll with arguments duration, x, y, target delta x,
+        // target delta y, current delta x, current delta y.
+        // Notice that this simply repeat what we have done until last is true.
     }
 
     /// Verify that the given coordinates are within the boundary of the viewport.
