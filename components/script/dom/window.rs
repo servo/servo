@@ -3451,7 +3451,7 @@ impl Window {
 
         // If viewport units were used, all nodes need to be restyled, because
         // we currently do not track which ones rely on viewport units.
-        if self.layout().device().used_viewport_units() {
+        if self.layout().device().used_viewport_size() {
             self.Document().dirty_all_nodes();
         }
 

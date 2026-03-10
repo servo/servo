@@ -33,10 +33,10 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 use style::Atom;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
+use style::device::Device;
 use style::font_face::{
     FontFaceSourceFormat, FontFaceSourceFormatKeyword, Source, SourceList, UrlSource,
 };
-use style::media_queries::Device;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::{

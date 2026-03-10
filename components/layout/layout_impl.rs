@@ -48,17 +48,18 @@ use style::animation::DocumentAnimationSet;
 use style::context::{
     QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters, SharedStyleContext,
 };
+use style::device::Device;
+use style::device::servo::FontMetricsProvider;
 use style::dom::{OpaqueNode, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::font_metrics::FontMetrics;
 use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::invalidation::stylesheets::StylesheetInvalidationSet;
-use style::media_queries::{Device, MediaList, MediaType};
+use style::media_queries::{MediaList, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
 use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, RestyleDamage, SnapshotMap};
-use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
     CustomMediaMap, DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument,

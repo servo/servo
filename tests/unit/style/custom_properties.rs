@@ -11,15 +11,16 @@ use style::custom_properties::{
     ComputedCustomProperties, CustomPropertiesBuilder, DeferFontRelativeCustomPropertyResolution,
     Name, SpecifiedValue,
 };
+use style::device::Device;
+use style::device::servo::FontMetricsProvider;
 use style::dom::AttributeTracker;
 use style::font_metrics::FontMetrics;
-use style::media_queries::{Device, MediaType};
+use style::media_queries::MediaType;
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, CustomDeclaration, CustomDeclarationValue, StyleBuilder};
 use style::queries::values::PrefersColorScheme;
 use style::rule_cache::RuleCacheConditions;
 use style::rule_tree::CascadeLevel;
-use style::servo::media_queries::FontMetricsProvider;
 use style::stylesheets::UrlExtraData;
 use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::stylesheets::layer_rule::LayerOrder;
