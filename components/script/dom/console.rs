@@ -12,10 +12,10 @@ use devtools_traits::{
 };
 use embedder_traits::EmbedderMsg;
 use js::conversions::jsstr_to_string;
-use js::jsapi::{self, ESClass, JS_IsTypedArrayObject, PropertyDescriptor};
+use js::jsapi::{self, ESClass, PropertyDescriptor};
 use js::jsval::{Int32Value, UndefinedValue};
 use js::rust::wrappers::{
-    GetBuiltinClass, GetPropertyKeys, IsArray, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
+    GetBuiltinClass, GetPropertyKeys, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
     JS_IdToValue, JS_Stringify, JS_ValueToSource,
 };
 use js::rust::{
@@ -193,13 +193,11 @@ fn console_object_from_handle_value(
     seen: &mut Vec<u64>,
 ) -> Option<ConsoleArgumentObject> {
     rooted!(in(*cx) let object = handle_value.to_object());
-
-    // We should not generate object previews for arrays, although they are objects
-    let mut is_array = false;
-    if !unsafe { IsArray(*cx, object.handle(), &mut is_array) } || is_array {
+    let mut object_class = ESClass::Other;
+    if !unsafe { GetBuiltinClass(*cx, object.handle(), &mut object_class as *mut _) } {
         return None;
     }
-    if unsafe { JS_IsTypedArrayObject(object.get()) } {
+    if object_class != ESClass::Object {
         return None;
     }
 
