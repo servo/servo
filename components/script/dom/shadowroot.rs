@@ -601,9 +601,9 @@ impl VirtualMethods for ShadowRoot {
         Some(self.upcast::<DocumentFragment>() as &dyn VirtualMethods)
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut js::context::JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
 
         // TODO(stevennovaryo): Handle adoptedStylesheet to deal with different
@@ -625,7 +625,7 @@ impl VirtualMethods for ShadowRoot {
 
             // Out-of-document elements never have the descendants flag set
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&node).bind_to_tree(&context, can_gc);
+            vtable_for(&node).bind_to_tree(cx, &context);
         }
     }
 

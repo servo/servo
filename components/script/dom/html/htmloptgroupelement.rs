@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::str::DOMString;
 use stylo_dom::ElementState;
@@ -133,12 +134,12 @@ impl VirtualMethods for HTMLOptGroupElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(super_type) = self.super_type() {
-            super_type.bind_to_tree(context, can_gc);
+            super_type.bind_to_tree(cx, context);
         }
 
-        self.update_select_validity(can_gc);
+        self.update_select_validity(CanGc::from_cx(cx));
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {

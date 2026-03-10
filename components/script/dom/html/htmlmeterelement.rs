@@ -72,7 +72,11 @@ impl HTMLMeterElement {
         )
     }
 
+    #[expect(unsafe_code)]
     fn create_shadow_tree(&self, can_gc: CanGc) {
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         let document = self.owner_document();
         let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
 
@@ -86,7 +90,7 @@ impl HTMLMeterElement {
             can_gc,
         );
         root.upcast::<Node>()
-            .AppendChild(meter_value.upcast::<Node>(), can_gc)
+            .AppendChild(cx, meter_value.upcast::<Node>())
             .unwrap();
 
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
@@ -335,9 +339,9 @@ impl VirtualMethods for HTMLMeterElement {
         self.update_state(CanGc::from_cx(cx));
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
-        self.super_type().unwrap().bind_to_tree(context, can_gc);
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(cx, context);
 
-        self.update_state(can_gc);
+        self.update_state(CanGc::from_cx(cx));
     }
 }

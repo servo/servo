@@ -513,11 +513,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
         for node in node_list.iter().rev() {
             // TODO: Preserving ranges
             if parent_of_original_parent
-                .InsertBefore(
-                    node,
-                    original_parent.GetNextSibling().as_deref(),
-                    CanGc::from_cx(cx),
-                )
+                .InsertBefore(cx, node, original_parent.GetNextSibling().as_deref())
                 .is_err()
             {
                 unreachable!("Must always have a parent");
@@ -532,11 +528,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
                     if last
                         .GetParentNode()
                         .expect("Must always have a parent")
-                        .InsertBefore(
-                            br.upcast(),
-                            last.GetNextSibling().as_deref(),
-                            CanGc::from_cx(cx),
-                        )
+                        .InsertBefore(cx, br.upcast(), last.GetNextSibling().as_deref())
                         .is_err()
                     {
                         unreachable!("Must always be able to append");
@@ -561,7 +553,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
         }
         // Step 7.3. Insert cloned parent into the parent of original parent immediately before original parent.
         if parent_of_original_parent
-            .InsertBefore(&cloned_parent, Some(&original_parent), CanGc::from_cx(cx))
+            .InsertBefore(cx, &cloned_parent, Some(&original_parent))
             .is_err()
         {
             unreachable!("Must always have a parent");
@@ -576,10 +568,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
             {
                 if let Some(first_of_original) = original_parent.children().next() {
                     // TODO: Preserving ranges
-                    if cloned_parent
-                        .AppendChild(&first_of_original, CanGc::from_cx(cx))
-                        .is_err()
-                    {
+                    if cloned_parent.AppendChild(cx, &first_of_original).is_err() {
                         unreachable!("Must always have a parent");
                     }
                     continue;
@@ -592,7 +581,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
     for node in node_list.iter() {
         // TODO: Preserving ranges
         if parent_of_original_parent
-            .InsertBefore(node, Some(&original_parent), CanGc::from_cx(cx))
+            .InsertBefore(cx, node, Some(&original_parent))
             .is_err()
         {
             unreachable!("Must always have a parent");
@@ -607,7 +596,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
                 if first
                     .GetParentNode()
                     .expect("Must always have a parent")
-                    .InsertBefore(br.upcast(), Some(first), CanGc::from_cx(cx))
+                    .InsertBefore(cx, br.upcast(), Some(first))
                     .is_err()
                 {
                     unreachable!("Must always be able to insert");
@@ -644,11 +633,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
                     if last
                         .GetParentNode()
                         .expect("Must always have a parent")
-                        .InsertBefore(
-                            br.upcast(),
-                            last.GetNextSibling().as_deref(),
-                            CanGc::from_cx(cx),
-                        )
+                        .InsertBefore(cx, br.upcast(), last.GetNextSibling().as_deref())
                         .is_err()
                     {
                         unreachable!("Must always be able to insert");
@@ -1807,7 +1792,7 @@ impl SelectionExecCommandSupport for Selection {
                 parent.is_editable_or_editing_host()
             {
                 let br = context_object.create_br_element(cx);
-                if parent.AppendChild(br.upcast(), CanGc::from_cx(cx)).is_err() {
+                if parent.AppendChild(cx, br.upcast()).is_err() {
                     unreachable!("Must always be able to append");
                 }
             }
@@ -1962,11 +1947,7 @@ impl SelectionExecCommandSupport for Selection {
                                 .GetParentNode()
                                 .expect("Must always have a parent");
                             if parent
-                                .InsertBefore(
-                                    br.upcast(),
-                                    Some(&next_of_end_block),
-                                    CanGc::from_cx(cx),
-                                )
+                                .InsertBefore(cx, br.upcast(), Some(&next_of_end_block))
                                 .is_err()
                             {
                                 unreachable!("Must always be able to insert into parent");
@@ -2112,7 +2093,7 @@ impl SelectionExecCommandSupport for Selection {
             // append node as the last child of start block, preserving ranges.
             for node in nodes_to_move.iter() {
                 // TODO: Preserve ranges
-                if start_block.AppendChild(node, CanGc::from_cx(cx)).is_err() {
+                if start_block.AppendChild(cx, node).is_err() {
                     unreachable!("Must always be able to append");
                 }
             }
@@ -2148,10 +2129,7 @@ impl SelectionExecCommandSupport for Selection {
             loop {
                 if let Some(first_child) = end_block.children().nth(0) {
                     // TODO: Preserve ranges
-                    if start_block
-                        .AppendChild(&first_child, CanGc::from_cx(cx))
-                        .is_err()
-                    {
+                    if start_block.AppendChild(cx, &first_child).is_err() {
                         unreachable!("Must always be able to append");
                     }
                     continue;
@@ -2194,10 +2172,7 @@ impl SelectionExecCommandSupport for Selection {
         // append the result as the last child of start block.
         if start_block.children_count() == 0 {
             let br = context_object.create_br_element(cx);
-            if start_block
-                .AppendChild(br.upcast(), CanGc::from_cx(cx))
-                .is_err()
-            {
+            if start_block.AppendChild(cx, br.upcast()).is_err() {
                 unreachable!("Must always be able to append");
             }
         }

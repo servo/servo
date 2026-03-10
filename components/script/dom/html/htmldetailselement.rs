@@ -173,7 +173,12 @@ impl HTMLDetailsElement {
             .expect("UA shadow tree was not created")
     }
 
+    #[expect(unsafe_code)]
     fn create_shadow_tree(&self, can_gc: CanGc) {
+        // TODO
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         let document = self.owner_document();
         // TODO(stevennovaryo): Reimplement details styling so that it would not
         //                      mess the cascading and require some reparsing.
@@ -190,7 +195,7 @@ impl HTMLDetailsElement {
         );
         let summary = DomRoot::downcast::<HTMLSlotElement>(summary).unwrap();
         root.upcast::<Node>()
-            .AppendChild(summary.upcast::<Node>(), can_gc)
+            .AppendChild(cx, summary.upcast::<Node>())
             .unwrap();
 
         let fallback_summary = Element::create(
@@ -208,7 +213,7 @@ impl HTMLDetailsElement {
             .set_text_content_for_element(Some(DEFAULT_SUMMARY.into()), can_gc);
         summary
             .upcast::<Node>()
-            .AppendChild(fallback_summary.upcast::<Node>(), can_gc)
+            .AppendChild(cx, fallback_summary.upcast::<Node>())
             .unwrap();
 
         let details_content = Element::create(
@@ -223,7 +228,7 @@ impl HTMLDetailsElement {
         let details_content = DomRoot::downcast::<HTMLSlotElement>(details_content).unwrap();
 
         root.upcast::<Node>()
-            .AppendChild(details_content.upcast::<Node>(), can_gc)
+            .AppendChild(cx, details_content.upcast::<Node>())
             .unwrap();
         details_content
             .upcast::<Node>()
@@ -498,11 +503,11 @@ impl VirtualMethods for HTMLDetailsElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-details-element:html-element-insertion-steps>
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
-        self.super_type().unwrap().bind_to_tree(context, can_gc);
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(cx, context);
 
-        self.update_shadow_tree_contents(can_gc);
-        self.update_shadow_tree_styles(can_gc);
+        self.update_shadow_tree_contents(CanGc::from_cx(cx));
+        self.update_shadow_tree_styles(CanGc::from_cx(cx));
 
         if context.tree_is_in_a_document_tree {
             // If this is true then we can't have been in a document tree previously, so

@@ -676,15 +676,15 @@ impl VirtualMethods for HTMLTextAreaElement {
             .perform_validation_and_update(ValidationFlags::all(), can_gc);
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
 
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
 
-        self.handle_text_content_changed(can_gc);
+        self.handle_text_content_changed(CanGc::from_cx(cx));
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {

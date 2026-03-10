@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use servo_url::ServoUrl;
 
@@ -163,8 +164,8 @@ impl VirtualMethods for HTMLBaseElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
-        self.super_type().unwrap().bind_to_tree(context, can_gc);
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(cx, context);
         // https://html.spec.whatwg.org/multipage/#frozen-base-url
         // > The base element becomes the first base element in tree order with an href content attribute in its Document.
         let document = self.owner_document();

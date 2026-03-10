@@ -328,8 +328,8 @@ impl VirtualMethods for HTMLStyleElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
-        self.super_type().unwrap().bind_to_tree(context, can_gc);
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(cx, context);
 
         // https://html.spec.whatwg.org/multipage/#update-a-style-block
         // > The element is not on the stack of open elements of an HTML parser or XML parser, and it becomes connected or disconnected.

@@ -405,7 +405,12 @@ impl Tokenizer {
         })
     }
 
-    fn append_before_sibling(&self, sibling: ParseNodeId, node: NodeOrText, can_gc: CanGc) {
+    fn append_before_sibling(
+        &self,
+        cx: &mut js::context::JSContext,
+        sibling: ParseNodeId,
+        node: NodeOrText,
+    ) {
         let node = match node {
             NodeOrText::Node(n) => {
                 HtmlNodeOrText::AppendNode(Dom::from_ref(&**self.get_node(&n.id)))
@@ -418,16 +423,16 @@ impl Tokenizer {
             .expect("append_before_sibling called on node without parent");
 
         super::insert(
+            cx,
             parent,
             Some(sibling),
             node,
             self.parsing_algorithm,
             &self.custom_element_reaction_stack,
-            can_gc,
         );
     }
 
-    fn append(&self, parent: ParseNodeId, node: NodeOrText, can_gc: CanGc) {
+    fn append(&self, cx: &mut js::context::JSContext, parent: ParseNodeId, node: NodeOrText) {
         let node = match node {
             NodeOrText::Node(n) => {
                 HtmlNodeOrText::AppendNode(Dom::from_ref(&**self.get_node(&n.id)))
@@ -437,12 +442,12 @@ impl Tokenizer {
 
         let parent = &**self.get_node(&parent);
         super::insert(
+            cx,
             parent,
             None,
             node,
             self.parsing_algorithm,
             &self.custom_element_reaction_stack,
-            can_gc,
         );
     }
 
@@ -503,10 +508,10 @@ impl Tokenizer {
                 self.insert_node(node, Dom::from_ref(comment.upcast()));
             },
             ParseOperation::AppendBeforeSibling { sibling, node } => {
-                self.append_before_sibling(sibling, node, CanGc::from_cx(cx));
+                self.append_before_sibling(cx, sibling, node);
             },
             ParseOperation::Append { parent, node } => {
-                self.append(parent, node, CanGc::from_cx(cx));
+                self.append(cx, parent, node);
             },
             ParseOperation::AppendBasedOnParentNode {
                 element,
@@ -514,9 +519,9 @@ impl Tokenizer {
                 node,
             } => {
                 if self.has_parent_node(element) {
-                    self.append_before_sibling(element, node, CanGc::from_cx(cx));
+                    self.append_before_sibling(cx, element, node);
                 } else {
-                    self.append(prev_element, node, CanGc::from_cx(cx));
+                    self.append(cx, prev_element, node);
                 }
             },
             ParseOperation::AppendDoctypeToDocument {
@@ -534,7 +539,7 @@ impl Tokenizer {
 
                 document
                     .upcast::<Node>()
-                    .AppendChild(doctype.upcast(), CanGc::from_cx(cx))
+                    .AppendChild(cx, doctype.upcast())
                     .expect("Appending failed");
             },
             ParseOperation::AddAttrsIfMissing { target, attrs } => {
@@ -567,7 +572,7 @@ impl Tokenizer {
                 let parent = self.get_node(&parent);
                 let new_parent = self.get_node(&new_parent);
                 while let Some(child) = parent.GetFirstChild() {
-                    new_parent.AppendChild(&child, CanGc::from_cx(cx)).unwrap();
+                    new_parent.AppendChild(cx, &child).unwrap();
                 }
             },
             ParseOperation::AssociateWithForm {

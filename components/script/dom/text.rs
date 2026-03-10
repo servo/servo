@@ -69,7 +69,7 @@ impl TextMethods<crate::DomTypeHolder> for Text {
 
     // https://dom.spec.whatwg.org/#dom-text-splittext
     /// <https://dom.spec.whatwg.org/#concept-text-split>
-    fn SplitText(&self, offset: u32, can_gc: CanGc) -> Fallible<DomRoot<Text>> {
+    fn SplitText(&self, cx: &mut JSContext, offset: u32) -> Fallible<DomRoot<Text>> {
         let cdata = self.upcast::<CharacterData>();
         // Step 1.
         let length = cdata.Length();
@@ -84,13 +84,13 @@ impl TextMethods<crate::DomTypeHolder> for Text {
         // Step 5.
         let node = self.upcast::<Node>();
         let owner_doc = node.owner_doc();
-        let new_node = owner_doc.CreateTextNode(new_data, can_gc);
+        let new_node = owner_doc.CreateTextNode(new_data, CanGc::from_cx(cx));
         // Step 6.
         let parent = node.GetParentNode();
         if let Some(ref parent) = parent {
             // Step 7.1.
             parent
-                .InsertBefore(new_node.upcast(), node.GetNextSibling().as_deref(), can_gc)
+                .InsertBefore(cx, new_node.upcast(), node.GetNextSibling().as_deref())
                 .unwrap();
             // Steps 7.2-3.
             node.ranges()

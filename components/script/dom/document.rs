@@ -1808,28 +1808,30 @@ impl Document {
     // https://dom.spec.whatwg.org/#converting-nodes-into-a-node
     pub(crate) fn node_from_nodes_and_strings(
         &self,
+        cx: &mut js::context::JSContext,
         mut nodes: Vec<NodeOrString>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Node>> {
         if nodes.len() == 1 {
             Ok(match nodes.pop().unwrap() {
                 NodeOrString::Node(node) => node,
                 NodeOrString::String(string) => {
-                    DomRoot::upcast(self.CreateTextNode(string, can_gc))
+                    DomRoot::upcast(self.CreateTextNode(string, CanGc::from_cx(cx)))
                 },
             })
         } else {
-            let fragment = DomRoot::upcast::<Node>(self.CreateDocumentFragment(can_gc));
+            let fragment = DomRoot::upcast::<Node>(self.CreateDocumentFragment(CanGc::from_cx(cx)));
             for node in nodes {
                 match node {
                     NodeOrString::Node(node) => {
-                        fragment.AppendChild(&node, can_gc)?;
+                        fragment.AppendChild(cx, &node)?;
                     },
                     NodeOrString::String(string) => {
-                        let node = DomRoot::upcast::<Node>(self.CreateTextNode(string, can_gc));
+                        let node = DomRoot::upcast::<Node>(
+                            self.CreateTextNode(string, CanGc::from_cx(cx)),
+                        );
                         // No try!() here because appending a text node
                         // should not fail.
-                        fragment.AppendChild(&node, can_gc).unwrap();
+                        fragment.AppendChild(cx, &node).unwrap();
                     },
                 }
             }
@@ -5839,7 +5841,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
                     parent
-                        .InsertBefore(child, parent.GetFirstChild().as_deref(), CanGc::from_cx(cx))
+                        .InsertBefore(cx, child, parent.GetFirstChild().as_deref())
                         .unwrap()
                 },
             }
@@ -5863,7 +5865,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                             CanGc::from_cx(cx),
                         );
                         head.upcast::<Node>()
-                            .AppendChild(elem.upcast(), CanGc::from_cx(cx))
+                            .AppendChild(cx, elem.upcast())
                             .unwrap()
                     },
                     None => return,
@@ -5951,8 +5953,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             // Append the new value to the document element.
             (Some(ref root), &None) => {
                 let root = root.upcast::<Node>();
-                root.AppendChild(new_body.upcast(), CanGc::from_cx(cx))
-                    .map(|_| ())
+                root.AppendChild(cx, new_body.upcast()).map(|_| ())
             },
         }
     }
@@ -6082,23 +6083,32 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-prepend>
-    fn Prepend(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().prepend(nodes, can_gc)
+    fn Prepend(&self, cx: &mut js::context::JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().prepend(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-append>
-    fn Append(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().append(nodes, can_gc)
+    fn Append(&self, cx: &mut js::context::JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().append(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
-    fn ReplaceChildren(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().replace_children(nodes, can_gc)
+    fn ReplaceChildren(
+        &self,
+        cx: &mut js::context::JSContext,
+        nodes: Vec<NodeOrString>,
+    ) -> ErrorResult {
+        self.upcast::<Node>().replace_children(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-movebefore>
-    fn MoveBefore(&self, node: &Node, child: Option<&Node>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().move_before(node, child, can_gc)
+    fn MoveBefore(
+        &self,
+        cx: &mut js::context::JSContext,
+        node: &Node,
+        child: Option<&Node>,
+    ) -> ErrorResult {
+        self.upcast::<Node>().move_before(cx, node, child)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>

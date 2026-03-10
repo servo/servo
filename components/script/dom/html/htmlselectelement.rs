@@ -280,7 +280,11 @@ impl HTMLSelectElement {
         }
     }
 
+    #[expect(unsafe_code)]
     fn create_shadow_tree(&self, can_gc: CanGc) {
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         let document = self.owner_document();
         let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
 
@@ -311,7 +315,7 @@ impl HTMLSelectElement {
         );
         select_box
             .upcast::<Node>()
-            .AppendChild(text_container.upcast::<Node>(), can_gc)
+            .AppendChild(cx, text_container.upcast::<Node>())
             .unwrap();
 
         let text = Text::new(DOMString::new(), &document, can_gc);
@@ -320,7 +324,7 @@ impl HTMLSelectElement {
         });
         text_container
             .upcast::<Node>()
-            .AppendChild(text.upcast::<Node>(), can_gc)
+            .AppendChild(cx, text.upcast::<Node>())
             .unwrap();
 
         let chevron_container = Element::create(
@@ -339,11 +343,11 @@ impl HTMLSelectElement {
         );
         select_box
             .upcast::<Node>()
-            .AppendChild(chevron_container.upcast::<Node>(), can_gc)
+            .AppendChild(cx, chevron_container.upcast::<Node>())
             .unwrap();
 
         root.upcast::<Node>()
-            .AppendChild(select_box.upcast::<Node>(), can_gc)
+            .AppendChild(cx, select_box.upcast::<Node>())
             .unwrap();
     }
 
@@ -499,10 +503,11 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-select-add>
     fn Add(
         &self,
+        cx: &mut JSContext,
         element: HTMLOptionElementOrHTMLOptGroupElement,
         before: Option<HTMLElementOrLong>,
     ) -> ErrorResult {
-        self.Options().Add(element, before)
+        self.Options().Add(cx, element, before)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
@@ -760,9 +765,9 @@ impl VirtualMethods for HTMLSelectElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
 
         self.upcast::<Element>()

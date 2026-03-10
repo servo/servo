@@ -1146,9 +1146,9 @@ impl VirtualMethods for HTMLIFrameElement {
         self.process_the_iframe_attributes(ProcessingMode::FirstTime, cx);
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
         self.owner_document().invalidate_iframes_collection();
     }

@@ -598,7 +598,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
             fragment
                 .upcast::<Node>()
-                .AppendChild(text_node.upcast(), CanGc::from_cx(cx))?;
+                .AppendChild(cx, text_node.upcast())?;
         }
 
         // Step 6: Replace this with fragment within this's parent.
@@ -788,15 +788,15 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 }
 
 fn append_text_node_to_fragment(
+    cx: &mut JSContext,
     document: &Document,
     fragment: &DocumentFragment,
     text: String,
-    can_gc: CanGc,
 ) {
-    let text = Text::new(DOMString::from(text), document, can_gc);
+    let text = Text::new(DOMString::from(text), document, CanGc::from_cx(cx));
     fragment
         .upcast::<Node>()
-        .AppendChild(text.upcast(), can_gc)
+        .AppendChild(cx, text.upcast())
         .unwrap();
 }
 
@@ -1023,7 +1023,11 @@ impl HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#rendered-text-fragment>
+    #[expect(unsafe_code)]
     fn rendered_text_fragment(&self, input: DOMString, can_gc: CanGc) -> DomRoot<DocumentFragment> {
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         // Step 1: Let fragment be a new DocumentFragment whose node document is document.
         let document = self.owner_document();
         let fragment = DocumentFragment::new(&document, can_gc);
@@ -1049,7 +1053,7 @@ impl HTMLElement {
                     }
 
                     if !text.is_empty() {
-                        append_text_node_to_fragment(&document, &fragment, text, can_gc);
+                        append_text_node_to_fragment(cx, &document, &fragment, text);
                         text = String::new();
                     }
 
@@ -1064,7 +1068,7 @@ impl HTMLElement {
                     );
                     fragment
                         .upcast::<Node>()
-                        .AppendChild(br.upcast(), can_gc)
+                        .AppendChild(cx, br.upcast())
                         .unwrap();
                 },
                 _ => {
@@ -1078,7 +1082,7 @@ impl HTMLElement {
         // If text is not the empty string, then append a new Text node whose data is text and node
         // document is document to fragment.
         if !text.is_empty() {
-            append_text_node_to_fragment(&document, &fragment, text, can_gc);
+            append_text_node_to_fragment(cx, &document, &fragment, text);
         }
 
         fragment
@@ -1269,9 +1273,9 @@ impl VirtualMethods for HTMLElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(super_type) = self.super_type() {
-            super_type.bind_to_tree(context, can_gc);
+            super_type.bind_to_tree(cx, context);
         }
 
         // Binding to a tree can disable a form control if one of the new

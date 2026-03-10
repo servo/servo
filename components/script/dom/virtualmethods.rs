@@ -121,9 +121,9 @@ pub(crate) trait VirtualMethods {
     }
 
     /// Called when a Node is appended to a tree.
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
     }
 

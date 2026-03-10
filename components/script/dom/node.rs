@@ -270,7 +270,7 @@ impl Node {
     /// Adds a new child to the end of this node's list of children.
     ///
     /// Fails unless `new_child` is disconnected from the tree.
-    fn add_child(&self, new_child: &Node, before: Option<&Node>, can_gc: CanGc) {
+    fn add_child(&self, cx: &mut JSContext, new_child: &Node, before: Option<&Node>) {
         assert!(new_child.parent_node.get().is_none());
         assert!(new_child.prev_sibling.get().is_none());
         assert!(new_child.next_sibling.get().is_none());
@@ -333,7 +333,7 @@ impl Node {
 
             // Out-of-document elements never have the descendants flag set.
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&node).bind_to_tree(&context, can_gc);
+            vtable_for(&node).bind_to_tree(cx, &context);
         }
     }
 
@@ -355,10 +355,7 @@ impl Node {
 
         // Step 3. For each node in newChildren, append node to fragment.
         for child in new_children {
-            fragment
-                .upcast::<Node>()
-                .AppendChild(&child, CanGc::from_cx(cx))
-                .unwrap();
+            fragment.upcast::<Node>().AppendChild(cx, &child).unwrap();
         }
 
         // Step 4. Replace all with fragment within target.
@@ -1141,7 +1138,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
-    pub(crate) fn before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn before(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let parent = &self.parent_node;
 
@@ -1155,9 +1152,7 @@ impl Node {
         let viable_previous_sibling = first_node_not_in(self.preceding_siblings(), &nodes);
 
         // Step 4.
-        let node = self
-            .owner_doc()
-            .node_from_nodes_and_strings(nodes, can_gc)?;
+        let node = self.owner_doc().node_from_nodes_and_strings(cx, nodes)?;
 
         // Step 5.
         let viable_previous_sibling = match viable_previous_sibling {
@@ -1166,13 +1161,13 @@ impl Node {
         };
 
         // Step 6.
-        Node::pre_insert(&node, &parent, viable_previous_sibling.as_deref(), can_gc)?;
+        Node::pre_insert(cx, &node, &parent, viable_previous_sibling.as_deref())?;
 
         Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-after>
-    pub(crate) fn after(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn after(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let parent = &self.parent_node;
 
@@ -1186,12 +1181,10 @@ impl Node {
         let viable_next_sibling = first_node_not_in(self.following_siblings(), &nodes);
 
         // Step 4.
-        let node = self
-            .owner_doc()
-            .node_from_nodes_and_strings(nodes, can_gc)?;
+        let node = self.owner_doc().node_from_nodes_and_strings(cx, nodes)?;
 
         // Step 5.
-        Node::pre_insert(&node, &parent, viable_next_sibling.as_deref(), can_gc)?;
+        Node::pre_insert(cx, &node, &parent, viable_next_sibling.as_deref())?;
 
         Ok(())
     }
@@ -1208,65 +1201,62 @@ impl Node {
         let viable_next_sibling = first_node_not_in(self.following_siblings(), &nodes);
 
         // Step 4. Let node be the result of converting nodes into a node, given nodes and this’s node document.
-        let node = self
-            .owner_doc()
-            .node_from_nodes_and_strings(nodes, CanGc::from_cx(cx))?;
+        let node = self.owner_doc().node_from_nodes_and_strings(cx, nodes)?;
 
         if self.parent_node == Some(&*parent) {
             // Step 5. If this’s parent is parent, replace this with node within parent.
             parent.ReplaceChild(cx, &node, self)?;
         } else {
             // Step 6. Otherwise, pre-insert node into parent before viableNextSibling.
-            Node::pre_insert(
-                &node,
-                &parent,
-                viable_next_sibling.as_deref(),
-                CanGc::from_cx(cx),
-            )?;
+            Node::pre_insert(cx, &node, &parent, viable_next_sibling.as_deref())?;
         }
         Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-prepend>
-    pub(crate) fn prepend(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn prepend(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
-        let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
+        let node = doc.node_from_nodes_and_strings(cx, nodes)?;
         // Step 2.
         let first_child = self.first_child.get();
-        Node::pre_insert(&node, self, first_child.as_deref(), can_gc).map(|_| ())
+        Node::pre_insert(cx, &node, self, first_child.as_deref()).map(|_| ())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-append>
-    pub(crate) fn append(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn append(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1.
         let doc = self.owner_doc();
-        let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
+        let node = doc.node_from_nodes_and_strings(cx, nodes)?;
         // Step 2.
-        self.AppendChild(&node, can_gc).map(|_| ())
+        self.AppendChild(cx, &node).map(|_| ())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
-    pub(crate) fn replace_children(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn replace_children(
+        &self,
+        cx: &mut JSContext,
+        nodes: Vec<NodeOrString>,
+    ) -> ErrorResult {
         // Step 1. Let node be the result of converting nodes into a node given nodes and this’s
         // node document.
         let doc = self.owner_doc();
-        let node = doc.node_from_nodes_and_strings(nodes, can_gc)?;
+        let node = doc.node_from_nodes_and_strings(cx, nodes)?;
 
         // Step 2. Ensure pre-insert validity of node into this before null.
         Node::ensure_pre_insertion_validity(&node, self, None)?;
 
         // Step 3. Replace all with node within this.
-        Node::replace_all(Some(&node), self, can_gc);
+        Node::replace_all(Some(&node), self, CanGc::from_cx(cx));
         Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-movebefore>
     pub(crate) fn move_before(
         &self,
+        cx: &mut JSContext,
         node: &Node,
         child: Option<&Node>,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1. Let referenceChild be child.
         // Step 2. If referenceChild is node, then set referenceChild to node’s next sibling.
@@ -1280,15 +1270,15 @@ impl Node {
         };
 
         // Step 3. Move node into this before referenceChild.
-        Node::move_fn(node, self, reference_child, can_gc)
+        Node::move_fn(cx, node, self, reference_child)
     }
 
     /// <https://dom.spec.whatwg.org/#move>
-    pub(crate) fn move_fn(
+    fn move_fn(
+        cx: &mut JSContext,
         node: &Node,
         new_parent: &Node,
         child: Option<&Node>,
-        can_gc: CanGc,
     ) -> ErrorResult {
         // Step 1. If newParent’s shadow-including root is not the same as node’s shadow-including
         // root, then throw a "HierarchyRequestError" DOMException.
@@ -1460,7 +1450,7 @@ impl Node {
 
         // Step 19. If child is null, then append node to newParent’s children.
         // Step 20. Otherwise, insert node into newParent’s children before child’s index.
-        new_parent.add_child(node, child, can_gc);
+        new_parent.add_child(cx, node, child);
 
         // Step 21. If newParent is a shadow host whose shadow root’s slot assignment is "named" and
         // node is a slottable, then assign a slot for node.
@@ -1468,12 +1458,11 @@ impl Node {
             .downcast::<Element>()
             .and_then(Element::shadow_root)
         {
-            if shadow_root.SlotAssignment() == SlotAssignmentMode::Named {
-                let cx = GlobalScope::get_cx();
-                if node.is::<Element>() || node.is::<Text>() {
-                    rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(node)));
-                    slottable.assign_a_slot();
-                }
+            if shadow_root.SlotAssignment() == SlotAssignmentMode::Named &&
+                (node.is::<Element>() || node.is::<Text>())
+            {
+                rooted!(&in(cx) let slottable = Slottable(Dom::from_ref(node)));
+                slottable.assign_a_slot();
             }
         }
 
@@ -1498,10 +1487,10 @@ impl Node {
             // inclusiveDescendant and oldParent.
             // Otherwise, run the moving steps with inclusiveDescendant and null.
             if descendant.deref() == node {
-                vtable_for(&descendant).moving_steps(&context, can_gc);
+                vtable_for(&descendant).moving_steps(&context, CanGc::from_cx(cx));
             } else {
                 context.old_parent = None;
-                vtable_for(&descendant).moving_steps(&context, can_gc);
+                vtable_for(&descendant).moving_steps(&context, CanGc::from_cx(cx));
             }
 
             // Step 24.2. If inclusiveDescendant is custom and newParent is connected,
@@ -1797,7 +1786,7 @@ impl Node {
         {
             let tr_node = tr.upcast::<Node>();
             if index == -1 {
-                self.InsertBefore(tr_node, None, CanGc::from_cx(cx))?;
+                self.InsertBefore(cx, tr_node, None)?;
             } else {
                 let items = get_items();
                 let node = match items
@@ -1810,7 +1799,7 @@ impl Node {
                     None => return Err(Error::IndexSize(None)),
                     Some(node) => node,
                 };
-                self.InsertBefore(tr_node, node.as_deref(), CanGc::from_cx(cx))?;
+                self.InsertBefore(cx, tr_node, node.as_deref())?;
             }
         }
 
@@ -3042,17 +3031,12 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-pre-insert>
-    #[expect(unsafe_code)]
     pub(crate) fn pre_insert(
+        cx: &mut JSContext,
         node: &Node,
         parent: &Node,
         child: Option<&Node>,
-        _can_gc: CanGc,
     ) -> Fallible<DomRoot<Node>> {
-        // TODO github.com/servo/servo/issues/43239
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
         // Step 1. Ensure pre-insert validity of node into parent before child.
         Node::ensure_pre_insertion_validity(node, parent, child)?;
 
@@ -3170,7 +3154,7 @@ impl Node {
 
             // Step 7.2. If child is null, then append node to parent’s children.
             // Step 7.3. Otherwise, insert node into parent’s children before child’s index.
-            parent.add_child(kid, child, CanGc::from_cx(cx));
+            parent.add_child(cx, kid, child);
 
             // Step 7.4 If parent is a shadow host whose shadow root’s slot assignment is "named"
             // and node is a slottable, then assign a slot for node.
@@ -3328,12 +3312,12 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/multipage/#string-replace-all>
-    pub(crate) fn string_replace_all(string: DOMString, parent: &Node, can_gc: CanGc) {
+    pub(crate) fn string_replace_all(cx: &mut JSContext, string: DOMString, parent: &Node) {
         if string.is_empty() {
-            Node::replace_all(None, parent, can_gc);
+            Node::replace_all(None, parent, CanGc::from_cx(cx));
         } else {
-            let text = Text::new(string, &parent.owner_document(), can_gc);
-            Node::replace_all(Some(text.upcast::<Node>()), parent, can_gc);
+            let text = Text::new(string, &parent.owner_document(), CanGc::from_cx(cx));
+            Node::replace_all(Some(text.upcast::<Node>()), parent, CanGc::from_cx(cx));
         };
     }
 
@@ -3665,7 +3649,7 @@ impl Node {
         if clone_children == CloneChildrenFlag::CloneChildren {
             for child in node.children() {
                 let child_copy = Node::clone(cx, &child, Some(&document), clone_children, None);
-                let _inserted_node = Node::pre_insert(&child_copy, &copy, None, CanGc::from_cx(cx));
+                let _inserted_node = Node::pre_insert(cx, &child_copy, &copy, None);
             }
         }
 
@@ -3709,12 +3693,8 @@ impl Node {
                     );
 
                     // TODO: Should we handle the error case here and in step 6?
-                    let _inserted_node = Node::pre_insert(
-                        &child_copy,
-                        copy_shadow_root.upcast::<Node>(),
-                        None,
-                        CanGc::from_cx(cx),
-                    );
+                    let _inserted_node =
+                        Node::pre_insert(cx, &child_copy, copy_shadow_root.upcast::<Node>(), None);
                 }
             }
         }
@@ -4108,16 +4088,16 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     /// <https://dom.spec.whatwg.org/#dom-node-insertbefore>
     fn InsertBefore(
         &self,
+        cx: &mut JSContext,
         node: &Node,
         child: Option<&Node>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<Node>> {
-        Node::pre_insert(node, self, child, can_gc)
+        Node::pre_insert(cx, node, self, child)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-appendchild>
-    fn AppendChild(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
-        Node::pre_insert(node, self, None, can_gc)
+    fn AppendChild(&self, cx: &mut JSContext, node: &Node) -> Fallible<DomRoot<Node>> {
+        Node::pre_insert(cx, node, self, None)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace>

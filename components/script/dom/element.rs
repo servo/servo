@@ -732,7 +732,7 @@ impl Element {
             .set_containing_shadow_root(Some(&shadow_root));
 
         let bind_context = BindContext::new(self.upcast(), IsShadowTree::Yes);
-        shadow_root.bind_to_tree(&bind_context, CanGc::from_cx(cx));
+        shadow_root.bind_to_tree(cx, &bind_context);
 
         node.dirty(NodeDamage::Other);
 
@@ -2749,32 +2749,27 @@ impl Element {
     // https://dom.spec.whatwg.org/#insert-adjacent
     pub(crate) fn insert_adjacent(
         &self,
+        cx: &mut JSContext,
         where_: AdjacentPosition,
         node: &Node,
-        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<Node>>> {
         let self_node = self.upcast::<Node>();
         match where_ {
             AdjacentPosition::BeforeBegin => {
                 if let Some(parent) = self_node.GetParentNode() {
-                    Node::pre_insert(node, &parent, Some(self_node), can_gc).map(Some)
+                    Node::pre_insert(cx, node, &parent, Some(self_node)).map(Some)
                 } else {
                     Ok(None)
                 }
             },
-            AdjacentPosition::AfterBegin => Node::pre_insert(
-                node,
-                self_node,
-                self_node.GetFirstChild().as_deref(),
-                can_gc,
-            )
-            .map(Some),
-            AdjacentPosition::BeforeEnd => {
-                Node::pre_insert(node, self_node, None, can_gc).map(Some)
+            AdjacentPosition::AfterBegin => {
+                Node::pre_insert(cx, node, self_node, self_node.GetFirstChild().as_deref())
+                    .map(Some)
             },
+            AdjacentPosition::BeforeEnd => Node::pre_insert(cx, node, self_node, None).map(Some),
             AdjacentPosition::AfterEnd => {
                 if let Some(parent) = self_node.GetParentNode() {
-                    Node::pre_insert(node, &parent, self_node.GetNextSibling().as_deref(), can_gc)
+                    Node::pre_insert(cx, node, &parent, self_node.GetNextSibling().as_deref())
                         .map(Some)
                 } else {
                     Ok(None)
@@ -2859,10 +2854,7 @@ impl Element {
         let fragment = DocumentFragment::new(&context_document, CanGc::from_cx(cx));
         // Step 4.
         for child in new_children {
-            fragment
-                .upcast::<Node>()
-                .AppendChild(&child, CanGc::from_cx(cx))
-                .unwrap();
+            fragment.upcast::<Node>().AppendChild(cx, &child).unwrap();
         }
         // Step 5.
         Ok(fragment)
@@ -3917,23 +3909,23 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-prepend>
-    fn Prepend(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().prepend(nodes, can_gc)
+    fn Prepend(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().prepend(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-append>
-    fn Append(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().append(nodes, can_gc)
+    fn Append(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().append(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
-    fn ReplaceChildren(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().replace_children(nodes, can_gc)
+    fn ReplaceChildren(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().replace_children(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-movebefore>
-    fn MoveBefore(&self, node: &Node, child: Option<&Node>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().move_before(node, child, can_gc)
+    fn MoveBefore(&self, cx: &mut JSContext, node: &Node, child: Option<&Node>) -> ErrorResult {
+        self.upcast::<Node>().move_before(cx, node, child)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
@@ -3949,13 +3941,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
-    fn Before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().before(nodes, can_gc)
+    fn Before(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().before(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-after>
-    fn After(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().after(nodes, can_gc)
+    fn After(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().after(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
@@ -4019,30 +4011,34 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://dom.spec.whatwg.org/#dom-element-insertadjacentelement>
     fn InsertAdjacentElement(
         &self,
+        cx: &mut JSContext,
         where_: DOMString,
         element: &Element,
-        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<Element>>> {
         let where_ = where_.parse::<AdjacentPosition>()?;
-        let inserted_node = self.insert_adjacent(where_, element.upcast(), can_gc)?;
+        let inserted_node = self.insert_adjacent(cx, where_, element.upcast())?;
         Ok(inserted_node.map(|node| DomRoot::downcast(node).unwrap()))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-insertadjacenttext>
-    fn InsertAdjacentText(&self, where_: DOMString, data: DOMString, can_gc: CanGc) -> ErrorResult {
+    fn InsertAdjacentText(
+        &self,
+        cx: &mut JSContext,
+        where_: DOMString,
+        data: DOMString,
+    ) -> ErrorResult {
         // Step 1.
-        let text = Text::new(data, &self.owner_document(), can_gc);
+        let text = Text::new(data, &self.owner_document(), CanGc::from_cx(cx));
 
         // Step 2.
         let where_ = where_.parse::<AdjacentPosition>()?;
-        self.insert_adjacent(where_, text.upcast(), can_gc)
-            .map(|_| ())
+        self.insert_adjacent(cx, where_, text.upcast()).map(|_| ())
     }
 
     /// <https://w3c.github.io/DOM-Parsing/#dom-element-insertadjacenthtml>
     fn InsertAdjacentHTML(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         position: DOMString,
         text: TrustedHTMLOrString,
     ) -> ErrorResult {
@@ -4093,7 +4089,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let fragment = context.parse_fragment(text, cx)?;
 
         // Step 6.
-        self.insert_adjacent(position, fragment.upcast(), CanGc::from_cx(cx))
+        self.insert_adjacent(cx, position, fragment.upcast())
             .map(|_| ())
     }
 
@@ -4707,19 +4703,19 @@ impl VirtualMethods for Element {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
 
         if let Some(f) = self.as_maybe_form_control() {
-            f.bind_form_control_to_tree(can_gc);
+            f.bind_form_control_to_tree(CanGc::from_cx(cx));
         }
 
         let doc = self.owner_document();
 
         if let Some(ref shadow_root) = self.shadow_root() {
-            shadow_root.bind_to_tree(context, can_gc);
+            shadow_root.bind_to_tree(cx, context);
         }
 
         if !context.is_in_tree() {
@@ -4728,9 +4724,9 @@ impl VirtualMethods for Element {
 
         if let Some(ref id) = *self.id_attribute.borrow() {
             if let Some(shadow_root) = self.containing_shadow_root() {
-                shadow_root.register_element_id(self, id.clone(), can_gc);
+                shadow_root.register_element_id(self, id.clone(), CanGc::from_cx(cx));
             } else {
-                doc.register_element_id(self, id.clone(), can_gc);
+                doc.register_element_id(self, id.clone(), CanGc::from_cx(cx));
             }
         }
         if let Some(ref name) = self.name_attribute() {

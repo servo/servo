@@ -92,9 +92,9 @@ impl VirtualMethods for HTMLTitleElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
         let node = self.upcast::<Node>();
         if context.tree_is_in_a_document_tree {

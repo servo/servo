@@ -145,7 +145,7 @@ impl SVGSVGElement {
             None,
         );
         let root_node = self.upcast::<Node>();
-        let _ = root_node.AppendChild(&cloned_node, CanGc::from_cx(cx));
+        let _ = root_node.AppendChild(cx, &cloned_node);
 
         Some(cloned_node)
     }
