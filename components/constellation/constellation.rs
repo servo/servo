@@ -507,9 +507,6 @@ pub struct Constellation<STF, SWF> {
     /// to the `UserContents` need to be forwared to all the `ScriptThread`s that host
     /// the relevant `WebView`.
     pub(crate) user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
-
-    /// Whether accessibility trees are being built and sent to the underlying platform.
-    pub(crate) accessibility_active: bool,
 }
 
 /// State needed to construct a constellation.
@@ -728,7 +725,6 @@ where
                     pending_viewport_changes: Default::default(),
                     screenshot_readiness_requests: Vec::new(),
                     user_contents_for_manager_id: Default::default(),
-                    accessibility_active: false,
                 };
 
                 constellation.run();
@@ -1190,14 +1186,6 @@ where
         self.browsing_contexts
             .insert(browsing_context_id, browsing_context);
 
-        if self.accessibility_active {
-            if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-                let _ = pipeline
-                    .event_loop
-                    .send(ScriptThreadMessage::SetAccessibilityActive(true));
-            }
-        }
-
         // If this context is a nested container, attach it to parent pipeline.
         if let Some(parent_pipeline_id) = parent_pipeline_id {
             if let Some(parent) = self.pipelines.get_mut(&parent_pipeline_id) {
@@ -1562,8 +1550,8 @@ where
             EmbedderToConstellationMessage::UpdatePinchZoomInfos(pipeline_id, pinch_zoom) => {
                 self.handle_update_pinch_zoom_infos(pipeline_id, pinch_zoom);
             },
-            EmbedderToConstellationMessage::SetAccessibilityActive(active) => {
-                self.set_accessibility_active(active);
+            EmbedderToConstellationMessage::SetAccessibilityActive(webview_id, active) => {
+                self.set_accessibility_active(webview_id, active);
             },
         }
     }
@@ -3043,17 +3031,26 @@ where
         }
     }
 
-    fn set_accessibility_active(&mut self, active: bool) {
+    fn set_accessibility_active(&mut self, webview_id: WebViewId, active: bool) {
         if !(pref!(accessibility_enabled)) {
             return;
         }
-        if active == self.accessibility_active {
-            return;
-        }
 
-        self.accessibility_active = active;
-        for event_loop in self.event_loops() {
-            let _ = event_loop.send(ScriptThreadMessage::SetAccessibilityActive(active));
+        let Some(webview) = self.webviews.get_mut(&webview_id) else {
+            return;
+        };
+
+        webview.accessibility_active = active;
+
+        // Forward the activation to the webview’s active pipelines (of those that represent
+        // documents). For inactive pipelines (documents in bfcache), we only need to forward the
+        // activation if and when they become active (see set_frame_tree_for_webview()).
+        for pipeline_id in self.active_pipelines_for_webview(webview_id) {
+            self.send_message_to_pipeline(
+                pipeline_id,
+                ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active),
+                "Set accessibility active after closure",
+            );
         }
     }
 
@@ -5602,7 +5599,7 @@ where
         }
     }
 
-    // Convert a browsing context to a sendable form to pass to `Paint`
+    /// Convert a browsing context to a tree of active pipeline ids, for sending to Paint.
     #[servo_tracing::instrument(skip_all)]
     fn browsing_context_to_sendable(
         &self,
@@ -5632,6 +5629,23 @@ where
             })
     }
 
+    /// Convert a webview to a flat list of active pipeline ids, for activating accessibility.
+    fn active_pipelines_for_webview(&self, webview_id: WebViewId) -> Vec<PipelineId> {
+        let mut result = vec![];
+        let mut browsing_context_ids = vec![BrowsingContextId::from(webview_id)];
+        while let Some(browsing_context_id) = browsing_context_ids.pop() {
+            let Some(browsing_context) = self.browsing_contexts.get(&browsing_context_id) else {
+                continue;
+            };
+            let Some(pipeline) = self.pipelines.get(&browsing_context.pipeline_id) else {
+                continue;
+            };
+            result.push(browsing_context.pipeline_id);
+            browsing_context_ids.extend(pipeline.children.iter().copied());
+        }
+        result
+    }
+
     /// Send the frame tree for the given webview to `Paint`.
     #[servo_tracing::instrument(skip_all)]
     fn set_frame_tree_for_webview(&mut self, webview_id: WebViewId) {
@@ -5649,6 +5663,18 @@ where
             debug!("{}: Sending frame tree", browsing_context_id);
             self.paint_proxy
                 .send(PaintMessage::SetFrameTreeForWebView(webview_id, frame_tree));
+        }
+
+        let Some(webview) = self.webviews.get(&webview_id) else {
+            return;
+        };
+        let active = webview.accessibility_active;
+        for pipeline_id in self.active_pipelines_for_webview(webview_id) {
+            self.send_message_to_pipeline(
+                pipeline_id,
+                ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active),
+                "Set accessibility active after closure",
+            );
         }
     }
 

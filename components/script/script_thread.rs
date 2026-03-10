@@ -407,9 +407,6 @@ pub struct ScriptThread {
     #[no_trace]
     privileged_urls: Vec<ServoUrl>,
 
-    /// Whether accessibility is active. If true, each Layout will maintain an accessibility tree
-    /// and send accessibility updates to the embedder.
-    accessibility_active: Cell<bool>,
     devtools_state: DevtoolsState,
 }
 
@@ -1042,7 +1039,6 @@ impl ScriptThread {
                     debugger_paused: Cell::new(false),
                     privileged_urls: state.privileged_urls,
                     this: weak_script_thread.clone(),
-                    accessibility_active: Cell::new(state.accessibility_active),
                     devtools_state: Default::default(),
                 }
             }),
@@ -1970,8 +1966,8 @@ impl ScriptThread {
             ScriptThreadMessage::UpdatePinchZoomInfos(id, pinch_zoom_infos) => {
                 self.handle_update_pinch_zoom_infos(id, pinch_zoom_infos, CanGc::from_cx(cx));
             },
-            ScriptThreadMessage::SetAccessibilityActive(active) => {
-                self.set_accessibility_active(active);
+            ScriptThreadMessage::SetAccessibilityActive(pipeline_id, active) => {
+                self.set_accessibility_active(pipeline_id, active);
             },
             ScriptThreadMessage::TriggerGarbageCollection => unsafe {
                 JS_GC(*GlobalScope::get_cx(), GCReason::API);
@@ -3432,7 +3428,6 @@ impl ScriptThread {
             viewport_details: incomplete.viewport_details,
             user_stylesheets,
             theme: incomplete.theme,
-            accessibility_active: self.accessibility_active.get(),
         };
 
         // Create the window and document objects.
@@ -3727,19 +3722,18 @@ impl ScriptThread {
         document.event_handler().note_pending_input_event(event);
     }
 
-    fn set_accessibility_active(&self, active: bool) {
+    /// See the docs for [`ScriptThreadMessage::SetAccessibilityActive`].
+    fn set_accessibility_active(&self, pipeline_id: PipelineId, active: bool) {
         if !(pref!(accessibility_enabled)) {
             return;
         }
 
-        let old_value = self.accessibility_active.replace(active);
-        if active == old_value {
-            return;
-        }
-
-        for (_, document) in self.documents.borrow().iter() {
-            document.window().layout().set_accessibility_active(active);
-        }
+        let document = self
+            .documents
+            .borrow()
+            .find_document(pipeline_id)
+            .expect("Got pipeline_id from self.documents");
+        document.window().layout().set_accessibility_active(active);
     }
 
     /// Handle a "navigate an iframe" message from the constellation.

@@ -727,7 +727,7 @@ impl LayoutThread {
             previously_highlighted_dom_node: Cell::new(None),
             paint_timing_handler: Default::default(),
             user_stylesheets: config.user_stylesheets,
-            accessibility_active: Cell::new(config.accessibility_active),
+            accessibility_active: Cell::new(false),
         }
     }
 

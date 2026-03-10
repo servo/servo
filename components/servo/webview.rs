@@ -21,6 +21,7 @@ use euclid::{Scale, Size2D};
 use image::RgbaImage;
 use paint_api::WebViewTrait;
 use paint_api::rendering_context::RenderingContext;
+use servo_config::pref;
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
@@ -89,6 +90,12 @@ pub(crate) struct WebViewInner {
     #[cfg(feature = "gamepad")]
     pub(crate) gamepad_provider: Rc<dyn GamepadProvider>,
 
+    /// AccessKit subtree id for this [`WebView`], if accessibility is active.
+    ///
+    /// Set by [`WebView::set_accessibility_active()`], and forwarded to the constellation via
+    /// [`EmbedderToConstellationMessage::SetAccessibilityActive`].
+    pub(crate) accesskit_tree_id: Option<accesskit::TreeId>,
+
     rendering_context: Rc<dyn RenderingContext>,
     user_content_manager: Option<Rc<UserContentManager>>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
@@ -132,6 +139,7 @@ impl WebView {
             clipboard_delegate: Rc::new(DefaultClipboardDelegate),
             #[cfg(feature = "gamepad")]
             gamepad_provider: Rc::new(DefaultGamepadProvider),
+            accesskit_tree_id: None,
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
@@ -758,6 +766,60 @@ impl WebView {
 
         self.delegate()
             .show_embedder_control(self.clone(), embedder_control);
+    }
+
+    /// AccessKit subtree id for this [`WebView`], if accessibility is active.
+    pub fn accesskit_tree_id(&self) -> Option<accesskit::TreeId> {
+        self.inner().accesskit_tree_id
+    }
+
+    /// Activate or deactivate accessibility features for this [`WebView`], returning the
+    /// AccessKit subtree id if accessibility is now active.
+    ///
+    /// After accessibility is activated, you must [graft] the returned [`accesskit::TreeId`] into
+    /// your application’s main AccessKit tree as soon as possible, before processing any further
+    /// tree updates from the webview’s [`WebViewDelegate::notify_accessibility_tree_update()`].
+    /// Otherwise you may violate AccessKit’s subtree invariants and **panic**.
+    ///
+    /// [graft]: https://docs.rs/accesskit/0.24.0/accesskit/struct.Node.html#method.tree_id
+    pub fn set_accessibility_active(&self, active: bool) -> Option<accesskit::TreeId> {
+        if !pref!(accessibility_enabled) {
+            return None;
+        }
+
+        if active == self.inner().accesskit_tree_id.is_some() {
+            return self.accesskit_tree_id();
+        }
+
+        if active {
+            let accesskit_tree_id = accesskit::TreeId(accesskit::Uuid::new_v4());
+            self.inner_mut().accesskit_tree_id = Some(accesskit_tree_id);
+
+            // Synchronously emit a TreeUpdate containing just a ScrollView, but no graft node yet.
+            let root_node_id = accesskit::NodeId(0);
+            let root_node = accesskit::Node::new(accesskit::Role::ScrollView);
+            self.delegate().notify_accessibility_tree_update(
+                self.clone(),
+                accesskit::TreeUpdate {
+                    nodes: vec![(root_node_id, root_node)],
+                    tree: Some(accesskit::Tree {
+                        root: root_node_id,
+                        toolkit_name: None,
+                        toolkit_version: None,
+                    }),
+                    tree_id: accesskit_tree_id,
+                    focus: root_node_id,
+                },
+            );
+        } else {
+            self.inner_mut().accesskit_tree_id = None;
+        }
+
+        self.inner().servo.constellation_proxy().send(
+            EmbedderToConstellationMessage::SetAccessibilityActive(self.id(), active),
+        );
+
+        self.accesskit_tree_id()
     }
 }
 
