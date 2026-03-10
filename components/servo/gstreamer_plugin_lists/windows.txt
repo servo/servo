@@ -1,0 +1,3 @@
+# Plugins that are only used for Windows
+# gst-plugins-bad
+gstwasapi

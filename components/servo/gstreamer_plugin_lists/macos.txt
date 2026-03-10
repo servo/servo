@@ -1,0 +1,8 @@
+# Plugins that are only used for MacOS.
+# Lines starting with # are comments.
+#
+# gst-plugins-good
+gstosxaudio
+gstosxvideo
+# gst-plugins-bad
+gstapplemedia

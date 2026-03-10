@@ -10,12 +10,8 @@
 import os.path
 import shutil
 import subprocess
-import sys
 from collections.abc import Set
 
-# This file is called as a script from components/servo/build.rs, so
-# we need to explicitly modify the search path here.
-sys.path[0:0] = [os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))]
 from servo.platform.build_target import BuildTarget  # noqa: E402
 
 GSTREAMER_BASE_LIBS = [
@@ -48,71 +44,6 @@ GSTREAMER_BASE_LIBS = [
 These are the GStreamer base libraries used by both MacOS and Windows
 platforms. These are distinct from GStreamer plugins, but GStreamer plugins
 may have shared object dependencies on them.
-"""
-
-GSTREAMER_PLUGIN_LIBS = [
-    # gstreamer
-    "gstcoreelements",
-    "gstnice",
-    # gst-plugins-base
-    "gstapp",
-    "gstaudioconvert",
-    "gstaudioresample",
-    "gstgio",
-    "gstogg",
-    "gstopengl",
-    "gstopus",
-    "gstplayback",
-    "gsttheora",
-    "gsttypefindfunctions",
-    "gstvideoconvertscale",
-    "gstvolume",
-    "gstvorbis",
-    # gst-plugins-good
-    "gstaudiofx",
-    "gstaudioparsers",
-    "gstautodetect",
-    "gstdeinterlace",
-    "gstid3demux",
-    "gstinterleave",
-    "gstisomp4",
-    "gstmatroska",
-    "gstrtp",
-    "gstrtpmanager",
-    "gstvideofilter",
-    "gstvpx",
-    "gstwavparse",
-    # gst-plugins-bad
-    "gstaudiobuffersplit",
-    "gstdtls",
-    "gstid3tag",
-    "gstproxy",
-    "gstvideoparsersbad",
-    "gstwebrtc",
-    # gst-libav
-    "gstlibav",
-]
-"""
-The list of plugin libraries themselves, used for both MacOS and Windows.
-"""
-
-GSTREAMER_MAC_PLUGIN_LIBS = [
-    # gst-plugins-good
-    "gstosxaudio",
-    "gstosxvideo",
-    # gst-plugins-bad
-    "gstapplemedia",
-]
-"""
-Plugins that are only used for MacOS.
-"""
-
-GSTREAMER_WIN_PLUGIN_LIBS = [
-    # gst-plugins-bad
-    "gstwasapi"
-]
-"""
-Plugins that are only used for Windows.
 """
 
 GSTREAMER_WIN_DEPENDENCY_LIBS = [
@@ -152,37 +83,35 @@ using the plugin selection that we have. This list is curated by a combination
 of using `dumpbin` and the errors that appear when starting Servo.
 """
 
+GSTREAMER_PLUGIN_LISTS_DIRECTORY = os.path.normpath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "components", "servo", "gstreamer_plugin_lists")
+)
+"""
+The gstreamer plugin list is also required in libservo to initialize gstreamer, hence the file list
+needs to be in the servo directory (to be packaged when publishing to crates.io).
+"""
+
+
+def load_plugin_libraries_from_text_file(file_name: str) -> list[str]:
+    with open(os.path.join(GSTREAMER_PLUGIN_LISTS_DIRECTORY, file_name), "r") as plugin_file:
+        stripped_lines = [line.strip() for line in plugin_file.readlines()]
+        return [line for line in stripped_lines if len(line) > 0 and not line.startswith("#")]
+
 
 def windows_dlls() -> list[str]:
     return GSTREAMER_WIN_DEPENDENCY_LIBS + [f"{lib}-1.0-0.dll" for lib in GSTREAMER_BASE_LIBS]
 
 
 def windows_plugins() -> list[str]:
-    libs = [*GSTREAMER_PLUGIN_LIBS, *GSTREAMER_WIN_PLUGIN_LIBS]
-    return [f"{lib}.dll" for lib in libs]
+    plugins = load_plugin_libraries_from_text_file("common.txt")
+    plugins.extend(load_plugin_libraries_from_text_file("windows.txt"))
+    return [f"{plugin}.dll" for plugin in plugins]
 
 
 def macos_plugins() -> list[str]:
-    plugins = [*GSTREAMER_PLUGIN_LIBS, *GSTREAMER_MAC_PLUGIN_LIBS]
-
+    plugins = load_plugin_libraries_from_text_file("common.txt")
+    plugins.extend(load_plugin_libraries_from_text_file("macos.txt"))
     return [f"lib{plugin}.dylib" for plugin in plugins]
-
-
-def write_plugin_list(target: str) -> None:
-    plugins = []
-    if "apple-" in target:
-        plugins = macos_plugins()
-    elif "-windows-" in target:
-        plugins = windows_plugins()
-    print(
-        """/* This is a generated file. Do not modify. */
-
-pub(crate) static GSTREAMER_PLUGINS: &[&str] = &[
-%s
-];
-"""
-        % ",\n".join(map(lambda x: '"' + x + '"', plugins))
-    )
 
 
 def is_macos_system_library(library_path: str) -> bool:
@@ -283,7 +212,7 @@ def package_gstreamer_dylibs(binary_path: str, library_target_directory: str, ta
     os.makedirs(library_target_directory, exist_ok=True)
     try:
         # Collect all the initial binary dependencies for Servo and the plugins that it uses,
-        # which are loaded dynmically at runtime and don't appear in `otool` output.
+        # which are loaded dynamically at runtime and don't appear in `otool` output.
         binary_dependencies = set(find_non_system_dependencies_with_otool(binary_path))
         binary_dependencies.update(
             [os.path.join(gstreamer_root_libs, "gstreamer-1.0", plugin) for plugin in macos_plugins()]
@@ -329,7 +258,3 @@ def package_gstreamer_dylibs(binary_path: str, library_target_directory: str, ta
         print(f" • Processed {number_copied} GStreamer dylibs. ")
         print("   This can cause the startup to be slow due to macOS security protections.")
     return True
-
-
-if __name__ == "__main__":
-    write_plugin_list(sys.argv[1])
