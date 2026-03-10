@@ -2878,10 +2878,7 @@ impl GlobalScope {
             let script = NonNull::new(*compiled_script).expect("Can't be null");
 
             rooted!(&in(cx) let mut value = UndefinedValue());
-            let rval = match rval {
-                Some(rval) => rval,
-                None => value.handle_mut(),
-            };
+            let rval = rval.unwrap_or_else(|| value.handle_mut());
 
             if !evaluate_script(cx.into(), script, url, fetch_options, rval) {
                 let error_info = take_and_report_pending_exception_for_api(cx);
