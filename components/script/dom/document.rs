@@ -421,8 +421,10 @@ pub(crate) struct Document {
     /// <https://w3c.github.io/navigation-timing/#sec-PerformanceNavigationTiming>
     #[no_trace]
     dom_interactive: Cell<Option<CrossProcessInstant>>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-content-loaded-event-start-time>
     #[no_trace]
     dom_content_loaded_event_start: Cell<Option<CrossProcessInstant>>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-content-loaded-event-end-time>
     #[no_trace]
     dom_content_loaded_event_end: Cell<Option<CrossProcessInstant>>,
     #[no_trace]
@@ -2693,7 +2695,7 @@ impl Document {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-end step 4.
+    /// Step 6. of <https://html.spec.whatwg.org/multipage/#the-end>
     pub(crate) fn maybe_dispatch_dom_content_loaded(&self) {
         if self.domcontentloaded_dispatched.get() {
             return;
@@ -2705,9 +2707,8 @@ impl Document {
             "Complete before DOMContentLoaded?"
         );
 
-        update_with_current_instant(&self.dom_content_loaded_event_start);
-
-        // Step 4.1.
+        // Step 6 Queue a global task on the DOM manipulation task source given the Document's
+        // relevant global object to run the following substeps:
         let document = Trusted::new(self);
         self.owner_global()
             .task_manager()
@@ -2715,8 +2716,25 @@ impl Document {
             .queue(
                 task!(fire_dom_content_loaded_event: move || {
                 let document = document.root();
+
+                // Step 6.1 Set the Document's load timing info's DOM content loaded event start time
+                // to the current high resolution time given the Document's relevant global object.
+                update_with_current_instant(&document.dom_content_loaded_event_start);
+
+                // Step 6.2 Fire an event named DOMContentLoaded at the Document object, with its bubbles
+                // attribute initialized to true.
                 document.upcast::<EventTarget>().fire_bubbling_event(atom!("DOMContentLoaded"), CanGc::note());
+
+                // Step 6.3 Set the Document's load timing info's DOM content loaded event end time to the current
+                // high resolution time given the Document's relevant global object.
                 update_with_current_instant(&document.dom_content_loaded_event_end);
+
+                // TODO Step 6.4 Enable the client message queue of the ServiceWorkerContainer object whose associated
+                // service worker client is the Document object's relevant settings object.
+
+                // TODO Step 6.5 Invoke WebDriver BiDi DOM content loaded with the Document's browsing context, and
+                // a new WebDriver BiDi navigation status whose id is the Document object's during-loading
+                // navigation ID for WebDriver BiDi, status is "pending", and url is the Document object's URL.
                 })
             );
 
