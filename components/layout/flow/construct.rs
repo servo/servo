@@ -11,6 +11,7 @@ use style::properties::longhands::list_style_position::computed_value::T as List
 use style::selector_parser::PseudoElement;
 use style::str::char_is_whitespace;
 use style::values::specified::box_::DisplayOutside as StyloDisplayOutside;
+use unicode_categories::UnicodeCategories;
 
 use super::OutsideMarker;
 use super::inline::construct::InlineFormattingContextBuilder;
@@ -380,11 +381,11 @@ fn first_letter_range(text: &str) -> std::ops::Range<usize> {
     enum State {
         Start,
         PrecedingPunc,
+        /// Unicode general category L: letter, N: number and S: symbol
         Lns,
         SucceedingPunc,
     }
 
-    let mut iter = text.char_indices();
     let mut start = 0;
     let mut end = None;
     let mut state = State::Start;
@@ -408,7 +409,7 @@ fn first_letter_range(text: &str) -> std::ops::Range<usize> {
             State::PrecedingPunc => {
                 if c.is_letter() || c.is_number() || c.is_symbol() {
                     state = State::Lns;
-                } else if c.is_punctuation() || c.is_separator_space() {
+                } else if c.is_punctuation() || (c.is_separator_space() && c != '\u{3000}') {
                     continue;
                 } else {
                     // Found invalid character
@@ -416,6 +417,8 @@ fn first_letter_range(text: &str) -> std::ops::Range<usize> {
                 }
             },
             State::Lns => {
+                // TODO: Implement support for intervening spaces
+                // <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
                 if c.is_punctuation() && !c.is_punctuation_open() && !c.is_punctuation_dash() {
                     state = State::SucceedingPunc;
                 } else {
@@ -516,7 +519,12 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
                 .info
                 .with_pseudo_element(context, PseudoElement::FirstLetter)
             {
-                if builder.text_segments.iter().all(|seg| seg.is_empty()) {
+                if builder
+                    .text_segments
+                    .iter()
+                    .flat_map(|seg| seg.chars())
+                    .all(|c| c.is_separator_space())
+                {
                     let first_letter_range = first_letter_range(&text[..]);
                     range.start = first_letter_range.end;
 
