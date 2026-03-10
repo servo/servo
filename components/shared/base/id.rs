@@ -279,6 +279,12 @@ impl From<PipelineId> for TreeId {
     }
 }
 
+impl From<PipelineId> for u64 {
+    fn from(pipeline_id: PipelineId) -> Self {
+        ((pipeline_id.namespace_id.0 as u64) << 32) + pipeline_id.index.0.get() as u64
+    }
+}
+
 #[cfg(test)]
 #[test]
 fn test_pipeline_id_to_accesskit_tree_id() {

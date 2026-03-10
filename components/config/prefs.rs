@@ -4,6 +4,7 @@
 
 use std::env::consts::ARCH;
 use std::sync::{RwLock, RwLockReadGuard};
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 use servo_config_macro::ServoPreferences;
@@ -79,6 +80,9 @@ pub struct Preferences {
     pub fonts_monospace: String,
     pub fonts_default_size: i64,
     pub fonts_default_monospace_size: i64,
+    /// The amount of time that a half cycle of a text caret blink takes in milliseconds.
+    /// If this value is less than or equal to zero, then caret blink is disabled.
+    pub editing_caret_blink_time: i64,
     pub css_animations_testing_enabled: bool,
     /// Start the devtools server at startup
     pub devtools_server_enabled: bool,
@@ -324,6 +328,7 @@ impl Preferences {
     const fn const_default() -> Self {
         Self {
             css_animations_testing_enabled: false,
+            editing_caret_blink_time: 600,
             devtools_server_enabled: false,
             devtools_server_listen_address: String::new(),
             dom_abort_controller_enabled: true,
@@ -481,6 +486,16 @@ impl Preferences {
             user_agent: String::new(),
             viewport_meta_enabled: false,
             log_filter: String::new(),
+        }
+    }
+
+    /// The amount of time that a half cycle of a text caret blink takes. If blinking is disabled
+    /// this returns `None`.
+    pub fn editing_caret_blink_time(&self) -> Option<Duration> {
+        if self.editing_caret_blink_time > 0 {
+            Some(Duration::from_millis(self.editing_caret_blink_time as u64))
+        } else {
+            None
         }
     }
 }

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, LazyCell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -40,9 +40,9 @@ impl BaseRefreshDriver {
     pub(crate) fn new(
         event_loop_waker: Box<dyn EventLoopWaker>,
         refresh_driver: Option<Rc<dyn RefreshDriver>>,
+        timer_refresh_driver: &LazyCell<Rc<TimerRefreshDriver>>,
     ) -> Self {
-        let refresh_driver =
-            refresh_driver.unwrap_or_else(|| Rc::new(TimerRefreshDriver::default()));
+        let refresh_driver = refresh_driver.unwrap_or_else(|| (**timer_refresh_driver).clone());
         Self {
             waiting_for_frame: Arc::new(AtomicBool::new(false)),
             event_loop_waker,
@@ -193,7 +193,7 @@ enum TimerThreadMessage {
 /// It would be nice to integrate this somehow into the embedder thread, but it would
 /// require both some communication with the embedder and for all embedders to be well
 /// behave respecting wakeup timeouts -- a bit too much to ask at the moment.
-struct TimerRefreshDriver {
+pub(crate) struct TimerRefreshDriver {
     sender: Sender<TimerThreadMessage>,
     join_handle: Option<JoinHandle<()>>,
 }
@@ -232,7 +232,7 @@ impl Default for TimerRefreshDriver {
 }
 
 impl TimerRefreshDriver {
-    fn queue_timer(&self, duration: Duration, callback: BoxedTimerCallback) {
+    pub(crate) fn queue_timer(&self, duration: Duration, callback: BoxedTimerCallback) {
         let _ = self
             .sender
             .send(TimerThreadMessage::Request(TimerEventRequest {

@@ -270,6 +270,11 @@ impl WebViewRenderer {
         let pipeline_details = self.ensure_pipeline_details(pipeline_id);
         pipeline_details.pipeline = Some(frame_tree.pipeline.clone());
         pipeline_details.parent_pipeline_id = parent_pipeline_id;
+        pipeline_details.children = frame_tree
+            .children
+            .iter()
+            .map(|frame_tree| frame_tree.pipeline.id)
+            .collect();
 
         for kid in &frame_tree.children {
             self.set_frame_tree_on_pipeline_details(kid, Some(pipeline_id));
@@ -331,6 +336,26 @@ impl WebViewRenderer {
     fn update_animation_state(&mut self) {
         self.animating = self.pipelines.values().any(PipelineDetails::animating);
         self.webview.set_animating(self.animating());
+    }
+
+    pub(crate) fn for_each_connected_pipeline(&self, callback: &mut impl FnMut(&PipelineDetails)) {
+        if let Some(root_pipeline_id) = self.root_pipeline_id {
+            self.for_each_connected_pipeline_internal(root_pipeline_id, callback);
+        }
+    }
+
+    fn for_each_connected_pipeline_internal(
+        &self,
+        pipeline_id: PipelineId,
+        callback: &mut impl FnMut(&PipelineDetails),
+    ) {
+        let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
+            return;
+        };
+        callback(pipeline);
+        for child_pipeline_id in &pipeline.children {
+            self.for_each_connected_pipeline_internal(*child_pipeline_id, callback);
+        }
     }
 
     /// Update touch-based animations (currently just fling) during a `RefreshDriver`-based
