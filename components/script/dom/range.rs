@@ -1185,8 +1185,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         };
 
         // Step 6. If element is null or all of the following are true:
-        let element =
-            Element::fragment_parsing_context(&owner_doc, element.as_deref(), CanGc::from_cx(cx));
+        let element = Element::fragment_parsing_context(cx, &owner_doc, element.as_deref());
 
         // Step 7. Let fragment node be the result of invoking the fragment parsing algorithm steps with element and compliantString.
         let fragment_node = element.parse_fragment(fragment, cx)?;

@@ -2866,9 +2866,9 @@ impl Element {
     /// Step 4 of <https://html.spec.whatwg.org/multipage/#dom-element-insertadjacenthtml>
     /// and step 6. of <https://html.spec.whatwg.org/multipage/#dom-range-createcontextualfragment>
     pub(crate) fn fragment_parsing_context(
+        cx: &mut JSContext,
         owner_doc: &Document,
         element: Option<&Self>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
         // If context is not an Element or all of the following are true:
         match element {
@@ -2890,7 +2890,7 @@ impl Element {
                 ElementCreator::ScriptCreated,
                 CustomElementCreationMode::Asynchronous,
                 None,
-                can_gc,
+                CanGc::from_cx(cx),
             ),
         }
     }
@@ -4078,9 +4078,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 4.
         let context = Element::fragment_parsing_context(
+            cx,
             &context.owner_doc(),
             context.downcast::<Element>(),
-            CanGc::from_cx(cx),
         );
 
         // Step 5: Let fragment be the result of invoking the
