@@ -141,7 +141,7 @@ pub(crate) fn handle_evaluate_js(
             eval.into(),
             "<eval>",
             Some(IntroductionType::DEBUGGER_EVAL),
-            rval.handle_mut(),
+            Some(rval.handle_mut()),
         );
 
         if rval.is_undefined() {

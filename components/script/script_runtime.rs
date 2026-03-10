@@ -418,12 +418,16 @@ unsafe extern "C" fn enqueue_promise_job(
 /// <https://html.spec.whatwg.org/multipage/#the-hostpromiserejectiontracker-implementation>
 unsafe extern "C" fn promise_rejection_tracker(
     cx: *mut RawJSContext,
-    _muted_errors: bool,
+    muted_errors: bool,
     promise: HandleObject,
     state: PromiseRejectionHandlingState,
     _data: *mut c_void,
 ) {
-    // TODO: Step 2 - If script's muted errors is true, terminate these steps.
+    // Step 1. Let script be the running script.
+    // Step 2. If script is a classic script and script's muted errors is true, then return.
+    if muted_errors {
+        return;
+    }
 
     // Step 3.
     let cx = unsafe { JSContext::from_ptr(cx) };
