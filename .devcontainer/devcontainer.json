@@ -3,7 +3,7 @@
 {
 	"name": "Ubuntu",
 	"build": {
-		"dockerfile": "Dockerfile",
+		"dockerfile": "Ubuntu.Dockerfile",
 		"context": ".."
 	},
 
