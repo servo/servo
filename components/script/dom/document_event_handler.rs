@@ -1914,14 +1914,7 @@ impl DocumentEventHandler {
         };
 
         if let Some(element) = self.find_element_for_tab_focus(focus_direction) {
-            let document = self.window.Document();
-            document.begin_focus_transaction();
-
-            document.request_focus(None, FocusInitiator::Keyboard, can_gc);
-            document.request_focus(Some(&*element), FocusInitiator::Keyboard, can_gc);
-
-            assert!(document.has_focus_transaction());
-            document.commit_focus_transaction(FocusInitiator::Keyboard, can_gc);
+            self.focus_and_scroll_to_element_for_key_event(&element, can_gc);
         }
     }
 
@@ -2350,16 +2343,17 @@ impl DocumentEventHandler {
 
         // This behavior is unspecified, but all browsers do this. When activating the element it is
         // focused and scrolled into view.
-        //
-        // TODO: Focusing the element should likely be part of the default event handler for "click"
-        // events, but currently it's done only for real hardware click events and not synthetic
-        // ones. When that's fixed, this code can likely just scroll the element into view.
-        let element = html_element.upcast();
-        html_element
+        self.focus_and_scroll_to_element_for_key_event(html_element.upcast(), can_gc);
+        command.perform_action(can_gc);
+        true
+    }
+
+    fn focus_and_scroll_to_element_for_key_event(&self, element: &Element, can_gc: CanGc) {
+        element
             .owner_document()
-            .request_focus(Some(element), FocusInitiator::Script, can_gc);
+            .request_focus(Some(element), FocusInitiator::Keyboard, can_gc);
         let scroll_axis = ScrollAxisState {
-            position: ScrollLogicalPosition::Nearest,
+            position: ScrollLogicalPosition::Center,
             requirement: ScrollRequirement::IfNotVisible,
         };
         element.scroll_into_view_with_options(
@@ -2369,9 +2363,6 @@ impl DocumentEventHandler {
             None,
             None,
         );
-
-        command.perform_action(can_gc);
-        true
     }
 }
 
