@@ -130,7 +130,7 @@ mime-multipart-hyper1 = "0.10.0"
 mime_guess = "2.0.5"
 ml-dsa = "0.0.4"
 ml-kem = { version = "0.2", features = ["deterministic"] }
-mozangle = "0.5.3"
+mozangle = "0.5.5"
 net_traits = { package = "servo-net-traits", path = "components/shared/net" }
 nix = "0.30"
 nom = "8.0.0"
