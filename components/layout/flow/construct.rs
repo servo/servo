@@ -536,10 +536,9 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
 
                     let first_letter = Cow::Borrowed(&text[first_letter_range]);
 
-                    let old_layout_box = info.node.box_slot().take_layout_box();
                     builder.start_inline_box(
                         || ArcRefCell::new(InlineBox::new(&pseudo_info, context)),
-                        old_layout_box,
+                        None,
                     );
                     builder.push_text(first_letter, &pseudo_info);
                     builder.end_inline_box();
