@@ -13,18 +13,27 @@ use storage_traits::webstorage_thread::WebStorageThreadMsg;
 
 use crate::{ClientStorageThreadFactory, IndexedDBThreadFactory, WebStorageThreadFactory};
 
-pub fn new_storage_threads(
+fn new_storage_thread_group(
     mem_profiler_chan: MemProfilerChan,
     config_dir: Option<PathBuf>,
-) -> (StorageThreads, StorageThreads) {
+) -> StorageThreads {
     let client_storage: GenericSender<ClientStorageThreadMessage> =
         ClientStorageThreadFactory::new(config_dir.clone());
     let idb: GenericSender<IndexedDBThreadMsg> =
         IndexedDBThreadFactory::new(config_dir.clone(), mem_profiler_chan.clone());
     let web_storage: GenericSender<WebStorageThreadMsg> =
         WebStorageThreadFactory::new(config_dir, mem_profiler_chan);
-    (
-        StorageThreads::new(client_storage.clone(), idb.clone(), web_storage.clone()),
-        StorageThreads::new(client_storage, idb, web_storage),
-    )
+
+    StorageThreads::new(client_storage, idb, web_storage)
+}
+
+pub fn new_storage_threads(
+    mem_profiler_chan: MemProfilerChan,
+    config_dir: Option<PathBuf>,
+) -> (StorageThreads, StorageThreads) {
+    let private_storage_threads =
+        new_storage_thread_group(mem_profiler_chan.clone(), config_dir.clone());
+    let public_storage_threads = new_storage_thread_group(mem_profiler_chan, config_dir);
+
+    (private_storage_threads, public_storage_threads)
 }
