@@ -36,13 +36,18 @@ use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteE
 use crate::shared::is_sqlite_disk_full_error;
 
 pub trait IndexedDBThreadFactory {
-    fn new(config_dir: Option<PathBuf>, mem_profiler_chan: MemProfilerChan) -> Self;
+    fn new(
+        config_dir: Option<PathBuf>,
+        mem_profiler_chan: MemProfilerChan,
+        reporter_name: String,
+    ) -> Self;
 }
 
 impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
     fn new(
         config_dir: Option<PathBuf>,
         mem_profiler_chan: MemProfilerChan,
+        reporter_name: String,
     ) -> GenericSender<IndexedDBThreadMsg> {
         let (chan, port) = generic_channel::channel().unwrap();
         let chan2 = chan.clone();
@@ -60,7 +65,7 @@ impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
             .spawn(move || {
                 mem_profiler_chan.run_with_memory_reporting(
                     || IndexedDBManager::new(port, manager_sender, idb_base_dir).start(),
-                    String::from("indexedDB-reporter"),
+                    reporter_name,
                     chan2,
                     IndexedDBThreadMsg::CollectMemoryReport,
                 );

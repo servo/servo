@@ -36,7 +36,11 @@ use crate::webstorage::engines::sqlite::SqliteEngine;
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
 
 pub trait WebStorageThreadFactory {
-    fn new(config_dir: Option<PathBuf>, mem_profiler_chan: MemProfilerChan) -> Self;
+    fn new(
+        config_dir: Option<PathBuf>,
+        mem_profiler_chan: MemProfilerChan,
+        reporter_name: String,
+    ) -> Self;
 }
 
 impl WebStorageThreadFactory for GenericSender<WebStorageThreadMsg> {
@@ -44,6 +48,7 @@ impl WebStorageThreadFactory for GenericSender<WebStorageThreadMsg> {
     fn new(
         config_dir: Option<PathBuf>,
         mem_profiler_chan: MemProfilerChan,
+        reporter_name: String,
     ) -> GenericSender<WebStorageThreadMsg> {
         let (chan, port) = generic_channel::channel().unwrap();
         let chan2 = chan.clone();
@@ -52,7 +57,7 @@ impl WebStorageThreadFactory for GenericSender<WebStorageThreadMsg> {
             .spawn(move || {
                 mem_profiler_chan.run_with_memory_reporting(
                     || WebStorageManager::new(port, config_dir).start(),
-                    String::from("storage-reporter"),
+                    reporter_name,
                     chan2,
                     WebStorageThreadMsg::CollectMemoryReport,
                 );
