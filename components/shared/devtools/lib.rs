@@ -366,6 +366,7 @@ pub enum DevtoolScriptControlMsg {
     Interrupt,
     Resume(Option<String>, Option<String>),
     ListFrames(PipelineId, u32, u32, GenericSender<Vec<String>>),
+    GetEnvironment(String, GenericSender<String>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]

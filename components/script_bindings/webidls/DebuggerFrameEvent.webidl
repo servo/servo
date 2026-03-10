@@ -16,5 +16,3 @@ partial interface DebuggerGlobalScope {
         sequence<DOMString> frameActorId
     );
 };
-
-
