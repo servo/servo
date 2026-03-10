@@ -6,8 +6,6 @@ on:
   push:
     branches:
       - main
-      # For testing purposes. Remove before merging
-      - prebuilt_devcontainer
     # Only rebuild if the Dockerfile or dependencies change.
     paths:
       - '.devcontainer/**'
