@@ -217,7 +217,7 @@ class MachCommands(CommandBase):
             "servo-hyper-serde",
             "servo-layout",
             "servo-layout-api",
-            "libservo",
+            "servo",
             "servo-metrics",
             "servo-net",
             "servo-net-traits",

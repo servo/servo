@@ -39,25 +39,25 @@ OriginalFilename = "servoshell.exe"
 ProductName = "ServoShell"
 
 [features]
-default = ["gamepad", "libservo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
-crown = ["libservo/crown"]
-debugmozjs = ["libservo/debugmozjs"]
-gamepad = ["libservo/gamepad"]
-jitspew = ["libservo/jitspew"]
-js_backtrace = ["libservo/js_backtrace"]
-js_jit = ["libservo/js_jit"]
+default = ["gamepad", "servo/clipboard", "js_jit", "max_log_level", "webgpu", "webxr"]
+crown = ["servo/crown"]
+debugmozjs = ["servo/debugmozjs"]
+gamepad = ["servo/gamepad"]
+jitspew = ["servo/jitspew"]
+js_backtrace = ["servo/js_backtrace"]
+js_jit = ["servo/js_jit"]
 max_log_level = ["log/release_max_level_info"]
-media-gstreamer = ["libservo/media-gstreamer"]
-native-bluetooth = ["libservo/native-bluetooth"]
-profilemozjs = ["libservo/profilemozjs"]
-refcell_backtrace = ["libservo/refcell_backtrace"]
-tracing = ["dep:tracing", "dep:tracing-subscriber", "libservo/tracing"]
+media-gstreamer = ["servo/media-gstreamer"]
+native-bluetooth = ["servo/native-bluetooth"]
+profilemozjs = ["servo/profilemozjs"]
+refcell_backtrace = ["servo/refcell_backtrace"]
+tracing = ["dep:tracing", "dep:tracing-subscriber", "servo/tracing"]
 tracing-hitrace = ["tracing", "dep:hitrace"]
 tracing-perfetto = ["tracing", "dep:tracing-perfetto"]
-vello = ["libservo/vello"]
-webgl_backtrace = ["libservo/webgl_backtrace"]
-webgpu = ["libservo/webgpu"]
-webxr = ["libservo/webxr"]
+vello = ["servo/vello"]
+webgl_backtrace = ["servo/webgl_backtrace"]
+webgpu = ["servo/webgpu"]
+webxr = ["servo/webxr"]
 
 [dependencies]
 accesskit = { workspace = true }
@@ -70,7 +70,7 @@ hitrace = { workspace = true, optional = true }
 image = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
-libservo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth", "testbinding"], default-features = false }
+servo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth", "testbinding"], default-features = false }
 log = { workspace = true }
 mime_guess = { workspace = true }
 raw-window-handle = { workspace = true }
@@ -130,7 +130,7 @@ winit = { workspace = true }
 sig = "1.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-libservo = { path = "../../components/servo", features = ["no-wgl"] }
+servo = { path = "../../components/servo", features = ["no-wgl"] }
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi", "Win32_System_Console"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
