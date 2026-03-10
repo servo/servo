@@ -366,9 +366,9 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
 
 /// Computes the range of the first letter.
 ///
-/// Any preceding punctuation and any intervening spaces in
-/// the preceding punctuations and between the preceding punctuations
-/// and the first letter/number/symbol are included in the range.
+/// The range includes any preceding punctuation, and any spaces interleaved
+/// within the preceding punctuation or between the preceding punctuation
+/// and the first letter/number/symbol.
 /// Succeeding punctuations are included in the range, but any spaces
 /// following the letter/number/symbol ends the range. Intervening
 /// succeeding spaces is not supported yet.
