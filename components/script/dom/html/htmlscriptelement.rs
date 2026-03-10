@@ -29,6 +29,7 @@ use uuid::Uuid;
 use crate::document_loader::LoadType;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -43,6 +44,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, InlineCheckType, Violation};
 use crate::dom::document::Document;
+use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
     referrer_policy_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute,
@@ -52,7 +54,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::global_scope_script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits};
+use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::trustedscript::TrustedScript;
 use crate::dom::trustedscripturl::TrustedScriptURL;
@@ -110,6 +112,13 @@ pub(crate) struct HTMLScriptElement {
     /// `srcScript` or `inlineScript` that this script would normally use.
     #[no_trace]
     introduction_type_override: Cell<Option<&'static CStr>>,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-script-blocking>
+    blocking: MutNullableDom<DOMTokenList>,
+
+    /// Used to keep track whether we consider this script element render blocking during
+    /// `prepare`
+    marked_as_render_blocking: Cell<bool>,
 }
 
 impl HTMLScriptElement {
@@ -131,6 +140,8 @@ impl HTMLScriptElement {
             script_text: DomRefCell::new(DOMString::new()),
             from_an_external_file: Cell::new(false),
             introduction_type_override: Cell::new(None),
+            blocking: Default::default(),
+            marked_as_render_blocking: Default::default(),
         }
     }
 
@@ -573,6 +584,31 @@ impl HTMLScriptElement {
         Ok(())
     }
 
+    fn has_render_blocking_attribute(&self) -> bool {
+        self.blocking
+            .get()
+            .is_some_and(|list| list.Contains("render".into()))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#potentially-render-blocking>
+    fn potentially_render_blocking(&self) -> bool {
+        // An element is potentially render-blocking if its blocking tokens set contains "render",
+        // or if it is implicitly potentially render-blocking, which will be defined at the individual elements.
+        // By default, an element is not implicitly potentially render-blocking.
+        if self.has_render_blocking_attribute() {
+            return true;
+        }
+        let element = self.upcast::<Element>();
+        // https://html.spec.whatwg.org/multipage/#script-processing-model:implicitly-potentially-render-blocking
+        // > A script element el is implicitly potentially render-blocking if el's type is "classic",
+        // > el is parser-inserted, and el does not have an async or defer attribute.
+        self.get_script_type()
+            .is_some_and(|script_type| script_type == ScriptType::Classic) &&
+            self.parser_inserted.get() &&
+            !element.has_attribute(&local_name!("async")) &&
+            !element.has_attribute(&local_name!("defer"))
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#prepare-the-script-element>
     pub(crate) fn prepare(&self, introduction_type_override: Option<&'static CStr>, can_gc: CanGc) {
         self.introduction_type_override
@@ -802,8 +838,13 @@ impl HTMLScriptElement {
                 },
             };
 
-            // TODO:
             // Step 31.7. If el is potentially render-blocking, then block rendering on el.
+            if self.potentially_render_blocking() && doc.allows_adding_render_blocking_elements() {
+                self.marked_as_render_blocking.set(true);
+                doc.increment_render_blocking_element_count();
+            }
+
+            // TODO:
             // Step 31.8. Set el's delaying the load event to true.
             // Step 31.9. If el is currently render-blocking, then set options's render-blocking to true.
 
@@ -960,7 +1001,11 @@ impl HTMLScriptElement {
             return;
         }
 
-        // TODO: Step 3. Unblock rendering on el.
+        // Step 3. Unblock rendering on el.
+        if self.marked_as_render_blocking.replace(false) {
+            doc.decrement_render_blocking_element_count();
+        }
+
         let script = match result {
             // Step 4. If el's result is null, then fire an event named error at el, and return.
             Err(_) => {
@@ -1170,6 +1215,12 @@ impl VirtualMethods for HTMLScriptElement {
                     self.prepare(Some(IntroductionType::INJECTED_SCRIPT), can_gc);
                 }
             }
+        } else if *attr.local_name() == local_name!("blocking") &&
+            !self.has_render_blocking_attribute() &&
+            self.marked_as_render_blocking.replace(false)
+        {
+            let document = self.owner_document();
+            document.decrement_render_blocking_element_count();
         }
     }
 
@@ -1219,6 +1270,13 @@ impl VirtualMethods for HTMLScriptElement {
             copy.downcast::<HTMLScriptElement>()
                 .unwrap()
                 .set_already_started(true);
+        }
+    }
+
+    fn unbind_from_tree(&self, _context: &UnbindContext, _can_gc: CanGc) {
+        if self.marked_as_render_blocking.replace(false) {
+            let document = self.owner_document();
+            document.decrement_render_blocking_element_count();
         }
     }
 }
@@ -1277,6 +1335,18 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     make_bool_getter!(Defer, "defer");
     // https://html.spec.whatwg.org/multipage/#dom-script-defer
     make_bool_setter!(SetDefer, "defer");
+
+    /// <https://html.spec.whatwg.org/multipage/#attr-script-blocking>
+    fn Blocking(&self, cx: &mut JSContext) -> DomRoot<DOMTokenList> {
+        self.blocking.or_init(|| {
+            DOMTokenList::new(
+                self.upcast(),
+                &local_name!("blocking"),
+                Some(vec![Atom::from("render")]),
+                CanGc::from_cx(cx),
+            )
+        })
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-nomodule
     make_bool_getter!(NoModule, "nomodule");

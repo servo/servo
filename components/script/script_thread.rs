@@ -1139,10 +1139,6 @@ impl ScriptThread {
             return false;
         }
 
-        // TODO: The specification says to filter out non-renderable documents,
-        // as well as those for which a rendering update would be unnecessary,
-        // but this isn't happening here.
-
         // TODO(#31242): the filtering of docs is extended to not exclude the ones that
         // has pending initial observation targets
         // https://w3c.github.io/IntersectionObserver/#pending-initial-observation
@@ -1180,6 +1176,25 @@ impl ScriptThread {
             }
 
             if document.waiting_on_canvas_image_updates() {
+                continue;
+            }
+
+            // Step 3. Filter non-renderable documents:
+            // Remove from docs any Document object doc for which any of the following are true:
+            if
+            // doc is render-blocked;
+            document.is_render_blocked()
+            // doc's visibility state is "hidden";
+            // TODO: Currently, this would mean that the script thread does nothing, since
+            // documents aren't currently correctly set to the visible state when navigating
+
+            // doc's rendering is suppressed for view transitions; or
+            // TODO
+
+            // doc's node navigable doesn't currently have a rendering opportunity.
+            //
+            // This is implicitly the case when we call this method
+            {
                 continue;
             }
 
