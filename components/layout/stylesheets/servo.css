@@ -10,6 +10,14 @@ textarea {
   color: black;
 }
 
+textarea {
+    padding: 2px;
+}
+
+input {
+    padding: 1px 2px;
+}
+
 /* Matches https://searchfox.org/mozilla-central/rev/a1f4cb9fc03d81be41ca2ba81294592df784364d/layout/style/res/forms.css#120-132 */
 button,
 input,

@@ -5,6 +5,7 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="input-events.js"></script>
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 
 <textarea id="target" style="color: rgba(255, 0, 0, 0.2); height: 500px; width: 500px;  font: 50px/1 Ahem;">
@@ -16,7 +17,7 @@
 
 <script>
 promise_test(async test => {
-    let targetRect = target.getBoundingClientRect();
+    let targetRect = getTextEntryContentRect(target);
     let middleOfFirstLine = (50 / 2) + targetRect.top;
     let middleOfThirdLine = (50 * 2) + 25 + targetRect.top;
 
@@ -98,7 +99,7 @@ promise_test(async test => {
 });
 
 promise_test(async test => {
-    let targetRect = target.getBoundingClientRect();
+    let targetRect = getTextEntryContentRect(target);
     let middleOfFirstLine = (50 / 2) + targetRect.top;
 
     // Click somewhere else to avoid double-clicking.
@@ -132,7 +133,7 @@ promise_test(async test => {
 }, "Middle button click should cancel ongoing text selection via drag");
 
 promise_test(async test => {
-    let targetRect = target.getBoundingClientRect();
+    let targetRect = getTextEntryContentRect(target);
     let middleOfFirstLine = (50 / 2) + targetRect.top;
     let middleOfThirdLine = (50 * 2) + 25 + targetRect.top;
 
