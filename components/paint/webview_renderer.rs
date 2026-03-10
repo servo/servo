@@ -1048,7 +1048,14 @@ impl WebViewRenderer {
     }
 
     pub fn set_viewport_description(&mut self, viewport_description: ViewportDescription) {
-        self.set_page_zoom(viewport_description.initial_scale);
+        let initial_scale = viewport_description.initial_scale.get();
+        let new_rect = self
+            .rect
+            .scale(initial_scale.recip(), initial_scale.recip());
+        let old_rect = std::mem::replace(&mut self.rect, new_rect);
+        if old_rect.size() != self.rect.size() {
+            self.send_window_size_message();
+        }
         self.viewport_description = Some(viewport_description);
     }
 
