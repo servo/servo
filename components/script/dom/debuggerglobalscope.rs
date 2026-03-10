@@ -28,6 +28,7 @@ use script_bindings::str::DOMString;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 
+use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::EnvironmentInfo;
 use crate::dom::bindings::codegen::Bindings::DebuggerGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::{
     FrameInfo, FrameOffset, PauseReason,
@@ -564,5 +565,29 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             .expect("Guaranteed by Self::fire_list_frames()");
 
         let _ = sender.send(frame_actor_ids.into_iter().map(|i| i.into()).collect());
+    }
+
+    fn RegisterEnvironmentActor(
+        &self,
+        environment: &EnvironmentInfo,
+        parent: Option<DOMString>,
+    ) -> Option<DOMString> {
+        let chan = self.upcast::<GlobalScope>().devtools_chan()?;
+        let (tx, rx) = channel::<String>().unwrap();
+
+        let environment = devtools_traits::EnvironmentInfo {
+            type_: environment.type_.clone().map(String::from),
+            scope_kind: environment.scopeKind.clone().map(String::from),
+            function_display_name: environment.functionDisplayName.clone().map(String::from),
+        };
+
+        let msg = ScriptToDevtoolsControlMsg::CreateEnvironmentActor(
+            tx,
+            environment,
+            parent.map(String::from),
+        );
+        let _ = chan.send(msg);
+
+        rx.recv().ok().map(DOMString::from)
     }
 }

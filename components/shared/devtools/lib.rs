@@ -137,6 +137,9 @@ pub enum ScriptToDevtoolsControlMsg {
 
     /// Get frame information from script
     CreateFrameActor(GenericSender<String>, PipelineId, FrameInfo),
+
+    /// Get environment information from script
+    CreateEnvironmentActor(GenericSender<String>, EnvironmentInfo, Option<String>),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -595,15 +598,20 @@ pub struct RecommendedBreakpointLocation {
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct FrameInfo {
     pub display_name: String,
     pub on_stack: bool,
     pub oldest: bool,
     pub terminated: bool,
-    #[serde(rename = "type")]
     pub type_: String,
     pub url: String,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+pub struct EnvironmentInfo {
+    pub type_: Option<String>,
+    pub scope_kind: Option<String>,
+    pub function_display_name: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
