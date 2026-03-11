@@ -544,8 +544,6 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
         } else {
             builder.push_text(text, info);
         }
-
-        builder.push_text(Cow::Borrowed(&text[range]), info);
     }
 
     fn enter_display_contents(&mut self, styles: SharedInlineStyles) {
