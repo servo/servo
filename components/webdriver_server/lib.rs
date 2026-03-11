@@ -73,9 +73,7 @@ use webdriver::response::{
 };
 use webdriver::server::{self, Session, SessionTeardownKind, WebDriverHandler};
 
-use crate::actions::{
-    ELEMENT_CLICK_BUTTON, InputSourceState, PendingPointerMove, PointerInputState,
-};
+use crate::actions::{ELEMENT_CLICK_BUTTON, InputSourceState, PendingActions, PointerInputState};
 use crate::session::{PageLoadStrategy, WebDriverSession};
 use crate::timeout::{DEFAULT_IMPLICIT_WAIT, DEFAULT_PAGE_LOAD_TIMEOUT, SCREENSHOT_TIMEOUT};
 
@@ -183,8 +181,9 @@ struct Handler {
     /// TODO: Once we upgrade crossbeam-channel this can be replaced with a `WaitGroup`.
     pending_input_event_receivers: Vec<Receiver<()>>,
 
-    /// Moves that are currently in-progress and need to be ticked.
-    pending_pointer_moves: Vec<PendingPointerMove>,
+    /// Ongoing [`PointerMoveAction`] or [`WheelScrollAction`] that are being incrementally
+    /// processed across multiple execution cycles within the current tick.
+    pending_actions: Vec<PendingActions>,
 
     /// The base set of preferences to treat as default when resetting.
     default_preferences: Preferences,
@@ -468,7 +467,7 @@ impl Handler {
             event_loop_waker,
             default_preferences,
             pending_input_event_receivers: Default::default(),
-            pending_pointer_moves: Default::default(),
+            pending_actions: Default::default(),
         }
     }
 
