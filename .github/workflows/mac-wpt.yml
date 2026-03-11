@@ -83,13 +83,13 @@ jobs:
     needs: mac-wpt
     steps:
       - name: Merge logs (filtered)
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: wpt-filtered-logs-${{ env.NAME }}
           pattern: wpt-filtered-logs-${{ env.NAME }}-*
           delete-merged: true
       - name: Merge logs (full)
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: wpt-full-logs-${{ env.NAME }}
           pattern: wpt-full-logs-${{ env.NAME }}-*
