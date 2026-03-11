@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 use base::generic_channel::GenericCallback;
 use constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use embedder_traits::{
-    Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventAndId,
+    Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventOutcome,
     InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
     MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
     TouchId, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
@@ -276,7 +276,7 @@ impl DocumentEventHandler {
         *self.mouse_move_event_index.borrow_mut() = None;
         *self.wheel_event_index.borrow_mut() = None;
         let pending_input_events = mem::take(&mut *self.pending_input_events.borrow_mut());
-
+        let mut input_event_outcomes = Vec::with_capacity(pending_input_events.len());
         for event in pending_input_events {
             self.active_keyboard_modifiers
                 .set(event.active_keyboard_modifiers);
@@ -319,18 +319,22 @@ impl DocumentEventHandler {
                 },
             };
 
-            self.notify_embedder_that_event_was_handled(event.event, result);
+            input_event_outcomes.push(InputEventOutcome {
+                id: event.event.id,
+                result,
+            });
+        }
+        if !input_event_outcomes.is_empty() {
+            self.notify_embedder_that_events_were_handled(input_event_outcomes);
         }
     }
 
-    fn notify_embedder_that_event_was_handled(
+    fn notify_embedder_that_events_were_handled(
         &self,
-        event: InputEventAndId,
-        result: InputEventResult,
+        input_event_outcomes: Vec<InputEventOutcome>,
     ) {
-        // Wait to to notify the embedder that the vent was handled until all pending DOM
+        // Wait to to notify the embedder that the event was handled until all pending DOM
         // event processing is finished.
-        let id = event.id;
         let trusted_window = Trusted::new(&*self.window);
         self.window
             .as_global_scope()
@@ -339,7 +343,7 @@ impl DocumentEventHandler {
             .queue(task!(notify_webdriver_input_event_completed: move || {
                 let window = trusted_window.root();
                 window.send_to_embedder(
-                    EmbedderMsg::InputEventHandled(window.webview_id(), id, result));
+                    EmbedderMsg::InputEventsHandled(window.webview_id(), input_event_outcomes));
             }));
     }
 

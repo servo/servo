@@ -458,17 +458,25 @@ impl ServoInner {
                     .borrow_mut()
                     .finish_evaluation(evaluation_id, result);
             },
-            EmbedderMsg::InputEventHandled(webview_id, input_event_id, result) => {
-                self.paint.borrow_mut().notify_input_event_handled(
-                    webview_id,
-                    input_event_id,
+            EmbedderMsg::InputEventsHandled(webview_id, event_outcomes) => {
+                let webview = self.get_webview_handle(webview_id);
+                for InputEventOutcome {
+                    id: input_event_id,
                     result,
-                );
-
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_input_event_handled(webview, input_event_id, result);
+                } in event_outcomes
+                {
+                    self.paint.borrow_mut().notify_input_event_handled(
+                        webview_id,
+                        input_event_id,
+                        result,
+                    );
+                    if let Some(ref webview) = webview {
+                        webview.delegate().notify_input_event_handled(
+                            webview.clone(),
+                            input_event_id,
+                            result,
+                        );
+                    }
                 }
             },
             EmbedderMsg::ClearClipboard(webview_id) => {

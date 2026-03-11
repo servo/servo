@@ -132,11 +132,11 @@ use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_contents::{UserContentManagerId, UserContents};
 use embedder_traits::{
     AnimationState, EmbedderControlId, EmbedderControlResponse, EmbedderMsg, EmbedderProxy,
-    FocusSequenceNumber, InputEvent, InputEventAndId, JSValue, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType, MediaSessionEvent,
-    MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent, NewWebViewDetails,
-    PaintHitTestResult, Theme, ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus,
-    WebDriverScriptCommand,
+    FocusSequenceNumber, InputEvent, InputEventAndId, InputEventOutcome, JSValue,
+    JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType,
+    MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
+    NewWebViewDetails, PaintHitTestResult, Theme, ViewportDetails, WebDriverCommandMsg,
+    WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -3079,10 +3079,12 @@ where
         let event_id = event.id;
         let Some(webview) = self.webviews.get_mut(&webview_id) else {
             warn!("Got input event for unknown WebViewId: {webview_id:?}");
-            self.embedder_proxy.send(EmbedderMsg::InputEventHandled(
+            self.embedder_proxy.send(EmbedderMsg::InputEventsHandled(
                 webview_id,
-                event_id,
-                Default::default(),
+                vec![InputEventOutcome {
+                    id: event_id,
+                    result: Default::default(),
+                }],
             ));
             return;
         };
@@ -3095,10 +3097,12 @@ where
         };
 
         if !webview.forward_input_event(event, &self.pipelines, &self.browsing_contexts) {
-            self.embedder_proxy.send(EmbedderMsg::InputEventHandled(
+            self.embedder_proxy.send(EmbedderMsg::InputEventsHandled(
                 webview_id,
-                event_id,
-                Default::default(),
+                vec![InputEventOutcome {
+                    id: event_id,
+                    result: Default::default(),
+                }],
             ));
         }
     }

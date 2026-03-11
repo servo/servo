@@ -708,7 +708,7 @@ impl Handler {
         // Step 9.1. Asynchronously wait for an implementation defined amount of time to pass.
         // Step 9.2. Perform a pointer move with arguments input state,
         // duration, start x, start y, target x, target y.
-        // This is done in `fn process_pending_pointer_moves`.
+        // This is done in `fn process_pending_actions`.
 
         // NOTE: The initial pointer movement is performed synchronously.
         // This ensures determinism in the sequence of the first event

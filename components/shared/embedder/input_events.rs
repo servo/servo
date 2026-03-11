@@ -36,6 +36,12 @@ bitflags! {
     }
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct InputEventOutcome {
+    pub id: InputEventId,
+    pub result: InputEventResult,
+}
+
 /// An input event that is sent from the embedder to Servo.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum InputEvent {
