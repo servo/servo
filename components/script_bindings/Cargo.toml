@@ -3,10 +3,12 @@ name = "servo-script-bindings"
 build = "build.rs"
 version.workspace = true
 authors.workspace = true
-license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+# BSD-3-Clause comes from third_party/ply, which doesn't end up in any produced build-artifact,
+# but is used during the build via build.rs.
+license = "MPL-2.0 AND BSD-3-Clause"
 
 # https://github.com/rust-lang/cargo/issues/3544
 links = "script_bindings_crate"
