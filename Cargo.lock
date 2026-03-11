@@ -8853,6 +8853,7 @@ dependencies = [
  "servo",
  "servo-allocator",
  "servo-base",
+ "servo-embedder-traits",
  "servo-webdriver-server",
  "sig",
  "surfman",

@@ -85,6 +85,7 @@ webdriver_server = { package = "servo-webdriver-server", path = "../../component
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.15"
 jni = "0.21.1"
+embedder_traits = { workspace = true, features = ["baked-default-resources"] }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 backtrace = { workspace = true }
