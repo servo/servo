@@ -6,10 +6,11 @@
 # <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
-
+import ast
 import os.path
 import shutil
 import subprocess
+import sys
 from collections.abc import Set
 
 from servo.platform.build_target import BuildTarget  # noqa: E402
@@ -93,9 +94,29 @@ needs to be in the servo directory (to be packaged when publishing to crates.io)
 
 
 def load_plugin_libraries_from_text_file(file_name: str) -> list[str]:
+    """
+    Load the list of GStreamer plugins from a text file.
+
+    The plugin list is defined in a rust `[&'static str]` format, which is compatible with python lists
+    (after stripping rust comments).
+    This allows us to reuse the same list from both rust and python, without needing a buildscript or
+    hand-parsing rust code.
+    """
     with open(os.path.join(GSTREAMER_PLUGIN_LISTS_DIRECTORY, file_name), "r") as plugin_file:
         stripped_lines = [line.strip() for line in plugin_file.readlines()]
-        return [line for line in stripped_lines if len(line) > 0 and not line.startswith("#")]
+        stripped_lines = [line for line in stripped_lines if len(line) > 0 and not line.startswith("//")]
+        python_list_syntax = "\n".join(stripped_lines)
+        try:
+            plugin_list = ast.literal_eval(python_list_syntax)
+        except SyntaxError:
+            print("Malformed python list syntax in file: " + file_name, file=sys.stderr)
+            raise
+        if not isinstance(plugin_list, list):
+            print("Expected list[str] defined in " + file_name, file=sys.stderr)
+            raise TypeError(
+                "Expected list[str] defined in " + file_name + ", got " + str(type(plugin_list)) + " instead"
+            )
+        return plugin_list
 
 
 def windows_dlls() -> list[str]:
@@ -103,14 +124,14 @@ def windows_dlls() -> list[str]:
 
 
 def windows_plugins() -> list[str]:
-    plugins = load_plugin_libraries_from_text_file("common.txt")
-    plugins.extend(load_plugin_libraries_from_text_file("windows.txt"))
+    plugins = load_plugin_libraries_from_text_file("common.rs.in")
+    plugins.extend(load_plugin_libraries_from_text_file("windows.rs.in"))
     return [f"{plugin}.dll" for plugin in plugins]
 
 
 def macos_plugins() -> list[str]:
-    plugins = load_plugin_libraries_from_text_file("common.txt")
-    plugins.extend(load_plugin_libraries_from_text_file("macos.txt"))
+    plugins = load_plugin_libraries_from_text_file("common.rs.in")
+    plugins.extend(load_plugin_libraries_from_text_file("macos.rs.in"))
     return [f"lib{plugin}.dylib" for plugin in plugins]
 
 

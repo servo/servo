@@ -1,0 +1,6 @@
+// The format of this file is intended to be directly `include!()` able as a [&'static str] in Rust,
+// and a valid python list[str] after stripping the `//` comments at the beginning of lines (from gstreamer.py).
+[
+// gst-plugins-bad
+"gstwasapi"
+]
