@@ -172,7 +172,7 @@ script_traits = { package = "servo-script-traits", path = "components/shared/scr
 sea-query = { version = "1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = { version = "0.8.0-rc.15" }
 sec1 = "0.7"
-selectors = { git = "https://github.com/servo/stylo", rev = "2a6d7c006a88bc2f4ec9e1bcf6e06f2f5083a628" }
+selectors = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
@@ -181,7 +181,7 @@ servo-media = { path = "components/media/servo-media" }
 servo-media-dummy = { path = "components/media/backends/dummy" }
 servo-media-gstreamer = { path = "components/media/backends/gstreamer" }
 servo-tracing = { path = "components/servo_tracing" }
-servo_arc = { git = "https://github.com/servo/stylo", rev = "2a6d7c006a88bc2f4ec9e1bcf6e06f2f5083a628" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
 sha1 = "0.10"
 sha2 = "0.10"
 sha3 = "0.10"
@@ -190,12 +190,12 @@ smallvec = { version = "1.15", features = ["serde", "union"] }
 storage_traits = { package = "servo-storage-traits", path = "components/shared/storage" }
 string_cache = "0.9"
 strum = { version = "0.28", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", rev = "2a6d7c006a88bc2f4ec9e1bcf6e06f2f5083a628" }
-stylo_atoms = { git = "https://github.com/servo/stylo", rev = "2a6d7c006a88bc2f4ec9e1bcf6e06f2f5083a628" }
-stylo_dom = { git = "https://github.com/servo/stylo", rev = "2a6d7c006a88bc2f4ec9e1bcf6e06f2f5083a628" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "2a6d7c006a88bc2f4ec9e1bcf6e06f2f5083a628" }
-stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "2a6d7c006a88bc2f4ec9e1bcf6e06f2f5083a628" }
-stylo_traits = { git = "https://github.com/servo/stylo", rev = "2a6d7c006a88bc2f4ec9e1bcf6e06f2f5083a628" }
+stylo = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
 surfman = { version = "0.11.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
@@ -214,6 +214,7 @@ tracing-perfetto = "0.1.5"
 tracing-subscriber = "0.3.22"
 tungstenite = "0.28"
 unicode-bidi = "0.3.18"
+unicode_categories = "0.1.1"
 unicode-properties = { version = "0.1.4", features = ["emoji"] }
 unicode-script = "0.5"
 unicode-segmentation = "1.12.0"
