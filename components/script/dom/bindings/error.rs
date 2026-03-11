@@ -349,23 +349,11 @@ impl ErrorInfo {
 ///
 /// The `dispatch_event` argument is temporary and non-standard; passing false
 /// prevents dispatching the `error` event.
-pub(crate) fn report_pending_exception(
-    cx: SafeJSContext,
-    dispatch_event: bool,
-    realm: InRealm,
-    can_gc: CanGc,
-) {
+pub(crate) fn report_pending_exception(cx: SafeJSContext, realm: InRealm, can_gc: CanGc) {
     rooted!(in(*cx) let mut value = UndefinedValue());
     if take_pending_exception(cx, value.handle_mut()) {
         let error_info = ErrorInfo::from_value(value.handle(), cx, can_gc);
-        report_error(
-            error_info,
-            value.handle(),
-            cx,
-            dispatch_event,
-            realm,
-            can_gc,
-        );
+        report_error(error_info, value.handle(), cx, realm, can_gc);
     }
 }
 
@@ -392,7 +380,6 @@ fn report_error(
     error_info: ErrorInfo,
     value: HandleValue,
     cx: SafeJSContext,
-    dispatch_event: bool,
     realm: InRealm,
     can_gc: CanGc,
 ) {
@@ -413,9 +400,7 @@ fn report_error(
         });
     }
 
-    if dispatch_event {
-        GlobalScope::from_safe_context(cx, realm).report_an_error(error_info, value, can_gc);
-    }
+    GlobalScope::from_safe_context(cx, realm).report_an_error(error_info, value, can_gc);
 }
 
 pub(crate) fn javascript_error_info_from_error_info(
@@ -473,7 +458,6 @@ pub(crate) fn take_and_report_pending_exception_for_api(
         error_info,
         value.handle(),
         cx.into(),
-        true, /* dispatch_event */
         in_realm,
         CanGc::from_cx(cx),
     );

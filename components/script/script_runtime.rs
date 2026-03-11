@@ -1430,7 +1430,7 @@ unsafe extern "C" fn invoke_script_environment_preparer(
 
     run_a_script::<DomTypeHolder, _>(&global, || {
         if unsafe { !RunScriptEnvironmentPreparerClosure(*cx, closure) } {
-            report_pending_exception(cx, true, InRealm::Entered(&ar), CanGc::note());
+            report_pending_exception(cx, InRealm::Entered(&ar), CanGc::note());
         };
     });
 }

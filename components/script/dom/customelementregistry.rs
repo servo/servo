@@ -926,7 +926,7 @@ pub(crate) fn upgrade_element(
         let cx = GlobalScope::get_cx();
         let ar = enter_realm(&*global);
         throw_dom_exception(cx, &global, error, can_gc);
-        report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+        report_pending_exception(cx, InRealm::Entered(&ar), can_gc);
 
         return;
     }

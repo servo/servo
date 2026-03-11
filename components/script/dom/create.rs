@@ -196,7 +196,7 @@ fn create_html_element(
 
                             let ar = enter_realm(&*global);
                             throw_dom_exception(cx, &global, error, can_gc);
-                            report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+                            report_pending_exception(cx, InRealm::Entered(&ar), can_gc);
 
                             // Substep 2. Set result to the result of creating an element internal given document,
                             // HTMLUnknownElement, localName, the HTML namespace, prefix, "failed", null, and registry.

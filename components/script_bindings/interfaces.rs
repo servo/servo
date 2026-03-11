@@ -61,7 +61,7 @@ pub trait DomHelpers<D: DomTypes> {
         T: DomObject + DomObjectWrap<D>,
         U: DerivedFrom<D::GlobalScope>;
 
-    fn report_pending_exception(cx: JSContext, dispatch_event: bool, realm: InRealm, can_gc: CanGc);
+    fn report_pending_exception(cx: JSContext, realm: InRealm, can_gc: CanGc);
 }
 
 /// Operations that must be invoked from the generated bindings.
