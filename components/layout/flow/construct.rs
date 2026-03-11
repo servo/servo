@@ -372,7 +372,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
 /// and the first letter/number/symbol.
 /// Succeeding punctuation are included in the range, but any space
 /// following the letter/number/symbol ends the range. Intervening
-/// succeeding spaces is not supported yet.
+/// succeeding spaces are not supported yet.
 ///
 /// <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
 fn first_letter_range(text: &str) -> std::ops::Range<usize> {
