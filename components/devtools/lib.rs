@@ -24,8 +24,8 @@ use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,
-    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation, FrameInfo,
-    FrameOffset, NavigationState, NetworkEvent, PauseReason, ScriptToDevtoolsControlMsg,
+    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation, EnvironmentInfo,
+    FrameInfo, FrameOffset, NavigationState, NetworkEvent, PauseReason, ScriptToDevtoolsControlMsg,
     SourceInfo, WorkerId, get_time_stamp,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
@@ -42,6 +42,7 @@ use servo_config::pref;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::console::{ConsoleActor, ConsoleResource, DevtoolsConsoleMessage, Root};
+use crate::actors::environment::EnvironmentActor;
 use crate::actors::frame::FrameActor;
 use crate::actors::framerate::FramerateActor;
 use crate::actors::inspector::InspectorActor;
@@ -374,6 +375,13 @@ impl DevtoolsInstance {
                     pipeline_id,
                     frame_info,
                 )) => self.handle_create_frame_actor(result_sender, pipeline_id, frame_info),
+                DevtoolsControlMsg::FromScript(
+                    ScriptToDevtoolsControlMsg::CreateEnvironmentActor(
+                        result_sender,
+                        environment,
+                        parent,
+                    ),
+                ) => self.handle_create_environment_actor(result_sender, environment, parent),
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                     request_id,
                     network_event,
@@ -831,6 +839,17 @@ impl DevtoolsInstance {
 
         let frame = FrameActor::register(actors, source, frame);
 
+        let _ = result_sender.send(frame);
+    }
+
+    fn handle_create_environment_actor(
+        &mut self,
+        result_sender: GenericSender<String>,
+        environment: EnvironmentInfo,
+        parent: Option<String>,
+    ) {
+        let actors = &self.registry;
+        let frame = EnvironmentActor::register(actors, environment, parent);
         let _ = result_sender.send(frame);
     }
 }

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use atomic_refcell::AtomicRefCell;
-use devtools_traits::FrameInfo;
+use devtools_traits::{EnvironmentInfo, FrameInfo};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -79,15 +79,20 @@ impl Actor for FrameActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "getEnvironment" => {
-                let environment = EnvironmentActor {
-                    name: registry.new_name::<EnvironmentActor>(),
-                    parent: None,
-                };
+                // TODO: Register from debugger.js instead
+                let environment = EnvironmentActor::register(
+                    registry,
+                    EnvironmentInfo {
+                        type_: Some("function".into()),
+                        scope_kind: Some("function".into()),
+                        ..Default::default()
+                    },
+                    None,
+                );
                 let msg = FrameEnvironmentReply {
                     from: self.name(),
-                    environment: environment.encode(registry),
+                    environment: registry.encode::<EnvironmentActor, _>(&environment),
                 };
-                registry.register(environment);
                 // This reply has a `type` field but it doesn't need a followup,
                 // unlike most messages. We need to skip the validity check.
                 request.reply_unchecked(&msg)?;
