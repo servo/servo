@@ -127,6 +127,15 @@ class MachCommands(CommandBase):
         env = self.build_env()
         env["RUSTC"] = "rustc"
 
+        # arguments to be passed through to clippy (as opposed to the cargo clippy wrapper)
+        # These should mainly be `--allow`, `--warn`, `--deny`, `--forbid`
+        # Note that some lints can additionally be configured by `.clippy.toml` at the repository root.
+        clippy_args = ["--deny=clippy::disallowed_types"]
+
+        if "--" not in params:
+            params.append("--")
+        params.extend(clippy_args)
+
         if github_annotations:
             if "--message-format=json" not in params:
                 params.insert(0, "--message-format=json")
