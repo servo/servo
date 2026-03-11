@@ -36,7 +36,7 @@ use crate::dom::global_scope_script_execution::{ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "testbinding")]
 use crate::dom::testbinding::TestBindingCallback;
-use crate::dom::trustedscript::TrustedScript;
+use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::types::{Window, WorkerGlobalScope};
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::script_module::ScriptFetchOptions;

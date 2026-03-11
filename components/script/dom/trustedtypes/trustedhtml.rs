@@ -6,25 +6,30 @@ use std::fmt;
 
 use dom_struct::dom_struct;
 
-use crate::dom::bindings::codegen::Bindings::TrustedScriptURLBinding::TrustedScriptURLMethods;
-use crate::dom::bindings::codegen::UnionTypes::TrustedScriptURLOrUSVString;
+use crate::conversions::Convert;
+use crate::dom::bindings::codegen::Bindings::TrustedHTMLBinding::TrustedHTMLMethods;
+use crate::dom::bindings::codegen::UnionTypes::{
+    TrustedHTMLOrNullIsEmptyString, TrustedHTMLOrString,
+};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::trustedtypepolicy::TrustedType;
-use crate::dom::trustedtypepolicyfactory::{DEFAULT_SCRIPT_SINK_GROUP, TrustedTypePolicyFactory};
+use crate::dom::trustedtypes::trustedtypepolicy::TrustedType;
+use crate::dom::trustedtypes::trustedtypepolicyfactory::{
+    DEFAULT_SCRIPT_SINK_GROUP, TrustedTypePolicyFactory,
+};
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-pub struct TrustedScriptURL {
+pub struct TrustedHTML {
     reflector_: Reflector,
 
     data: DOMString,
 }
 
-impl TrustedScriptURL {
+impl TrustedHTML {
     fn new_inherited(data: DOMString) -> Self {
         Self {
             reflector_: Reflector::new(),
@@ -36,28 +41,25 @@ impl TrustedScriptURL {
         reflect_dom_object(Box::new(Self::new_inherited(data)), global, can_gc)
     }
 
-    pub(crate) fn get_trusted_script_url_compliant_string(
+    pub(crate) fn get_trusted_script_compliant_string(
         global: &GlobalScope,
-        value: TrustedScriptURLOrUSVString,
-        containing_class: &str,
-        field: &str,
+        value: TrustedHTMLOrString,
+        sink: &str,
         can_gc: CanGc,
     ) -> Fallible<DOMString> {
         match value {
-            TrustedScriptURLOrUSVString::USVString(value) => {
-                let sink = format!("{} {}", containing_class, field);
+            TrustedHTMLOrString::String(value) => {
                 TrustedTypePolicyFactory::get_trusted_type_compliant_string(
-                    TrustedType::TrustedScriptURL,
+                    TrustedType::TrustedHTML,
                     global,
-                    value.as_ref().into(),
-                    &sink,
+                    value,
+                    sink,
                     DEFAULT_SCRIPT_SINK_GROUP,
                     can_gc,
                 )
             },
-            TrustedScriptURLOrUSVString::TrustedScriptURL(trusted_script_url) => {
-                Ok(trusted_script_url.data.clone())
-            },
+
+            TrustedHTMLOrString::TrustedHTML(trusted_html) => Ok(trusted_html.data.clone()),
         }
     }
 
@@ -66,21 +68,34 @@ impl TrustedScriptURL {
     }
 }
 
-impl fmt::Display for TrustedScriptURL {
+impl fmt::Display for TrustedHTML {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(&self.data.str())
     }
 }
 
-impl TrustedScriptURLMethods<crate::DomTypeHolder> for TrustedScriptURL {
-    /// <https://www.w3.org/TR/trusted-types/#trustedscripturl-stringification-behavior>
+impl TrustedHTMLMethods<crate::DomTypeHolder> for TrustedHTML {
+    /// <https://www.w3.org/TR/trusted-types/#trustedhtml-stringification-behavior>
     fn Stringifier(&self) -> DOMString {
         self.data.clone()
     }
 
-    /// <https://www.w3.org/TR/trusted-types/#dom-trustedscripturl-tojson>
+    /// <https://www.w3.org/TR/trusted-types/#dom-trustedhtml-tojson>
     fn ToJSON(&self) -> DOMString {
         self.data.clone()
+    }
+}
+
+impl Convert<TrustedHTMLOrString> for TrustedHTMLOrNullIsEmptyString {
+    fn convert(self) -> TrustedHTMLOrString {
+        match self {
+            TrustedHTMLOrNullIsEmptyString::TrustedHTML(trusted_html) => {
+                TrustedHTMLOrString::TrustedHTML(trusted_html)
+            },
+            TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(str) => {
+                TrustedHTMLOrString::String(str)
+            },
+        }
     }
 }

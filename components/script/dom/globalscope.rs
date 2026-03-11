@@ -127,7 +127,7 @@ use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestream::CrossRealmTransformWritable;
-use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
+use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::{AbortSignal, CookieStore, DebuggerGlobalScope, MessageEvent};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;

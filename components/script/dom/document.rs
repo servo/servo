@@ -184,7 +184,7 @@ use crate::dom::text::Text;
 use crate::dom::touchevent::TouchEvent as DomTouchEvent;
 use crate::dom::touchlist::TouchList;
 use crate::dom::treewalker::TreeWalker;
-use crate::dom::trustedhtml::TrustedHTML;
+use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::types::{HTMLCanvasElement, HTMLDialogElement, VisibilityStateEntry};
 use crate::dom::uievent::UIEvent;
 use crate::dom::virtualmethods::vtable_for;

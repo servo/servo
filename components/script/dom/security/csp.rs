@@ -26,7 +26,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::trustedscript::TrustedScript;
+use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 use crate::security_manager::CSPViolationReportTask;
