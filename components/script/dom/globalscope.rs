@@ -2871,7 +2871,7 @@ impl GlobalScope {
 
             if compiled_script.is_null() {
                 debug!("error compiling Dom string");
-                report_pending_exception(cx.into(), true, in_realm, CanGc::from_cx(cx));
+                report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
                 return Err(JavaScriptEvaluationError::CompilationFailure);
             }
 

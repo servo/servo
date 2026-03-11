@@ -381,7 +381,7 @@ pub(crate) fn jsval_to_webdriver(
         let in_realm = InRealm::Already(&in_realm_proof);
 
         if result.is_err() {
-            report_pending_exception(cx.into(), true, in_realm, CanGc::from_cx(cx));
+            report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
         }
         result
     })

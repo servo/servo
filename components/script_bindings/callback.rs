@@ -283,7 +283,6 @@ pub fn call_setup<D: DomTypes, T: CallbackContainer<D>, R>(
                 let ar = enter_realm::<D>(&**global);
                 <D as DomHelpers<D>>::report_pending_exception(
                     cx,
-                    true,
                     InRealm::Entered(&ar),
                     CanGc::note(),
                 );
