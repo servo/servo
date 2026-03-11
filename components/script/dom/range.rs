@@ -41,7 +41,7 @@ use crate::dom::html::htmlscriptelement::HTMLScriptElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
-use crate::dom::trustedhtml::TrustedHTML;
+use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 

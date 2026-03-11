@@ -68,8 +68,8 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reportingobserver::ReportingObserver;
-use crate::dom::trustedscripturl::TrustedScriptURL;
-use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
+use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
+use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::ImageBitmap;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;

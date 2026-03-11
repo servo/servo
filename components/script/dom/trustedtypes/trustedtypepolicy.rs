@@ -20,9 +20,9 @@ use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_d
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::trustedhtml::TrustedHTML;
-use crate::dom::trustedscript::TrustedScript;
-use crate::dom::trustedscripturl::TrustedScriptURL;
+use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
+use crate::dom::trustedtypes::trustedscript::TrustedScript;
+use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
