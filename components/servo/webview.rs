@@ -696,11 +696,10 @@ impl WebView {
     ) {
         let constellation_proxy = self.inner().servo.constellation_proxy().clone();
         let embedder_control = match embedder_control_request {
-            EmbedderControlRequest::SelectElement(options, selected_option) => {
+            EmbedderControlRequest::SelectElement(request) => {
                 EmbedderControl::SelectElement(SelectElement {
                     id: control_id,
-                    options,
-                    selected_option,
+                    select_picker_request: request,
                     position,
                     constellation_proxy,
                     response_sent: false,
