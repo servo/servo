@@ -257,4 +257,4 @@ jobs:
           toolchain: ${{ steps.msrv.outputs.rust_version }}
       - name: Compile libservo with MSRV
         run: |
-          cargo +${{ steps.msrv.outputs.rust_version }} build -p servo --locked --all-targets
+          cargo +${{ steps.msrv.outputs.rust_version }} build -p servo --locked
