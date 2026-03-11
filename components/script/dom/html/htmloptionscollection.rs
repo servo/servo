@@ -130,8 +130,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
                 let child = self.upcast().IndexedGetter(index).unwrap();
                 let child_node = child.upcast::<Node>();
 
-                root.ReplaceChild(node, child_node, CanGc::from_cx(cx))
-                    .map(|_| ())
+                root.ReplaceChild(cx, node, child_node).map(|_| ())
             }
         } else {
             // Step 1

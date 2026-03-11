@@ -1197,7 +1197,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
-    pub(crate) fn replace_with(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn replace_with(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1. Let parent be this’s parent.
         let Some(parent) = self.GetParentNode() else {
             // Step 2. If parent is null, then return.
@@ -1210,14 +1210,19 @@ impl Node {
         // Step 4. Let node be the result of converting nodes into a node, given nodes and this’s node document.
         let node = self
             .owner_doc()
-            .node_from_nodes_and_strings(nodes, can_gc)?;
+            .node_from_nodes_and_strings(nodes, CanGc::from_cx(cx))?;
 
         if self.parent_node == Some(&*parent) {
             // Step 5. If this’s parent is parent, replace this with node within parent.
-            parent.ReplaceChild(&node, self, can_gc)?;
+            parent.ReplaceChild(cx, &node, self)?;
         } else {
             // Step 6. Otherwise, pre-insert node into parent before viableNextSibling.
-            Node::pre_insert(&node, &parent, viable_next_sibling.as_deref(), can_gc)?;
+            Node::pre_insert(
+                &node,
+                &parent,
+                viable_next_sibling.as_deref(),
+                CanGc::from_cx(cx),
+            )?;
         }
         Ok(())
     }
@@ -4124,11 +4129,12 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace>
-    #[expect(unsafe_code)]
-    fn ReplaceChild(&self, node: &Node, child: &Node, _can_gc: CanGc) -> Fallible<DomRoot<Node>> {
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    fn ReplaceChild(
+        &self,
+        cx: &mut JSContext,
+        node: &Node,
+        child: &Node,
+    ) -> Fallible<DomRoot<Node>> {
         // Step 1. If parent is not a Document, DocumentFragment, or Element node,
         // then throw a "HierarchyRequestError" DOMException.
         match self.type_id() {

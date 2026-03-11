@@ -6,6 +6,7 @@
 use std::cell::LazyCell;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::codegen::InheritTypes::{CharacterDataTypeId, NodeTypeId, TextTypeId};
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
@@ -267,8 +268,8 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
-    fn ReplaceWith(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().replace_with(nodes, can_gc)
+    fn ReplaceWith(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().replace_with(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-remove>

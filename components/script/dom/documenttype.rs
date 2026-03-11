@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::DocumentTypeBinding::DocumentTypeMethods;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
@@ -97,8 +98,8 @@ impl DocumentTypeMethods<crate::DomTypeHolder> for DocumentType {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
-    fn ReplaceWith(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().replace_with(nodes, can_gc)
+    fn ReplaceWith(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().replace_with(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-remove>

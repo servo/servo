@@ -3870,7 +3870,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // fragment parsing algorithm steps given parent and compliantString.
         let frag = parent.parse_fragment(value, cx)?;
         // Step 7: Replace this with fragment within this's parent.
-        context_parent.ReplaceChild(frag.upcast(), context_node, CanGc::from_cx(cx))?;
+        context_parent.ReplaceChild(cx, frag.upcast(), context_node)?;
         Ok(())
     }
 
@@ -3954,8 +3954,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
-    fn ReplaceWith(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().replace_with(nodes, can_gc)
+    fn ReplaceWith(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().replace_with(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-remove>
