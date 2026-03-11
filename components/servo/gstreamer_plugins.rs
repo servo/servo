@@ -9,9 +9,8 @@ static WINDOWS_PLUGINS: &[&str] = &include!("gstreamer_plugin_lists/windows.rs.i
 #[cfg(target_os = "macos")]
 static MACOS_PLUGINS: &[&str] = &include!("gstreamer_plugin_lists/macos.rs.in");
 
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 pub(crate) fn gstreamer_plugins() -> Vec<String> {
-    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
-    return Vec::new();
     let mut plugins = Vec::from(COMMON_PLUGINS);
     #[cfg(target_os = "windows")]
     plugins.extend_from_slice(WINDOWS_PLUGINS);
@@ -23,7 +22,7 @@ pub(crate) fn gstreamer_plugins() -> Vec<String> {
     } else if cfg!(target_os = "macos") {
         ("lib", ".dylib")
     } else {
-        unreachable!("Other Operating Systems should have been caught in the early return.")
+        unreachable!("This function is only for macos and windows.")
     };
 
     plugins
