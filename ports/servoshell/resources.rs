@@ -77,7 +77,7 @@ impl resources::ResourceReaderMethods for ResourceReader {
     fn read(&self, file: Resource) -> Vec<u8> {
         let mut path = resources_dir_path();
         path.push(file.filename());
-        fs::read(path).expect("Can't read file")
+        fs::read(path).unwrap_or_else(|e| panic!("Can't read file {}", file.filename()))
     }
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
         vec![resources_dir_path()]
