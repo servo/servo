@@ -663,11 +663,11 @@ impl ScriptThread {
 
     /// <https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url>
     pub(crate) fn can_navigate_to_javascript_url(
+        cx: &mut js::context::JSContext,
         initiator_global: &GlobalScope,
         target_global: &GlobalScope,
         load_data: &mut LoadData,
         container: Option<&Element>,
-        can_gc: CanGc,
     ) -> bool {
         // Step 3. If initiatorOrigin is not same origin-domain with targetNavigable's active document's origin, then return.
         //
@@ -680,7 +680,7 @@ impl ScriptThread {
         // Content Security Policy? given request and cspNavigationType is "Blocked", then return. [CSP]
         if initiator_global
             .get_csp_list()
-            .should_navigation_request_be_blocked(initiator_global, load_data, container, can_gc)
+            .should_navigation_request_be_blocked(cx, initiator_global, load_data, container)
         {
             return false;
         }
@@ -696,11 +696,11 @@ impl ScriptThread {
         container: Option<&Element>,
     ) -> bool {
         if !Self::can_navigate_to_javascript_url(
+            cx,
             initiator_global,
             target_global,
             load_data,
             container,
-            CanGc::from_cx(cx),
         ) {
             return false;
         }

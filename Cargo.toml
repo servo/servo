@@ -49,7 +49,7 @@ chacha20poly1305 = "0.10"
 chardetng = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 cipher = { version = "0.4.4", features = ["alloc"] }
-content-security-policy = { version = "0.6.0", features = ["serde"] }
+content-security-policy = { version = "0.6.1", features = ["serde"] }
 cookie = { package = "cookie", version = "0.18" }
 crossbeam-channel = "0.5"
 cssparser = { version = "0.36", features = ["serde"] }
@@ -374,6 +374,9 @@ codegen-units = 1
 # mozjs = { path = "../mozjs/mozjs" }
 # mozjs_sys = { path = "../mozjs/mozjs-sys" }
 #
+# Or for CSP crate:
+# content-security-policy = { path = "../rust-content-security-policy" }
+#
 # Pending egui bumping their accesskit version: https://github.com/emilk/egui/pull/7850
 # This is only used in servoshell.
 # TODO: When these are no longer needed remove the exception in deny.toml as well.
@@ -397,5 +400,3 @@ egui-winit = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e0517
 # [patch."https://github.com/servo/<repository>"]
 # <crate> = { path = "/path/to/local/checkout" }
 #
-# [patch."https://github.com/servo/rust-content-security-policy"]
-# content-security-policy = { path = "../rust-content-security-policy" }

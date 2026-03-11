@@ -36,10 +36,10 @@ pub(crate) trait CspReporting {
     fn is_wasm_evaluation_allowed(&self, global: &GlobalScope) -> bool;
     fn should_navigation_request_be_blocked(
         &self,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         load_data: &mut LoadData,
         element: Option<&Element>,
-        can_gc: CanGc,
     ) -> bool;
     fn should_elements_inline_type_behavior_be_blocked(
         &self,
@@ -106,10 +106,10 @@ impl CspReporting for Option<CspList> {
     /// <https://www.w3.org/TR/CSP/#should-block-navigation-request>
     fn should_navigation_request_be_blocked(
         &self,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         load_data: &mut LoadData,
         element: Option<&Element>,
-        can_gc: CanGc,
     ) -> bool {
         let Some(csp_list) = self else {
             return false;
@@ -139,7 +139,7 @@ impl CspReporting for Option<CspList> {
                     global,
                     TrustedScriptOrString::String(script_source.into()),
                     "Location href",
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
                 .ok()
                 .map(|s| s.into())
