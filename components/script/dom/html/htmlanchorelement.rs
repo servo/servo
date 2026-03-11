@@ -143,9 +143,9 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-text>
-    fn SetText(&self, value: DOMString, can_gc: CanGc) {
+    fn SetText(&self, cx: &mut JSContext, value: DOMString) {
         self.upcast::<Node>()
-            .set_text_content_for_element(Some(value), can_gc)
+            .set_text_content_for_element(cx, Some(value))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel

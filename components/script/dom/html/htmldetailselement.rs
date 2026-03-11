@@ -182,7 +182,7 @@ impl HTMLDetailsElement {
         let document = self.owner_document();
         // TODO(stevennovaryo): Reimplement details styling so that it would not
         //                      mess the cascading and require some reparsing.
-        let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
+        let root = self.upcast::<Element>().attach_ua_shadow_root(cx, true);
 
         let summary = Element::create(
             QualName::new(None, ns!(html), local_name!("slot")),
@@ -210,7 +210,7 @@ impl HTMLDetailsElement {
         let fallback_summary = DomRoot::downcast::<HTMLElement>(fallback_summary).unwrap();
         fallback_summary
             .upcast::<Node>()
-            .set_text_content_for_element(Some(DEFAULT_SUMMARY.into()), can_gc);
+            .set_text_content_for_element(cx, Some(DEFAULT_SUMMARY.into()));
         summary
             .upcast::<Node>()
             .AppendChild(cx, fallback_summary.upcast::<Node>())

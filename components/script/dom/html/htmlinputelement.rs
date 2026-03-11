@@ -339,7 +339,7 @@ impl InputElementShadowTree {
         let element = input_element.upcast::<Element>();
         let shadow_root = element
             .shadow_root()
-            .unwrap_or_else(|| element.attach_ua_shadow_root(true, CanGc::from_cx(cx)));
+            .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
         let shadow_root = shadow_root.upcast();
 
         if input_element.input_type() == InputType::Color {

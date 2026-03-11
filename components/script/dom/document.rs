@@ -5875,7 +5875,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return;
         };
 
-        node.set_text_content_for_element(Some(title), CanGc::from_cx(cx));
+        node.set_text_content_for_element(cx, Some(title));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-head>

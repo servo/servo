@@ -1024,13 +1024,17 @@ impl HTMLElement {
 
     /// <https://html.spec.whatwg.org/multipage/#rendered-text-fragment>
     #[expect(unsafe_code)]
-    fn rendered_text_fragment(&self, input: DOMString, can_gc: CanGc) -> DomRoot<DocumentFragment> {
+    fn rendered_text_fragment(
+        &self,
+        input: DOMString,
+        _can_gc: CanGc,
+    ) -> DomRoot<DocumentFragment> {
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let cx = &mut cx;
 
         // Step 1: Let fragment be a new DocumentFragment whose node document is document.
         let document = self.owner_document();
-        let fragment = DocumentFragment::new(&document, can_gc);
+        let fragment = DocumentFragment::new(&document, CanGc::from_cx(cx));
 
         // Step 2: Let position be a position variable for input, initially pointing at the start
         // of input.
@@ -1064,7 +1068,7 @@ impl HTMLElement {
                         ElementCreator::ScriptCreated,
                         CustomElementCreationMode::Asynchronous,
                         None,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                     fragment
                         .upcast::<Node>()

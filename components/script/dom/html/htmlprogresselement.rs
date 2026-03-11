@@ -71,12 +71,12 @@ impl HTMLProgressElement {
     }
 
     #[expect(unsafe_code)]
-    fn create_shadow_tree(&self, can_gc: CanGc) {
+    fn create_shadow_tree(&self, _can_gc: CanGc) {
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let cx = &mut cx;
 
         let document = self.owner_document();
-        let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
+        let root = self.upcast::<Element>().attach_ua_shadow_root(cx, true);
 
         let progress_bar = Element::create(
             QualName::new(None, ns!(html), local_name!("div")),
@@ -85,11 +85,11 @@ impl HTMLProgressElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // FIXME: This should use ::-moz-progress-bar
-        progress_bar.SetId("-servo-progress-bar".into(), can_gc);
+        progress_bar.SetId("-servo-progress-bar".into(), CanGc::from_cx(cx));
         root.upcast::<Node>()
             .AppendChild(cx, progress_bar.upcast::<Node>())
             .unwrap();

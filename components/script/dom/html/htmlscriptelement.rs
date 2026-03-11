@@ -1438,20 +1438,24 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#the-textContent-idl-attribute>
-    fn SetTextContent(&self, value: Option<TrustedScriptOrString>, can_gc: CanGc) -> Fallible<()> {
+    fn SetTextContent(
+        &self,
+        cx: &mut JSContext,
+        value: Option<TrustedScriptOrString>,
+    ) -> Fallible<()> {
         // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
         // this's relevant global object, the given value, HTMLScriptElement textContent, and script.
         let value = TrustedScript::get_trusted_script_compliant_string(
             &self.owner_global(),
             value.unwrap_or(TrustedScriptOrString::String(DOMString::from(""))),
             "HTMLScriptElement textContent",
-            can_gc,
+            CanGc::from_cx(cx),
         )?;
         // Step 2: Set this's script text value to value.
         *self.script_text.borrow_mut() = value.clone();
         // Step 3: Run set text content with this and value.
         self.upcast::<Node>()
-            .set_text_content_for_element(Some(value), can_gc);
+            .set_text_content_for_element(cx, Some(value));
         Ok(())
     }
 

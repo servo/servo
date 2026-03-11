@@ -281,12 +281,12 @@ impl HTMLSelectElement {
     }
 
     #[expect(unsafe_code)]
-    fn create_shadow_tree(&self, can_gc: CanGc) {
+    fn create_shadow_tree(&self, _can_gc: CanGc) {
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let cx = &mut cx;
 
         let document = self.owner_document();
-        let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
+        let root = self.upcast::<Element>().attach_ua_shadow_root(cx, true);
 
         let select_box = Element::create(
             QualName::new(None, ns!(html), local_name!("div")),
@@ -295,9 +295,13 @@ impl HTMLSelectElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        select_box.set_string_attribute(&local_name!("style"), SELECT_BOX_STYLE.into(), can_gc);
+        select_box.set_string_attribute(
+            &local_name!("style"),
+            SELECT_BOX_STYLE.into(),
+            CanGc::from_cx(cx),
+        );
 
         let text_container = Element::create(
             QualName::new(None, ns!(html), local_name!("div")),
@@ -306,19 +310,19 @@ impl HTMLSelectElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         text_container.set_string_attribute(
             &local_name!("style"),
             TEXT_CONTAINER_STYLE.into(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         select_box
             .upcast::<Node>()
             .AppendChild(cx, text_container.upcast::<Node>())
             .unwrap();
 
-        let text = Text::new(DOMString::new(), &document, can_gc);
+        let text = Text::new(DOMString::new(), &document, CanGc::from_cx(cx));
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
             selected_option: text.as_traced(),
         });
@@ -334,12 +338,12 @@ impl HTMLSelectElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         chevron_container.set_string_attribute(
             &local_name!("style"),
             CHEVRON_CONTAINER_STYLE.into(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         select_box
             .upcast::<Node>()

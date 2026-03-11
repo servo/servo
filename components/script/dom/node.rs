@@ -3664,13 +3664,13 @@ impl Node {
                 // and node’s shadow root’s slot assignment.
                 let copy_shadow_root =
                     copy_elem.attach_shadow(
+                        cx,
                         IsUserAgentWidget::No,
                         shadow_root.Mode(),
                         shadow_root.Clonable(),
                         shadow_root.Serializable(),
                         shadow_root.DelegatesFocus(),
                         shadow_root.SlotAssignment(),
-                        CanGc::from_cx(cx),
                     )
                     .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
 
@@ -3722,11 +3722,11 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#string-replace-all>
-    #[expect(unsafe_code)]
-    pub(crate) fn set_text_content_for_element(&self, value: Option<DOMString>, _can_gc: CanGc) {
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    pub(crate) fn set_text_content_for_element(
+        &self,
+        cx: &mut JSContext,
+        value: Option<DOMString>,
+    ) {
         // This should only be called for elements and document fragments when setting the
         // text content: https://dom.spec.whatwg.org/#set-text-content
         assert!(matches!(
@@ -4067,14 +4067,14 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#set-text-content>
-    fn SetTextContent(&self, value: Option<DOMString>, can_gc: CanGc) -> Fallible<()> {
+    fn SetTextContent(&self, cx: &mut JSContext, value: Option<DOMString>) -> Fallible<()> {
         match self.type_id() {
             NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
-                self.set_text_content_for_element(value, can_gc);
+                self.set_text_content_for_element(cx, value);
             },
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                attr.SetValue(value.unwrap_or_default(), can_gc)?;
+                attr.SetValue(value.unwrap_or_default(), CanGc::from_cx(cx))?;
             },
             NodeTypeId::CharacterData(..) => {
                 let characterdata = self.downcast::<CharacterData>().unwrap();
