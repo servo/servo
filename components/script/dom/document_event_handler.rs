@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 use base::generic_channel::GenericCallback;
 use constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use embedder_traits::{
-    Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventAndId,
+    Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventOutcome,
     InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
     MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
     TouchId, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
@@ -276,61 +276,66 @@ impl DocumentEventHandler {
         *self.mouse_move_event_index.borrow_mut() = None;
         *self.wheel_event_index.borrow_mut() = None;
         let pending_input_events = mem::take(&mut *self.pending_input_events.borrow_mut());
+        let input_event_outcomes: Vec<InputEventOutcome> = pending_input_events
+            .into_iter()
+            .map(|event| {
+                self.active_keyboard_modifiers
+                    .set(event.active_keyboard_modifiers);
+                // TODO: For some of these we still aren't properly calculating whether or not
+                // the event was handled or if `preventDefault()` was called on it. Each of
+                // these cases needs to be examined and some of them either fire more than one
+                // event or fire events later. We have to make a good decision about what to
+                // return to the embedder when that happens.
+                let result = match event.event.event.clone() {
+                    InputEvent::MouseButton(mouse_button_event) => {
+                        self.handle_native_mouse_button_event(mouse_button_event, &event, can_gc);
+                        InputEventResult::default()
+                    },
+                    InputEvent::MouseMove(_) => {
+                        self.handle_native_mouse_move_event(&event, can_gc);
+                        InputEventResult::default()
+                    },
+                    InputEvent::MouseLeftViewport(mouse_leave_event) => {
+                        self.handle_mouse_left_viewport_event(&event, &mouse_leave_event, can_gc);
+                        InputEventResult::default()
+                    },
+                    InputEvent::Touch(touch_event) => {
+                        self.handle_touch_event(touch_event, &event, can_gc)
+                    },
+                    InputEvent::Wheel(wheel_event) => {
+                        self.handle_wheel_event(wheel_event, &event, can_gc)
+                    },
+                    InputEvent::Keyboard(keyboard_event) => {
+                        self.handle_keyboard_event(keyboard_event, can_gc)
+                    },
+                    InputEvent::Ime(ime_event) => self.handle_ime_event(ime_event, can_gc),
+                    #[cfg(feature = "gamepad")]
+                    InputEvent::Gamepad(gamepad_event) => {
+                        self.handle_gamepad_event(gamepad_event);
+                        InputEventResult::default()
+                    },
+                    InputEvent::EditingAction(editing_action_event) => {
+                        self.handle_editing_action(None, editing_action_event, can_gc)
+                    },
+                };
 
-        for event in pending_input_events {
-            self.active_keyboard_modifiers
-                .set(event.active_keyboard_modifiers);
-
-            // TODO: For some of these we still aren't properly calculating whether or not
-            // the event was handled or if `preventDefault()` was called on it. Each of
-            // these cases needs to be examined and some of them either fire more than one
-            // event or fire events later. We have to make a good decision about what to
-            // return to the embedder when that happens.
-            let result = match event.event.event.clone() {
-                InputEvent::MouseButton(mouse_button_event) => {
-                    self.handle_native_mouse_button_event(mouse_button_event, &event, can_gc);
-                    InputEventResult::default()
-                },
-                InputEvent::MouseMove(_) => {
-                    self.handle_native_mouse_move_event(&event, can_gc);
-                    InputEventResult::default()
-                },
-                InputEvent::MouseLeftViewport(mouse_leave_event) => {
-                    self.handle_mouse_left_viewport_event(&event, &mouse_leave_event, can_gc);
-                    InputEventResult::default()
-                },
-                InputEvent::Touch(touch_event) => {
-                    self.handle_touch_event(touch_event, &event, can_gc)
-                },
-                InputEvent::Wheel(wheel_event) => {
-                    self.handle_wheel_event(wheel_event, &event, can_gc)
-                },
-                InputEvent::Keyboard(keyboard_event) => {
-                    self.handle_keyboard_event(keyboard_event, can_gc)
-                },
-                InputEvent::Ime(ime_event) => self.handle_ime_event(ime_event, can_gc),
-                #[cfg(feature = "gamepad")]
-                InputEvent::Gamepad(gamepad_event) => {
-                    self.handle_gamepad_event(gamepad_event);
-                    InputEventResult::default()
-                },
-                InputEvent::EditingAction(editing_action_event) => {
-                    self.handle_editing_action(None, editing_action_event, can_gc)
-                },
-            };
-
-            self.notify_embedder_that_event_was_handled(event.event, result);
+                InputEventOutcome {
+                    id: event.event.id,
+                    result,
+                }
+            })
+            .collect();
+        if !input_event_outcomes.is_empty() {
+            self.notify_embedder_that_events_were_handled(input_event_outcomes);
         }
     }
 
-    fn notify_embedder_that_event_was_handled(
+    fn notify_embedder_that_events_were_handled(
         &self,
-        event: InputEventAndId,
-        result: InputEventResult,
+        input_event_outcomes: Vec<InputEventOutcome>,
     ) {
-        // Wait to to notify the embedder that the vent was handled until all pending DOM
+        // Wait to to notify the embedder that the event was handled until all pending DOM
         // event processing is finished.
-        let id = event.id;
         let trusted_window = Trusted::new(&*self.window);
         self.window
             .as_global_scope()
@@ -339,7 +344,7 @@ impl DocumentEventHandler {
             .queue(task!(notify_webdriver_input_event_completed: move || {
                 let window = trusted_window.root();
                 window.send_to_embedder(
-                    EmbedderMsg::InputEventHandled(window.webview_id(), id, result));
+                    EmbedderMsg::InputEventsHandled(window.webview_id(), input_event_outcomes));
             }));
     }
 
