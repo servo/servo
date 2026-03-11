@@ -86,7 +86,7 @@ impl SVGSVGElement {
             .upcast::<Node>()
             .xml_serialize(TraversalScope::IncludeNode);
 
-        self.cleanup_cloned_nodes(&cloned_nodes, CanGc::from_cx(cx));
+        self.cleanup_cloned_nodes(cx, &cloned_nodes);
 
         let Ok(xml_source) = serialize_result else {
             *self.cached_serialized_data_url.borrow_mut() = Some(Err(()));
@@ -150,14 +150,14 @@ impl SVGSVGElement {
         Some(cloned_node)
     }
 
-    fn cleanup_cloned_nodes(&self, cloned_nodes: &[DomRoot<Node>], can_gc: CanGc) {
+    fn cleanup_cloned_nodes(&self, cx: &mut JSContext, cloned_nodes: &[DomRoot<Node>]) {
         if cloned_nodes.is_empty() {
             return;
         }
         let root_node = self.upcast::<Node>();
 
         for cloned_node in cloned_nodes {
-            let _ = root_node.RemoveChild(cloned_node, can_gc);
+            let _ = root_node.RemoveChild(cx, cloned_node);
         }
     }
 

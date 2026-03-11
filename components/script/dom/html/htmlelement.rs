@@ -608,13 +608,13 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // the next text node given next's previous sibling.
         if let Some(next_sibling) = next {
             if let Some(node) = next_sibling.GetPreviousSibling() {
-                Self::merge_with_the_next_text_node(node, CanGc::from_cx(cx));
+                Self::merge_with_the_next_text_node(cx, node);
             }
         }
 
         // Step 8: If previous is a Text node, then merge with the next text node given previous.
         if let Some(previous) = previous {
-            Self::merge_with_the_next_text_node(previous, CanGc::from_cx(cx))
+            Self::merge_with_the_next_text_node(cx, previous)
         }
 
         Ok(())
@@ -1089,7 +1089,7 @@ impl HTMLElement {
     /// node.
     ///
     /// <https://html.spec.whatwg.org/multipage/#merge-with-the-next-text-node>
-    fn merge_with_the_next_text_node(node: DomRoot<Node>, can_gc: CanGc) {
+    fn merge_with_the_next_text_node(cx: &mut JSContext, node: DomRoot<Node>) {
         // Make sure node is a Text node
         if !node.is::<Text>() {
             return;
@@ -1113,7 +1113,7 @@ impl HTMLElement {
             .expect("Got chars from Text");
 
         // Step 4:Remove next.
-        next.remove_self(can_gc);
+        next.remove_self(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#keyboard-shortcuts-processing-model>

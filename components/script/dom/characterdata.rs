@@ -273,9 +273,8 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-remove>
-    fn Remove(&self, can_gc: CanGc) {
-        let node = self.upcast::<Node>();
-        node.remove_self(can_gc);
+    fn Remove(&self, cx: &mut JSContext) {
+        self.upcast::<Node>().remove_self(cx);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nondocumenttypechildnode-previouselementsibling>

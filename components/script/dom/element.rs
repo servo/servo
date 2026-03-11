@@ -605,6 +605,7 @@ impl Element {
 
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
     #[allow(clippy::too_many_arguments)]
+    #[expect(unsafe_code)]
     pub(crate) fn attach_shadow(
         &self,
         is_ua_widget: IsUserAgentWidget,
@@ -613,8 +614,11 @@ impl Element {
         serializable: bool,
         delegates_focus: bool,
         slot_assignment_mode: SlotAssignmentMode,
-        can_gc: CanGc,
+        _can_gc: CanGc,
     ) -> Fallible<DomRoot<ShadowRoot>> {
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         // Step 1. If element’s namespace is not the HTML namespace,
         // then throw a "NotSupportedError" DOMException.
         if self.namespace != ns!(html) {
@@ -670,7 +674,7 @@ impl Element {
 
             // Step 4.3.1. Remove all of currentShadowRoot’s children, in tree order.
             for child in current_shadow_root.upcast::<Node>().children() {
-                child.remove_self(can_gc);
+                child.remove_self(cx);
             }
 
             // Step 4.3.2. Set currentShadowRoot’s declarative to false.
@@ -693,7 +697,7 @@ impl Element {
             slot_assignment_mode,
             clonable,
             is_ua_widget,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // This is not in the specification, but this is where we ensure that the
@@ -727,7 +731,7 @@ impl Element {
             .set_containing_shadow_root(Some(&shadow_root));
 
         let bind_context = BindContext::new(self.upcast(), IsShadowTree::Yes);
-        shadow_root.bind_to_tree(&bind_context, can_gc);
+        shadow_root.bind_to_tree(&bind_context, CanGc::from_cx(cx));
 
         node.dirty(NodeDamage::Other);
 
@@ -3959,8 +3963,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-remove>
-    fn Remove(&self, can_gc: CanGc) {
-        self.upcast::<Node>().remove_self(can_gc);
+    fn Remove(&self, cx: &mut JSContext) {
+        self.upcast::<Node>().remove_self(cx);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-matches>

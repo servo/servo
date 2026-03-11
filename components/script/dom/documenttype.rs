@@ -103,7 +103,7 @@ impl DocumentTypeMethods<crate::DomTypeHolder> for DocumentType {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-remove>
-    fn Remove(&self, can_gc: CanGc) {
-        self.upcast::<Node>().remove_self(can_gc);
+    fn Remove(&self, cx: &mut JSContext) {
+        self.upcast::<Node>().remove_self(cx);
     }
 }

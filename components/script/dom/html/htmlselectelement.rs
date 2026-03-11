@@ -611,13 +611,13 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-remove>
-    fn Remove_(&self, index: i32) {
-        self.Options().Remove(index)
+    fn Remove_(&self, cx: &mut JSContext, index: i32) {
+        self.Options().Remove(cx, index)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-remove>
-    fn Remove(&self) {
-        self.upcast::<Element>().Remove(CanGc::note())
+    fn Remove(&self, cx: &mut JSContext) {
+        self.upcast::<Element>().Remove(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-value>
