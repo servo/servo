@@ -113,7 +113,7 @@ class MachCommands(CommandBase):
     )
     def bootstrap_pub_suffix(self, force: bool = False) -> None:
         list_url = "https://publicsuffix.org/list/public_suffix_list.dat"
-        dst_filename = path.join(self.context.topdir, "resources", "public_domains.txt")
+        dst_filename = path.join(self.context.topdir, "shared", "embedder", "resources", "public_domains.txt")
         not_implemented_case = re.compile(r"^[^*]+\*")
 
         try:
