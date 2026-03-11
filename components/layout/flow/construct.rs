@@ -508,42 +508,41 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
             self.finish_anonymous_table_if_needed();
         }
 
-        self.ensure_inline_formatting_context_builder();
+        let info = self.info;
         let context = self.context;
-        let builder = self.inline_formatting_context_builder.as_mut().unwrap();
+        let builder = self.ensure_inline_formatting_context_builder();
 
-        let mut range = 0..;
-        // first-letter is an eager pseudo element and should not be nested
-        if self.info.pseudo_element_chain().is_empty() {
-            if let Some(pseudo_info) = self
-                .info
-                .with_pseudo_element(context, PseudoElement::FirstLetter)
-            {
-                if builder
+        // ::first-letter is an eager pseudo element and should not be nested
+        if let Some(pseudo_info) = (info.pseudo_element_chain().is_empty())
+            .then(|| info.with_pseudo_element(context, PseudoElement::FirstLetter))
+            .flatten()
+            .filter(|_| {
+                builder
                     .text_segments
                     .iter()
                     .flat_map(|seg| seg.chars())
                     .all(|c| c.is_separator_space())
-                {
-                    let first_letter_range = first_letter_range(&text[..]);
-                    range.start = first_letter_range.end;
+            })
+        {
+            let first_letter_range = first_letter_range(&text[..]);
 
-                    // The first letter range may be some value larger than zero when
-                    // there are preceding spaces.
-                    if first_letter_range.start != 0 {
-                        builder.push_text(Cow::Borrowed(&text[0..first_letter_range.start]), info);
-                    }
-
-                    let first_letter = Cow::Borrowed(&text[first_letter_range]);
-
-                    builder.start_inline_box(
-                        || ArcRefCell::new(InlineBox::new(&pseudo_info, context)),
-                        None,
-                    );
-                    builder.push_text(first_letter, &pseudo_info);
-                    builder.end_inline_box();
-                }
+            // The first letter range may be some value larger than zero when
+            // there are preceding spaces.
+            if first_letter_range.start != 0 {
+                builder.push_text(Cow::Borrowed(&text[0..first_letter_range.start]), info);
             }
+
+            builder.start_inline_box(
+                || ArcRefCell::new(InlineBox::new(&pseudo_info, context)),
+                None,
+            );
+            let first_letter_text = Cow::Borrowed(&text[first_letter_range.clone()]);
+            builder.push_text(first_letter_text, &pseudo_info);
+            builder.end_inline_box();
+
+            builder.push_text(Cow::Borrowed(&text[first_letter_range.end..]), info);
+        } else {
+            builder.push_text(text, info);
         }
 
         builder.push_text(Cow::Borrowed(&text[range]), info);
