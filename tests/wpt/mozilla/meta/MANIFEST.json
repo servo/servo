@@ -13117,6 +13117,15 @@
     ]
    },
    "input-events": {
+    "accesskey-on-html-element.html": [
+     "f531e2101852997165c642df2974a9ce7bb57a47",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "collapsed-selection-input-text.html": [
      "c80ddeff12b0ebc6568c03dabe848ac57e44737b",
      [
