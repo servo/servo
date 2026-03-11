@@ -61,13 +61,22 @@ const SELECT_BOX_STYLE: &str = "
     display: flex;
     align-items: center;
     height: 100%;
+    gap: 4px;
 ";
 
 const TEXT_CONTAINER_STYLE: &str = "flex: 1;";
 
 const CHEVRON_CONTAINER_STYLE: &str = "
-    font-size: 16px;
-    margin: 4px;
+    background-image: url('data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"180\" height=\"180\" viewBox=\"0 0 180 180\"> <path d=\"M10 50h160L90 130z\" style=\"fill:currentcolor\"/> </svg>');
+    background-size: 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+
+    vertical-align: middle;
+    line-height: 1;
+    display: inline-block;
+    width: 0.75em;
+    height: 0.75em;
 ";
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -328,9 +337,6 @@ impl HTMLSelectElement {
             CHEVRON_CONTAINER_STYLE.into(),
             can_gc,
         );
-        chevron_container
-            .upcast::<Node>()
-            .set_text_content_for_element(Some("▾".into()), can_gc);
         select_box
             .upcast::<Node>()
             .AppendChild(chevron_container.upcast::<Node>(), can_gc)
