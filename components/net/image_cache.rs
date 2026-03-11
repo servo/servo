@@ -39,7 +39,7 @@ use webrender_api::units::DeviceIntSize;
 // We bake in rippy.png as a fallback, in case the embedder does not provide a broken
 // image icon resource. This version is 229 bytes, so don't exchange it against
 // something of higher resolution.
-const FALLBACK_RIPPY: &[u8] = include_bytes!("../../resources/rippy.png");
+const FALLBACK_RIPPY: &[u8] = include_bytes!("resources/rippy.png");
 
 /// The current SVG stack relies on `resvg` to provide the natural dimensions of
 /// the SVG, which it automatically infers from the width/height/viewBox properties
