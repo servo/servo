@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Position: absolute inside block with margin-top inside inline</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-insets">
+<link rel="help" href="https://github.com/servo/servo/issues/42890">
+<link rel="match" href="position-absolute-in-inline-margin-top-ref.html">
+<meta name="assert"
+  content="Absolutely positioned elements inside a block with margin-top that is inside an inline formatting context should have their static position correctly offset by the margin-top.">
+<style>
+  .abspos {
+    position: absolute;
+    background: green;
+    width: 100px;
+    height: 100px;
+  }
+
+  .red {
+    position: absolute;
+    background: red;
+    width: 100px;
+    height: 100px;
+    top: 100px;
+    z-index: -1;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="red"></div>
+<div style="position: relative; width: 200px; height: 300px;">
+  <span>
+    <div style="margin-top: 100px">
+      <div class="abspos"></div>
+    </div>
+  </span>
+</div>
