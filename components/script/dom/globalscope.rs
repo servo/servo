@@ -90,6 +90,8 @@ use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
+#[cfg(feature = "js_backtrace")]
+use crate::dom::bindings::error::LAST_EXCEPTION_BACKTRACE;
 use crate::dom::bindings::error::{
     Error, ErrorInfo, Fallible, report_pending_exception, take_and_report_pending_exception_for_api,
 };
@@ -2733,6 +2735,21 @@ impl GlobalScope {
 
     /// Steps 6-7 of <https://html.spec.whatwg.org/multipage/#report-an-exception>
     pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
+        error!(
+            "Error at {}:{}:{} {}",
+            error_info.filename, error_info.lineno, error_info.column, error_info.message
+        );
+
+        #[cfg(feature = "js_backtrace")]
+        LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
+            if let Some((js_backtrace, rust_backtrace)) = backtrace.borrow_mut().take() {
+                if let Some(stack) = js_backtrace {
+                    error!("JS backtrace:\n{}", stack);
+                }
+                error!("Rust backtrace:\n{}", rust_backtrace);
+            }
+        });
+
         // Step 6. Early return if global is in error reporting mode,
         if self.in_error_reporting_mode.get() {
             return;
