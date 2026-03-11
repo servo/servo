@@ -67,7 +67,7 @@ const SELECT_BOX_STYLE: &str = "
 const TEXT_CONTAINER_STYLE: &str = "flex: 1;";
 
 const CHEVRON_CONTAINER_STYLE: &str = "
-    background-image: url('data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"180\" height=\"180\" viewBox=\"0 0 180 180\"> <path d=\"M0 12h180L90 167z\" style=\"fill:currentcolor\"/> </svg>');
+    background-image: url('data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"180\" height=\"180\" viewBox=\"0 0 180 180\"> <path d=\"M10 50h160L90 130z\" style=\"fill:currentcolor\"/> </svg>');
     background-size: 100%;
     background-repeat: no-repeat;
     background-position: center;
