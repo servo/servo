@@ -512,7 +512,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         let frag = context.parse_fragment(value, cx)?;
 
         // Step 4. Replace all with fragment within this.
-        Node::replace_all(Some(frag.upcast()), self.upcast(), CanGc::from_cx(cx));
+        Node::replace_all(cx, Some(frag.upcast()), self.upcast());
         Ok(())
     }
 

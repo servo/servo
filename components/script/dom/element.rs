@@ -3797,7 +3797,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let frag = self.parse_fragment(value, cx)?;
 
         // Step 5: Replace all with fragment within context.
-        Node::replace_all(Some(frag.upcast()), &target, CanGc::from_cx(cx));
+        Node::replace_all(cx, Some(frag.upcast()), &target);
         Ok(())
     }
 

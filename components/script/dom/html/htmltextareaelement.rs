@@ -201,9 +201,13 @@ impl HTMLTextAreaElement {
         self.maybe_update_shared_selection();
     }
 
-    fn handle_text_content_changed(&self, can_gc: CanGc) {
-        self.validity_state(can_gc)
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+    #[expect(unsafe_code)]
+    fn handle_text_content_changed(&self, _can_gc: CanGc) {
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
+        self.validity_state(CanGc::from_cx(cx))
+            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
 
         let textinput_content = self.textinput.borrow().get_content();
         let element = self.upcast::<Element>();
@@ -213,10 +217,14 @@ impl HTMLTextAreaElement {
 
         let shadow_root = element
             .shadow_root()
-            .unwrap_or_else(|| element.attach_ua_shadow_root(true, can_gc));
+            .unwrap_or_else(|| element.attach_ua_shadow_root(true, CanGc::from_cx(cx)));
         if self.shadow_node.borrow().is_none() {
-            let shadow_node = Text::new(Default::default(), &shadow_root.owner_document(), can_gc);
-            Node::replace_all(Some(shadow_node.upcast()), shadow_root.upcast(), can_gc);
+            let shadow_node = Text::new(
+                Default::default(),
+                &shadow_root.owner_document(),
+                CanGc::from_cx(cx),
+            );
+            Node::replace_all(cx, Some(shadow_node.upcast()), shadow_root.upcast());
             self.shadow_node
                 .borrow_mut()
                 .replace(shadow_node.as_traced());

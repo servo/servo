@@ -236,9 +236,9 @@ impl HTMLOptionElement {
 
         // Step 3. Replace all with documentFragment within selectedcontent.
         Node::replace_all(
+            cx,
             Some(document_fragment.upcast()),
             selectedcontent.upcast(),
-            CanGc::from_cx(cx),
         );
     }
 }

@@ -360,7 +360,7 @@ impl Node {
         }
 
         // Step 4. Replace all with fragment within target.
-        Node::replace_all(Some(fragment.upcast()), target, CanGc::from_cx(cx));
+        Node::replace_all(cx, Some(fragment.upcast()), target);
     }
 
     /// Clear this [`Node`]'s layout data and also clear the layout data of all children.
@@ -1248,7 +1248,7 @@ impl Node {
         Node::ensure_pre_insertion_validity(&node, self, None)?;
 
         // Step 3. Replace all with node within this.
-        Node::replace_all(Some(&node), self, CanGc::from_cx(cx));
+        Node::replace_all(cx, Some(&node), self);
         Ok(())
     }
 
@@ -3257,12 +3257,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
-    #[expect(unsafe_code)]
-    pub(crate) fn replace_all(node: Option<&Node>, parent: &Node, _can_gc: CanGc) {
-        // TODO https://github.com/servo/servo/issues/43240
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    pub(crate) fn replace_all(cx: &mut JSContext, node: Option<&Node>, parent: &Node) {
         parent.owner_doc().add_script_and_layout_blocker();
 
         // Step 1. Let removedNodes be parent’s children.
@@ -3315,10 +3310,10 @@ impl Node {
     /// <https://dom.spec.whatwg.org/multipage/#string-replace-all>
     pub(crate) fn string_replace_all(cx: &mut JSContext, string: DOMString, parent: &Node) {
         if string.is_empty() {
-            Node::replace_all(None, parent, CanGc::from_cx(cx));
+            Node::replace_all(cx, None, parent);
         } else {
             let text = Text::new(string, &parent.owner_document(), CanGc::from_cx(cx));
-            Node::replace_all(Some(text.upcast::<Node>()), parent, CanGc::from_cx(cx));
+            Node::replace_all(cx, Some(text.upcast::<Node>()), parent);
         };
     }
 
@@ -3727,7 +3722,11 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#string-replace-all>
-    pub(crate) fn set_text_content_for_element(&self, value: Option<DOMString>, can_gc: CanGc) {
+    #[expect(unsafe_code)]
+    pub(crate) fn set_text_content_for_element(&self, value: Option<DOMString>, _can_gc: CanGc) {
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         // This should only be called for elements and document fragments when setting the
         // text content: https://dom.spec.whatwg.org/#set-text-content
         assert!(matches!(
@@ -3742,12 +3741,12 @@ impl Node {
             // Step 2. If string is not the empty string, then set node to
             // a new Text node whose data is string and node document is parent’s node document.
             Some(DomRoot::upcast(
-                self.owner_doc().CreateTextNode(value, can_gc),
+                self.owner_doc().CreateTextNode(value, CanGc::from_cx(cx)),
             ))
         };
 
         // Step 3. Replace all with node within parent.
-        Self::replace_all(node.as_deref(), self, can_gc);
+        Self::replace_all(cx, node.as_deref(), self);
     }
 
     pub(crate) fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
