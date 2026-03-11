@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
     TrustedHTMLOrNullIsEmptyString, TrustedHTMLOrString,
 };
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
@@ -37,8 +37,12 @@ impl TrustedHTML {
         }
     }
 
-    pub(crate) fn new(data: DOMString, global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(data)), global, can_gc)
+    pub(crate) fn new(
+        cx: &mut js::context::JSContext,
+        data: DOMString,
+        global: &GlobalScope,
+    ) -> DomRoot<Self> {
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited(data)), global, cx)
     }
 
     pub(crate) fn get_trusted_script_compliant_string(
