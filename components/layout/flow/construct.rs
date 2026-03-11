@@ -370,7 +370,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
 /// The range includes any preceding punctuation, and any spaces interleaved
 /// within the preceding punctuation or between the preceding punctuation
 /// and the first letter/number/symbol.
-/// Succeeding punctuation are included in the range, but any spaces
+/// Succeeding punctuation are included in the range, but any space
 /// following the letter/number/symbol ends the range. Intervening
 /// succeeding spaces is not supported yet.
 ///
