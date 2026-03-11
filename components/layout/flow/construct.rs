@@ -508,13 +508,13 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
             self.finish_anonymous_table_if_needed();
         }
 
-        let info = self.info;
+        let container_info = self.info;
         let context = self.context;
         let builder = self.ensure_inline_formatting_context_builder();
 
         // ::first-letter is an eager pseudo element and should not be nested
-        if let Some(pseudo_info) = (info.pseudo_element_chain().is_empty())
-            .then(|| info.with_pseudo_element(context, PseudoElement::FirstLetter))
+        if let Some(pseudo_info) = (container_info.pseudo_element_chain().is_empty())
+            .then(|| container_info.with_pseudo_element(context, PseudoElement::FirstLetter))
             .flatten()
             .filter(|_| {
                 builder
