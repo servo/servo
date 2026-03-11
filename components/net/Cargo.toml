@@ -61,7 +61,7 @@ quick_cache = { version = "0.6.18", default-features = false, features = ["ahash
 regex = { workspace = true }
 resvg = { workspace = true }
 rustc-hash = { workspace = true }
-rustls = { workspace = true }
+rustls = { workspace = true, features = ["aws-lc-rs"] }
 rustls-pki-types = { workspace = true }
 rustls-platform-verifier = { workspace = true }
 serde = { workspace = true }

@@ -151,7 +151,7 @@ http-body-util = { workspace = true }
 hyper = { workspace = true }
 servo = { path = ".", features = ["tracing"] }
 net = { package = "servo-net", path = "../net", features = ["test-util"] }
-rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
+rustls = { version = "0.23", default-features = false }
 tracing = { workspace = true }
 winit = { workspace = true }
 
