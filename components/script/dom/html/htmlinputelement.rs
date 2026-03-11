@@ -101,6 +101,7 @@ const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
+const DEFAULT_FILE_INPUT_MULTIPLE_VALUE: &str = "No files chosen";
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -1471,6 +1472,9 @@ impl HTMLInputElement {
             InputType::Range => "".into(),
             InputType::File => {
                 let Some(filelist) = self.filelist.get() else {
+                    if self.Multiple() {
+                        return DEFAULT_FILE_INPUT_MULTIPLE_VALUE.into();
+                    }
                     return DEFAULT_FILE_INPUT_VALUE.into();
                 };
                 let length = filelist.Length();
@@ -1479,6 +1483,9 @@ impl HTMLInputElement {
                 }
 
                 let Some(first_item) = filelist.Item(0) else {
+                    if self.Multiple() {
+                        return DEFAULT_FILE_INPUT_MULTIPLE_VALUE.into();
+                    }
                     return DEFAULT_FILE_INPUT_VALUE.into();
                 };
                 first_item.name().to_string().into()
