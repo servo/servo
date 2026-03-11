@@ -352,8 +352,7 @@ impl ErrorInfo {
 pub(crate) fn report_pending_exception(cx: SafeJSContext, realm: InRealm, can_gc: CanGc) {
     rooted!(in(*cx) let mut value = UndefinedValue());
     if take_pending_exception(cx, value.handle_mut()) {
-        let error_info = ErrorInfo::from_value(value.handle(), cx, can_gc);
-        report_error(error_info, value.handle(), cx, realm, can_gc);
+        GlobalScope::from_safe_context(cx, realm).report_an_exception(cx, value.handle(), can_gc);
     }
 }
 
@@ -374,33 +373,6 @@ fn take_pending_exception(cx: SafeJSContext, value: MutableHandleValue) -> bool 
         JS_ClearPendingException(*cx);
     }
     true
-}
-
-fn report_error(
-    error_info: ErrorInfo,
-    value: HandleValue,
-    cx: SafeJSContext,
-    realm: InRealm,
-    can_gc: CanGc,
-) {
-    error!(
-        "Error at {}:{}:{} {}",
-        error_info.filename, error_info.lineno, error_info.column, error_info.message
-    );
-
-    #[cfg(feature = "js_backtrace")]
-    {
-        LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
-            if let Some((js_backtrace, rust_backtrace)) = backtrace.borrow_mut().take() {
-                if let Some(stack) = js_backtrace {
-                    error!("JS backtrace:\n{}", stack);
-                }
-                error!("Rust backtrace:\n{}", rust_backtrace);
-            }
-        });
-    }
-
-    GlobalScope::from_safe_context(cx, realm).report_an_error(error_info, value, can_gc);
 }
 
 pub(crate) fn javascript_error_info_from_error_info(
@@ -454,13 +426,12 @@ pub(crate) fn take_and_report_pending_exception_for_api(
 
     let error_info = ErrorInfo::from_value(value.handle(), cx.into(), CanGc::from_cx(cx));
     let return_value = javascript_error_info_from_error_info(cx, &error_info, value.handle());
-    report_error(
+    GlobalScope::from_safe_context(cx.into(), in_realm).report_an_error(
         error_info,
         value.handle(),
-        cx.into(),
-        in_realm,
         CanGc::from_cx(cx),
     );
+
     Some(return_value)
 }
 
