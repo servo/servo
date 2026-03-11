@@ -122,7 +122,7 @@ jobs:
         id: upload-library
         with:
           name: ${{ inputs.profile }}-library-ohos-${{ matrix.target }}
-          path: target/aarch64-unknown-linux-ohos/production/libservoshell.so
+          path: target/${{ matrix.target }}/${{ inputs.profile }}/libservoshell.so
           if-no-files-found: error
       - name: Upload signed HAP artifact
         if: ${{ env.SERVO_OHOS_SIGNING_CONFIG != '' }} # Build output has different name if not signed.
