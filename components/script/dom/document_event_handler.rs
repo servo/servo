@@ -62,13 +62,14 @@ use crate::dom::gamepad::gamepad::{Gamepad, contains_user_gesture};
 use crate::dom::gamepad::gamepadevent::GamepadEventType;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::interactive_element_command::InteractiveElementCommand;
+use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::node::{self, Node, NodeTraits, ShadowIncluding};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
 use crate::dom::types::{
     ClipboardEvent, CompositionEvent, DataTransfer, Element, Event, EventTarget, GlobalScope,
-    HTMLAnchorElement, HTMLElement, HTMLLabelElement, KeyboardEvent, MouseEvent, Touch, TouchEvent,
-    TouchList, WheelEvent, Window,
+    HTMLAnchorElement, HTMLElement, HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList,
+    WheelEvent, Window,
 };
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::realms::enter_realm;
@@ -1299,21 +1300,10 @@ impl DocumentEventHandler {
             (&None, &None) => self.window.upcast(),
         };
 
-        let keyevent = KeyboardEvent::new(
+        let keyevent = KeyboardEvent::new_with_platform_keyboard_event(
             &self.window,
             keyboard_event.event.state.event_type().into(),
-            true,
-            true,
-            Some(&self.window),
-            0,
-            keyboard_event.event.key.clone(),
-            DOMString::from(keyboard_event.event.code.to_string()),
-            keyboard_event.event.location as u32,
-            keyboard_event.event.repeat,
-            keyboard_event.event.is_composing,
-            keyboard_event.event.modifiers,
-            0,
-            keyboard_event.event.key.legacy_keycode(),
+            &keyboard_event.event,
             can_gc,
         );
 
@@ -1339,21 +1329,10 @@ impl DocumentEventHandler {
             !keyboard_event.event.is_composing
         {
             // https://w3c.github.io/uievents/#keypress-event-order
-            let keypress_event = KeyboardEvent::new(
+            let keypress_event = KeyboardEvent::new_with_platform_keyboard_event(
                 &self.window,
                 atom!("keypress"),
-                true,
-                true,
-                Some(&self.window),
-                0,
-                keyboard_event.event.key.clone(),
-                DOMString::from(keyboard_event.event.code.to_string()),
-                keyboard_event.event.location as u32,
-                keyboard_event.event.repeat,
-                keyboard_event.event.is_composing,
-                keyboard_event.event.modifiers,
-                keyboard_event.event.key.legacy_charcode(),
-                0,
+                &keyboard_event.event,
                 can_gc,
             );
             let event = keypress_event.upcast::<Event>();
