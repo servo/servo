@@ -72,40 +72,28 @@ impl KeyboardEvent {
         )
     }
 
-    #[expect(clippy::too_many_arguments)]
-    pub(crate) fn new(
+    pub(crate) fn new_with_platform_keyboard_event(
         window: &Window,
         event_type: Atom,
-        can_bubble: bool,
-        cancelable: bool,
-        view: Option<&Window>,
-        detail: i32,
-        key: Key,
-        code: DOMString,
-        location: u32,
-        repeat: bool,
-        is_composing: bool,
-        modifiers: Modifiers,
-        char_code: u32,
-        key_code: u32,
+        keyboard_event: &keyboard_types::KeyboardEvent,
         can_gc: CanGc,
     ) -> DomRoot<KeyboardEvent> {
         Self::new_with_proto(
             window,
             None,
             event_type,
-            can_bubble,
-            cancelable,
-            view,
-            detail,
-            key,
-            code,
-            location,
-            repeat,
-            is_composing,
-            modifiers,
-            char_code,
-            key_code,
+            true,         /* can_bubble */
+            true,         /* cancelable */
+            Some(window), /* view */
+            0,            /* detail */
+            keyboard_event.key.clone(),
+            DOMString::from(keyboard_event.code.to_string()),
+            keyboard_event.location as u32,
+            keyboard_event.repeat,
+            keyboard_event.is_composing,
+            keyboard_event.modifiers,
+            0, /* char_code */
+            keyboard_event.key.legacy_keycode(),
             can_gc,
         )
     }
