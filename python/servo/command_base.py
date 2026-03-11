@@ -28,7 +28,6 @@ from os import path
 from subprocess import CompletedProcess
 from typing import Any, Optional, Union, LiteralString, cast, List
 from collections.abc import Generator, Callable
-from xml.etree.ElementTree import XML
 from pathlib import Path
 
 import toml
