@@ -129,6 +129,7 @@ class MachCommands(CommandBase):
 
         # arguments to be passed through to clippy (as opposed to the cargo clippy wrapper)
         # These should mainly be `--allow`, `--warn`, `--deny`, `--forbid`
+        # Note that some lints can additionally be configured by `.clippy.toml` at the repository root.
         clippy_args = ["--deny=clippy::disallowed_types"]
 
         if "--" not in params:
