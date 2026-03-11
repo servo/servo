@@ -12,7 +12,7 @@ use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use embedder_traits::ViewportDetails;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use layout_api::{AxesOverflow, FragmentType, combine_id_with_fragment_type};
+use layout_api::{AxesOverflow, AuxiliaryFragmentType};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::display_list::{
@@ -1811,7 +1811,7 @@ impl BoxFragment {
         })
     }
 
-    /// Need to define axes scroll sensitivity well for scrollbar
+    /// MYTODO: Need to define axes scroll sensitivity well for scrollbar
     fn build_scrollbar_if_necessary(
         &self,
         stacking_context_tree: &mut StackingContextTree,
@@ -1823,13 +1823,26 @@ impl BoxFragment {
     ) -> Option<Box<ScrollbarDescriptor>> {
         let padding_rect = self.padding_rect();
         let scrollable_overflow_size = self.scrollable_overflow().size;
-        let tag = self.base.tag?;
 
-        let vertical_slider = if ScrollbarDescriptor::should_render_vertical_scrollbar(
+        let render_horizontal_scrollbar = ScrollbarDescriptor::should_render_horizontal_scrollbar(
             overflow,
             &padding_rect,
             &scrollable_overflow_size,
-        ) {
+        );
+        let render_vertical_scrollbar = ScrollbarDescriptor::should_render_vertical_scrollbar(
+            overflow,
+            &padding_rect,
+            &scrollable_overflow_size,
+        );
+
+        if !render_horizontal_scrollbar && !render_vertical_scrollbar {
+            return None;
+        }
+
+        let tag = self.base.tag?;
+
+        // MYTODO: Maybe make a function to compute both of these.
+        let vertical_slider = if render_vertical_scrollbar {
             let (vertical_thumb, vertical_track, vertical_overflow_rect) =
                 ScrollbarDescriptor::place_vertical_scrollbar(
                     &padding_rect,
@@ -1838,16 +1851,18 @@ impl BoxFragment {
                 );
 
             let external_scroll_id = wr::ExternalScrollId(
-                combine_id_with_fragment_type(tag.node.id(), FragmentType::VerticalScrollbar),
+                tag.to_display_list_fragment_id_for_aux(AuxiliaryFragmentType::VerticalScrollbar),
                 stacking_context_tree.paint_info.pipeline_id,
             );
+            // The initial scroll offset of a scrollbar fragment should be reverse to the initial offset of scroll container.
+            let initial_offset = (vertical_overflow_rect.size() - vertical_track.size()).to_vector();
 
             let vertical_scroll_tree_node_id = stacking_context_tree.define_scroll_frame(
                 parent_scroll_node_id,
                 external_scroll_id,
                 vertical_overflow_rect,
                 vertical_track,
-                (vertical_overflow_rect.size() - vertical_track.size()).to_vector(), // MYTODO: maybe tidy up this
+                initial_offset,
                 *sensitivity,
             );
 
@@ -1860,11 +1875,7 @@ impl BoxFragment {
             None
         };
 
-        let horizontal_slider = if ScrollbarDescriptor::should_render_horizontal_scrollbar(
-            overflow,
-            &padding_rect,
-            &scrollable_overflow_size,
-        ) {
+        let horizontal_slider = if render_horizontal_scrollbar {
             let (horizontal_thumb, horizontal_track, horizontal_overflow_rect) =
                 ScrollbarDescriptor::place_horizontal_scrollbar(
                     &padding_rect,
@@ -1873,16 +1884,18 @@ impl BoxFragment {
                 );
 
             let external_scroll_id = wr::ExternalScrollId(
-                combine_id_with_fragment_type(tag.node.id(), FragmentType::HorizontalScrollbar),
+                tag.to_display_list_fragment_id_for_aux(AuxiliaryFragmentType::HorizontalScrollbar),
                 stacking_context_tree.paint_info.pipeline_id,
             );
+            // The initial scroll offset of a scrollbar fragment should be reverse to the initial offset of scroll container.
+            let initial_offset = (horizontal_overflow_rect.size() - horizontal_track.size()).to_vector();
 
             let horizontal_scroll_tree_node_id = stacking_context_tree.define_scroll_frame(
                 parent_scroll_node_id,
                 external_scroll_id,
                 horizontal_overflow_rect,
                 horizontal_track,
-                (horizontal_overflow_rect.size() - horizontal_track.size()).to_vector(), // MYTODO: maybe tidy up this
+                initial_offset,
                 *sensitivity,
             );
 

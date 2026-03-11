@@ -696,15 +696,33 @@ pub enum FragmentType {
     BeforePseudoContent,
     /// A StackingContext created to contain ::after pseudo-element content.
     AfterPseudoContent,
-    /// A StackingContextContent to represent the scrollbar. // MYTODO: need to expand the fragment type to include vertical scrollbar
+}
+
+
+/// The type to represent the additional fragment that is generated along with the main [`FragmentType`].
+///
+/// Currently we use this to identify such fragment, maintain the offset of such fragment across reflow.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum AuxiliaryFragmentType {
+    None,
+    /// Fragment representing the horizontal scrollbar of a scroll container.
     HorizontalScrollbar,
-    /// A StackingContextContent to represent the scrollbar. // MYTODO: need to expand the fragment type to include vertical scrollbar
+    /// Fragment representing the vertical scrollbar of a scroll container.
     VerticalScrollbar,
 }
 
-const SIZE_OF_FRAGMENT_TYPE: usize = 3;
-const FRAGMENT_TYPE_MASK: usize = (1 << SIZE_OF_FRAGMENT_TYPE) - 1;
-const SCROLL_ID_SHIFT: usize = SIZE_OF_FRAGMENT_TYPE - 2;
+/// The size of [`FragmentType`] in bits.
+const SIZE_OF_AUXILIRARY_FRAGMENT_TYPE: usize = 2;
+/// The size of [`AuxiliaryFragmentType`] in bits. MYTODO: maybe there is a programmatical way to get this.
+const SIZE_OF_FRAGMENT_TYPE: usize = 2;
+
+const TOTAL_SIZE_OF_FRAGMENT_TYPE: usize = SIZE_OF_FRAGMENT_TYPE + SIZE_OF_AUXILIRARY_FRAGMENT_TYPE;
+
+impl FragmentType {
+    const fn into_mask_with_aux(self, aux_fragment_type: AuxiliaryFragmentType) -> u64 {
+        ((self as u64) << SIZE_OF_AUXILIRARY_FRAGMENT_TYPE) | (aux_fragment_type as u64)
+    }
+}
 
 impl From<Option<PseudoElement>> for FragmentType {
     fn from(value: Option<PseudoElement>) -> Self {
@@ -733,20 +751,17 @@ fn next_special_id() -> u64 {
 }
 
 pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> u64 {
-    debug_assert_eq!(id & FRAGMENT_TYPE_MASK, 0);
-    let shifted_id = (id as u64) << SCROLL_ID_SHIFT;
-    if fragment_type == FragmentType::FragmentBody {
-        shifted_id
-    } else if matches!(fragment_type, FragmentType::HorizontalScrollbar | FragmentType::VerticalScrollbar) {
-        shifted_id | (fragment_type as u64)
-    } else {
-        next_special_id() | (fragment_type as u64) // I have no idea why are we using next_special_id instead of node_id
-    }
+    combine_id_with_fragment_type_and_aux(id, fragment_type, AuxiliaryFragmentType::None)
+}
+
+pub fn combine_id_with_fragment_type_and_aux(id: usize, fragment_type: FragmentType, aux_fragment_type: AuxiliaryFragmentType) -> u64 {
+    let shifted_id = (id as u64) << TOTAL_SIZE_OF_FRAGMENT_TYPE;
+    shifted_id | fragment_type.into_mask_with_aux(aux_fragment_type)
 }
 
 pub fn node_id_from_scroll_id(id: u64) -> Option<usize> {
     if (id & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
-        let node_id = (id & (!FRAGMENT_TYPE_MASK as u64)) >> SCROLL_ID_SHIFT;
+        let node_id = id >> TOTAL_SIZE_OF_FRAGMENT_TYPE;
         return Some(node_id.try_into().expect("We have ensured that this fits in u32"));
     }
     None
