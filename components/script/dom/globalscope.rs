@@ -90,6 +90,8 @@ use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
+#[cfg(feature = "js_backtrace")]
+use crate::dom::bindings::error::LAST_EXCEPTION_BACKTRACE;
 use crate::dom::bindings::error::{
     Error, ErrorInfo, Fallible, report_pending_exception, take_and_report_pending_exception_for_api,
 };
@@ -2739,16 +2741,14 @@ impl GlobalScope {
         );
 
         #[cfg(feature = "js_backtrace")]
-        {
-            LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
-                if let Some((js_backtrace, rust_backtrace)) = backtrace.borrow_mut().take() {
-                    if let Some(stack) = js_backtrace {
-                        error!("JS backtrace:\n{}", stack);
-                    }
-                    error!("Rust backtrace:\n{}", rust_backtrace);
+        LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
+            if let Some((js_backtrace, rust_backtrace)) = backtrace.borrow_mut().take() {
+                if let Some(stack) = js_backtrace {
+                    error!("JS backtrace:\n{}", stack);
                 }
-            });
-        }
+                error!("Rust backtrace:\n{}", rust_backtrace);
+            }
+        });
 
         // Step 6. Early return if global is in error reporting mode,
         if self.in_error_reporting_mode.get() {

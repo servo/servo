@@ -44,7 +44,7 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 thread_local! {
     /// An optional stringified JS backtrace and stringified native backtrace from the
     /// the last DOM exception that was reported.
-    static LAST_EXCEPTION_BACKTRACE: DomRefCell<Option<(Option<String>, String)>> = DomRefCell::new(None);
+    pub(crate) static LAST_EXCEPTION_BACKTRACE: DomRefCell<Option<(Option<String>, String)>> = DomRefCell::new(None);
 }
 
 /// Error values that have no equivalent DOMException representation.
@@ -67,7 +67,7 @@ pub(crate) fn throw_dom_exception(
     #[cfg(feature = "js_backtrace")]
     unsafe {
         capture_stack!(in(*cx) let stack);
-        let js_stack = stack.and_then(|s| s.as_string(None, JSStackFormat::Default));
+        let js_stack = stack.and_then(|stack| stack.as_string(None, JSStackFormat::Default));
         let rust_stack = Backtrace::new();
         LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
             *backtrace.borrow_mut() = Some((js_stack, format!("{:?}", rust_stack)));
@@ -346,9 +346,6 @@ impl ErrorInfo {
 }
 
 /// Report a pending exception, thereby clearing it.
-///
-/// The `dispatch_event` argument is temporary and non-standard; passing false
-/// prevents dispatching the `error` event.
 pub(crate) fn report_pending_exception(cx: SafeJSContext, realm: InRealm, can_gc: CanGc) {
     rooted!(in(*cx) let mut value = UndefinedValue());
     if take_pending_exception(cx, value.handle_mut()) {
