@@ -475,10 +475,9 @@ fn test_viewport_meta_tag_initial_zoom_on_visual_viewport() {
     };
 
     // The visual viewport dimension after initial-scale
-    // TODO(shubhamg13): Enable scale in follow-up.
-    // assert_eq!(eval_visual_viewport("scale"), Ok(JSValue::Number(0.5)));
-    // assert_eq!(eval_visual_viewport("width"), Ok(JSValue::Number(1000.)));
-    // assert_eq!(eval_visual_viewport("height"), Ok(JSValue::Number(1000.)));
+    assert_eq!(eval_visual_viewport("scale"), Ok(JSValue::Number(0.5)));
+    assert_eq!(eval_visual_viewport("width"), Ok(JSValue::Number(1000.)));
+    assert_eq!(eval_visual_viewport("height"), Ok(JSValue::Number(1000.)));
 }
 
 #[test]
