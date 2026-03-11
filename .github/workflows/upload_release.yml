@@ -48,7 +48,7 @@ jobs:
             echo "parameter then this might be the cause of the error."
             exit 1
           fi
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           artifact-ids: ${{ inputs.artifact_ids }}
           merge-multiple: true

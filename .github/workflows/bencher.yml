@@ -78,7 +78,7 @@ jobs:
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
       - uses: servo/ci-runners/actions/checkout@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.profile }}-binary-${{ inputs.target }}
           path: ${{ inputs.profile }}-binary-${{ inputs.target }}
