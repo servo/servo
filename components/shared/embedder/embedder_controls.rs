@@ -34,7 +34,7 @@ pub struct EmbedderControlId {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum EmbedderControlRequest {
     /// Indicates that the user has activated a `<select>` element.
-    SelectElement(Vec<SelectElementOptionOrOptgroup>, Option<usize>),
+    SelectElement(SelectElementRequest),
     /// Indicates that the user has activated a `<input type=color>` element.
     ColorPicker(RgbColor),
     /// Indicates that the user has activated a `<input type=file>` element.
@@ -162,8 +162,15 @@ pub struct FilePickerRequest {
 
 /// Response from the embedder to an [`EmbedderControlRequest`].
 #[derive(Debug, Deserialize, Serialize)]
+pub struct SelectElementRequest {
+    pub options: Vec<SelectElementOptionOrOptgroup>,
+    pub selected_options: Vec<usize>,
+    pub allow_select_multiple: bool,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub enum EmbedderControlResponse {
-    SelectElement(Option<usize>),
+    SelectElement(Vec<usize>),
     ColorPicker(Option<RgbColor>),
     FilePicker(Option<Vec<SelectedFile>>),
     ContextMenu(Option<ContextMenuAction>),

@@ -207,7 +207,7 @@ impl DocumentEmbedderControls {
                 ControlElement::Select(select_element),
                 EmbedderControlResponse::SelectElement(response),
             ) => {
-                select_element.handle_menu_response(cx, response);
+                select_element.handle_embedder_response(cx, response);
             },
             (
                 ControlElement::ColorInput(input_element),

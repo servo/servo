@@ -11,8 +11,8 @@ use embedder_traits::{
     ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlResponse, FilePickerRequest,
     FilterPattern, InputEventId, InputEventResult, InputMethodType, LoadStatus, MediaSessionEvent,
     NewWebViewDetails, Notification, PermissionFeature, PromptResponse, RgbColor, ScreenGeometry,
-    SelectElementOptionOrOptgroup, SimpleDialogRequest, TraversalId, WebResourceRequest,
-    WebResourceResponse, WebResourceResponseMsg,
+    SelectElementOptionOrOptgroup, SelectElementRequest, SimpleDialogRequest, TraversalId,
+    WebResourceRequest, WebResourceResponse, WebResourceResponseMsg,
 };
 use paint_api::rendering_context::RenderingContext;
 use servo_base::generic_channel::{GenericSender, SendError};
@@ -412,10 +412,9 @@ impl Drop for ContextMenu {
 /// Represents a dialog triggered by clicking a `<select>` element.
 pub struct SelectElement {
     pub(crate) id: EmbedderControlId,
-    pub(crate) options: Vec<SelectElementOptionOrOptgroup>,
-    pub(crate) selected_option: Option<usize>,
     pub(crate) position: DeviceIntRect,
     pub(crate) constellation_proxy: ConstellationProxy,
+    pub(crate) select_element_request: SelectElementRequest,
     pub(crate) response_sent: bool,
 }
 
@@ -435,19 +434,23 @@ impl SelectElement {
     /// Consecutive `<option>` elements outside of an `<optgroup>` will be combined
     /// into a single anonymous group without a label.
     pub fn options(&self) -> &[SelectElementOptionOrOptgroup] {
-        &self.options
+        &self.select_element_request.options
     }
 
-    /// Mark a single option as selected.
+    /// Set the options that are selected.
     ///
-    /// If there is already a selected option and the `<select>` element does not
-    /// support selecting multiple options, then the previous option will be unselected.
-    pub fn select(&mut self, id: Option<usize>) {
-        self.selected_option = id;
+    /// If other options have previously been selected, this set of options
+    /// will replace them.
+    pub fn select(&mut self, selected_options: Vec<usize>) {
+        self.select_element_request.selected_options = selected_options
     }
 
-    pub fn selected_option(&self) -> Option<usize> {
-        self.selected_option
+    pub fn selected_options(&self) -> Vec<usize> {
+        self.select_element_request.selected_options.clone()
+    }
+
+    pub fn allow_select_multiple(&self) -> bool {
+        self.select_element_request.allow_select_multiple
     }
 
     /// Resolve the prompt with the options that have been selected by calling [`Self::select`] previously.
@@ -456,7 +459,7 @@ impl SelectElement {
         self.constellation_proxy
             .send(EmbedderToConstellationMessage::EmbedderControlResponse(
                 self.id,
-                EmbedderControlResponse::SelectElement(self.selected_option()),
+                EmbedderControlResponse::SelectElement(self.selected_options()),
             ));
     }
 }
@@ -467,7 +470,7 @@ impl Drop for SelectElement {
             self.constellation_proxy
                 .send(EmbedderToConstellationMessage::EmbedderControlResponse(
                     self.id,
-                    EmbedderControlResponse::SelectElement(self.selected_option()),
+                    EmbedderControlResponse::SelectElement(self.selected_options()),
                 ));
         }
     }
