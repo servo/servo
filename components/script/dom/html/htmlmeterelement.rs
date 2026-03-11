@@ -7,6 +7,7 @@ use std::ops::{Add, Div};
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use stylo_dom::ElementState;
 
@@ -328,12 +329,10 @@ impl VirtualMethods for HTMLMeterElement {
         }
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
-        self.super_type()
-            .unwrap()
-            .children_changed(mutation, can_gc);
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
+        self.super_type().unwrap().children_changed(cx, mutation);
 
-        self.update_state(can_gc);
+        self.update_state(CanGc::from_cx(cx));
     }
 
     fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {

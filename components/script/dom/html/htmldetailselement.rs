@@ -8,6 +8,7 @@ use std::collections::hash_map::Entry;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::domstring::DOMString;
 use style::selector_parser::PseudoElement;
@@ -490,12 +491,10 @@ impl VirtualMethods for HTMLDetailsElement {
         }
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
-        self.super_type()
-            .unwrap()
-            .children_changed(mutation, can_gc);
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
+        self.super_type().unwrap().children_changed(cx, mutation);
 
-        self.update_shadow_tree_contents(can_gc);
+        self.update_shadow_tree_contents(CanGc::from_cx(cx));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-details-element:html-element-insertion-steps>

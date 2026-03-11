@@ -249,9 +249,9 @@ impl VirtualMethods for SVGSVGElement {
         }
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
         if let Some(super_type) = self.super_type() {
-            super_type.children_changed(mutation, can_gc);
+            super_type.children_changed(cx, mutation);
         }
 
         self.invalidate_cached_serialized_subtree();
