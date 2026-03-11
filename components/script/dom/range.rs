@@ -61,8 +61,8 @@ pub(crate) struct Range {
 }
 
 pub(crate) struct ContainedChildren {
-    first_partially_contained_child: Option<DomRoot<Node>>,
-    last_partially_contained_child: Option<DomRoot<Node>>,
+    pub(crate) first_partially_contained_child: Option<DomRoot<Node>>,
+    pub(crate) last_partially_contained_child: Option<DomRoot<Node>>,
     pub(crate) contained_children: Vec<DomRoot<Node>>,
 }
 
