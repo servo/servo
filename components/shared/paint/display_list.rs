@@ -616,21 +616,6 @@ impl ScrollTree {
         };
     }
 
-    // pub fn scroll_node_info_to_offset(
-    //     &mut self,
-    //     info: &mut ScrollableNodeInfo,
-    //     new_offset: LayoutVector2D,
-    //     context: ScrollType,
-    // ) -> Option<LayoutVector2D> {
-    //     let new_offset = info.scroll_to_offset(new_offset, context);
-
-    //     if let Some(new_offset) = new_offset {
-    //         self.push_scroll_node_update(&info, &new_offset, context); //MYTODO need to rename new_offset
-    //     }
-
-    //     new_offset
-    // }
-
     pub fn scroll_node_or_ancestor_inner(
         &mut self,
         scroll_node_id: ScrollTreeNodeId,

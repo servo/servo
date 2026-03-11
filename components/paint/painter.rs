@@ -874,8 +874,8 @@ impl Painter {
         };
 
         let mut transaction = Transaction::new();
+        // MYTODO need to push only the changed offsets.
         for (external_scroll_id, offset) in pipeline_details.scroll_tree.scroll_offsets() {
-            println!("[ztp] external_scroll_id {:?}, offset {:?}", external_scroll_id, offset);
             transaction.set_scroll_offsets(
                 external_scroll_id,
                 vec![SampledScrollOffset {

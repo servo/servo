@@ -1263,7 +1263,6 @@ impl<'a> BuilderForBoxFragment<'a> {
         self.build_border(builder);
     }
 
-    // MYTODO update this to include scrollnodeId
     fn build_scroll_bar(
         &self,
         builder: &mut DisplayListBuilder,

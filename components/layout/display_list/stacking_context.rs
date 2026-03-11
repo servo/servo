@@ -352,7 +352,6 @@ impl StackingContextContent {
     }
 
     fn build_display_list_with_section_override(
-        // MYTODO need to modify here IG?
         &self,
         builder: &mut DisplayListBuilder,
         inline_stacking_containers: &[StackingContext],
@@ -981,8 +980,6 @@ impl Fragment {
                     stacking_context,
                     text_decorations,
                 );
-
-                // MYTODO: After building stackign context tree checks whether the scrollbar need to be built(?).
             },
             Fragment::AbsoluteOrFixedPositioned(fragment) => {
                 let shared_fragment = fragment.borrow();
@@ -1631,8 +1628,6 @@ impl BoxFragment {
             );
         }
 
-        // MYTODO: Or maybe built the scrollbar here
-
         if matches!(
             self.specific_layout_info(),
             Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_))
@@ -1811,7 +1806,7 @@ impl BoxFragment {
         })
     }
 
-    /// MYTODO: Need to define axes scroll sensitivity well for scrollbar
+    /// MYTODO: For sensitivity we technically should ignore it for scrollbar.
     fn build_scrollbar_if_necessary(
         &self,
         stacking_context_tree: &mut StackingContextTree,

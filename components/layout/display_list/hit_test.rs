@@ -125,6 +125,8 @@ impl StackingContext {
     fn hit_test(&self, hit_test: &mut HitTest) -> bool {
         let mut contents = self.contents.iter().rev().peekable();
 
+        // MYTODO: also add hit test for scrollbar here.
+
         // Step 10: Outlines
         // We only use `StackingContextSection::Outline` as an override when building the
         // display list. So we shouldn't encounter it here.
@@ -309,7 +311,7 @@ impl Fragment {
                     box_fragment.border_radius(),
                     box_fragment.base.flags,
                     Cursor::Default,
-                ) // MYTODO: also add hit test for scrollbar here.
+                )
             },
             Fragment::Text(text) => {
                 let text = &*text.borrow();
