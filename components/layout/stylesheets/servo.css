@@ -145,6 +145,10 @@ input[type="file"]::before {
   margin-inline-end: 0.25em;
 }
 
+input[type="file"][multiple]::before {
+  content: "Choose Files";
+}
+
 input[type="file"] {
   display: inline-block;
   border: none;
