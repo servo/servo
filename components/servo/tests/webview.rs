@@ -481,6 +481,43 @@ fn test_viewport_meta_tag_initial_zoom_on_visual_viewport() {
 }
 
 #[test]
+fn test_viewport_meta_tag_initial_zoom_on_visual_viewport_2() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.viewport_meta_enabled = true;
+        preferences.dom_visual_viewport_enabled = true;
+        builder.preferences(preferences)
+    });
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,\
+                    <!DOCTYPE html>\
+                    <meta name=viewport content=\"initial-scale=2.0\">",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let eval_visual_viewport = |attr: &str| {
+        evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            format!("window.visualViewport.{}", attr),
+        )
+    };
+
+    // The visual viewport dimension after initial-scale
+    assert_eq!(eval_visual_viewport("scale"), Ok(JSValue::Number(2.0)));
+    assert_eq!(eval_visual_viewport("width"), Ok(JSValue::Number(250.)));
+    assert_eq!(eval_visual_viewport("height"), Ok(JSValue::Number(250.)));
+}
+
+#[test]
 fn test_show_and_hide_ime() {
     let servo_test = ServoTest::new();
 
