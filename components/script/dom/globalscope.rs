@@ -142,7 +142,7 @@ use crate::fetch::{DeferredFetchRecordId, FetchGroup, QueuedDeferredFetchRecord}
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm, enter_realm};
 use crate::script_module::{
     ImportMap, ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
 };
@@ -693,8 +693,8 @@ impl FileListener {
                     FileListenerTarget::Promise(trusted_promise, callback) => {
                         let task = task!(resolve_promise: move |cx| {
                             let promise = trusted_promise.root();
-                            let _ac = enter_realm(&*promise.global());
-                            callback(cx, promise, Ok(bytes));
+                            let mut realm = enter_auto_realm(cx, &*promise.global());
+                            callback(&mut realm, promise, Ok(bytes));
                         });
 
                         self.task_source.queue(task);
@@ -723,8 +723,8 @@ impl FileListener {
                         FileListenerTarget::Promise(trusted_promise, callback) => {
                             self.task_source.queue(task!(reject_promise: move |cx| {
                                 let promise = trusted_promise.root();
-                                let _ac = enter_realm(&*promise.global());
-                                callback(cx, promise, error);
+                                let mut realm = enter_auto_realm(cx, &*promise.global());
+                                callback(&mut realm, promise, error);
                             }));
                         },
                         FileListenerTarget::Stream(trusted_stream) => {
