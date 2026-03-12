@@ -3908,6 +3908,7 @@ impl ScriptThread {
         }
     }
 
+    #[expect(clippy::redundant_clone, reason = "False positive")]
     fn handle_fetch_eof(
         &self,
         cx: &mut js::context::JSContext,
