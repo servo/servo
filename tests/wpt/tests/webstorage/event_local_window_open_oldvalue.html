@@ -13,6 +13,9 @@
             localStorage.clear();
             t.add_cleanup(function() { localStorage.clear(); });
 
+            // The opened window does setItem("name", "user1"), then
+            // setItem("name", "user2"), then clear(). The clear() event has
+            // oldValue == null, so the expected sequence is null -> user1 -> null.
             var expected = [null, 'user1', null];
             function onStorageEvent(event) {
                 assert_equals(event.oldValue, expected.shift());
