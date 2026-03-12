@@ -417,3 +417,13 @@ function createEnvironmentActor(environment) {
 
     return actor;
 }
+
+// Get a `Debugger.Environment` instance within which evaluation is taking place.
+// <https://searchfox.org/firefox-main/source/devtools/server/actors/frame.js#109>
+addEventListener("getEnvironment", event => {
+    const {frameActorId} = event;
+    frame = frameActorsToFrames.get(frameActorId);
+
+    const actor = createEnvironmentActor(frame.environment);
+    getEnvironmentResult(actor);
+});

@@ -2306,6 +2306,13 @@ impl ScriptThread {
                     CanGc::from_cx(cx),
                 );
             },
+            DevtoolScriptControlMsg::GetEnvironment(frame_actor_id, result_sender) => {
+                self.debugger_global.fire_get_environment(
+                    frame_actor_id,
+                    result_sender,
+                    CanGc::from_cx(cx),
+                );
+            },
             DevtoolScriptControlMsg::Resume(resume_limit_type, frame_actor_id) => {
                 self.debugger_global.fire_resume(
                     resume_limit_type,
