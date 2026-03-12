@@ -464,11 +464,6 @@ struct CmdArgs {
     #[bpaf(short('b'), long)]
     no_native_titlebar: bool,
 
-    ///
-    ///  Enable to turn off incremental layout.
-    #[bpaf(short('i'), long, flag(false, true))]
-    nonincremental_layout: bool,
-
     /// Path to an output image. The format of the image is determined by the extension.
     /// Supports all formats that `rust-image` does.
     #[bpaf(short('o'), argument("test.png"), long)]
@@ -722,7 +717,6 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         time_profiler_trace_path: cmd_args
             .profiler_trace_path
             .map(|p| p.to_string_lossy().into_owned()),
-        nonincremental_layout: cmd_args.nonincremental_layout,
         hard_fail: cmd_args.hard_fail,
         multiprocess: cmd_args.multiprocess,
         background_hang_monitor: cmd_args.background_hang_monitor,

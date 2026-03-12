@@ -4742,6 +4742,8 @@ impl VirtualMethods for Node {
                     .drain_to_parent(old_parent, context.index(), self);
             }
         }
+
+        self.owner_doc().content_and_heritage_changed(self);
     }
 
     fn handle_event(&self, event: &Event, can_gc: CanGc) {
