@@ -52,6 +52,9 @@ pub(crate) struct HTMLVideoElement {
     video_width: Cell<Option<u32>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-video-videoheight>
     video_height: Cell<Option<u32>>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-video-poster>
+    #[no_trace]
+    poster: DomRefCell<Option<ServoUrl>>,
     /// Incremented whenever tasks associated with this element are cancelled.
     generation_id: Cell<u32>,
     /// Load event blocker. Will block the load event while the poster frame
@@ -73,6 +76,7 @@ impl HTMLVideoElement {
             htmlmediaelement: HTMLMediaElement::new_inherited(local_name, prefix, document),
             video_width: Cell::new(None),
             video_height: Cell::new(None),
+            poster: Default::default(),
             generation_id: Cell::new(0),
             load_blocker: Default::default(),
             last_frame: Default::default(),
@@ -173,6 +177,8 @@ impl HTMLVideoElement {
                 return;
             },
         };
+
+        *self.poster.borrow_mut() = Some(poster_url.clone());
 
         // We use the image cache for poster frames so we save as much
         // network activity as possible.
@@ -515,6 +521,7 @@ pub(crate) trait LayoutHTMLVideoElementHelpers {
     fn data(self) -> HTMLMediaData;
     fn get_width(self) -> LengthOrPercentageOrAuto;
     fn get_height(self) -> LengthOrPercentageOrAuto;
+    fn poster_url(self) -> Option<ServoUrl>;
 }
 
 impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
@@ -552,5 +559,10 @@ impl LayoutHTMLVideoElementHelpers for LayoutDom<'_, HTMLVideoElement> {
             .map(AttrValue::as_dimension)
             .cloned()
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
+    }
+
+    #[expect(unsafe_code)]
+    fn poster_url(self) -> Option<ServoUrl> {
+        unsafe { self.unsafe_get().poster.borrow_for_layout().clone() }
     }
 }
