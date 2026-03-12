@@ -218,12 +218,12 @@ skip = [
     "vello_common",
     "vello_cpu",
 
-    # Duplicated by image-rs
-    "gif",
+    # Duplicated by resvg/image
     "pastey",
     "png",
-    "zune-core",
-    "zune-jpeg",
+    "roxmltree",
+    "tiny-skia",
+    "tiny-skia-path",
 ]
 
 # github.com organizations to allow git sources for
