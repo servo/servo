@@ -86,9 +86,7 @@ impl OpenRequestListener {
                 let error = map_backend_error_to_dom_error(err);
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut rval = UndefinedValue());
-                error
-                    .clone()
-                    .to_jsval(cx, &global, rval.handle_mut(), can_gc);
+                error.to_jsval(cx, &global, rval.handle_mut(), can_gc);
                 open_request.set_result(rval.handle());
                 let event = Event::new(
                     &global,

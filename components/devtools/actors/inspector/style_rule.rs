@@ -204,7 +204,7 @@ impl StyleRuleActor {
                     }
                 })
                 .collect(),
-            href: node.base_uri.clone(),
+            href: node.base_uri,
             selectors: self.selector.iter().map(|(s, _)| s).cloned().collect(),
             selectors_specificity: self.selector.iter().map(|_| 1).collect(),
             type_: ELEMENT_STYLE_TYPE,

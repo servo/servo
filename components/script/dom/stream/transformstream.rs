@@ -489,7 +489,7 @@ impl TransformStream {
         self.initialize(
             cx,
             global,
-            start_promise.clone(),
+            start_promise,
             writable_high_water_mark,
             writable_size_algorithm,
             readable_high_water_mark,
@@ -571,7 +571,7 @@ impl TransformStream {
 
         let readable = create_readable_stream(
             global,
-            UnderlyingSourceType::Transform(Dom::from_ref(self), start_promise.clone()),
+            UnderlyingSourceType::Transform(Dom::from_ref(self), start_promise),
             Some(readable_size_algorithm),
             Some(readable_high_water_mark),
             can_gc,

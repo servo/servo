@@ -122,7 +122,7 @@ impl TextTrackListMethods<crate::DomTypeHolder> for TextTrackList {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttracklist-gettrackbyid>
     fn GetTrackById(&self, id: DOMString) -> Option<DomRoot<TextTrack>> {
-        let id_str = String::from(id.clone());
+        let id_str = String::from(id);
         self.dom_tracks
             .borrow()
             .iter()

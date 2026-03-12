@@ -93,7 +93,7 @@ impl History {
     ) {
         // Steps 5
         let document = self.window.Document();
-        let old_url = document.url().clone();
+        let old_url = document.url();
         document.set_url(url.clone());
 
         // Step 6

@@ -122,7 +122,7 @@ impl GPURenderBundleEncoder {
             &device.global(),
             render_bundle_encoder,
             device,
-            device.channel().clone(),
+            device.channel(),
             descriptor.parent.parent.label.clone(),
             can_gc,
         ))

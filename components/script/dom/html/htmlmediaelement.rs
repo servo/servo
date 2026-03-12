@@ -1459,7 +1459,7 @@ impl HTMLMediaElement {
             global.core_resource_thread(),
         ));
         let listener =
-            HTMLMediaElementFetchListener::new(self, request.id, url.clone(), offset.unwrap_or(0));
+            HTMLMediaElementFetchListener::new(self, request.id, url, offset.unwrap_or(0));
 
         self.owner_document().fetch_background(request, listener);
 
@@ -3646,7 +3646,7 @@ impl HTMLMediaElementFetchContext {
             is_seekable: false,
             origin_clean: true,
             data_source: RefCell::new(BufferedDataSource::new()),
-            fetch_canceller: FetchCanceller::new(request_id, false, core_resource_thread.clone()),
+            fetch_canceller: FetchCanceller::new(request_id, false, core_resource_thread),
         }
     }
 

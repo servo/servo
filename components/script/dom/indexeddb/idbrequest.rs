@@ -358,7 +358,7 @@ impl RequestListener {
         // An explicit call to abort() will initiate an abort. An abort will also be initiated following a failed request that is not handled by script.
         // When a transaction is aborted the implementation must undo (roll back) any changes that were made to the database during that transaction. This includes both changes to the contents of object stores as well as additions and removals of object stores and indexes.
         if default_not_prevented {
-            transaction.initiate_abort(error.clone(), CanGc::from_cx(cx));
+            transaction.initiate_abort(error, CanGc::from_cx(cx));
             transaction.request_backend_abort();
         }
         // Notify the transaction that this request has finished.

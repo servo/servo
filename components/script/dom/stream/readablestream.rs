@@ -1709,7 +1709,7 @@ impl ReadableStream {
             canceled_2,
             reason_1,
             reason_2,
-            cancel_promise.clone(),
+            cancel_promise,
             reader_version,
             ByteTeeCancelAlgorithm::Cancel2Algorithm,
             ByteTeePullAlgorithm::Pull2Algorithm,

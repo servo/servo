@@ -698,8 +698,8 @@ impl ActorEncode<NetworkEventMsg> for NetworkEventActor {
                 .as_millis() as i64,
         ) {
             LocalResult::None => "".to_owned(),
-            LocalResult::Single(date_time) => date_time.to_rfc3339().to_string(),
-            LocalResult::Ambiguous(date_time, _) => date_time.to_rfc3339().to_string(),
+            LocalResult::Single(date_time) => date_time.to_rfc3339(),
+            LocalResult::Ambiguous(date_time, _) => date_time.to_rfc3339(),
         };
 
         let watcher = registry.find::<WatcherActor>(&self.watcher);

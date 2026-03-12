@@ -116,7 +116,7 @@ impl GPUSampler {
 
         GPUSampler::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             device.id(),
             compare_enable,
             sampler,

@@ -130,7 +130,7 @@ impl GPUBindGroupLayout {
 
         Ok(GPUBindGroupLayout::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             bgl,
             descriptor.parent.label.clone(),
             can_gc,

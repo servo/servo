@@ -905,7 +905,7 @@ impl WritableStream {
         // Add a handler for port’s messageerror event with the following steps:
         rooted!(in(*cx) let cross_realm_transform_writable = CrossRealmTransformWritable {
             controller: Dom::from_ref(&controller),
-            backpressure_promise: backpressure_promise.clone(),
+            backpressure_promise,
         });
         global.note_cross_realm_transform_writable(&cross_realm_transform_writable, port_id);
 

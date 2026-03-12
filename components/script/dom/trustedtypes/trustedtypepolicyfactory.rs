@@ -254,11 +254,9 @@ impl TrustedTypePolicyFactory {
         // Step 2: Let policyValue be the result of executing Get Trusted Type policy value,
         // with the following arguments:
         rooted!(in(*cx) let mut trusted_type_name_value = NullValue());
-        expected_type.clone().as_ref().safe_to_jsval(
-            cx,
-            trusted_type_name_value.handle_mut(),
-            can_gc,
-        );
+        expected_type
+            .as_ref()
+            .safe_to_jsval(cx, trusted_type_name_value.handle_mut(), can_gc);
 
         rooted!(in(*cx) let mut sink_value = NullValue());
         sink.safe_to_jsval(cx, sink_value.handle_mut(), can_gc);

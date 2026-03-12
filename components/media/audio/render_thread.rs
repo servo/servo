@@ -186,17 +186,16 @@ impl AudioRenderThread {
         options: AudioContextOptions,
         init_sender: Sender<Result<(), AudioSinkError>>,
     ) {
-        let mut thread =
-            match Self::prepare_thread::<B>(sender.clone(), sample_rate, graph, options) {
-                Ok(thread) => {
-                    let _ = init_sender.send(Ok(()));
-                    thread
-                },
-                Err(e) => {
-                    let _ = init_sender.send(Err(e));
-                    return;
-                },
-            };
+        let mut thread = match Self::prepare_thread::<B>(sender, sample_rate, graph, options) {
+            Ok(thread) => {
+                let _ = init_sender.send(Ok(()));
+                thread
+            },
+            Err(e) => {
+                let _ = init_sender.send(Err(e));
+                return;
+            },
+        };
 
         thread.event_loop(event_queue);
     }

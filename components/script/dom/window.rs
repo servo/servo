@@ -2388,7 +2388,7 @@ impl Window {
             "*" => None,
             "/" => Some(source_origin.clone()),
             url => match ServoUrl::parse(url) {
-                Ok(url) => Some(url.origin().clone()),
+                Ok(url) => Some(url.origin()),
                 Err(_) => return Err(Error::Syntax(None)),
             },
         };
@@ -3775,7 +3775,7 @@ impl Window {
                 gpu_id_hub,
                 inherited_secure_context,
                 unminify_js,
-                Some(font_context.clone()),
+                Some(font_context),
             ),
             ongoing_navigation: Default::default(),
             script_chan,
@@ -3796,7 +3796,7 @@ impl Window {
             status: DomRefCell::new(DOMString::new()),
             parent_info,
             dom_static: GlobalStaticData::new(),
-            js_runtime: DomRefCell::new(Some(runtime.clone())),
+            js_runtime: DomRefCell::new(Some(runtime)),
             #[cfg(feature = "bluetooth")]
             bluetooth_thread,
             #[cfg(feature = "bluetooth")]

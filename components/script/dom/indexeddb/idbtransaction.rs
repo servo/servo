@@ -618,12 +618,7 @@ impl IDBTransaction {
         let db_name = self.db.get_name().to_string();
         let object_store_name = object_store_name.to_string();
 
-        let operation = SyncOperation::GetObjectStore(
-            sender,
-            origin.clone(),
-            db_name.clone(),
-            object_store_name.clone(),
-        );
+        let operation = SyncOperation::GetObjectStore(sender, origin, db_name, object_store_name);
 
         let _ = idb_sender.send(IndexedDBThreadMsg::Sync(operation));
 

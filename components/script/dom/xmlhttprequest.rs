@@ -1120,7 +1120,7 @@ impl XMLHttpRequest {
                 // XXXManishearth handle errors, if any (substep 1)
                 // Substep 2
                 if !status.is_error() {
-                    *self.status.borrow_mut() = status.clone();
+                    *self.status.borrow_mut() = status;
                 }
                 if let Some(h) = headers.as_ref() {
                     *self.response_headers.borrow_mut() = h.clone();

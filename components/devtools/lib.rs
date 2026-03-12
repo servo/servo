@@ -493,7 +493,7 @@ impl DevtoolsInstance {
                 console: console_name.clone(),
                 thread: thread_name,
                 worker_id: id,
-                url: page_info.url.clone(),
+                url: page_info.url,
                 type_: WorkerType::Dedicated,
                 script_chan: script_sender,
                 streams: Default::default(),

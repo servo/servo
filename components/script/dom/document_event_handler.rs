@@ -1772,7 +1772,7 @@ impl DocumentEventHandler {
                     // Step 7.1.2.1 For each clipboard-part on the OS clipboard:
 
                     // Step 7.1.2.1.1 If clipboard-part contains plain text, then
-                    let data = DOMString::from(text_contents.to_string());
+                    let data = DOMString::from(text_contents);
                     let type_ = DOMString::from("text/plain");
                     let _ = drag_data_store.add(Kind::Text { data, type_ });
 

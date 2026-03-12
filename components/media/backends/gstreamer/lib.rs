@@ -169,6 +169,7 @@ impl GStreamerBackend {
 }
 
 impl Backend for GStreamerBackend {
+    #[expect(clippy::redundant_clone, reason = "False positive")]
     fn create_player(
         &self,
         context_id: &ClientContextId,
@@ -195,6 +196,7 @@ impl Backend for GStreamerBackend {
         player
     }
 
+    #[expect(clippy::redundant_clone, reason = "False positive")]
     fn create_audio_context(
         &self,
         client_context_id: &ClientContextId,

@@ -2804,7 +2804,7 @@ impl ScriptThread {
             }
 
             let prefix = format!("url({urls})");
-            reports.extend(self.get_cx().get_reports(prefix.clone(), ops));
+            reports.extend(self.get_cx().get_reports(prefix, ops));
         });
 
         reports_chan.send(ProcessReports::new(reports));
@@ -3915,6 +3915,7 @@ impl ScriptThread {
         }
     }
 
+    #[expect(clippy::redundant_clone, reason = "False positive")]
     fn handle_fetch_eof(
         &self,
         cx: &mut js::context::JSContext,

@@ -71,7 +71,7 @@ impl App {
             servoshell_preferences: servo_shell_preferences,
             waker: event_loop.create_event_loop_waker(),
             event_loop_proxy: event_loop.event_loop_proxy(),
-            initial_url: initial_url.clone(),
+            initial_url,
             t_start: t,
             t,
             state: AppState::Initializing,

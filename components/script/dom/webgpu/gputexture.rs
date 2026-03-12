@@ -152,7 +152,7 @@ impl GPUTexture {
             &device.global(),
             texture,
             device,
-            device.channel().clone(),
+            device.channel(),
             size,
             descriptor.mipLevelCount,
             descriptor.sampleCount,

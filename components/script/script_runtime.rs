@@ -333,7 +333,7 @@ unsafe extern "C" fn push_new_interrupt_queue(interrupt_queues: *mut c_void) -> 
             unsafe { Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>) };
         let new_queue = Rc::new(MicrotaskQueue::default());
         result = Rc::as_ptr(&new_queue) as *const c_void;
-        interrupt_queues.push(new_queue.clone());
+        interrupt_queues.push(new_queue);
         std::mem::forget(interrupt_queues);
     });
     result
@@ -467,7 +467,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                 let target = Trusted::new(global.upcast::<EventTarget>());
                 let promise =
                     Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx);
-                let trusted_promise = TrustedPromise::new(promise.clone());
+                let trusted_promise = TrustedPromise::new(promise);
 
                 // Step 5-4.
                 global.task_manager().dom_manipulation_task_source().queue(

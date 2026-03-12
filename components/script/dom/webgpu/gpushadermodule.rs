@@ -88,7 +88,7 @@ impl GPUShaderModule {
         let promise = Promise::new_in_current_realm(comp, can_gc);
         let shader_module = GPUShaderModule::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             WebGPUShaderModule(program_id),
             descriptor.parent.label.clone(),
             promise.clone(),

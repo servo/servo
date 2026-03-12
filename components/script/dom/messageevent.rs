@@ -332,9 +332,9 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
         ports: Vec<DomRoot<MessagePort>>,
     ) {
         self.data.set(data.get());
-        *self.origin.borrow_mut() = origin.clone();
+        *self.origin.borrow_mut() = origin;
         *self.source.borrow_mut() = source.as_ref().map(|source| source.into());
-        *self.lastEventId.borrow_mut() = lastEventId.clone();
+        *self.lastEventId.borrow_mut() = lastEventId;
         *self.ports.borrow_mut() = ports
             .into_iter()
             .map(|port| Dom::from_ref(&*port))

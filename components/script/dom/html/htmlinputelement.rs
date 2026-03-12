@@ -230,7 +230,7 @@ impl TextInputWidgetShadowTree {
         if let Some(character_data) = self.placeholder_character_data(input_element, can_gc) {
             let placeholder_value = input_element.placeholder.borrow().clone();
             if character_data.Data() != placeholder_value {
-                character_data.SetData(placeholder_value.clone());
+                character_data.SetData(placeholder_value);
             }
         }
     }
@@ -2245,8 +2245,8 @@ impl HTMLInputElement {
                         datums.push(FormDatum {
                             // XXX(izgzhen): Spec says 'application/octet-stream' as the type,
                             // but this is _type_ of element rather than content right?
-                            ty: ty.clone(),
-                            name: name.clone(),
+                            ty,
+                            name,
                             value: FormDatumValue::String(DOMString::from("")),
                         })
                     },
@@ -2261,7 +2261,7 @@ impl HTMLInputElement {
             InputType::Hidden => {
                 if name.to_ascii_lowercase() == "_charset_" {
                     return vec![FormDatum {
-                        ty: ty.clone(),
+                        ty,
                         name,
                         value: FormDatumValue::String(match encoding {
                             None => DOMString::from("UTF-8"),
@@ -2281,7 +2281,7 @@ impl HTMLInputElement {
 
         // Step 5.12
         vec![FormDatum {
-            ty: ty.clone(),
+            ty,
             name,
             value: FormDatumValue::String(self.Value()),
         }]
