@@ -70,11 +70,7 @@ impl HTMLProgressElement {
         )
     }
 
-    #[expect(unsafe_code)]
-    fn create_shadow_tree(&self, _can_gc: CanGc) {
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    fn create_shadow_tree(&self, cx: &mut JSContext) {
         let document = self.owner_document();
         let root = self.upcast::<Element>().attach_ua_shadow_root(cx, true);
 
@@ -101,9 +97,9 @@ impl HTMLProgressElement {
             .dirty(crate::dom::node::NodeDamage::Other);
     }
 
-    fn shadow_tree(&self, can_gc: CanGc) -> Ref<'_, ShadowTree> {
+    fn shadow_tree(&self, cx: &mut JSContext) -> Ref<'_, ShadowTree> {
         if !self.upcast::<Element>().is_shadow_host() {
-            self.create_shadow_tree(can_gc);
+            self.create_shadow_tree(cx);
         }
 
         Ref::filter_map(self.shadow_tree.borrow(), Option::as_ref)
@@ -112,14 +108,16 @@ impl HTMLProgressElement {
     }
 
     /// Update the visual width of bar
-    fn update_state(&self, can_gc: CanGc) {
-        let shadow_tree = self.shadow_tree(can_gc);
+    fn update_state(&self, cx: &mut JSContext) {
+        let shadow_tree = self.shadow_tree(cx);
         let position = (*self.Value() / *self.Max()) * 100.0;
         let style = format!("width: {}%", position);
 
-        shadow_tree
-            .progress_bar
-            .set_string_attribute(&local_name!("style"), style.into(), can_gc);
+        shadow_tree.progress_bar.set_string_attribute(
+            &local_name!("style"),
+            style.into(),
+            CanGc::from_cx(cx),
+        );
     }
 }
 
@@ -217,23 +215,28 @@ impl VirtualMethods for HTMLProgressElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    #[expect(unsafe_code)]
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, _can_gc: CanGc) {
+        // TODO: https://github.com/servo/servo/issues/42812
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(attr, mutation, CanGc::from_cx(cx));
 
         let is_important_attribute = matches!(
             attr.local_name(),
             &local_name!("value") | &local_name!("max")
         );
         if is_important_attribute {
-            self.update_state(CanGc::note());
+            self.update_state(cx);
         }
     }
 
     fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         self.super_type().unwrap().bind_to_tree(cx, context);
 
-        self.update_state(CanGc::note());
+        self.update_state(cx);
     }
 }
