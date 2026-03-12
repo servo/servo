@@ -142,7 +142,7 @@ use crate::fetch::{DeferredFetchRecordId, FetchGroup, QueuedDeferredFetchRecord}
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm, enter_realm};
 use crate::script_module::{
     ImportMap, ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
 };
@@ -426,7 +426,8 @@ struct BroadcastListener {
     context: Trusted<GlobalScope>,
 }
 
-type FileListenerCallback = Box<dyn Fn(Rc<Promise>, Fallible<Vec<u8>>) + Send>;
+type FileListenerCallback =
+    Box<dyn Fn(&mut js::context::JSContext, Rc<Promise>, Fallible<Vec<u8>>) + Send>;
 
 /// A wrapper for the handling of file data received by the ipc router
 struct FileListener {
@@ -690,10 +691,10 @@ impl FileListener {
             Ok(ReadFileProgress::EOF) => match self.state.take() {
                 Some(FileListenerState::Receiving(bytes, target)) => match target {
                     FileListenerTarget::Promise(trusted_promise, callback) => {
-                        let task = task!(resolve_promise: move || {
+                        let task = task!(resolve_promise: move |cx| {
                             let promise = trusted_promise.root();
-                            let _ac = enter_realm(&*promise.global());
-                            callback(promise, Ok(bytes));
+                            let mut realm = enter_auto_realm(cx, &*promise.global());
+                            callback(&mut realm, promise, Ok(bytes));
                         });
 
                         self.task_source.queue(task);
@@ -718,10 +719,10 @@ impl FileListener {
 
                     match target {
                         FileListenerTarget::Promise(trusted_promise, callback) => {
-                            self.task_source.queue(task!(reject_promise: move || {
+                            self.task_source.queue(task!(reject_promise: move |cx| {
                                 let promise = trusted_promise.root();
-                                let _ac = enter_realm(&*promise.global());
-                                callback(promise, error);
+                                let mut realm = enter_auto_realm(cx, &*promise.global());
+                                callback(&mut realm, promise, error);
                             }));
                         },
                         FileListenerTarget::Stream(trusted_stream) => {
