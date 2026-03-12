@@ -219,9 +219,6 @@ skip = [
     # These need to be investigated separately to see if the duplication can be
     # avoided.
     "libloading",
-    "cfg-expr",
-    "system-deps",
-    "target-lexicon",
 ]
 
 # github.com organizations to allow git sources for
