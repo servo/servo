@@ -233,9 +233,6 @@ impl BoxFragment {
 
     pub fn specific_layout_info(&self) -> Option<AtomicRef<'_, SpecificLayoutInfo>> {
         let rare_data = self.rare_data.borrow();
-        if rare_data.is_none() {
-            return None;
-        }
 
         AtomicRef::filter_map(rare_data, |rare_data| {
             rare_data.as_ref()?.specific_layout_info.as_ref()
@@ -244,9 +241,6 @@ impl BoxFragment {
 
     pub fn resolved_sticky_insets(&self) -> Option<AtomicRef<'_, Box<PhysicalSides<AuOrAuto>>>> {
         let rare_data = self.rare_data.borrow();
-        if rare_data.is_none() {
-            return None;
-        }
 
         AtomicRef::filter_map(rare_data, |rare_data| {
             rare_data.as_ref()?.resolved_sticky_insets.as_ref()
