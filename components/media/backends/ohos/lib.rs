@@ -2,23 +2,23 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::{
-    collections::HashMap,
-    sync::{
-        atomic::AtomicUsize,
-        mpsc::{self, Sender},
-        Arc, Mutex, Weak,
-    },
-    thread,
-};
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::mpsc::{self, Sender};
+use std::sync::{Arc, Mutex, Weak};
+use std::thread;
 
-use log::warn;
+use log::{debug, warn};
 use mime::Mime;
+use servo_media::player::StreamType;
 use servo_media::{
-    Backend, BackendInit, BackendMsg, ClientContextId, MediaInstance, SupportsMediaType,
+    Backend, BackendInit, BackendMsg, ClientContextId, MediaInstance, MediaInstanceError,
+    SupportsMediaType,
 };
 
-use crate::{player::OhosAVPlayer, registry_scanner::OHOS_REGISTRY_SCANNER};
+use crate::player::OhosAvPlayer;
+use crate::registry_scanner::OHOS_REGISTRY_SCANNER;
+mod ohos_media;
 mod player;
 mod registry_scanner;
 
@@ -32,7 +32,7 @@ impl OhosBackend {
     fn media_instance_action(
         &self,
         id: &ClientContextId,
-        cb: &dyn Fn(&dyn MediaInstance) -> Result<(), ()>,
+        cb: &dyn Fn(&dyn MediaInstance) -> Result<(), MediaInstanceError>,
     ) {
         let mut instances = self.instances.lock().unwrap();
         match instances.get_mut(id) {
@@ -48,7 +48,7 @@ impl OhosBackend {
             }),
             None => {
                 warn!("Trying to exec media action on an unknown client context");
-            }
+            },
         }
     }
 }
@@ -65,7 +65,11 @@ impl BackendInit for OhosBackend {
             .name("OhosBackend ShutdownThread".to_owned())
             .spawn(move || {
                 match recvr.recv().unwrap() {
-                    BackendMsg::Shutdown { context, id, tx_ack } => {
+                    BackendMsg::Shutdown {
+                        context,
+                        id,
+                        tx_ack,
+                    } => {
                         let mut map = instances_.lock().unwrap();
                         if let Some(vec) = map.get_mut(&context) {
                             vec.retain(|m| m.0 != id);
@@ -74,7 +78,7 @@ impl BackendInit for OhosBackend {
                             }
                         }
                         let _ = tx_ack.send(());
-                    }
+                    },
                 };
             })
             .unwrap();
@@ -92,7 +96,7 @@ impl BackendInit for OhosBackend {
 impl Backend for OhosBackend {
     fn create_player(
         &self,
-        id: &servo_media::ClientContextId,
+        context_id: &servo_media::ClientContextId,
         stream_type: servo_media_player::StreamType,
         sender: servo_media_player::ipc_channel::ipc::IpcSender<servo_media_player::PlayerEvent>,
         video_renderer: Option<
@@ -101,9 +105,32 @@ impl Backend for OhosBackend {
         audio_renderer: Option<
             std::sync::Arc<std::sync::Mutex<dyn servo_media_player::audio::AudioRenderer>>,
         >,
-        gl_context: Box<dyn servo_media_player::context::PlayerGLContext>,
+        _gl_context: Box<dyn servo_media_player::context::PlayerGLContext>,
     ) -> std::sync::Arc<std::sync::Mutex<dyn servo_media_player::Player>> {
-        Arc::new(Mutex::new(OhosAVPlayer::new()))
+        // TODO: Choose different Player Impl depends on stream_type
+        match stream_type {
+            StreamType::Stream => {
+                todo!("Stream Type currently not supported!")
+            },
+            StreamType::Seekable => (),
+        }
+
+        if let Some(_audio_renderer) = audio_renderer {
+            warn!("Audio Rendering Currently Not Supported!");
+        }
+
+        let player_id = self.next_instance_id.fetch_add(1, Ordering::Relaxed);
+        debug!("Creating Player in OhosBackend");
+        let mut player = OhosAvPlayer::new(
+            player_id,
+            *context_id,
+            sender,
+            video_renderer,
+            self.backend_chan.clone(),
+        );
+
+        player.setup_info_event(); // TODO: Think about where to put this setup step.
+        return Arc::new(Mutex::new(player));
     }
 
     fn create_audiostream(&self) -> servo_media_streams::MediaStreamId {
@@ -120,7 +147,7 @@ impl Backend for OhosBackend {
 
     fn create_stream_and_socket(
         &self,
-        ty: servo_media_streams::MediaStreamType,
+        _ty: servo_media_streams::MediaStreamType,
     ) -> (
         Box<dyn servo_media_streams::MediaSocket>,
         servo_media_streams::MediaStreamId,
@@ -130,21 +157,21 @@ impl Backend for OhosBackend {
 
     fn create_audioinput_stream(
         &self,
-        set: servo_media_streams::capture::MediaTrackConstraintSet,
+        _set: servo_media_streams::capture::MediaTrackConstraintSet,
     ) -> Option<servo_media_streams::MediaStreamId> {
         todo!()
     }
 
     fn create_videoinput_stream(
         &self,
-        set: servo_media_streams::capture::MediaTrackConstraintSet,
+        _set: servo_media_streams::capture::MediaTrackConstraintSet,
     ) -> Option<servo_media_streams::MediaStreamId> {
         todo!()
     }
 
     fn create_audio_context(
         &self,
-        id: &servo_media::ClientContextId,
+        _id: &servo_media::ClientContextId,
         options: servo_media_audio::context::AudioContextOptions,
     ) -> Result<
         std::sync::Arc<std::sync::Mutex<servo_media_audio::context::AudioContext>>,
@@ -155,7 +182,7 @@ impl Backend for OhosBackend {
 
     fn create_webrtc(
         &self,
-        signaller: Box<dyn servo_media_webrtc::WebRtcSignaller>,
+        _signaller: Box<dyn servo_media_webrtc::WebRtcSignaller>,
     ) -> servo_media_webrtc::WebRtcController {
         todo!()
     }
