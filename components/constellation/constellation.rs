@@ -2570,22 +2570,48 @@ where
         new_value: Option<String>,
     ) {
         let origin = url.origin();
+        let Some(source_pipeline) = self.pipelines.get(&pipeline_id) else {
+            warn!("Received storage event broadcast request from closed pipeline.");
+            return;
+        };
+
+        if source_pipeline.url.origin() != origin {
+            return warn!(
+                "Attempt to broadcast storage event from an origin not matching the source pipeline origin."
+            );
+        }
+
         for pipeline in self.pipelines.values() {
-            if (pipeline.id != pipeline_id) && (pipeline.url.origin() == origin) {
-                let msg = ScriptThreadMessage::DispatchStorageEvent(
-                    pipeline.id,
-                    storage,
-                    url.clone(),
-                    key.clone(),
-                    old_value.clone(),
-                    new_value.clone(),
+            if pipeline.id == pipeline_id || pipeline.url.origin() != origin {
+                continue;
+            }
+
+            // https://html.spec.whatwg.org/multipage/#concept-storage-broadcast
+            // "Step 3. Let remoteStorages be all Storage objects excluding storage whose:
+            // type is storage's type
+            // relevant settings object's origin is same origin with storage's relevant settings object's origin
+            // and, if type is "session", whose relevant settings object's associated Document's
+            // node navigable's traversable navigable is thisDocument's node navigable's
+            // traversable navigable."
+            if storage == WebStorageType::Session &&
+                pipeline.webview_id != source_pipeline.webview_id
+            {
+                continue;
+            }
+
+            let msg = ScriptThreadMessage::DispatchStorageEvent(
+                pipeline.id,
+                storage,
+                url.clone(),
+                key.clone(),
+                old_value.clone(),
+                new_value.clone(),
+            );
+            if let Err(err) = pipeline.event_loop.send(msg) {
+                warn!(
+                    "{}: Failed to broadcast storage event to pipeline ({:?}).",
+                    pipeline.id, err
                 );
-                if let Err(err) = pipeline.event_loop.send(msg) {
-                    warn!(
-                        "{}: Failed to broadcast storage event to pipeline ({:?}).",
-                        pipeline.id, err
-                    );
-                }
             }
         }
     }
