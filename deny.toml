@@ -212,6 +212,12 @@ skip = [
     # this.
     "hybrid-array",
 
+    # Duplicated by resvg/image
+    "pastey",
+    "png",
+    "roxmltree",
+    "tiny-skia",
+    "tiny-skia-path",
 
     # The following 5 duplicates were introduced when Servo's CI was failing to
     # detect duplicates introduced in automatic dependabot PRs (#38945). They
