@@ -291,11 +291,11 @@ pub enum WheelMode {
 /// The Wheel event deltas in every direction
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WheelDelta {
-    /// Delta in the left/right direction
-    /// A positive value means scrolling the scrollbar left. (Revealing more content left)
+    /// Delta in the left/right direction. A positive value means that the view scrolls left,
+    /// revealing more content to the left of the current viewport.
     pub x: f64,
-    /// Delta in the up/down direction
-    /// A positive value means scrolling the scrollbar up. (Revealing more content up)
+    /// Delta in the up/down direction. A positive value means that the view scrolls up, revealing
+    /// more content above the current viewport.
     pub y: f64,
     /// Delta in the direction going into/out of the screen
     pub z: f64,
