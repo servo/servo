@@ -149,7 +149,7 @@ impl HTMLElement {
     pub(crate) fn set_inner_text(&self, cx: &mut JSContext, input: DOMString) {
         // Step 1: Let fragment be the rendered text fragment for value given element's node
         // document.
-        let fragment = self.rendered_text_fragment(input, CanGc::from_cx(cx));
+        let fragment = self.rendered_text_fragment(cx, input);
 
         // Step 2: Replace all with fragment within element.
         Node::replace_all(cx, Some(fragment.upcast()), self.upcast::<Node>());
@@ -585,7 +585,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
         // Step 4: Let fragment be the rendered text fragment for the given value given this's node
         // document.
-        let fragment = self.rendered_text_fragment(input, CanGc::from_cx(cx));
+        let fragment = self.rendered_text_fragment(cx, input);
 
         // Step 5: If fragment has no children, then append a new Text node whose data is the empty
         // string and node document is this's node document to fragment.
@@ -1023,15 +1023,11 @@ impl HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#rendered-text-fragment>
-    #[expect(unsafe_code)]
     fn rendered_text_fragment(
         &self,
+        cx: &mut JSContext,
         input: DOMString,
-        _can_gc: CanGc,
     ) -> DomRoot<DocumentFragment> {
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
         // Step 1: Let fragment be a new DocumentFragment whose node document is document.
         let document = self.owner_document();
         let fragment = DocumentFragment::new(&document, CanGc::from_cx(cx));

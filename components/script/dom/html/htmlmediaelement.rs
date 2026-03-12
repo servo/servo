@@ -2802,12 +2802,7 @@ impl HTMLMediaElement {
             .unwrap_or_else(|_| self.current_playback_position.get())
     }
 
-    #[expect(unsafe_code)]
-    fn render_controls(&self, _can_gc: CanGc) {
-        // TODO
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    fn render_controls(&self, cx: &mut JSContext) {
         if self.upcast::<Element>().is_shadow_host() {
             // Bail out if we are already showing the controls.
             return;
@@ -3407,7 +3402,7 @@ impl VirtualMethods for HTMLMediaElement {
             },
             local_name!("controls") => {
                 if mutation.new_value(attr).is_some() {
-                    self.render_controls(CanGc::from_cx(cx));
+                    self.render_controls(cx);
                 } else {
                     self.remove_controls();
                 }
