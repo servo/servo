@@ -22,7 +22,7 @@ pub(crate) fn gstreamer_plugins() -> Vec<String> {
     } else if cfg!(target_os = "macos") {
         ("lib", ".dylib")
     } else {
-        unreachable!("This function is only for macos and windows.")
+        unreachable!("This function is only for macOS and Windows.")
     };
 
     plugins
