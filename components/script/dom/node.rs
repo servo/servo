@@ -2866,11 +2866,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-adopt>
-    #[expect(unsafe_code)]
-    pub(crate) fn adopt(node: &Node, document: &Document, can_gc: CanGc) {
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    pub(crate) fn adopt(cx: &mut JSContext, node: &Node, document: &Document) {
         document.add_script_and_layout_blocker();
 
         // Step 1. Let oldDocument be node’s node document.
@@ -2914,7 +2910,7 @@ impl Node {
             // Step 3.3 For each inclusiveDescendant in node’s shadow-including inclusive descendants,
             // in shadow-including tree order, run the adopting steps with inclusiveDescendant and oldDocument.
             for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
-                vtable_for(&descendant).adopting_steps(&old_doc, can_gc);
+                vtable_for(&descendant).adopting_steps(cx, &old_doc);
             }
         }
 
@@ -3169,7 +3165,7 @@ impl Node {
         // Step 7. For each node in nodes, in tree order:
         for kid in new_nodes {
             // Step 7.1. Adopt node into parent’s node document.
-            Node::adopt(kid, &parent.owner_document(), CanGc::from_cx(cx));
+            Node::adopt(cx, kid, &parent.owner_document());
 
             // Step 7.2. If child is null, then append node to parent’s children.
             // Step 7.3. Otherwise, insert node into parent’s children before child’s index.
@@ -4243,7 +4239,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         // However, if we follow the spec and delay adoption to inside `Node::insert()`, then the mutation records will
         // be different, and we will fail WPT dom/nodes/MutationObserver-childList.html.
         let document = self.owner_document();
-        Node::adopt(node, &document, CanGc::from_cx(cx));
+        Node::adopt(cx, node, &document);
 
         // Step 10. Let removedNodes be the empty set.
         // Step 11. If child’s parent is non-null:

@@ -4809,8 +4809,8 @@ impl VirtualMethods for Element {
         }
     }
 
-    fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
-        self.super_type().unwrap().adopting_steps(old_doc, can_gc);
+    fn adopting_steps(&self, cx: &mut JSContext, old_doc: &Document) {
+        self.super_type().unwrap().adopting_steps(cx, old_doc);
 
         if self.owner_document().is_html_document() != old_doc.is_html_document() {
             self.tag_name.clear();

@@ -168,9 +168,9 @@ pub(crate) trait VirtualMethods {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-adopt-ext>
-    fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
+    fn adopting_steps(&self, cx: &mut JSContext, old_doc: &Document) {
         if let Some(s) = self.super_type() {
-            s.adopting_steps(old_doc, can_gc);
+            s.adopting_steps(cx, old_doc);
         }
     }
 

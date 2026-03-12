@@ -5691,7 +5691,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-adoptnode>
-    fn AdoptNode(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+    fn AdoptNode(&self, cx: &mut js::context::JSContext, node: &Node) -> Fallible<DomRoot<Node>> {
         // Step 1.
         if node.is::<Document>() {
             return Err(Error::NotSupported(None));
@@ -5703,7 +5703,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         // Step 3.
-        Node::adopt(node, self, can_gc);
+        Node::adopt(cx, node, self);
 
         // Step 4.
         Ok(DomRoot::from_ref(node))
