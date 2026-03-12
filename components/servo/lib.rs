@@ -15,6 +15,7 @@
 mod clipboard_delegate;
 #[cfg(feature = "gamepad")]
 mod gamepad_provider;
+mod gstreamer_plugins;
 mod javascript_evaluator;
 mod network_manager;
 mod proxies;

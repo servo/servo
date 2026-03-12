@@ -110,8 +110,6 @@ fn try_python_command(program: &str, args: &[&str]) -> Result<(), String> {
 ///
 /// To be accommodating to different environments, which may manage python differently, we fallback
 /// to `python3` and `python` in that order.
-///
-/// Note: This function should be kept in sync with the version in `components/servo/build.rs`
 fn find_python() -> Command {
     // Test uv first - if it works, create a FRESH command to return
     let uv_result = try_python_command("uv", &["run", "--frozen", "python"])

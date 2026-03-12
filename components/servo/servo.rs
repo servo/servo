@@ -90,11 +90,6 @@ use crate::webview_delegate::{
 
 #[cfg(feature = "media-gstreamer")]
 mod media_platform {
-    #[cfg(any(windows, target_os = "macos"))]
-    mod gstreamer_plugins {
-        include!(concat!(env!("OUT_DIR"), "/gstreamer_plugins.rs"));
-    }
-
     use servo_media_gstreamer::GStreamerBackend;
 
     use super::ServoMedia;
@@ -109,10 +104,8 @@ mod media_platform {
                 plugin_dir.push("lib");
             }
 
-            match GStreamerBackend::init_with_plugins(
-                plugin_dir,
-                gstreamer_plugins::GSTREAMER_PLUGINS,
-            ) {
+            let plugin_list = crate::gstreamer_plugins::gstreamer_plugins();
+            match GStreamerBackend::init_with_plugins(plugin_dir, &plugin_list) {
                 Ok(b) => b,
                 Err(e) => {
                     log::error!("Error initializing GStreamer: {:?}", e);
