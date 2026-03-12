@@ -79,6 +79,7 @@ enum ParseOperation {
         name: QualName,
         attrs: Vec<Attribute>,
         current_line: u64,
+        had_duplicate_attributes: bool,
     },
     CreateComment {
         text: String,
@@ -485,6 +486,7 @@ impl Tokenizer {
                 name,
                 attrs,
                 current_line,
+                had_duplicate_attributes,
             } => {
                 self.current_line.set(current_line);
                 let attrs = attrs
@@ -498,6 +500,7 @@ impl Tokenizer {
                     ElementCreator::ParserCreated(current_line),
                     ParsingAlgorithm::Normal,
                     &self.custom_element_reaction_stack,
+                    had_duplicate_attributes,
                     cx,
                 );
                 self.insert_node(node, Dom::from_ref(element.upcast()));
@@ -836,7 +839,7 @@ impl TreeSink for Sink {
         &self,
         name: QualName,
         html_attrs: Vec<HtmlAttribute>,
-        _flags: ElementFlags,
+        flags: ElementFlags,
     ) -> Self::Handle {
         let mut node = self.new_parse_node();
         node.qual_name = Some(name.clone());
@@ -862,6 +865,7 @@ impl TreeSink for Sink {
             name,
             attrs,
             current_line: self.current_line.get(),
+            had_duplicate_attributes: flags.had_duplicate_attributes,
         });
         node
     }

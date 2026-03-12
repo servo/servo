@@ -1630,6 +1630,7 @@ impl TreeSink for Sink {
             ElementCreator::ParserCreated(self.current_line.get()),
             parsing_algorithm,
             &self.custom_element_reaction_stack,
+            flags.had_duplicate_attributes,
             cx,
         );
         Dom::from_ref(element.upcast())
@@ -1882,6 +1883,7 @@ impl TreeSink for Sink {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token>
+#[expect(clippy::too_many_arguments)]
 fn create_element_for_token(
     name: QualName,
     attrs: Vec<ElementAttribute>,
@@ -1889,6 +1891,7 @@ fn create_element_for_token(
     creator: ElementCreator,
     parsing_algorithm: ParsingAlgorithm,
     custom_element_reaction_stack: &CustomElementReactionStack,
+    had_duplicate_attributes: bool,
     cx: &mut js::context::JSContext,
 ) -> DomRoot<Element> {
     // Step 1. If the active speculative HTML parser is not null, then return the result
@@ -1951,6 +1954,12 @@ fn create_element_for_token(
     // Step 11. Append each attribute in the given token to element.
     for attr in attrs {
         element.set_attribute_from_parser(attr.name, attr.value, None, CanGc::from_cx(cx));
+    }
+
+    // Record if the tokenizer saw duplicate attributes on this element,
+    // used for CSP nonce validation (step 3 of "is element nonceable").
+    if had_duplicate_attributes {
+        element.set_had_duplicate_attributes();
     }
 
     // Step 12. If willExecuteScript is true:

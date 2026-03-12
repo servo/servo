@@ -331,6 +331,10 @@ impl Element {
         }
     }
 
+    pub(crate) fn set_had_duplicate_attributes(&self) {
+        self.ensure_rare_data().had_duplicate_attributes = true;
+    }
+
     pub(crate) fn new(
         local_name: LocalName,
         namespace: Namespace,
@@ -2743,8 +2747,13 @@ impl Element {
             }
         }
         // Step 3: If element had a duplicate-attribute parse error during tokenization, return "Not Nonceable".
-        // TODO(https://github.com/servo/servo/issues/4577 and https://github.com/whatwg/html/issues/3257):
-        // Figure out how to retrieve this information from the parser
+        if self
+            .rare_data()
+            .as_ref()
+            .is_some_and(|d| d.had_duplicate_attributes)
+        {
+            return false;
+        }
         // Step 4: Return "Nonceable".
         true
     }
