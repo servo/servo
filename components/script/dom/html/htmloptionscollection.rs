@@ -257,11 +257,11 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-selectedindex>
-    fn SetSelectedIndex(&self, index: i32, can_gc: CanGc) {
+    fn SetSelectedIndex(&self, cx: &mut JSContext, index: i32) {
         self.upcast()
             .root_node()
             .downcast::<HTMLSelectElement>()
             .expect("HTMLOptionsCollection not rooted on a HTMLSelectElement")
-            .SetSelectedIndex(index, can_gc)
+            .SetSelectedIndex(cx, index)
     }
 }

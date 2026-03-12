@@ -280,11 +280,7 @@ impl HTMLSelectElement {
         }
     }
 
-    #[expect(unsafe_code)]
-    fn create_shadow_tree(&self, _can_gc: CanGc) {
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    fn create_shadow_tree(&self, cx: &mut JSContext) {
         let document = self.owner_document();
         let root = self.upcast::<Element>().attach_ua_shadow_root(cx, true);
 
@@ -355,9 +351,9 @@ impl HTMLSelectElement {
             .unwrap();
     }
 
-    fn shadow_tree(&self, can_gc: CanGc) -> Ref<'_, ShadowTree> {
+    fn shadow_tree(&self, cx: &mut JSContext) -> Ref<'_, ShadowTree> {
         if !self.upcast::<Element>().is_shadow_host() {
-            self.create_shadow_tree(can_gc);
+            self.create_shadow_tree(cx);
         }
 
         Ref::filter_map(self.shadow_tree.borrow(), Option::as_ref)
@@ -365,8 +361,8 @@ impl HTMLSelectElement {
             .expect("UA shadow tree was not created")
     }
 
-    pub(crate) fn update_shadow_tree(&self, can_gc: CanGc) {
-        let shadow_tree = self.shadow_tree(can_gc);
+    pub(crate) fn update_shadow_tree(&self, cx: &mut JSContext) {
+        let shadow_tree = self.shadow_tree(cx);
 
         let selected_option_text = self
             .selected_option()
@@ -437,13 +433,13 @@ impl HTMLSelectElement {
         self.upcast::<Element>().set_open_state(true);
     }
 
-    pub(crate) fn handle_menu_response(&self, response: Option<usize>, can_gc: CanGc) {
+    pub(crate) fn handle_menu_response(&self, cx: &mut JSContext, response: Option<usize>) {
         self.upcast::<Element>().set_open_state(false);
         let Some(selected_value) = response else {
             return;
         };
 
-        self.SetSelectedIndex(selected_value as i32, can_gc);
+        self.SetSelectedIndex(cx, selected_value as i32);
         self.send_update_notifications();
     }
 
@@ -669,7 +665,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-selectedindex>
-    fn SetSelectedIndex(&self, index: i32, can_gc: CanGc) {
+    fn SetSelectedIndex(&self, cx: &mut JSContext, index: i32) {
         let mut selection_did_change = false;
 
         let mut opt_iter = self.list_of_options();
@@ -690,7 +686,7 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         }
 
         if selection_did_change {
-            self.update_shadow_tree(can_gc);
+            self.update_shadow_tree(cx);
         }
     }
 
@@ -802,7 +798,7 @@ impl VirtualMethods for HTMLSelectElement {
             s.children_changed(cx, mutation);
         }
 
-        self.update_shadow_tree(CanGc::from_cx(cx));
+        self.update_shadow_tree(cx);
     }
 
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
