@@ -417,6 +417,7 @@ iframe:fullscreen {
 *::marker {
   text-align: end;
   text-align-last: end;
+  text-indent: 0;
   text-transform: none;
   unicode-bidi: isolate;
   font-variant-numeric: tabular-nums;
