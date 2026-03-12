@@ -99,7 +99,7 @@ harfbuzz-sys = "0.6.1"
 headers = "0.4"
 hitrace = { version = "0.1.6", features = ["api-19", "tracing-rs"] }
 hkdf = "0.12"
-html5ever = "0.38"
+html5ever = "0.39"
 http = "1.4"
 http-body-util = "0.1"
 hyper = "1.8"
@@ -123,7 +123,7 @@ log = "0.4.29"
 mach2 = "0.6"
 malloc_size_of = { package = "servo-malloc-size-of", path = "components/malloc_size_of" }
 malloc_size_of_derive = "0.1"
-markup5ever = "0.38"
+markup5ever = "0.39"
 memmap2 = "0.9.10"
 mime = "0.3.13"
 mime-multipart-hyper1 = "0.10.0"
@@ -239,7 +239,7 @@ wio = "0.2"
 wr_malloc_size_of = "0.2.2"
 x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 xi-unicode = "0.3.0"
-xml5ever = "0.38"
+xml5ever = "0.39"
 xpath = { package = "servo-xpath", path = "components/xpath" }
 
 # RSA key generation could be very slow without compilation
