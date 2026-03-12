@@ -511,7 +511,7 @@ impl DedicatedWorkerGlobalScope {
                     sender: event_loop_sender.clone(),
                     pipeline_id,
                     name: TaskSourceName::Networking,
-                    canceller: Default::default(),
+                    canceller: scope.shared_task_canceller(),
                 };
                 let context = ScriptFetchContext::new(
                     Trusted::new(scope),
