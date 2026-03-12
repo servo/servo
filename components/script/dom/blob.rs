@@ -10,6 +10,7 @@ use constellation_traits::{BlobData, BlobImpl};
 use dom_struct::dom_struct;
 use encoding_rs::UTF_8;
 use js::jsapi::JSObject;
+use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use js::typedarray::{ArrayBufferU8, Uint8};
 use net_traits::filemanager_thread::RelativePos;
@@ -31,7 +32,7 @@ use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::stream::readablestream::ReadableStream;
-use crate::realms::{AlreadyInRealm, InRealm};
+use crate::realms::InRealm;
 use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/FileAPI/#dfn-Blob>
@@ -243,11 +244,9 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     }
 
     /// <https://w3c.github.io/FileAPI/#text-method-algo>
-    fn Text(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
+    fn Text(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
         let global = self.global();
-        let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
-        let p =
-            Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), CanGc::from_cx(cx));
+        let p = Promise::new_in_realm(cx);
         let id = self.get_blob_url_id();
         global.read_file_async(
             id,
