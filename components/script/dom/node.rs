@@ -3042,12 +3042,16 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-pre-insert>
+    #[expect(unsafe_code)]
     pub(crate) fn pre_insert(
         node: &Node,
         parent: &Node,
         child: Option<&Node>,
-        can_gc: CanGc,
+        _can_gc: CanGc,
     ) -> Fallible<DomRoot<Node>> {
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         // Step 1. Ensure pre-insert validity of node into parent before child.
         Node::ensure_pre_insertion_validity(node, parent, child)?;
 
@@ -3064,11 +3068,11 @@ impl Node {
 
         // Step 4. Insert node into parent before referenceChild.
         Node::insert(
+            cx,
             node,
             parent,
             reference_child,
             SuppressObserver::Unsuppressed,
-            can_gc,
         );
 
         // Step 5. Return node.
@@ -3076,17 +3080,13 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-insert>
-    #[expect(unsafe_code)]
     fn insert(
+        cx: &mut JSContext,
         node: &Node,
         parent: &Node,
         child: Option<&Node>,
         suppress_observers: SuppressObserver,
-        _can_gc: CanGc,
     ) {
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
         debug_assert!(child.is_none_or(|child| Some(parent) == child.GetParentNode().as_deref()));
 
         // Step 1. Let nodes be node’s children, if node is a DocumentFragment node; otherwise « node ».
@@ -3303,13 +3303,7 @@ impl Node {
 
         // Step 6. If node is non-null, then insert node into parent before null with suppressObservers set to true.
         if let Some(node) = node {
-            Node::insert(
-                node,
-                parent,
-                None,
-                SuppressObserver::Suppressed,
-                CanGc::from_cx(cx),
-            );
+            Node::insert(cx, node, parent, None, SuppressObserver::Suppressed);
         }
 
         vtable_for(parent).children_changed(
@@ -4267,11 +4261,11 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
         // Step 13. Insert node into parent before referenceChild with the suppress observers flag set.
         Node::insert(
+            cx,
             node,
             self,
             reference_child,
             SuppressObserver::Suppressed,
-            CanGc::from_cx(cx),
         );
 
         vtable_for(self).children_changed(
