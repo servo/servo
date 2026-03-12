@@ -13,7 +13,6 @@ use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
-use servo_config::pref;
 use stylo_dom::ElementState;
 
 use crate::dom::activation::Activatable;
@@ -268,15 +267,11 @@ impl HTMLButtonElement {
             "button" => ButtonType::Button,
             "submit" => ButtonType::Submit,
             _ => {
-                if pref!(dom_command_invokers_enabled) {
-                    let element = self.upcast::<Element>();
-                    if element.has_attribute(&local_name!("command")) ||
-                        element.has_attribute(&local_name!("commandfor"))
-                    {
-                        ButtonType::Button
-                    } else {
-                        ButtonType::Submit
-                    }
+                let element = self.upcast::<Element>();
+                if element.has_attribute(&local_name!("command")) ||
+                    element.has_attribute(&local_name!("commandfor"))
+                {
+                    ButtonType::Button
                 } else {
                     ButtonType::Submit
                 }

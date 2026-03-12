@@ -108,7 +108,6 @@ pub struct Preferences {
     /// - vello_cpu
     pub dom_canvas_backend: String,
     pub dom_clipboardevent_enabled: bool,
-    pub dom_command_invokers_enabled: bool,
     pub dom_composition_event_enabled: bool,
     // feature: CookieStore | #37674 | Web/API/CookieStore
     pub dom_cookiestore_enabled: bool,
@@ -336,7 +335,6 @@ impl Preferences {
             dom_canvas_text_enabled: true,
             dom_canvas_backend: String::new(),
             dom_clipboardevent_enabled: true,
-            dom_command_invokers_enabled: false,
             dom_composition_event_enabled: false,
             dom_cookiestore_enabled: false,
             dom_credential_management_enabled: false,
