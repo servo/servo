@@ -21,7 +21,9 @@ use crate::dom::bindings::codegen::Bindings::BlobBinding;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::UnionTypes::ArrayBufferOrArrayBufferViewOrBlobOrString;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
+use crate::dom::bindings::reflector::{
+    DomGlobal, Reflector, reflect_dom_object_with_proto, reflect_dom_object_with_proto_and_cx,
+};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
@@ -56,6 +58,22 @@ impl Blob {
             global,
             proto,
             can_gc,
+        );
+        global.track_blob(&dom_blob, blob_impl);
+        dom_blob
+    }
+
+    fn new_with_proto_and_cx(
+        global: &GlobalScope,
+        proto: Option<HandleObject>,
+        blob_impl: BlobImpl,
+        cx: &mut js::context::JSContext,
+    ) -> DomRoot<Blob> {
+        let dom_blob = reflect_dom_object_with_proto_and_cx(
+            Box::new(Blob::new_inherited(&blob_impl)),
+            global,
+            proto,
+            cx,
         );
         global.track_blob(&dom_blob, blob_impl);
         dom_blob
@@ -161,9 +179,9 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     // https://w3c.github.io/FileAPI/#constructorBlob
     #[expect(non_snake_case)]
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         blobParts: Option<Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>>,
         blobPropertyBag: &BlobBinding::BlobPropertyBag,
     ) -> Fallible<DomRoot<Blob>> {
@@ -178,7 +196,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         let type_string = normalize_type_string(&blobPropertyBag.type_.str());
         let blob_impl = BlobImpl::new_from_bytes(bytes, type_string);
 
-        Ok(Blob::new_with_proto(global, proto, blob_impl, can_gc))
+        Ok(Blob::new_with_proto_and_cx(global, proto, blob_impl, cx))
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-size>
@@ -192,17 +210,17 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     }
 
     // <https://w3c.github.io/FileAPI/#blob-get-stream>
-    fn Stream(&self, can_gc: CanGc) -> Fallible<DomRoot<ReadableStream>> {
-        self.get_stream(can_gc)
+    fn Stream(&self, cx: &mut js::context::JSContext) -> Fallible<DomRoot<ReadableStream>> {
+        self.get_stream(CanGc::from_cx(cx))
     }
 
     /// <https://w3c.github.io/FileAPI/#slice-method-algo>
     fn Slice(
         &self,
+        cx: &mut js::context::JSContext,
         start: Option<i64>,
         end: Option<i64>,
         content_type: Option<DOMString>,
-        can_gc: CanGc,
     ) -> DomRoot<Blob> {
         let global = self.global();
         let type_string = normalize_type_string(&content_type.unwrap_or_default().str());
@@ -221,26 +239,27 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         };
 
         let blob_impl = BlobImpl::new_sliced(range, parent, type_string);
-        Blob::new(&global, blob_impl, can_gc)
+        Blob::new(&global, blob_impl, CanGc::from_cx(cx))
     }
 
     /// <https://w3c.github.io/FileAPI/#text-method-algo>
-    fn Text(&self, can_gc: CanGc) -> Rc<Promise> {
+    fn Text(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
         let global = self.global();
         let in_realm_proof = AlreadyInRealm::assert::<crate::DomTypeHolder>();
-        let p = Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), can_gc);
+        let p =
+            Promise::new_in_current_realm(InRealm::Already(&in_realm_proof), CanGc::from_cx(cx));
         let id = self.get_blob_url_id();
         global.read_file_async(
             id,
             p.clone(),
-            Box::new(|promise, bytes| match bytes {
+            Box::new(|cx, promise, bytes| match bytes {
                 Ok(b) => {
                     let (text, _) = UTF_8.decode_with_bom_removal(&b);
                     let text = DOMString::from(text);
-                    promise.resolve_native(&text, CanGc::note());
+                    promise.resolve_native(&text, CanGc::from_cx(cx));
                 },
                 Err(e) => {
-                    promise.reject_error(e, CanGc::note());
+                    promise.reject_error(e, CanGc::from_cx(cx));
                 },
             }),
         );
