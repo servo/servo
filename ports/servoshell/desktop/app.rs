@@ -10,7 +10,6 @@ use std::time::Instant;
 use std::{env, fs};
 
 use servo::protocol_handler::ProtocolRegistry;
-use servo::user_contents::UserStyleSheet;
 use servo::{
     EventLoopWaker, Opts, Preferences, ServoBuilder, ServoUrl, UserContentManager, UserScript,
 };
@@ -120,10 +119,8 @@ impl App {
             user_content_manager.add_script(Rc::new(script));
         }
 
-        for (contents, url) in &self.opts.user_stylesheets {
-            let contents = String::try_from(contents.clone()).unwrap();
-            let user_stylesheet = UserStyleSheet::new(contents, url.clone().into_url());
-            user_content_manager.add_stylesheet(Rc::new(user_stylesheet));
+        for user_stylesheet in &self.servoshell_preferences.user_stylesheets {
+            user_content_manager.add_stylesheet(user_stylesheet.clone());
         }
 
         let running_state = Rc::new(RunningAppState::new(

@@ -11,7 +11,6 @@ use std::process;
 use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
-use servo_url::ServoUrl;
 
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -30,8 +29,6 @@ pub struct Opts {
 
     /// True to turn off incremental layout.
     pub nonincremental_layout: bool,
-
-    pub user_stylesheets: Vec<(Vec<u8>, ServoUrl)>,
 
     /// True to exit on thread failure instead of displaying about:failure.
     pub hard_fail: bool,
@@ -219,7 +216,6 @@ impl Default for Opts {
             time_profiling: None,
             time_profiler_trace_path: None,
             nonincremental_layout: false,
-            user_stylesheets: Vec::new(),
             hard_fail: true,
             multiprocess: false,
             force_ipc: false,
