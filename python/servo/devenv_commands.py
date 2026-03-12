@@ -102,8 +102,15 @@ class MachCommands(CommandBase):
         assert isinstance(status, int)
         return status
 
-    @Command("clippy", description='Run "cargo clippy"', category="devenv")
-    @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to clippy")
+    @Command("clippy", description='Run "cargo clippy.', category="devenv")
+    @CommandArgument(
+        "params",
+        default=None,
+        nargs="...",
+        help="Command-line arguments to be passed through to clippy. "
+        "Note that this can be separated via `--` from arguments for `mach`. "
+        "Arguments for clippy itself need another `--`, e.g. `./mach clippy -- -- --deny clippy::lint_name",
+    )
     @CommandArgument(
         "--github-annotations",
         default=False,
