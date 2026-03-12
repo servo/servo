@@ -846,12 +846,12 @@ fn test_pinch_zoom_update_dom_visual_viewport() {
         .build();
 
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-    let eval_visual_viewport = |attr: &str| match evaluate_javascript(
+    let eval_visual_viewport = |attribute: &str| match evaluate_javascript(
         &servo_test,
         webview.clone(),
-        format!("window.visualViewport.{}", attr),
+        format!("window.visualViewport.{}", attribute),
     ) {
-        Ok(JSValue::Number(num)) => Some(num),
+        Ok(JSValue::Number(number)) => Some(number),
         _ => None,
     };
 

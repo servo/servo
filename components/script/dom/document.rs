@@ -586,8 +586,8 @@ pub(crate) struct Document {
     adopted_stylesheets_frozen_types: CachedFrozenArray,
     /// <https://drafts.csswg.org/cssom-view/#document-pending-scroll-events>
     // TODO(31665): Instead of having separate list for `scroll` and `scrollend` event, the updated spec
-    //              make it store both the event target and the event type. Need to update this along with
-    //              the implementation of `scrollend`.
+    // make it store both the event target and the event type. Need to update this along with
+    // the implementation of `scrollend`.
     pending_scroll_event_targets: DomRefCell<Vec<Dom<EventTarget>>>,
     /// Other reasons that a rendering update might be required for this [`Document`].
     rendering_update_reasons: Cell<RenderingUpdateReason>,
@@ -1814,6 +1814,12 @@ impl Document {
     /// > Whenever a visual viewport gets scrolled (whether in response to user interaction or by an
     /// > API), the user agent must run these steps:
     pub(crate) fn handle_visual_viewport_scroll_event(&self, visual_viewport: &VisualViewport) {
+        // Step 1.
+        // > Let vv be the VisualViewport object that was scrolled.
+        // Step 2.
+        // > Let doc be vv’s associated document.
+        // Both of the variables are being passed as parameters.
+
         // Step 3.
         // > If (vv, "scroll") is already in doc’s pending scroll events, abort these steps.
         let target = visual_viewport.upcast::<EventTarget>();
