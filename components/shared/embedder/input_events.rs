@@ -292,8 +292,10 @@ pub enum WheelMode {
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WheelDelta {
     /// Delta in the left/right direction
+    /// A positive value means scrolling the scrollbar left. (Revealing more content left)
     pub x: f64,
     /// Delta in the up/down direction
+    /// A positive value means scrolling the scrollbar up. (Revealing more content up)
     pub y: f64,
     /// Delta in the direction going into/out of the screen
     pub z: f64,
