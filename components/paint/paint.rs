@@ -153,6 +153,8 @@ bitflags! {
         const Resize = 1 << 3;
         /// A fling has started and a repaint needs to happen to process the animation.
         const StartedFlinging = 1 << 4;
+        /// A blinking text caret requires a redraw.
+        const BlinkingCaret = 1 << 5;
     }
 }
 
