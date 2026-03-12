@@ -326,7 +326,7 @@ struct RangeInputShadowTree {
 
 impl RangeInputShadowTree {
     fn new(shadow_root: &Node, can_gc: CanGc) -> Self {
-        Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc); //TODO: what isi this
+        Node::replace_all(None, shadow_root.upcast::<Node>(), can_gc);
 
         let slider_fill = Element::create(
             QualName::new(None, ns!(html), local_name!("div")),
@@ -362,7 +362,7 @@ impl RangeInputShadowTree {
             .upcast::<Node>()
             .AppendChild(slider_track.upcast::<Node>(), can_gc)
             .unwrap();
-        shadow_root
+        slider_track
             .upcast::<Node>()
             .AppendChild(slider_fill.upcast::<Node>(), can_gc)
             .unwrap();
@@ -373,13 +373,13 @@ impl RangeInputShadowTree {
 
         slider_fill
             .upcast::<Node>()
-            .set_implemented_pseudo_element(PseudoElement::ServoSliderFill);
+            .set_implemented_pseudo_element(PseudoElement::SliderFill);
         slider_thumb
             .upcast::<Node>()
-            .set_implemented_pseudo_element(PseudoElement::ServoSliderThumb);
+            .set_implemented_pseudo_element(PseudoElement::SliderThumb);
         slider_track
             .upcast::<Node>()
-            .set_implemented_pseudo_element(PseudoElement::ServoSliderTrack);
+            .set_implemented_pseudo_element(PseudoElement::SliderTrack);
 
         Self {
             slider_fill: slider_fill.as_traced(),

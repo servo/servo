@@ -180,7 +180,7 @@ input[type="range"] {
   border: none;
 }
 
-input[type="range"]::-servo-slider-track {
+input[type="range"]::slider-track {
   width: 100%;
   height: 8px;
   top: 50%;
@@ -192,7 +192,7 @@ input[type="range"]::-servo-slider-track {
   z-index: 1;
 }
 
-input[type="range"]::-servo-slider-fill {
+input[type="range"]::slider-fill {
   height: 8px;
   background-color: #7a3;
   border-radius: 5px;
@@ -203,7 +203,7 @@ input[type="range"]::-servo-slider-fill {
   transform: translateY(-50%);
 }
 
-input[type="range"]::-servo-slider-thumb {
+input[type="range"]::slider-thumb {
   width: 12px;
   height: 12px;
   border-radius: 50%;
