@@ -5,9 +5,9 @@
 use core::panic;
 use std::cell::Cell;
 use std::collections::HashMap;
-use std::fs::{self, File, read_to_string};
-use std::io::Read;
+use std::fs::{self, read_to_string};
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 use std::str::FromStr;
 #[cfg(any(target_os = "android", target_env = "ohos"))]
 use std::sync::OnceLock;
@@ -17,9 +17,9 @@ use bpaf::*;
 use euclid::Size2D;
 use log::warn;
 use serde_json::Value;
+use servo::user_contents::UserStyleSheet;
 use servo::{
     DeviceIndependentPixel, DiagnosticsLogging, Opts, OutputOptions, PrefValue, Preferences,
-    ServoUrl,
 };
 use url::Url;
 
@@ -81,6 +81,8 @@ pub(crate) struct ServoShellPreferences {
     /// Where to load userscripts from, if any.
     /// and if the option isn't passed userscripts won't be loaded.
     pub userscripts_directory: Option<PathBuf>,
+    /// A set of [`UserStylesheets`] to load for content.
+    pub user_stylesheets: Vec<Rc<UserStyleSheet>>,
     /// `None` to disable WebDriver or `Some` with a port number to start a server to listen to
     /// remote WebDriver commands.
     pub webdriver_port: Cell<Option<u16>>,
@@ -112,6 +114,7 @@ impl Default for ServoShellPreferences {
             output_image_path: None,
             exit_after_stable_image: false,
             userscripts_directory: None,
+            user_stylesheets: Default::default(),
             webdriver_port: Cell::new(None),
             #[cfg(target_env = "ohos")]
             log_filter: None,
@@ -266,22 +269,18 @@ fn parse_resolution_string(
     }
 }
 
-/// Parse stylesheets into the byte stream.
-fn parse_user_stylesheets(string: String) -> Result<Vec<(Vec<u8>, ServoUrl)>, std::io::Error> {
-    Ok(string
-        .split_whitespace()
-        .map(|filename| {
-            let cwd = env::current_dir().unwrap();
-            let path = cwd.join(filename);
-            let url = ServoUrl::from_url(Url::from_file_path(&path).unwrap());
-            let mut contents = Vec::new();
-            File::open(path)
-                .unwrap()
-                .read_to_end(&mut contents)
-                .unwrap();
-            (contents, url)
-        })
-        .collect())
+/// Parse a space or comma-separated list of stylesheet paths into a vector of
+/// [`UserStyleSheet`].
+fn parse_user_stylesheets(string: String) -> Result<Vec<Rc<UserStyleSheet>>, std::io::Error> {
+    let mut results = Vec::new();
+    for path_string in string.split([' ', ',']) {
+        let path = env::current_dir()?.join(path_string);
+        results.push(Rc::new(UserStyleSheet::new(
+            read_to_string(&path)?,
+            Url::from_file_path(&path).unwrap(),
+        )));
+    }
+    Ok(results)
 }
 
 /// This is a helper function that fulfills the following parsing task
@@ -548,9 +547,11 @@ struct CmdArgs {
     userscripts: Option<PathBuf>,
 
     ///
-    ///  A user stylesheet to be added to every document.
-    #[bpaf(argument::<String>("file.css"), parse(parse_user_stylesheets), fallback(vec![]))]
-    user_stylesheet: Vec<(Vec<u8>, ServoUrl)>,
+    /// Add each of the given UTF-8 encoded CSS files in the space or comma-separated
+    /// list as user stylesheet to apply to every page loaded.
+    #[bpaf(argument::<String>("file.css"), parse(parse_user_stylesheets),
+    fallback(vec![]))]
+    user_stylesheet: Vec<Rc<UserStyleSheet>>,
 
     /// Start remote WebDriver server on port.
     #[bpaf(external)]
@@ -694,6 +695,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         output_image_path: cmd_args.output.map(|p| p.to_string_lossy().into_owned()),
         exit_after_stable_image: cmd_args.exit,
         userscripts_directory: cmd_args.userscripts,
+        user_stylesheets: cmd_args.user_stylesheet,
         experimental_preferences_enabled: cmd_args.enable_experimental_web_platform_features,
         #[cfg(target_env = "ohos")]
         log_filter: cmd_args.log_filter.or_else(|| {
@@ -721,7 +723,6 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
             .profiler_trace_path
             .map(|p| p.to_string_lossy().into_owned()),
         nonincremental_layout: cmd_args.nonincremental_layout,
-        user_stylesheets: cmd_args.user_stylesheet,
         hard_fail: cmd_args.hard_fail,
         multiprocess: cmd_args.multiprocess,
         background_hang_monitor: cmd_args.background_hang_monitor,
