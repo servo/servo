@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>Key events that are captured by a text input should not go on to cause document scrolling</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+    .text {
+        width: 100px;
+    }
+</style>
+
+<input class="text" id="input" value="123456">
+<textarea class="text" id="textarea">123456</textarea>
+
+<div style="height: 10000px"></div>
+
+<script>
+promise_test(async test => {
+    input.focus();
+    assert_equals(input.selectionStart, 0);
+    assert_equals(input.selectionEnd, 0);
+
+    input.setSelectionRange(2, 2);
+
+    const arrowDown = "\uE015";
+    await test_driver.send_keys(input, arrowDown);
+
+    assert_equals(input.selectionStart, 6);
+    assert_equals(input.selectionEnd, 6);
+    assert_equals(document.scrollingElement.scrollTop, 0);
+}, 'A key down keypress in an input element should not scroll its container');
+
+promise_test(async test => {
+    textarea.focus();
+    assert_equals(textarea.selectionStart, 0);
+    assert_equals(textarea.selectionEnd, 0);
+
+    textarea.setSelectionRange(2, 2);
+
+    const arrowDown = "\uE015";
+    await test_driver.send_keys(textarea, arrowDown);
+
+    assert_equals(textarea.selectionStart, 6);
+    assert_equals(textarea.selectionEnd, 6);
+    assert_equals(document.scrollingElement.scrollTop, 0);
+}, 'A key down keypress in an textarea element should not scroll its container');
+</script>

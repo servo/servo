@@ -755,23 +755,16 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     // copied and modified from htmlinputelement.rs
     fn handle_event(&self, event: &Event, can_gc: CanGc) {
-        if let Some(s) = self.super_type() {
-            s.handle_event(event, can_gc);
-        }
-
         if let Some(mouse_event) = event.downcast::<MouseEvent>() {
             self.handle_mouse_event(mouse_event);
+            event.mark_as_handled();
         } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
-            if let Some(kevent) = event.downcast::<KeyboardEvent>() {
+            if let Some(keyboard_event) = event.downcast::<KeyboardEvent>() {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
                 // during self.implicit_submission will cause a panic.
-                let action = self.textinput.borrow_mut().handle_keydown(kevent);
+                let action = self.textinput.borrow_mut().handle_keydown(keyboard_event);
                 self.handle_key_reaction(action, event, can_gc);
             }
-        } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
-            // keypress should be deprecated and replaced by beforeinput.
-            // keypress was supposed to fire "blur" and "focus" events
-            // but already done in `document.rs`
         } else if event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
             event.type_() == atom!("compositionend")
@@ -818,6 +811,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 );
             }
             if !flags.is_empty() {
+                event.mark_as_handled();
                 self.handle_text_content_changed(can_gc);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
@@ -826,6 +820,10 @@ impl VirtualMethods for HTMLTextAreaElement {
 
         self.validity_state(can_gc)
             .perform_validation_and_update(ValidationFlags::all(), can_gc);
+
+        if let Some(super_type) = self.super_type() {
+            super_type.handle_event(event, can_gc);
+        }
     }
 
     fn pop(&self) {
