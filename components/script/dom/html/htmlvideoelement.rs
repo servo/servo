@@ -55,6 +55,9 @@ pub(crate) struct HTMLVideoElement {
     video_width: Cell<Option<u32>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-video-videoheight>
     video_height: Cell<Option<u32>>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-video-poster>
+    #[no_trace]
+    poster_url: DomRefCell<Option<UrlWithBlobClaim>>,
     /// Incremented whenever tasks associated with this element are cancelled.
     generation_id: Cell<u32>,
     /// Load event blocker. Will block the load event while the poster frame
@@ -80,6 +83,7 @@ impl HTMLVideoElement {
             htmlmediaelement: HTMLMediaElement::new_inherited(local_name, prefix, document),
             video_width: Cell::new(None),
             video_height: Cell::new(None),
+            poster_url: Default::default(),
             generation_id: Cell::new(0),
             load_blocker: Default::default(),
             last_frame: Default::default(),
@@ -211,7 +215,7 @@ impl HTMLVideoElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    fn update_poster_frame(&self, poster_url: Option<&str>, cx: &mut JSContext) {
+    fn update_poster_frame(&self, poster_attribute: Option<&str>, cx: &mut JSContext) {
         // Step 1. If there is an existing instance of this algorithm running
         // for this video element, abort that instance of this algorithm without
         // changing the poster frame.
@@ -219,7 +223,10 @@ impl HTMLVideoElement {
 
         // Step 2. If the poster attribute's value is the empty string or
         // if the attribute is absent, then there is no poster frame; return.
-        let Some(poster_url) = poster_url.filter(|poster_url| !poster_url.is_empty()) else {
+        let mut poster_url = self.poster_url();
+        *poster_url = None;
+        let Some(url) = poster_attribute.filter(|poster_attribute| !poster_attribute.is_empty())
+        else {
             self.htmlmediaelement.set_poster_frame(cx.no_gc(), None);
             return;
         };
@@ -229,12 +236,12 @@ impl HTMLVideoElement {
         // document.
         // Step 4. If url is failure, then return. There is no poster frame.
         let global = self.owner_global();
-        let poster_url = match self
+        *poster_url = match self
             .owner_document()
-            .encoding_parse_a_url(poster_url)
+            .encoding_parse_a_url(url)
             .map(|url| ensure_blob_referenced_by_url_is_kept_alive(&global, url))
         {
-            Ok(url) => url,
+            Ok(url) => Some(url),
             Err(_) => {
                 self.htmlmediaelement.set_poster_frame(cx.no_gc(), None);
                 return;
@@ -246,7 +253,7 @@ impl HTMLVideoElement {
         let window = self.owner_window();
         let image_cache = window.image_cache();
         let cache_result = image_cache.get_cached_image_status(
-            poster_url.url(),
+            poster_url.as_ref().unwrap().url(),
             window.origin().immutable().clone(),
             None,
         );
@@ -262,7 +269,7 @@ impl HTMLVideoElement {
             },
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_, id)) => id,
             ImageCacheResult::ReadyForRequest(id) => {
-                self.do_fetch_poster_frame(poster_url, id, cx);
+                self.do_fetch_poster_frame(poster_url.as_ref().unwrap().clone(), id, cx);
                 id
             },
             ImageCacheResult::FailedToLoadOrDecode => {
@@ -599,6 +606,7 @@ impl PosterFrameFetchContext {
 }
 
 impl LayoutDom<'_, HTMLVideoElement> {
+    #[expect(unsafe_code)]
     pub(crate) fn data(self) -> HTMLMediaData {
         let video = self.unsafe_get();
 
@@ -616,6 +624,9 @@ impl LayoutDom<'_, HTMLVideoElement> {
         HTMLMediaData {
             current_frame,
             metadata,
+            poster_url: unsafe {
+                Some(video.poster_url.borrow_for_layout().clone().unwrap().url())
+            },
         }
     }
 
