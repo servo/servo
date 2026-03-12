@@ -10,6 +10,7 @@ pub mod font_list;
 
 #[cfg(target_os = "android")]
 mod android {
+    pub mod font;
     pub mod font_list;
 }
 #[cfg(target_os = "android")]
