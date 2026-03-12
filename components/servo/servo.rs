@@ -742,8 +742,6 @@ impl Servo {
         );
         style::context::DEFAULT_DUMP_STYLE_STATISTICS
             .store(opts.debug.style_statistics, Ordering::Relaxed);
-        style::traversal::IS_SERVO_NONINCREMENTAL_LAYOUT
-            .store(opts.nonincremental_layout, Ordering::Relaxed);
 
         if !opts.multiprocess {
             media_platform::init();
