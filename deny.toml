@@ -207,9 +207,6 @@ skip = [
     # These need to be investigated separately to see if the duplication can be
     # avoided.
     "libloading",
-    "cfg-expr",
-    "system-deps",
-    "target-lexicon",
 
     # Duplicated by wgpu/egui+dependencies
     "font-types",
@@ -220,6 +217,13 @@ skip = [
     "skrifa",
     "vello_common",
     "vello_cpu",
+
+    # Duplicated by image-rs
+    "gif",
+    "pastey",
+    "png",
+    "zune-core",
+    "zune-jpeg",
 ]
 
 # github.com organizations to allow git sources for
