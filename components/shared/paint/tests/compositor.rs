@@ -104,6 +104,7 @@ fn test_scroll_tree_simple_scroll_chaining() {
             },
             offset: LayoutVector2D::zero(),
             offset_changed: Cell::new(false),
+            linked_nodes: None,
         }),
     );
 
