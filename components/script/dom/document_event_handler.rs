@@ -312,27 +312,6 @@ impl DocumentEventHandler {
         // event or fire events later. We have to make a good decision about what to
         // return to the embedder when that happens.
         for event in pending_input_events {
-            // Insert coalesced [`InputEventId`]s that occurred BEFORE the current event processing.
-            match event.event.event {
-                InputEvent::MouseMove(_) => {
-                    input_event_outcomes.extend(coalesced_move_event_ids.drain(..).map(|id| {
-                        InputEventOutcome {
-                            id,
-                            result: InputEventResult::Coalesced,
-                        }
-                    }));
-                },
-                InputEvent::Wheel(_) => {
-                    input_event_outcomes.extend(coalesced_wheel_event_ids.drain(..).map(|id| {
-                        InputEventOutcome {
-                            id,
-                            result: InputEventResult::Coalesced,
-                        }
-                    }));
-                },
-                _ => {},
-            }
-
             self.active_keyboard_modifiers
                 .set(event.active_keyboard_modifiers);
             let result = match event.event.event {
@@ -342,6 +321,12 @@ impl DocumentEventHandler {
                 },
                 InputEvent::MouseMove(_) => {
                     self.handle_native_mouse_move_event(&event, can_gc);
+                    input_event_outcomes.extend(coalesced_move_event_ids.drain(..).map(|id| {
+                        InputEventOutcome {
+                            id,
+                            result: InputEventResult::default(),
+                        }
+                    }));
                     InputEventResult::default()
                 },
                 InputEvent::MouseLeftViewport(mouse_leave_event) => {
@@ -352,7 +337,13 @@ impl DocumentEventHandler {
                     self.handle_touch_event(touch_event, &event, can_gc)
                 },
                 InputEvent::Wheel(wheel_event) => {
-                    self.handle_wheel_event(wheel_event, &event, can_gc)
+                    let result = self.handle_wheel_event(wheel_event, &event, can_gc);
+                    input_event_outcomes.extend(
+                        coalesced_wheel_event_ids
+                            .drain(..)
+                            .map(|id| InputEventOutcome { id, result }),
+                    );
+                    result
                 },
                 InputEvent::Keyboard(keyboard_event) => {
                     self.handle_keyboard_event(keyboard_event, can_gc)
