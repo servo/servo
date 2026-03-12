@@ -246,7 +246,7 @@ where
 // Based on gfxAndroidPlatform::GetCommonFallbackFonts() in Gecko
 pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
     let mut families = vec![];
-    families.extend(FONT_LIST.families.iter().map(|family| family.name));
+    families.extend(FONT_LIST.families.iter().map(|family| family.name.as_str()));
 
     if let Some(block) = options.character.block() {
         match block {
