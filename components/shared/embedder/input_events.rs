@@ -33,6 +33,8 @@ bitflags! {
         /// behavior (such as keybindings) when the WebView has already consumed the event for its
         /// own purpose.
         const Consumed = 1 << 1;
+        /// Whether or not this input event is coalesced in script.
+        const Coalesced = 1 << 2;
     }
 }
 

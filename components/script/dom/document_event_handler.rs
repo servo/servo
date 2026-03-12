@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 use base::generic_channel::GenericCallback;
 use constellation_traits::{KeyboardScroll, ScriptToConstellationMessage};
 use embedder_traits::{
-    Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventOutcome,
+    Cursor, EditingActionEvent, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
     InputEventResult, KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction,
     MouseButtonEvent, MouseLeftViewportEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
     TouchId, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
@@ -150,8 +150,19 @@ pub(crate) struct DocumentEventHandler {
     pending_input_events: DomRefCell<Vec<ConstellationInputEvent>>,
     /// The index of the last mouse move event in the pending input events queue.
     mouse_move_event_index: DomRefCell<Option<usize>>,
+    /// The [`InputEventId`]s of mousemove events that have been coalesced.
+    #[no_trace]
+    #[ignore_malloc_size_of = "InputEventId contains data from outside crates"]
+    coalesced_move_event_ids: DomRefCell<Vec<InputEventId>>,
     /// The index of the last wheel event in the pending input events queue.
+    /// This is non-standard behaviour.
+    /// According to <https://www.w3.org/TR/pointerevents/#dfn-coalesced-events>,
+    /// we should only coalesce `pointermove` events.
     wheel_event_index: DomRefCell<Option<usize>>,
+    /// The [`InputEventId`]s of wheel events that have been coalesced.
+    #[no_trace]
+    #[ignore_malloc_size_of = "InputEventId contains data from outside crates"]
+    coalesced_wheel_event_ids: DomRefCell<Vec<InputEventId>>,
     /// <https://w3c.github.io/uievents/#event-type-dblclick>
     click_counting_info: DomRefCell<ClickCountingInfo>,
     #[no_trace]
@@ -189,7 +200,9 @@ impl DocumentEventHandler {
             window: Dom::from_ref(window),
             pending_input_events: Default::default(),
             mouse_move_event_index: Default::default(),
+            coalesced_move_event_ids: Default::default(),
             wheel_event_index: Default::default(),
+            coalesced_wheel_event_ids: Default::default(),
             click_counting_info: Default::default(),
             last_mouse_button_down_point: Default::default(),
             down_button_count: Cell::new(0),
@@ -215,6 +228,9 @@ impl DocumentEventHandler {
                 .borrow()
                 .and_then(|index| pending_input_events.get_mut(index))
             {
+                self.coalesced_move_event_ids
+                    .borrow_mut()
+                    .push(mouse_move_event.event.id);
                 *mouse_move_event = event;
                 return;
             }
@@ -233,6 +249,9 @@ impl DocumentEventHandler {
                     existing_constellation_wheel_event.event.event
                 {
                     if existing_wheel_event.delta.mode == new_wheel_event.delta.mode {
+                        self.coalesced_wheel_event_ids
+                            .borrow_mut()
+                            .push(existing_constellation_wheel_event.event.id);
                         existing_wheel_event.delta.x += new_wheel_event.delta.x;
                         existing_wheel_event.delta.y += new_wheel_event.delta.y;
                         existing_wheel_event.delta.z += new_wheel_event.delta.z;
@@ -277,55 +296,84 @@ impl DocumentEventHandler {
         *self.mouse_move_event_index.borrow_mut() = None;
         *self.wheel_event_index.borrow_mut() = None;
         let pending_input_events = mem::take(&mut *self.pending_input_events.borrow_mut());
-        let input_event_outcomes: Vec<InputEventOutcome> = pending_input_events
-            .into_iter()
-            .map(|event| {
-                self.active_keyboard_modifiers
-                    .set(event.active_keyboard_modifiers);
-                // TODO: For some of these we still aren't properly calculating whether or not
-                // the event was handled or if `preventDefault()` was called on it. Each of
-                // these cases needs to be examined and some of them either fire more than one
-                // event or fire events later. We have to make a good decision about what to
-                // return to the embedder when that happens.
-                let result = match event.event.event.clone() {
-                    InputEvent::MouseButton(mouse_button_event) => {
-                        self.handle_native_mouse_button_event(mouse_button_event, &event, can_gc);
-                        InputEventResult::default()
-                    },
-                    InputEvent::MouseMove(_) => {
-                        self.handle_native_mouse_move_event(&event, can_gc);
-                        InputEventResult::default()
-                    },
-                    InputEvent::MouseLeftViewport(mouse_leave_event) => {
-                        self.handle_mouse_left_viewport_event(&event, &mouse_leave_event, can_gc);
-                        InputEventResult::default()
-                    },
-                    InputEvent::Touch(touch_event) => {
-                        self.handle_touch_event(touch_event, &event, can_gc)
-                    },
-                    InputEvent::Wheel(wheel_event) => {
-                        self.handle_wheel_event(wheel_event, &event, can_gc)
-                    },
-                    InputEvent::Keyboard(keyboard_event) => {
-                        self.handle_keyboard_event(keyboard_event, can_gc)
-                    },
-                    InputEvent::Ime(ime_event) => self.handle_ime_event(ime_event, can_gc),
-                    #[cfg(feature = "gamepad")]
-                    InputEvent::Gamepad(gamepad_event) => {
-                        self.handle_gamepad_event(gamepad_event);
-                        InputEventResult::default()
-                    },
-                    InputEvent::EditingAction(editing_action_event) => {
-                        self.handle_editing_action(None, editing_action_event, can_gc)
-                    },
-                };
+        let mut coalesced_move_event_ids =
+            mem::take(&mut *self.coalesced_move_event_ids.borrow_mut());
+        let mut coalesced_wheel_event_ids =
+            mem::take(&mut *self.coalesced_wheel_event_ids.borrow_mut());
 
-                InputEventOutcome {
-                    id: event.event.id,
-                    result,
-                }
-            })
-            .collect();
+        let mut input_event_outcomes = Vec::with_capacity(
+            pending_input_events.len() +
+                coalesced_move_event_ids.len() +
+                coalesced_wheel_event_ids.len(),
+        );
+        // TODO: For some of these we still aren't properly calculating whether or not
+        // the event was handled or if `preventDefault()` was called on it. Each of
+        // these cases needs to be examined and some of them either fire more than one
+        // event or fire events later. We have to make a good decision about what to
+        // return to the embedder when that happens.
+        for event in pending_input_events {
+            // Insert coalesced [`InputEventId`]s that occurred BEFORE the current event processing.
+            match event.event.event {
+                InputEvent::MouseMove(_) => {
+                    input_event_outcomes.extend(coalesced_move_event_ids.drain(..).map(|id| {
+                        InputEventOutcome {
+                            id,
+                            result: InputEventResult::Coalesced,
+                        }
+                    }));
+                },
+                InputEvent::Wheel(_) => {
+                    input_event_outcomes.extend(coalesced_wheel_event_ids.drain(..).map(|id| {
+                        InputEventOutcome {
+                            id,
+                            result: InputEventResult::Coalesced,
+                        }
+                    }));
+                },
+                _ => {},
+            }
+
+            self.active_keyboard_modifiers
+                .set(event.active_keyboard_modifiers);
+            let result = match event.event.event {
+                InputEvent::MouseButton(mouse_button_event) => {
+                    self.handle_native_mouse_button_event(mouse_button_event, &event, can_gc);
+                    InputEventResult::default()
+                },
+                InputEvent::MouseMove(_) => {
+                    self.handle_native_mouse_move_event(&event, can_gc);
+                    InputEventResult::default()
+                },
+                InputEvent::MouseLeftViewport(mouse_leave_event) => {
+                    self.handle_mouse_left_viewport_event(&event, &mouse_leave_event, can_gc);
+                    InputEventResult::default()
+                },
+                InputEvent::Touch(touch_event) => {
+                    self.handle_touch_event(touch_event, &event, can_gc)
+                },
+                InputEvent::Wheel(wheel_event) => {
+                    self.handle_wheel_event(wheel_event, &event, can_gc)
+                },
+                InputEvent::Keyboard(keyboard_event) => {
+                    self.handle_keyboard_event(keyboard_event, can_gc)
+                },
+                InputEvent::Ime(ime_event) => self.handle_ime_event(ime_event, can_gc),
+                #[cfg(feature = "gamepad")]
+                InputEvent::Gamepad(gamepad_event) => {
+                    self.handle_gamepad_event(gamepad_event);
+                    InputEventResult::default()
+                },
+                InputEvent::EditingAction(editing_action_event) => {
+                    self.handle_editing_action(None, editing_action_event, can_gc)
+                },
+            };
+
+            input_event_outcomes.push(InputEventOutcome {
+                id: event.event.id,
+                result,
+            });
+        }
+
         if !input_event_outcomes.is_empty() {
             self.notify_embedder_that_events_were_handled(input_event_outcomes);
         }
