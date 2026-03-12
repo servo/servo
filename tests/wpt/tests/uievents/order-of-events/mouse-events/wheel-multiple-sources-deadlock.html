@@ -20,8 +20,7 @@ promise_test(async () => {
     totalDeltaY += e.deltaY;
   });
 
-  // Set pause to 0 to simulate high-frequency events.
-  await new test_driver.Actions(0)
+  await new test_driver.Actions()
     .addWheel("wheel1")
     .addWheel("wheel2")
     .scroll(0, 0, 0, 50, { origin: "viewport", sourceName: "wheel1", duration: 250 })
