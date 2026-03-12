@@ -164,7 +164,7 @@ impl CookieStore {
             .send(CoreResourceMsg::NewCookieListener(
                 self.droppable.store_id,
                 cookie_sender,
-                self.global().creation_url().clone(),
+                self.global().creation_url(),
             ));
         if res.is_err() {
             error!("Failed to send cookiestore message to resource threads");
@@ -214,7 +214,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .resource_threads()
             .send(CoreResourceMsg::GetCookieDataForUrlAsync(
                 self.droppable.store_id,
-                creation_url.clone(),
+                creation_url,
                 Some(name),
             ));
         if res.is_err() {
@@ -298,7 +298,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .resource_threads()
             .send(CoreResourceMsg::GetCookieDataForUrlAsync(
                 self.droppable.store_id,
-                final_url.clone(),
+                final_url,
                 options.name.clone().map(|val| CookieStore::normalize(&val)),
             ));
         if res.is_err() {
@@ -338,7 +338,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                 .resource_threads()
                 .send(CoreResourceMsg::GetAllCookieDataForUrlAsync(
                     self.droppable.store_id,
-                    creation_url.clone(),
+                    creation_url,
                     Some(name),
                 ));
         if res.is_err() {
@@ -415,7 +415,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
                 .resource_threads()
                 .send(CoreResourceMsg::GetAllCookieDataForUrlAsync(
                     self.droppable.store_id,
-                    final_url.clone(),
+                    final_url,
                     options.name.clone().map(|val| CookieStore::normalize(&val)),
                 ));
         if res.is_err() {
@@ -552,7 +552,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .resource_threads()
             .send(CoreResourceMsg::DeleteCookieAsync(
                 self.droppable.store_id,
-                global.creation_url().clone(),
+                global.creation_url(),
                 name.0,
             ));
         if res.is_err() {
@@ -588,7 +588,7 @@ impl CookieStoreMethods<crate::DomTypeHolder> for CookieStore {
             .resource_threads()
             .send(CoreResourceMsg::DeleteCookieAsync(
                 self.droppable.store_id,
-                global.creation_url().clone(),
+                global.creation_url(),
                 options.name.to_string(),
             ));
         if res.is_err() {

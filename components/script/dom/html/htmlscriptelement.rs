@@ -424,7 +424,7 @@ impl FetchResponseListener for ClassicContext {
         // sourceText, settingsObject, response's URL, options, mutedErrors, and url.
         let script = global.create_a_classic_script(
             source_text,
-            final_url.clone(),
+            final_url,
             self.fetch_options.clone(),
             ErrorReporting::from(muted_errors),
             Some(IntroductionType::SRC_SCRIPT),
@@ -851,7 +851,7 @@ impl HTMLScriptElement {
 
                     // Step 31.11. Fetch an external module script graph.
                     fetch_an_external_module_script(
-                        url.clone(),
+                        url,
                         ModuleOwner::Window(Trusted::new(self)),
                         options,
                         can_gc,
@@ -920,7 +920,7 @@ impl HTMLScriptElement {
                     fetch_inline_module_script(
                         ModuleOwner::Window(Trusted::new(self)),
                         text_rc,
-                        base_url.clone(),
+                        base_url,
                         options,
                         self.line_number as u32,
                         can_gc,

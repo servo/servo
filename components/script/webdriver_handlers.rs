@@ -835,7 +835,7 @@ pub(crate) fn handle_find_elements_link_text(
         Ok(document) => reply
             .send(all_matching_links(
                 document.upcast::<Node>(),
-                selector.clone(),
+                selector,
                 partial,
             ))
             .unwrap(),

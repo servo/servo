@@ -478,7 +478,7 @@ fn update_serviceworker(
         receiver,
         devtools_receiver,
         own_sender,
-        scope_url.clone(),
+        scope_url,
         control_receiver,
         context_sender,
         closing.clone(),

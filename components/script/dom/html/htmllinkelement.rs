@@ -1142,7 +1142,7 @@ impl FetchResponseListener for FaviconFetchContext {
     ) {
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponse(request_id, metadata.clone()),
+            FetchResponseMsg::ProcessResponse(request_id, metadata),
         );
     }
 

@@ -781,7 +781,7 @@ impl Paint {
         log::info!("Saving WebRender capture to {capture_path:?}");
         self.painter(webview_id.into())
             .webrender_api
-            .save_capture(capture_path.clone(), CaptureBits::all());
+            .save_capture(capture_path, CaptureBits::all());
     }
 
     pub fn notify_input_event(&self, webview_id: WebViewId, event: InputEventAndId) {

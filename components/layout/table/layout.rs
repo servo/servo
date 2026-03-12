@@ -620,10 +620,8 @@ impl<'a> TableLayout<'a> {
         let colspan_cell_min_size = (colspan_cell_constraints.content_sizes.min_content -
             total_border_spacing)
             .max(Au::zero());
-        let distributed_minimum = Self::distribute_width_to_columns(
-            colspan_cell_min_size,
-            &self.columns[column_range.clone()],
-        );
+        let distributed_minimum =
+            Self::distribute_width_to_columns(colspan_cell_min_size, &self.columns[column_range]);
         {
             let column_span = &mut self.columns[colspan_cell_constraints.range()];
             for (column, minimum_size) in column_span.iter_mut().zip(distributed_minimum) {
@@ -1056,7 +1054,7 @@ impl<'a> TableLayout<'a> {
         // > Otherwise, if there is any such column, the distributed widths of all columns that have
         // > originating cells are increased by equal amounts so the total increase adds to the excess
         // > width.
-        let has_originating_cells_columns = all_columns.clone().filter(has_originating_cells);
+        let has_originating_cells_columns = all_columns.filter(has_originating_cells);
         let total_has_originating_cells = has_originating_cells_columns.clone().count();
         if total_has_originating_cells > 0 {
             let extra_space_per_column =

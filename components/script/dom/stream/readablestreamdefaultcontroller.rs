@@ -558,9 +558,7 @@ impl ReadableStreamDefaultController {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
             // TODO: check if `self.global()` is the right globalscope.
-            error
-                .clone()
-                .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
+            error.to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
             let promise = Promise::new(&global, can_gc);
             promise.reject_native(&rval.handle(), can_gc);
             promise
@@ -594,9 +592,7 @@ impl ReadableStreamDefaultController {
         let promise = result.unwrap_or_else(|error| {
             rooted!(in(*cx) let mut rval = UndefinedValue());
 
-            error
-                .clone()
-                .to_jsval(cx, global, rval.handle_mut(), can_gc);
+            error.to_jsval(cx, global, rval.handle_mut(), can_gc);
             let promise = Promise::new(global, can_gc);
             promise.reject_native(&rval.handle(), can_gc);
             promise

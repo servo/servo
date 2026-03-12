@@ -963,7 +963,7 @@ pub(crate) fn upgrade_element(
                 ScriptThread::enqueue_callback_reaction(
                     element,
                     CallbackReaction::FormDisabled(true),
-                    Some(definition.clone()),
+                    Some(definition),
                 )
             }
         }

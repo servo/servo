@@ -193,7 +193,7 @@ fn html_constructor(
             element.set_custom_element_state(CustomElementState::Custom);
 
             // Step 7.7 Set element's custom element definition to definition.
-            element.set_custom_element_definition(definition.clone());
+            element.set_custom_element_definition(definition);
 
             // Step 7.8 Set element's is value to isValue.
             if let Some(is_value) = is_value {

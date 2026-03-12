@@ -803,7 +803,7 @@ impl Servo {
         let paint = Paint::new(InitialPaintState {
             paint_proxy: paint_proxy.clone(),
             receiver: paint_receiver,
-            embedder_to_constellation_sender: constellation_proxy.sender().clone(),
+            embedder_to_constellation_sender: constellation_proxy.sender(),
             time_profiler_chan: time_profiler_chan.clone(),
             mem_profiler_chan: mem_profiler_chan.clone(),
             shutdown_state: shutdown_state.clone(),
@@ -832,7 +832,7 @@ impl Servo {
             embedder_to_constellation_receiver,
             &paint.borrow(),
             embedder_proxy,
-            paint_proxy.clone(),
+            paint_proxy,
             time_profiler_chan,
             mem_profiler_chan,
             devtools_sender,

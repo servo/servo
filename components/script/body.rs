@@ -281,13 +281,13 @@ impl TransmitBodyConnectHandler {
                 // and the corresponding IPC route in `component::net::http_loader`.
                 rooted!(in(*cx) let mut promise_handler = Some(TransmitBodyPromiseHandler {
                     bytes_sender: bytes_sender.clone(),
-                    stream: Dom::from_ref(&rooted_stream.clone()),
+                    stream: Dom::from_ref(&rooted_stream),
                     control_sender: control_sender.clone().unwrap(),
                 }));
 
                 rooted!(in(*cx) let mut rejection_handler = Some(TransmitBodyPromiseRejectionHandler {
                     bytes_sender,
-                    stream: Dom::from_ref(&rooted_stream.clone()),
+                    stream: Dom::from_ref(&rooted_stream),
                     control_sender: control_sender.unwrap(),
                 }));
 

@@ -193,7 +193,7 @@ impl CoreFunction {
                     None => Some(context.context_node.clone()),
                 };
                 let name = node.and_then(|n| local_name(&n)).unwrap_or_default();
-                Ok(Value::String(name.to_string()))
+                Ok(Value::String(name))
             },
             CoreFunction::NamespaceUri(expr_opt) => {
                 let node = match expr_opt {
@@ -204,7 +204,7 @@ impl CoreFunction {
                     None => Some(context.context_node.clone()),
                 };
                 let ns = node.and_then(|n| namespace_uri(&n)).unwrap_or_default();
-                Ok(Value::String(ns.to_string()))
+                Ok(Value::String(ns))
             },
             CoreFunction::Name(expr_opt) => {
                 let node = match expr_opt {

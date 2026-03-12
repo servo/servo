@@ -122,7 +122,7 @@ impl ThreadActor {
         browsing_context: Option<String>,
     ) -> ThreadActor {
         ThreadActor {
-            name: name.clone(),
+            name,
             source_manager: SourceManager::new(),
             script_sender,
             frames: Default::default(),

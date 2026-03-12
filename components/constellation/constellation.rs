@@ -3652,7 +3652,7 @@ where
             .send(EmbedderMsg::AllowNavigationRequest(
                 webview_id,
                 source_id,
-                load_data.url.clone(),
+                load_data.url,
             ));
     }
 
@@ -4151,8 +4151,7 @@ where
         history_state_id: Option<HistoryStateId>,
         url: ServoUrl,
     ) {
-        let msg =
-            ScriptThreadMessage::UpdateHistoryState(pipeline_id, history_state_id, url.clone());
+        let msg = ScriptThreadMessage::UpdateHistoryState(pipeline_id, history_state_id, url);
         self.send_message_to_pipeline(pipeline_id, msg, "History state updated after closure");
     }
 

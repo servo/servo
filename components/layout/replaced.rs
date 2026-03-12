@@ -344,11 +344,7 @@ impl ReplacedContents {
                                 .handle_animated_image(node.opaque(), image.clone());
                         }
                         let metadata = image.metadata();
-                        (
-                            Some(image.clone()),
-                            metadata.width as f32,
-                            metadata.height as f32,
-                        )
+                        (Some(image), metadata.width as f32, metadata.height as f32)
                     },
                     ImageOrMetadataAvailable::MetadataAvailable(metadata, _id) => {
                         (None, metadata.width as f32, metadata.height as f32)

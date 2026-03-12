@@ -636,7 +636,7 @@ impl RunningAppState {
     }
 
     pub(crate) fn handle_focused(&self, window: Rc<ServoShellWindow>) {
-        *self.focused_window.borrow_mut() = Some(window.clone());
+        *self.focused_window.borrow_mut() = Some(window);
     }
 
     /// Interrupt any ongoing WebDriver-based script evaluation.

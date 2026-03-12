@@ -143,7 +143,7 @@ impl ByteTeeReadIntoRequest {
             // If cloneResult is an abrupt completion,
             if let Err(error) = clone_result {
                 rooted!(&in(cx) let mut error_value = UndefinedValue());
-                error.clone().to_jsval(
+                error.to_jsval(
                     cx.into(),
                     &self.global(),
                     error_value.handle_mut(),

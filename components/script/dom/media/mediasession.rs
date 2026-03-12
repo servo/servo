@@ -203,7 +203,7 @@ impl MediaSessionMethods<crate::DomTypeHolder> for MediaSession {
             Some(handler) => self
                 .action_handlers
                 .borrow_mut()
-                .insert(action.convert(), handler.clone()),
+                .insert(action.convert(), handler),
             None => self.action_handlers.borrow_mut().remove(&action.convert()),
         };
     }

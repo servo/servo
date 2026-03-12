@@ -62,7 +62,7 @@ impl DissimilarOriginWindow {
                 global_to_clone_from.resource_threads().clone(),
                 global_to_clone_from.storage_threads().clone(),
                 global_to_clone_from.origin().clone(),
-                global_to_clone_from.creation_url().clone(),
+                global_to_clone_from.creation_url(),
                 global_to_clone_from.top_level_creation_url().clone(),
                 #[cfg(feature = "webgpu")]
                 global_to_clone_from.wgpu_id_hub(),
@@ -235,7 +235,7 @@ impl DissimilarOriginWindow {
             "*" => None,
             "/" => Some(source_origin.clone()),
             url => match ServoUrl::parse(url) {
-                Ok(url) => Some(url.origin().clone()),
+                Ok(url) => Some(url.origin()),
                 Err(_) => return Err(Error::Syntax(None)),
             },
         };

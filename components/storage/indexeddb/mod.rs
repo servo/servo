@@ -1156,10 +1156,7 @@ impl IndexedDBManager {
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
     /// Note: this only reverts the version at this point.
     fn abort_pending_upgrade(&mut self, name: String, id: Uuid, origin: ImmutableOrigin) {
-        let key = IndexedDBDescription {
-            name,
-            origin: origin.clone(),
-        };
+        let key = IndexedDBDescription { name, origin };
         let old = {
             let Some(queue) = self.connection_queues.get_mut(&key) else {
                 return debug_assert!(
@@ -1275,7 +1272,7 @@ impl IndexedDBManager {
     ) {
         let key = IndexedDBDescription {
             name: db_name.clone(),
-            origin: origin.clone(),
+            origin,
         };
         let open_request = OpenRequest::Open {
             sender,
@@ -1401,7 +1398,7 @@ impl IndexedDBManager {
                 version: new_version,
                 old_version,
                 transaction,
-                object_store_names: scope.clone(),
+                object_store_names: scope,
             })
             .is_err()
         {
@@ -1422,7 +1419,7 @@ impl IndexedDBManager {
     ) {
         let key = IndexedDBDescription {
             name: name.clone(),
-            origin: origin.clone(),
+            origin,
         };
         let (can_upgrade, version) = {
             let Some(queue) = self.connection_queues.get_mut(&key) else {
@@ -2004,10 +2001,10 @@ impl IndexedDBManager {
                     } else {
                         db.queue_pending_commit_callback(txn, callback);
                     }
-                    db.schedule_transactions(origin.clone(), &db_name);
+                    db.schedule_transactions(origin, &db_name);
                 } else if callback
                     .send(TxnCompleteMsg {
-                        origin: origin.clone(),
+                        origin,
                         db_name: db_name.clone(),
                         txn,
                         // If the database entry has already been removed, treat commit as a
@@ -2055,7 +2052,7 @@ impl IndexedDBManager {
                 }
                 if abort_callback
                     .send(storage_traits::indexeddb::TxnCompleteMsg {
-                        origin: origin.clone(),
+                        origin,
                         db_name: db_name.clone(),
                         txn,
                         result: Err(BackendError::Abort),

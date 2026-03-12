@@ -425,7 +425,7 @@ where
         match self.0 {
             GenericReceiverVariants::Ipc(ipc_receiver) => {
                 let (crossbeam_sender, crossbeam_receiver) = crossbeam_channel::unbounded();
-                let crossbeam_sender_clone = crossbeam_sender.clone();
+                let crossbeam_sender_clone = crossbeam_sender;
                 ROUTER.add_typed_route(
                     ipc_receiver,
                     Box::new(move |message| {

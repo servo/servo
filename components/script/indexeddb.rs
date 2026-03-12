@@ -195,7 +195,7 @@ pub fn convert_value_to_key(
                 // FIXME:(arihant2math) implement it the correct way (is this correct?)
                 let key = structuredclone::write(cx.into(), input, None)?;
                 return Ok(ConversionResult::Valid(IndexedDBKeyType::Binary(
-                    key.serialized.clone(),
+                    key.serialized,
                 )));
             }
 

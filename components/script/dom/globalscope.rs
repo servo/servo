@@ -697,10 +697,8 @@ impl FileListener {
                         self.task_source.queue(task);
                     },
                     FileListenerTarget::Stream(trusted_stream) => {
-                        let trusted = trusted_stream.clone();
-
                         let task = task!(enqueue_stream_chunk: move || {
-                            let stream = trusted.root();
+                            let stream = trusted_stream.root();
                             stream_handle_eof(&stream, CanGc::note());
                         });
 
@@ -1978,7 +1976,7 @@ impl GlobalScope {
     fn get_blob_bytes_non_sliced_or_file_id(&self, blob_id: &BlobId) -> BlobResult {
         match *self.get_blob_data(blob_id) {
             BlobData::File(ref f) => match f.get_cache() {
-                Some(bytes) => BlobResult::Bytes(bytes.clone()),
+                Some(bytes) => BlobResult::Bytes(bytes),
                 None => BlobResult::File(f.get_id(), f.get_size() as usize),
             },
             BlobData::Memory(ref s) => BlobResult::Bytes(s.clone()),
@@ -2184,7 +2182,7 @@ impl GlobalScope {
 
         let recv = self.send_msg(file_id);
 
-        let trusted_stream = Trusted::new(&*stream.clone());
+        let trusted_stream = Trusted::new(&*stream);
         let mut file_listener = FileListener {
             state: Some(FileListenerState::Empty(FileListenerTarget::Stream(
                 trusted_stream,
@@ -3352,7 +3350,7 @@ impl GlobalScope {
     ) {
         self.notification_permission_request_callback_map
             .borrow_mut()
-            .insert(callback_id, callback.clone());
+            .insert(callback_id, callback);
     }
 
     pub(crate) fn remove_notification_permission_request_callback(

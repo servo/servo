@@ -632,7 +632,7 @@ pub(crate) enum ModuleOwner {
 impl ModuleOwner {
     pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
         match &self {
-            ModuleOwner::Worker(worker) => (*worker.root().clone()).global(),
+            ModuleOwner::Worker(worker) => (*worker.root()).global(),
             ModuleOwner::Window(script) => (*script.root()).global(),
             ModuleOwner::DynamicModule(dynamic_module) => (*dynamic_module.root()).global(),
         }
@@ -903,7 +903,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     let specifier = unsafe { jsstr_to_string(cx.raw_cx(), NonNull::new(jsstr).unwrap()) };
 
     let mut realm = CurrentRealm::assert(cx);
-    let payload = Payload::PromiseRecord(promise.clone());
+    let payload = Payload::PromiseRecord(promise);
     host_load_imported_module(
         &mut realm,
         None,
@@ -1283,8 +1283,8 @@ fn fetch_the_descendants_and_link_module_script(
         }),
     ));
 
-    let rejection_owner = owner.clone();
-    let rejected_module = module_script.clone();
+    let rejection_owner = owner;
+    let rejected_module = module_script;
 
     // Step 7. Upon rejection of loadingPromise, run the following steps:
     let loading_promise_rejection = ModuleHandler::new_boxed(Box::new(
@@ -1536,7 +1536,7 @@ pub(crate) fn register_import_map(
         Err(exception) => {
             // Step 1. If result's error to rethrow is not null, then report
             // an exception given by result's error to rethrow for global and return.
-            throw_dom_exception(GlobalScope::get_cx(), global, exception.clone(), can_gc);
+            throw_dom_exception(GlobalScope::get_cx(), global, exception, can_gc);
         },
     }
 }

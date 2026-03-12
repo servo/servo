@@ -535,7 +535,7 @@ impl Gui {
             .and_then(|webview| Some(webview.url()?.to_string()));
         match current_url_string {
             Some(location) if location != self.location => {
-                self.location = location.to_owned();
+                self.location = location;
                 true
             },
             _ => false,

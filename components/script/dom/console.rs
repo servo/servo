@@ -120,7 +120,7 @@ impl Console {
 
     // Directly logs a DOMString, without processing the message
     pub(crate) fn internal_warn(global: &GlobalScope, message: DOMString) {
-        Console::send_string_message(global, ConsoleLogLevel::Warn, String::from(message.clone()));
+        Console::send_string_message(global, ConsoleLogLevel::Warn, String::from(message));
     }
 }
 
@@ -544,7 +544,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         if !condition {
             let message = format!("Assertion failed: {}", stringify_handle_values(&messages));
 
-            Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
+            Console::send_string_message(global, ConsoleLogLevel::Log, message);
         }
     }
 
@@ -552,7 +552,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     fn Time(global: &GlobalScope, label: DOMString) {
         if let Ok(()) = global.time(label.clone()) {
             let message = format!("{label}: timer started");
-            Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
+            Console::send_string_message(global, ConsoleLogLevel::Log, message);
         }
     }
 
@@ -561,7 +561,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         if let Ok(delta) = global.time_log(&label) {
             let message = format!("{label}: {delta}ms {}", stringify_handle_values(&data));
 
-            Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
+            Console::send_string_message(global, ConsoleLogLevel::Log, message);
         }
     }
 
@@ -570,7 +570,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         if let Ok(delta) = global.time_end(&label) {
             let message = format!("{label}: {delta}ms");
 
-            Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
+            Console::send_string_message(global, ConsoleLogLevel::Log, message);
         }
     }
 
@@ -594,7 +594,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
         let count = global.increment_console_count(&label);
         let message = format!("{label}: {count}");
 
-        Console::send_string_message(global, ConsoleLogLevel::Log, message.clone());
+        Console::send_string_message(global, ConsoleLogLevel::Log, message);
     }
 
     /// <https://console.spec.whatwg.org/#countreset>

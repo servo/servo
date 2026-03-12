@@ -162,7 +162,7 @@ impl ReportingObserver {
         destination: DOMString,
     ) -> Report {
         // Step 2. If url was not provided by the caller, let url be settings’s creation URL.
-        let url = url.unwrap_or(global.creation_url().clone());
+        let url = url.unwrap_or(global.creation_url());
         // Step 3. Set url’s username to the empty string, and its password to null.
         // Step 4. Set report’s url to the result of executing the URL serializer
         // on url with the exclude fragment flag set.

@@ -108,9 +108,9 @@ pub fn new_resource_threads(
     let (public_core, private_core) = new_core_resource_thread(
         devtools_sender,
         time_profiler_chan,
-        mem_profiler_chan.clone(),
+        mem_profiler_chan,
         embedder_proxy,
-        config_dir.clone(),
+        config_dir,
         ca_certificates,
         ignore_certificate_errors,
         protocols,

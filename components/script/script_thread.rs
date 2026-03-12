@@ -2797,7 +2797,7 @@ impl ScriptThread {
             }
 
             let prefix = format!("url({urls})");
-            reports.extend(self.get_cx().get_reports(prefix.clone(), ops));
+            reports.extend(self.get_cx().get_reports(prefix, ops));
         });
 
         reports_chan.send(ProcessReports::new(reports));

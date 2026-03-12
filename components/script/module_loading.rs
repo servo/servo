@@ -383,7 +383,7 @@ fn continue_dynamic_import(
                 &global_scope,
                 Some(on_fulfilled),
                 Some(Box::new(OnRejectedHandler {
-                    promise: inner_promise.clone(),
+                    promise: inner_promise,
                 })),
                 CanGc::note(),
             );
