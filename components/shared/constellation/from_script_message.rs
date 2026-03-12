@@ -541,6 +541,16 @@ pub enum ScreenshotReadinessResponse {
     NoLongerActive,
 }
 
+/// Identifies a category of events/notifications that a pipeline can register
+/// interest in with the constellation. When a pipeline has active listeners for
+/// events in a given category, it registers interest so the constellation only
+/// sends notifications to pipelines that care.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub enum ConstellationInterest {
+    /// Interest in `storage` events (fired when another same-origin pipeline modifies storage).
+    StorageEvent,
+}
+
 /// Messages from the script to the constellation.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptToConstellationMessage {
@@ -588,6 +598,12 @@ pub enum ScriptToConstellationMessage {
     /// Broadcast a message to all same-origin broadcast channels,
     /// excluding the source of the broadcast.
     ScheduleBroadcast(BroadcastChannelRouterId, BroadcastChannelMsg),
+    /// Register this pipeline's interest in a category of notifications.
+    /// The constellation will only send notifications in this category to
+    /// pipelines that have registered interest.
+    RegisterInterest(ConstellationInterest),
+    /// Unregister this pipeline's interest in a category of notifications.
+    UnregisterInterest(ConstellationInterest),
     /// Broadcast a storage event to every same-origin pipeline.
     /// The strings are key, old value and new value.
     BroadcastStorageEvent(
