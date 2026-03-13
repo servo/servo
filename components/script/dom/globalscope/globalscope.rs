@@ -295,7 +295,7 @@ pub(crate) struct GlobalScope {
 
     /// <https://html.spec.whatwg.org/multipage/#concept-environment-top-level-creation-url>
     #[no_trace]
-    top_level_creation_url: Option<ServoUrl>,
+    top_level_creation_url: DomRefCell<Option<ServoUrl>>,
 
     /// A map for storing the previous permission state read results.
     permission_state_invocation_results: DomRefCell<HashMap<PermissionName, PermissionState>>,
@@ -813,7 +813,7 @@ impl GlobalScope {
             resource_threads,
             storage_threads,
             creation_url: DomRefCell::new(creation_url),
-            top_level_creation_url,
+            top_level_creation_url: DomRefCell::new(top_level_creation_url),
             permission_state_invocation_results: Default::default(),
             list_auto_close_worker: Default::default(),
             event_source_tracker: DOMTracker::new(),
@@ -2599,8 +2599,12 @@ impl GlobalScope {
     }
 
     /// Get the top_level_creation_url for this global scope
-    pub(crate) fn top_level_creation_url(&self) -> &Option<ServoUrl> {
-        &self.top_level_creation_url
+    pub(crate) fn top_level_creation_url(&self) -> Option<ServoUrl> {
+        self.top_level_creation_url.borrow().clone()
+    }
+
+    pub(crate) fn set_top_level_creation_url(&self, url: ServoUrl) {
+        *self.top_level_creation_url.borrow_mut() = Some(url);
     }
 
     pub(crate) fn image_cache(&self) -> Arc<dyn ImageCache> {
