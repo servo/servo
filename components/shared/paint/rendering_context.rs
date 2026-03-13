@@ -401,8 +401,8 @@ impl RenderingContext for SoftwareRenderingContext {
 /// A [`RenderingContext`] that uses the `surfman` library to render to a
 /// `raw-window-handle` identified window. `surfman` will attempt to create an
 /// OpenGL context and surface for this window. This is a simple implementation
-/// of the [`RenderingContext`] crate, but by default it paints to the entire window
-/// surface.
+/// of the [`RenderingContext`] trait, but by default it paints to the entire
+/// window surface.
 ///
 /// If you would like to paint to only a portion of the window, consider using
 /// [`OffscreenRenderingContext`] by calling [`WindowRenderingContext::offscreen_context`].
