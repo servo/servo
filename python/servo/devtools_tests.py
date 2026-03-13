@@ -1132,7 +1132,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             nav_done = Future()
 
             def on_tab_navigated(data):
-                if data.get("url").endswith("/tab/page2.html"):
+                if data.get("state") == "stop" and data.get("url").endswith("/tab/page2.html"):
                     nav_done.set_result(None)
                     return
 
@@ -1173,7 +1173,7 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
                 done = Future()
 
                 def on_tab_navigated(data):
-                    if data.get("url").endswith(target_path):
+                    if data.get("state") == "stop" and data.get("url").endswith(target_path):
                         done.set_result(None)
                         return
 
