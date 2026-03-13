@@ -16,8 +16,7 @@
 
 <script>
 promise_test(async test => {
-    // Increase the amount of padding to add to the rectangle due to the scaling.
-    let targetRect = getTextEntryContentRect(target, 16);
+    let targetRect = getTextEntryContentRect(target, 3 /* scale */, true, /* rotate90Degrees */);
 
     // This is the middle of the character height, but the input is rotated 90
     // degrees so it is the x-axis.
