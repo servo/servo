@@ -105,7 +105,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
+        uses: servo/ci-runners/actions/runner-select@f0b81b95522256c64ee207b4236ec71fc23b99a1
         with:
           GITHUB_TOKEN: ${{ github.token }}
           # Before updating the GH action runner image for the nightly job, ensure
@@ -128,7 +128,7 @@ jobs:
     outputs:
       artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
+      - uses: servo/ci-runners/actions/checkout@f0b81b95522256c64ee207b4236ec71fc23b99a1
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         if: ${{ runner.environment != 'self-hosted' }}
@@ -301,7 +301,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
+        uses: servo/ci-runners/actions/runner-select@f0b81b95522256c64ee207b4236ec71fc23b99a1
         with:
           GITHUB_TOKEN: ${{ github.token }}
           # Before updating the GH action runner image for the nightly job, ensure
@@ -323,7 +323,7 @@ jobs:
     runs-on: ${{ needs.runner-select-coverage.outputs.selected-runner-label }}
     continue-on-error: true
     steps:
-      - uses: servo/ci-runners/actions/checkout@6d88b19dda997f1ce2a11e4c1c34717c2bbcafba
+      - uses: servo/ci-runners/actions/checkout@f0b81b95522256c64ee207b4236ec71fc23b99a1
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         if: ${{ runner.environment != 'self-hosted' }}
