@@ -242,6 +242,51 @@ xi-unicode = "0.3.0"
 xml5ever = "0.38"
 xpath = { package = "servo-xpath", path = "components/xpath" }
 
+background_hang_monitor = { package = "servo-background-hang-monitor", path = "components/background_hang_monitor" }
+bluetooth = { package = "servo-bluetooth", path = "components/bluetooth" }
+blurmac = { path = "third_party/blurmac" }
+canvas = { package = "servo-canvas", path = "components/canvas" }
+constellation = { package = "servo-constellation", path = "components/constellation" }
+deny_public_fields = { package = "servo-deny-public-fields", path = "components/deny_public_fields" }
+devtools = { package = "servo-devtools", path = "components/devtools" }
+dom_struct = { package = "servo-dom-struct", path = "components/dom_struct" }
+fonts = { package = "servo-fonts", path = "components/fonts" }
+jstraceable_derive = { package = "servo-jstraceable-derive", path = "components/jstraceable_derive" }
+layout = { package = "servo-layout", path = "components/layout" }
+media = { package = "servo-media-thread", path = "components/media/media-thread" }
+metrics = { package = "servo-metrics", path = "components/metrics" }
+net = { package = "servo-net", path = "components/net" }
+paint = { package = "servo-paint", path = "components/paint" }
+pixels = { package = "servo-pixels", path = "components/pixels" }
+profile = { package = "servo-profile", path = "components/profile" }
+script = { package = "servo-script", path = "components/script" }
+script_bindings = { package = "servo-script-bindings", path = "components/script_bindings" }
+servo = { path = "components/servo", default-features = false }
+servo-media-audio = { path = "components/media/audio" }
+servo-media-auto = { path = "components/media/backends/auto" }
+servo-media-derive = { path = "components/media/servo-media-derive" }
+servo-media-gstreamer-render = { path = "components/media/backends/gstreamer/render" }
+servo-media-gstreamer-render-android = { path = "components/media/backends/gstreamer/render-android" }
+servo-media-gstreamer-render-unix = { path = "components/media/backends/gstreamer/render-unix" }
+servo-media-player = { path = "components/media/player" }
+servo-media-streams = { path = "components/media/streams" }
+servo-media-traits = { path = "components/media/traits" }
+servo-media-webrtc = { path = "components/media/webrtc" }
+servo-url = { path = "components/url" }
+servo_allocator = { package = "servo-allocator", path = "components/allocator" }
+servo_config = { package = "servo-config", path = "components/config" }
+servo_config_macro = { package = "servo-config-macro", path = "components/config/macro" }
+servo_geometry = { package = "servo-geometry", path = "components/geometry" }
+servo_url = { package = "servo-url", path = "components/url" }
+sm-gst-render = { package = "servo-media-gstreamer-render", path = "components/media/backends/gstreamer/render" }
+sm-player = { package = "servo-media-player", path = "components/media/player" }
+storage = { package = "servo-storage", path = "components/storage" }
+timers = { package = "servo-timers", path = "components/timers" }
+webdriver_server = { package = "servo-webdriver-server", path = "components/webdriver_server" }
+webgl = { package = "servo-webgl", path = "components/webgl", default-features = false }
+webgpu = { package = "servo-webgpu", path = "components/webgpu" }
+webxr = { package = "servo-webxr", path = "components/webxr" }
+
 # RSA key generation could be very slow without compilation
 # optimizations, in development mode. Without optimizations, WPT might
 # consider RSA key generation tests fail due to timeout.

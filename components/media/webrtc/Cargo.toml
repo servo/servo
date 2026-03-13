@@ -13,6 +13,5 @@ path = "lib.rs"
 [dependencies]
 log = "0.4"
 uuid = { version = "1.4", features = ["v4"] }
+servo-media-streams = { workspace = true }
 
-[dependencies.servo-media-streams]
-path = "../streams"

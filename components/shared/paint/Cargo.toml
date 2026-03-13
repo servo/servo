@@ -30,14 +30,14 @@ log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 parking_lot = { workspace = true }
-pixels = { package = "servo-pixels", path = "../../pixels" }
-profile_traits = { package = "servo-profile-traits", path = "../profile" }
+pixels = { workspace = true }
+profile_traits = { workspace = true }
 raw-window-handle = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_bytes = { workspace = true }
-servo_geometry = { package = "servo-geometry", path = "../../geometry" }
-servo-url = { path = "../../url" }
+servo_geometry = { workspace = true }
+servo-url = { workspace = true }
 smallvec = { workspace = true }
 strum = { workspace = true }
 servo-tracing = { workspace = true }

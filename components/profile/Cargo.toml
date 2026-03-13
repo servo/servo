@@ -17,8 +17,8 @@ log = { workspace = true }
 profile_traits = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-servo_allocator = { package = "servo-allocator", path = "../allocator" }
-servo_config = { package = "servo-config", path = "../config" }
+servo_allocator = { workspace = true }
+servo_config = { workspace = true }
 time = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]

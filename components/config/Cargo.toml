@@ -14,5 +14,5 @@ path = "lib.rs"
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-servo_config_macro = { package = "servo-config-macro", path = "macro" }
+servo_config_macro = { workspace = true }
 stylo_static_prefs = { workspace = true }

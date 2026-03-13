@@ -32,12 +32,12 @@ malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
 paint_api = { workspace = true }
-pixels = { package = "servo-pixels", path = "../../pixels" }
+pixels = { workspace = true }
 profile_traits = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
-servo_config = { package = "servo-config", path = "../../config" }
-servo_url = { package = "servo-url", path = "../../url" }
+servo_config = { workspace = true }
+servo_url = { workspace = true }
 storage_traits = { workspace = true }
 strum = { workspace = true }
 stylo_traits = { workspace = true }
