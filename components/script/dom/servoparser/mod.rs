@@ -792,9 +792,13 @@ where
 {
     type Item = DomRoot<Node>;
 
+    #[expect(unsafe_code)]
     fn next(&mut self) -> Option<DomRoot<Node>> {
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         let next = self.inner.next()?;
-        next.remove_self(CanGc::note());
+        next.remove_self(cx);
         Some(next)
     }
 
@@ -1770,9 +1774,14 @@ impl TreeSink for Sink {
         }
     }
 
+    #[expect(unsafe_code)]
     fn remove_from_parent(&self, target: &Dom<Node>) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
         if let Some(ref parent) = target.GetParentNode() {
-            parent.RemoveChild(target, CanGc::note()).unwrap();
+            parent.RemoveChild(cx, target).unwrap();
         }
     }
 

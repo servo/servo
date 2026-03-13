@@ -5691,7 +5691,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-adoptnode>
-    fn AdoptNode(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+    fn AdoptNode(&self, cx: &mut js::context::JSContext, node: &Node) -> Fallible<DomRoot<Node>> {
         // Step 1.
         if node.is::<Document>() {
             return Err(Error::NotSupported(None));
@@ -5703,7 +5703,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         // Step 3.
-        Node::adopt(node, self, can_gc);
+        Node::adopt(cx, node, self);
 
         // Step 4.
         Ok(DomRoot::from_ref(node))
@@ -5909,7 +5909,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-body>
-    fn SetBody(&self, new_body: Option<&HTMLElement>, can_gc: CanGc) -> ErrorResult {
+    fn SetBody(
+        &self,
+        cx: &mut js::context::JSContext,
+        new_body: Option<&HTMLElement>,
+    ) -> ErrorResult {
         // Step 1. If the new value is not a body or frameset element, then throw a "HierarchyRequestError" DOMException.
         let new_body = match new_body {
             Some(new_body) => new_body,
@@ -5936,7 +5940,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             // then replace the body element with the new value within the body element's parent and return.
             (Some(ref root), Some(child)) => {
                 let root = root.upcast::<Node>();
-                root.ReplaceChild(new_body.upcast(), child.upcast(), can_gc)
+                root.ReplaceChild(cx, new_body.upcast(), child.upcast())
                     .map(|_| ())
             },
 
@@ -5947,7 +5951,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             // Append the new value to the document element.
             (Some(ref root), &None) => {
                 let root = root.upcast::<Node>();
-                root.AppendChild(new_body.upcast(), can_gc).map(|_| ())
+                root.AppendChild(new_body.upcast(), CanGc::from_cx(cx))
+                    .map(|_| ())
             },
         }
     }

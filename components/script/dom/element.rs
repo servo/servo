@@ -605,6 +605,7 @@ impl Element {
 
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
     #[allow(clippy::too_many_arguments)]
+    #[expect(unsafe_code)]
     pub(crate) fn attach_shadow(
         &self,
         is_ua_widget: IsUserAgentWidget,
@@ -613,8 +614,12 @@ impl Element {
         serializable: bool,
         delegates_focus: bool,
         slot_assignment_mode: SlotAssignmentMode,
-        can_gc: CanGc,
+        _can_gc: CanGc,
     ) -> Fallible<DomRoot<ShadowRoot>> {
+        // TODO https://github.com/servo/servo/issues/43241
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         // Step 1. If element’s namespace is not the HTML namespace,
         // then throw a "NotSupportedError" DOMException.
         if self.namespace != ns!(html) {
@@ -670,7 +675,7 @@ impl Element {
 
             // Step 4.3.1. Remove all of currentShadowRoot’s children, in tree order.
             for child in current_shadow_root.upcast::<Node>().children() {
-                child.remove_self(can_gc);
+                child.remove_self(cx);
             }
 
             // Step 4.3.2. Set currentShadowRoot’s declarative to false.
@@ -693,7 +698,7 @@ impl Element {
             slot_assignment_mode,
             clonable,
             is_ua_widget,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         // This is not in the specification, but this is where we ensure that the
@@ -727,7 +732,7 @@ impl Element {
             .set_containing_shadow_root(Some(&shadow_root));
 
         let bind_context = BindContext::new(self.upcast(), IsShadowTree::Yes);
-        shadow_root.bind_to_tree(&bind_context, can_gc);
+        shadow_root.bind_to_tree(&bind_context, CanGc::from_cx(cx));
 
         node.dirty(NodeDamage::Other);
 
@@ -3870,7 +3875,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // fragment parsing algorithm steps given parent and compliantString.
         let frag = parent.parse_fragment(value, cx)?;
         // Step 7: Replace this with fragment within this's parent.
-        context_parent.ReplaceChild(frag.upcast(), context_node, CanGc::from_cx(cx))?;
+        context_parent.ReplaceChild(cx, frag.upcast(), context_node)?;
         Ok(())
     }
 
@@ -3954,13 +3959,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
-    fn ReplaceWith(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().replace_with(nodes, can_gc)
+    fn ReplaceWith(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().replace_with(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-remove>
-    fn Remove(&self, can_gc: CanGc) {
-        self.upcast::<Node>().remove_self(can_gc);
+    fn Remove(&self, cx: &mut JSContext) {
+        self.upcast::<Node>().remove_self(cx);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-matches>
@@ -4778,9 +4783,9 @@ impl VirtualMethods for Element {
         doc.decrement_dom_count();
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation, can_gc);
+            s.children_changed(cx, mutation);
         }
 
         let flags = self.get_selector_flags();
@@ -4805,8 +4810,8 @@ impl VirtualMethods for Element {
         }
     }
 
-    fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
-        self.super_type().unwrap().adopting_steps(old_doc, can_gc);
+    fn adopting_steps(&self, cx: &mut JSContext, old_doc: &Document) {
+        self.super_type().unwrap().adopting_steps(cx, old_doc);
 
         if self.owner_document().is_html_document() != old_doc.is_html_document() {
             self.tag_name.clear();

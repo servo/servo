@@ -8,6 +8,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::{QueryMsg, ScrollContainerQueryFlags, ScrollContainerResponse};
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
@@ -567,7 +568,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute:dom-outertext-2>
-    fn SetOuterText(&self, input: DOMString, can_gc: CanGc) -> Fallible<()> {
+    fn SetOuterText(&self, cx: &mut JSContext, input: DOMString) -> Fallible<()> {
         // Step 1: If this's parent is null, then throw a "NoModificationAllowedError" DOMException.
         let Some(parent) = self.upcast::<Node>().GetParentNode() else {
             return Err(Error::NoModificationAllowed(None));
@@ -584,32 +585,36 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
         // Step 4: Let fragment be the rendered text fragment for the given value given this's node
         // document.
-        let fragment = self.rendered_text_fragment(input, can_gc);
+        let fragment = self.rendered_text_fragment(input, CanGc::from_cx(cx));
 
         // Step 5: If fragment has no children, then append a new Text node whose data is the empty
         // string and node document is this's node document to fragment.
         if fragment.upcast::<Node>().children_count() == 0 {
-            let text_node = Text::new(DOMString::from("".to_owned()), &document, can_gc);
+            let text_node = Text::new(
+                DOMString::from("".to_owned()),
+                &document,
+                CanGc::from_cx(cx),
+            );
 
             fragment
                 .upcast::<Node>()
-                .AppendChild(text_node.upcast(), can_gc)?;
+                .AppendChild(text_node.upcast(), CanGc::from_cx(cx))?;
         }
 
         // Step 6: Replace this with fragment within this's parent.
-        parent.ReplaceChild(fragment.upcast(), node, can_gc)?;
+        parent.ReplaceChild(cx, fragment.upcast(), node)?;
 
         // Step 7: If next is non-null and next's previous sibling is a Text node, then merge with
         // the next text node given next's previous sibling.
         if let Some(next_sibling) = next {
             if let Some(node) = next_sibling.GetPreviousSibling() {
-                Self::merge_with_the_next_text_node(node, can_gc);
+                Self::merge_with_the_next_text_node(cx, node);
             }
         }
 
         // Step 8: If previous is a Text node, then merge with the next text node given previous.
         if let Some(previous) = previous {
-            Self::merge_with_the_next_text_node(previous, can_gc)
+            Self::merge_with_the_next_text_node(cx, previous)
         }
 
         Ok(())
@@ -1084,7 +1089,7 @@ impl HTMLElement {
     /// node.
     ///
     /// <https://html.spec.whatwg.org/multipage/#merge-with-the-next-text-node>
-    fn merge_with_the_next_text_node(node: DomRoot<Node>, can_gc: CanGc) {
+    fn merge_with_the_next_text_node(cx: &mut JSContext, node: DomRoot<Node>) {
         // Make sure node is a Text node
         if !node.is::<Text>() {
             return;
@@ -1108,7 +1113,7 @@ impl HTMLElement {
             .expect("Got chars from Text");
 
         // Step 4:Remove next.
-        next.remove_self(can_gc);
+        next.remove_self(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#keyboard-shortcuts-processing-model>

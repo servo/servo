@@ -553,9 +553,7 @@ impl Tokenizer {
             },
             ParseOperation::RemoveFromParent { target } => {
                 if let Some(ref parent) = self.get_node(&target).GetParentNode() {
-                    parent
-                        .RemoveChild(&self.get_node(&target), CanGc::from_cx(cx))
-                        .unwrap();
+                    parent.RemoveChild(cx, &self.get_node(&target)).unwrap();
                 }
             },
             ParseOperation::MarkScriptAlreadyStarted { node } => {

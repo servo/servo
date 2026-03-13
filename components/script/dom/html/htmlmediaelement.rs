@@ -3427,8 +3427,8 @@ impl VirtualMethods for HTMLMediaElement {
         }
     }
 
-    fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
-        self.super_type().unwrap().adopting_steps(old_doc, can_gc);
+    fn adopting_steps(&self, cx: &mut JSContext, old_doc: &Document) {
+        self.super_type().unwrap().adopting_steps(cx, old_doc);
 
         // Note that media control id should be adopting between documents so "privileged"
         // document.servoGetMediaControls(id) API is keeping access to the whitelist of media

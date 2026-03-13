@@ -64,7 +64,7 @@ impl BaseCommand for DeleteCommand {
             if offset == 0 {
                 if let Some(sibling) = node.GetPreviousSibling() {
                     if sibling.is_editable() && sibling.is_invisible() {
-                        sibling.remove_self(CanGc::from_cx(cx));
+                        sibling.remove_self(cx);
                         continue;
                     }
                 }
@@ -74,7 +74,7 @@ impl BaseCommand for DeleteCommand {
             if offset > 0 {
                 if let Some(child) = node.children().nth(offset as usize - 1) {
                     if child.is_editable() && child.is_invisible() {
-                        child.remove_self(CanGc::from_cx(cx));
+                        child.remove_self(cx);
                         offset -= 1;
                         continue;
                     }
@@ -208,7 +208,7 @@ impl BaseCommand for DeleteCommand {
             );
             if let Some(child) = start_node.children().nth(start_offset as usize - 1) {
                 if child.is_editable() && child.is_invisible() {
-                    child.remove_self(CanGc::from_cx(cx));
+                    child.remove_self(cx);
                     start_offset -= 1;
                     continue;
                 }
@@ -299,7 +299,7 @@ impl BaseCommand for DeleteCommand {
             // Step 16.1. If start node's child with index start offset minus one
             // is editable and invisible, remove it from start node, then subtract one from start offset.
             if child.is_editable() && child.is_invisible() {
-                child.remove_self(CanGc::from_cx(cx));
+                child.remove_self(cx);
                 start_offset -= 1;
             } else {
                 // Step 16.2. Otherwise, set start node to its child with index start offset minus one,

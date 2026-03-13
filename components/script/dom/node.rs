@@ -1197,7 +1197,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>
-    pub(crate) fn replace_with(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
+    pub(crate) fn replace_with(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
         // Step 1. Let parent be this’s parent.
         let Some(parent) = self.GetParentNode() else {
             // Step 2. If parent is null, then return.
@@ -1210,14 +1210,19 @@ impl Node {
         // Step 4. Let node be the result of converting nodes into a node, given nodes and this’s node document.
         let node = self
             .owner_doc()
-            .node_from_nodes_and_strings(nodes, can_gc)?;
+            .node_from_nodes_and_strings(nodes, CanGc::from_cx(cx))?;
 
         if self.parent_node == Some(&*parent) {
             // Step 5. If this’s parent is parent, replace this with node within parent.
-            parent.ReplaceChild(&node, self, can_gc)?;
+            parent.ReplaceChild(cx, &node, self)?;
         } else {
             // Step 6. Otherwise, pre-insert node into parent before viableNextSibling.
-            Node::pre_insert(&node, &parent, viable_next_sibling.as_deref(), can_gc)?;
+            Node::pre_insert(
+                &node,
+                &parent,
+                viable_next_sibling.as_deref(),
+                CanGc::from_cx(cx),
+            )?;
         }
         Ok(())
     }
@@ -1665,9 +1670,9 @@ impl Node {
             .peekable()
     }
 
-    pub(crate) fn remove_self(&self, can_gc: CanGc) {
+    pub(crate) fn remove_self(&self, cx: &mut JSContext) {
         if let Some(ref parent) = self.GetParentNode() {
-            Node::remove(self, parent, SuppressObserver::Unsuppressed, can_gc);
+            Node::remove(cx, self, parent, SuppressObserver::Unsuppressed);
         }
     }
 
@@ -1815,10 +1820,10 @@ impl Node {
     /// Used by `HTMLTableSectionElement::DeleteRow` and `HTMLTableRowElement::DeleteCell`
     pub(crate) fn delete_cell_or_row<F, G>(
         &self,
+        cx: &mut JSContext,
         index: i32,
         get_items: F,
         is_delete_type: G,
-        can_gc: CanGc,
     ) -> ErrorResult
     where
         F: Fn() -> DomRoot<HTMLCollection>,
@@ -1843,7 +1848,7 @@ impl Node {
             },
         };
 
-        element.upcast::<Node>().remove_self(can_gc);
+        element.upcast::<Node>().remove_self(cx);
         Ok(())
     }
 
@@ -2861,7 +2866,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-adopt>
-    pub(crate) fn adopt(node: &Node, document: &Document, can_gc: CanGc) {
+    pub(crate) fn adopt(cx: &mut JSContext, node: &Node, document: &Document) {
         document.add_script_and_layout_blocker();
 
         // Step 1. Let oldDocument be node’s node document.
@@ -2869,7 +2874,7 @@ impl Node {
         old_doc.add_script_and_layout_blocker();
 
         // Step 2. If node’s parent is non-null, then remove node.
-        node.remove_self(can_gc);
+        node.remove_self(cx);
 
         // Step 3. If document is not oldDocument:
         if &*old_doc != document {
@@ -2905,7 +2910,7 @@ impl Node {
             // Step 3.3 For each inclusiveDescendant in node’s shadow-including inclusive descendants,
             // in shadow-including tree order, run the adopting steps with inclusiveDescendant and oldDocument.
             for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
-                vtable_for(&descendant).adopting_steps(&old_doc, can_gc);
+                vtable_for(&descendant).adopting_steps(cx, &old_doc);
             }
         }
 
@@ -3037,12 +3042,17 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-pre-insert>
+    #[expect(unsafe_code)]
     pub(crate) fn pre_insert(
         node: &Node,
         parent: &Node,
         child: Option<&Node>,
-        can_gc: CanGc,
+        _can_gc: CanGc,
     ) -> Fallible<DomRoot<Node>> {
+        // TODO github.com/servo/servo/issues/43239
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         // Step 1. Ensure pre-insert validity of node into parent before child.
         Node::ensure_pre_insertion_validity(node, parent, child)?;
 
@@ -3059,11 +3069,11 @@ impl Node {
 
         // Step 4. Insert node into parent before referenceChild.
         Node::insert(
+            cx,
             node,
             parent,
             reference_child,
             SuppressObserver::Unsuppressed,
-            can_gc,
         );
 
         // Step 5. Return node.
@@ -3072,11 +3082,11 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#concept-node-insert>
     fn insert(
+        cx: &mut JSContext,
         node: &Node,
         parent: &Node,
         child: Option<&Node>,
         suppress_observers: SuppressObserver,
-        can_gc: CanGc,
     ) {
         debug_assert!(child.is_none_or(|child| Some(parent) == child.GetParentNode().as_deref()));
 
@@ -3108,10 +3118,9 @@ impl Node {
         if let NodeTypeId::DocumentFragment(_) = node.type_id() {
             // Step 4.1. Remove its children with the suppress observers flag set.
             for kid in new_nodes {
-                Node::remove(kid, node, SuppressObserver::Suppressed, can_gc);
+                Node::remove(cx, kid, node, SuppressObserver::Suppressed);
             }
-            vtable_for(node)
-                .children_changed(&ChildrenMutation::replace_all(new_nodes, &[]), can_gc);
+            vtable_for(node).children_changed(cx, &ChildrenMutation::replace_all(new_nodes, &[]));
 
             // Step 4.2. Queue a tree mutation record for node with « », nodes, null, and null.
             let mutation = LazyCell::new(|| Mutation::ChildList {
@@ -3157,11 +3166,11 @@ impl Node {
         // Step 7. For each node in nodes, in tree order:
         for kid in new_nodes {
             // Step 7.1. Adopt node into parent’s node document.
-            Node::adopt(kid, &parent.owner_document(), can_gc);
+            Node::adopt(cx, kid, &parent.owner_document());
 
             // Step 7.2. If child is null, then append node to parent’s children.
             // Step 7.3. Otherwise, insert node into parent’s children before child’s index.
-            parent.add_child(kid, child, can_gc);
+            parent.add_child(kid, child, CanGc::from_cx(cx));
 
             // Step 7.4 If parent is a shadow host whose shadow root’s slot assignment is "named"
             // and node is a slottable, then assign a slot for node.
@@ -3223,8 +3232,8 @@ impl Node {
             // Step 9. Run the children changed steps for parent.
             // TODO(xiaochengh): If we follow the spec and move it out of the if block, some WPT fail. Investigate.
             vtable_for(parent).children_changed(
+                cx,
                 &ChildrenMutation::insert(previous_sibling.as_deref(), new_nodes, child),
-                can_gc,
             );
 
             // Step 8. If suppress observers flag is unset, then queue a tree mutation record for parent
@@ -3263,7 +3272,12 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
-    pub(crate) fn replace_all(node: Option<&Node>, parent: &Node, can_gc: CanGc) {
+    #[expect(unsafe_code)]
+    pub(crate) fn replace_all(node: Option<&Node>, parent: &Node, _can_gc: CanGc) {
+        // TODO https://github.com/servo/servo/issues/43240
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         parent.owner_doc().add_script_and_layout_blocker();
 
         // Step 1. Let removedNodes be parent’s children.
@@ -3286,17 +3300,17 @@ impl Node {
 
         // Step 5. Remove all parent’s children, in tree order, with suppressObservers set to true.
         for child in &*removed_nodes {
-            Node::remove(child, parent, SuppressObserver::Suppressed, can_gc);
+            Node::remove(cx, child, parent, SuppressObserver::Suppressed);
         }
 
         // Step 6. If node is non-null, then insert node into parent before null with suppressObservers set to true.
         if let Some(node) = node {
-            Node::insert(node, parent, None, SuppressObserver::Suppressed, can_gc);
+            Node::insert(cx, node, parent, None, SuppressObserver::Suppressed);
         }
 
         vtable_for(parent).children_changed(
+            cx,
             &ChildrenMutation::replace_all(removed_nodes.r(), added_nodes),
-            can_gc,
         );
 
         // Step 7. If either addedNodes or removedNodes is not empty, then queue a tree mutation record
@@ -3324,7 +3338,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-pre-remove>
-    fn pre_remove(child: &Node, parent: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+    fn pre_remove(cx: &mut JSContext, child: &Node, parent: &Node) -> Fallible<DomRoot<Node>> {
         // Step 1.
         match child.GetParentNode() {
             Some(ref node) if &**node != parent => return Err(Error::NotFound(None)),
@@ -3333,14 +3347,19 @@ impl Node {
         }
 
         // Step 2.
-        Node::remove(child, parent, SuppressObserver::Unsuppressed, can_gc);
+        Node::remove(cx, child, parent, SuppressObserver::Unsuppressed);
 
         // Step 3.
         Ok(DomRoot::from_ref(child))
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-remove>
-    fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver, can_gc: CanGc) {
+    fn remove(
+        cx: &mut JSContext,
+        node: &Node,
+        parent: &Node,
+        suppress_observers: SuppressObserver,
+    ) {
         parent.owner_doc().add_script_and_layout_blocker();
 
         // Step 1. Let parent be node’s parent.
@@ -3365,7 +3384,7 @@ impl Node {
 
         // Step 7. Remove node from its parent's children.
         // Step 11-14. Run removing steps and enqueue disconnected custom element reactions for the subtree.
-        parent.remove_child(node, cached_index, can_gc);
+        parent.remove_child(node, cached_index, CanGc::from_cx(cx));
 
         // Step 8. If node is assigned, then run assign slottables for node’s assigned slot.
         if let Some(slot) = node.assigned_slot() {
@@ -3401,13 +3420,13 @@ impl Node {
         // Step 16.
         if let SuppressObserver::Unsuppressed = suppress_observers {
             vtable_for(parent).children_changed(
+                cx,
                 &ChildrenMutation::replace(
                     old_previous_sibling.as_deref(),
                     &Some(node),
                     &[],
                     old_next_sibling.as_deref(),
                 ),
-                can_gc,
             );
 
             let removed = [node];
@@ -4102,7 +4121,12 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace>
-    fn ReplaceChild(&self, node: &Node, child: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+    fn ReplaceChild(
+        &self,
+        cx: &mut JSContext,
+        node: &Node,
+        child: &Node,
+    ) -> Fallible<DomRoot<Node>> {
         // Step 1. If parent is not a Document, DocumentFragment, or Element node,
         // then throw a "HierarchyRequestError" DOMException.
         match self.type_id() {
@@ -4211,7 +4235,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         // However, if we follow the spec and delay adoption to inside `Node::insert()`, then the mutation records will
         // be different, and we will fail WPT dom/nodes/MutationObserver-childList.html.
         let document = self.owner_document();
-        Node::adopt(node, &document, can_gc);
+        Node::adopt(cx, node, &document);
 
         // Step 10. Let removedNodes be the empty set.
         // Step 11. If child’s parent is non-null:
@@ -4219,7 +4243,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         //     2. Remove child with the suppress observers flag set.
         let removed_child = if node != child {
             // Step 11.
-            Node::remove(child, self, SuppressObserver::Suppressed, can_gc);
+            Node::remove(cx, child, self, SuppressObserver::Suppressed);
             Some(child)
         } else {
             None
@@ -4239,21 +4263,21 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
         // Step 13. Insert node into parent before referenceChild with the suppress observers flag set.
         Node::insert(
+            cx,
             node,
             self,
             reference_child,
             SuppressObserver::Suppressed,
-            can_gc,
         );
 
         vtable_for(self).children_changed(
+            cx,
             &ChildrenMutation::replace(
                 previous_sibling.as_deref(),
                 &removed_child,
                 nodes,
                 reference_child,
             ),
-            can_gc,
         );
 
         // Step 14. Queue a tree mutation record for parent with nodes, removedNodes,
@@ -4273,12 +4297,12 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-removechild>
-    fn RemoveChild(&self, node: &Node, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
-        Node::pre_remove(node, self, can_gc)
+    fn RemoveChild(&self, cx: &mut JSContext, node: &Node) -> Fallible<DomRoot<Node>> {
+        Node::pre_remove(cx, node, self)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-normalize>
-    fn Normalize(&self, can_gc: CanGc) {
+    fn Normalize(&self, cx: &mut JSContext) {
         let mut children = self.children().enumerate().peekable();
         while let Some((_, node)) = children.next() {
             if let Some(text) = node.downcast::<Text>() {
@@ -4288,7 +4312,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 let cdata = text.upcast::<CharacterData>();
                 let mut length = cdata.Length();
                 if length == 0 {
-                    Node::remove(&node, self, SuppressObserver::Unsuppressed, can_gc);
+                    Node::remove(cx, &node, self, SuppressObserver::Unsuppressed);
                     continue;
                 }
                 while children.peek().is_some_and(|(_, sibling)| {
@@ -4303,10 +4327,10 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                     let sibling_cdata = sibling.downcast::<CharacterData>().unwrap();
                     length += sibling_cdata.Length();
                     cdata.append_data(&sibling_cdata.data());
-                    Node::remove(&sibling, self, SuppressObserver::Unsuppressed, can_gc);
+                    Node::remove(cx, &sibling, self, SuppressObserver::Unsuppressed);
                 }
             } else {
-                node.Normalize(can_gc);
+                node.Normalize(cx);
             }
         }
     }
@@ -4698,9 +4722,9 @@ impl VirtualMethods for Node {
         Some(self.upcast::<EventTarget>() as &dyn VirtualMethods)
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation, can_gc);
+            s.children_changed(cx, mutation);
         }
 
         if let Some(data) = self.rare_data().as_ref() {

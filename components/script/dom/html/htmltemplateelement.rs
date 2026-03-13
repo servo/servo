@@ -120,14 +120,15 @@ impl VirtualMethods for HTMLTemplateElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#template-adopting-steps>
-    fn adopting_steps(&self, old_doc: &Document, can_gc: CanGc) {
-        self.super_type().unwrap().adopting_steps(old_doc, can_gc);
+    fn adopting_steps(&self, cx: &mut JSContext, old_doc: &Document) {
+        self.super_type().unwrap().adopting_steps(cx, old_doc);
         // Step 1.
         let doc = self
             .owner_document()
-            .appropriate_template_contents_owner_document(CanGc::note());
+            .appropriate_template_contents_owner_document(CanGc::from_cx(cx));
         // Step 2.
-        Node::adopt(self.Content(CanGc::note()).upcast(), &doc, can_gc);
+        let content = self.Content(CanGc::from_cx(cx));
+        Node::adopt(cx, content.upcast(), &doc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-template-element:concept-node-clone-ext>
