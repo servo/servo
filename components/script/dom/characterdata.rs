@@ -87,6 +87,7 @@ impl CharacterData {
 
     #[expect(unsafe_code)]
     fn content_changed(&self) {
+        // TODO https://github.com/servo/servo/issues/43234
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let cx = &mut cx;
 

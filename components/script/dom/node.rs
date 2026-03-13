@@ -3049,6 +3049,7 @@ impl Node {
         child: Option<&Node>,
         _can_gc: CanGc,
     ) -> Fallible<DomRoot<Node>> {
+        // TODO github.com/servo/servo/issues/43239
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let cx = &mut cx;
 
@@ -3273,6 +3274,7 @@ impl Node {
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
     #[expect(unsafe_code)]
     pub(crate) fn replace_all(node: Option<&Node>, parent: &Node, _can_gc: CanGc) {
+        // TODO https://github.com/servo/servo/issues/43240
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let cx = &mut cx;
 

@@ -616,6 +616,7 @@ impl Element {
         slot_assignment_mode: SlotAssignmentMode,
         _can_gc: CanGc,
     ) -> Fallible<DomRoot<ShadowRoot>> {
+        // TODO https://github.com/servo/servo/issues/43241
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let cx = &mut cx;
 
