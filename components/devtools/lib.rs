@@ -503,7 +503,7 @@ impl DevtoolsInstance {
                 .browsing_contexts
                 .entry(browsing_context_id)
                 .or_insert_with(|| {
-                    let ctx_actor = BrowsingContextActor::new(
+                    let browsing_context_actor = BrowsingContextActor::new(
                         console_name.clone(),
                         devtools_browser_id,
                         devtools_browsing_context_id,
@@ -513,12 +513,12 @@ impl DevtoolsInstance {
                         script_sender.clone(),
                         actors,
                     );
-                    let name = ctx_actor.name();
-                    actors.register(ctx_actor);
+                    let name = browsing_context_actor.name();
+                    actors.register(browsing_context_actor);
                     name
                 });
-            let ctx_actor = actors.find::<BrowsingContextActor>(name);
-            ctx_actor.handle_new_global(pipeline_id, script_sender);
+            let browsing_context_actor = actors.find::<BrowsingContextActor>(name);
+            browsing_context_actor.handle_new_global(pipeline_id, script_sender);
             Root::BrowsingContext(name.clone())
         };
 

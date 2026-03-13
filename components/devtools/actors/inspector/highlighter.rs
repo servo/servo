@@ -97,11 +97,11 @@ impl HighlighterActor {
         registry: &ActorRegistry,
     ) {
         let node_id = node_actor.map(|node_actor| registry.actor_to_script(node_actor));
-        let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context);
-        ctx_actor
+        let browsing_context = registry.find::<BrowsingContextActor>(&self.browsing_context);
+        browsing_context
             .script_chan()
             .send(DevtoolScriptControlMsg::HighlightDomNode(
-                ctx_actor.pipeline_id(),
+                browsing_context.pipeline_id(),
                 node_id,
             ))
             .unwrap();

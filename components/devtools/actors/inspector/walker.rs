@@ -142,7 +142,7 @@ impl Actor for WalkerActor {
         msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
-        let ctx_actor = self.ctx_actor(registry);
+        let browsing_context = self.browsing_context(registry);
         match msg_type {
             "children" => {
                 let target = msg
@@ -153,10 +153,10 @@ impl Actor for WalkerActor {
                 let Some((tx, rx)) = generic_channel::channel() else {
                     return Err(ActorError::Internal);
                 };
-                ctx_actor
+                browsing_context
                     .script_chan()
                     .send(GetChildren(
-                        ctx_actor.pipeline_id(),
+                        browsing_context.pipeline_id(),
                         registry.actor_to_script(target.into()),
                         tx,
                     ))
@@ -174,8 +174,8 @@ impl Actor for WalkerActor {
                         .map(|child| {
                             child.encode(
                                 registry,
-                                ctx_actor.script_chan(),
-                                ctx_actor.pipeline_id(),
+                                browsing_context.script_chan(),
+                                browsing_context.pipeline_id(),
                                 self.name(),
                             )
                         })
@@ -192,9 +192,9 @@ impl Actor for WalkerActor {
                 let Some((tx, rx)) = generic_channel::channel() else {
                     return Err(ActorError::Internal);
                 };
-                ctx_actor
+                browsing_context
                     .script_chan()
-                    .send(GetDocumentElement(ctx_actor.pipeline_id(), tx))
+                    .send(GetDocumentElement(browsing_context.pipeline_id(), tx))
                     .map_err(|_| ActorError::Internal)?;
                 let doc_elem_info = rx
                     .recv()
@@ -202,8 +202,8 @@ impl Actor for WalkerActor {
                     .ok_or(ActorError::Internal)?;
                 let node = doc_elem_info.encode(
                     registry,
-                    ctx_actor.script_chan().clone(),
-                    ctx_actor.pipeline_id(),
+                    browsing_context.script_chan().clone(),
+                    browsing_context.pipeline_id(),
                     self.name(),
                 );
 
@@ -245,8 +245,8 @@ impl Actor for WalkerActor {
                     .as_str()
                     .ok_or(ActorError::BadParameterType)?;
                 let mut hierarchy = find_child(
-                    &ctx_actor.script_chan(),
-                    ctx_actor.pipeline_id(),
+                    &browsing_context.script_chan(),
+                    browsing_context.pipeline_id(),
                     &self.name,
                     registry,
                     node,
@@ -282,7 +282,7 @@ impl Actor for WalkerActor {
 }
 
 impl WalkerActor {
-    pub(crate) fn ctx_actor(
+    pub(crate) fn browsing_context(
         &self,
         registry: &ActorRegistry,
     ) -> DowncastableActorArc<BrowsingContextActor> {
@@ -290,10 +290,10 @@ impl WalkerActor {
     }
 
     pub(crate) fn root(&self, registry: &ActorRegistry) -> Result<NodeActorMsg, ActorError> {
-        let ctx_actor = self.ctx_actor(registry);
-        let pipeline = ctx_actor.pipeline_id();
+        let browsing_context = self.browsing_context(registry);
+        let pipeline = browsing_context.pipeline_id();
         let (tx, rx) = generic_channel::channel().ok_or(ActorError::Internal)?;
-        ctx_actor
+        browsing_context
             .script_chan()
             .send(GetRootNode(pipeline, tx))
             .map_err(|_| ActorError::Internal)?;
@@ -301,7 +301,12 @@ impl WalkerActor {
             .recv()
             .map_err(|_| ActorError::Internal)?
             .ok_or(ActorError::Internal)?;
-        Ok(root_node.encode(registry, ctx_actor.script_chan(), pipeline, self.name()))
+        Ok(root_node.encode(
+            registry,
+            browsing_context.script_chan(),
+            pipeline,
+            self.name(),
+        ))
     }
 
     pub(crate) fn handle_dom_mutation(
