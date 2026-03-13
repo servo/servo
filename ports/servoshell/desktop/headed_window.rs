@@ -712,7 +712,7 @@ impl HeadedWindow {
                         )));
                     },
                     WindowEvent::PinchGesture { delta, .. } => {
-                        webview.pinch_zoom(
+                        webview.adjust_pinch_zoom(
                             delta as f32 + 1.0,
                             self.webview_relative_mouse_point.get(),
                         );
