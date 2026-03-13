@@ -379,14 +379,26 @@ impl TextFragment {
         // Accept any `TextFragment` that is within the vertical range of the point, as one
         // can click past the end of a line to move the cursor to its end.
         let rect = &self.base.rect;
-        if point_in_fragment.y < Au::zero() || point_in_fragment.y > rect.height() {
+        if rect.contains(point_in_fragment) {
+            return Some(Au::zero());
+        }
+
+        // If we have clicked past the rectangle in the y axis, then discard this rectangle.
+        if rect.max_y() < point_in_fragment.y {
             return None;
         }
-        // Only consider clicks that are to the right of the fragment's origin.
-        if point_in_fragment.x < Au::zero() {
-            return None;
-        }
-        Some(point_in_fragment.x - rect.width().max(Au::zero()))
+
+        // This is the distance between the closest point on the edge of the rectangle and
+        // the point. From <https://stackoverflow.com/a/18157551>.
+        let dx = (rect.min_x() - point_in_fragment.x)
+            .min(Au::zero())
+            .min(point_in_fragment.x - rect.max_x());
+        let dy = (rect.min_y() - point_in_fragment.y)
+            .min(Au::zero())
+            .min(point_in_fragment.y - rect.max_y());
+        Some(Au::from_f64_px(
+            dx.to_f64_px().powi(2) + dy.to_f64_px().powi(2).sqrt(),
+        ))
     }
 
     /// Given a point relative to this [`TextFragment`], find the most appropriate character
