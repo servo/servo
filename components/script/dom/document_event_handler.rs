@@ -321,12 +321,14 @@ impl DocumentEventHandler {
                 },
                 InputEvent::MouseMove(_) => {
                     self.handle_native_mouse_move_event(&event, can_gc);
-                    input_event_outcomes.extend(coalesced_move_event_ids.drain(..).map(|id| {
-                        InputEventOutcome {
-                            id,
-                            result: InputEventResult::default(),
-                        }
-                    }));
+                    input_event_outcomes.extend(
+                        mem::take(&mut coalesced_move_event_ids)
+                            .into_iter()
+                            .map(|id| InputEventOutcome {
+                                id,
+                                result: InputEventResult::default(),
+                            }),
+                    );
                     InputEventResult::default()
                 },
                 InputEvent::MouseLeftViewport(mouse_leave_event) => {
@@ -339,8 +341,8 @@ impl DocumentEventHandler {
                 InputEvent::Wheel(wheel_event) => {
                     let result = self.handle_wheel_event(wheel_event, &event, can_gc);
                     input_event_outcomes.extend(
-                        coalesced_wheel_event_ids
-                            .drain(..)
+                        mem::take(&mut coalesced_wheel_event_ids)
+                            .into_iter()
                             .map(|id| InputEventOutcome { id, result }),
                     );
                     result
