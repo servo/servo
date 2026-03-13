@@ -2709,11 +2709,17 @@ where
         // Channels to receive signals when threads are done exiting.
         let (core_ipc_sender, core_ipc_receiver) =
             generic_channel::oneshot().expect("Failed to create IPC channel!");
-        let (client_storage_generic_sender, client_storage_generic_receiver) =
+        let (public_client_storage_generic_sender, public_client_storage_generic_receiver) =
             generic_channel::channel().expect("Failed to create generic channel!");
-        let (indexeddb_ipc_sender, indexeddb_ipc_receiver) =
+        let (private_client_storage_generic_sender, private_client_storage_generic_receiver) =
             generic_channel::channel().expect("Failed to create generic channel!");
-        let (web_storage_generic_sender, web_storage_generic_receiver) =
+        let (public_indexeddb_ipc_sender, public_indexeddb_ipc_receiver) =
+            generic_channel::channel().expect("Failed to create generic channel!");
+        let (private_indexeddb_ipc_sender, private_indexeddb_ipc_receiver) =
+            generic_channel::channel().expect("Failed to create generic channel!");
+        let (public_web_storage_generic_sender, public_web_storage_generic_receiver) =
+            generic_channel::channel().expect("Failed to create generic channel!");
+        let (private_web_storage_generic_sender, private_web_storage_generic_receiver) =
             generic_channel::channel().expect("Failed to create generic channel!");
 
         debug!("Exiting core resource threads.");
@@ -2732,28 +2738,55 @@ where
             }
         }
 
-        debug!("Exiting client storage thread.");
+        debug!("Exiting public client storage thread.");
         if let Err(e) = generic_channel::GenericSend::send(
             &self.public_storage_threads,
-            ClientStorageThreadMessage::Exit(client_storage_generic_sender),
+            ClientStorageThreadMessage::Exit(public_client_storage_generic_sender),
         ) {
-            warn!("Exit client storage thread failed ({})", e);
+            warn!("Exit public client storage thread failed ({})", e);
         }
-        debug!("Exiting indexeddb resource threads.");
+        debug!("Exiting private client storage thread.");
+        if let Err(e) = generic_channel::GenericSend::send(
+            &self.private_storage_threads,
+            ClientStorageThreadMessage::Exit(private_client_storage_generic_sender),
+        ) {
+            warn!("Exit private client storage thread failed ({})", e);
+        }
+
+        debug!("Exiting public indexeddb resource threads.");
         if let Err(e) =
             self.public_storage_threads
                 .send(IndexedDBThreadMsg::Sync(SyncOperation::Exit(
-                    indexeddb_ipc_sender,
+                    public_indexeddb_ipc_sender,
                 )))
         {
-            warn!("Exit indexeddb thread failed ({})", e);
+            warn!("Exit public indexeddb thread failed ({})", e);
         }
-        debug!("Exiting web storage thread.");
+
+        debug!("Exiting private indexeddb resource threads.");
+        if let Err(e) =
+            self.private_storage_threads
+                .send(IndexedDBThreadMsg::Sync(SyncOperation::Exit(
+                    private_indexeddb_ipc_sender,
+                )))
+        {
+            warn!("Exit private indexeddb thread failed ({})", e);
+        }
+
+        debug!("Exiting public web storage thread.");
         if let Err(e) = generic_channel::GenericSend::send(
             &self.public_storage_threads,
-            WebStorageThreadMsg::Exit(web_storage_generic_sender),
+            WebStorageThreadMsg::Exit(public_web_storage_generic_sender),
         ) {
-            warn!("Exit web storage thread failed ({})", e);
+            warn!("Exit public web storage thread failed ({})", e);
+        }
+
+        debug!("Exiting private web storage thread.");
+        if let Err(e) = generic_channel::GenericSend::send(
+            &self.private_storage_threads,
+            WebStorageThreadMsg::Exit(private_web_storage_generic_sender),
+        ) {
+            warn!("Exit private web storage thread failed ({})", e);
         }
 
         #[cfg(feature = "bluetooth")]
@@ -2824,14 +2857,23 @@ where
         if let Err(e) = core_ipc_receiver.recv() {
             warn!("Exit resource thread failed ({:?})", e);
         }
-        if let Err(e) = client_storage_generic_receiver.recv() {
-            warn!("Exit client storage thread failed ({:?})", e);
+        if let Err(e) = public_client_storage_generic_receiver.recv() {
+            warn!("Exit public client storage thread failed ({:?})", e);
         }
-        if let Err(e) = indexeddb_ipc_receiver.recv() {
-            warn!("Exit indexeddb thread failed ({:?})", e);
+        if let Err(e) = private_client_storage_generic_receiver.recv() {
+            warn!("Exit private client storage thread failed ({:?})", e);
         }
-        if let Err(e) = web_storage_generic_receiver.recv() {
-            warn!("Exit web storage thread failed ({:?})", e);
+        if let Err(e) = public_indexeddb_ipc_receiver.recv() {
+            warn!("Exit public indexeddb thread failed ({:?})", e);
+        }
+        if let Err(e) = private_indexeddb_ipc_receiver.recv() {
+            warn!("Exit private indexeddb thread failed ({:?})", e);
+        }
+        if let Err(e) = public_web_storage_generic_receiver.recv() {
+            warn!("Exit public web storage thread failed ({:?})", e);
+        }
+        if let Err(e) = private_web_storage_generic_receiver.recv() {
+            warn!("Exit private web storage thread failed ({:?})", e);
         }
 
         debug!("Shutting-down IPC router thread in constellation.");
