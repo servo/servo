@@ -611,13 +611,13 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-remove>
-    fn Remove_(&self, index: i32) {
-        self.Options().Remove(index)
+    fn Remove_(&self, cx: &mut JSContext, index: i32) {
+        self.Options().Remove(cx, index)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-remove>
-    fn Remove(&self) {
-        self.upcast::<Element>().Remove(CanGc::note())
+    fn Remove(&self, cx: &mut JSContext) {
+        self.upcast::<Element>().Remove(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-value>
@@ -788,12 +788,12 @@ impl VirtualMethods for HTMLSelectElement {
             .hide_embedder_control(self.upcast());
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation, can_gc);
+            s.children_changed(cx, mutation);
         }
 
-        self.update_shadow_tree(can_gc);
+        self.update_shadow_tree(CanGc::from_cx(cx));
     }
 
     fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {

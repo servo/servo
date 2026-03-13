@@ -130,12 +130,11 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
                 let child = self.upcast().IndexedGetter(index).unwrap();
                 let child_node = child.upcast::<Node>();
 
-                root.ReplaceChild(node, child_node, CanGc::from_cx(cx))
-                    .map(|_| ())
+                root.ReplaceChild(cx, node, child_node).map(|_| ())
             }
         } else {
             // Step 1
-            self.Remove(index as i32);
+            self.Remove(cx, index as i32);
             Ok(())
         }
     }
@@ -170,7 +169,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
                 // Step 3.1. Let n be current − value.
                 // Step 3.2 Remove the last n nodes in the collection from their parent nodes.
                 for index in (length..current).rev() {
-                    self.Remove(index as i32)
+                    self.Remove(cx, index as i32)
                 }
             },
             _ => {},
@@ -241,9 +240,9 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove>
-    fn Remove(&self, index: i32) {
+    fn Remove(&self, cx: &mut JSContext, index: i32) {
         if let Some(element) = self.upcast().IndexedGetter(index as u32) {
-            element.Remove(CanGc::note());
+            element.Remove(cx);
         }
     }
 

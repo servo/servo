@@ -16,14 +16,16 @@ use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyFactoryBinding::{
 use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString as TrustedTypeOrString;
 use crate::dom::bindings::error::Error::Type;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{DomGlobal, DomObject, Reflector, reflect_dom_object};
+use crate::dom::bindings::reflector::{
+    DomGlobal, DomObject, Reflector, reflect_dom_object_with_cx,
+};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct TrustedTypePolicy {
@@ -74,12 +76,12 @@ impl TrustedTypePolicy {
     }
 
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         name: String,
         options: &TrustedTypePolicyOptions,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited(name, options)), global, can_gc)
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited(name, options)), global, cx)
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-policy-value-algorithm>
@@ -155,20 +157,25 @@ impl TrustedTypePolicy {
     /// <https://w3c.github.io/trusted-types/dist/spec/#create-a-trusted-type-algorithm>
     fn create_trusted_type<R, TrustedTypeCallback>(
         &self,
+        cx: &mut js::context::JSContext,
         expected_type: TrustedType,
         input: DOMString,
         arguments: Vec<HandleValue>,
         trusted_type_creation_callback: TrustedTypeCallback,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<R>>
     where
         R: DomObject,
-        TrustedTypeCallback: FnOnce(DOMString) -> DomRoot<R>,
+        TrustedTypeCallback: FnOnce(&mut js::context::JSContext, DOMString) -> DomRoot<R>,
     {
         // Step 1: Let policyValue be the result of executing Get Trusted Type policy value
         // with the same arguments as this algorithm and additionally true as throwIfMissing.
-        let policy_value =
-            self.get_trusted_type_policy_value(expected_type, input, arguments, true, can_gc);
+        let policy_value = self.get_trusted_type_policy_value(
+            expected_type,
+            input,
+            arguments,
+            true,
+            CanGc::from_cx(cx),
+        );
         match policy_value {
             // Step 2: If the algorithm threw an error, rethrow the error and abort the following steps.
             Err(error) => Err(error),
@@ -181,7 +188,7 @@ impl TrustedTypePolicy {
                 };
                 // Step 5: Return a new instance of an interface with a type name trustedTypeName,
                 // with its associated data value set to dataString.
-                Ok(trusted_type_creation_callback(data_string))
+                Ok(trusted_type_creation_callback(cx, data_string))
             },
         }
     }
@@ -195,49 +202,46 @@ impl TrustedTypePolicyMethods<crate::DomTypeHolder> for TrustedTypePolicy {
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicy-createhtml>
     fn CreateHTML(
         &self,
-        _cx: JSContext,
+        cx: &mut js::context::JSContext,
         input: DOMString,
         arguments: Vec<HandleValue>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedHTML>> {
         self.create_trusted_type(
+            cx,
             TrustedType::TrustedHTML,
             input,
             arguments,
-            |data_string| TrustedHTML::new(data_string, &self.global(), can_gc),
-            can_gc,
+            |cx, data_string| TrustedHTML::new(cx, data_string, &self.global()),
         )
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicy-createscript>
     fn CreateScript(
         &self,
-        _cx: JSContext,
+        cx: &mut js::context::JSContext,
         input: DOMString,
         arguments: Vec<HandleValue>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedScript>> {
         self.create_trusted_type(
+            cx,
             TrustedType::TrustedScript,
             input,
             arguments,
-            |data_string| TrustedScript::new(data_string, &self.global(), can_gc),
-            can_gc,
+            |cx, data_string| TrustedScript::new(cx, data_string, &self.global()),
         )
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicy-createscripturl>
     fn CreateScriptURL(
         &self,
-        _cx: JSContext,
+        cx: &mut js::context::JSContext,
         input: DOMString,
         arguments: Vec<HandleValue>,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedScriptURL>> {
         self.create_trusted_type(
+            cx,
             TrustedType::TrustedScriptURL,
             input,
             arguments,
-            |data_string| TrustedScriptURL::new(data_string, &self.global(), can_gc),
-            can_gc,
+            |cx, data_string| TrustedScriptURL::new(cx, data_string, &self.global()),
         )
     }
 }

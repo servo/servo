@@ -451,9 +451,9 @@ impl DevtoolsInstance {
                 &mut connections.values_mut(),
                 &mut id_map,
             );
-        };
+        }
 
-        actor.navigate(state, &mut id_map, connections.values_mut());
+        actor.handle_navigate(state, &mut id_map, connections.values_mut());
     }
 
     // We need separate actor representations for each script global that exists;
@@ -518,14 +518,15 @@ impl DevtoolsInstance {
                         page_info,
                         pipeline_id,
                         devtools_outer_window_id,
-                        script_sender,
+                        script_sender.clone(),
                         actors,
                     );
                     let name = browsing_context_actor.name();
                     actors.register(browsing_context_actor);
                     name
                 });
-
+            let browsing_context_actor = actors.find::<BrowsingContextActor>(name);
+            browsing_context_actor.handle_new_global(pipeline_id, script_sender);
             Root::BrowsingContext(name.clone())
         };
 

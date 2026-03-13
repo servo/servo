@@ -1995,13 +1995,8 @@ impl VirtualMethods for HTMLImageElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    #[expect(unsafe_code)]
-    fn adopting_steps(&self, old_doc: &Document, _can_gc: CanGc) {
-        let mut cx = unsafe { temp_cx() };
-        let cx = &mut cx;
-        self.super_type()
-            .unwrap()
-            .adopting_steps(old_doc, CanGc::from_cx(cx));
+    fn adopting_steps(&self, cx: &mut JSContext, old_doc: &Document) {
+        self.super_type().unwrap().adopting_steps(cx, old_doc);
         self.update_the_image_data(cx);
     }
 

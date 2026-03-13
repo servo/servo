@@ -163,21 +163,20 @@ impl Worker {
 impl WorkerMethods<crate::DomTypeHolder> for Worker {
     // https://html.spec.whatwg.org/multipage/#dom-worker
     fn Constructor(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         script_url: TrustedScriptURLOrUSVString,
         worker_options: &WorkerOptions,
     ) -> Fallible<DomRoot<Worker>> {
         // Step 1: Let compliantScriptURL be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedScriptURL,
         // this's relevant global object, scriptURL, "Worker constructor", and "script".
-        let compliant_script_url = TrustedScriptURL::get_trusted_script_url_compliant_string(
+        let compliant_script_url = TrustedScriptURL::get_trusted_type_compliant_string(
+            cx,
             global,
             script_url,
-            "Worker",
-            "constructor",
-            can_gc,
+            "Worker constructor",
         )?;
         // Step 2-4.
         let worker_url = match global.api_base_url().join(&compliant_script_url.str()) {
@@ -187,7 +186,13 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
 
         let (sender, receiver) = unbounded();
         let closing = Arc::new(AtomicBool::new(false));
-        let worker = Worker::new(global, proto, sender.clone(), closing.clone(), can_gc);
+        let worker = Worker::new(
+            global,
+            proto,
+            sender.clone(),
+            closing.clone(),
+            CanGc::from_cx(cx),
+        );
         let worker_ref = Trusted::new(&*worker);
 
         let worker_load_origin = WorkerScriptLoadOrigin {

@@ -13171,6 +13171,15 @@
       }
      ]
     ],
+    "key-events-in-text-input-prevent-scrolling.html": [
+     "62c69c903205cd626b141fc8beea055ea5f7c53d",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "mouse-button-events-detail-increases-indefinitely.html": [
      "6bf57fe3accad4d3cbfb454e10f31b0a8540b5a5",
      [
@@ -13227,6 +13236,15 @@
     ],
     "spurious-mouse-move-events.html": [
      "9cfa22aaf90a0d3399fd03a80aa87dd0f16f76d6",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "tab-navigation-scroll-target-into-view.html": [
+     "5177c3459688101cfeb244909437f617aef13591",
      [
       null,
       {

@@ -124,13 +124,13 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tr-deletecell>
-    fn DeleteCell(&self, index: i32) -> ErrorResult {
+    fn DeleteCell(&self, cx: &mut JSContext, index: i32) -> ErrorResult {
         let node = self.upcast::<Node>();
         node.delete_cell_or_row(
+            cx,
             index,
             || self.Cells(),
             |n| n.is::<HTMLTableCellElement>(),
-            CanGc::note(),
         )
     }
 

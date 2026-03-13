@@ -1225,9 +1225,9 @@ impl VirtualMethods for HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#script-processing-model:the-script-element-26>
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation, can_gc);
+            s.children_changed(cx, mutation);
         }
 
         if self.upcast::<Node>().is_connected() && !self.parser_inserted.get() {
@@ -1289,20 +1289,19 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#the-src-idl-attribute>
-    fn SetSrc(&self, value: TrustedScriptURLOrUSVString, can_gc: CanGc) -> Fallible<()> {
+    fn SetSrc(&self, cx: &mut JSContext, value: TrustedScriptURLOrUSVString) -> Fallible<()> {
         let element = self.upcast::<Element>();
         let local_name = &local_name!("src");
-        let value = TrustedScriptURL::get_trusted_script_url_compliant_string(
+        let value = TrustedScriptURL::get_trusted_type_compliant_string(
+            cx,
             &element.owner_global(),
             value,
-            "HTMLScriptElement",
-            local_name,
-            can_gc,
+            &format!("HTMLScriptElement {}", local_name),
         )?;
         element.set_attribute(
             local_name,
             AttrValue::String(value.str().to_owned()),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         Ok(())
     }

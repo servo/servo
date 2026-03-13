@@ -5,14 +5,13 @@
 //! Handles highlighting selected DOM nodes in the inspector. At the moment it only replies and
 //! changes nothing on Servo's side.
 
-use base::generic_channel::GenericSender;
-use base::id::PipelineId;
 use devtools_traits::DevtoolScriptControlMsg;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::inspector::InspectorActor;
 use crate::protocol::ClientRequest;
 use crate::{ActorMsg, EmptyReplyMsg, StreamId};
@@ -20,8 +19,7 @@ use crate::{ActorMsg, EmptyReplyMsg, StreamId};
 #[derive(MallocSizeOf)]
 pub(crate) struct HighlighterActor {
     pub name: String,
-    pub script_sender: GenericSender<DevtoolScriptControlMsg>,
-    pub pipeline: PipelineId,
+    pub browsing_context: String,
 }
 
 #[derive(Serialize)]
@@ -40,6 +38,8 @@ impl Actor for HighlighterActor {
     /// - `show`: Enables highlighting for the selected node
     ///
     /// - `hide`: Disables highlighting for the selected node
+    ///
+    /// - `finalize`: Performs cleanup for this actor; currently a no-op
     fn handle_message(
         &self,
         request: ClientRequest,
@@ -86,6 +86,10 @@ impl Actor for HighlighterActor {
                 request.reply_final(&msg)?
             },
 
+            "finalize" => {
+                request.mark_handled();
+            },
+
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
         Ok(())
@@ -99,9 +103,11 @@ impl HighlighterActor {
         registry: &ActorRegistry,
     ) {
         let node_id = node_actor.map(|node_actor| registry.actor_to_script(node_actor));
-        self.script_sender
+        let browsing_context = registry.find::<BrowsingContextActor>(&self.browsing_context);
+        browsing_context
+            .script_chan()
             .send(DevtoolScriptControlMsg::HighlightDomNode(
-                self.pipeline,
+                browsing_context.pipeline_id(),
                 node_id,
             ))
             .unwrap();

@@ -894,7 +894,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
     /// <https://dom.spec.whatwg.org/#dom-range-insertnode>
     /// <https://dom.spec.whatwg.org/#concept-range-insert>
-    fn InsertNode(&self, node: &Node, can_gc: CanGc) -> ErrorResult {
+    fn InsertNode(&self, cx: &mut JSContext, node: &Node) -> ErrorResult {
         let start_node = self.start_container();
         let start_offset = self.start_offset();
 
@@ -923,7 +923,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             },
             _ => {
                 // Steps 4-5.
-                let child = start_node.ChildNodes(can_gc).Item(start_offset);
+                let child = start_node.ChildNodes(CanGc::from_cx(cx)).Item(start_offset);
                 (child, DomRoot::from_ref(&*start_node))
             },
         };
@@ -935,7 +935,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let split_text;
         let reference_node = match start_node.downcast::<Text>() {
             Some(text) => {
-                split_text = text.SplitText(start_offset, can_gc)?;
+                split_text = text.SplitText(start_offset, CanGc::from_cx(cx))?;
                 let new_reference = DomRoot::upcast::<Node>(split_text);
                 assert!(new_reference.GetParentNode().as_deref() == Some(&parent));
                 Some(new_reference)
@@ -951,7 +951,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         };
 
         // Step 9.
-        node.remove_self(can_gc);
+        node.remove_self(cx);
 
         // Step 10.
         let new_offset = reference_node
@@ -967,7 +967,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             };
 
         // Step 12.
-        Node::pre_insert(node, &parent, reference_node.as_deref(), can_gc)?;
+        Node::pre_insert(node, &parent, reference_node.as_deref(), CanGc::from_cx(cx))?;
 
         // Step 13.
         if self.collapsed() {
@@ -978,7 +978,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-deletecontents>
-    fn DeleteContents(&self) -> ErrorResult {
+    fn DeleteContents(&self, cx: &mut JSContext) -> ErrorResult {
         // Step 1.
         if self.collapsed() {
             return Ok(());
@@ -1047,7 +1047,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
 
         // Step 8.
         for child in &*contained_children {
-            child.remove_self(CanGc::note());
+            child.remove_self(cx);
         }
 
         // Step 9.
@@ -1093,7 +1093,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         Node::replace_all(None, new_parent, CanGc::from_cx(cx));
 
         // Step 5.
-        self.InsertNode(new_parent, CanGc::from_cx(cx))?;
+        self.InsertNode(cx, new_parent)?;
 
         // Step 6.
         new_parent.AppendChild(fragment.upcast(), CanGc::from_cx(cx))?;

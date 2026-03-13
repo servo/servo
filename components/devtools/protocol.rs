@@ -106,8 +106,8 @@ pub(crate) struct ClientRequest<'req, 'sent> {
     stream: &'req mut TcpStream,
     /// Expected actor name.
     actor_name: &'req str,
-    /// Sent flag, allowing ActorRegistry to check for unhandled requests.
-    sent: &'sent mut bool,
+    /// Flag allowing ActorRegistry to check for unhandled requests.
+    handled: &'sent mut bool,
 }
 
 impl ClientRequest<'_, '_> {
@@ -123,7 +123,7 @@ impl ClientRequest<'_, '_> {
         let request = ClientRequest {
             stream: client,
             actor_name,
-            sent: &mut sent,
+            handled: &mut sent,
         };
         handler(request)?;
 
@@ -142,17 +142,8 @@ impl<'req> ClientRequest<'req, '_> {
     /// allowing other messages to be sent after replying to a request.
     pub fn reply<T: Serialize>(self, reply: &T) -> Result<&'req mut TcpStream, ActorError> {
         debug_assert!(self.is_valid_reply(reply), "Message is not a valid reply");
-        self.reply_unchecked(reply)
-    }
-
-    /// Like `reply`, but it doesn't check if it is a valid reply.
-    /// Sometimes the client breaks the rules and expects an out of form message.
-    pub fn reply_unchecked<T: Serialize>(
-        self,
-        reply: &T,
-    ) -> Result<&'req mut TcpStream, ActorError> {
         self.stream.write_json_packet(reply)?;
-        *self.sent = true;
+        *self.handled = true;
         Ok(self.stream)
     }
 
@@ -174,6 +165,11 @@ impl<'req> ClientRequest<'req, '_> {
         reply.get("from").and_then(|from| from.as_str()) == Some(self.actor_name) &&
             reply.get("to").is_none() &&
             reply.get("type").is_none()
+    }
+
+    /// Manually mark the request as handled, for one-way message types.
+    pub fn mark_handled(self) {
+        *self.handled = true;
     }
 }
 

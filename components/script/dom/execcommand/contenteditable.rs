@@ -626,7 +626,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
         if let Some(first_of_original) = original_parent.children().next() {
             if first_of_original.is::<HTMLBRElement>() {
                 assert!(first_of_original.has_parent());
-                first_of_original.remove_self(CanGc::from_cx(cx));
+                first_of_original.remove_self(cx);
             }
         }
     }
@@ -634,7 +634,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
     if original_parent.children_count() == 0 {
         // Step 11.1. Remove original parent from its parent.
         assert!(original_parent.has_parent());
-        original_parent.remove_self(CanGc::from_cx(cx));
+        original_parent.remove_self(cx);
         // Step 11.2. If precedes line break is true, and the last member of node list does not precede a line break,
         // call createElement("br") on the context object and insert the result immediately after the last member of node list.
         if precedes_line_break {
@@ -1244,7 +1244,7 @@ impl NodeExecCommandSupport for Node {
                 .is_some_and(|br| br.is_extraneous_line_break())
         {
             assert!(ref_.has_parent());
-            ref_.remove_self(CanGc::from_cx(cx));
+            ref_.remove_self(cx);
         }
     }
 
@@ -1291,7 +1291,7 @@ impl NodeExecCommandSupport for Node {
             }
             // Step 4.2. Remove ref from its parent.
             assert!(ref_.has_parent());
-            ref_.remove_self(CanGc::from_cx(cx));
+            ref_.remove_self(cx);
         }
     }
 
@@ -1302,7 +1302,7 @@ impl NodeExecCommandSupport for Node {
         // > If it has no children, instead remove it from its parent.
         if self.children_count() == 0 {
             assert!(self.has_parent());
-            self.remove_self(CanGc::from_cx(cx));
+            self.remove_self(cx);
         } else {
             rooted_vec!(let children <- self.children().map(|child| DomRoot::as_traced(&child)));
             split_the_parent(cx, children.r());
@@ -1798,7 +1798,7 @@ impl SelectionExecCommandSupport for Selection {
             let parent = node.GetParentNode().expect("Must always have a parent");
             // Step 25.2. Remove node from parent.
             assert!(node.has_parent());
-            node.remove_self(CanGc::from_cx(cx));
+            node.remove_self(cx);
             // Step 25.3. If the block node of parent has no visible children, and parent is editable or an editing host,
             // call createElement("br") on the context object and append the result as the last child of parent.
             if parent
@@ -1823,7 +1823,7 @@ impl SelectionExecCommandSupport for Selection {
                         let grand_parent =
                             parent.GetParentNode().expect("Must always have a parent");
                         assert!(parent.has_parent());
-                        parent.remove_self(CanGc::from_cx(cx));
+                        parent.remove_self(cx);
                         parent = grand_parent;
                         continue;
                     }
@@ -1896,7 +1896,7 @@ impl SelectionExecCommandSupport for Selection {
             };
             if child.is_collapsed_block_prop() {
                 assert!(child.has_parent());
-                child.remove_self(CanGc::from_cx(cx));
+                child.remove_self(cx);
             }
         }
 
@@ -1938,7 +1938,7 @@ impl SelectionExecCommandSupport for Selection {
                         if let Some(parent) = end_block.GetParentNode() {
                             if parent.children_count() == 1 {
                                 assert!(end_block.has_parent());
-                                end_block.remove_self(CanGc::from_cx(cx));
+                                end_block.remove_self(cx);
                                 end_block = parent;
                                 continue;
                             }
@@ -1977,7 +1977,7 @@ impl SelectionExecCommandSupport for Selection {
                 // Step 32.4.3. If end block is editable, remove it from its parent.
                 if end_block.is_editable() {
                     assert!(end_block.has_parent());
-                    end_block.remove_self(CanGc::from_cx(cx));
+                    end_block.remove_self(cx);
                 }
                 // Step 32.4.4. Restore states and values from overrides.
                 //
@@ -2041,7 +2041,7 @@ impl SelectionExecCommandSupport for Selection {
                 if let Some(previous_of_first) = first.GetPreviousSibling() {
                     if previous_of_first.is_editable() && previous_of_first.is::<HTMLBRElement>() {
                         assert!(previous_of_first.has_parent());
-                        previous_of_first.remove_self(CanGc::from_cx(cx));
+                        previous_of_first.remove_self(cx);
                     }
                 }
             }
@@ -2076,7 +2076,7 @@ impl SelectionExecCommandSupport for Selection {
                 if let Some(last) = start_block.children().last() {
                     if last.is::<HTMLBRElement>() {
                         assert!(last.has_parent());
-                        last.remove_self(CanGc::from_cx(cx));
+                        last.remove_self(cx);
                     }
                 }
             }
@@ -2136,7 +2136,7 @@ impl SelectionExecCommandSupport for Selection {
                 if let Some(last) = start_block.children().last() {
                     if last.is::<HTMLBRElement>() {
                         assert!(last.has_parent());
-                        last.remove_self(CanGc::from_cx(cx));
+                        last.remove_self(cx);
                     }
                 }
             }
@@ -2166,7 +2166,7 @@ impl SelectionExecCommandSupport for Selection {
                 if end_block.children_count() == 0 {
                     if let Some(parent) = end_block.GetParentNode() {
                         assert!(end_block.has_parent());
-                        end_block.remove_self(CanGc::from_cx(cx));
+                        end_block.remove_self(cx);
                         end_block = parent;
                         continue;
                     }

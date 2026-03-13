@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Tab navigation should scroll an element into view</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<input id="start">
+<div style="height: 10000px"></div>
+<input id="target">
+
+<script>
+promise_test(async function() {
+    start.focus();
+    await test_driver.send_keys(start, "\uE004");
+    let boundingRect = target.getBoundingClientRect();
+    assert_true(boundingRect.x > 0);
+    assert_true(boundingRect.x < document.scrollingElement.clientWidth);
+    assert_true(boundingRect.y > 0);
+    assert_true(boundingRect.y < document.scrollingElement.clientHeight);
+});
+</script>

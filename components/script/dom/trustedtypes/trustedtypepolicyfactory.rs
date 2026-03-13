@@ -69,10 +69,10 @@ impl TrustedTypePolicyFactory {
     /// <https://www.w3.org/TR/trusted-types/#create-trusted-type-policy-algorithm>
     fn create_trusted_type_policy(
         &self,
+        cx: &mut js::context::JSContext,
         policy_name: String,
         options: &TrustedTypePolicyOptions,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedTypePolicy>> {
         // Avoid double borrow on policy_names
         {
@@ -103,7 +103,7 @@ impl TrustedTypePolicyFactory {
         // Step 6: Set policy’s options value to «[ "createHTML" ->
         // options["createHTML", "createScript" -> options["createScript",
         // "createScriptURL" -> options["createScriptURL" ]».
-        let policy = TrustedTypePolicy::new(policy_name.clone(), options, global, can_gc);
+        let policy = TrustedTypePolicy::new(cx, policy_name.clone(), options, global);
         // Step 7: If the policyName is default, set the factory’s default policy value to policy.
         if policy_name == "default" {
             self.default_policy.set(Some(&policy))
@@ -354,11 +354,11 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-createpolicy>
     fn CreatePolicy(
         &self,
+        cx: &mut js::context::JSContext,
         policy_name: DOMString,
         options: &TrustedTypePolicyOptions,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<TrustedTypePolicy>> {
-        self.create_trusted_type_policy(policy_name.to_string(), options, &self.global(), can_gc)
+        self.create_trusted_type_policy(cx, policy_name.to_string(), options, &self.global())
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-ishtml>
     fn IsHTML(&self, cx: JSContext, value: HandleValue) -> bool {
@@ -373,12 +373,12 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
         root_from_handlevalue::<TrustedScriptURL>(value, cx).is_ok()
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-emptyhtml>
-    fn EmptyHTML(&self, can_gc: CanGc) -> DomRoot<TrustedHTML> {
-        TrustedHTML::new(DOMString::new(), &self.global(), can_gc)
+    fn EmptyHTML(&self, cx: &mut js::context::JSContext) -> DomRoot<TrustedHTML> {
+        TrustedHTML::new(cx, DOMString::new(), &self.global())
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-emptyscript>
-    fn EmptyScript(&self, can_gc: CanGc) -> DomRoot<TrustedScript> {
-        TrustedScript::new(DOMString::new(), &self.global(), can_gc)
+    fn EmptyScript(&self, cx: &mut js::context::JSContext) -> DomRoot<TrustedScript> {
+        TrustedScript::new(cx, DOMString::new(), &self.global())
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-getattributetype>
     fn GetAttributeType(

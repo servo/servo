@@ -564,6 +564,11 @@ pub struct InputMethodControl {
 }
 
 impl InputMethodControl {
+    /// Return the [`EmbedderControlId`] associated with this element.
+    pub fn id(&self) -> EmbedderControlId {
+        self.id
+    }
+
     /// Return the type of input method that initated this request.
     pub fn input_method_type(&self) -> InputMethodType {
         self.input_method_type
