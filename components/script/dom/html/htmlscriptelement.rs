@@ -1289,20 +1289,19 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#the-src-idl-attribute>
-    fn SetSrc(&self, value: TrustedScriptURLOrUSVString, can_gc: CanGc) -> Fallible<()> {
+    fn SetSrc(&self, cx: &mut JSContext, value: TrustedScriptURLOrUSVString) -> Fallible<()> {
         let element = self.upcast::<Element>();
         let local_name = &local_name!("src");
-        let value = TrustedScriptURL::get_trusted_script_url_compliant_string(
+        let value = TrustedScriptURL::get_trusted_type_compliant_string(
+            cx,
             &element.owner_global(),
             value,
-            "HTMLScriptElement",
-            local_name,
-            can_gc,
+            &format!("HTMLScriptElement {}", local_name),
         )?;
         element.set_attribute(
             local_name,
             AttrValue::String(value.str().to_owned()),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         Ok(())
     }
