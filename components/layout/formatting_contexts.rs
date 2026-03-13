@@ -19,7 +19,8 @@ use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
 use crate::layout_box_base::{
-    CacheableLayoutResult, CacheableLayoutResultAndInputs, LayoutBoxBase,
+    CacheableLayoutResult, IndependentFormattingContextLayoutResultAndInputs, LayoutBoxBase,
+    LayoutResultAndInputs,
 };
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContents;
@@ -430,7 +431,9 @@ impl IndependentFormattingContext {
         preferred_aspect_ratio: Option<AspectRatio>,
         lazy_block_size: &LazySize,
     ) -> CacheableLayoutResult {
-        if let Some(cache) = self.base.cached_layout_result.borrow().as_ref() {
+        if let Some(LayoutResultAndInputs::IndependentFormattingContext(cache)) =
+            self.base.cached_layout_result.borrow().as_ref()
+        {
             let cache = &**cache;
             if cache.containing_block_for_children_size.inline ==
                 containing_block_for_children.size.inline &&
@@ -460,11 +463,13 @@ impl IndependentFormattingContext {
         );
 
         *self.base.cached_layout_result.borrow_mut() =
-            Some(Box::new(CacheableLayoutResultAndInputs {
-                result: result.clone(),
-                positioning_context: child_positioning_context.clone(),
-                containing_block_for_children_size: containing_block_for_children.size.clone(),
-            }));
+            Some(LayoutResultAndInputs::IndependentFormattingContext(
+                Box::new(IndependentFormattingContextLayoutResultAndInputs {
+                    result: result.clone(),
+                    positioning_context: child_positioning_context.clone(),
+                    containing_block_for_children_size: containing_block_for_children.size.clone(),
+                }),
+            ));
         positioning_context.append(child_positioning_context);
 
         result
