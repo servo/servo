@@ -22,8 +22,10 @@ mod ohos_media;
 mod player;
 mod registry_scanner;
 
+type MediaInstanceMap = HashMap<ClientContextId, Vec<(usize, Weak<Mutex<dyn MediaInstance>>)>>;
+
 pub struct OhosBackend {
-    instances: Arc<Mutex<HashMap<ClientContextId, Vec<(usize, Weak<Mutex<dyn MediaInstance>>)>>>>,
+    instances: Arc<Mutex<MediaInstanceMap>>,
     next_instance_id: AtomicUsize,
     backend_chan: Arc<Mutex<Sender<BackendMsg>>>,
 }
@@ -55,9 +57,7 @@ impl OhosBackend {
 
 impl BackendInit for OhosBackend {
     fn init() -> Box<dyn Backend> {
-        let instances: Arc<
-            Mutex<HashMap<ClientContextId, Vec<(usize, Weak<Mutex<dyn MediaInstance>>)>>>,
-        > = Arc::new(Mutex::new(HashMap::new()));
+        let instances: Arc<Mutex<MediaInstanceMap>> = Arc::new(Mutex::new(HashMap::new()));
 
         let instances_ = instances.clone();
         let (backend_chan, recvr) = mpsc::channel();
@@ -82,11 +82,11 @@ impl BackendInit for OhosBackend {
                 };
             })
             .unwrap();
-        return Box::new(OhosBackend {
+        Box::new(OhosBackend {
             next_instance_id: AtomicUsize::new(0),
             instances,
             backend_chan: Arc::new(Mutex::new(backend_chan)),
-        });
+        })
     }
 }
 
@@ -130,7 +130,7 @@ impl Backend for OhosBackend {
         );
 
         player.setup_info_event(); // TODO: Think about where to put this setup step.
-        return Arc::new(Mutex::new(player));
+        Arc::new(Mutex::new(player))
     }
 
     fn create_audiostream(&self) -> servo_media_streams::MediaStreamId {
@@ -172,7 +172,7 @@ impl Backend for OhosBackend {
     fn create_audio_context(
         &self,
         _id: &servo_media::ClientContextId,
-        options: servo_media_audio::context::AudioContextOptions,
+        _options: servo_media_audio::context::AudioContextOptions,
     ) -> Result<
         std::sync::Arc<std::sync::Mutex<servo_media_audio::context::AudioContext>>,
         servo_media_audio::sink::AudioSinkError,
