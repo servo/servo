@@ -13242,6 +13242,15 @@
        "testdriver": true
       }
      ]
+    ],
+    "tab-navigation-scroll-target-into-view.html": [
+     "5177c3459688101cfeb244909437f617aef13591",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
     ]
    },
    "mozilla": {
