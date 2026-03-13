@@ -370,7 +370,12 @@ impl FetchResponseListener for EventSourceContext {
         // TODO
     }
 
-    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
         match metadata {
             Ok(fm) => {
                 let meta = match fm {
