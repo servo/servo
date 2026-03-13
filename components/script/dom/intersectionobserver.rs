@@ -289,12 +289,16 @@ impl IntersectionObserver {
             .borrow_mut()
             .push(Dom::from_ref(target));
 
-        target
-            .owner_window()
-            .Document()
-            .add_rendering_update_reason(
-                RenderingUpdateReason::IntersectionObserverStartedObservingTarget,
-            );
+        let document = target.owner_window().Document();
+
+        // <https://w3c.github.io/IntersectionObserver/#pending-initial-intersectionobserver-targets>
+        // When a target element is added to an IntersectionObserver’s observation targets,
+        // add target to the document’s list of pending initial intersectionobserver targets.
+        document.add_pending_intersection_observer_target(target);
+
+        document.add_rendering_update_reason(
+            RenderingUpdateReason::IntersectionObserverStartedObservingTarget,
+        );
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#unobserve-target-element>
@@ -609,6 +613,62 @@ impl IntersectionObserver {
     }
 
     /// Step 2.2.1-2.2.21 of <https://w3c.github.io/IntersectionObserver/#update-intersection-observations-algo>
+    /// Process a single target's initial intersection observation, queuing an entry unconditionally.
+    /// Called for targets in the document's pending initial intersectionobserver targets list.
+    /// <https://w3c.github.io/IntersectionObserver/#pending-initial-intersectionobserver-targets>
+    pub(crate) fn queue_initial_intersection_observation(
+        &self,
+        document: &Document,
+        time: CrossProcessInstant,
+        target: &Element,
+        can_gc: CanGc,
+    ) {
+        // Only process if this observer is actually observing this target.
+        let is_observing = self
+            .observation_targets
+            .borrow()
+            .iter()
+            .any(|t| &**t == target);
+        if !is_observing {
+            return;
+        }
+
+        let registration = match target.get_intersection_observer_registration(self) {
+            Some(r) => r,
+            None => return,
+        };
+
+        registration.last_update_time.set(time);
+
+        let root_bounds = self.root_intersection_rectangle(document);
+        let intersection_output =
+            self.maybe_compute_intersection_output(document, target, root_bounds);
+
+        // For initial observation, always queue an entry regardless of state change.
+        self.queue_an_intersectionobserverentry(
+            document,
+            time,
+            intersection_output.root_bounds,
+            intersection_output.target_rect,
+            intersection_output.intersection_rect,
+            intersection_output.is_intersecting,
+            intersection_output.is_visible,
+            intersection_output.intersection_ratio,
+            target,
+            can_gc,
+        );
+
+        registration
+            .previous_threshold_index
+            .set(intersection_output.threshold_index);
+        registration
+            .previous_is_intersecting
+            .set(intersection_output.is_intersecting);
+        registration
+            .previous_is_visible
+            .set(intersection_output.is_visible);
+    }
+
     pub(crate) fn update_intersection_observations_steps(
         &self,
         document: &Document,

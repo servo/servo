@@ -562,6 +562,8 @@ pub(crate) struct Document {
     has_trustworthy_ancestor_origin: Cell<bool>,
     /// <https://w3c.github.io/IntersectionObserver/#document-intersectionobservertaskqueued>
     intersection_observer_task_queued: Cell<bool>,
+    /// <https://w3c.github.io/IntersectionObserver/#pending-initial-intersectionobserver-targets>
+    pending_initial_intersectionobserver_targets: DomRefCell<Vec<Dom<Element>>>,
     /// Active intersection observers that should be processed by this document in
     /// the update intersection observation steps.
     /// <https://w3c.github.io/IntersectionObserver/#run-the-update-intersection-observations-steps>
@@ -3441,6 +3443,24 @@ impl Document {
             .push(Dom::from_ref(intersection_observer));
     }
 
+    /// Add an element to the document's list of pending initial intersectionobserver targets.
+    /// <https://w3c.github.io/IntersectionObserver/#pending-initial-intersectionobserver-targets>
+    pub(crate) fn add_pending_intersection_observer_target(&self, target: &Element) {
+        self.pending_initial_intersectionobserver_targets
+            .borrow_mut()
+            .push(Dom::from_ref(target));
+    }
+
+    /// Drain and return the document's list of pending initial intersectionobserver targets.
+    /// <https://w3c.github.io/IntersectionObserver/#pending-initial-intersectionobserver-targets>
+    pub(crate) fn take_pending_intersection_observer_targets(&self) -> Vec<DomRoot<Element>> {
+        self.pending_initial_intersectionobserver_targets
+            .borrow_mut()
+            .drain(..)
+            .map(|e| DomRoot::from_ref(&*e))
+            .collect()
+    }
+
     /// Remove an [`IntersectionObserver`] from [`Document`], ommiting it from the event loop.
     /// An observer without any target, ideally should be removed to be conformant with
     /// <https://w3c.github.io/IntersectionObserver/#lifetime>.
@@ -3459,6 +3479,17 @@ impl Document {
         time: CrossProcessInstant,
         can_gc: CanGc,
     ) {
+        // Process pending initial targets first.
+        // <https://w3c.github.io/IntersectionObserver/#pending-initial-intersectionobserver-targets>
+        let pending_targets = self.take_pending_intersection_observer_targets();
+        for target in &pending_targets {
+            for intersection_observer in &*self.intersection_observers.borrow() {
+                intersection_observer.queue_initial_intersection_observation(
+                    self, time, target, can_gc,
+                );
+            }
+        }
+
         // Step 1-2
         for intersection_observer in &*self.intersection_observers.borrow() {
             self.update_single_intersection_observer_steps(intersection_observer, time, can_gc);
@@ -3980,6 +4011,7 @@ impl Document {
             inherited_insecure_requests_policy: Cell::new(inherited_insecure_requests_policy),
             has_trustworthy_ancestor_origin: Cell::new(has_trustworthy_ancestor_origin),
             intersection_observer_task_queued: Cell::new(false),
+            pending_initial_intersectionobserver_targets: Default::default(),
             intersection_observers: Default::default(),
             highlighted_dom_node: Default::default(),
             adopted_stylesheets: Default::default(),
