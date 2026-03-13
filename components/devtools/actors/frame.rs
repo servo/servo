@@ -14,7 +14,7 @@ use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::environment::{EnvironmentActor, EnvironmentActorMsg};
 use crate::actors::object::{ObjectActor, ObjectActorMsg};
 use crate::actors::source::SourceActor;
-use crate::protocol::ClientRequest;
+use crate::protocol::{ClientRequest, JsonPacketStream};
 
 #[derive(Serialize)]
 struct FrameEnvironmentReply {
@@ -73,7 +73,7 @@ impl Actor for FrameActor {
     // https://searchfox.org/firefox-main/source/devtools/shared/specs/frame.js
     fn handle_message(
         &self,
-        request: ClientRequest,
+        mut request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
@@ -97,7 +97,8 @@ impl Actor for FrameActor {
                 };
                 // This reply has a `type` field but it doesn't need a followup,
                 // unlike most messages. We need to skip the validity check.
-                request.reply_unchecked(&msg)?;
+                request.write_json_packet(&msg)?;
+                request.mark_handled();
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
