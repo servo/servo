@@ -1232,11 +1232,12 @@ impl FetchResponseListener for ParserContext {
 
     fn process_request_eof(&mut self, _: RequestId) {}
 
-    #[expect(unsafe_code)]
-    fn process_response(&mut self, _: RequestId, meta_result: Result<FetchMetadata, NetworkError>) {
-        // TODO: https://github.com/servo/servo/issues/42840
-        let mut cx = unsafe { temp_cx() };
-        let cx = &mut cx;
+    fn process_response(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _: RequestId,
+        meta_result: Result<FetchMetadata, NetworkError>,
+    ) {
         let (metadata, error) = match meta_result {
             Ok(meta) => (
                 Some(match meta {

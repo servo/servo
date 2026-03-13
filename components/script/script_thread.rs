@@ -3876,7 +3876,7 @@ impl ScriptThread {
 
         match message {
             FetchResponseMsg::ProcessResponse(request_id, metadata) => {
-                self.handle_fetch_metadata(pipeline_id, request_id, metadata)
+                self.handle_fetch_metadata(cx, pipeline_id, request_id, metadata)
             },
             FetchResponseMsg::ProcessResponseChunk(request_id, chunk) => {
                 self.handle_fetch_chunk(pipeline_id, request_id, chunk.0)
@@ -3894,6 +3894,7 @@ impl ScriptThread {
 
     fn handle_fetch_metadata(
         &self,
+        cx: &mut js::context::JSContext,
         id: PipelineId,
         request_id: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
@@ -3911,7 +3912,7 @@ impl ScriptThread {
             .iter_mut()
             .find(|&&mut (pipeline_id, _)| pipeline_id == id);
         if let Some(&mut (_, ref mut ctxt)) = parser {
-            ctxt.process_response(request_id, fetch_metadata);
+            ctxt.process_response(cx, request_id, fetch_metadata);
         }
     }
 
@@ -4062,7 +4063,7 @@ impl ScriptThread {
         self.incomplete_loads.borrow_mut().push(incomplete);
 
         let dummy_request_id = RequestId::default();
-        context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
+        context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());
         context.set_about_base_url(about_base_url);
         context.process_response_chunk(dummy_request_id, chunk);
@@ -4100,7 +4101,7 @@ impl ScriptThread {
             ParserContext::new(webview_id, pipeline_id, url, creation_sandboxing_flag_set);
         let dummy_request_id = RequestId::default();
 
-        context.process_response(dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
+        context.process_response(cx, dummy_request_id, Ok(FetchMetadata::Unfiltered(meta)));
         context.set_policy_container(policy_container.as_ref());
         context.set_about_base_url(about_base_url);
         context.process_response_chunk(dummy_request_id, chunk);

@@ -143,6 +143,7 @@ impl FetchResponseListener for ScriptFetchContext {
 
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         _request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {

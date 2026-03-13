@@ -541,6 +541,7 @@ impl FetchResponseListener for FetchContext {
 
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         _: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -673,6 +674,7 @@ impl FetchResponseListener for FetchLaterListener {
 
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         _: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
