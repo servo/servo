@@ -8,20 +8,20 @@ use log::warn;
 use ohos_media_sys::avbuffer::OH_AVBuffer;
 use ohos_media_sys::avcodec_base::OH_AVDataSourceExt;
 
-type SeekDataClosure = Box<dyn Fn(u64) -> bool>;
+type SeekDataClosure = Box<dyn Fn(u64) -> bool + Send + Sync>;
 const DEFAULT_CACHE_SIZE: usize = 8 * 1024 * 1024; // 8MB
 pub struct MediaSourceBuilder {
-    pub enough_data: Option<Box<dyn Fn()>>,
+    pub enough_data: Option<Box<dyn Fn() + Send + Sync>>,
     pub seek_data: Option<SeekDataClosure>,
 }
 
 impl MediaSourceBuilder {
-    pub fn set_enough_data<F: Fn() + Send + Clone + 'static>(mut self, callback: F) -> Self {
+    pub fn set_enough_data<F: Fn() + Send + Sync + Clone + 'static>(mut self, callback: F) -> Self {
         self.enough_data = Some(Box::new(callback));
         self
     }
 
-    pub fn set_seek_data<F: Fn(u64) -> bool + Send + Clone + 'static>(
+    pub fn set_seek_data<F: Fn(u64) -> bool + Send + Sync + Clone + 'static>(
         mut self,
         callback: F,
     ) -> Self {
@@ -141,14 +141,14 @@ impl Drop for MediaSourceWrapper {
 /// 1. AVPlayer Client Thread, will call read.
 /// 2. Script Thread, will try to push_buffer into buffer.
 pub struct PlaybackBuffer {
-    enough_data_closure: Option<Box<dyn Fn()>>,
+    enough_data_closure: Option<Box<dyn Fn() + Send + Sync>>,
     buffer_data_head: i64,
     is_seeking: bool,
     buffer: Vec<u8>,
 }
 
 impl PlaybackBuffer {
-    pub fn new(enough_data_closure: Option<Box<dyn Fn()>>) -> Self {
+    pub fn new(enough_data_closure: Option<Box<dyn Fn() + Send + Sync>>) -> Self {
         PlaybackBuffer {
             enough_data_closure,
             buffer_data_head: 0,

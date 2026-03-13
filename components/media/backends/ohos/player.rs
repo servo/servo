@@ -102,8 +102,8 @@ impl OhosAvPlayer {
             id,
             context_id,
             player_inner: player_inner.clone(),
-            event_sender: event_sender,
-            video_sink: video_sink,
+            event_sender,
+            video_sink,
             backend_chan,
             last_metadata: Arc::new(Mutex::new(Cell::new(Metadata {
                 duration: None,
@@ -363,7 +363,7 @@ impl SeekChannel {
             sender: SeekLock {
                 lock_channel: sender,
             },
-            recv: recv,
+            recv,
         }
     }
     fn sender(&self) -> SeekLock {
@@ -434,13 +434,8 @@ impl Player for OhosAvPlayer {
             .unwrap()
             .seek((time * 1000.0) as i32);
         let state_manger_lock = self.state_manager.lock().unwrap();
-        if !state_manger_lock.player_state.paused {
-            match state_manger_lock.internal_state.state {
-                AVPlayerState::AV_COMPLETED => {
-                    self.player_inner.lock().unwrap().play();
-                },
-                _ => {},
-            }
+        if !state_manger_lock.player_state.paused && state_manger_lock.internal_state.state == AVPlayerState::AV_COMPLETED {
+            self.player_inner.lock().unwrap().play();
         }
         Ok(())
     }
@@ -505,7 +500,7 @@ impl Player for OhosAvPlayer {
 
     fn render_use_gl(&self) -> bool {
         warn!("Render use gl not supported!");
-        return false;
+        false
     }
 
     fn set_audio_track(
@@ -640,6 +635,7 @@ impl VideoSink {
                             uv_stride: frame_info.stride as u32,
                         };
                         let mut bgra = vec![0u8; (frame_info.width * frame_info.height * 4) as usize];
+
                         // Conversion from yuv to bgra8
                         let conversion_res = yuv_nv12_to_bgra(
                             &bi_planar_image,
@@ -658,7 +654,7 @@ impl VideoSink {
                                 .release_buffer(frame_info);
                             continue;
                         }
-
+                        
                         let frame = VideoFrame::new(
                             frame_info.width,
                             frame_info.height,
@@ -672,7 +668,7 @@ impl VideoSink {
                             .unwrap()
                             .release_buffer(frame_info);
                         debug!("Trying to send frame update info to media player!");
-                        let _ = match event_sender_clone
+                        match event_sender_clone
                             .lock()
                             .unwrap()
                             .send(PlayerEvent::VideoFrameUpdated)
@@ -702,21 +698,14 @@ struct OhosBuffer {
     data: Vec<u8>,
 }
 
-impl Drop for OhosBuffer {
-    fn drop(&mut self) {
-        let orig_vec = std::mem::replace(&mut self.data, vec![]);
-        let _ = orig_vec.leak(); // memory managed by surface.
-    }
-}
-
 impl OhosBuffer {
     pub fn new(data: Vec<u8>) -> OhosBuffer {
-        OhosBuffer { data: data }
+        OhosBuffer { data }
     }
 }
 
 impl Buffer for OhosBuffer {
     fn to_vec(&self) -> Option<video::VideoFrameData> {
-        Some(VideoFrameData::Raw(Arc::new(self.data.clone())))
+        Some(VideoFrameData::Raw(Arc::new(self.data.to_owned())))
     }
 }

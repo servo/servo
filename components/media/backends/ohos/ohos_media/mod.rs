@@ -11,7 +11,7 @@ use ohos_media_sys::avformat::OH_AVFormat;
 use ohos_media_sys::avplayer::{
     OH_AVPlayer_Create, OH_AVPlayer_Pause, OH_AVPlayer_Play, OH_AVPlayer_Prepare,
     OH_AVPlayer_Release, OH_AVPlayer_Seek, OH_AVPlayer_SetDataSource,
-    OH_AVPlayer_SetOnInfoCallback, OH_AVPlayer_SetPlaybackSpeed, OH_AVPlayer_SetURLSource,
+    OH_AVPlayer_SetOnInfoCallback, OH_AVPlayer_SetPlaybackSpeed,
     OH_AVPlayer_SetVideoSurface, OH_AVPlayer_SetVolume, OH_AVPlayer_Stop,
 };
 use ohos_media_sys::avplayer_base::{
@@ -87,16 +87,12 @@ impl OhosPlayer {
     /// Should try to check whether to run each action when
     /// 1. state changed
     /// 2. after running external initialize step.
-    /// (e.g. set_output_surface/setup_window_buffer_listener)
+    ///    e.g. setup_window_buffer_listener
     pub fn initialize_check_state_action(&mut self) {
-        if self.state.0 == AVPlayerState::AV_INITIALIZED.0 {
-            if self.native_window.is_some() {
-                if !self.has_set_window {
-                    self.has_set_window = true;
-                    self.set_window_to_player();
-                    self.prepare(); // only prepare after setting window.
-                }
-            }
+        if self.state == AVPlayerState::AV_INITIALIZED && self.native_window.is_some() && !self.has_set_window {
+                self.has_set_window = true;
+                self.set_window_to_player();
+                self.prepare(); // only prepare after setting window.
         }
     }
 
@@ -326,10 +322,7 @@ impl OhosPlayer {
     /// Only call this API when use_ohos_surface is false,
     /// Should pair with release_buffer.
     pub fn acquire_buffer(&self) -> Option<FrameInfo> {
-        if self.native_image.is_none() {
-            return None;
-        }
-        let native_image = self.native_image.unwrap();
+        let native_image = self.native_image?;
         let mut native_window_buffer = std::ptr::null_mut();
         let mut fence_fd = 0;
         unsafe {
@@ -369,8 +362,8 @@ impl OhosPlayer {
                 size: (*buffer_handle).size,
                 format: (*buffer_handle).format,
                 vir_addr: (*buffer_handle).virAddr as *mut u8,
-                native_window_buffer: native_window_buffer,
-                fence_fd: fence_fd,
+                native_window_buffer,
+                fence_fd,
             }
         };
         let ret =
@@ -379,13 +372,13 @@ impl OhosPlayer {
             error!("Native Window Buffer Unreference failed!");
         }
         // FIXME(ray): Potential memory copying.
-        return Some(frame_info);
+        Some(frame_info)
     }
 
     /// Only call this API when use_ohos_surface is false,
     /// Should pair with acquire_buffer.
     pub fn release_buffer(&self, frame_info: FrameInfo) {
-        let native_image = self.native_image.unwrap();
+        let native_image = self.native_image.expect("native image should not be empty");
         unsafe {
             let ret = OH_NativeImage_ReleaseNativeWindowBuffer(
                 native_image,
