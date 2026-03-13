@@ -339,7 +339,7 @@ impl TraversalId {
     }
 }
 
-#[derive(Clone, Copy, Deserialize, Eq, Hash, PartialEq, Serialize, MallocSizeOf, Debug)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, MallocSizeOf)]
 pub enum PixelFormat {
     /// Luminance channel only
     K8,
