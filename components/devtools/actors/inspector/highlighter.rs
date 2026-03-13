@@ -40,6 +40,8 @@ impl Actor for HighlighterActor {
     /// - `show`: Enables highlighting for the selected node
     ///
     /// - `hide`: Disables highlighting for the selected node
+    ///
+    /// - `finalize`: Performs cleanup for this actor; currently a no-op
     fn handle_message(
         &self,
         request: ClientRequest,
@@ -84,6 +86,10 @@ impl Actor for HighlighterActor {
 
                 let msg = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&msg)?
+            },
+
+            "finalize" => {
+                request.mark_handled();
             },
 
             _ => return Err(ActorError::UnrecognizedPacketType),
