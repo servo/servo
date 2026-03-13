@@ -20,7 +20,7 @@ use paint_api::display_list::{
 };
 use servo_config::opts::DiagnosticsLogging;
 use style::Zero;
-use style::color::AbsoluteColor;
+use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::float::T as ComputedFloat;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
@@ -707,7 +707,21 @@ impl StackingContext {
         if background_color.alpha > 0.0 {
             let common = builder.common_properties(painting_area, &source_style);
             let color = super::rgba(background_color);
-            builder.wr().push_rect(&common, painting_area, color)
+            builder.wr().push_rect(&common, painting_area, color);
+
+            // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+            // First paint ... includes non-default background paint and the enclosing box of an iframe.
+            let default_background_color = servo_config::pref!(shell_background_color_rgba);
+            let default_background_color = AbsoluteColor::new(
+                ColorSpace::Srgb,
+                default_background_color[0] as f32,
+                default_background_color[1] as f32,
+                default_background_color[2] as f32,
+                default_background_color[3] as f32,
+            );
+            if background_color != default_background_color {
+                builder.mark_is_paintable();
+            }
         }
 
         let mut fragment_builder = BuilderForBoxFragment::new(
