@@ -75,7 +75,7 @@ use style::global_style_data::StyleThreadPool;
 
 use crate::clipboard_delegate::StringRequest;
 #[cfg(feature = "gamepad")]
-use crate::gamepad_provider::{GamepadHapticEffectRequest, GamepadHapticEffectRequestType};
+use crate::gamepad_delegate::{GamepadHapticEffectRequest, GamepadHapticEffectRequestType};
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::network_manager::NetworkManager;
 use crate::proxies::ConstellationProxy;
@@ -599,7 +599,7 @@ impl ServoInner {
                         }),
                     );
                     webview
-                        .gamepad_provider()
+                        .gamepad_delegate()
                         .handle_haptic_effect_request(request);
                 }
             },
@@ -616,7 +616,7 @@ impl ServoInner {
                         }),
                     );
                     webview
-                        .gamepad_provider()
+                        .gamepad_delegate()
                         .handle_haptic_effect_request(request);
                 }
             },
