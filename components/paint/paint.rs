@@ -802,12 +802,21 @@ impl Paint {
             .notify_scroll_event(webview_id, scroll, point);
     }
 
-    pub fn pinch_zoom(&self, webview_id: WebViewId, pinch_zoom_delta: f32, center: DevicePoint) {
+    pub fn adjust_pinch_zoom(
+        &self,
+        webview_id: WebViewId,
+        pinch_zoom_delta: f32,
+        center: DevicePoint,
+    ) {
         if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return;
         }
         self.painter_mut(webview_id.into())
-            .pinch_zoom(webview_id, pinch_zoom_delta, center);
+            .adjust_pinch_zoom(webview_id, pinch_zoom_delta, center);
+    }
+
+    pub fn pinch_zoom(&self, webview_id: WebViewId) -> f32 {
+        self.painter(webview_id.into()).pinch_zoom(webview_id)
     }
 
     pub fn device_pixels_per_page_pixel(
