@@ -99,4 +99,8 @@ pub(crate) struct ElementRareData {
     /// > This one selection must be shared by all the content of the document (though not by nested documents),
     /// > including any editing hosts in the document.
     pub(crate) contenteditable_selection_range: MutNullableDom<Range>,
+
+    /// Whether this element had duplicate attributes during tokenization.
+    /// Used for CSP nonce validation (step 3 of "is element nonceable").
+    pub(crate) had_duplicate_attributes: bool,
 }
