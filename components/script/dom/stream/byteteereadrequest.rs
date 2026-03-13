@@ -204,13 +204,13 @@ impl ByteTeeReadRequest {
         // If canceled1 is false, perform ! ReadableByteStreamControllerEnqueue(branch1.[[controller]], chunk1).
         if let Some(chunk1_view) = chunk1_view {
             let branch_1_controller = self.branch_1.get_byte_controller();
-            branch_1_controller.enqueue(cx.into(), chunk1_view, CanGc::from_cx(cx))?;
+            branch_1_controller.enqueue(cx, chunk1_view)?;
         }
 
         // If canceled2 is false, perform ! ReadableByteStreamControllerEnqueue(branch2.[[controller]], chunk2).
         if let Some(chunk2_view) = chunk2_view {
             let branch_2_controller = self.branch_2.get_byte_controller();
-            branch_2_controller.enqueue(cx.into(), chunk2_view, CanGc::from_cx(cx))?;
+            branch_2_controller.enqueue(cx, chunk2_view)?;
         }
 
         // Set reading to false.
@@ -218,16 +218,10 @@ impl ByteTeeReadRequest {
 
         // If readAgainForBranch1 is true, perform pull1Algorithm.
         if self.read_again_for_branch_1.get() {
-            self.pull_algorithm(
-                Some(ByteTeePullAlgorithm::Pull1Algorithm),
-                CanGc::from_cx(cx),
-            );
+            self.pull_algorithm(cx, Some(ByteTeePullAlgorithm::Pull1Algorithm));
         } else if self.read_again_for_branch_2.get() {
             // Otherwise, if readAgainForBranch2 is true, perform pull2Algorithm.
-            self.pull_algorithm(
-                Some(ByteTeePullAlgorithm::Pull2Algorithm),
-                CanGc::from_cx(cx),
-            );
+            self.pull_algorithm(cx, Some(ByteTeePullAlgorithm::Pull2Algorithm));
         }
 
         Ok(())
@@ -280,10 +274,10 @@ impl ByteTeeReadRequest {
 
     pub(crate) fn pull_algorithm(
         &self,
+        cx: &mut js::context::JSContext,
         byte_tee_pull_algorithm: Option<ByteTeePullAlgorithm>,
-        can_gc: CanGc,
     ) {
         self.tee_underlying_source
-            .pull_algorithm(byte_tee_pull_algorithm, can_gc);
+            .pull_algorithm(byte_tee_pull_algorithm, CanGc::from_cx(cx));
     }
 }

@@ -950,18 +950,17 @@ impl TransformStream {
     /// <https://streams.spec.whatwg.org/#transform-stream-error>
     pub(crate) fn error(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         error: SafeHandleValue,
-        can_gc: CanGc,
     ) {
         // Perform ! ReadableStreamDefaultControllerError(stream.[[readable]].[[controller]], e).
         self.get_readable()
             .get_default_controller()
-            .error(error, can_gc);
+            .error(error, CanGc::from_cx(cx));
 
         // Perform ! TransformStreamErrorWritableAndUnblockWrite(stream, e).
-        self.error_writable_and_unblock_write(cx, global, error, can_gc);
+        self.error_writable_and_unblock_write(cx.into(), global, error, CanGc::from_cx(cx));
     }
 }
 

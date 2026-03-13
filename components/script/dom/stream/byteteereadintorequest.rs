@@ -187,7 +187,7 @@ impl ByteTeeReadIntoRequest {
 
                 // Perform ! ReadableByteStreamControllerEnqueue(otherBranch.[[controller]], clonedChunk).
                 let other_branch_controller = self.other_branch.get_byte_controller();
-                other_branch_controller.enqueue(cx.into(), cloned_chunk, CanGc::from_cx(cx))?;
+                other_branch_controller.enqueue(cx, cloned_chunk)?;
             }
         } else if !byob_canceled {
             // Otherwise, if byobCanceled is false, perform
@@ -202,16 +202,10 @@ impl ByteTeeReadIntoRequest {
 
         // If readAgainForBranch1 is true, perform pull1Algorithm.
         if self.read_again_for_branch_1.get() {
-            self.pull_algorithm(
-                Some(ByteTeePullAlgorithm::Pull1Algorithm),
-                CanGc::from_cx(cx),
-            );
+            self.pull_algorithm(cx, Some(ByteTeePullAlgorithm::Pull1Algorithm));
         } else if self.read_again_for_branch_2.get() {
             // Otherwise, if readAgainForBranch2 is true, perform pull2Algorithm.
-            self.pull_algorithm(
-                Some(ByteTeePullAlgorithm::Pull2Algorithm),
-                CanGc::from_cx(cx),
-            );
+            self.pull_algorithm(cx, Some(ByteTeePullAlgorithm::Pull2Algorithm));
         }
 
         Ok(())
@@ -297,10 +291,10 @@ impl ByteTeeReadIntoRequest {
 
     pub(crate) fn pull_algorithm(
         &self,
+        cx: &mut js::context::JSContext,
         byte_tee_pull_algorithm: Option<ByteTeePullAlgorithm>,
-        can_gc: CanGc,
     ) {
         self.tee_underlying_source
-            .pull_algorithm(byte_tee_pull_algorithm, can_gc);
+            .pull_algorithm(byte_tee_pull_algorithm, CanGc::from_cx(cx));
     }
 }

@@ -51,11 +51,8 @@ struct TransformTransformPromiseRejection {
 impl Callback for TransformTransformPromiseRejection {
     /// Reacting to transformPromise with the following fulfillment steps:
     fn callback(&self, cx: &mut CurrentRealm, v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
-        let cx: SafeJSContext = cx.into();
         // Perform ! TransformStreamError(controller.[[stream]], r).
-        self.controller
-            .error(cx, &self.controller.global(), v, can_gc);
+        self.controller.error(cx, &self.controller.global(), v);
 
         // Throw r.
         // Note: this is done part of perform_transform().
@@ -637,16 +634,15 @@ impl TransformStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-error>
     pub(crate) fn error(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        can_gc: CanGc,
     ) {
         // Perform ! TransformStreamError(controller.[[stream]], e).
         self.stream
             .get()
             .expect("stream is undefined")
-            .error(cx, global, reason, can_gc);
+            .error(cx, global, reason);
     }
 
     /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-clear-algorithms>
@@ -715,9 +711,9 @@ impl TransformStreamDefaultControllerMethods<crate::DomTypeHolder>
     }
 
     /// <https://streams.spec.whatwg.org/#ts-default-controller-error>
-    fn Error(&self, cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Fallible<()> {
+    fn Error(&self, cx: &mut js::context::JSContext, reason: SafeHandleValue) -> Fallible<()> {
         // Perform ? TransformStreamDefaultControllerError(this, e).
-        self.error(cx, &self.global(), reason, can_gc);
+        self.error(cx, &self.global(), reason);
         Ok(())
     }
 
