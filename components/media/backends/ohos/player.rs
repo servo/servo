@@ -101,7 +101,7 @@ impl OhosAvPlayer {
         OhosAvPlayer {
             id,
             context_id,
-            player_inner: player_inner.clone(),
+            player_inner,
             event_sender,
             video_sink,
             backend_chan,
