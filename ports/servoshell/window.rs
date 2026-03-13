@@ -96,8 +96,8 @@ impl ServoShellWindow {
             feature = "gamepad",
             not(any(target_os = "android", target_env = "ohos"))
         ))]
-        if let Some(gamepad_provider) = state.gamepad_provider() {
-            webview_builder = webview_builder.gamepad_provider(gamepad_provider);
+        if let Some(gamepad_delegate) = state.gamepad_delegate() {
+            webview_builder = webview_builder.gamepad_delegate(gamepad_delegate);
         }
 
         let webview = webview_builder.build();

@@ -14,7 +14,7 @@
 
 mod clipboard_delegate;
 #[cfg(feature = "gamepad")]
-mod gamepad_provider;
+mod gamepad_delegate;
 mod gstreamer_plugins;
 mod javascript_evaluator;
 mod network_manager;
@@ -66,8 +66,8 @@ pub use webrender_api::units::{
 
 pub use crate::clipboard_delegate::ClipboardDelegate;
 #[cfg(feature = "gamepad")]
-pub use crate::gamepad_provider::{
-    GamepadHapticEffectRequest, GamepadHapticEffectRequestType, GamepadProvider,
+pub use crate::gamepad_delegate::{
+    GamepadDelegate, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
 };
 pub use crate::network_manager::{CacheEntry, NetworkManager};
 pub use crate::servo::{Servo, ServoBuilder, run_content_process};

@@ -57,11 +57,11 @@ impl Drop for GamepadHapticEffectRequest {
     }
 }
 
-pub trait GamepadProvider {
+pub trait GamepadDelegate {
     /// Handle a request to play or stop a haptic effect on a connected gamepad.
     fn handle_haptic_effect_request(&self, _request: GamepadHapticEffectRequest) {}
 }
 
-pub(crate) struct DefaultGamepadProvider;
+pub(crate) struct DefaultGamepadDelegate;
 
-impl GamepadProvider for DefaultGamepadProvider {}
+impl GamepadDelegate for DefaultGamepadDelegate {}

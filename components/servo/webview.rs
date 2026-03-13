@@ -29,7 +29,7 @@ use webrender_api::units::{DeviceIntRect, DevicePixel, DevicePoint, DeviceSize};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 #[cfg(feature = "gamepad")]
-use crate::gamepad_provider::{DefaultGamepadProvider, GamepadProvider};
+use crate::gamepad_delegate::{DefaultGamepadDelegate, GamepadDelegate};
 use crate::responders::IpcResponder;
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
@@ -87,7 +87,7 @@ pub(crate) struct WebViewInner {
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
     #[cfg(feature = "gamepad")]
-    pub(crate) gamepad_provider: Rc<dyn GamepadProvider>,
+    pub(crate) gamepad_delegate: Rc<dyn GamepadDelegate>,
 
     rendering_context: Rc<dyn RenderingContext>,
     user_content_manager: Option<Rc<UserContentManager>>,
@@ -133,9 +133,9 @@ impl WebView {
                 .clipboard_delegate
                 .unwrap_or_else(|| Rc::new(DefaultClipboardDelegate)),
             #[cfg(feature = "gamepad")]
-            gamepad_provider: builder
-                .gamepad_provider
-                .unwrap_or_else(|| Rc::new(DefaultGamepadProvider)),
+            gamepad_delegate: builder
+                .gamepad_delegate
+                .unwrap_or_else(|| Rc::new(DefaultGamepadDelegate)),
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
@@ -248,8 +248,8 @@ impl WebView {
     }
 
     #[cfg(feature = "gamepad")]
-    pub fn gamepad_provider(&self) -> Rc<dyn GamepadProvider> {
-        self.inner().gamepad_provider.clone()
+    pub fn gamepad_delegate(&self) -> Rc<dyn GamepadDelegate> {
+        self.inner().gamepad_delegate.clone()
     }
 
     pub fn id(&self) -> WebViewId {
@@ -786,7 +786,7 @@ pub struct WebViewBuilder {
     user_content_manager: Option<Rc<UserContentManager>>,
     clipboard_delegate: Option<Rc<dyn ClipboardDelegate>>,
     #[cfg(feature = "gamepad")]
-    gamepad_provider: Option<Rc<dyn GamepadProvider>>,
+    gamepad_delegate: Option<Rc<dyn GamepadDelegate>>,
 }
 
 impl WebViewBuilder {
@@ -801,7 +801,7 @@ impl WebViewBuilder {
             user_content_manager: None,
             clipboard_delegate: None,
             #[cfg(feature = "gamepad")]
-            gamepad_provider: None,
+            gamepad_delegate: None,
         }
     }
 
@@ -848,11 +848,11 @@ impl WebViewBuilder {
         self
     }
 
-    /// Set the [`GamepadProvider`] for the `WebView` being created. The same
-    /// [`GamepadProvider`] can be shared among multiple `WebView`s.
+    /// Set the [`GamepadDelegate`] for the `WebView` being created. The same
+    /// [`GamepadDelegate`] can be shared among multiple `WebView`s.
     #[cfg(feature = "gamepad")]
-    pub fn gamepad_provider(mut self, gamepad_provider: Rc<dyn GamepadProvider>) -> Self {
-        self.gamepad_provider = Some(gamepad_provider);
+    pub fn gamepad_delegate(mut self, gamepad_delegate: Rc<dyn GamepadDelegate>) -> Self {
+        self.gamepad_delegate = Some(gamepad_delegate);
         self
     }
 
