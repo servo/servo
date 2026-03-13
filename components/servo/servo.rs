@@ -1223,6 +1223,8 @@ impl EventLoopWaker for DefaultEventLoopWaker {
     fn clone_box(&self) -> Box<dyn EventLoopWaker> {
         Box::new(DefaultEventLoopWaker)
     }
+
+    fn wake(&self) {}
 }
 
 #[cfg(feature = "webxr")]

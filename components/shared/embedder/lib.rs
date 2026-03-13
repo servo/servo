@@ -216,9 +216,15 @@ pub enum Cursor {
     ZoomOut,
 }
 
+/// Waker for the Servo event loop.
 pub trait EventLoopWaker: 'static + Send + Sync {
     fn clone_box(&self) -> Box<dyn EventLoopWaker>;
-    fn wake(&self) {}
+
+    /// Handle an event loop wakeup.
+    ///
+    /// A wakeup indicates that new Servo events are pending, which should
+    /// trigger a call to [`Servo::spin_event_loop`].
+    fn wake(&self);
 }
 
 impl Clone for Box<dyn EventLoopWaker> {
