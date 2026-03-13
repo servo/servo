@@ -606,6 +606,13 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             type_: environment.type_.clone().map(String::from),
             scope_kind: environment.scopeKind.clone().map(String::from),
             function_display_name: environment.functionDisplayName.clone().map(String::from),
+            binding_variables: environment
+                .bindingVariables
+                .as_deref()
+                .into_iter()
+                .flatten()
+                .map(|(key, value)| (key.clone().into(), value.clone().into()))
+                .collect(),
         };
 
         let msg = ScriptToDevtoolsControlMsg::CreateEnvironmentActor(
