@@ -23,8 +23,8 @@ from collections.abc import Iterator, Callable
 import types
 
 import colorama
-import toml
 import wpt.manifestupdate
+import tomllib
 
 from .licenseck import APACHE, COPYRIGHT, MPL, OLD_MPL, licenses_toml
 from .linting_report import GitHubAnnotationManager
@@ -38,6 +38,7 @@ URL_REGEX = re.compile(rb"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+")
 UTF8_URL_REGEX = re.compile(r"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+")
 CARGO_LOCK_FILE = os.path.join(TOPDIR, "Cargo.lock")
 CARGO_DENY_CONFIG_FILE = os.path.join(TOPDIR, "deny.toml")
+ROOT_CARGO_TOML = os.path.join(TOPDIR, "Cargo.toml")
 
 ERROR_RAW_URL_IN_RUSTDOC = "Found raw link in rustdoc. Please escape it with angle brackets or use a markdown link."
 
@@ -535,7 +536,8 @@ def check_toml(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
     if not file_name.endswith("Cargo.toml"):
         return
     ok_licensed = False
-    for idx, line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
+    decoded_lines = [line.decode("utf-8") for line in lines]
+    for idx, line in enumerate(decoded_lines):
         if idx == 0 and "[workspace]" in line:
             return
         line_without_comment, _, _ = line.partition("#")
@@ -547,6 +549,62 @@ def check_toml(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
             ok_licensed = True
     if not ok_licensed:
         yield (0, ".toml file should contain a valid license.")
+
+    normalized_file_name = os.path.abspath(file_name)
+    if normalized_file_name != ROOT_CARGO_TOML:
+        try:
+            cargo_toml = tomllib.loads("".join(decoded_lines))
+        except tomllib.TOMLDecodeError as e:
+            print(f"Error parsing {file_name}: `{e}` - Invalid toml?")
+            raise
+        for dependency_name in path_dependency_names(cargo_toml):
+            yield (
+                line_number_of_dependency(dependency_name, decoded_lines),
+                "path dependencies must be declared in the root Cargo.toml and referenced with workspace = true",
+            )
+
+
+def path_dependency_names(cargo_toml: dict[str, Any]) -> list[str]:
+    """Scan a Cargo.toml dict for any dependencies using `path =`."""
+    path_dependencies = []
+    for dependency_table in dependency_tables(cargo_toml):
+        # dependency_value is everything in `{}` of `dependency_name = { ... }`
+        for dependency_name, dependency_value in dependency_table.items():
+            if "path" in dependency_value:
+                path_dependencies.append(dependency_name)
+    return path_dependencies
+
+
+def dependency_tables(cargo_toml: dict[str, Any]) -> Iterator[dict[str, Any]]:
+    dependency_keys = ("dependencies", "dev-dependencies", "build-dependencies")
+    for dependency_key in dependency_keys:
+        dependency_table = cargo_toml.get(dependency_key)
+        if dependency_table is not None:
+            yield dependency_table
+
+    # Support `[target.<target_triple>.dependencies]`
+    target_tables = cargo_toml.get("target")
+    if target_tables is None:
+        return
+
+    # The second portion can be pretty much any expression, so we just iterate over all
+    for target_table in target_tables.values():
+        for dependency_key in dependency_keys:
+            dependency_table = target_table.get(dependency_key)
+            if dependency_table is not None:
+                yield dependency_table
+
+
+def line_number_of_dependency(dependency_name: str, lines: list[str]) -> int:
+    # This is a best effort approach to find the offending line, since tomllib doesn't seem to
+    # preserve that information. We would miss `[dependencies.foo]` style declarations, but those
+    # are rare enough that I don't want to spend more time on writing a better regex.
+    dependency_pattern = re.compile(f"^\\s*{dependency_name}\\s*=")
+    for idx, line in enumerate(lines, start=1):
+        if dependency_pattern.search(line):
+            # We selected `start=1` so `idx` already starts at 1 as expected for line numbers.
+            return idx
+    return 0
 
 
 def check_shell(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
@@ -801,7 +859,7 @@ def check_config_file(config_file: LiteralString, print_text: bool = True) -> It
     if print_text:
         print(f"\r ➤  Checking config file ({config_file})...")
 
-    config_content = toml.loads(conf_file)
+    config_content = tomllib.loads(conf_file)
     exclude = config_content.get("ignore", {})
 
     # Check for invalid listed ignored directories
