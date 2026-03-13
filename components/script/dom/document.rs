@@ -1882,15 +1882,48 @@ impl Document {
         self.render_blocking_element_count.get()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#block-rendering>
     pub(crate) fn increment_render_blocking_element_count(&self) {
+        // Step 1. Let document be el's node document.
+        //
+        // That's self
+
+        // Step 2. If document allows adding render-blocking elements,
+        // then append el to document's render-blocking element set.
+        assert!(self.allows_adding_render_blocking_elements());
         let count_cell = &self.render_blocking_element_count;
         count_cell.set(count_cell.get() + 1);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#unblock-rendering>
     pub(crate) fn decrement_render_blocking_element_count(&self) {
+        // Step 1. Let document be el's node document.
+        //
+        // That's self
+
+        // Step 2. Remove el from document's render-blocking element set.
         let count_cell = &self.render_blocking_element_count;
         assert!(count_cell.get() > 0);
         count_cell.set(count_cell.get() - 1);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#allows-adding-render-blocking-elements>
+    pub(crate) fn allows_adding_render_blocking_elements(&self) -> bool {
+        // > A Document document allows adding render-blocking elements
+        // > if document's content type is "text/html" and the body element of document is null.
+        self.is_html_document && self.GetBody().is_none()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#render-blocked>
+    pub(crate) fn is_render_blocked(&self) -> bool {
+        // > A Document document is render-blocked if both of the following are true:
+        // > document's render-blocking element set is non-empty,
+        // > or document allows adding render-blocking elements.
+        self.render_blocking_element_count() > 0
+        // TODO: add `allows_adding_render_blocking_elements` which currently breaks for empty iframes
+        // > The current high resolution time given document's relevant global object
+        // has not exceeded an implementation-defined timeout value.
+        // TODO
     }
 
     pub(crate) fn invalidate_stylesheets(&self) {
@@ -3168,9 +3201,7 @@ impl Document {
     //
     // Returns the set of reflow phases run as a [`ReflowPhasesRun`].
     pub(crate) fn update_the_rendering(&self) -> (ReflowPhasesRun, ReflowStatistics) {
-        if self.render_blocking_element_count() > 0 {
-            return Default::default();
-        }
+        assert!(!self.is_render_blocked());
 
         let mut phases = ReflowPhasesRun::empty();
         if self.has_pending_animated_image_update.get() {
@@ -5858,6 +5889,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-body>
     fn GetBody(&self) -> Option<DomRoot<HTMLElement>> {
+        // > The body element of a document is the first of the html element's children
+        // > that is either a body element or a frameset element, or null if there is no such element.
         self.get_html_element().and_then(|root| {
             let node = root.upcast::<Node>();
             node.children()
@@ -5877,7 +5910,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-body>
     fn SetBody(&self, new_body: Option<&HTMLElement>, can_gc: CanGc) -> ErrorResult {
-        // Step 1.
+        // Step 1. If the new value is not a body or frameset element, then throw a "HierarchyRequestError" DOMException.
         let new_body = match new_body {
             Some(new_body) => new_body,
             None => return Err(Error::HierarchyRequest(None)),
@@ -5892,30 +5925,31 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             _ => return Err(Error::HierarchyRequest(None)),
         }
 
-        // Step 2.
+        // Step 2. Otherwise, if the new value is the same as the body element, return.
         let old_body = self.GetBody();
         if old_body.as_deref() == Some(new_body) {
             return Ok(());
         }
 
         match (self.GetDocumentElement(), &old_body) {
-            // Step 3.
+            // Step 3. Otherwise, if the body element is not null,
+            // then replace the body element with the new value within the body element's parent and return.
             (Some(ref root), Some(child)) => {
                 let root = root.upcast::<Node>();
                 root.ReplaceChild(new_body.upcast(), child.upcast(), can_gc)
-                    .unwrap();
+                    .map(|_| ())
             },
 
-            // Step 4.
-            (None, _) => return Err(Error::HierarchyRequest(None)),
+            // Step 4. Otherwise, if there is no document element, throw a "HierarchyRequestError" DOMException.
+            (None, _) => Err(Error::HierarchyRequest(None)),
 
-            // Step 5.
+            // Step 5. Otherwise, the body element is null, but there's a document element.
+            // Append the new value to the document element.
             (Some(ref root), &None) => {
                 let root = root.upcast::<Node>();
-                root.AppendChild(new_body.upcast(), can_gc).unwrap();
+                root.AppendChild(new_body.upcast(), can_gc).map(|_| ())
             },
         }
-        Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname>

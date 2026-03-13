@@ -2768,7 +2768,8 @@ impl Window {
         // iframe size updates.
         //
         // See <https://github.com/servo/servo/issues/14719>
-        if self.Document().update_the_rendering().0.needs_frame() {
+        let document = self.Document();
+        if !document.is_render_blocked() && document.update_the_rendering().0.needs_frame() {
             self.paint_api()
                 .generate_frame(vec![self.webview_id().into()]);
         }
