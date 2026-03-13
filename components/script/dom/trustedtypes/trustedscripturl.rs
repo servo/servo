@@ -42,23 +42,21 @@ impl TrustedScriptURL {
         reflect_dom_object_with_cx(Box::new(Self::new_inherited(data)), global, cx)
     }
 
-    pub(crate) fn get_trusted_script_url_compliant_string(
+    pub(crate) fn get_trusted_type_compliant_string(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         value: TrustedScriptURLOrUSVString,
-        containing_class: &str,
-        field: &str,
-        can_gc: CanGc,
+        sink: &str,
     ) -> Fallible<DOMString> {
         match value {
             TrustedScriptURLOrUSVString::USVString(value) => {
-                let sink = format!("{} {}", containing_class, field);
                 TrustedTypePolicyFactory::get_trusted_type_compliant_string(
                     TrustedType::TrustedScriptURL,
                     global,
                     value.as_ref().into(),
-                    &sink,
+                    sink,
                     DEFAULT_SCRIPT_SINK_GROUP,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
             TrustedScriptURLOrUSVString::TrustedScriptURL(trusted_script_url) => {

@@ -666,12 +666,11 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             // Step 3: Append the result of invoking the Get Trusted Type compliant string algorithm
             // with TrustedScriptURL, this's relevant global object, url, "WorkerGlobalScope importScripts",
             // and "script" to urlStrings.
-            let url = TrustedScriptURL::get_trusted_script_url_compliant_string(
+            let url = TrustedScriptURL::get_trusted_type_compliant_string(
+                cx,
                 self.upcast::<GlobalScope>(),
                 url,
-                "WorkerGlobalScope",
-                "importScripts",
-                CanGc::from_cx(cx),
+                "WorkerGlobalScope importScripts",
             )?;
             let url = self.worker_url.borrow().join(&url.str());
             match url {
