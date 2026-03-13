@@ -7494,7 +7494,6 @@ dependencies = [
  "serde",
  "serde_json",
  "servo-config-macro",
- "servo-url",
  "stylo_static_prefs",
 ]
 
