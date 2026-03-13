@@ -202,7 +202,7 @@ impl Actor for WalkerActor {
                     .ok_or(ActorError::Internal)?;
                 let node = doc_elem_info.encode(
                     registry,
-                    browsing_context.script_chan().clone(),
+                    browsing_context.script_chan(),
                     browsing_context.pipeline_id(),
                     self.name(),
                 );
