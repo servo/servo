@@ -219,77 +219,81 @@ x25519-dalek = { version = "2.0.1", features = ["static_secrets"] }
 xi-unicode = "0.3.0"
 xml5ever = "0.38"
 
+## Independently versioned local crates. These crates will not take part in auto-bumps.
+hyper_serde = { package = "servo-hyper-serde", version = "0.13.2", path = "components/hyper_serde" }
+# Todo: blurmac is the odd-one out here - How will we version it in the future?
+blurmac = { version = "0.1.0", path = "third_party/blurmac" }
+
+
 ############################################################################################
 ## Workspace-local dependencies
 ############################################################################################
 
-background_hang_monitor = { package = "servo-background-hang-monitor", path = "components/background_hang_monitor" }
-background_hang_monitor_api = { package = "servo-background-hang-monitor-api", path = "components/shared/background_hang_monitor" }
-base = { package = "servo-base", path = "components/shared/base" }
-bluetooth = { package = "servo-bluetooth", path = "components/bluetooth" }
-bluetooth_traits = { package = "servo-bluetooth-traits", path = "components/shared/bluetooth" }
-blurmac = { path = "third_party/blurmac" }
-canvas = { package = "servo-canvas", path = "components/canvas" }
-canvas_traits = { package = "servo-canvas-traits", path = "components/shared/canvas" }
-constellation = { package = "servo-constellation", path = "components/constellation" }
-constellation_traits = { package = "servo-constellation-traits", path = "components/shared/constellation" }
-deny_public_fields = { package = "servo-deny-public-fields", path = "components/deny_public_fields" }
-devtools = { package = "servo-devtools", path = "components/devtools" }
-devtools_traits = { package = "servo-devtools-traits", path = "components/shared/devtools" }
-dom_struct = { package = "servo-dom-struct", path = "components/dom_struct" }
-embedder_traits = { package = "servo-embedder-traits", path = "components/shared/embedder" }
-fonts = { package = "servo-fonts", path = "components/fonts" }
-fonts_traits = { package = "servo-fonts-traits", path = "components/shared/fonts" }
-hyper_serde = { package = "servo-hyper-serde", path = "components/hyper_serde" }
-jstraceable_derive = { package = "servo-jstraceable-derive", path = "components/jstraceable_derive" }
-layout = { package = "servo-layout", path = "components/layout" }
-layout_api = { package = "servo-layout-api", path = "components/shared/layout" }
-malloc_size_of = { package = "servo-malloc-size-of", path = "components/malloc_size_of" }
-media = { package = "servo-media-thread", path = "components/media/media-thread" }
-metrics = { package = "servo-metrics", path = "components/metrics" }
-net = { package = "servo-net", path = "components/net" }
-net_traits = { package = "servo-net-traits", path = "components/shared/net" }
-paint = { package = "servo-paint", path = "components/paint" }
-paint_api = { package = "servo-paint-api", path = "components/shared/paint" }
-pixels = { package = "servo-pixels", path = "components/pixels" }
-profile = { package = "servo-profile", path = "components/profile" }
-profile_traits = { package = "servo-profile-traits", path = "components/shared/profile" }
-script = { package = "servo-script", path = "components/script" }
-script_bindings = { package = "servo-script-bindings", path = "components/script_bindings" }
-script_traits = { package = "servo-script-traits", path = "components/shared/script" }
-servo = { path = "components/servo", default-features = false }
-servo-media = { path = "components/media/servo-media" }
-servo-media-audio = { path = "components/media/audio" }
-servo-media-auto = { path = "components/media/backends/auto" }
-servo-media-derive = { path = "components/media/servo-media-derive" }
-servo-media-dummy = { path = "components/media/backends/dummy" }
-servo-media-gstreamer = { path = "components/media/backends/gstreamer" }
-servo-media-gstreamer-render = { path = "components/media/backends/gstreamer/render" }
-servo-media-gstreamer-render-android = { path = "components/media/backends/gstreamer/render-android" }
-servo-media-gstreamer-render-unix = { path = "components/media/backends/gstreamer/render-unix" }
-servo-media-player = { path = "components/media/player" }
-servo-media-streams = { path = "components/media/streams" }
-servo-media-traits = { path = "components/media/traits" }
-servo-media-webrtc = { path = "components/media/webrtc" }
-servo-tracing = { path = "components/servo_tracing" }
-servo-url = { path = "components/url" }
-servo_allocator = { package = "servo-allocator", path = "components/allocator" }
-servo_config = { package = "servo-config", path = "components/config" }
-servo_config_macro = { package = "servo-config-macro", path = "components/config/macro" }
-servo_geometry = { package = "servo-geometry", path = "components/geometry" }
-servo_url = { package = "servo-url", path = "components/url" }
-sm-gst-render = { package = "servo-media-gstreamer-render", path = "components/media/backends/gstreamer/render" }
-sm-player = { package = "servo-media-player", path = "components/media/player" }
-storage = { package = "servo-storage", path = "components/storage" }
-storage_traits = { package = "servo-storage-traits", path = "components/shared/storage" }
-timers = { package = "servo-timers", path = "components/timers" }
-webdriver_server = { package = "servo-webdriver-server", path = "components/webdriver_server" }
-webgl = { package = "servo-webgl", path = "components/webgl", default-features = false }
-webgpu = { package = "servo-webgpu", path = "components/webgpu" }
-webgpu_traits = { package = "servo-webgpu-traits", path = "components/shared/webgpu" }
-webxr = { package = "servo-webxr", path = "components/webxr" }
-webxr-api = { package = "servo-webxr-api", path = "components/shared/webxr" }
-xpath = { package = "servo-xpath", path = "components/xpath" }
+background_hang_monitor = { package = "servo-background-hang-monitor", version = "0.0.1", path = "components/background_hang_monitor" }
+background_hang_monitor_api = { package = "servo-background-hang-monitor-api", version = "0.0.1", path = "components/shared/background_hang_monitor" }
+base = { package = "servo-base", version = "0.0.1", path = "components/shared/base" }
+bluetooth = { package = "servo-bluetooth", version = "0.0.1", path = "components/bluetooth" }
+bluetooth_traits = { package = "servo-bluetooth-traits", version = "0.0.1", path = "components/shared/bluetooth" }
+canvas = { package = "servo-canvas", version = "0.0.1", path = "components/canvas" }
+canvas_traits = { package = "servo-canvas-traits", version = "0.0.1", path = "components/shared/canvas" }
+constellation = { package = "servo-constellation", version = "0.0.1", path = "components/constellation" }
+constellation_traits = { package = "servo-constellation-traits", version = "0.0.1", path = "components/shared/constellation" }
+deny_public_fields = { package = "servo-deny-public-fields", version = "0.0.1", path = "components/deny_public_fields" }
+devtools = { package = "servo-devtools", version = "0.0.1", path = "components/devtools" }
+devtools_traits = { package = "servo-devtools-traits", version = "0.0.1", path = "components/shared/devtools" }
+dom_struct = { package = "servo-dom-struct", version = "0.0.1", path = "components/dom_struct" }
+embedder_traits = { package = "servo-embedder-traits", version = "0.0.1", path = "components/shared/embedder" }
+fonts = { package = "servo-fonts", version = "0.0.1", path = "components/fonts" }
+fonts_traits = { package = "servo-fonts-traits", version = "0.0.1", path = "components/shared/fonts" }
+jstraceable_derive = { package = "servo-jstraceable-derive", version = "0.0.1", path = "components/jstraceable_derive" }
+layout = { package = "servo-layout", version = "0.0.1", path = "components/layout" }
+layout_api = { package = "servo-layout-api", version = "0.0.1", path = "components/shared/layout" }
+malloc_size_of = { package = "servo-malloc-size-of", version = "0.0.1", path = "components/malloc_size_of" }
+media = { package = "servo-media-thread", version = "0.0.1", path = "components/media/media-thread" }
+metrics = { package = "servo-metrics", version = "0.0.1", path = "components/metrics" }
+net = { package = "servo-net", version = "0.0.1", path = "components/net" }
+net_traits = { package = "servo-net-traits", version = "0.0.1", path = "components/shared/net" }
+paint = { package = "servo-paint", version = "0.0.1", path = "components/paint" }
+paint_api = { package = "servo-paint-api", version = "0.0.1", path = "components/shared/paint" }
+pixels = { package = "servo-pixels", version = "0.0.1", path = "components/pixels" }
+profile = { package = "servo-profile", version = "0.0.1", path = "components/profile" }
+profile_traits = { package = "servo-profile-traits", version = "0.0.1", path = "components/shared/profile" }
+script = { package = "servo-script", version = "0.0.1", path = "components/script" }
+script_bindings = { package = "servo-script-bindings", version = "0.0.1", path = "components/script_bindings" }
+script_traits = { package = "servo-script-traits", version = "0.0.1", path = "components/shared/script" }
+servo = { version = "0.0.1", path = "components/servo", default-features = false }
+servo-media = { version = "0.0.1", path = "components/media/servo-media" }
+servo-media-audio = { version = "0.0.1", path = "components/media/audio" }
+servo-media-auto = { version = "0.0.1", path = "components/media/backends/auto" }
+servo-media-derive = { version = "0.0.1", path = "components/media/servo-media-derive" }
+servo-media-dummy = { version = "0.0.1", path = "components/media/backends/dummy" }
+servo-media-gstreamer = { version = "0.0.1", path = "components/media/backends/gstreamer" }
+servo-media-gstreamer-render = { version = "0.0.1", path = "components/media/backends/gstreamer/render" }
+servo-media-gstreamer-render-android = { version = "0.0.1", path = "components/media/backends/gstreamer/render-android" }
+servo-media-gstreamer-render-unix = { version = "0.0.1", path = "components/media/backends/gstreamer/render-unix" }
+servo-media-player = { version = "0.0.1", path = "components/media/player" }
+servo-media-streams = { version = "0.0.1", path = "components/media/streams" }
+servo-media-traits = { version = "0.0.1", path = "components/media/traits" }
+servo-media-webrtc = { version = "0.0.1", path = "components/media/webrtc" }
+servo-tracing = { version = "0.0.1", path = "components/servo_tracing" }
+servo-url = { version = "0.0.1", path = "components/url" }
+servo_allocator = { package = "servo-allocator", version = "0.0.1", path = "components/allocator" }
+servo_config = { package = "servo-config", version = "0.0.1", path = "components/config" }
+servo_config_macro = { package = "servo-config-macro", version = "0.0.1", path = "components/config/macro" }
+servo_geometry = { package = "servo-geometry", version = "0.0.1", path = "components/geometry" }
+servo_url = { package = "servo-url", version = "0.0.1", path = "components/url" }
+sm-gst-render = { package = "servo-media-gstreamer-render", version = "0.0.1", path = "components/media/backends/gstreamer/render" }
+sm-player = { package = "servo-media-player", version = "0.0.1", path = "components/media/player" }
+storage = { package = "servo-storage", version = "0.0.1", path = "components/storage" }
+storage_traits = { package = "servo-storage-traits", version = "0.0.1", path = "components/shared/storage" }
+timers = { package = "servo-timers", version = "0.0.1", path = "components/timers" }
+webdriver_server = { package = "servo-webdriver-server", version = "0.0.1", path = "components/webdriver_server" }
+webgl = { package = "servo-webgl", version = "0.0.1", path = "components/webgl", default-features = false }
+webgpu = { package = "servo-webgpu", version = "0.0.1", path = "components/webgpu" }
+webgpu_traits = { package = "servo-webgpu-traits", version = "0.0.1", path = "components/shared/webgpu" }
+webxr = { package = "servo-webxr", version = "0.0.1", path = "components/webxr" }
+webxr-api = { package = "servo-webxr-api", version = "0.0.1", path = "components/shared/webxr" }
+xpath = { package = "servo-xpath", version = "0.0.1", path = "components/xpath" }
 
 # RSA key generation could be very slow without compilation
 # optimizations, in development mode. Without optimizations, WPT might
