@@ -203,6 +203,7 @@ impl HTMLTextAreaElement {
 
     #[expect(unsafe_code)]
     fn handle_text_content_changed(&self, _can_gc: CanGc) {
+        // TODO https://github.com/servo/servo/issues/43255
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let cx = &mut cx;
 

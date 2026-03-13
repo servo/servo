@@ -333,6 +333,7 @@ enum InputElementShadowTree {
 impl InputElementShadowTree {
     #[expect(unsafe_code)]
     fn new(input_element: &HTMLInputElement, _can_gc: CanGc) -> Self {
+        // TODO https://github.com/servo/servo/issues/43253
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let cx = &mut cx;
 
