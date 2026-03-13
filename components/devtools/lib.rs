@@ -435,20 +435,17 @@ impl DevtoolsInstance {
         let actor = actors.find::<BrowsingContextActor>(actor_name);
         let mut id_map = self.id_map.lock().expect("Mutex poisoned");
         let mut connections = self.connections.lock().unwrap();
-        match &state {
-            NavigationState::Start(url) => {
-                let watcher_actor = actors.find::<WatcherActor>(&actor.watcher);
-                watcher_actor.emit_will_navigate(
-                    browsing_context_id,
-                    url.clone(),
-                    &mut connections.values_mut(),
-                    &mut id_map,
-                );
-            },
-            NavigationState::Stop(_, _) => {
-                actor.handle_navigate(state, &mut id_map, connections.values_mut());
-            },
+        if let NavigationState::Start(url) = &state {
+            let watcher_actor = actors.find::<WatcherActor>(&actor.watcher);
+            watcher_actor.emit_will_navigate(
+                browsing_context_id,
+                url.clone(),
+                &mut connections.values_mut(),
+                &mut id_map,
+            );
         }
+
+        actor.handle_navigate(state, &mut id_map, connections.values_mut());
     }
 
     // We need separate actor representations for each script global that exists;
