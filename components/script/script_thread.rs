@@ -346,9 +346,6 @@ pub struct ScriptThread {
     /// Periodically print out on which events script threads spend their processing time.
     profile_script_events: bool,
 
-    /// Print Progressive Web Metrics to console.
-    print_pwm: bool,
-
     /// Unminify Javascript.
     unminify_js: bool,
 
@@ -1025,7 +1022,6 @@ impl ScriptThread {
                     custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
                     paint_api: state.cross_process_paint_api,
                     profile_script_events: opts.debug.profile_script_events,
-                    print_pwm: opts.print_pwm,
                     unminify_js: opts.unminify_js,
                     local_script_source: opts.local_script_source.clone(),
                     unminify_css: opts.unminify_css,
@@ -1719,10 +1715,9 @@ impl ScriptThread {
         for (doc_id, doc) in self.documents.borrow().iter() {
             if let Some(pipeline_id) = pipeline_id {
                 if pipeline_id == doc_id && task_duration.as_nanos() > MAX_TASK_NS {
-                    if self.print_pwm {
+                    if opts::get().debug.progressive_web_metrics {
                         println!(
-                            "Task took longer than max allowed ({:?}) {:?}",
-                            category,
+                            "Task took longer than max allowed ({category:?}) {:?}",
                             task_duration.as_nanos()
                         );
                     }

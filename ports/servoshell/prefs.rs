@@ -489,10 +489,6 @@ struct CmdArgs {
     #[bpaf(long, argument("/path/to/prefs.json"), many)]
     prefs_file: Vec<PathBuf>,
 
-    /// Print Progressive Web Metrics.
-    #[bpaf(long)]
-    print_pwm: bool,
-
     ///
     ///  Probability of randomly closing a pipeline (for testing constellation hardening).
     #[bpaf(argument("0.25"))]
@@ -734,7 +730,6 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
             .local_script_source
             .map(|p| p.to_string_lossy().into_owned()),
         unminify_css: cmd_args.unminify_css,
-        print_pwm: cmd_args.print_pwm,
         force_ipc: cmd_args.force_ipc,
     };
 

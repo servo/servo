@@ -77,9 +77,6 @@ pub struct Opts {
 
     /// Unminify Css.
     pub unminify_css: bool,
-
-    /// Print Progressive Web Metrics to console.
-    pub print_pwm: bool,
 }
 
 /// Debug options for Servo, currently set on the command line with -Z
@@ -121,6 +118,9 @@ pub struct DiagnosticsLogging {
 
     /// Log garbage collection passes and their durations.
     pub gc_profile: bool,
+
+    /// Log Progressive Web Metrics.
+    pub progressive_web_metrics: bool,
 }
 
 impl DiagnosticsLogging {
@@ -168,6 +168,7 @@ impl DiagnosticsLogging {
         print_option("relayout-event", "Log when relayout occurs");
         print_option("profile-script-events", "Log script event processing time");
         print_option("gc-profile", "Log garbage collection statistics");
+        print_option("progressive-web-metrics", "Log Progressive Web Metrics");
         println!();
 
         process::exit(0);
@@ -191,6 +192,7 @@ impl DiagnosticsLogging {
                 "gc-profile" => self.gc_profile = true,
                 "profile-script-events" => self.profile_script_events = true,
                 "relayout-event" => self.relayout_event = true,
+                "progressive-web-metrics" => self.progressive_web_metrics = true,
                 "" => {},
                 _ => return Err(format!("Unknown diagnostic option: {option}")),
             };
@@ -227,7 +229,6 @@ impl Default for Opts {
             unminify_js: false,
             local_script_source: None,
             unminify_css: false,
-            print_pwm: false,
         }
     }
 }
