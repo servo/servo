@@ -620,7 +620,6 @@ impl VirtualMethods for HTMLTextAreaElement {
                         }
                     },
                 }
-                el.update_sequentially_focusable_status(CanGc::note());
             },
             local_name!("maxlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {
@@ -727,13 +726,13 @@ impl VirtualMethods for HTMLTextAreaElement {
     // and dirty value flag from the node being cloned to the copy.
     fn cloning_steps(
         &self,
+        cx: &mut JSContext,
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
-        can_gc: CanGc,
     ) {
         if let Some(s) = self.super_type() {
-            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
+            s.cloning_steps(cx, copy, maybe_doc, clone_children);
         }
         let el = copy.downcast::<HTMLTextAreaElement>().unwrap();
         el.value_dirty.set(self.value_dirty.get());
@@ -741,8 +740,8 @@ impl VirtualMethods for HTMLTextAreaElement {
             let mut textinput = el.textinput.borrow_mut();
             textinput.set_content(self.textinput.borrow().get_content());
         }
-        el.validity_state(can_gc)
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        el.validity_state(CanGc::from_cx(cx))
+            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
     }
 
     fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {

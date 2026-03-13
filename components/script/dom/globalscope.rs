@@ -90,6 +90,8 @@ use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
+#[cfg(feature = "js_backtrace")]
+use crate::dom::bindings::error::LAST_EXCEPTION_BACKTRACE;
 use crate::dom::bindings::error::{
     Error, ErrorInfo, Fallible, report_pending_exception, take_and_report_pending_exception_for_api,
 };
@@ -114,7 +116,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::global_scope_script_execution::{compile_script, evaluate_script};
+use crate::dom::global_scope_script_execution::{ErrorReporting, compile_script, evaluate_script};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -127,7 +129,7 @@ use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestream::CrossRealmTransformWritable;
-use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
+use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::{AbortSignal, CookieStore, DebuggerGlobalScope, MessageEvent};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
@@ -140,7 +142,7 @@ use crate::fetch::{DeferredFetchRecordId, FetchGroup, QueuedDeferredFetchRecord}
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm, enter_realm};
 use crate::script_module::{
     ImportMap, ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
 };
@@ -424,7 +426,8 @@ struct BroadcastListener {
     context: Trusted<GlobalScope>,
 }
 
-type FileListenerCallback = Box<dyn Fn(Rc<Promise>, Fallible<Vec<u8>>) + Send>;
+type FileListenerCallback =
+    Box<dyn Fn(&mut js::context::JSContext, Rc<Promise>, Fallible<Vec<u8>>) + Send>;
 
 /// A wrapper for the handling of file data received by the ipc router
 struct FileListener {
@@ -688,19 +691,17 @@ impl FileListener {
             Ok(ReadFileProgress::EOF) => match self.state.take() {
                 Some(FileListenerState::Receiving(bytes, target)) => match target {
                     FileListenerTarget::Promise(trusted_promise, callback) => {
-                        let task = task!(resolve_promise: move || {
+                        let task = task!(resolve_promise: move |cx| {
                             let promise = trusted_promise.root();
-                            let _ac = enter_realm(&*promise.global());
-                            callback(promise, Ok(bytes));
+                            let mut realm = enter_auto_realm(cx, &*promise.global());
+                            callback(&mut realm, promise, Ok(bytes));
                         });
 
                         self.task_source.queue(task);
                     },
                     FileListenerTarget::Stream(trusted_stream) => {
-                        let trusted = trusted_stream.clone();
-
                         let task = task!(enqueue_stream_chunk: move || {
-                            let stream = trusted.root();
+                            let stream = trusted_stream.root();
                             stream_handle_eof(&stream, CanGc::note());
                         });
 
@@ -718,10 +719,10 @@ impl FileListener {
 
                     match target {
                         FileListenerTarget::Promise(trusted_promise, callback) => {
-                            self.task_source.queue(task!(reject_promise: move || {
+                            self.task_source.queue(task!(reject_promise: move |cx| {
                                 let promise = trusted_promise.root();
-                                let _ac = enter_realm(&*promise.global());
-                                callback(promise, error);
+                                let mut realm = enter_auto_realm(cx, &*promise.global());
+                                callback(&mut realm, promise, error);
                             }));
                         },
                         FileListenerTarget::Stream(trusted_stream) => {
@@ -1315,9 +1316,7 @@ impl GlobalScope {
             }
 
             // - Check for a case-sensitive match for the name of the channel.
-            let channel_name = DOMString::from_string(channel_name);
-
-            if let Some(channels) = channels.get(&channel_name) {
+            if let Some(channels) = channels.get(&channel_name.into()) {
                 channels
                     .iter()
                     .filter(|channel| {
@@ -1980,7 +1979,7 @@ impl GlobalScope {
     fn get_blob_bytes_non_sliced_or_file_id(&self, blob_id: &BlobId) -> BlobResult {
         match *self.get_blob_data(blob_id) {
             BlobData::File(ref f) => match f.get_cache() {
-                Some(bytes) => BlobResult::Bytes(bytes.clone()),
+                Some(bytes) => BlobResult::Bytes(bytes),
                 None => BlobResult::File(f.get_id(), f.get_size() as usize),
             },
             BlobData::Memory(ref s) => BlobResult::Bytes(s.clone()),
@@ -2186,7 +2185,7 @@ impl GlobalScope {
 
         let recv = self.send_msg(file_id);
 
-        let trusted_stream = Trusted::new(&*stream.clone());
+        let trusted_stream = Trusted::new(&*stream);
         let mut file_listener = FileListener {
             state: Some(FileListenerState::Empty(FileListenerTarget::Stream(
                 trusted_stream,
@@ -2735,6 +2734,21 @@ impl GlobalScope {
 
     /// Steps 6-7 of <https://html.spec.whatwg.org/multipage/#report-an-exception>
     pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
+        error!(
+            "Error at {}:{}:{} {}",
+            error_info.filename, error_info.lineno, error_info.column, error_info.message
+        );
+
+        #[cfg(feature = "js_backtrace")]
+        LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
+            if let Some((js_backtrace, rust_backtrace)) = backtrace.borrow_mut().take() {
+                if let Some(stack) = js_backtrace {
+                    error!("JS backtrace:\n{}", stack);
+                }
+                error!("Rust backtrace:\n{}", rust_backtrace);
+            }
+        });
+
         // Step 6. Early return if global is in error reporting mode,
         if self.in_error_reporting_mode.get() {
             return;
@@ -2849,7 +2863,7 @@ impl GlobalScope {
         code: Cow<'_, str>,
         filename: &str,
         introduction_type: Option<&'static CStr>,
-        rval: MutableHandleValue,
+        rval: Option<MutableHandleValue>,
     ) -> Result<(), JavaScriptEvaluationError> {
         let in_realm_proof = cx.into();
         let in_realm = InRealm::Already(&in_realm_proof);
@@ -2858,6 +2872,8 @@ impl GlobalScope {
             let url = self.api_base_url();
             let fetch_options = ScriptFetchOptions::default_classic_script(self);
 
+            let no_script_rval = rval.is_none();
+
             rooted!(&in(cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
             compiled_script.set(compile_script(
                 cx.into(),
@@ -2865,15 +2881,20 @@ impl GlobalScope {
                 filename,
                 1,
                 introduction_type,
+                ErrorReporting::Unmuted,
+                no_script_rval,
             ));
 
             if compiled_script.is_null() {
                 debug!("error compiling Dom string");
-                report_pending_exception(cx.into(), true, in_realm, CanGc::from_cx(cx));
+                report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
                 return Err(JavaScriptEvaluationError::CompilationFailure);
             }
 
             let script = NonNull::new(*compiled_script).expect("Can't be null");
+
+            rooted!(&in(cx) let mut value = UndefinedValue());
+            let rval = rval.unwrap_or_else(|| value.handle_mut());
 
             if !evaluate_script(cx.into(), script, url, fetch_options, rval) {
                 let error_info = take_and_report_pending_exception_for_api(cx);
@@ -3347,7 +3368,7 @@ impl GlobalScope {
     ) {
         self.notification_permission_request_callback_map
             .borrow_mut()
-            .insert(callback_id, callback.clone());
+            .insert(callback_id, callback);
     }
 
     pub(crate) fn remove_notification_permission_request_callback(

@@ -416,6 +416,8 @@ iframe:fullscreen {
 /* https://drafts.csswg.org/css-lists-3/#ua-stylesheet */
 *::marker {
   text-align: end;
+  text-align-last: end;
+  text-indent: 0;
   text-transform: none;
   unicode-bidi: isolate;
   font-variant-numeric: tabular-nums;

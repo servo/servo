@@ -130,7 +130,7 @@ impl GPUBindGroup {
 
         GPUBindGroup::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             bind_group,
             device.id(),
             &descriptor.layout,

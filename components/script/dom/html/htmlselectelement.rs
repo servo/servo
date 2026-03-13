@@ -39,7 +39,7 @@ use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::html::htmlcollection::CollectionFilter;
+use crate::dom::html::htmlcollection::{CollectionFilter, CollectionSource, HTMLCollection};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, FormDatum, FormDatumValue, HTMLFormElement};
@@ -61,13 +61,22 @@ const SELECT_BOX_STYLE: &str = "
     display: flex;
     align-items: center;
     height: 100%;
+    gap: 4px;
 ";
 
 const TEXT_CONTAINER_STYLE: &str = "flex: 1;";
 
 const CHEVRON_CONTAINER_STYLE: &str = "
-    font-size: 16px;
-    margin: 4px;
+    background-image: url('data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"180\" height=\"180\" viewBox=\"0 0 180 180\"> <path d=\"M10 50h160L90 130z\" style=\"fill:currentcolor\"/> </svg>');
+    background-size: 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+
+    vertical-align: middle;
+    line-height: 1;
+    display: inline-block;
+    width: 0.75em;
+    height: 0.75em;
 ";
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -90,10 +99,29 @@ impl CollectionFilter for OptionsFilter {
     }
 }
 
+/// Provides selected options directly via [`HTMLSelectElement::list_of_options`],
+/// avoiding a full subtree traversal.
+#[derive(JSTraceable, MallocSizeOf)]
+struct SelectedOptionsSource;
+impl CollectionSource for SelectedOptionsSource {
+    fn iter<'a>(&'a self, root: &'a Node) -> Box<dyn Iterator<Item = DomRoot<Element>> + 'a> {
+        let select = root
+            .downcast::<HTMLSelectElement>()
+            .expect("SelectedOptionsSource must be rooted on an HTMLSelectElement");
+        Box::new(
+            select
+                .list_of_options()
+                .filter(|option| option.Selected())
+                .map(DomRoot::upcast::<Element>),
+        )
+    }
+}
+
 #[dom_struct]
 pub(crate) struct HTMLSelectElement {
     htmlelement: HTMLElement,
     options: MutNullableDom<HTMLOptionsCollection>,
+    selected_options: MutNullableDom<HTMLCollection>,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
@@ -121,6 +149,7 @@ impl HTMLSelectElement {
                 document,
             ),
             options: Default::default(),
+            selected_options: Default::default(),
             form_owner: Default::default(),
             labels_node_list: Default::default(),
             validity_state: Default::default(),
@@ -308,9 +337,6 @@ impl HTMLSelectElement {
             CHEVRON_CONTAINER_STYLE.into(),
             can_gc,
         );
-        chevron_container
-            .upcast::<Node>()
-            .set_text_content_for_element(Some("▾".into()), can_gc);
         select_box
             .upcast::<Node>()
             .AppendChild(chevron_container.upcast::<Node>(), can_gc)
@@ -534,14 +560,27 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
         })
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-select-selectedoptions>
+    fn SelectedOptions(&self) -> DomRoot<HTMLCollection> {
+        self.selected_options.or_init(|| {
+            let window = self.owner_window();
+            HTMLCollection::new_with_source(
+                &window,
+                self.upcast(),
+                Box::new(SelectedOptionsSource),
+                CanGc::note(),
+            )
+        })
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-select-length>
     fn Length(&self) -> u32 {
         self.Options().Length()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-length>
-    fn SetLength(&self, length: u32, can_gc: CanGc) {
-        self.Options().SetLength(length, can_gc)
+    fn SetLength(&self, cx: &mut JSContext, length: u32) {
+        self.Options().SetLength(cx, length)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-item>
@@ -557,11 +596,11 @@ impl HTMLSelectElementMethods<crate::DomTypeHolder> for HTMLSelectElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-select-setter>
     fn IndexedSetter(
         &self,
+        cx: &mut JSContext,
         index: u32,
         value: Option<&HTMLOptionElement>,
-        can_gc: CanGc,
     ) -> ErrorResult {
-        self.Options().IndexedSetter(index, value, can_gc)
+        self.Options().IndexedSetter(cx, index, value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-select-nameditem>

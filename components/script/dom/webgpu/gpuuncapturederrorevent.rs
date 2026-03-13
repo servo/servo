@@ -35,32 +35,30 @@ impl GPUUncapturedErrorEvent {
 
     pub(crate) fn new(
         global: &GlobalScope,
-        type_: DOMString,
+        event_type: Atom,
         init: &GPUUncapturedErrorEventInit,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
-        Self::new_with_proto(global, None, type_, init, can_gc)
+        Self::new_with_proto(global, None, event_type, init, can_gc)
     }
 
     fn new_with_proto(
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        event_type: Atom,
         init: &GPUUncapturedErrorEventInit,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
-        let ev = reflect_dom_object_with_proto(
+        let event = reflect_dom_object_with_proto(
             Box::new(GPUUncapturedErrorEvent::new_inherited(init)),
             global,
             proto,
             can_gc,
         );
-        ev.event.init_event(
-            Atom::from(type_),
-            init.parent.bubbles,
-            init.parent.cancelable,
-        );
-        ev
+        event
+            .event
+            .init_event(event_type, init.parent.bubbles, init.parent.cancelable);
+        event
     }
 }
 
@@ -70,10 +68,10 @@ impl GPUUncapturedErrorEventMethods<crate::DomTypeHolder> for GPUUncapturedError
         global: &GlobalScope,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        type_: DOMString,
+        event_type: DOMString,
         init: &GPUUncapturedErrorEventInit,
     ) -> DomRoot<Self> {
-        GPUUncapturedErrorEvent::new_with_proto(global, proto, type_, init, can_gc)
+        GPUUncapturedErrorEvent::new_with_proto(global, proto, event_type.into(), init, can_gc)
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuuncapturederrorevent-error>

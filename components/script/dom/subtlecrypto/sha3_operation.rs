@@ -5,7 +5,7 @@
 use sha3::{Digest, Sha3_256, Sha3_384, Sha3_512};
 
 use crate::dom::bindings::error::Error;
-use crate::dom::subtlecrypto::{ALG_SHA3_256, ALG_SHA3_384, ALG_SHA3_512, SubtleAlgorithm};
+use crate::dom::subtlecrypto::{CryptoAlgorithm, SubtleAlgorithm};
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#sha3-operations-digest>
 pub(crate) fn digest(
@@ -23,10 +23,10 @@ pub(crate) fn digest(
     //     Let result be the result of performing the SHA3-512 hash function defined in Section 6.1
     //     of [FIPS-202] using message as the input message, M.
     // Step 2. If performing the operation results in an error, then throw an OperationError.
-    let result = match normalized_algorithm.name.as_str() {
-        ALG_SHA3_256 => Sha3_256::new_with_prefix(message).finalize().to_vec(),
-        ALG_SHA3_384 => Sha3_384::new_with_prefix(message).finalize().to_vec(),
-        ALG_SHA3_512 => Sha3_512::new_with_prefix(message).finalize().to_vec(),
+    let result = match normalized_algorithm.name {
+        CryptoAlgorithm::Sha3_256 => Sha3_256::new_with_prefix(message).finalize().to_vec(),
+        CryptoAlgorithm::Sha3_384 => Sha3_384::new_with_prefix(message).finalize().to_vec(),
+        CryptoAlgorithm::Sha3_512 => Sha3_512::new_with_prefix(message).finalize().to_vec(),
         _ => return Err(Error::NotSupported(None)),
     };
 

@@ -88,7 +88,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::promiserejectionevent::PromiseRejectionEvent;
 use crate::dom::response::Response;
-use crate::dom::trustedscript::TrustedScript;
+use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::microtask::{EnqueuedPromiseCallback, Microtask, MicrotaskQueue};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
@@ -333,7 +333,7 @@ unsafe extern "C" fn push_new_interrupt_queue(interrupt_queues: *mut c_void) -> 
             unsafe { Box::from_raw(interrupt_queues as *mut Vec<Rc<MicrotaskQueue>>) };
         let new_queue = Rc::new(MicrotaskQueue::default());
         result = Rc::as_ptr(&new_queue) as *const c_void;
-        interrupt_queues.push(new_queue.clone());
+        interrupt_queues.push(new_queue);
         std::mem::forget(interrupt_queues);
     });
     result
@@ -418,12 +418,16 @@ unsafe extern "C" fn enqueue_promise_job(
 /// <https://html.spec.whatwg.org/multipage/#the-hostpromiserejectiontracker-implementation>
 unsafe extern "C" fn promise_rejection_tracker(
     cx: *mut RawJSContext,
-    _muted_errors: bool,
+    muted_errors: bool,
     promise: HandleObject,
     state: PromiseRejectionHandlingState,
     _data: *mut c_void,
 ) {
-    // TODO: Step 2 - If script's muted errors is true, terminate these steps.
+    // Step 1. Let script be the running script.
+    // Step 2. If script is a classic script and script's muted errors is true, then return.
+    if muted_errors {
+        return;
+    }
 
     // Step 3.
     let cx = unsafe { JSContext::from_ptr(cx) };
@@ -463,7 +467,7 @@ unsafe extern "C" fn promise_rejection_tracker(
                 let target = Trusted::new(global.upcast::<EventTarget>());
                 let promise =
                     Promise::new_with_js_promise(unsafe { Handle::from_raw(promise) }, cx);
-                let trusted_promise = TrustedPromise::new(promise.clone());
+                let trusted_promise = TrustedPromise::new(promise);
 
                 // Step 5-4.
                 global.task_manager().dom_manipulation_task_source().queue(
@@ -1426,7 +1430,7 @@ unsafe extern "C" fn invoke_script_environment_preparer(
 
     run_a_script::<DomTypeHolder, _>(&global, || {
         if unsafe { !RunScriptEnvironmentPreparerClosure(*cx, closure) } {
-            report_pending_exception(cx, true, InRealm::Entered(&ar), CanGc::note());
+            report_pending_exception(cx, InRealm::Entered(&ar), CanGc::note());
         };
     });
 }

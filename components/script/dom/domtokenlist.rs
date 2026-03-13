@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, ns};
+use html5ever::LocalName;
 use style::str::HTML_SPACE_CHARACTERS;
 use stylo_atoms::Atom;
 
@@ -59,7 +59,7 @@ impl DOMTokenList {
     }
 
     fn attribute(&self) -> Option<DomRoot<Attr>> {
-        self.element.get_attribute(&ns!(), &self.local_name)
+        self.element.get_attribute(&self.local_name)
     }
 
     fn check_token_exceptions(&self, token: &DOMString) -> Fallible<Atom> {

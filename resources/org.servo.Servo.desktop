@@ -17,7 +17,7 @@ Name=Servo
 GenericName=Web Browser
 Comment=Browse the Web
 # TODO: Replace SERVO_SRC_PATH with the path to the Servo sources
-Exec=SERVO_SRC_PATH/target/release/servo %u
+Exec=SERVO_SRC_PATH/target/release/servoshell %u
 Icon=servo
 Terminal=false
 Type=Application
@@ -27,7 +27,7 @@ Categories=Network;WebBrowser;
 Keywords=web;browser;internet;
 Actions=new-window;
 
+# Todo: Tell existing servoshell process to open a new window
 [Desktop Action new-window]
 Name=Open a New Window
-# TODO: Replace SERVO_SRC_PATH with the path to the Servo sources
-Exec=SERVO_SRC_PATH/target/release/servo %u
+Exec=SERVO_SRC_PATH/target/release/servoshell %u

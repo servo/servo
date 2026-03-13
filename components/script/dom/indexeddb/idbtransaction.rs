@@ -618,12 +618,7 @@ impl IDBTransaction {
         let db_name = self.db.get_name().to_string();
         let object_store_name = object_store_name.to_string();
 
-        let operation = SyncOperation::GetObjectStore(
-            sender,
-            origin.clone(),
-            db_name.clone(),
-            object_store_name.clone(),
-        );
+        let operation = SyncOperation::GetObjectStore(sender, origin, db_name, object_store_name);
 
         let _ = idb_sender.send(IndexedDBThreadMsg::Sync(operation));
 
@@ -634,10 +629,10 @@ impl IDBTransaction {
         // First unwrap for ipc
         // Second unwrap will never happen unless this db gets manually deleted somehow
         let key_path = object_store.key_path.map(|key_path| match key_path {
-            KeyPath::String(s) => StringOrStringSequence::String(DOMString::from_string(s)),
-            KeyPath::Sequence(seq) => StringOrStringSequence::StringSequence(
-                seq.into_iter().map(DOMString::from_string).collect(),
-            ),
+            KeyPath::String(string) => StringOrStringSequence::String(string.into()),
+            KeyPath::Sequence(seq) => {
+                StringOrStringSequence::StringSequence(seq.into_iter().map(Into::into).collect())
+            },
         });
         Some((
             IDBObjectStoreParameters {
@@ -697,7 +692,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         if let Some(indexes) = parameters.map(|(_, indexes, _)| indexes) {
             for index in indexes {
                 store.add_index(
-                    DOMString::from_string(index.name),
+                    index.name.into(),
                     &IDBIndexParameters {
                         multiEntry: index.multi_entry,
                         unique: index.unique,

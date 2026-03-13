@@ -21,7 +21,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
+use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::script_runtime::CanGc;
 
 // https://dom.spec.whatwg.org/#interface-attr
@@ -201,7 +201,7 @@ impl Attr {
             (Some(old), None) => {
                 // Already gone from the list of attributes of old owner.
                 assert!(
-                    old.get_attribute(ns, &self.identifier.local_name)
+                    old.get_attribute_with_namespace(ns, &self.identifier.local_name)
                         .as_deref() !=
                         Some(self)
                 )

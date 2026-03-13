@@ -14,6 +14,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{fmt, mem};
 
 use app_units::Au;
+use bitflags::bitflags;
 use cssparser::match_ignore_ascii_case;
 use devtools_traits::{AttrInfo, DomMutation, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
@@ -102,7 +103,6 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::bindings::xmlname::matches_name_production;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::create::create_element;
 use crate::dom::csp::{CspReporting, InlineCheckType, SourcePosition};
@@ -174,8 +174,8 @@ use crate::dom::scrolling_box::{ScrollAxisState, ScrollingBox};
 use crate::dom::servoparser::ServoParser;
 use crate::dom::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
-use crate::dom::trustedhtml::TrustedHTML;
-use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
+use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
+use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::validation::Validatable;
 use crate::dom::validitystate::ValidationFlags;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
@@ -567,18 +567,28 @@ impl Element {
         true
     }
 
-    /// <https://drafts.csswg.org/cssom-view/#scrolling-box>
-    fn has_scrolling_box(&self) -> bool {
-        // TODO: scrolling mechanism, such as scrollbar (We don't have scrollbar yet)
-        //       self.has_scrolling_mechanism()
-        self.style().is_some_and(|style| {
-            style.get_box().clone_overflow_x().is_scrollable() ||
-                style.get_box().clone_overflow_y().is_scrollable()
-        })
+    /// Whether this element is styled such that it establishes a scroll container.
+    /// <https://www.w3.org/TR/css-overflow-3/#scroll-container>
+    pub(crate) fn establishes_scroll_container(&self) -> bool {
+        // The CSS computed value has made sure that either both axes are scrollable or none are scrollable.
+        self.upcast::<Node>()
+            .effective_overflow()
+            .is_some_and(|overflow| overflow.establishes_scroll_container())
     }
 
-    fn has_overflow(&self) -> bool {
+    pub(crate) fn has_overflow(&self) -> bool {
         self.ScrollHeight() > self.ClientHeight() || self.ScrollWidth() > self.ClientWidth()
+    }
+
+    /// Whether or not this element has a scrolling box according to
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-box>.
+    ///
+    /// This is true if:
+    ///  1. The element has a layout box.
+    ///  2. The style specifies that overflow should be scrollable (`auto`, `hidden` or `scroll`).
+    ///  3. The fragment actually has content that overflows the box.
+    fn has_scrolling_box(&self) -> bool {
+        self.has_css_layout_box() && self.establishes_scroll_container() && self.has_overflow()
     }
 
     pub(crate) fn shadow_root(&self) -> Option<DomRoot<ShadowRoot>> {
@@ -1772,51 +1782,141 @@ impl Element {
         }
     }
 
-    pub(crate) fn is_keyboard_focusable(&self) -> bool {
-        self.is_focusable_area() && self.tab_index() != -1
+    fn is_editing_host(&self) -> bool {
+        self.downcast::<HTMLElement>()
+            .is_some_and(|element| element.IsContentEditable())
     }
 
-    pub(crate) fn is_focusable_area(&self) -> bool {
-        if self.is_actually_disabled() {
-            return false;
-        }
-        let node = self.upcast::<Node>();
-        if node.get_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE) {
-            return true;
+    /// <https://html.spec.whatwg.org/multipage/#focusable-area>
+    ///
+    /// The list of focusable areas at this point in the specification is both incomplete and leaves
+    /// a lot up to the user agent. In addition, the specifications for "click focusable" and
+    /// "sequentially focusable" are written in a way that they are subsets of all focusable areas.
+    /// In order to avoid having to first determine whether an element is a focusable area and then
+    /// work backwards to figure out what kind it is, this function attempts to classify the
+    /// different types of focusable areas ahead of time so that the logic is useful for answering
+    /// both "Is this element a focusable area?" and "Is this element click (or sequentially)
+    /// focusable."
+    fn focusable_area_kind(&self) -> FocusableAreaKind {
+        // Do not allow unrendered, disconnected, or disabled nodes to be focusable areas ever.
+        let node: &Node = self.upcast();
+        if !node.is_connected() || !self.has_css_layout_box() || self.is_actually_disabled() {
+            return Default::default();
         }
 
-        // <a>, <input>, <select>, and <textrea> are inherently focusable.
-        if matches!(
-            node.type_id(),
+        // > Elements that meet all the following criteria:
+        // > the element's tabindex value is non-null, or the element is determined by the user agent to be focusable;
+        // > the element is either not a shadow host, or has a shadow root whose delegates focus is false;
+        // TODO: Handle this.
+        // > the element is not actually disabled;
+        // Note: Checked above
+        // > the element is not inert;
+        // TODO: Handle this.
+        // > the element is either being rendered, delegating its rendering to its children, or
+        // > being used as relevant canvas fallback content.
+        // Note: Checked above
+        // TODO: Handle fallback canvas content.
+        match self.explicitly_set_tab_index() {
+            // From <https://html.spec.whatwg.org/multipage/#tabindex-ordered-focus-navigation-scope>:
+            // > A tabindex-ordered focus navigation scope is a list of focusable areas and focus
+            // > navigation scope owners. Every focus navigation scope owner owner has tabindex-ordered
+            // > focus navigation scope, whose contents are determined as follows:
+            // >  - It contains all elements in owner's focus navigation scope that are themselves focus
+            // >    navigation scope owners, except the elements whose tabindex value is a negative integer.
+            // >  - It contains all of the focusable areas whose DOM anchor is an element in owner's focus
+            // >    navigation scope, except the focusable areas whose tabindex value is a negative integer.
+            Some(tab_index) if tab_index < 0 => return FocusableAreaKind::Click,
+            Some(_) => return FocusableAreaKind::Click | FocusableAreaKind::Sequential,
+            None => {},
+        }
+
+        // From <https://html.spec.whatwg.org/multipage/#tabindex-value>
+        // > If the value is null
+        // > ...
+        // > Modulo platform conventions, it is suggested that the following elements should be
+        // > considered as focusable areas and be sequentially focusable:
+        let is_focusable_area_due_to_type = match node.type_id() {
+            // >  - a elements that have an href attribute
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLAnchorElement,
-            )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLInputElement,
-            )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLSelectElement,
-            )) | NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLTextAreaElement,
-            ))
-        ) {
-            return true;
+            )) => self.has_attribute(&local_name!("href")),
+
+            // >  - input elements whose type attribute are not in the Hidden state
+            // >  - button elements
+            // >  - select elements
+            // >  - textarea elements
+            // >  - Navigable containers
+            //
+            // Note: the `hidden` attribute is checked above for all elements.
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLInputElement |
+                HTMLElementTypeId::HTMLButtonElement |
+                HTMLElementTypeId::HTMLSelectElement |
+                HTMLElementTypeId::HTMLTextAreaElement |
+                HTMLElementTypeId::HTMLIFrameElement,
+            )) => true,
+            _ => {
+                // >  - summary elements that are the first summary element child of a details element
+                // >  - Editing hosts
+                // > -  Elements with a draggable attribute set, if that would enable the user agent to allow
+                // >    the user to begin drag operations for those elements without the use of a pointing device
+                self.downcast::<HTMLElement>()
+                    .is_some_and(|html_element| html_element.is_a_summary_for_its_parent_details()) ||
+                    self.is_editing_host() ||
+                    self.get_string_attribute(&local_name!("draggable")) == "true"
+            },
+        };
+
+        if is_focusable_area_due_to_type {
+            return FocusableAreaKind::Click | FocusableAreaKind::Sequential;
         }
 
-        if node
-            .downcast::<HTMLElement>()
-            .is_some_and(|el| el.IsContentEditable())
+        // > The scrollable regions of elements that are being rendered and are not inert.
+        //
+        // Note that these kind of focusable areas are only focusable via the keyboard.
+        //
+        // TODO: Handle inert.
+        if self
+            .upcast::<Node>()
+            .effective_overflow()
+            .is_some_and(|axes_overflow| {
+                // This is checking whether there is an input event scrollable overflow value in
+                // a given axis and also overflow in that same axis.
+                (matches!(axes_overflow.x, Overflow::Auto | Overflow::Scroll) &&
+                    self.ScrollWidth() > self.ClientWidth()) ||
+                    (matches!(axes_overflow.y, Overflow::Auto | Overflow::Scroll) &&
+                        self.ScrollHeight() > self.ClientHeight())
+            })
         {
-            return true;
+            return FocusableAreaKind::Sequential;
         }
 
-        false
+        Default::default()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#sequentially-focusable>.
+    pub(crate) fn is_sequentially_focusable(&self) -> bool {
+        self.focusable_area_kind()
+            .contains(FocusableAreaKind::Sequential)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#click-focusable>
+    pub(crate) fn is_click_focusable(&self) -> bool {
+        self.focusable_area_kind()
+            .contains(FocusableAreaKind::Click)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#focusable-area>
+    pub(crate) fn is_focusable_area(&self) -> bool {
+        !self.focusable_area_kind().is_empty()
     }
 
     /// Returns the focusable shadow host if this is a text control inner editor.
     /// This is a workaround for the focus delegation of shadow DOM and should be
     /// used only to delegate focusable inner editor of [HTMLInputElement] and
     /// [HTMLTextAreaElement].
-    pub(crate) fn find_focusable_shadow_host_if_necessary(&self) -> Option<DomRoot<Element>> {
-        if self.is_focusable_area() {
+    pub(crate) fn find_click_focusable_shadow_host_if_necessary(&self) -> Option<DomRoot<Element>> {
+        if self.is_click_focusable() {
             return Some(DomRoot::from_ref(self));
         }
 
@@ -1828,7 +1928,7 @@ impl Element {
                 .containing_shadow_root()
                 .map(|root| root.Host())
                 .expect("Text control inner shadow DOM should always have a shadow host.");
-            if !containing_shadow_host.is_focusable_area() {
+            if !containing_shadow_host.is_click_focusable() {
                 return None;
             }
             return Some(containing_shadow_host);
@@ -1987,7 +2087,12 @@ impl Element {
         self.handle_attribute_changes(attr, None, Some(new_value), reason, can_gc);
     }
 
-    pub(crate) fn get_attribute(
+    /// This is the inner logic for:
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-namespace>
+    ///
+    /// In addition to taking a namespace argument, this version does not require the attribute
+    /// to be lowercase ASCII, in accordance with the specification.
+    pub(crate) fn get_attribute_with_namespace(
         &self,
         namespace: &Namespace,
         local_name: &LocalName,
@@ -1997,6 +2102,19 @@ impl Element {
             .iter()
             .find(|attr| attr.local_name() == local_name && attr.namespace() == namespace)
             .map(|js| DomRoot::from_ref(&**js))
+    }
+
+    /// This is the inner logic for:
+    /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name>
+    ///
+    /// Callers should convert the `LocalName` to ASCII lowercase before calling.
+    pub(crate) fn get_attribute(&self, local_name: &LocalName) -> Option<DomRoot<Attr>> {
+        debug_assert_eq!(
+            *local_name,
+            local_name.to_ascii_lowercase(),
+            "All namespace-less attribute accesses should use a lowercase ASCII name"
+        );
+        self.get_attribute_with_namespace(&ns!(), local_name)
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-get-by-name>
@@ -2059,8 +2177,12 @@ impl Element {
     }
 
     pub(crate) fn set_attribute(&self, name: &LocalName, value: AttrValue, can_gc: CanGc) {
-        assert!(name == &name.to_ascii_lowercase());
-        assert!(!name.contains(':'));
+        debug_assert_eq!(
+            *name,
+            name.to_ascii_lowercase(),
+            "All attribute accesses should use a lowercase ASCII name"
+        );
+        debug_assert!(!name.contains(':'));
 
         self.set_first_matching_attribute(
             name.clone(),
@@ -2073,31 +2195,24 @@ impl Element {
         );
     }
 
-    // https://html.spec.whatwg.org/multipage/#attr-data-*
-    pub(crate) fn set_custom_attribute(
+    pub(crate) fn set_attribute_with_namespace(
         &self,
-        name: DOMString,
-        value: DOMString,
-        can_gc: CanGc,
-    ) -> ErrorResult {
-        // Step 1.
-        if !matches_name_production(&name.str()) {
-            return Err(Error::InvalidCharacter(None));
-        }
-
-        // Steps 2-5.
-        let name = LocalName::from(name);
-        let value = self.parse_attribute(&ns!(), &name, value);
+        cx: &mut js::context::JSContext,
+        local_name: LocalName,
+        value: AttrValue,
+        name: LocalName,
+        namespace: Namespace,
+        prefix: Option<Prefix>,
+    ) {
         self.set_first_matching_attribute(
-            name.clone(),
+            local_name.clone(),
             value,
-            name.clone(),
-            ns!(),
-            None,
-            |attr| *attr.name() == name && *attr.namespace() == ns!(),
-            can_gc,
+            name,
+            namespace.clone(),
+            prefix,
+            |attr| *attr.local_name() == local_name && *attr.namespace() == namespace,
+            CanGc::from_cx(cx),
         );
-        Ok(())
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-attributes-set-value>
@@ -2203,7 +2318,7 @@ impl Element {
     }
 
     pub(crate) fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        self.get_attribute(&ns!(), &local_name!("class"))
+        self.get_attribute(&local_name!("class"))
             .is_some_and(|attr| {
                 attr.value()
                     .as_tokens()
@@ -2213,7 +2328,7 @@ impl Element {
     }
 
     pub(crate) fn is_part(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
-        self.get_attribute(&ns!(), &LocalName::from("part"))
+        self.get_attribute(&LocalName::from("part"))
             .is_some_and(|attr| {
                 attr.value()
                     .as_tokens()
@@ -2228,13 +2343,16 @@ impl Element {
         value: DOMString,
         can_gc: CanGc,
     ) {
-        assert!(*local_name == local_name.to_ascii_lowercase());
-        let value = AttrValue::from_atomic(value.into());
-        self.set_attribute(local_name, value, can_gc);
+        self.set_attribute(local_name, AttrValue::from_atomic(value.into()), can_gc);
     }
 
     pub(crate) fn has_attribute(&self, local_name: &LocalName) -> bool {
-        assert!(local_name.bytes().all(|b| b.to_ascii_lowercase() == b));
+        debug_assert_eq!(
+            *local_name,
+            local_name.to_ascii_lowercase(),
+            "All attribute accesses should use a lowercase ASCII name"
+        );
+        debug_assert!(!local_name.contains(':'));
         self.attrs
             .borrow()
             .iter()
@@ -2253,12 +2371,10 @@ impl Element {
     }
 
     pub(crate) fn get_url_attribute(&self, local_name: &LocalName) -> USVString {
-        assert!(*local_name == local_name.to_ascii_lowercase());
-        let attr = match self.get_attribute(&ns!(), local_name) {
-            Some(attr) => attr,
-            None => return USVString::default(),
+        let Some(attribute) = self.get_attribute(local_name) else {
+            return Default::default();
         };
-        let value = &**attr.value();
+        let value = &**attribute.value();
         // XXXManishearth this doesn't handle `javascript:` urls properly
         self.owner_document()
             .base_url()
@@ -2273,7 +2389,6 @@ impl Element {
         value: USVString,
         can_gc: CanGc,
     ) {
-        assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::String(value.to_string()), can_gc);
     }
 
@@ -2281,12 +2396,10 @@ impl Element {
         &self,
         local_name: &LocalName,
     ) -> TrustedScriptURLOrUSVString {
-        assert_eq!(*local_name, local_name.to_ascii_lowercase());
-        let attr = match self.get_attribute(&ns!(), local_name) {
-            Some(attr) => attr,
-            None => return TrustedScriptURLOrUSVString::USVString(USVString::default()),
+        let Some(attribute) = self.get_attribute(local_name) else {
+            return TrustedScriptURLOrUSVString::USVString(USVString::default());
         };
-        let value = &**attr.value();
+        let value = &**attribute.value();
         // XXXManishearth this doesn't handle `javascript:` urls properly
         self.owner_document()
             .base_url()
@@ -2296,19 +2409,13 @@ impl Element {
     }
 
     pub(crate) fn get_trusted_html_attribute(&self, local_name: &LocalName) -> TrustedHTMLOrString {
-        assert_eq!(*local_name, local_name.to_ascii_lowercase());
-        let value = match self.get_attribute(&ns!(), local_name) {
-            Some(attr) => (&**attr.value()).into(),
-            None => "".into(),
-        };
-        TrustedHTMLOrString::String(value)
+        TrustedHTMLOrString::String(self.get_string_attribute(local_name))
     }
 
     pub(crate) fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {
-        match self.get_attribute(&ns!(), local_name) {
-            Some(x) => x.Value(),
-            None => DOMString::new(),
-        }
+        self.get_attribute(local_name)
+            .map(|attribute| attribute.Value())
+            .unwrap_or_default()
     }
 
     pub(crate) fn set_string_attribute(
@@ -2317,7 +2424,6 @@ impl Element {
         value: DOMString,
         can_gc: CanGc,
     ) {
-        assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::String(value.into()), can_gc);
     }
 
@@ -2350,8 +2456,8 @@ impl Element {
     }
 
     pub(crate) fn get_tokenlist_attribute(&self, local_name: &LocalName) -> Vec<Atom> {
-        self.get_attribute(&ns!(), local_name)
-            .map(|attr| attr.value().as_tokens().to_vec())
+        self.get_attribute(local_name)
+            .map(|attribute| attribute.value().as_tokens().to_vec())
             .unwrap_or_default()
     }
 
@@ -2361,7 +2467,6 @@ impl Element {
         value: DOMString,
         can_gc: CanGc,
     ) {
-        assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(
             local_name,
             AttrValue::from_serialized_tokenlist(value.into()),
@@ -2375,53 +2480,33 @@ impl Element {
         tokens: Vec<Atom>,
         can_gc: CanGc,
     ) {
-        assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::from_atomic_tokens(tokens), can_gc);
     }
 
     pub(crate) fn get_int_attribute(&self, local_name: &LocalName, default: i32) -> i32 {
-        // TODO: Is this assert necessary?
-        assert!(
-            local_name
-                .chars()
-                .all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch)
-        );
-        let attribute = self.get_attribute(&ns!(), local_name);
-
-        match attribute {
+        match self.get_attribute(local_name) {
             Some(ref attribute) => match *attribute.value() {
                 AttrValue::Int(_, value) => value,
-                _ => panic!(
-                    "Expected an AttrValue::Int: \
-                     implement parse_plain_attribute"
-                ),
+                _ => unreachable!("Expected an AttrValue::Int: implement parse_plain_attribute"),
             },
             None => default,
         }
     }
 
     pub(crate) fn set_int_attribute(&self, local_name: &LocalName, value: i32, can_gc: CanGc) {
-        assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(local_name, AttrValue::Int(value.to_string(), value), can_gc);
     }
 
     pub(crate) fn get_uint_attribute(&self, local_name: &LocalName, default: u32) -> u32 {
-        assert!(
-            local_name
-                .chars()
-                .all(|ch| !ch.is_ascii() || ch.to_ascii_lowercase() == ch)
-        );
-        let attribute = self.get_attribute(&ns!(), local_name);
-        match attribute {
+        match self.get_attribute(local_name) {
             Some(ref attribute) => match *attribute.value() {
                 AttrValue::UInt(_, value) => value,
-                _ => panic!("Expected an AttrValue::UInt: implement parse_plain_attribute"),
+                _ => unreachable!("Expected an AttrValue::UInt: implement parse_plain_attribute"),
             },
             None => default,
         }
     }
     pub(crate) fn set_uint_attribute(&self, local_name: &LocalName, value: u32, can_gc: CanGc) {
-        assert!(*local_name == local_name.to_ascii_lowercase());
         self.set_attribute(
             local_name,
             AttrValue::UInt(value.to_string(), value),
@@ -2737,7 +2822,7 @@ impl Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() || !self.has_scrolling_box() || !self.has_overflow() {
+        if !self.has_scrolling_box() {
             return;
         }
 
@@ -2781,9 +2866,9 @@ impl Element {
     /// Step 4 of <https://html.spec.whatwg.org/multipage/#dom-element-insertadjacenthtml>
     /// and step 6. of <https://html.spec.whatwg.org/multipage/#dom-range-createcontextualfragment>
     pub(crate) fn fragment_parsing_context(
+        cx: &mut JSContext,
         owner_doc: &Document,
         element: Option<&Self>,
-        can_gc: CanGc,
     ) -> DomRoot<Self> {
         // If context is not an Element or all of the following are true:
         match element {
@@ -2805,7 +2890,7 @@ impl Element {
                 ElementCreator::ScriptCreated,
                 CustomElementCreationMode::Asynchronous,
                 None,
-                can_gc,
+                CanGc::from_cx(cx),
             ),
         }
     }
@@ -2833,66 +2918,6 @@ impl Element {
 
     pub(crate) fn get_name(&self) -> Option<Atom> {
         self.rare_data().as_ref()?.name_attribute.clone()
-    }
-
-    fn is_sequentially_focusable(&self) -> bool {
-        let element = self.upcast::<Element>();
-        let node = self.upcast::<Node>();
-        if !node.is_connected() {
-            return false;
-        }
-
-        if element.has_attribute(&local_name!("hidden")) {
-            return false;
-        }
-
-        if self.disabled_state() {
-            return false;
-        }
-
-        if element.has_attribute(&local_name!("tabindex")) {
-            return true;
-        }
-
-        match node.type_id() {
-            // <button>, <select>, <iframe>, and <textarea> are implicitly focusable.
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLButtonElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLSelectElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLIFrameElement,
-            )) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLTextAreaElement,
-            )) => true,
-
-            // Links that generate actual links are focusable.
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) |
-            NodeTypeId::Element(ElementTypeId::HTMLElement(
-                HTMLElementTypeId::HTMLAnchorElement,
-            )) => element.has_attribute(&local_name!("href")),
-
-            // TODO focusable if editing host
-            // TODO focusable if "sorting interface th elements"
-            _ => {
-                // Draggable elements are focusable.
-                element.get_string_attribute(&local_name!("draggable")) == "true"
-            },
-        }
-    }
-
-    pub(crate) fn update_sequentially_focusable_status(&self, can_gc: CanGc) {
-        let node = self.upcast::<Node>();
-        let is_sequentially_focusable = self.is_sequentially_focusable();
-        node.set_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE, is_sequentially_focusable);
-
-        // https://html.spec.whatwg.org/multipage/#focus-fixup-rule
-        if !is_sequentially_focusable {
-            self.owner_document().perform_focus_fixup_rule(self, can_gc);
-        }
     }
 
     pub(crate) fn get_element_internals(&self) -> Option<DomRoot<ElementInternals>> {
@@ -2928,6 +2953,14 @@ impl Element {
         }
     }
 
+    pub(crate) fn explicitly_set_tab_index(&self) -> Option<i32> {
+        if self.has_attribute(&local_name!("tabindex")) {
+            Some(self.get_int_attribute(&local_name!("tabindex"), 0))
+        } else {
+            None
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
     pub(crate) fn tab_index(&self) -> i32 {
         // > The tabIndex getter steps are:
@@ -2935,8 +2968,8 @@ impl Element {
         // > 2. If attribute is not null:
         // >    1. Let parsedValue be the result of integer parsing attribute's value.
         // >    2. If parsedValue is not an error and is within the long range, then return parsedValue.
-        if self.has_attribute(&local_name!("tabindex")) {
-            return self.get_int_attribute(&local_name!("tabindex"), 0);
+        if let Some(tab_index) = self.explicitly_set_tab_index() {
+            return tab_index;
         }
 
         // > 3. Return 0 if this is an a, area, button, frame, iframe, input, object, select, textarea,
@@ -3092,7 +3125,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         local_name: DOMString,
     ) -> Option<DomRoot<Attr>> {
         let namespace = &namespace_from_domstring(namespace);
-        self.get_attribute(namespace, &LocalName::from(local_name))
+        self.get_attribute_with_namespace(namespace, &LocalName::from(local_name))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-toggleattribute>
@@ -3215,14 +3248,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         )?;
         // Step 3. Set an attribute value for this using localName, verifiedValue, and also prefix and namespace.
         let value = self.parse_attribute(&namespace, &local_name, value);
-        self.set_first_matching_attribute(
-            local_name.clone(),
+        self.set_attribute_with_namespace(
+            cx,
+            local_name,
             value,
             LocalName::from(qualified_name),
-            namespace.clone(),
+            namespace,
             prefix,
-            |attr| *attr.local_name() == local_name && *attr.namespace() == namespace,
-            CanGc::from_cx(cx),
         );
         Ok(())
     }
@@ -3473,7 +3505,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() || !self.has_scrolling_box() || !self.has_overflow() {
+        if !self.has_scrolling_box() {
             return;
         }
 
@@ -3570,7 +3602,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
 
         // Step 10
-        if !self.has_css_layout_box() || !self.has_scrolling_box() || !self.has_overflow() {
+        if !self.has_scrolling_box() {
             return;
         }
 
@@ -3894,6 +3926,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         self.upcast::<Node>().replace_children(nodes, can_gc)
     }
 
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-movebefore>
+    fn MoveBefore(&self, node: &Node, child: Option<&Node>, can_gc: CanGc) -> ErrorResult {
+        self.upcast::<Node>().move_before(node, child, can_gc)
+    }
+
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         let root = self.upcast::<Node>();
@@ -4041,9 +4078,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         // Step 4.
         let context = Element::fragment_parsing_context(
+            cx,
             &context.owner_doc(),
             context.downcast::<Element>(),
-            CanGc::from_cx(cx),
         );
 
         // Step 5: Let fragment be the result of invoking the
@@ -4513,12 +4550,9 @@ impl VirtualMethods for Element {
             .attribute_mutated(attr, mutation, can_gc);
         let node = self.upcast::<Node>();
         let doc = node.owner_doc();
-        match attr.local_name() {
-            &local_name!("tabindex") | &local_name!("draggable") | &local_name!("hidden") => {
-                self.update_sequentially_focusable_status(can_gc)
-            },
-            &local_name!("style") => self.update_style_attribute(attr, mutation),
-            &local_name!("id") => {
+        match *attr.local_name() {
+            local_name!("style") => self.update_style_attribute(attr, mutation),
+            local_name!("id") => {
                 // https://dom.spec.whatwg.org/#ref-for-concept-element-attributes-change-ext%E2%91%A2
                 *self.id_attribute.borrow_mut() = mutation.new_value(attr).and_then(|value| {
                     let value = value.as_atom();
@@ -4564,7 +4598,7 @@ impl VirtualMethods for Element {
                     }
                 }
             },
-            &local_name!("name") => {
+            local_name!("name") => {
                 // Keep the name in rare data for fast access
                 self.ensure_rare_data().name_attribute =
                     mutation.new_value(attr).and_then(|value| {
@@ -4597,7 +4631,7 @@ impl VirtualMethods for Element {
                     }
                 }
             },
-            &local_name!("slot") => {
+            local_name!("slot") => {
                 // Update slottable data
                 let cx = GlobalScope::get_cx();
 
@@ -4687,8 +4721,6 @@ impl VirtualMethods for Element {
             return;
         }
 
-        self.update_sequentially_focusable_status(can_gc);
-
         if let Some(ref id) = *self.id_attribute.borrow() {
             if let Some(shadow_root) = self.containing_shadow_root() {
                 shadow_root.register_element_id(self, id.clone(), can_gc);
@@ -4719,8 +4751,6 @@ impl VirtualMethods for Element {
         if !context.tree_is_in_a_document_tree && !context.tree_is_in_a_shadow_tree {
             return;
         }
-
-        self.update_sequentially_focusable_status(can_gc);
 
         let doc = self.owner_document();
 
@@ -4794,13 +4824,13 @@ impl VirtualMethods for Element {
     /// <https://html.spec.whatwg.org/multipage/#nonce-attributes%3Aconcept-node-clone-ext>
     fn cloning_steps(
         &self,
+        cx: &mut JSContext,
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
-        can_gc: CanGc,
     ) {
         if let Some(s) = self.super_type() {
-            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
+            s.cloning_steps(cx, copy, maybe_doc, clone_children);
         }
         let elem = copy.downcast::<Element>().unwrap();
         if let Some(rare_data) = self.rare_data().as_ref() {
@@ -4910,7 +4940,7 @@ impl SelectorsElement for SelectorWrapper<'_> {
     ) -> bool {
         match *ns {
             NamespaceConstraint::Specific(ns) => self
-                .get_attribute(ns, local_name)
+                .get_attribute_with_namespace(ns, local_name)
                 .is_some_and(|attr| attr.value().eval_selector(operation)),
             NamespaceConstraint::Any => self.attrs.borrow().iter().any(|attr| {
                 *attr.local_name() == **local_name && attr.value().eval_selector(operation)
@@ -5091,7 +5121,7 @@ impl SelectorsElement for SelectorWrapper<'_> {
             f(id.get_hash());
         }
 
-        if let Some(attr) = self.get_attribute(&ns!(), &local_name!("class")) {
+        if let Some(attr) = self.get_attribute(&local_name!("class")) {
             for class in attr.value().as_tokens() {
                 f(AtomIdent::cast(class).get_hash());
             }
@@ -5695,7 +5725,7 @@ impl TaskOnce for ElementPerformFullscreenExit {
 /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute>
 pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMString> {
     element
-        .get_attribute(&ns!(), &local_name!("crossorigin"))
+        .get_attribute(&local_name!("crossorigin"))
         .map(|attribute| {
             let value = attribute.value().to_ascii_lowercase();
             if value == "anonymous" || value == "use-credentials" {
@@ -5724,7 +5754,7 @@ pub(crate) fn set_cross_origin_attribute(
 /// <https://html.spec.whatwg.org/multipage/#referrer-policy-attribute>
 pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString {
     element
-        .get_attribute(&ns!(), &local_name!("referrerpolicy"))
+        .get_attribute(&local_name!("referrerpolicy"))
         .map(|attribute| {
             let value = attribute.value().to_ascii_lowercase();
             if value == "no-referrer" ||
@@ -5746,14 +5776,14 @@ pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString 
 
 pub(crate) fn referrer_policy_for_element(element: &Element) -> ReferrerPolicy {
     element
-        .get_attribute(&ns!(), &local_name!("referrerpolicy"))
+        .get_attribute(&local_name!("referrerpolicy"))
         .map(|attribute| ReferrerPolicy::from(&**attribute.value()))
         .unwrap_or(element.owner_document().get_referrer_policy())
 }
 
 pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings> {
     element
-        .get_attribute(&ns!(), &local_name!("crossorigin"))
+        .get_attribute(&local_name!("crossorigin"))
         .map(|attribute| CorsSettings::from_enumerated_attribute(&attribute.value()))
 }
 
@@ -5773,4 +5803,25 @@ pub(crate) fn is_element_affected_by_legacy_background_presentational_hint(
                 local_name!("td") |
                 local_name!("th")
         )
+}
+
+/// What kind of focusable area an [`Element`] is.
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct FocusableAreaKind(u8);
+
+bitflags! {
+    impl FocusableAreaKind: u8 {
+        /// <https://html.spec.whatwg.org/multipage/#click-focusable>
+        ///
+        /// > A focusable area is said to be click focusable if the user agent determines that it is
+        /// > click focusable. User agents should consider focusable areas with non-null tabindex values
+        /// > to be click focusable.
+        const Click = 1 << 0;
+        /// <https://html.spec.whatwg.org/multipage/#sequentially-focusable>.
+        ///
+        /// > A focusable area is said to be sequentially focusable if it is included in its
+        /// > Document's sequential focus navigation order and the user agent determines that it is
+        /// > sequentially focusable.
+        const Sequential = 1 << 1;
+    }
 }

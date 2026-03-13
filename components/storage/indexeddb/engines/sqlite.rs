@@ -656,7 +656,7 @@ impl KvsEngine for SqliteEngine {
 
         let index_exists: bool = self.connection.query_row(
             "SELECT EXISTS(SELECT * FROM object_store_index WHERE name = ? AND object_store_id = ?)",
-            params![index_name.to_string(), object_store.id],
+            params![index_name, object_store.id],
             |row| row.get(0),
         )?;
         if index_exists {
@@ -668,7 +668,7 @@ impl KvsEngine for SqliteEngine {
             VALUES (?, ?, ?, ?, ?)",
             params![
                 object_store.id,
-                index_name.to_string(),
+                index_name,
                 postcard::to_stdvec(&key_path).unwrap(),
                 unique,
                 multi_entry,
@@ -687,7 +687,7 @@ impl KvsEngine for SqliteEngine {
         // Delete the index if it exists
         let _ = self.connection.execute(
             "DELETE FROM object_store_index WHERE name = ? AND object_store_id = ?",
-            params![index_name.to_string(), object_store.id],
+            params![index_name, object_store.id],
         )?;
         Ok(())
     }

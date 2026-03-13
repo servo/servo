@@ -137,6 +137,9 @@ pub enum ScriptToDevtoolsControlMsg {
 
     /// Get frame information from script
     CreateFrameActor(GenericSender<String>, PipelineId, FrameInfo),
+
+    /// Get environment information from script
+    CreateEnvironmentActor(GenericSender<String>, EnvironmentInfo, Option<String>),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -333,6 +336,15 @@ pub enum DevtoolScriptControlMsg {
     /// Request a callback directed at the given actor name from the next animation frame
     /// executed in the given pipeline.
     RequestAnimationFrame(PipelineId, String),
+    /// Direct the WebView containing the given pipeline to load a new URL,
+    /// as if it was typed by the user.
+    NavigateTo(PipelineId, ServoUrl),
+    /// Direct the WebView containing the given pipeline to traverse history backward
+    /// up to one step.
+    GoBack(PipelineId),
+    /// Direct the WebView containing the given pipeline to traverse history forward
+    /// up to one step.
+    GoForward(PipelineId),
     /// Direct the given pipeline to reload the current page.
     Reload(PipelineId),
     /// Gets the list of all allowed CSS rules and possible values.
@@ -353,6 +365,8 @@ pub enum DevtoolScriptControlMsg {
     ClearBreakpoint(u32, u32, u32),
     Interrupt,
     Resume(Option<String>, Option<String>),
+    ListFrames(PipelineId, u32, u32, GenericSender<Vec<String>>),
+    GetEnvironment(String, GenericSender<String>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
@@ -585,15 +599,20 @@ pub struct RecommendedBreakpointLocation {
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct FrameInfo {
     pub display_name: String,
     pub on_stack: bool,
     pub oldest: bool,
     pub terminated: bool,
-    #[serde(rename = "type")]
     pub type_: String,
     pub url: String,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+pub struct EnvironmentInfo {
+    pub type_: Option<String>,
+    pub scope_kind: Option<String>,
+    pub function_display_name: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

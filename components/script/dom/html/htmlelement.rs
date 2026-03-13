@@ -53,9 +53,11 @@ use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::html::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::{
-    BindContext, Node, NodeTraits, ShadowIncluding, UnbindContext, from_untrusted_node_address,
+    BindContext, MoveContext, Node, NodeTraits, ShadowIncluding, UnbindContext,
+    from_untrusted_node_address,
 };
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
@@ -158,7 +160,7 @@ impl HTMLElement {
         // a string consisting of only ASCII whitespace, or is a media query list that
         // matches the user's environment according to the definitions given in Media Queries. [MQ]
         self.upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("media"))
+            .get_attribute(&local_name!("media"))
             .is_none_or(|media| {
                 MediaList::matches_environment(&self.owner_document(), &media.value())
             })
@@ -444,7 +446,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         element.set_click_in_progress(true);
 
         self.upcast::<Node>()
-            .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc);
+            .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
         element.set_click_in_progress(false);
     }
 
@@ -455,7 +457,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         let document = self.owner_document();
         document.request_focus_with_options(
             Some(self.upcast()),
-            FocusInitiator::Local,
+            FocusInitiator::Script,
             FocusOptions {
                 preventScroll: options.preventScroll,
             },
@@ -472,7 +474,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
         let document = self.owner_document();
-        document.request_focus(None, FocusInitiator::Local, can_gc);
+        document.request_focus(None, FocusInitiator::Script, can_gc);
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>
@@ -665,7 +667,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-iscontenteditable>
     fn IsContentEditable(&self) -> bool {
         // > The isContentEditable IDL attribute, on getting, must return true if the element is either an editing host or editable, and false otherwise.
-        self.is_editing_host() || self.upcast::<Node>().is_editable()
+        self.upcast::<Node>().is_editable_or_editing_host()
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-attachinternals>
@@ -750,6 +752,34 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         self.element
             .set_int_attribute(&local_name!("tabindex"), tab_index, can_gc);
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-accesskey
+    make_getter!(AccessKey, "accesskey");
+
+    // https://html.spec.whatwg.org/multipage/#dom-accesskey
+    make_setter!(SetAccessKey, "accesskey");
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-accesskeylabel>
+    fn AccessKeyLabel(&self) -> DOMString {
+        // The accessKeyLabel IDL attribute must return a string that represents the element's
+        // assigned access key, if any. If the element does not have one, then the IDL attribute
+        // must return the empty string.
+        if !self.element.has_attribute(&local_name!("accesskey")) {
+            return Default::default();
+        }
+
+        let access_key_string = self
+            .element
+            .get_string_attribute(&local_name!("accesskey"))
+            .to_string();
+
+        #[cfg(target_os = "macos")]
+        let access_key_label = format!("⌃⌥{access_key_string}");
+        #[cfg(not(target_os = "macos"))]
+        let access_key_label = format!("Alt+Shift+{access_key_string}");
+
+        access_key_label.into()
+    }
 }
 
 fn append_text_node_to_fragment(
@@ -765,98 +795,7 @@ fn append_text_node_to_fragment(
         .unwrap();
 }
 
-// https://html.spec.whatwg.org/multipage/#attr-data-*
-
-static DATA_PREFIX: &str = "data-";
-static DATA_HYPHEN_SEPARATOR: char = '\x2d';
-
-fn to_snake_case(name: DOMString) -> DOMString {
-    let mut attr_name = String::with_capacity(name.len() + DATA_PREFIX.len());
-    attr_name.push_str(DATA_PREFIX);
-    for ch in name.str().chars() {
-        if ch.is_ascii_uppercase() {
-            attr_name.push(DATA_HYPHEN_SEPARATOR);
-            attr_name.push(ch.to_ascii_lowercase());
-        } else {
-            attr_name.push(ch);
-        }
-    }
-    DOMString::from(attr_name)
-}
-
-// https://html.spec.whatwg.org/multipage/#attr-data-*
-// if this attribute is in snake case with a data- prefix,
-// this function returns a name converted to camel case
-// without the data prefix.
-
-fn to_camel_case(name: &str) -> Option<DOMString> {
-    if !name.starts_with(DATA_PREFIX) {
-        return None;
-    }
-    let name = &name[5..];
-    let has_uppercase = name.chars().any(|curr_char| curr_char.is_ascii_uppercase());
-    if has_uppercase {
-        return None;
-    }
-    let mut result = String::with_capacity(name.len().saturating_sub(DATA_PREFIX.len()));
-    let mut name_chars = name.chars();
-    while let Some(curr_char) = name_chars.next() {
-        // check for hyphen followed by character
-        if curr_char == DATA_HYPHEN_SEPARATOR {
-            if let Some(next_char) = name_chars.next() {
-                if next_char.is_ascii_lowercase() {
-                    result.push(next_char.to_ascii_uppercase());
-                } else {
-                    result.push(curr_char);
-                    result.push(next_char);
-                }
-            } else {
-                result.push(curr_char);
-            }
-        } else {
-            result.push(curr_char);
-        }
-    }
-    Some(DOMString::from(result))
-}
-
 impl HTMLElement {
-    pub(crate) fn set_custom_attr(
-        &self,
-        name: DOMString,
-        value: DOMString,
-        can_gc: CanGc,
-    ) -> ErrorResult {
-        if name
-            .str()
-            .chars()
-            .skip_while(|&ch| ch != '\u{2d}')
-            .nth(1)
-            .is_some_and(|ch| ch.is_ascii_lowercase())
-        {
-            return Err(Error::Syntax(None));
-        }
-        self.as_element()
-            .set_custom_attribute(to_snake_case(name), value, can_gc)
-    }
-
-    pub(crate) fn get_custom_attr(&self, local_name: DOMString) -> Option<DOMString> {
-        // FIXME(ajeffrey): Convert directly from DOMString to LocalName
-        let local_name = LocalName::from(to_snake_case(local_name));
-        self.as_element()
-            .get_attribute(&ns!(), &local_name)
-            .map(|attr| {
-                DOMString::from(&**attr.value()) // FIXME(ajeffrey): Convert directly from AttrValue to DOMString
-            })
-    }
-
-    pub(crate) fn delete_custom_attr(&self, local_name: DOMString, can_gc: CanGc) {
-        // FIXME(ajeffrey): Convert directly from DOMString to LocalName
-        let local_name = LocalName::from(to_snake_case(local_name));
-        self.as_element()
-            .remove_attribute(&ns!(), &local_name, can_gc);
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#category-label>
     pub(crate) fn is_labelable_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
@@ -927,18 +866,6 @@ impl HTMLElement {
             },
             _ => false,
         }
-    }
-
-    pub(crate) fn supported_prop_names_custom_attr(&self) -> Vec<DOMString> {
-        let element = self.as_element();
-        element
-            .attrs()
-            .iter()
-            .filter_map(|attr| {
-                let raw_name = attr.local_name();
-                to_camel_case(raw_name)
-            })
-            .collect()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -1183,6 +1110,65 @@ impl HTMLElement {
         // Step 4:Remove next.
         next.remove_self(can_gc);
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#keyboard-shortcuts-processing-model>
+    /// > Whenever an element's accesskey attribute is set, changed, or removed, the user agent must
+    /// > update the element's assigned access key by running the following steps:
+    fn update_assigned_access_key(&self) {
+        // 1. If the element has no accesskey attribute, then skip to the fallback step below.
+        if !self.element.has_attribute(&local_name!("accesskey")) {
+            // This is the same as steps 4 and 5 below.
+            self.owner_document()
+                .event_handler()
+                .unassign_access_key(self);
+        }
+
+        // 2. Otherwise, split the attribute's value on ASCII whitespace, and let keys be the resulting tokens.
+        let attribute_value = self.element.get_string_attribute(&local_name!("accesskey"));
+        let string_view = attribute_value.str();
+        let values = string_view.split_html_space_characters();
+
+        // 3. For each value in keys in turn, in the order the tokens appeared in the attribute's
+        //    value, run the following substeps:
+        for value in values {
+            // 1. If the value is not a string exactly one code point in length, then skip the
+            //    remainder of these steps for this value.
+            let mut characters = value.chars();
+            let Some(character) = characters.next() else {
+                continue;
+            };
+            if characters.count() > 0 {
+                continue;
+            }
+
+            // 2. If the value does not correspond to a key on the system's keyboard, then skip the
+            //    remainder of these steps for this value.
+            //    TODO: This is just a heuristic for whether or not the character is on the keyboard.
+            //    We should do better here, but as we don't know anything about the keyboard hardware,
+            //    it's quite difficult at the moment.
+            if !character.is_ascii_graphic() {
+                continue;
+            }
+
+            // 3. If the user agent can find a mix of zero or more modifier keys that, combined with
+            //    the key that corresponds to the value given in the attribute, can be used as the
+            //    access key, then the user agent may assign that combination of keys as the element's
+            //    assigned access key and return.
+            self.owner_document()
+                .event_handler()
+                .assign_access_key(self, character);
+            return;
+        }
+
+        // 4. Fallback: Optionally, the user agent may assign a key combination of its choosing as
+        //    the element's assigned access key and then return.
+        // We do not do this.
+
+        // 5. If this step is reached, the element has no assigned access key.
+        self.owner_document()
+            .event_handler()
+            .unassign_access_key(self);
+    }
 }
 
 impl VirtualMethods for HTMLElement {
@@ -1221,6 +1207,9 @@ impl VirtualMethods for HTMLElement {
                 }
             },
 
+            (&local_name!("accesskey"), ..) => {
+                self.update_assigned_access_key();
+            },
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
                 self.form_attribute_mutated(mutation, can_gc);
             },
@@ -1279,11 +1268,10 @@ impl VirtualMethods for HTMLElement {
         if let Some(super_type) = self.super_type() {
             super_type.bind_to_tree(context, can_gc);
         }
-        let element = self.as_element();
-        element.update_sequentially_focusable_status(can_gc);
 
         // Binding to a tree can disable a form control if one of the new
         // ancestors is a fieldset.
+        let element = self.as_element();
         if self.is_form_associated_custom_element() && element.enabled_state() {
             element.check_ancestors_disabled_state_for_form_control();
             if element.disabled_state() {
@@ -1294,18 +1282,48 @@ impl VirtualMethods for HTMLElement {
                 );
             }
         }
+
+        if element.has_attribute(&local_name!("accesskey")) {
+            self.update_assigned_access_key();
+        }
     }
 
+    /// <https://html.spec.whatwg.org/multipage#dom-trees:concept-node-remove-ext>
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
+        // 1. Let document be removedNode's node document.
+        let document = self.owner_document();
+
+        // 2. If document's focused area is removedNode, then set document's focused area to
+        // document's viewport, and set document's relevant global object's navigation API's focus
+        // changed during ongoing navigation to false.
+        //
+        // TODO: Should this also happen for non-HTML elements such as SVG elements?
+        let element = self.as_element();
+        if document
+            .get_focused_element()
+            .is_some_and(|focused_element| &*focused_element == element)
+        {
+            document.request_focus(None, FocusInitiator::Script, can_gc);
+        }
+
+        // 3. If removedNode is an element whose namespace is the HTML namespace, and this standard
+        // defines HTML element removing steps for removedNode's local name, then run the
+        // corresponding HTML element removing steps given removedNode, isSubtreeRoot, and
+        // oldAncestor.
         if let Some(super_type) = self.super_type() {
             super_type.unbind_from_tree(context, can_gc);
         }
 
+        // 4. If removedNode is a form-associated element with a non-null form owner and removedNode
+        // and its form owner are no longer in the same tree, then reset the form owner of
+        // removedNode.
+        //
         // Unbinding from a tree might enable a form control, if a
         // fieldset ancestor is the only reason it was disabled.
         // (The fact that it's enabled doesn't do much while it's
         // disconnected, but it is an observable fact to keep track of.)
-        let element = self.as_element();
+        //
+        // TODO: This should likely just call reset on form owner.
         if self.is_form_associated_custom_element() && element.disabled_state() {
             element.check_disabled_attribute();
             element.check_ancestors_disabled_state_for_form_control();
@@ -1316,6 +1334,12 @@ impl VirtualMethods for HTMLElement {
                     None,
                 );
             }
+        }
+
+        if element.has_attribute(&local_name!("accesskey")) {
+            self.owner_document()
+                .event_handler()
+                .unassign_access_key(self);
         }
     }
 
@@ -1354,6 +1378,23 @@ impl VirtualMethods for HTMLElement {
                 .super_type()
                 .unwrap()
                 .parse_plain_attribute(name, value),
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-trees:html-element-moving-steps>
+    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+        // Step 1. If movedNode is an element whose namespace is the HTML namespace, and this
+        // standard defines HTML element moving steps for movedNode's local name, then run the
+        // corresponding HTML element moving steps given movedNode.
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(context, can_gc);
+        }
+
+        // Step 2. If movedNode is a form-associated element with a non-null form owner and
+        // movedNode and its form owner are no longer in the same tree, then reset the form owner of
+        // movedNode.
+        if let Some(form_control) = self.upcast::<Element>().as_maybe_form_control() {
+            form_control.moving_steps(can_gc)
         }
     }
 }

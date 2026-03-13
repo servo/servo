@@ -15,7 +15,8 @@ use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
 
-use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, DowncastableActorArc};
+use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::inspector::layout::LayoutInspectorActor;
 use crate::actors::inspector::node::{NodeActorMsg, NodeInfoToProtocol};
 use crate::protocol::{ClientRequest, JsonPacketStream};
@@ -31,8 +32,8 @@ pub(crate) struct WalkerMsg {
 pub(crate) struct WalkerActor {
     pub name: String,
     pub mutations: AtomicRefCell<Vec<DomMutation>>,
-    pub pipeline: PipelineId,
-    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
+    /// Name of the [`BrowsingContextActor`] that owns this walker.
+    pub browsing_context: String,
 }
 
 #[derive(Serialize)]
@@ -141,6 +142,7 @@ impl Actor for WalkerActor {
         msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
+        let browsing_context = self.browsing_context(registry);
         match msg_type {
             "children" => {
                 let target = msg
@@ -151,9 +153,10 @@ impl Actor for WalkerActor {
                 let Some((tx, rx)) = generic_channel::channel() else {
                     return Err(ActorError::Internal);
                 };
-                self.script_chan
+                browsing_context
+                    .script_chan()
                     .send(GetChildren(
-                        self.pipeline,
+                        browsing_context.pipeline_id(),
                         registry.actor_to_script(target.into()),
                         tx,
                     ))
@@ -171,8 +174,8 @@ impl Actor for WalkerActor {
                         .map(|child| {
                             child.encode(
                                 registry,
-                                self.script_chan.clone(),
-                                self.pipeline,
+                                browsing_context.script_chan(),
+                                browsing_context.pipeline_id(),
                                 self.name(),
                             )
                         })
@@ -189,8 +192,9 @@ impl Actor for WalkerActor {
                 let Some((tx, rx)) = generic_channel::channel() else {
                     return Err(ActorError::Internal);
                 };
-                self.script_chan
-                    .send(GetDocumentElement(self.pipeline, tx))
+                browsing_context
+                    .script_chan()
+                    .send(GetDocumentElement(browsing_context.pipeline_id(), tx))
                     .map_err(|_| ActorError::Internal)?;
                 let doc_elem_info = rx
                     .recv()
@@ -198,8 +202,8 @@ impl Actor for WalkerActor {
                     .ok_or(ActorError::Internal)?;
                 let node = doc_elem_info.encode(
                     registry,
-                    self.script_chan.clone(),
-                    self.pipeline,
+                    browsing_context.script_chan(),
+                    browsing_context.pipeline_id(),
                     self.name(),
                 );
 
@@ -241,8 +245,8 @@ impl Actor for WalkerActor {
                     .as_str()
                     .ok_or(ActorError::BadParameterType)?;
                 let mut hierarchy = find_child(
-                    &self.script_chan,
-                    self.pipeline,
+                    &browsing_context.script_chan(),
+                    browsing_context.pipeline_id(),
                     &self.name,
                     registry,
                     node,
@@ -278,10 +282,20 @@ impl Actor for WalkerActor {
 }
 
 impl WalkerActor {
+    pub(crate) fn browsing_context(
+        &self,
+        registry: &ActorRegistry,
+    ) -> DowncastableActorArc<BrowsingContextActor> {
+        registry.find::<BrowsingContextActor>(&self.browsing_context)
+    }
+
     pub(crate) fn root(&self, registry: &ActorRegistry) -> Result<NodeActorMsg, ActorError> {
+        let browsing_context = self.browsing_context(registry);
+        let pipeline = browsing_context.pipeline_id();
         let (tx, rx) = generic_channel::channel().ok_or(ActorError::Internal)?;
-        self.script_chan
-            .send(GetRootNode(self.pipeline, tx))
+        browsing_context
+            .script_chan()
+            .send(GetRootNode(pipeline, tx))
             .map_err(|_| ActorError::Internal)?;
         let root_node = rx
             .recv()
@@ -289,8 +303,8 @@ impl WalkerActor {
             .ok_or(ActorError::Internal)?;
         Ok(root_node.encode(
             registry,
-            self.script_chan.clone(),
-            self.pipeline,
+            browsing_context.script_chan(),
+            pipeline,
             self.name(),
         ))
     }

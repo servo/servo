@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use atomic_refcell::AtomicRefCell;
-use devtools_traits::FrameInfo;
+use base::generic_channel::channel;
+use devtools_traits::{DevtoolScriptControlMsg, FrameInfo};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -12,6 +13,7 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::environment::{EnvironmentActor, EnvironmentActorMsg};
 use crate::actors::object::{ObjectActor, ObjectActorMsg};
+use crate::actors::source::SourceActor;
 use crate::protocol::ClientRequest;
 
 #[derive(Serialize)]
@@ -79,15 +81,20 @@ impl Actor for FrameActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "getEnvironment" => {
-                let environment = EnvironmentActor {
-                    name: registry.new_name::<EnvironmentActor>(),
-                    parent: None,
+                let Some((tx, rx)) = channel() else {
+                    return Err(ActorError::Internal);
                 };
+                let source = registry.find::<SourceActor>(&self.source_actor);
+                source
+                    .script_sender
+                    .send(DevtoolScriptControlMsg::GetEnvironment(self.name(), tx))
+                    .map_err(|_| ActorError::Internal)?;
+                let environment = rx.recv().map_err(|_| ActorError::Internal)?;
+
                 let msg = FrameEnvironmentReply {
                     from: self.name(),
-                    environment: environment.encode(registry),
+                    environment: registry.encode::<EnvironmentActor, _>(&environment),
                 };
-                registry.register(environment);
                 // This reply has a `type` field but it doesn't need a followup,
                 // unlike most messages. We need to skip the validity check.
                 request.reply_unchecked(&msg)?;

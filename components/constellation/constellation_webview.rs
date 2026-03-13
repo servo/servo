@@ -21,6 +21,9 @@ pub(crate) struct ConstellationWebView {
     /// The [`WebViewId`] of this [`ConstellationWebView`].
     webview_id: WebViewId,
 
+    /// The [`PipelineId`] of the currently active pipeline at the top level of this WebView.
+    pub active_top_level_pipeline_id: PipelineId,
+
     /// The currently focused browsing context in this webview for key events.
     /// The focused pipeline is the current entry of the focused browsing
     /// context.
@@ -50,12 +53,14 @@ pub(crate) struct ConstellationWebView {
 impl ConstellationWebView {
     pub(crate) fn new(
         webview_id: WebViewId,
+        active_top_level_pipeline_id: PipelineId,
         focused_browsing_context_id: BrowsingContextId,
         user_content_manager_id: Option<UserContentManagerId>,
     ) -> Self {
         Self {
             webview_id,
             user_content_manager_id,
+            active_top_level_pipeline_id,
             focused_browsing_context_id,
             hovered_browsing_context_id: None,
             last_mouse_move_point: Default::default(),

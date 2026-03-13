@@ -153,6 +153,8 @@ bitflags! {
         const Resize = 1 << 3;
         /// A fling has started and a repaint needs to happen to process the animation.
         const StartedFlinging = 1 << 4;
+        /// A blinking text caret requires a redraw.
+        const BlinkingCaret = 1 << 5;
     }
 }
 
@@ -781,7 +783,7 @@ impl Paint {
         log::info!("Saving WebRender capture to {capture_path:?}");
         self.painter(webview_id.into())
             .webrender_api
-            .save_capture(capture_path.clone(), CaptureBits::all());
+            .save_capture(capture_path, CaptureBits::all());
     }
 
     pub fn notify_input_event(&self, webview_id: WebViewId, event: InputEventAndId) {

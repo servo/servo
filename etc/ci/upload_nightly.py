@@ -67,15 +67,6 @@ def upload_to_github_release(platform: str, package: str, package_hash: str, git
     nightly_repo = g.get_repo(os.environ["RELEASE_REPO"])
     release = nightly_repo.get_release(github_release_id)
 
-    if platform != "mac-arm64":
-        # Legacy assetname. Will be removed after a period with duplicate assets.
-        asset_name = f"servo-latest.{extension}"
-        package_hash_fileobj = io.BytesIO(f"{package_hash}  {asset_name}".encode("utf-8"))
-        release.upload_asset(package, name=asset_name)
-        # pyrefly: ignore[missing-attribute]
-        release.upload_asset_from_memory(
-            package_hash_fileobj, package_hash_fileobj.getbuffer().nbytes, name=f"{asset_name}.sha256"
-        )
     asset_platform = map_platform(platform)
     asset_name = f"servo-{asset_platform}.{extension}"
     package_hash_fileobj = io.BytesIO(f"{package_hash}  {asset_name}".encode("utf-8"))

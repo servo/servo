@@ -52,17 +52,12 @@ fn set_metric(
         metric_time,
     );
 
-    // Print the metric to console if the print-pwm option was given.
-    if opts::get().print_pwm {
+    if opts::get().debug.progressive_web_metrics {
         let navigation_start = pwm
             .navigation_start()
             .unwrap_or_else(CrossProcessInstant::epoch);
-        println!(
-            "{:?} {:?} {:?}",
-            url,
-            metric_type,
-            (metric_time - navigation_start).as_seconds_f64()
-        );
+        let duration = (metric_time - navigation_start).as_seconds_f64();
+        println!("{url:?} {metric_type:?} {duration:?}s");
     }
 }
 

@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use embedder_traits::Cursor;
 use euclid::Point2D;
 use js::rust::HandleObject;
+use style::Atom;
 use style_traits::CSSPixel;
 
 use crate::dom::bindings::codegen::Bindings::InputEventBinding::{self, InputEventMethods};
@@ -34,7 +35,7 @@ impl InputEvent {
     pub(crate) fn new(
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: bool,
         cancelable: bool,
         view: Option<&Window>,
@@ -44,7 +45,7 @@ impl InputEvent {
         input_type: DOMString,
         can_gc: CanGc,
     ) -> DomRoot<InputEvent> {
-        let ev = reflect_dom_object_with_proto(
+        let event = reflect_dom_object_with_proto(
             Box::new(InputEvent {
                 uievent: UIEvent::new_inherited(),
                 data,
@@ -55,9 +56,10 @@ impl InputEvent {
             proto,
             can_gc,
         );
-        ev.uievent
-            .InitUIEvent(type_, can_bubble, cancelable, view, detail);
-        ev
+        event
+            .uievent
+            .init_event(event_type, can_bubble, cancelable, view, detail);
+        event
     }
 }
 
@@ -67,13 +69,13 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        type_: DOMString,
+        event_type: DOMString,
         init: &InputEventBinding::InputEventInit,
     ) -> Fallible<DomRoot<InputEvent>> {
         let event = InputEvent::new(
             window,
             proto,
-            type_,
+            event_type.into(),
             init.parent.parent.bubbles,
             init.parent.parent.cancelable,
             init.parent.view.as_deref(),

@@ -74,7 +74,9 @@ use crate::dom::html::htmlpictureelement::HTMLPictureElement;
 use crate::dom::html::htmlsourceelement::HTMLSourceElement;
 use crate::dom::medialist::MediaList;
 use crate::dom::mouseevent::MouseEvent;
-use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext};
+use crate::dom::node::{
+    BindContext, MoveContext, Node, NodeDamage, NodeTraits, ShadowIncluding, UnbindContext,
+};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::virtualmethods::VirtualMethods;
@@ -633,12 +635,12 @@ impl HTMLImageElement {
 
         // Step 2. If srcset is not an empty string, then set source set to the result of parsing
         // srcset.
-        if let Some(srcset) = element.get_attribute(&ns!(), &local_name!("srcset")) {
+        if let Some(srcset) = element.get_attribute(&local_name!("srcset")) {
             source_set.image_sources = parse_a_srcset_attribute(&srcset.value());
         }
 
         // Step 3. Set source set's source size to the result of parsing sizes with img.
-        if let Some(sizes) = element.get_attribute(&ns!(), &local_name!("sizes")) {
+        if let Some(sizes) = element.get_attribute(&local_name!("sizes")) {
             source_set.source_size = parse_a_sizes_attribute(&sizes.value());
         }
 
@@ -718,7 +720,7 @@ impl HTMLImageElement {
             // Step 5.3. If child does not have a srcset attribute, continue to the next child.
             // Step 5.4. Parse child's srcset attribute and let source set be the returned source
             // set.
-            match element.get_attribute(&ns!(), &local_name!("srcset")) {
+            match element.get_attribute(&local_name!("srcset")) {
                 Some(srcset) => {
                     source_set.image_sources = parse_a_srcset_attribute(&srcset.value());
                 },
@@ -732,7 +734,7 @@ impl HTMLImageElement {
 
             // Step 5.6. If child has a media attribute, and its value does not match the
             // environment, continue to the next child.
-            if let Some(media) = element.get_attribute(&ns!(), &local_name!("media")) {
+            if let Some(media) = element.get_attribute(&local_name!("media")) {
                 if !MediaList::matches_environment(&element.owner_document(), &media.value()) {
                     continue;
                 }
@@ -740,13 +742,13 @@ impl HTMLImageElement {
 
             // Step 5.7. Parse child's sizes attribute with img, and let source set's source size be
             // the returned value.
-            if let Some(sizes) = element.get_attribute(&ns!(), &local_name!("sizes")) {
+            if let Some(sizes) = element.get_attribute(&local_name!("sizes")) {
                 source_set.source_size = parse_a_sizes_attribute(&sizes.value());
             }
 
             // Step 5.8. If child has a type attribute, and its value is an unknown or unsupported
             // MIME type, continue to the next child.
-            if let Some(type_) = element.get_attribute(&ns!(), &local_name!("type")) {
+            if let Some(type_) = element.get_attribute(&local_name!("type")) {
                 if !is_supported_image_mime_type(&type_.value()) {
                     continue;
                 }
@@ -754,12 +756,8 @@ impl HTMLImageElement {
 
             // Step 5.9. If child has width or height attributes, set el's dimension attribute
             // source to child. Otherwise, set el's dimension attribute source to el.
-            if element
-                .get_attribute(&ns!(), &local_name!("width"))
-                .is_some() ||
-                element
-                    .get_attribute(&ns!(), &local_name!("height"))
-                    .is_some()
+            if element.get_attribute(&local_name!("width")).is_some() ||
+                element.get_attribute(&local_name!("height")).is_some()
             {
                 self.dimension_attribute_source.set(Some(element));
             } else {
@@ -1555,7 +1553,7 @@ impl HTMLImageElement {
 
     pub(crate) fn areas(&self) -> Option<Vec<DomRoot<HTMLAreaElement>>> {
         let elem = self.upcast::<Element>();
-        let usemap_attr = elem.get_attribute(&ns!(), &local_name!("usemap"))?;
+        let usemap_attr = elem.get_attribute(&local_name!("usemap"))?;
 
         let value = usemap_attr.value();
 
@@ -1751,9 +1749,9 @@ fn parse_a_sizes_attribute(value: &str) -> SourceSizeList {
 impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-image>
     fn Image(
+        cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
         width: Option<u32>,
         height: Option<u32>,
     ) -> Fallible<DomRoot<HTMLImageElement>> {
@@ -1769,7 +1767,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             proto,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         let image = DomRoot::downcast::<HTMLImageElement>(element).unwrap();
@@ -2163,6 +2161,24 @@ impl VirtualMethods for HTMLImageElement {
         // removedNode.
         if context.parent.is::<HTMLPictureElement>() && !self.upcast::<Node>().has_parent() {
             self.update_the_image_data(cx);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage#the-img-element:html-element-moving-steps>
+    #[expect(unsafe_code)]
+    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(context, can_gc);
+        }
+        // TODO: https://github.com/servo/servo/issues/43044
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
+        // Step 1. If oldParent is a picture element, then, count this as a relevant mutation for movedNode.
+        if let Some(old_parent) = context.old_parent {
+            if old_parent.is::<HTMLPictureElement>() {
+                self.update_the_image_data(cx);
+            }
         }
     }
 }

@@ -26,7 +26,7 @@ impl<'ld> ::style::dom::TDocument for ServoLayoutDocument<'ld> {
     type ConcreteNode = ServoLayoutNode<'ld>;
 
     fn as_node(&self) -> Self::ConcreteNode {
-        ServoLayoutNode::from_layout_js(self.document.upcast())
+        ServoLayoutNode::from_layout_dom(self.document.upcast())
     }
 
     fn quirks_mode(&self) -> QuirksMode {
@@ -77,7 +77,7 @@ impl<'ld> ServoLayoutDocument<'ld> {
                 .iter()
                 .map(|sr| {
                     debug_assert!(sr.upcast::<Node>().get_flag(NodeFlags::IS_CONNECTED));
-                    ServoShadowRoot::from_layout_js(*sr)
+                    ServoShadowRoot::from_layout_dom(*sr)
                 })
                 .collect()
         }
@@ -99,7 +99,7 @@ impl<'ld> ServoLayoutDocument<'ld> {
         }
     }
 
-    pub(crate) fn from_layout_js(document: LayoutDom<'ld, Document>) -> Self {
+    pub(crate) fn from_layout_dom(document: LayoutDom<'ld, Document>) -> Self {
         ServoLayoutDocument { document }
     }
 }

@@ -6,7 +6,7 @@ use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
 
 use app_units::{AU_PER_PX, Au};
-use base::id::ScrollTreeNodeId;
+use base::id::{PipelineId, ScrollTreeNodeId};
 use clip::{Clip, ClipId};
 use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
@@ -16,7 +16,7 @@ use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DiagnosticsLogging;
-use servo_config::pref;
+use servo_config::{pref, prefs};
 use servo_geometry::MaxRect;
 use servo_url::ServoUrl;
 use style::Zero;
@@ -45,7 +45,7 @@ use webrender_api::{
     self as wr, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, BuiltDisplayList,
     ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, GlyphInstance,
     NinePatchBorder, NinePatchBorderSource, NormalBorder, PrimitiveFlags, PropertyBinding,
-    SpatialId, SpatialTreeItemKey, units,
+    PropertyBindingKey, SpatialId, SpatialTreeItemKey, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -210,6 +210,9 @@ impl DisplayListBuilder<'_> {
             paint_timing_handler,
             reflow_statistics,
         };
+
+        // Clear any caret color from previous display list constructions.
+        builder.paint_info.caret_property_binding = None;
 
         builder.add_all_spatial_nodes();
 
@@ -794,7 +797,7 @@ impl Fragment {
             include_whitespace,
         );
 
-        if glyphs.is_empty() {
+        if glyphs.is_empty() && !fragment.is_empty_for_text_cursor {
             return;
         }
 
@@ -1012,6 +1015,18 @@ impl Fragment {
             return;
         }
 
+        // When there is an active selection, the line is empty, and there is a forced linebreak,
+        // layout will push an empty fragment in order to trigger painting of the cursor on an empty line.
+        // This code ensure that it is only painted if the cursor is on the starting index of the empty
+        // fragment.
+        if fragment.is_empty_for_text_cursor &&
+            !offsets
+                .character_range
+                .contains(&shared_selection.character_range.start)
+        {
+            return;
+        }
+
         let mut current_character_index = offsets.character_range.start;
         let mut current_advance = Au::zero();
         let mut start_advance = None;
@@ -1089,10 +1104,24 @@ impl Fragment {
             ColorOrAuto::Auto => color,
         };
         let insertion_point_common = builder.common_properties(insertion_point_rect, &parent_style);
-        builder.wr().push_rect(
+
+        let caret_color = rgba(caret_color);
+        let property_binding = if prefs::get().editing_caret_blink_time().is_some() {
+            // It's okay to always use the same property binding key for this pipeline, as
+            // there is currently only a single thing that animates in this way (the caret).
+            // This code should be updated if we ever add more paint-side animations.
+            let pipeline_id: PipelineId = builder.paint_info.pipeline_id.into();
+            let property_binding_key = PropertyBindingKey::new(pipeline_id.into());
+            builder.paint_info.caret_property_binding = Some((property_binding_key, caret_color));
+            PropertyBinding::Binding(property_binding_key, caret_color)
+        } else {
+            PropertyBinding::Value(caret_color)
+        };
+
+        builder.wr().push_rect_with_animation(
             &insertion_point_common,
             insertion_point_rect,
-            rgba(caret_color),
+            property_binding,
         );
     }
 }
@@ -1621,11 +1650,24 @@ impl<'a> BuilderForBoxFragment<'a> {
         {
             Err(_) => return false,
             Ok(ResolvedImage::Image { image, size }) => {
-                let Some(image) = image.as_raster_image() else {
-                    return false;
+                let image_key = match image {
+                    CachedImage::Raster(raster_image) => raster_image.id,
+                    CachedImage::Vector(vector_image) => {
+                        let scale = builder.device_pixel_ratio.get();
+                        let size = Size2D::new(size.width * scale, size.height * scale).to_i32();
+                        node.and_then(|node| {
+                            builder.image_resolver.rasterize_vector_image(
+                                vector_image.id,
+                                size,
+                                node,
+                                vector_image.svg_id,
+                            )
+                        })
+                        .and_then(|rasterized_image| rasterized_image.id)
+                    },
                 };
 
-                let Some(key) = image.id else {
+                let Some(key) = image_key else {
                     return false;
                 };
 

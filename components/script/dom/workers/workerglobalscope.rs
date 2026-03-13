@@ -68,8 +68,8 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
 use crate::dom::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reportingobserver::ReportingObserver;
-use crate::dom::trustedscripturl::TrustedScriptURL;
-use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
+use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
+use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::ImageBitmap;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -212,7 +212,7 @@ impl FetchResponseListener for ScriptFetchContext {
         // response's URL's scheme is an HTTP(S) scheme;
         let is_http_scheme = matches!(metadata.final_url.scheme(), "http" | "https");
         // and the result of extracting a MIME type from response's header list is not a JavaScript MIME type,
-        let not_a_javascript_mime_type = !metadata.content_type.clone().is_some_and(|ct| {
+        let not_a_javascript_mime_type = !metadata.content_type.is_some_and(|ct| {
             let mime: Mime = ct.into_inner().into();
             SCRIPT_JS_MIMES.contains(&mime.essence_str())
         });
@@ -595,7 +595,7 @@ impl WorkerGlobalScope {
             _ => {
                 // Step 1.1 Queue a global task on the DOM manipulation task source given
                 // worker's relevant global object to fire an event named error at worker.
-                dedicated_worker_scope.forward_simple_error_at_worker(worker.clone());
+                dedicated_worker_scope.forward_simple_error_at_worker(worker);
 
                 // TODO Step 1.2. Run the environment discarding steps for inside settings.
                 // Step 1.3 Abort these steps.

@@ -13,7 +13,6 @@ use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
-use xml5ever::ns;
 
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
@@ -83,7 +82,7 @@ impl HTMLAnchorElement {
     /// the URL could not be joined with the `Document` URL.
     pub(crate) fn full_href_url_for_user_interface(&self) -> Option<ServoUrl> {
         self.upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("href"))?;
+            .get_attribute(&local_name!("href"))?;
         self.owner_document().base_url().join(&self.Href()).ok()
     }
 }

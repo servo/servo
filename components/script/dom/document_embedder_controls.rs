@@ -490,7 +490,7 @@ impl ContextMenuNodes {
                     .as_ref()
                     .map(ServoUrl::to_string)
                     .unwrap_or_else(|| image_element.CurrentSrc().to_string());
-                set_clipboard_text(url_string.to_string());
+                set_clipboard_text(url_string);
             },
             ContextMenuAction::OpenImageInNewView => {
                 let Some(image_element) = &self.image_element else {

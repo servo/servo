@@ -40,7 +40,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -230,7 +230,7 @@ impl GPUDevice {
 
                 let event = GPUUncapturedErrorEvent::new(
                     &this.global(),
-                    DOMString::from("uncapturederror"),
+                    atom!("uncapturederror"),
                     &GPUUncapturedErrorEventInit {
                         error,
                         parent: EventInit::empty(),

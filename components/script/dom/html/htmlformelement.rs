@@ -10,7 +10,7 @@ use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
 use headers::{ContentType, HeaderMapExt};
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use http::Method;
 use js::context::JSContext;
 use js::rust::HandleObject;
@@ -1043,7 +1043,7 @@ impl HTMLFormElement {
         //    then set referrerPolicy to "no-referrer".
         // Note: both steps done below.
         let elem = self.upcast::<Element>();
-        let referrer = match elem.get_attribute(&ns!(), &local_name!("rel")) {
+        let referrer = match elem.get_attribute(&local_name!("rel")) {
             Some(ref link_types) if link_types.Value().contains("noreferrer") => {
                 Referrer::NoReferrer
             },
@@ -1811,6 +1811,17 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> {
             html_element.is_submittable_element() || element.is_instance_validatable()
         } else {
             false
+        }
+    }
+
+    fn moving_steps(&self, can_gc: CanGc) {
+        // If movedNode is a form-associated element with a non-null form owner and movedNode and
+        // its form owner are no longer in the same tree, then reset the form owner of movedNode.
+        let same_subtree = self
+            .form_owner()
+            .is_none_or(|form| self.to_element().is_in_same_home_subtree(&*form));
+        if !same_subtree {
+            self.reset_form_owner(can_gc)
         }
     }
 

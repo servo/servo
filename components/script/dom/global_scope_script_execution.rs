@@ -51,7 +51,7 @@ pub(crate) struct ClassicScript {
     muted_errors: ErrorReporting,
 }
 
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 pub(crate) enum ErrorReporting {
     Muted,
     Unmuted,
@@ -112,6 +112,8 @@ impl GlobalScope {
             url.as_str(),
             line_number,
             introduction_type,
+            muted_errors,
+            true,
         ));
 
         // Step 11. If result is a list of errors, then:
@@ -311,7 +313,14 @@ pub(crate) fn compile_script(
     filename: &str,
     line_number: u32,
     introduction_type: Option<&'static CStr>,
+    muted_errors: ErrorReporting,
+    no_script_rval: bool,
 ) -> *mut JSScript {
+    let muted_errors = match muted_errors {
+        ErrorReporting::Muted => true,
+        ErrorReporting::Unmuted => false,
+    };
+
     // TODO: pass filename as CString to avoid allocation
     // See https://github.com/servo/servo/issues/42126
     let filename = cformat!("{filename}");
@@ -319,6 +328,13 @@ pub(crate) fn compile_script(
     if let Some(introduction_type) = introduction_type {
         options.set_introduction_type(introduction_type);
     }
+
+    // https://searchfox.org/firefox-main/rev/46fa95cd7f10222996ec267947ab94c5107b1475/js/public/CompileOptions.h#284
+    options.set_muted_errors(muted_errors);
+
+    // https://searchfox.org/firefox-main/rev/46fa95cd7f10222996ec267947ab94c5107b1475/js/public/CompileOptions.h#518
+    options.set_is_run_once(true);
+    options.set_no_script_rval(no_script_rval);
 
     debug!("Compiling script");
     unsafe { Compile1(*cx, options.ptr, &mut transform_str_to_source_text(text)) }

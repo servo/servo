@@ -162,7 +162,6 @@ impl Notification {
         // TODO: missing call to https://html.spec.whatwg.org/multipage/#structuredserializeforstorage
         // may be find in `dom/bindings/structuredclone.rs`
 
-        let title = title.clone();
         let dir = options.dir;
         let lang = options.lang.clone();
         let body = options.body.clone();
@@ -331,7 +330,7 @@ impl Notification {
                     icon_resource: icon_resource.clone(),
                 })
                 .collect(),
-            icon_resource: icon_resource.clone(),
+            icon_resource,
             badge_resource: self
                 .badge_resource
                 .borrow()
@@ -417,7 +416,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         let uuid_ = uuid.clone();
 
         if let Some(callback) = permission_callback {
-            global.add_notification_permission_request_callback(uuid.clone(), callback.clone());
+            global.add_notification_permission_request_callback(uuid, callback);
         }
 
         global.task_manager().dom_manipulation_task_source().queue(
@@ -882,25 +881,13 @@ impl Notification {
                 _,
                 pending_image_id,
             )) => {
-                self.register_image_cache_callback(
-                    request_id,
-                    pending_image_id,
-                    resource_type.clone(),
-                );
+                self.register_image_cache_callback(request_id, pending_image_id, resource_type);
             },
             ImageCacheResult::Pending(pending_image_id) => {
-                self.register_image_cache_callback(
-                    request_id,
-                    pending_image_id,
-                    resource_type.clone(),
-                );
+                self.register_image_cache_callback(request_id, pending_image_id, resource_type);
             },
             ImageCacheResult::ReadyForRequest(pending_image_id) => {
-                self.register_image_cache_callback(
-                    request_id,
-                    pending_image_id,
-                    resource_type.clone(),
-                );
+                self.register_image_cache_callback(request_id, pending_image_id, resource_type);
                 self.fetch(pending_image_id, request, global);
             },
             ImageCacheResult::FailedToLoadOrDecode => {

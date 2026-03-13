@@ -228,7 +228,7 @@ impl HeadedWindow {
     ) {
         // First, handle servoshell key bindings that are not overridable by, or visible to, the page.
         let keyboard_event = keyboard_event_from_winit(&winit_event, self.modifiers_state.get());
-        if self.handle_intercepted_key_bindings(state.clone(), window, &keyboard_event) {
+        if self.handle_intercepted_key_bindings(state, window, &keyboard_event) {
             return;
         }
 
@@ -659,7 +659,7 @@ impl HeadedWindow {
             if let Some(webview) = window.active_webview() {
                 match event {
                     WindowEvent::KeyboardInput { event, .. } => {
-                        self.handle_keyboard_input(state.clone(), &window, event)
+                        self.handle_keyboard_input(state, &window, event)
                     },
                     WindowEvent::ModifiersChanged(modifiers) => {
                         self.modifiers_state.set(modifiers.state())
@@ -824,7 +824,6 @@ impl PlatformWindow for HeadedWindow {
                 webview
                     .page_title()
                     .filter(|title| !title.is_empty())
-                    .map(|title| title.to_string())
                     .or_else(|| webview.url().map(|url| url.to_string()))
             })
             .unwrap_or_else(|| INITIAL_WINDOW_TITLE.to_string());

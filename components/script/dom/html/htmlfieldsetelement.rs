@@ -149,7 +149,7 @@ impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fieldset-type>
     fn Type(&self) -> DOMString {
-        DOMString::from_string(String::from("fieldset"))
+        "fieldset".into()
     }
 }
 
@@ -223,7 +223,6 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 );
                             }
                         }
-                        element.update_sequentially_focusable_status(can_gc);
                     }
                 } else {
                     for field in fields {
@@ -244,10 +243,8 @@ impl VirtualMethods for HTMLFieldSetElement {
                                 );
                             }
                         }
-                        element.update_sequentially_focusable_status(can_gc);
                     }
                 }
-                element.update_sequentially_focusable_status(can_gc);
             },
             local_name!("form") => {
                 self.form_attribute_mutated(mutation, can_gc);

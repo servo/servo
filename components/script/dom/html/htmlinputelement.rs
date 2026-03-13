@@ -101,6 +101,7 @@ const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
+const DEFAULT_FILE_INPUT_MULTIPLE_VALUE: &str = "No files chosen";
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -229,7 +230,7 @@ impl TextInputWidgetShadowTree {
         if let Some(character_data) = self.placeholder_character_data(input_element, can_gc) {
             let placeholder_value = input_element.placeholder.borrow().clone();
             if character_data.Data() != placeholder_value {
-                character_data.SetData(placeholder_value.clone());
+                character_data.SetData(placeholder_value);
             }
         }
     }
@@ -870,10 +871,7 @@ impl HTMLInputElement {
 
         // Step 2. Otherwise, if the attribute is absent, then the allowed value step
         // is the default step multiplied by the step scale factor.
-        let Some(attribute) = self
-            .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("step"))
-        else {
+        let Some(attribute) = self.upcast::<Element>().get_attribute(&local_name!("step")) else {
             return Some(default_step * self.step_scale_factor());
         };
 
@@ -901,7 +899,7 @@ impl HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage#concept-input-min>
     fn minimum(&self) -> Option<f64> {
         self.upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("min"))
+            .get_attribute(&local_name!("min"))
             .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
             .or_else(|| self.default_minimum())
     }
@@ -909,7 +907,7 @@ impl HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage#concept-input-max>
     fn maximum(&self) -> Option<f64> {
         self.upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("max"))
+            .get_attribute(&local_name!("max"))
             .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
             .or_else(|| self.default_maximum())
     }
@@ -1006,7 +1004,7 @@ impl HTMLInputElement {
         // is not an error, then return that result.
         if let Some(minimum) = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("min"))
+            .get_attribute(&local_name!("min"))
             .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
         {
             return minimum;
@@ -1017,7 +1015,7 @@ impl HTMLInputElement {
         // is not an error, then return that result.
         if let Some(value) = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("value"))
+            .get_attribute(&local_name!("value"))
             .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
         {
             return value;
@@ -1474,6 +1472,9 @@ impl HTMLInputElement {
             InputType::Range => "".into(),
             InputType::File => {
                 let Some(filelist) = self.filelist.get() else {
+                    if self.Multiple() {
+                        return DEFAULT_FILE_INPUT_MULTIPLE_VALUE.into();
+                    }
                     return DEFAULT_FILE_INPUT_VALUE.into();
                 };
                 let length = filelist.Length();
@@ -1482,6 +1483,9 @@ impl HTMLInputElement {
                 }
 
                 let Some(first_item) = filelist.Item(0) else {
+                    if self.Multiple() {
+                        return DEFAULT_FILE_INPUT_MULTIPLE_VALUE.into();
+                    }
                     return DEFAULT_FILE_INPUT_VALUE.into();
                 };
                 first_item.name().to_string().into()
@@ -1489,7 +1493,7 @@ impl HTMLInputElement {
             _ => {
                 if let Some(attribute_value) = self
                     .upcast::<Element>()
-                    .get_attribute(&ns!(), &local_name!("value"))
+                    .get_attribute(&local_name!("value"))
                     .map(|attribute| attribute.Value())
                 {
                     return attribute_value;
@@ -1693,13 +1697,13 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             ValueMode::Value => self.textinput.borrow().get_content(),
             ValueMode::Default => self
                 .upcast::<Element>()
-                .get_attribute(&ns!(), &local_name!("value"))
+                .get_attribute(&local_name!("value"))
                 .map_or(DOMString::from(""), |a| {
                     DOMString::from(a.summarize().value)
                 }),
             ValueMode::DefaultOn => self
                 .upcast::<Element>()
-                .get_attribute(&ns!(), &local_name!("value"))
+                .get_attribute(&local_name!("value"))
                 .map_or(DOMString::from("on"), |a| {
                     DOMString::from(a.summarize().value)
                 }),
@@ -2241,8 +2245,8 @@ impl HTMLInputElement {
                         datums.push(FormDatum {
                             // XXX(izgzhen): Spec says 'application/octet-stream' as the type,
                             // but this is _type_ of element rather than content right?
-                            ty: ty.clone(),
-                            name: name.clone(),
+                            ty,
+                            name,
                             value: FormDatumValue::String(DOMString::from("")),
                         })
                     },
@@ -2257,7 +2261,7 @@ impl HTMLInputElement {
             InputType::Hidden => {
                 if name.to_ascii_lowercase() == "_charset_" {
                     return vec![FormDatum {
-                        ty: ty.clone(),
+                        ty,
                         name,
                         value: FormDatumValue::String(match encoding {
                             None => DOMString::from("UTF-8"),
@@ -2277,7 +2281,7 @@ impl HTMLInputElement {
 
         // Step 5.12
         vec![FormDatum {
-            ty: ty.clone(),
+            ty,
             name,
             value: FormDatumValue::String(self.Value()),
         }]
@@ -2472,7 +2476,7 @@ impl HTMLInputElement {
                     .parse_local_date_time_string()
                     .map(|date_time| date_time.to_local_date_time_string());
                 match time {
-                    Some(normalized_string) => *value = DOMString::from_string(normalized_string),
+                    Some(normalized_string) => *value = normalized_string.into(),
                     None => value.clear(),
                 }
             },
@@ -2699,7 +2703,7 @@ impl HTMLInputElement {
                     // but we can get here from synthetic keydown events
                     button
                         .upcast::<Node>()
-                        .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc);
+                        .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
                 }
             },
             None => {
@@ -2850,7 +2854,7 @@ impl HTMLInputElement {
     /// This does the safe Rust part of conversion; the unsafe JS Date part
     /// is in SetValueAsDate
     fn convert_datetime_to_dom_string(&self, value: OffsetDateTime) -> DOMString {
-        DOMString::from_string(match self.input_type() {
+        match self.input_type() {
             InputType::Date => value.to_date_string(),
             InputType::Month => value.to_month_string(),
             InputType::Week => value.to_week_string(),
@@ -2859,7 +2863,8 @@ impl HTMLInputElement {
             _ => {
                 unreachable!("Should not have called convert_datetime_to_string for non-Date types")
             },
-        })
+        }
+        .into()
     }
 
     fn update_related_validity_states(&self, can_gc: CanGc) {
@@ -3065,8 +3070,6 @@ impl VirtualMethods for HTMLInputElement {
                     let read_write = !(self.ReadOnly() || el.disabled_state());
                     el.set_read_write_state(read_write);
                 }
-
-                el.update_sequentially_focusable_status(can_gc);
             },
             local_name!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
@@ -3121,7 +3124,7 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Value) if old_value_mode != ValueMode::Value => {
                                 self.SetValue(
                                     self.upcast::<Element>()
-                                        .get_attribute(&ns!(), &local_name!("value"))
+                                        .get_attribute(&local_name!("value"))
                                         .map_or(DOMString::from(""), |a| {
                                             DOMString::from(a.summarize().value)
                                         }),
@@ -3429,13 +3432,13 @@ impl VirtualMethods for HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#the-input-element%3Aconcept-node-clone-ext>
     fn cloning_steps(
         &self,
+        cx: &mut JSContext,
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
-        can_gc: CanGc,
     ) {
         if let Some(s) = self.super_type() {
-            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
+            s.cloning_steps(cx, copy, maybe_doc, clone_children);
         }
         let elem = copy.downcast::<HTMLInputElement>().unwrap();
         elem.value_dirty.set(self.value_dirty.get());
@@ -3445,7 +3448,7 @@ impl VirtualMethods for HTMLInputElement {
         elem.textinput
             .borrow_mut()
             .set_content(self.textinput.borrow().get_content());
-        self.value_changed(can_gc);
+        self.value_changed(CanGc::from_cx(cx));
     }
 }
 

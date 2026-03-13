@@ -506,7 +506,8 @@ impl ElementStylesheetLoader<'_> {
         // If element's media attribute's value matches the environment and
         // element is potentially render-blocking, then block rendering on element.
         context.is_render_blocking = element.media_attribute_matches_media_environment() &&
-            owner.potentially_render_blocking();
+            owner.potentially_render_blocking() &&
+            document.allows_adding_render_blocking_elements();
         if context.is_render_blocking {
             document.increment_render_blocking_element_count();
         }

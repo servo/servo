@@ -12,7 +12,7 @@ use std::rc::Rc;
 use base::id::WebViewId;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::{HandleObject, Stencil};
 use net_traits::http_status::HttpStatus;
@@ -29,6 +29,7 @@ use uuid::Uuid;
 use crate::document_loader::LoadType;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -43,6 +44,7 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, InlineCheckType, Violation};
 use crate::dom::document::Document;
+use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
     referrer_policy_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute,
@@ -52,10 +54,10 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::global_scope_script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits};
+use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::dom::trustedscript::TrustedScript;
-use crate::dom::trustedscripturl::TrustedScriptURL;
+use crate::dom::trustedtypes::trustedscript::TrustedScript;
+use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
@@ -110,6 +112,13 @@ pub(crate) struct HTMLScriptElement {
     /// `srcScript` or `inlineScript` that this script would normally use.
     #[no_trace]
     introduction_type_override: Cell<Option<&'static CStr>>,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-script-blocking>
+    blocking: MutNullableDom<DOMTokenList>,
+
+    /// Used to keep track whether we consider this script element render blocking during
+    /// `prepare`
+    marked_as_render_blocking: Cell<bool>,
 }
 
 impl HTMLScriptElement {
@@ -131,6 +140,8 @@ impl HTMLScriptElement {
             script_text: DomRefCell::new(DOMString::new()),
             from_an_external_file: Cell::new(false),
             introduction_type_override: Cell::new(None),
+            blocking: Default::default(),
+            marked_as_render_blocking: Default::default(),
         }
     }
 
@@ -424,7 +435,7 @@ impl FetchResponseListener for ClassicContext {
         // sourceText, settingsObject, response's URL, options, mutedErrors, and url.
         let script = global.create_a_classic_script(
             source_text,
-            final_url.clone(),
+            final_url,
             self.fetch_options.clone(),
             ErrorReporting::from(muted_errors),
             Some(IntroductionType::SRC_SCRIPT),
@@ -573,6 +584,31 @@ impl HTMLScriptElement {
         Ok(())
     }
 
+    fn has_render_blocking_attribute(&self) -> bool {
+        self.blocking
+            .get()
+            .is_some_and(|list| list.Contains("render".into()))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#potentially-render-blocking>
+    fn potentially_render_blocking(&self) -> bool {
+        // An element is potentially render-blocking if its blocking tokens set contains "render",
+        // or if it is implicitly potentially render-blocking, which will be defined at the individual elements.
+        // By default, an element is not implicitly potentially render-blocking.
+        if self.has_render_blocking_attribute() {
+            return true;
+        }
+        let element = self.upcast::<Element>();
+        // https://html.spec.whatwg.org/multipage/#script-processing-model:implicitly-potentially-render-blocking
+        // > A script element el is implicitly potentially render-blocking if el's type is "classic",
+        // > el is parser-inserted, and el does not have an async or defer attribute.
+        self.get_script_type()
+            .is_some_and(|script_type| script_type == ScriptType::Classic) &&
+            self.parser_inserted.get() &&
+            !element.has_attribute(&local_name!("async")) &&
+            !element.has_attribute(&local_name!("defer"))
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#prepare-the-script-element>
     pub(crate) fn prepare(&self, introduction_type_override: Option<&'static CStr>, can_gc: CanGc) {
         self.introduction_type_override
@@ -676,8 +712,8 @@ impl HTMLScriptElement {
 
         // Step 20. If el has an event attribute and a for attribute, and el's type is "classic", then:
         if script_type == ScriptType::Classic {
-            let for_attribute = element.get_attribute(&ns!(), &local_name!("for"));
-            let event_attribute = element.get_attribute(&ns!(), &local_name!("event"));
+            let for_attribute = element.get_attribute(&local_name!("for"));
+            let event_attribute = element.get_attribute(&local_name!("event"));
             if let (Some(ref for_attribute), Some(ref event_attribute)) =
                 (for_attribute, event_attribute)
             {
@@ -700,7 +736,7 @@ impl HTMLScriptElement {
         // If el does not have a charset attribute, or if getting an encoding failed,
         // then let encoding be el's node document's the encoding.
         let encoding = element
-            .get_attribute(&ns!(), &local_name!("charset"))
+            .get_attribute(&local_name!("charset"))
             .and_then(|charset| Encoding::for_label(charset.value().as_bytes()))
             .unwrap_or_else(|| doc.encoding());
 
@@ -734,7 +770,7 @@ impl HTMLScriptElement {
 
         // Step 25. If el has an integrity attribute, then let integrity metadata be that attribute's value.
         // Otherwise, let integrity metadata be the empty string.
-        let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
+        let im_attribute = element.get_attribute(&local_name!("integrity"));
         let integrity_val = im_attribute.as_ref().map(|a| a.value());
         let integrity_metadata = match integrity_val {
             Some(ref value) => &***value,
@@ -769,7 +805,7 @@ impl HTMLScriptElement {
         // What we actually need is global's import map eventually.
 
         let base_url = doc.base_url();
-        if let Some(src) = element.get_attribute(&ns!(), &local_name!("src")) {
+        if let Some(src) = element.get_attribute(&local_name!("src")) {
             // Step 31. If el has a src content attribute, then:
 
             // Step 31.1. If el's type is "importmap".
@@ -802,8 +838,13 @@ impl HTMLScriptElement {
                 },
             };
 
-            // TODO:
             // Step 31.7. If el is potentially render-blocking, then block rendering on el.
+            if self.potentially_render_blocking() && doc.allows_adding_render_blocking_elements() {
+                self.marked_as_render_blocking.set(true);
+                doc.increment_render_blocking_element_count();
+            }
+
+            // TODO:
             // Step 31.8. Set el's delaying the load event to true.
             // Step 31.9. If el is currently render-blocking, then set options's render-blocking to true.
 
@@ -851,7 +892,7 @@ impl HTMLScriptElement {
 
                     // Step 31.11. Fetch an external module script graph.
                     fetch_an_external_module_script(
-                        url.clone(),
+                        url,
                         ModuleOwner::Window(Trusted::new(self)),
                         options,
                         can_gc,
@@ -920,7 +961,7 @@ impl HTMLScriptElement {
                     fetch_inline_module_script(
                         ModuleOwner::Window(Trusted::new(self)),
                         text_rc,
-                        base_url.clone(),
+                        base_url,
                         options,
                         self.line_number as u32,
                         can_gc,
@@ -960,7 +1001,11 @@ impl HTMLScriptElement {
             return;
         }
 
-        // TODO: Step 3. Unblock rendering on el.
+        // Step 3. Unblock rendering on el.
+        if self.marked_as_render_blocking.replace(false) {
+            doc.decrement_render_blocking_element_count();
+        }
+
         let script = match result {
             // Step 4. If el's result is null, then fire an event named error at el, and return.
             Err(_) => {
@@ -1066,8 +1111,8 @@ impl HTMLScriptElement {
     pub(crate) fn get_script_type(&self) -> Option<ScriptType> {
         let element = self.upcast::<Element>();
 
-        let type_attr = element.get_attribute(&ns!(), &local_name!("type"));
-        let language_attr = element.get_attribute(&ns!(), &local_name!("language"));
+        let type_attr = element.get_attribute(&local_name!("type"));
+        let language_attr = element.get_attribute(&local_name!("language"));
 
         match (
             type_attr.as_ref().map(|t| t.value()),
@@ -1170,6 +1215,12 @@ impl VirtualMethods for HTMLScriptElement {
                     self.prepare(Some(IntroductionType::INJECTED_SCRIPT), can_gc);
                 }
             }
+        } else if *attr.local_name() == local_name!("blocking") &&
+            !self.has_render_blocking_attribute() &&
+            self.marked_as_render_blocking.replace(false)
+        {
+            let document = self.owner_document();
+            document.decrement_render_blocking_element_count();
         }
     }
 
@@ -1205,13 +1256,13 @@ impl VirtualMethods for HTMLScriptElement {
 
     fn cloning_steps(
         &self,
+        cx: &mut JSContext,
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
-        can_gc: CanGc,
     ) {
         if let Some(s) = self.super_type() {
-            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
+            s.cloning_steps(cx, copy, maybe_doc, clone_children);
         }
 
         // https://html.spec.whatwg.org/multipage/#already-started
@@ -1219,6 +1270,13 @@ impl VirtualMethods for HTMLScriptElement {
             copy.downcast::<HTMLScriptElement>()
                 .unwrap()
                 .set_already_started(true);
+        }
+    }
+
+    fn unbind_from_tree(&self, _context: &UnbindContext, _can_gc: CanGc) {
+        if self.marked_as_render_blocking.replace(false) {
+            let document = self.owner_document();
+            document.decrement_render_blocking_element_count();
         }
     }
 }
@@ -1277,6 +1335,18 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     make_bool_getter!(Defer, "defer");
     // https://html.spec.whatwg.org/multipage/#dom-script-defer
     make_bool_setter!(SetDefer, "defer");
+
+    /// <https://html.spec.whatwg.org/multipage/#attr-script-blocking>
+    fn Blocking(&self, cx: &mut JSContext) -> DomRoot<DOMTokenList> {
+        self.blocking.or_init(|| {
+            DOMTokenList::new(
+                self.upcast(),
+                &local_name!("blocking"),
+                Some(vec![Atom::from("render")]),
+                CanGc::from_cx(cx),
+            )
+        })
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-nomodule
     make_bool_getter!(NoModule, "nomodule");

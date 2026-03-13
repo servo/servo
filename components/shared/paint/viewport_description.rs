@@ -124,6 +124,8 @@ impl ViewportDescription {
                 _ => (),
             }
         }
+        description.initial_scale =
+            Scale::new(description.clamp_zoom(description.initial_scale.get()));
         description
     }
 
@@ -141,7 +143,7 @@ impl ViewportDescription {
     }
 
     /// Constrains a zoom value within the allowed scale range
-    pub fn clamp_page_zoom(&self, zoom: f32) -> f32 {
+    pub fn clamp_zoom(&self, zoom: f32) -> f32 {
         zoom.clamp(self.minimum_scale.get(), self.maximum_scale.get())
     }
 }

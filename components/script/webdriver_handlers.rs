@@ -381,7 +381,7 @@ pub(crate) fn jsval_to_webdriver(
         let in_realm = InRealm::Already(&in_realm_proof);
 
         if result.is_err() {
-            report_pending_exception(cx.into(), true, in_realm, CanGc::from_cx(cx));
+            report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
         }
         result
     })
@@ -638,7 +638,6 @@ pub(crate) fn handle_execute_async_script(
         Some(window) => {
             let reply_sender = reply.clone();
             window.set_webdriver_script_chan(Some(reply));
-            rooted!(&in(cx) let mut rval = UndefinedValue());
 
             let global_scope = window.as_global_scope();
 
@@ -649,7 +648,7 @@ pub(crate) fn handle_execute_async_script(
                 eval.into(),
                 "",
                 None, // No known `introductionType` for JS code from WebDriver
-                rval.handle_mut(),
+                None,
             ) {
                 reply_sender.send(Err(error)).unwrap_or_else(|error| {
                     error!("ExecuteAsyncScript Failed to send reply: {error}");
@@ -836,7 +835,7 @@ pub(crate) fn handle_find_elements_link_text(
         Ok(document) => reply
             .send(all_matching_links(
                 document.upcast::<Node>(),
-                selector.clone(),
+                selector,
                 partial,
             ))
             .unwrap(),
@@ -1148,9 +1147,11 @@ pub(crate) fn handle_get_element_shadow_root(
         .unwrap();
 }
 
-/// <https://w3c.github.io/webdriver/#dfn-keyboard-interactable>
-fn is_keyboard_interactable(element: &Element) -> bool {
-    element.is_focusable_area() || element.is::<HTMLBodyElement>() || element.is_document_element()
+impl Element {
+    /// <https://w3c.github.io/webdriver/#dfn-keyboard-interactable>
+    fn is_keyboard_interactable(&self) -> bool {
+        self.is_focusable_area() || self.is::<HTMLBodyElement>() || self.is_document_element()
+    }
 }
 
 fn handle_send_keys_file(
@@ -1277,7 +1278,7 @@ pub(crate) fn handle_will_send_keys(
 
         // Step 7.6. If element is not keyboard-interactable,
         // return ErrorStatus::ElementNotInteractable.
-        if !is_keyboard_interactable(&element) {
+        if !element.is_keyboard_interactable() {
             let _ = reply.send(Err(ErrorStatus::ElementNotInteractable));
             return;
         }
@@ -1881,7 +1882,7 @@ pub(crate) fn handle_element_clear(
 
                 // Step 10. If element is not keyboard-interactable or not pointer-interactable,
                 // return error with error code element not interactable.
-                if !is_keyboard_interactable(&element) {
+                if !element.is_keyboard_interactable() {
                     return Err(ErrorStatus::ElementNotInteractable);
                 }
 

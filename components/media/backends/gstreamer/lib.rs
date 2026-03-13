@@ -66,13 +66,13 @@ pub struct GStreamerBackend {
 
 #[derive(Debug)]
 #[allow(dead_code)]
-pub struct ErrorLoadingPlugins(Vec<&'static str>);
+pub struct ErrorLoadingPlugins<'a>(Vec<&'a str>);
 
 impl GStreamerBackend {
-    pub fn init_with_plugins(
+    pub fn init_with_plugins<'a, T: AsRef<str>>(
         plugin_dir: PathBuf,
-        plugins: &[&'static str],
-    ) -> Result<Box<dyn Backend>, ErrorLoadingPlugins> {
+        plugins: &'a [T],
+    ) -> Result<Box<dyn Backend>, ErrorLoadingPlugins<'a>> {
         gstreamer::init().unwrap();
 
         // GStreamer between 1.19.1 and 1.22.7 will not send messages like "end of stream"
@@ -94,14 +94,14 @@ impl GStreamerBackend {
         let mut errors = vec![];
         for plugin in plugins {
             let mut path = plugin_dir.clone();
-            path.push(plugin);
+            path.push(plugin.as_ref());
             let registry = gstreamer::Registry::get();
             if gstreamer::Plugin::load_file(&path)
                 .is_ok_and(|plugin| registry.add_plugin(&plugin).is_ok())
             {
                 continue;
             }
-            errors.push(*plugin);
+            errors.push(plugin.as_ref());
         }
 
         if !errors.is_empty() {
@@ -169,6 +169,7 @@ impl GStreamerBackend {
 }
 
 impl Backend for GStreamerBackend {
+    #[expect(clippy::redundant_clone, reason = "False positive")]
     fn create_player(
         &self,
         context_id: &ClientContextId,
@@ -195,6 +196,7 @@ impl Backend for GStreamerBackend {
         player
     }
 
+    #[expect(clippy::redundant_clone, reason = "False positive")]
     fn create_audio_context(
         &self,
         client_context_id: &ClientContextId,
@@ -334,7 +336,7 @@ impl WebRtcBackend for GStreamerBackend {
 
 impl BackendInit for GStreamerBackend {
     fn init() -> Box<dyn Backend> {
-        Self::init_with_plugins(PathBuf::new(), &[]).unwrap()
+        Self::init_with_plugins::<&str>(PathBuf::new(), &[]).unwrap()
     }
 }
 

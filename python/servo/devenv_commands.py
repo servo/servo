@@ -102,8 +102,15 @@ class MachCommands(CommandBase):
         assert isinstance(status, int)
         return status
 
-    @Command("clippy", description='Run "cargo clippy"', category="devenv")
-    @CommandArgument("params", default=None, nargs="...", help="Command-line arguments to be passed through to clippy")
+    @Command("clippy", description='Run "cargo clippy.', category="devenv")
+    @CommandArgument(
+        "params",
+        default=None,
+        nargs="...",
+        help="Command-line arguments to be passed through to clippy. "
+        "Note that this can be separated via `--` from arguments for `mach`. "
+        "Arguments for clippy itself need another `--`, e.g. `./mach clippy -- -- --deny clippy::lint_name",
+    )
     @CommandArgument(
         "--github-annotations",
         default=False,
@@ -126,6 +133,15 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         env = self.build_env()
         env["RUSTC"] = "rustc"
+
+        # arguments to be passed through to clippy (as opposed to the cargo clippy wrapper)
+        # These should mainly be `--allow`, `--warn`, `--deny`, `--forbid`
+        # Note that some lints can additionally be configured by `.clippy.toml` at the repository root.
+        clippy_args = ["--deny=clippy::disallowed_types", "--warn=clippy::redundant-clone"]
+
+        if "--" not in params:
+            params.append("--")
+        params.extend(clippy_args)
 
         if github_annotations:
             if "--message-format=json" not in params:

@@ -466,9 +466,8 @@ impl DeferredFetchRecord {
         // Step 2. Set deferredRecord’s invoke state to "sent".
         self.invoke_state.set(DeferredFetchRecordInvokeState::Sent);
         // Step 3. Fetch deferredRecord’s request.
-        let url = self.request.url().clone();
         let fetch_later_listener = FetchLaterListener {
-            url,
+            url: self.request.url(),
             global: Trusted::new(global),
         };
         let request_init = request_init_from_request(self.request.clone(), global);

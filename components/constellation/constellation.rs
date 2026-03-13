@@ -132,11 +132,11 @@ use embedder_traits::resources::{self, Resource};
 use embedder_traits::user_contents::{UserContentManagerId, UserContents};
 use embedder_traits::{
     AnimationState, EmbedderControlId, EmbedderControlResponse, EmbedderMsg, EmbedderProxy,
-    FocusSequenceNumber, InputEvent, InputEventAndId, JSValue, JavaScriptEvaluationError,
-    JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType, MediaSessionEvent,
-    MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent, NewWebViewDetails,
-    PaintHitTestResult, Theme, ViewportDetails, WebDriverCommandMsg, WebDriverLoadStatus,
-    WebDriverScriptCommand,
+    FocusSequenceNumber, InputEvent, InputEventAndId, InputEventOutcome, JSValue,
+    JavaScriptEvaluationError, JavaScriptEvaluationId, KeyboardEvent, MediaSessionActionType,
+    MediaSessionEvent, MediaSessionPlaybackState, MouseButton, MouseButtonAction, MouseButtonEvent,
+    NewWebViewDetails, PaintHitTestResult, Theme, ViewportDetails, WebDriverCommandMsg,
+    WebDriverLoadStatus, WebDriverScriptCommand,
 };
 use euclid::Size2D;
 use euclid::default::Size2D as UntypedSize2D;
@@ -2570,22 +2570,48 @@ where
         new_value: Option<String>,
     ) {
         let origin = url.origin();
+        let Some(source_pipeline) = self.pipelines.get(&pipeline_id) else {
+            warn!("Received storage event broadcast request from closed pipeline.");
+            return;
+        };
+
+        if source_pipeline.url.origin() != origin {
+            return warn!(
+                "Attempt to broadcast storage event from an origin not matching the source pipeline origin."
+            );
+        }
+
         for pipeline in self.pipelines.values() {
-            if (pipeline.id != pipeline_id) && (pipeline.url.origin() == origin) {
-                let msg = ScriptThreadMessage::DispatchStorageEvent(
-                    pipeline.id,
-                    storage,
-                    url.clone(),
-                    key.clone(),
-                    old_value.clone(),
-                    new_value.clone(),
+            if pipeline.id == pipeline_id || pipeline.url.origin() != origin {
+                continue;
+            }
+
+            // https://html.spec.whatwg.org/multipage/#concept-storage-broadcast
+            // "Step 3. Let remoteStorages be all Storage objects excluding storage whose:
+            // type is storage's type
+            // relevant settings object's origin is same origin with storage's relevant settings object's origin
+            // and, if type is "session", whose relevant settings object's associated Document's
+            // node navigable's traversable navigable is thisDocument's node navigable's
+            // traversable navigable."
+            if storage == WebStorageType::Session &&
+                pipeline.webview_id != source_pipeline.webview_id
+            {
+                continue;
+            }
+
+            let msg = ScriptThreadMessage::DispatchStorageEvent(
+                pipeline.id,
+                storage,
+                url.clone(),
+                key.clone(),
+                old_value.clone(),
+                new_value.clone(),
+            );
+            if let Err(err) = pipeline.event_loop.send(msg) {
+                warn!(
+                    "{}: Failed to broadcast storage event to pipeline ({:?}).",
+                    pipeline.id, err
                 );
-                if let Err(err) = pipeline.event_loop.send(msg) {
-                    warn!(
-                        "{}: Failed to broadcast storage event to pipeline ({:?}).",
-                        pipeline.id, err
-                    );
-                }
             }
         }
     }
@@ -2683,11 +2709,17 @@ where
         // Channels to receive signals when threads are done exiting.
         let (core_ipc_sender, core_ipc_receiver) =
             generic_channel::oneshot().expect("Failed to create IPC channel!");
-        let (client_storage_generic_sender, client_storage_generic_receiver) =
+        let (public_client_storage_generic_sender, public_client_storage_generic_receiver) =
             generic_channel::channel().expect("Failed to create generic channel!");
-        let (indexeddb_ipc_sender, indexeddb_ipc_receiver) =
+        let (private_client_storage_generic_sender, private_client_storage_generic_receiver) =
             generic_channel::channel().expect("Failed to create generic channel!");
-        let (web_storage_generic_sender, web_storage_generic_receiver) =
+        let (public_indexeddb_ipc_sender, public_indexeddb_ipc_receiver) =
+            generic_channel::channel().expect("Failed to create generic channel!");
+        let (private_indexeddb_ipc_sender, private_indexeddb_ipc_receiver) =
+            generic_channel::channel().expect("Failed to create generic channel!");
+        let (public_web_storage_generic_sender, public_web_storage_generic_receiver) =
+            generic_channel::channel().expect("Failed to create generic channel!");
+        let (private_web_storage_generic_sender, private_web_storage_generic_receiver) =
             generic_channel::channel().expect("Failed to create generic channel!");
 
         debug!("Exiting core resource threads.");
@@ -2706,28 +2738,55 @@ where
             }
         }
 
-        debug!("Exiting client storage thread.");
+        debug!("Exiting public client storage thread.");
         if let Err(e) = generic_channel::GenericSend::send(
             &self.public_storage_threads,
-            ClientStorageThreadMessage::Exit(client_storage_generic_sender),
+            ClientStorageThreadMessage::Exit(public_client_storage_generic_sender),
         ) {
-            warn!("Exit client storage thread failed ({})", e);
+            warn!("Exit public client storage thread failed ({})", e);
         }
-        debug!("Exiting indexeddb resource threads.");
+        debug!("Exiting private client storage thread.");
+        if let Err(e) = generic_channel::GenericSend::send(
+            &self.private_storage_threads,
+            ClientStorageThreadMessage::Exit(private_client_storage_generic_sender),
+        ) {
+            warn!("Exit private client storage thread failed ({})", e);
+        }
+
+        debug!("Exiting public indexeddb resource threads.");
         if let Err(e) =
             self.public_storage_threads
                 .send(IndexedDBThreadMsg::Sync(SyncOperation::Exit(
-                    indexeddb_ipc_sender,
+                    public_indexeddb_ipc_sender,
                 )))
         {
-            warn!("Exit indexeddb thread failed ({})", e);
+            warn!("Exit public indexeddb thread failed ({})", e);
         }
-        debug!("Exiting web storage thread.");
+
+        debug!("Exiting private indexeddb resource threads.");
+        if let Err(e) =
+            self.private_storage_threads
+                .send(IndexedDBThreadMsg::Sync(SyncOperation::Exit(
+                    private_indexeddb_ipc_sender,
+                )))
+        {
+            warn!("Exit private indexeddb thread failed ({})", e);
+        }
+
+        debug!("Exiting public web storage thread.");
         if let Err(e) = generic_channel::GenericSend::send(
             &self.public_storage_threads,
-            WebStorageThreadMsg::Exit(web_storage_generic_sender),
+            WebStorageThreadMsg::Exit(public_web_storage_generic_sender),
         ) {
-            warn!("Exit web storage thread failed ({})", e);
+            warn!("Exit public web storage thread failed ({})", e);
+        }
+
+        debug!("Exiting private web storage thread.");
+        if let Err(e) = generic_channel::GenericSend::send(
+            &self.private_storage_threads,
+            WebStorageThreadMsg::Exit(private_web_storage_generic_sender),
+        ) {
+            warn!("Exit private web storage thread failed ({})", e);
         }
 
         #[cfg(feature = "bluetooth")]
@@ -2798,14 +2857,23 @@ where
         if let Err(e) = core_ipc_receiver.recv() {
             warn!("Exit resource thread failed ({:?})", e);
         }
-        if let Err(e) = client_storage_generic_receiver.recv() {
-            warn!("Exit client storage thread failed ({:?})", e);
+        if let Err(e) = public_client_storage_generic_receiver.recv() {
+            warn!("Exit public client storage thread failed ({:?})", e);
         }
-        if let Err(e) = indexeddb_ipc_receiver.recv() {
-            warn!("Exit indexeddb thread failed ({:?})", e);
+        if let Err(e) = private_client_storage_generic_receiver.recv() {
+            warn!("Exit private client storage thread failed ({:?})", e);
         }
-        if let Err(e) = web_storage_generic_receiver.recv() {
-            warn!("Exit web storage thread failed ({:?})", e);
+        if let Err(e) = public_indexeddb_ipc_receiver.recv() {
+            warn!("Exit public indexeddb thread failed ({:?})", e);
+        }
+        if let Err(e) = private_indexeddb_ipc_receiver.recv() {
+            warn!("Exit private indexeddb thread failed ({:?})", e);
+        }
+        if let Err(e) = public_web_storage_generic_receiver.recv() {
+            warn!("Exit public web storage thread failed ({:?})", e);
+        }
+        if let Err(e) = private_web_storage_generic_receiver.recv() {
+            warn!("Exit private web storage thread failed ({:?})", e);
         }
 
         debug!("Shutting-down IPC router thread in constellation.");
@@ -3079,10 +3147,12 @@ where
         let event_id = event.id;
         let Some(webview) = self.webviews.get_mut(&webview_id) else {
             warn!("Got input event for unknown WebViewId: {webview_id:?}");
-            self.embedder_proxy.send(EmbedderMsg::InputEventHandled(
+            self.embedder_proxy.send(EmbedderMsg::InputEventsHandled(
                 webview_id,
-                event_id,
-                Default::default(),
+                vec![InputEventOutcome {
+                    id: event_id,
+                    result: Default::default(),
+                }],
             ));
             return;
         };
@@ -3095,10 +3165,12 @@ where
         };
 
         if !webview.forward_input_event(event, &self.pipelines, &self.browsing_contexts) {
-            self.embedder_proxy.send(EmbedderMsg::InputEventHandled(
+            self.embedder_proxy.send(EmbedderMsg::InputEventsHandled(
                 webview_id,
-                event_id,
-                Default::default(),
+                vec![InputEventOutcome {
+                    id: event_id,
+                    result: Default::default(),
+                }],
             ));
         }
     }
@@ -3123,7 +3195,12 @@ where
         // its focused browsing context to be itself.
         self.webviews.insert(
             webview_id,
-            ConstellationWebView::new(webview_id, browsing_context_id, user_content_manager_id),
+            ConstellationWebView::new(
+                webview_id,
+                pipeline_id,
+                browsing_context_id,
+                user_content_manager_id,
+            ),
         );
 
         // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context-group
@@ -3512,6 +3589,7 @@ where
             new_webview_id,
             ConstellationWebView::new(
                 new_webview_id,
+                new_pipeline_id,
                 new_browsing_context_id,
                 user_content_manager_id,
             ),
@@ -3642,7 +3720,7 @@ where
             .send(EmbedderMsg::AllowNavigationRequest(
                 webview_id,
                 source_id,
-                load_data.url.clone(),
+                load_data.url,
             ));
     }
 
@@ -4141,8 +4219,7 @@ where
         history_state_id: Option<HistoryStateId>,
         url: ServoUrl,
     ) {
-        let msg =
-            ScriptThreadMessage::UpdateHistoryState(pipeline_id, history_state_id, url.clone());
+        let msg = ScriptThreadMessage::UpdateHistoryState(pipeline_id, history_state_id, url);
         self.send_message_to_pipeline(pipeline_id, msg, "History state updated after closure");
     }
 
@@ -5634,6 +5711,12 @@ where
         // with low-resource scenarios.
         let browsing_context_id = BrowsingContextId::from(webview_id);
         if let Some(frame_tree) = self.browsing_context_to_sendable(browsing_context_id) {
+            if let Some(webview) = self.webviews.get_mut(&webview_id) {
+                if frame_tree.pipeline.id != webview.active_top_level_pipeline_id {
+                    webview.active_top_level_pipeline_id = frame_tree.pipeline.id;
+                }
+            }
+
             debug!("{}: Sending frame tree", browsing_context_id);
             self.paint_proxy
                 .send(PaintMessage::SetFrameTreeForWebView(webview_id, frame_tree));

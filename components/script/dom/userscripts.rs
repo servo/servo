@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use js::jsval::UndefinedValue;
 use script_bindings::root::DomRoot;
 
 use crate::dom::html::htmlheadelement::HTMLHeadElement;
@@ -22,14 +21,13 @@ pub(crate) fn load_script(head: &HTMLHeadElement) {
         let mut realm = enter_auto_realm(cx, global_scope);
         let cx = &mut realm.current_realm();
 
-        rooted!(&in(cx) let mut rval = UndefinedValue());
         for user_script in userscripts {
             _ = global_scope.evaluate_js_on_global(
                 cx,
                 user_script.script().into(),
                 &user_script.source_file().map(|path| path.to_string_lossy().to_string()).unwrap_or_default(),
                 None,
-                rval.handle_mut(),
+                None,
             );
         }
     }));

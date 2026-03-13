@@ -13,6 +13,7 @@ use style_traits::CSSPixel;
 use webrender_api::units::DevicePixel;
 
 use crate::painter::PaintMetricState;
+use crate::web_content_animation::PipelineAnimations;
 
 pub(crate) struct PipelineDetails {
     /// The pipeline associated with this PipelineDetails object.
@@ -20,6 +21,9 @@ pub(crate) struct PipelineDetails {
 
     /// The id of the parent pipeline, if any.
     pub parent_pipeline_id: Option<PipelineId>,
+
+    /// The ids of the child pipelines for this pipeline.
+    pub children: Vec<PipelineId>,
 
     /// Whether animations are running
     pub animations_running: bool,
@@ -55,6 +59,13 @@ pub(crate) struct PipelineDetails {
     /// The [`Epoch`] of the latest display list received for this `Pipeline` or `None` if no
     /// display list has been received.
     pub display_list_epoch: Option<Epoch>,
+
+    /// Paint-driven animations associated with this [`PipelineDetails`]. Currently only text caret
+    /// is handled this way.
+    ///
+    /// Note: This does not manage animations and transitions from CSS or for user input
+    /// interaction.
+    pub animations: PipelineAnimations,
 }
 
 impl PipelineDetails {
@@ -72,6 +83,7 @@ impl PipelineDetails {
         PipelineDetails {
             pipeline: None,
             parent_pipeline_id: None,
+            children: Default::default(),
             viewport_scale: None,
             animations_running: false,
             animation_callbacks_running: false,
@@ -82,6 +94,7 @@ impl PipelineDetails {
             largest_contentful_paint_metric: Cell::new(PaintMetricState::Waiting),
             exited: PipelineExitSource::empty(),
             display_list_epoch: None,
+            animations: Default::default(),
         }
     }
 

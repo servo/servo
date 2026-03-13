@@ -213,7 +213,7 @@ impl StorageEventMethods<crate::DomTypeHolder> for StorageEvent {
         *self.key.borrow_mut() = key;
         *self.old_value.borrow_mut() = oldValue;
         *self.new_value.borrow_mut() = newValue;
-        *self.url.borrow_mut() = DOMString::from_string(url.0);
+        *self.url.borrow_mut() = url.into();
         self.storage_area.set(storageArea);
     }
 }

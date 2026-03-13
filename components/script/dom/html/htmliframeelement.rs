@@ -48,7 +48,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::{BindContext, Node, NodeDamage, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::dom::trustedhtml::TrustedHTML;
+use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::windowproxy::WindowProxy;
 use crate::network_listener::ResourceTimingListener;
@@ -120,7 +120,7 @@ impl HTMLIFrameElement {
         let element = self.upcast::<Element>();
         // Step 2. If element has a src attribute specified, and its value is not the empty string, then:
         let url = element
-            .get_attribute(&ns!(), &local_name!("src"))
+            .get_attribute(&local_name!("src"))
             .and_then(|src| {
                 let url = src.value();
                 if url.is_empty() {
@@ -750,7 +750,7 @@ impl HTMLIFrameElement {
     fn parse_sandbox_attribute(&self) {
         let attribute = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("sandbox"));
+            .get_attribute(&local_name!("sandbox"));
         self.sandboxing_flag_set
             .set(attribute.map(|attribute_value| {
                 let tokens: Vec<_> = attribute_value

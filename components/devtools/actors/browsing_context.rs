@@ -15,6 +15,7 @@ use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, SimulateCol
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
 use embedder_traits::Theme;
 use malloc_size_of_derive::MallocSizeOf;
+use rustc_hash::FxHashMap;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
@@ -148,7 +149,13 @@ pub(crate) struct BrowsingContextActor {
     style_sheets: String,
     pub thread: String,
     _tab: String,
-    pub script_chan: GenericSender<DevtoolScriptControlMsg>,
+    // Different pipelines may run on different script threads.
+    // These should be kept around even when the active pipeline is updated,
+    // in case the browsing context revisits a pipeline via history navigation.
+    // TODO: Each entry is stored forever; ideally there should be a way to
+    //       detect when `ScriptThread`s are destroyed and remove the associated
+    //       entries.
+    script_chans: AtomicRefCell<FxHashMap<PipelineId, GenericSender<DevtoolScriptControlMsg>>>,
     pub watcher: String,
 }
 
@@ -220,7 +227,7 @@ impl BrowsingContextActor {
         let css_properties =
             CssPropertiesActor::new(actors.new_name::<CssPropertiesActor>(), properties);
 
-        let inspector = InspectorActor::register(actors, pipeline_id, script_sender.clone());
+        let inspector = InspectorActor::register(actors, name.clone());
 
         let reflow = ReflowActor::new(actors.new_name::<ReflowActor>());
 
@@ -228,7 +235,11 @@ impl BrowsingContextActor {
 
         let tabdesc = TabDescriptorActor::new(actors, name.clone(), is_top_level_global);
 
-        let thread = ThreadActor::new(actors.new_name::<ThreadActor>(), script_sender.clone());
+        let thread = ThreadActor::new(
+            actors.new_name::<ThreadActor>(),
+            script_sender.clone(),
+            Some(name.clone()),
+        );
 
         let watcher = WatcherActor::new(
             actors,
@@ -236,9 +247,12 @@ impl BrowsingContextActor {
             SessionContext::new(SessionContextType::BrowserElement),
         );
 
+        let mut script_chans = FxHashMap::default();
+        script_chans.insert(pipeline_id, script_sender);
+
         let target = BrowsingContextActor {
             name,
-            script_chan: script_sender,
+            script_chans: AtomicRefCell::new(script_chans),
             title: AtomicRefCell::new(title),
             url: AtomicRefCell::new(url.into_string()),
             active_pipeline_id: AtomicRefCell::new(pipeline_id),
@@ -267,7 +281,17 @@ impl BrowsingContextActor {
         target
     }
 
-    pub(crate) fn navigate<'a>(
+    pub(crate) fn handle_new_global(
+        &self,
+        pipeline: PipelineId,
+        script_sender: GenericSender<DevtoolScriptControlMsg>,
+    ) {
+        self.script_chans
+            .borrow_mut()
+            .insert(pipeline, script_sender);
+    }
+
+    pub(crate) fn handle_navigate<'a>(
         &self,
         state: NavigationState,
         id_map: &mut IdMap,
@@ -325,7 +349,7 @@ impl BrowsingContextActor {
     }
 
     pub fn simulate_color_scheme(&self, theme: Theme) -> Result<(), ()> {
-        self.script_chan
+        self.script_chan()
             .send(SimulateColorScheme(self.pipeline_id(), theme))
             .map_err(|_| ())
     }
@@ -338,9 +362,18 @@ impl BrowsingContextActor {
         *self.active_outer_window_id.borrow()
     }
 
+    /// Returns the script sender for the active pipeline.
+    pub(crate) fn script_chan(&self) -> GenericSender<DevtoolScriptControlMsg> {
+        self.script_chans
+            .borrow()
+            .get(&self.pipeline_id())
+            .unwrap()
+            .clone()
+    }
+
     pub(crate) fn instruct_script_to_send_live_updates(&self, should_send_updates: bool) {
         let result = self
-            .script_chan
+            .script_chan()
             .send(DevtoolScriptControlMsg::WantsLiveNotifications(
                 self.pipeline_id(),
                 should_send_updates,

@@ -145,10 +145,8 @@ impl HTMLProgressElementMethods<crate::DomTypeHolder> for HTMLProgressElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-progress-value>
     fn SetValue(&self, new_val: Finite<f64>, can_gc: CanGc) {
         if *new_val >= 0.0 {
-            let mut string_value = DOMString::from_string((*new_val).to_string());
-
+            let mut string_value = DOMString::from((*new_val).to_string());
             string_value.set_best_representation_of_the_floating_point_number();
-
             self.upcast::<Element>().set_string_attribute(
                 &local_name!("value"),
                 string_value,
@@ -177,10 +175,8 @@ impl HTMLProgressElementMethods<crate::DomTypeHolder> for HTMLProgressElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-progress-max>
     fn SetMax(&self, new_val: Finite<f64>, can_gc: CanGc) {
         if *new_val > 0.0 {
-            let mut string_value = DOMString::from_string((*new_val).to_string());
-
+            let mut string_value = DOMString::from((*new_val).to_string());
             string_value.set_best_representation_of_the_floating_point_number();
-
             self.upcast::<Element>().set_string_attribute(
                 &local_name!("max"),
                 string_value,

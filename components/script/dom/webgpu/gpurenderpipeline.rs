@@ -21,15 +21,35 @@ use crate::dom::webgpu::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::webgpu::gpudevice::{GPUDevice, PipelineLayout};
 use crate::script_runtime::CanGc;
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPURenderPipeline {
+    #[no_trace]
+    channel: WebGPU,
+    #[no_trace]
+    render_pipeline: WebGPURenderPipeline,
+}
+
+impl Drop for DroppableGPURenderPipeline {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropRenderPipeline(self.render_pipeline.0))
+        {
+            warn!(
+                "Failed to send WebGPURequest::DropRenderPipeline({:?}) ({})",
+                self.render_pipeline.0, e
+            );
+        };
+    }
+}
+
 #[dom_struct]
 pub(crate) struct GPURenderPipeline {
     reflector_: Reflector,
-    #[no_trace]
-    channel: WebGPU,
     label: DomRefCell<USVString>,
-    #[no_trace]
-    render_pipeline: WebGPURenderPipeline,
     device: Dom<GPUDevice>,
+    droppable: DroppableGPURenderPipeline,
 }
 
 impl GPURenderPipeline {
@@ -40,10 +60,12 @@ impl GPURenderPipeline {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            channel: device.channel(),
             label: DomRefCell::new(label),
-            render_pipeline,
             device: Dom::from_ref(device),
+            droppable: DroppableGPURenderPipeline {
+                channel: device.channel(),
+                render_pipeline,
+            },
         }
     }
 
@@ -68,7 +90,7 @@ impl GPURenderPipeline {
 
 impl GPURenderPipeline {
     pub(crate) fn id(&self) -> WebGPURenderPipeline {
-        self.render_pipeline
+        self.droppable.render_pipeline
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline>
@@ -112,11 +134,12 @@ impl GPURenderPipelineMethods<crate::DomTypeHolder> for GPURenderPipeline {
         let id = self.global().wgpu_id_hub().create_bind_group_layout_id();
 
         if let Err(e) = self
+            .droppable
             .channel
             .0
             .send(WebGPURequest::RenderGetBindGroupLayout {
                 device_id: self.device.id().0,
-                pipeline_id: self.render_pipeline.0,
+                pipeline_id: self.id().0,
                 index,
                 id,
             })
@@ -126,25 +149,10 @@ impl GPURenderPipelineMethods<crate::DomTypeHolder> for GPURenderPipeline {
 
         Ok(GPUBindGroupLayout::new(
             &self.global(),
-            self.channel.clone(),
+            self.droppable.channel.clone(),
             WebGPUBindGroupLayout(id),
             USVString::default(),
             CanGc::note(),
         ))
-    }
-}
-
-impl Drop for GPURenderPipeline {
-    fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropRenderPipeline(self.render_pipeline.0))
-        {
-            warn!(
-                "Failed to send WebGPURequest::DropRenderPipeline({:?}) ({})",
-                self.render_pipeline.0, e
-            );
-        };
     }
 }

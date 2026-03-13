@@ -94,7 +94,7 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
     fn SetDefaultValue(&self, value: DOMString, can_gc: CanGc) {
         if self.default_value_override.borrow().is_none() {
             // Step 1 ("and return")
-            Node::string_replace_all(value.clone(), self.upcast::<Node>(), can_gc);
+            Node::string_replace_all(value, self.upcast::<Node>(), can_gc);
         } else {
             // Step 2, if not returned from step 1
             *self.default_value_override.borrow_mut() = Some(value);

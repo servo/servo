@@ -36,6 +36,12 @@ bitflags! {
     }
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct InputEventOutcome {
+    pub id: InputEventId,
+    pub result: InputEventResult,
+}
+
 /// An input event that is sent from the embedder to Servo.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum InputEvent {
@@ -285,9 +291,11 @@ pub enum WheelMode {
 /// The Wheel event deltas in every direction
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WheelDelta {
-    /// Delta in the left/right direction
+    /// Delta in the left/right direction. A positive value means that the view scrolls left,
+    /// revealing more content to the left of the current viewport.
     pub x: f64,
-    /// Delta in the up/down direction
+    /// Delta in the up/down direction. A positive value means that the view scrolls up, revealing
+    /// more content above the current viewport.
     pub y: f64,
     /// Delta in the direction going into/out of the screen
     pub z: f64,

@@ -8,6 +8,8 @@ use std::borrow::Cow;
 use std::cell::{Cell, LazyCell, UnsafeCell};
 use std::default::Default;
 use std::f64::consts::PI;
+use std::marker::PhantomData;
+use std::ops::Deref;
 use std::slice::from_ref;
 use std::{cmp, fmt, iter};
 
@@ -21,14 +23,15 @@ use euclid::default::Size2D;
 use euclid::{Point2D, Rect};
 use html5ever::serialize::HtmlSerializer;
 use html5ever::{Namespace, Prefix, QualName, ns, serialize as html_serialize};
+use js::context::{JSContext, NoGC};
 use js::jsapi::JSObject;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use layout_api::wrapper_traits::SharedSelection;
 use layout_api::{
-    BoxAreaType, CSSPixelRectIterator, GenericLayoutData, HTMLCanvasData, HTMLMediaData,
-    LayoutElementType, LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData, StyleData,
-    TrustedNodeAddress, with_layout_state,
+    AxesOverflow, BoxAreaType, CSSPixelRectIterator, GenericLayoutData, HTMLCanvasData,
+    HTMLMediaData, LayoutElementType, LayoutNodeType, PhysicalSides, QueryMsg, SVGElementData,
+    StyleData, TrustedNodeAddress, with_layout_state,
 };
 use libc::{self, c_void, uintptr_t};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -40,6 +43,7 @@ use servo_arc::Arc as ServoArc;
 use servo_config::pref;
 use servo_url::ServoUrl;
 use smallvec::SmallVec;
+use style::Atom;
 use style::attr::AttrValue;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
@@ -82,7 +86,9 @@ use crate::dom::bindings::inheritance::{
     SVGElementTypeId, SVGGraphicsElementTypeId, TextTypeId,
 };
 use crate::dom::bindings::reflector::{DomObject, DomObjectWrap, reflect_dom_object_with_proto};
-use crate::dom::bindings::root::{Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout};
+use crate::dom::bindings::root::{
+    Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout, UnrootedDom,
+};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
@@ -210,11 +216,7 @@ bitflags! {
         /// this element.
         const CLICK_IN_PROGRESS = 1 << 2;
 
-        /// Specifies whether this node is focusable and whether it is supposed
-        /// to be reachable with using sequential focus navigation."]
-        const SEQUENTIALLY_FOCUSABLE = 1 << 3;
-
-        // There are two free bits here.
+        // There are three free bits here.
 
         /// Specifies whether the parser has set an associated form owner for
         /// this element. Only applicable for form-associatable elements.
@@ -341,7 +343,7 @@ impl Node {
         target: &Node,
         context_element: &Element,
         html: DOMString,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
     ) {
         // Step 1. Let newChildren be the result of the HTML fragment parsing algorithm.
         let new_children = ServoParser::parse_html_fragment(context_element, html, true, cx);
@@ -454,6 +456,48 @@ impl Node {
         }
     }
 
+    pub(crate) fn complete_move_subtree(root: &Node) {
+        // Flags that reset when a node is moved
+        const RESET_FLAGS: NodeFlags = NodeFlags::IS_IN_A_DOCUMENT_TREE
+            .union(NodeFlags::IS_CONNECTED)
+            .union(NodeFlags::HAS_DIRTY_DESCENDANTS)
+            .union(NodeFlags::HAS_SNAPSHOT)
+            .union(NodeFlags::HANDLED_SNAPSHOT);
+
+        // Since both the initial traversal in light dom and the inner traversal
+        // in shadow DOM share the same code, we define a closure to prevent omissions.
+        let cleanup_node = |node: &Node| {
+            node.style_data.borrow_mut().take();
+            node.layout_data.borrow_mut().take();
+        };
+
+        for node in root.traverse_preorder(ShadowIncluding::No) {
+            node.set_flag(RESET_FLAGS | NodeFlags::IS_IN_SHADOW_TREE, false);
+            cleanup_node(&node);
+
+            // Make sure that we don't accidentally initialize the rare data for this node
+            // by setting it to None
+            if node.containing_shadow_root().is_some() {
+                // Reset the containing shadowRoot after we unbind the node, since some elements
+                // require the containing shadowRoot for cleanup logic (e.g. <style>).
+                node.set_containing_shadow_root(None);
+            }
+
+            // If the element has a shadow root attached to it then we traverse that as well,
+            // but without touching the IS_IN_SHADOW_TREE flags of the children,
+            // and without resetting the contained shadow root
+            if let Some(shadow_root) = node.downcast::<Element>().and_then(Element::shadow_root) {
+                for node in shadow_root
+                    .upcast::<Node>()
+                    .traverse_preorder(ShadowIncluding::Yes)
+                {
+                    node.set_flag(RESET_FLAGS, false);
+                    cleanup_node(&node);
+                }
+            }
+        }
+    }
+
     /// Removes the given child from this node's list of children.
     ///
     /// Fails unless `child` is a child of this node.
@@ -499,6 +543,17 @@ impl Node {
         Self::complete_remove_subtree(child, &context, can_gc);
     }
 
+    fn move_child(&self, child: &Node) {
+        assert!(child.parent_node.get().as_deref() == Some(self));
+        self.note_dirty_descendants();
+
+        child.prev_sibling.set(None);
+        child.next_sibling.set(None);
+        child.parent_node.set(None);
+        self.children_count.set(self.children_count.get() - 1);
+        Self::complete_move_subtree(child)
+    }
+
     pub(crate) fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
         UntrustedNodeAddress(self.reflector().get_jsobject().get() as *const c_void)
     }
@@ -519,7 +574,7 @@ impl Node {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#fire-a-synthetic-pointer-event>
-    pub(crate) fn fire_synthetic_pointer_event_not_trusted(&self, name: DOMString, can_gc: CanGc) {
+    pub(crate) fn fire_synthetic_pointer_event_not_trusted(&self, event_type: Atom, can_gc: CanGc) {
         // Spec says the choice of which global to create the pointer event
         // on is not well-defined,
         // and refers to heycam/webidl#135
@@ -528,7 +583,7 @@ impl Node {
         // <https://w3c.github.io/pointerevents/#the-click-auxclick-and-contextmenu-events>
         let pointer_event = PointerEvent::new(
             &window, // ambiguous in spec
-            name,
+            event_type,
             EventBubbles::Bubbles,              // Step 3: bubbles
             EventCancelable::Cancelable,        // Step 3: cancelable
             Some(&window),                      // Step 7: view
@@ -843,6 +898,18 @@ impl Node {
         TreeIterator::new(self, shadow_including)
     }
 
+    /// Iterates over this node and all its descendants, in preorder. We take &NoGC to prevent GC which allows us to avoid rooting.
+    pub(crate) fn traverse_preorder_non_rooting<'a, 'b>(
+        &'a self,
+        no_gc: &'b NoGC,
+        shadow_including: ShadowIncluding,
+    ) -> UnrootedTreeIterator<'a, 'b>
+    where
+        'b: 'a,
+    {
+        UnrootedTreeIterator::new(self, shadow_including, no_gc)
+    }
+
     pub(crate) fn inclusively_following_siblings(
         &self,
     ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
@@ -852,12 +919,36 @@ impl Node {
         }
     }
 
+    pub(crate) fn inclusively_following_siblings_unrooted<'b>(
+        &self,
+        no_gc: &'b NoGC,
+    ) -> impl Iterator<Item = UnrootedDom<'b, Node>> + use<'b> {
+        UnrootedSimpleNodeIterator {
+            current: Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
+            next_node: |n, no_gc| n.get_next_sibling_unrooted(no_gc),
+            no_gc,
+            phantom: PhantomData,
+        }
+    }
+
     pub(crate) fn inclusively_preceding_siblings(
         &self,
     ) -> impl Iterator<Item = DomRoot<Node>> + use<> {
         SimpleNodeIterator {
             current: Some(DomRoot::from_ref(self)),
             next_node: |n| n.GetPreviousSibling(),
+        }
+    }
+
+    pub(crate) fn inclusively_preceding_siblings_unrooted<'b>(
+        &self,
+        no_gc: &'b NoGC,
+    ) -> impl Iterator<Item = UnrootedDom<'b, Node>> + use<'b> {
+        UnrootedSimpleNodeIterator {
+            current: Some(UnrootedDom::from_dom(Dom::from_ref(self), no_gc)),
+            next_node: |n, no_gc| n.get_previous_sibling_unrooted(no_gc),
+            no_gc,
+            phantom: PhantomData,
         }
     }
 
@@ -1040,6 +1131,15 @@ impl Node {
         window.scrolling_area_query(Some(self))
     }
 
+    pub(crate) fn effective_overflow(&self) -> Option<AxesOverflow> {
+        self.owner_window().query_effective_overflow(self)
+    }
+
+    pub(crate) fn effective_overflow_without_reflow(&self) -> Option<AxesOverflow> {
+        self.owner_window()
+            .query_effective_overflow_without_reflow(self)
+    }
+
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
     pub(crate) fn before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
         // Step 1.
@@ -1156,6 +1256,289 @@ impl Node {
         Ok(())
     }
 
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-movebefore>
+    pub(crate) fn move_before(
+        &self,
+        node: &Node,
+        child: Option<&Node>,
+        can_gc: CanGc,
+    ) -> ErrorResult {
+        // Step 1. Let referenceChild be child.
+        // Step 2. If referenceChild is node, then set referenceChild to node’s next sibling.
+        let reference_child_root;
+        let reference_child = match child {
+            Some(child) if child == node => {
+                reference_child_root = node.GetNextSibling();
+                reference_child_root.as_deref()
+            },
+            _ => child,
+        };
+
+        // Step 3. Move node into this before referenceChild.
+        Node::move_fn(node, self, reference_child, can_gc)
+    }
+
+    /// <https://dom.spec.whatwg.org/#move>
+    pub(crate) fn move_fn(
+        node: &Node,
+        new_parent: &Node,
+        child: Option<&Node>,
+        can_gc: CanGc,
+    ) -> ErrorResult {
+        // Step 1. If newParent’s shadow-including root is not the same as node’s shadow-including
+        // root, then throw a "HierarchyRequestError" DOMException.
+        // This has the side effect of ensuring that a move is only performed if newParent’s
+        // connected is node’s connected.
+        let mut options = GetRootNodeOptions::empty();
+        options.composed = true;
+        if new_parent.GetRootNode(&options) != node.GetRootNode(&options) {
+            return Err(Error::HierarchyRequest(None));
+        }
+
+        // Step 2. If node is a host-including inclusive ancestor of newParent, then throw a
+        // "HierarchyRequestError" DOMException.
+        if node.is_inclusive_ancestor_of(new_parent) {
+            return Err(Error::HierarchyRequest(None));
+        }
+
+        // Step 3. If child is non-null and its parent is not newParent, then throw a
+        // "NotFoundError" DOMException.
+        if let Some(child) = child {
+            if !new_parent.is_parent_of(child) {
+                return Err(Error::NotFound(None));
+            }
+        }
+
+        // Step 4. If node is not an Element or a CharacterData node, then throw a
+        // "HierarchyRequestError" DOMException.
+        // Step 5. If node is a Text node and newParent is a document, then throw a
+        // "HierarchyRequestError" DOMException.
+        match node.type_id() {
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text(_)) => {
+                if new_parent.is::<Document>() {
+                    return Err(Error::HierarchyRequest(None));
+                }
+            },
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
+            NodeTypeId::Element(_) => (),
+            NodeTypeId::DocumentFragment(_) |
+            NodeTypeId::DocumentType |
+            NodeTypeId::Document(_) |
+            NodeTypeId::Attr => {
+                return Err(Error::HierarchyRequest(None));
+            },
+        }
+
+        // Step 6. If newParent is a document, node is an Element node, and either newParent has an
+        // element child, child is a doctype, or child is non-null and a doctype is following child
+        // then throw a "HierarchyRequestError" DOMException.
+        if new_parent.is::<Document>() && node.is::<Element>() {
+            // either newParent has an element child
+            if new_parent.child_elements().next().is_some() {
+                return Err(Error::HierarchyRequest(None));
+            }
+
+            // child is a doctype
+            // or child is non-null and a doctype is following child
+            if child.is_some_and(|child| {
+                child
+                    .inclusively_following_siblings()
+                    .any(|child| child.is_doctype())
+            }) {
+                return Err(Error::HierarchyRequest(None));
+            }
+        }
+
+        // Step 7. Let oldParent be node’s parent.
+        // Step 8. Assert: oldParent is non-null.
+        let old_parent = node
+            .parent_node
+            .get()
+            .expect("old_parent should always be initialized");
+
+        // Step 9. Run the live range pre-remove steps, given node.
+        let cached_index = Node::live_range_pre_remove_steps(node, &old_parent);
+
+        // TODO Step 10. For each NodeIterator object iterator whose root’s node document is node’s
+        // node document: run the NodeIterator pre-remove steps given node and iterator.
+
+        // Step 11. Let oldPreviousSibling be node’s previous sibling.
+        let old_previous_sibling = node.prev_sibling.get();
+
+        // Step 12. Let oldNextSibling be node’s next sibling.
+        let old_next_sibling = node.next_sibling.get();
+
+        let prev_sibling = node.GetPreviousSibling();
+        match prev_sibling {
+            None => {
+                old_parent
+                    .first_child
+                    .set(node.next_sibling.get().as_deref());
+            },
+            Some(ref prev_sibling) => {
+                prev_sibling
+                    .next_sibling
+                    .set(node.next_sibling.get().as_deref());
+            },
+        }
+        let next_sibling = node.GetNextSibling();
+        match next_sibling {
+            None => {
+                old_parent
+                    .last_child
+                    .set(node.prev_sibling.get().as_deref());
+            },
+            Some(ref next_sibling) => {
+                next_sibling
+                    .prev_sibling
+                    .set(node.prev_sibling.get().as_deref());
+            },
+        }
+
+        let mut context = MoveContext::new(
+            Some(&old_parent),
+            prev_sibling.as_deref(),
+            next_sibling.as_deref(),
+            cached_index,
+        );
+
+        // Step 13. Remove node from oldParent’s children.
+        old_parent.move_child(node);
+
+        // Step 14. If node is assigned, then run assign slottables for node’s assigned slot.
+        if let Some(slot) = node.assigned_slot() {
+            slot.assign_slottables();
+        }
+
+        // Step 15. If oldParent’s root is a shadow root, and oldParent is a slot whose assigned
+        // nodes is empty, then run signal a slot change for oldParent.
+        if old_parent.is_in_a_shadow_tree() {
+            if let Some(slot_element) = old_parent.downcast::<HTMLSlotElement>() {
+                if !slot_element.has_assigned_nodes() {
+                    slot_element.signal_a_slot_change();
+                }
+            }
+        }
+
+        // Step 16. If node has an inclusive descendant that is a slot:
+        let has_slot_descendant = node
+            .traverse_preorder(ShadowIncluding::No)
+            .any(|element| element.is::<HTMLSlotElement>());
+        if has_slot_descendant {
+            // Step 16.1. Run assign slottables for a tree with oldParent’s root.
+            old_parent
+                .GetRootNode(&GetRootNodeOptions::empty())
+                .assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Skip);
+
+            // Step 16.2. Run assign slottables for a tree with node.
+            node.assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Skip);
+        }
+
+        // Step 17. If child is non-null:
+        if let Some(child) = child {
+            // Step 17.1. For each live range whose start node is newParent and start offset is
+            // greater than child’s index: increase its start offset by 1.
+            // Step 17.2. For each live range whose end node is newParent and end offset is greater
+            // than child’s index: increase its end offset by 1.
+            new_parent
+                .ranges()
+                .increase_above(new_parent, child.index(), 1)
+        }
+
+        // Step 18. Let newPreviousSibling be child’s previous sibling if child is non-null, and
+        // newParent’s last child otherwise.
+        let new_previous_sibling = child.map_or_else(
+            || new_parent.last_child.get(),
+            |child| child.prev_sibling.get(),
+        );
+
+        // Step 19. If child is null, then append node to newParent’s children.
+        // Step 20. Otherwise, insert node into newParent’s children before child’s index.
+        new_parent.add_child(node, child, can_gc);
+
+        // Step 21. If newParent is a shadow host whose shadow root’s slot assignment is "named" and
+        // node is a slottable, then assign a slot for node.
+        if let Some(shadow_root) = new_parent
+            .downcast::<Element>()
+            .and_then(Element::shadow_root)
+        {
+            if shadow_root.SlotAssignment() == SlotAssignmentMode::Named {
+                let cx = GlobalScope::get_cx();
+                if node.is::<Element>() || node.is::<Text>() {
+                    rooted!(in(*cx) let slottable = Slottable(Dom::from_ref(node)));
+                    slottable.assign_a_slot();
+                }
+            }
+        }
+
+        // Step 22. If newParent’s root is a shadow root, and newParent is a slot whose assigned
+        // nodes is empty, then run signal a slot change for newParent.
+        if new_parent.is_in_a_shadow_tree() {
+            if let Some(slot_element) = new_parent.downcast::<HTMLSlotElement>() {
+                if !slot_element.has_assigned_nodes() {
+                    slot_element.signal_a_slot_change();
+                }
+            }
+        }
+
+        // Step 23. Run assign slottables for a tree with node’s root.
+        node.GetRootNode(&GetRootNodeOptions::empty())
+            .assign_slottables_for_a_tree(ForceSlottableNodeReconciliation::Skip);
+
+        // Step 24. For each shadow-including inclusive descendant inclusiveDescendant of node, in
+        // shadow-including tree order:
+        for descendant in node.traverse_preorder(ShadowIncluding::Yes) {
+            // Step 24.1. If inclusiveDescendant is node, then run the moving steps with
+            // inclusiveDescendant and oldParent.
+            // Otherwise, run the moving steps with inclusiveDescendant and null.
+            if descendant.deref() == node {
+                vtable_for(&descendant).moving_steps(&context, can_gc);
+            } else {
+                context.old_parent = None;
+                vtable_for(&descendant).moving_steps(&context, can_gc);
+            }
+
+            // Step 24.2. If inclusiveDescendant is custom and newParent is connected,
+            if let Some(descendant) = descendant.downcast::<Element>() {
+                if descendant.is_custom() && new_parent.is_connected() {
+                    // then enqueue a custom element callback reaction with
+                    // inclusiveDescendant, callback name "connectedMoveCallback", and « ».
+                    let custom_element_reaction_stack =
+                        ScriptThread::custom_element_reaction_stack();
+                    custom_element_reaction_stack.enqueue_callback_reaction(
+                        descendant,
+                        CallbackReaction::ConnectedMove,
+                        None,
+                    );
+                }
+            }
+        }
+
+        // Step 25. Queue a tree mutation record for oldParent with « », « node »,
+        // oldPreviousSibling, and oldNextSibling.
+        let moved = [node];
+        let mutation = LazyCell::new(|| Mutation::ChildList {
+            added: None,
+            removed: Some(&moved),
+            prev: old_previous_sibling.as_deref(),
+            next: old_next_sibling.as_deref(),
+        });
+        MutationObserver::queue_a_mutation_record(&old_parent, mutation);
+
+        // Step 26. Queue a tree mutation record for newParent with « node », « »,
+        // newPreviousSibling, and child.
+        let mutation = LazyCell::new(|| Mutation::ChildList {
+            added: Some(&moved),
+            removed: None,
+            prev: new_previous_sibling.as_deref(),
+            next: child,
+        });
+        MutationObserver::queue_a_mutation_record(new_parent, mutation);
+
+        Ok(())
+    }
+
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>
     #[allow(unsafe_code)]
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
@@ -1172,12 +1555,12 @@ impl Node {
 
         let first_matching_element = with_layout_state(|| {
             let layout_node = unsafe { traced_node.to_layout() };
-            ServoLayoutNode::from_layout_js(layout_node)
+            ServoLayoutNode::from_layout_dom(layout_node)
                 .scope_match_a_selectors_string::<QueryFirst>(document_url, &selectors.str())
         })?;
 
         Ok(first_matching_element
-            .map(|element| DomRoot::from_ref(unsafe { element.to_layout_js().as_ref() })))
+            .map(|element| DomRoot::from_ref(unsafe { element.to_layout_dom().as_ref() })))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall>
@@ -1192,12 +1575,12 @@ impl Node {
         let traced_node = Dom::from_ref(self);
         let matching_elements = with_layout_state(|| {
             let layout_node = unsafe { traced_node.to_layout() };
-            ServoLayoutNode::from_layout_js(layout_node)
+            ServoLayoutNode::from_layout_dom(layout_node)
                 .scope_match_a_selectors_string::<QueryAll>(document_url, &selectors.str())
         })?;
         let iter = matching_elements
             .into_iter()
-            .map(|element| DomRoot::from_ref(unsafe { element.to_layout_js().as_ref() }))
+            .map(|element| DomRoot::from_ref(unsafe { element.to_layout_dom().as_ref() }))
             .map(DomRoot::upcast::<Node>);
 
         // NodeList::new_simple_list immediately collects the iterator, so we're not leaking LayoutDom
@@ -1390,26 +1773,26 @@ impl Node {
     /// Used by `HTMLTableSectionElement::InsertRow` and `HTMLTableRowElement::InsertCell`
     pub(crate) fn insert_cell_or_row<F, G, I>(
         &self,
+        cx: &mut JSContext,
         index: i32,
         get_items: F,
         new_child: G,
-        can_gc: CanGc,
     ) -> Fallible<DomRoot<HTMLElement>>
     where
         F: Fn() -> DomRoot<HTMLCollection>,
-        G: Fn() -> DomRoot<I>,
+        G: Fn(&mut JSContext) -> DomRoot<I>,
         I: DerivedFrom<Node> + DerivedFrom<HTMLElement> + DomObject,
     {
         if index < -1 {
             return Err(Error::IndexSize(None));
         }
 
-        let tr = new_child();
+        let tr = new_child(cx);
 
         {
             let tr_node = tr.upcast::<Node>();
             if index == -1 {
-                self.InsertBefore(tr_node, None, can_gc)?;
+                self.InsertBefore(tr_node, None, CanGc::from_cx(cx))?;
             } else {
                 let items = get_items();
                 let node = match items
@@ -1422,7 +1805,7 @@ impl Node {
                     None => return Err(Error::IndexSize(None)),
                     Some(node) => node,
                 };
-                self.InsertBefore(tr_node, node.as_deref(), can_gc)?;
+                self.InsertBefore(tr_node, node.as_deref(), CanGc::from_cx(cx))?;
             }
         }
 
@@ -1513,8 +1896,8 @@ impl Node {
         self.inclusive_ancestors(ShadowIncluding::Yes)
             .find_map(|node| {
                 node.downcast::<Element>().and_then(|el| {
-                    el.get_attribute(&ns!(xml), &local_name!("lang"))
-                        .or_else(|| el.get_attribute(&ns!(), &local_name!("lang")))
+                    el.get_attribute_with_namespace(&ns!(xml), &local_name!("lang"))
+                        .or_else(|| el.get_attribute(&local_name!("lang")))
                         .map(|attr| String::from(attr.Value()))
                 })
                 // TODO: Check meta tags for a pragma-set default language
@@ -1677,7 +2060,8 @@ impl Node {
             return false;
         }
         // > and either it is an HTML element, or it is an svg or math element, or it is not an Element and its parent is an HTML element.
-        html_element.is_some() || parent.downcast::<HTMLElement>().is_some()
+        html_element.is_some() ||
+            (!self.is::<Element>() && parent.downcast::<HTMLElement>().is_some())
     }
 }
 
@@ -2170,6 +2554,41 @@ where
     }
 }
 
+/// An efficient SimpleNodeIterator because it skips rooting if there are no GC pauses.
+///
+/// Use this if you have a `&JSContext` or `NoGC`.
+///
+/// Normally we need to root every `Node` we come across as we do not know if we will have a GC pause.
+/// This does not root the required children. Taking a `&NoGC` enforces that there is no `&mut JSContext`
+/// while this iterator is alive.
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+pub(crate) struct UnrootedSimpleNodeIterator<'a, 'b, I>
+where
+    I: Fn(&Node, &'b NoGC) -> Option<UnrootedDom<'b, Node>>,
+{
+    current: Option<UnrootedDom<'b, Node>>,
+    next_node: I,
+    /// This is unused and only used for lifetime guarantee of NoGC
+    no_gc: &'b NoGC,
+    phantom: PhantomData<&'a Node>,
+}
+
+impl<'a, 'b, I> Iterator for UnrootedSimpleNodeIterator<'a, 'b, I>
+where
+    'b: 'a,
+    I: Fn(&Node, &'b NoGC) -> Option<UnrootedDom<'b, Node>>,
+{
+    type Item = UnrootedDom<'b, Node>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let current = self.current.take();
+        self.current = current
+            .as_ref()
+            .and_then(|c| (self.next_node)(c, self.no_gc));
+        current
+    }
+}
+
 /// Whether a tree traversal should pass shadow tree boundaries.
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum ShadowIncluding {
@@ -2180,7 +2599,7 @@ pub(crate) enum ShadowIncluding {
 pub(crate) struct TreeIterator {
     current: Option<DomRoot<Node>>,
     depth: usize,
-    shadow_including: bool,
+    shadow_including: ShadowIncluding,
 }
 
 impl TreeIterator {
@@ -2188,7 +2607,7 @@ impl TreeIterator {
         TreeIterator {
             current: Some(DomRoot::from_ref(root)),
             depth: 0,
-            shadow_including: shadow_including == ShadowIncluding::Yes,
+            shadow_including,
         }
     }
 
@@ -2199,11 +2618,7 @@ impl TreeIterator {
     }
 
     fn next_skipping_children_impl(&mut self, current: DomRoot<Node>) -> Option<DomRoot<Node>> {
-        let iter = current.inclusive_ancestors(if self.shadow_including {
-            ShadowIncluding::Yes
-        } else {
-            ShadowIncluding::No
-        });
+        let iter = current.inclusive_ancestors(self.shadow_including);
 
         for ancestor in iter {
             if self.depth == 0 {
@@ -2244,7 +2659,7 @@ impl Iterator for TreeIterator {
         // Handle a potential shadow root on the element
         if let Some(element) = current.downcast::<Element>() {
             if let Some(shadow_root) = element.shadow_root() {
-                if self.shadow_including {
+                if self.shadow_including == ShadowIncluding::Yes {
                     self.current = Some(DomRoot::from_ref(shadow_root.upcast::<Node>()));
                     self.depth += 1;
                     return Some(current);
@@ -2259,6 +2674,117 @@ impl Iterator for TreeIterator {
         };
 
         self.next_skipping_children_impl(current)
+    }
+}
+
+/// An efficient TreeIterator because it skips rooting if there are no GC pauses.
+///
+/// Use this if you have a `&JSContext` or `NoGC`.
+///
+/// Normally we need to root every `Node` we come across as we do not know if we will have a GC pause.
+/// This does not root the required children. Taking a `&NoGC` enforces that there is no `&mut JSContext`
+/// while this iterator is alive.
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+pub(crate) struct UnrootedTreeIterator<'a, 'b> {
+    current: Option<UnrootedDom<'b, Node>>,
+    depth: usize,
+    shadow_including: ShadowIncluding,
+    /// This is unused and only used for lifetime guarantee of NoGC
+    no_gc: &'b NoGC,
+    phantom: PhantomData<&'a Node>,
+}
+
+impl<'a, 'b> UnrootedTreeIterator<'a, 'b>
+where
+    'b: 'a,
+{
+    pub(crate) fn new(
+        root: &'a Node,
+        shadow_including: ShadowIncluding,
+        no_gc: &'b NoGC,
+    ) -> UnrootedTreeIterator<'a, 'b> {
+        UnrootedTreeIterator {
+            current: Some(UnrootedDom::from_dom(Dom::from_ref(root), no_gc)),
+            depth: 0,
+            shadow_including,
+            no_gc,
+            phantom: PhantomData,
+        }
+    }
+
+    pub(crate) fn next_skipping_children(&mut self) -> Option<UnrootedDom<'b, Node>> {
+        let current = self.current.take()?;
+
+        let iter = current.inclusive_ancestors(self.shadow_including);
+
+        for ancestor in iter {
+            if self.depth == 0 {
+                break;
+            }
+
+            let next_sibling_option = ancestor.get_next_sibling_unrooted(self.no_gc);
+
+            if let Some(next_sibling) = next_sibling_option {
+                self.current = Some(next_sibling);
+                return Some(current);
+            }
+
+            if let Some(shadow_root) = ancestor.downcast::<ShadowRoot>() {
+                // Shadow roots don't have sibling, so after we're done traversing
+                // one we jump to the first child of the host
+                let child_option = shadow_root
+                    .Host()
+                    .upcast::<Node>()
+                    .get_first_child_unrooted(self.no_gc);
+
+                if let Some(child) = child_option {
+                    self.current = Some(child);
+                    return Some(current);
+                }
+            }
+            self.depth -= 1;
+        }
+        debug_assert_eq!(self.depth, 0);
+        self.current = None;
+        Some(current)
+    }
+}
+
+impl<'a, 'b> Iterator for UnrootedTreeIterator<'a, 'b>
+where
+    'b: 'a,
+{
+    type Item = UnrootedDom<'b, Node>;
+
+    /// <https://dom.spec.whatwg.org/#concept-tree-order>
+    /// <https://dom.spec.whatwg.org/#concept-shadow-including-tree-order>
+    fn next(&mut self) -> Option<UnrootedDom<'b, Node>> {
+        let current = self.current.take()?;
+
+        // Handle a potential shadow root on the element
+        if let Some(element) = current.downcast::<Element>() {
+            if let Some(shadow_root) = element.shadow_root() {
+                if self.shadow_including == ShadowIncluding::Yes {
+                    self.current = Some(UnrootedDom::from_dom(
+                        Dom::from_ref(shadow_root.upcast::<Node>()),
+                        self.no_gc,
+                    ));
+                    self.depth += 1;
+                    return Some(current);
+                }
+            }
+        }
+
+        let first_child_option = current.get_first_child_unrooted(self.no_gc);
+        if let Some(first_child) = first_child_option {
+            self.current = Some(first_child);
+            self.depth += 1;
+            return Some(current);
+        };
+
+        // current is empty.
+        let _ = self.current.insert(current);
+        self.next_skipping_children()
     }
 }
 
@@ -2827,31 +3353,7 @@ impl Node {
 
         // Step 3. Run the live range pre-remove steps.
         // https://dom.spec.whatwg.org/#live-range-pre-remove-steps
-        let cached_index = {
-            if parent.ranges_is_empty() {
-                None
-            } else {
-                // Step 1. Let parent be node’s parent.
-                // Step 2. Assert: parent is not null.
-                // NOTE: We already have the parent.
-
-                // Step 3. Let index be node’s index.
-                let index = node.index();
-
-                // Steps 4-5 are handled in Node::unbind_from_tree.
-
-                // Step 6. For each live range whose start node is parent and start offset is greater than index,
-                // decrease its start offset by 1.
-                // Step 7. For each live range whose end node is parent and end offset is greater than index,
-                // decrease its end offset by 1.
-                parent.ranges().decrease_above(parent, index, 1);
-
-                // Parent had ranges, we needed the index, let's keep track of
-                // it to avoid computing it for other ranges when calling
-                // unbind_from_tree recursively.
-                Some(index)
-            }
-        };
+        let cached_index = Node::live_range_pre_remove_steps(node, parent);
 
         // TODO: Step 4. Pre-removing steps for node iterators
 
@@ -2920,6 +3422,33 @@ impl Node {
         parent.owner_doc().remove_script_and_layout_blocker();
     }
 
+    /// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps>
+    fn live_range_pre_remove_steps(node: &Node, parent: &Node) -> Option<u32> {
+        if parent.ranges_is_empty() {
+            return None;
+        }
+
+        // Step 1. Let parent be node’s parent.
+        // Step 2. Assert: parent is not null.
+        // NOTE: We already have the parent.
+
+        // Step 3. Let index be node’s index.
+        let index = node.index();
+
+        // Steps 4-5 are handled in Node::unbind_from_tree.
+
+        // Step 6. For each live range whose start node is parent and start offset is greater than index,
+        // decrease its start offset by 1.
+        // Step 7. For each live range whose end node is parent and end offset is greater than index,
+        // decrease its end offset by 1.
+        parent.ranges().decrease_above(parent, index, 1);
+
+        // Parent had ranges, we needed the index, let's keep track of
+        // it to avoid computing it for other ranges when calling
+        // unbind_from_tree recursively.
+        Some(index)
+    }
+
     /// Ensure that for styles, we clone the already-parsed property declaration block.
     /// This does two things:
     /// 1. it uses the same fast-path as CSSStyleDeclaration
@@ -2943,11 +3472,11 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#concept-node-clone>
     pub(crate) fn clone(
+        cx: &mut JSContext,
         node: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
         registry: Option<DomRoot<CustomElementRegistry>>,
-        can_gc: CanGc,
     ) -> DomRoot<Node> {
         // Step 1. If document is not given, let document be node’s node document.
         let document = match maybe_doc {
@@ -2965,7 +3494,7 @@ impl Node {
                     Some(doctype.public_id().clone()),
                     Some(doctype.system_id().clone()),
                     &document,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 DomRoot::upcast::<Node>(doctype)
             },
@@ -2979,17 +3508,17 @@ impl Node {
                     attr.namespace().clone(),
                     attr.prefix().cloned(),
                     None,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 DomRoot::upcast::<Node>(attr)
             },
             NodeTypeId::DocumentFragment(_) => {
-                let doc_fragment = DocumentFragment::new(&document, can_gc);
+                let doc_fragment = DocumentFragment::new(&document, CanGc::from_cx(cx));
                 DomRoot::upcast::<Node>(doc_fragment)
             },
             NodeTypeId::CharacterData(_) => {
                 let cdata = node.downcast::<CharacterData>().unwrap();
-                cdata.clone_with_data(cdata.Data(), &document, can_gc)
+                cdata.clone_with_data(cdata.Data(), &document, CanGc::from_cx(cx))
             },
             NodeTypeId::Document(_) => {
                 // Step 1. Set copy’s encoding, content type, URL, origin, type, mode,
@@ -3024,7 +3553,7 @@ impl Node {
                     document.has_trustworthy_ancestor_or_current_origin(),
                     document.custom_element_reaction_stack(),
                     document.creation_sandboxing_flag_set(),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 // Step 2. If node’s custom element registry’s is scoped is true,
                 // then set copy’s custom element registry to node’s custom element registry.
@@ -3060,7 +3589,7 @@ impl Node {
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Asynchronous,
                     None,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
                 // TODO: Move this into `Element::create`
                 element.set_custom_element_registry(registry);
@@ -3101,7 +3630,7 @@ impl Node {
                         attr.namespace().clone(),
                         attr.prefix().cloned(),
                         AttributeMutationReason::ByCloning,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                 }
             },
@@ -3110,14 +3639,14 @@ impl Node {
 
         // Step 5: Run any cloning steps defined for node in other applicable specifications and pass copy,
         // node, document, and the clone children flag if set, as parameters.
-        vtable_for(node).cloning_steps(&copy, maybe_doc, clone_children, can_gc);
+        vtable_for(node).cloning_steps(cx, &copy, maybe_doc, clone_children);
 
         // Step 6. If the clone children flag is set, then for each child child of node, in tree order: append the
         // result of cloning child with document and the clone children flag set, to copy.
         if clone_children == CloneChildrenFlag::CloneChildren {
             for child in node.children() {
-                let child_copy = Node::clone(&child, Some(&document), clone_children, None, can_gc);
-                let _inserted_node = Node::pre_insert(&child_copy, &copy, None, can_gc);
+                let child_copy = Node::clone(cx, &child, Some(&document), clone_children, None);
+                let _inserted_node = Node::pre_insert(&child_copy, &copy, None, CanGc::from_cx(cx));
             }
         }
 
@@ -3142,7 +3671,7 @@ impl Node {
                         shadow_root.Serializable(),
                         shadow_root.DelegatesFocus(),
                         shadow_root.SlotAssignment(),
-                        can_gc
+                        CanGc::from_cx(cx),
                     )
                     .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
 
@@ -3153,11 +3682,11 @@ impl Node {
                 // cloning child with document and the clone children flag set, to copy’s shadow root.
                 for child in shadow_root.upcast::<Node>().children() {
                     let child_copy = Node::clone(
+                        cx,
                         &child,
                         Some(&document),
                         CloneChildrenFlag::CloneChildren,
                         None,
-                        can_gc,
                     );
 
                     // TODO: Should we handle the error case here and in step 6?
@@ -3165,7 +3694,7 @@ impl Node {
                         &child_copy,
                         copy_shadow_root.upcast::<Node>(),
                         None,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                 }
             }
@@ -3355,26 +3884,16 @@ impl Node {
         self.xml_serialize(xml_serialize::TraversalScope::ChildrenOnly(None))
     }
 
-    /// Return true if this node establishes a "scrolling box" for the purposes of `scrollIntoView`.
-    pub(crate) fn establishes_scrolling_box(&self) -> bool {
-        // For now, `Document` represents the viewport.
-        //
-        // TODO: Is this the right thing to do? Maybe `Document` should be ignored and viewport
-        // should be represented by the root of the DOM flat tree.
-        if self.is::<Document>() {
-            return true;
-        }
-        let Some(element) = self.downcast::<Element>() else {
-            // Shadow roots and other nodes are not scrolling boxes.
-            return false;
-        };
-        // TODO: This should ask layout whether or not the element establishes a scrolling
-        // box. This heuristic is wrong.
-        element.style().is_some_and(|style| {
-            let overflow_x = style.get_box().clone_overflow_x();
-            let overflow_y = style.get_box().clone_overflow_y();
-            overflow_x.is_scrollable() || overflow_y.is_scrollable()
-        })
+    fn get_next_sibling_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Node>> {
+        self.next_sibling.get_unrooted(no_gc)
+    }
+
+    fn get_previous_sibling_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Node>> {
+        self.prev_sibling.get_unrooted(no_gc)
+    }
+
+    fn get_first_child_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, Node>> {
+        self.first_child.get_unrooted(no_gc)
     }
 }
 
@@ -3793,7 +4312,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-clonenode>
-    fn CloneNode(&self, subtree: bool, can_gc: CanGc) -> Fallible<DomRoot<Node>> {
+    fn CloneNode(&self, cx: &mut JSContext, subtree: bool) -> Fallible<DomRoot<Node>> {
         // Step 1. If this is a shadow root, then throw a "NotSupportedError" DOMException.
         if self.is::<ShadowRoot>() {
             return Err(Error::NotSupported(None));
@@ -3801,6 +4320,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
 
         // Step 2. Return the result of cloning a node given this with subtree set to subtree.
         let result = Node::clone(
+            cx,
             self,
             None,
             if subtree {
@@ -3809,7 +4329,6 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
                 CloneChildrenFlag::DoNotCloneChildren
             },
             None,
-            can_gc,
         );
         Ok(result)
     }
@@ -4203,8 +4722,28 @@ impl VirtualMethods for Node {
         // unbind operation happened further up in the tree and we should not
         // drain any ranges.
         if !self.is_in_a_shadow_tree() && !self.ranges_is_empty() {
-            self.ranges().drain_to_parent(context, self);
+            self.ranges()
+                .drain_to_parent(context.parent, context.index(), self);
         }
+    }
+
+    fn moving_steps(&self, context: &MoveContext, can_gc: CanGc) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(context, can_gc);
+        }
+
+        // Ranges should only drain to the parent from inclusive non-shadow
+        // including descendants. If we're in a shadow tree at this point then the
+        // unbind operation happened further up in the tree and we should not
+        // drain any ranges.
+        if let Some(old_parent) = context.old_parent {
+            if !self.is_in_a_shadow_tree() && !self.ranges_is_empty() {
+                self.ranges()
+                    .drain_to_parent(old_parent, context.index(), self);
+            }
+        }
+
+        self.owner_doc().content_and_heritage_changed(self);
     }
 
     fn handle_event(&self, event: &Event, can_gc: CanGc) {
@@ -4478,6 +5017,46 @@ impl<'a> UnbindContext<'a> {
     }
 
     /// The index of the inclusive ancestor that was removed from the tree.
+    pub(crate) fn index(&self) -> u32 {
+        if let Some(index) = self.index.get() {
+            return index;
+        }
+        let index = self.prev_sibling.map_or(0, |sibling| sibling.index() + 1);
+        self.index.set(Some(index));
+        index
+    }
+}
+
+/// The context of the moving from a tree of a node when one of its
+/// inclusive ancestors is moved.
+pub(crate) struct MoveContext<'a> {
+    /// The index of the inclusive ancestor that was moved.
+    index: Cell<Option<u32>>,
+    /// The old parent, if any, of the inclusive ancestor that was moved.
+    pub(crate) old_parent: Option<&'a Node>,
+    /// The previous sibling of the inclusive ancestor that was moved.
+    prev_sibling: Option<&'a Node>,
+    /// The next sibling of the inclusive ancestor that was moved.
+    pub(crate) next_sibling: Option<&'a Node>,
+}
+
+impl<'a> MoveContext<'a> {
+    /// Create a new `MoveContext` value.
+    pub(crate) fn new(
+        old_parent: Option<&'a Node>,
+        prev_sibling: Option<&'a Node>,
+        next_sibling: Option<&'a Node>,
+        cached_index: Option<u32>,
+    ) -> Self {
+        MoveContext {
+            index: Cell::new(cached_index),
+            old_parent,
+            prev_sibling,
+            next_sibling,
+        }
+    }
+
+    /// The index of the inclusive ancestor that was moved from the tree.
     pub(crate) fn index(&self) -> u32 {
         if let Some(index) = self.index.get() {
             return index;

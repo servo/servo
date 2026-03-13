@@ -11,7 +11,6 @@ use crate::dom::bindings::codegen::Bindings::TouchBinding::TouchMethods;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutDom};
-use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::pointerevent::PointerEvent;
@@ -141,7 +140,7 @@ impl Touch {
 
         PointerEvent::new(
             window,
-            DOMString::from(event_type),
+            event_type.into(),
             bubbles,
             cancelable,
             Some(window),
@@ -164,7 +163,7 @@ impl Touch {
             0,        // twist
             PI / 2.0, // altitude_angle (perpendicular to surface)
             0.0,      // azimuth_angle
-            DOMString::from("touch"),
+            "touch".into(),
             is_primary,
             vec![], // coalesced_events
             vec![], // predicted_events

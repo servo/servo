@@ -33,7 +33,7 @@ use url::Url;
     feature = "gamepad",
     not(any(target_os = "android", target_env = "ohos"))
 ))]
-pub(crate) use crate::desktop::gamepad::ServoshellGamepadProvider;
+pub(crate) use crate::desktop::gamepad::ServoshellGamepadDelegate;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 use crate::webdriver::WebDriverEmbedderControls;
 use crate::window::{PlatformWindow, ServoShellWindow, ServoShellWindowId};
@@ -169,7 +169,7 @@ pub(crate) struct RunningAppState {
         feature = "gamepad",
         not(any(target_os = "android", target_env = "ohos"))
     ))]
-    gamepad_provider: Option<Rc<ServoshellGamepadProvider>>,
+    gamepad_delegate: Option<Rc<ServoshellGamepadDelegate>>,
 
     /// The [`WebDriverSenders`] used to reply to pending WebDriver requests.
     pub(crate) webdriver_senders: RefCell<WebDriverSenders>,
@@ -229,7 +229,7 @@ impl RunningAppState {
             feature = "gamepad",
             not(any(target_os = "android", target_env = "ohos"))
         ))]
-        gamepad_provider: Option<Rc<ServoshellGamepadProvider>>,
+        gamepad_delegate: Option<Rc<ServoshellGamepadDelegate>>,
     ) -> Self {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
 
@@ -254,7 +254,7 @@ impl RunningAppState {
                 feature = "gamepad",
                 not(any(target_os = "android", target_env = "ohos"))
             ))]
-            gamepad_provider,
+            gamepad_delegate,
             webdriver_senders: RefCell::default(),
             webdriver_embedder_controls: Default::default(),
             pending_webdriver_events: Default::default(),
@@ -324,8 +324,8 @@ impl RunningAppState {
         feature = "gamepad",
         not(any(target_os = "android", target_env = "ohos"))
     ))]
-    pub(crate) fn gamepad_provider(&self) -> Option<Rc<ServoshellGamepadProvider>> {
-        self.gamepad_provider.clone()
+    pub(crate) fn gamepad_delegate(&self) -> Option<Rc<ServoshellGamepadDelegate>> {
+        self.gamepad_delegate.clone()
     }
 
     pub(crate) fn schedule_exit(&self) {
@@ -623,7 +623,7 @@ impl RunningAppState {
         not(any(target_os = "android", target_env = "ohos"))
     ))]
     pub(crate) fn handle_gamepad_events(&self) {
-        let Some(gamepad_provider) = self.gamepad_provider.as_ref() else {
+        let Some(gamepad_delegate) = self.gamepad_delegate.as_ref() else {
             return;
         };
         let Some(active_webview) = self
@@ -632,11 +632,11 @@ impl RunningAppState {
         else {
             return;
         };
-        gamepad_provider.handle_gamepad_events(active_webview);
+        gamepad_delegate.handle_gamepad_events(active_webview);
     }
 
     pub(crate) fn handle_focused(&self, window: Rc<ServoShellWindow>) {
-        *self.focused_window.borrow_mut() = Some(window.clone());
+        *self.focused_window.borrow_mut() = Some(window);
     }
 
     /// Interrupt any ongoing WebDriver-based script evaluation.

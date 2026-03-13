@@ -15,18 +15,16 @@ use app_units::Au;
 use base::generic_channel::GenericSender;
 use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
-use cssparser::ParserInput;
 use embedder_traits::{Theme, ViewportDetails};
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use layout_api::wrapper_traits::LayoutNode;
 use layout_api::{
-    BoxAreaType, CSSPixelRectIterator, IFrameSizes, Layout, LayoutConfig, LayoutFactory,
-    OffsetParentResponse, PhysicalSides, PropertyRegistration, QueryMsg, ReflowGoal,
-    ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult, ReflowStatistics,
-    RegisterPropertyError, ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
-    with_layout_state,
+    AxesOverflow, BoxAreaType, CSSPixelRectIterator, IFrameSizes, Layout, LayoutConfig,
+    LayoutFactory, OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun,
+    ReflowRequest, ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
+    ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -50,23 +48,18 @@ use style::animation::DocumentAnimationSet;
 use style::context::{
     QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters, SharedStyleContext,
 };
-use style::custom_properties::{SpecifiedValue, parse_name};
+use style::device::Device;
+use style::device::servo::FontMetricsProvider;
 use style::dom::{OpaqueNode, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::font_metrics::FontMetrics;
 use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::invalidation::stylesheets::StylesheetInvalidationSet;
-use style::media_queries::{Device, MediaList, MediaType};
+use style::media_queries::{MediaList, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
-use style::properties_and_values::registry::{
-    PropertyRegistration as StyloPropertyRegistration, PropertyRegistrationData,
-};
-use style::properties_and_values::rule::{Inherits, PropertyRegistrationError, PropertyRuleName};
-use style::properties_and_values::syntax::Descriptor;
 use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, RestyleDamage, SnapshotMap};
-use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
     CustomMediaMap, DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument,
@@ -77,7 +70,6 @@ use style::traversal_flags::TraversalFlags;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLength, XLang};
 use style::values::specified::font::{KeywordInfo, QueryFontMetricsFlags};
-use style::values::{Parser, SourceLocation};
 use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
@@ -90,9 +82,9 @@ use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, Stack
 use crate::query::{
     find_character_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
     process_box_areas_request, process_client_rect_request, process_current_css_zoom_query,
-    process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
-    process_resolved_font_style_query, process_resolved_style_request,
-    process_scroll_container_query,
+    process_effective_overflow_query, process_node_scroll_area_request,
+    process_offset_parent_query, process_padding_request, process_resolved_font_style_query,
+    process_resolved_style_request, process_scroll_container_query,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_rebuild_box_tree};
 use crate::{BoxTree, FragmentTree};
@@ -545,6 +537,14 @@ impl Layout for LayoutThread {
         })
     }
 
+    #[servo_tracing::instrument(skip_all)]
+    fn query_effective_overflow(&self, node: TrustedNodeAddress) -> Option<AxesOverflow> {
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node).to_threadsafe() };
+            process_effective_overflow_query(node)
+        })
+    }
+
     fn exit_now(&mut self) {}
 
     fn collect_reports(&self, reports: &mut Vec<Report>, ops: &mut MallocSizeOfOps) {
@@ -662,89 +662,8 @@ impl Layout for LayoutThread {
     }
 
     /// <https://drafts.css-houdini.org/css-properties-values-api-1/#the-registerproperty-function>
-    fn register_custom_property(
-        &mut self,
-        property_registration: PropertyRegistration,
-    ) -> Result<(), RegisterPropertyError> {
-        // Step 2. If name is not a custom property name string, throw a SyntaxError and exit this algorithm.
-        // If property set already contains an entry with name as its property name
-        // (compared codepoint-wise), throw an InvalidModificationError and exit this algorithm.
-        let Ok(name) = parse_name(&property_registration.name) else {
-            return Err(RegisterPropertyError::InvalidName);
-        };
-        let name = Atom::from(name);
-
-        if self
-            .stylist
-            .custom_property_script_registry()
-            .get(&name)
-            .is_some()
-        {
-            return Err(RegisterPropertyError::AlreadyRegistered);
-        }
-
-        // Step 3. Attempt to consume a syntax definition from syntax. If it returns failure,
-        // throw a SyntaxError. Otherwise, let syntax definition be the returned syntax definition.
-        let syntax = Descriptor::from_str(&property_registration.syntax, false)
-            .map_err(|_| RegisterPropertyError::InvalidSyntax)?;
-
-        // Step 4 - Parse and validate initial value
-        let initial_value = match property_registration.initial_value {
-            Some(value) => {
-                let mut input = ParserInput::new(&value);
-                let parsed = Parser::new(&mut input)
-                    .parse_entirely(|input| {
-                        input.skip_whitespace();
-                        SpecifiedValue::parse(input, &property_registration.url_data)
-                            .map(servo_arc::Arc::new)
-                    })
-                    .ok();
-                if parsed.is_none() {
-                    return Err(RegisterPropertyError::InvalidInitialValue);
-                }
-                parsed
-            },
-            None => None,
-        };
-
-        StyloPropertyRegistration::validate_initial_value(&syntax, initial_value.as_deref())
-            .map_err(|error| match error {
-                PropertyRegistrationError::InitialValueNotComputationallyIndependent => {
-                    RegisterPropertyError::InitialValueNotComputationallyIndependent
-                },
-                PropertyRegistrationError::InvalidInitialValue => {
-                    RegisterPropertyError::InvalidInitialValue
-                },
-                PropertyRegistrationError::NoInitialValue => RegisterPropertyError::NoInitialValue,
-            })?;
-
-        // Step 5. Set inherit flag to the value of inherits.
-        let inherits = if property_registration.inherits {
-            Inherits::True
-        } else {
-            Inherits::False
-        };
-
-        // Step 6. Let registered property be a struct with a property name of name, a syntax of
-        // syntax definition, an initial value of parsed initial value, and an inherit flag of inherit flag.
-        // Append registered property to property set.
-        let property_registration = StyloPropertyRegistration {
-            name: PropertyRuleName(name),
-            data: PropertyRegistrationData {
-                syntax,
-                initial_value,
-                inherits,
-            },
-            url_data: property_registration.url_data,
-            source_location: SourceLocation { line: 0, column: 0 },
-        };
-
-        self.stylist
-            .custom_property_script_registry_mut()
-            .register(property_registration);
-        self.stylist.rebuild_initial_values_for_custom_properties();
-
-        Ok(())
+    fn stylist_mut(&mut self) -> &mut Stylist {
+        &mut self.stylist
     }
 
     fn set_accessibility_active(&self, active: bool) {
@@ -1711,6 +1630,7 @@ impl ReflowPhases {
                 QueryMsg::TextIndexQuery => Self::StackingContextTreeConstruction,
                 QueryMsg::ClientRectQuery |
                 QueryMsg::CurrentCSSZoomQuery |
+                QueryMsg::EffectiveOverflow |
                 QueryMsg::ElementInnerOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
                 QueryMsg::PaddingQuery |

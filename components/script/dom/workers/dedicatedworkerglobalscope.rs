@@ -477,7 +477,7 @@ impl DedicatedWorkerGlobalScope {
                 let global = DedicatedWorkerGlobalScope::new(
                     init,
                     webview_id,
-                    DOMString::from_string(worker_name),
+                    worker_name.into(),
                     worker_type,
                     worker_url,
                     devtools_mpsc_port,
@@ -511,7 +511,7 @@ impl DedicatedWorkerGlobalScope {
                     sender: event_loop_sender.clone(),
                     pipeline_id,
                     name: TaskSourceName::Networking,
-                    canceller: Default::default(),
+                    canceller: scope.shared_task_canceller(),
                 };
                 let context = ScriptFetchContext::new(
                     Trusted::new(scope),

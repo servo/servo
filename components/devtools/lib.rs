@@ -24,8 +24,8 @@ use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use devtools_traits::{
     ChromeToDevtoolsControlMsg, ConsoleLogLevel, ConsoleMessage, ConsoleMessageFields,
-    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation, FrameInfo,
-    FrameOffset, NavigationState, NetworkEvent, PauseReason, ScriptToDevtoolsControlMsg,
+    DevtoolScriptControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, DomMutation, EnvironmentInfo,
+    FrameInfo, FrameOffset, NavigationState, NetworkEvent, PauseReason, ScriptToDevtoolsControlMsg,
     SourceInfo, WorkerId, get_time_stamp,
 };
 use embedder_traits::{AllowOrDeny, EmbedderMsg, EmbedderProxy};
@@ -42,6 +42,7 @@ use servo_config::pref;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::console::{ConsoleActor, ConsoleResource, DevtoolsConsoleMessage, Root};
+use crate::actors::environment::EnvironmentActor;
 use crate::actors::frame::FrameActor;
 use crate::actors::framerate::FramerateActor;
 use crate::actors::inspector::InspectorActor;
@@ -374,6 +375,13 @@ impl DevtoolsInstance {
                     pipeline_id,
                     frame_info,
                 )) => self.handle_create_frame_actor(result_sender, pipeline_id, frame_info),
+                DevtoolsControlMsg::FromScript(
+                    ScriptToDevtoolsControlMsg::CreateEnvironmentActor(
+                        result_sender,
+                        environment,
+                        parent,
+                    ),
+                ) => self.handle_create_environment_actor(result_sender, environment, parent),
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
                     request_id,
                     network_event,
@@ -443,9 +451,9 @@ impl DevtoolsInstance {
                 &mut connections.values_mut(),
                 &mut id_map,
             );
-        };
+        }
 
-        actor.navigate(state, &mut id_map, connections.values_mut());
+        actor.handle_navigate(state, &mut id_map, connections.values_mut());
     }
 
     // We need separate actor representations for each script global that exists;
@@ -471,7 +479,11 @@ impl DevtoolsInstance {
             assert!(self.pipelines.contains_key(&pipeline_id));
             assert!(self.browsing_contexts.contains_key(&browsing_context_id));
 
-            let thread = ThreadActor::new(actors.new_name::<ThreadActor>(), script_sender.clone());
+            let thread = ThreadActor::new(
+                actors.new_name::<ThreadActor>(),
+                script_sender.clone(),
+                None,
+            );
             let thread_name = thread.name();
             actors.register(thread);
 
@@ -481,7 +493,7 @@ impl DevtoolsInstance {
                 console: console_name.clone(),
                 thread: thread_name,
                 worker_id: id,
-                url: page_info.url.clone(),
+                url: page_info.url,
                 type_: WorkerType::Dedicated,
                 script_chan: script_sender,
                 streams: Default::default(),
@@ -506,14 +518,15 @@ impl DevtoolsInstance {
                         page_info,
                         pipeline_id,
                         devtools_outer_window_id,
-                        script_sender,
+                        script_sender.clone(),
                         actors,
                     );
                     let name = browsing_context_actor.name();
                     actors.register(browsing_context_actor);
                     name
                 });
-
+            let browsing_context_actor = actors.find::<BrowsingContextActor>(name);
+            browsing_context_actor.handle_new_global(pipeline_id, script_sender);
             Root::BrowsingContext(name.clone())
         };
 
@@ -826,8 +839,18 @@ impl DevtoolsInstance {
         };
 
         let frame = FrameActor::register(actors, source, frame);
-        thread.frames.borrow_mut().insert(frame.clone());
 
+        let _ = result_sender.send(frame);
+    }
+
+    fn handle_create_environment_actor(
+        &mut self,
+        result_sender: GenericSender<String>,
+        environment: EnvironmentInfo,
+        parent: Option<String>,
+    ) {
+        let actors = &self.registry;
+        let frame = EnvironmentActor::register(actors, environment, parent);
         let _ = result_sender.send(frame);
     }
 }

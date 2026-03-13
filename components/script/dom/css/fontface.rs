@@ -261,7 +261,7 @@ impl FontFace {
             descriptors: DomRefCell::new(serialize_parsed_descriptors(parsed_font_face_rule)),
 
             font_face_set: MutNullableDom::default(),
-            family_name: DomRefCell::new(family_name.clone()),
+            family_name: DomRefCell::new(family_name),
             urls: DomRefCell::new(Some(sources)),
             template: RefCell::default(),
             font_status_promise,

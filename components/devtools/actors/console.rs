@@ -294,8 +294,7 @@ impl ConsoleActor {
         match &self.root {
             Root::BrowsingContext(browsing_context) => registry
                 .find::<BrowsingContextActor>(browsing_context)
-                .script_chan
-                .clone(),
+                .script_chan(),
             Root::DedicatedWorker(worker) => {
                 registry.find::<WorkerActor>(worker).script_chan.clone()
             },

@@ -172,7 +172,7 @@ fn create_html_element(
                 // Step 5.1. If synchronousCustomElements is true, then run these
                 // steps while catching any exceptions:
                 CustomElementCreationMode::Synchronous => {
-                    let local_name = name.local.clone();
+                    let local_name = name.local;
                     // TODO(jdm) Pass proto to create_element?
                     // Steps 4.1.1-4.1.11
                     return match definition.create_element(
@@ -196,7 +196,7 @@ fn create_html_element(
 
                             let ar = enter_realm(&*global);
                             throw_dom_exception(cx, &global, error, can_gc);
-                            report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
+                            report_pending_exception(cx, InRealm::Entered(&ar), can_gc);
 
                             // Substep 2. Set result to the result of creating an element internal given document,
                             // HTMLUnknownElement, localName, the HTML namespace, prefix, "failed", null, and registry.
@@ -217,11 +217,7 @@ fn create_html_element(
                     // custom element definition set to null, is value set to null, and node document
                     // set to document.
                     let result = DomRoot::upcast::<Element>(HTMLElement::new(
-                        name.local.clone(),
-                        prefix.clone(),
-                        document,
-                        proto,
-                        can_gc,
+                        name.local, prefix, document, proto, can_gc,
                     ));
                     result.set_custom_element_state(CustomElementState::Undefined);
                     result.set_custom_element_registry(registry);

@@ -114,7 +114,7 @@ imsz = "0.4"
 indexmap = { version = "2.11.4", features = ["std"] }
 ipc-channel = "0.21"
 itertools = "0.14"
-js = { package = "mozjs", version = "=0.15.1", default-features = false, features = ["libz-sys", "intl"] }
+js = { package = "mozjs", version = "=0.15.5", default-features = false, features = ["libz-sys", "intl"] }
 keyboard-types = { version = "0.8.3", features = ["serde", "webdriver"] }
 kurbo = { version = "0.12", features = ["euclid"] }
 layout_api = { package = "servo-layout-api", path = "components/shared/layout" }
@@ -130,7 +130,7 @@ mime-multipart-hyper1 = "0.10.0"
 mime_guess = "2.0.5"
 ml-dsa = "0.0.4"
 ml-kem = { version = "0.2", features = ["deterministic"] }
-mozangle = "0.5.3"
+mozangle = "0.5.5"
 net_traits = { package = "servo-net-traits", path = "components/shared/net" }
 nix = "0.30"
 nom = "8.0.0"
@@ -172,7 +172,7 @@ script_traits = { package = "servo-script-traits", path = "components/shared/scr
 sea-query = { version = "1.0.0-rc.31", default-features = false, features = ["backend-sqlite", "derive"] }
 sea-query-rusqlite = { version = "0.8.0-rc.15" }
 sec1 = "0.7"
-selectors = { git = "https://github.com/servo/stylo", rev = "9b635629e627a611419745198de1b1ba6c8667c2" }
+selectors = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
 serde = "1.0.228"
 serde_bytes = "0.11"
 serde_core = "1.0.226"
@@ -181,7 +181,7 @@ servo-media = { path = "components/media/servo-media" }
 servo-media-dummy = { path = "components/media/backends/dummy" }
 servo-media-gstreamer = { path = "components/media/backends/gstreamer" }
 servo-tracing = { path = "components/servo_tracing" }
-servo_arc = { git = "https://github.com/servo/stylo", rev = "9b635629e627a611419745198de1b1ba6c8667c2" }
+servo_arc = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
 sha1 = "0.10"
 sha2 = "0.10"
 sha3 = "0.10"
@@ -189,13 +189,13 @@ skrifa = "0.37.0"
 smallvec = { version = "1.15", features = ["serde", "union"] }
 storage_traits = { package = "servo-storage-traits", path = "components/shared/storage" }
 string_cache = "0.9"
-strum = { version = "0.27", features = ["derive"] }
-stylo = { git = "https://github.com/servo/stylo", rev = "9b635629e627a611419745198de1b1ba6c8667c2" }
-stylo_atoms = { git = "https://github.com/servo/stylo", rev = "9b635629e627a611419745198de1b1ba6c8667c2" }
-stylo_dom = { git = "https://github.com/servo/stylo", rev = "9b635629e627a611419745198de1b1ba6c8667c2" }
-stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "9b635629e627a611419745198de1b1ba6c8667c2" }
-stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "9b635629e627a611419745198de1b1ba6c8667c2" }
-stylo_traits = { git = "https://github.com/servo/stylo", rev = "9b635629e627a611419745198de1b1ba6c8667c2" }
+strum = { version = "0.28", features = ["derive"] }
+stylo = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_atoms = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_dom = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_malloc_size_of = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_static_prefs = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
+stylo_traits = { git = "https://github.com/servo/stylo", rev = "dca3934667dae76c49bb579b268c5eb142d09c6a" }
 surfman = { version = "0.11.0", features = ["chains"] }
 syn = { version = "2", default-features = false, features = ["clone-impls", "derive", "parsing"] }
 synstructure = "0.13"
@@ -214,13 +214,14 @@ tracing-perfetto = "0.1.5"
 tracing-subscriber = "0.3.22"
 tungstenite = "0.28"
 unicode-bidi = "0.3.18"
+unicode_categories = "0.1.1"
 unicode-properties = { version = "0.1.4", features = ["emoji"] }
 unicode-script = "0.5"
 unicode-segmentation = "1.12.0"
 url = "2.5"
 urlpattern = "0.3"
 utf-8 = "0.7"
-uuid = { version = "1.21.0", features = ["v4", "v5"] }
+uuid = { version = "1.22.0", features = ["v4", "v5"] }
 vello = "0.6"
 vello_cpu = "0.0.4"
 webdriver = "0.53.0"
@@ -306,6 +307,12 @@ codegen-units = 1
 # web_atoms = { path = "../html5ever/web_atoms" }
 # xml5ever = { path = "../html5ever/xml5ever" }
 # tendril = { path = "../html5ever/tendril" }
+
+# For WebRender:
+#
+# webrender = { path = "../webrender/webrender" }
+# webrender_api = { path = "../webrender/webrender_api" }
+# wr_malloc_size_of = { path = "../webrender/wr_malloc_size_of" }
 #
 # Or for mozjs:
 #
@@ -329,13 +336,6 @@ egui-winit = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e0517
 # stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
 # stylo_static_prefs = { path = "../stylo/stylo_static_prefs" }
 # stylo_traits = { path = "../stylo/style_traits" }
-#
-# Or for WebRender:
-#
-# [patch."https://github.com/servo/webrender"]
-# webrender = { path = "../webrender/webrender" }
-# webrender_api = { path = "../webrender/webrender_api" }
-# wr_malloc_size_of = { path = "../webrender/wr_malloc_size_of" }
 #
 # Or for another Git dependency:
 #

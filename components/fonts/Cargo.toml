@@ -24,7 +24,7 @@ content-security-policy = { workspace = true }
 euclid = { workspace = true }
 fonts_traits = { workspace = true }
 fontsan = { version = "0.6.1" }
-# FIXME (#34517): macOS only needs this when building libservo without `--features media-gstreamer`
+# FIXME (#34517): macOS only needs this when building servo without `--features media-gstreamer`
 harfbuzz-sys = { workspace = true, features = ["bundled"] }
 icu_properties = { workspace = true, features = ["compiled_data"] }
 itertools = { workspace = true }

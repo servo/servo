@@ -1793,7 +1793,7 @@ impl TreeSink for Sink {
     /// Specifically, the `<annotation-xml>` cases.
     fn is_mathml_annotation_xml_integration_point(&self, handle: &Dom<Node>) -> bool {
         let elem = handle.downcast::<Element>().unwrap();
-        elem.get_attribute(&ns!(), &local_name!("encoding"))
+        elem.get_attribute(&local_name!("encoding"))
             .is_some_and(|attr| {
                 attr.value().eq_ignore_ascii_case("text/html") ||
                     attr.value().eq_ignore_ascii_case("application/xhtml+xml")
@@ -1825,7 +1825,12 @@ impl TreeSink for Sink {
         attach_declarative_shadow_inner(host, template, attributes)
     }
 
+    #[expect(unsafe_code)]
     fn maybe_clone_an_option_into_selectedcontent(&self, option: &Self::Handle) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
         let Some(option) = option.downcast::<HTMLOptionElement>() else {
             if cfg!(debug_assertions) {
                 unreachable!();
@@ -1836,7 +1841,7 @@ impl TreeSink for Sink {
             return;
         };
 
-        option.maybe_clone_an_option_into_selectedcontent(CanGc::note())
+        option.maybe_clone_an_option_into_selectedcontent(cx)
     }
 }
 

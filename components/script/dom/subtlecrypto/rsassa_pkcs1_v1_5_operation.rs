@@ -18,8 +18,8 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::rsa_common::{self, RsaAlgorithm};
 use crate::dom::subtlecrypto::{
-    ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, KeyAlgorithmAndDerivatives,
-    NormalizedAlgorithm, SubtleRsaHashedImportParams, SubtleRsaHashedKeyGenParams,
+    CryptoAlgorithm, ExportedKey, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
+    SubtleRsaHashedImportParams, SubtleRsaHashedKeyGenParams,
 };
 
 /// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-sign>
@@ -50,26 +50,26 @@ pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
         )));
     };
     let signature = match algorithm.hash.name() {
-        ALG_SHA1 => {
+        CryptoAlgorithm::Sha1 => {
             let signing_key = SigningKey::<Sha1>::new(private_key.clone());
             signing_key.try_sign(message)
         },
-        ALG_SHA256 => {
+        CryptoAlgorithm::Sha256 => {
             let signing_key = SigningKey::<Sha256>::new(private_key.clone());
             signing_key.try_sign(message)
         },
-        ALG_SHA384 => {
+        CryptoAlgorithm::Sha384 => {
             let signing_key = SigningKey::<Sha384>::new(private_key.clone());
             signing_key.try_sign(message)
         },
-        ALG_SHA512 => {
+        CryptoAlgorithm::Sha512 => {
             let signing_key = SigningKey::<Sha512>::new(private_key.clone());
             signing_key.try_sign(message)
         },
         _ => {
             return Err(Error::Operation(Some(format!(
                 "Unsupported \"{}\" hash for RSASSA-PKCS1-v1_5",
-                algorithm.hash.name()
+                algorithm.hash.name().as_str()
             ))));
         },
     }
@@ -109,26 +109,26 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
     let signature = Signature::try_from(signature)
         .map_err(|_| Error::Operation(Some("Failed to parse RSA signature".to_string())))?;
     let result = match algorithm.hash.name() {
-        ALG_SHA1 => {
+        CryptoAlgorithm::Sha1 => {
             let verifying_key = VerifyingKey::<Sha1>::new(public_key.clone());
             verifying_key.verify(message, &signature)
         },
-        ALG_SHA256 => {
+        CryptoAlgorithm::Sha256 => {
             let verifying_key = VerifyingKey::<Sha256>::new(public_key.clone());
             verifying_key.verify(message, &signature)
         },
-        ALG_SHA384 => {
+        CryptoAlgorithm::Sha384 => {
             let verifying_key = VerifyingKey::<Sha384>::new(public_key.clone());
             verifying_key.verify(message, &signature)
         },
-        ALG_SHA512 => {
+        CryptoAlgorithm::Sha512 => {
             let verifying_key = VerifyingKey::<Sha512>::new(public_key.clone());
             verifying_key.verify(message, &signature)
         },
         _ => {
             return Err(Error::Operation(Some(format!(
                 "Unsupported \"{}\" hash for RSASSA-PKCS1-v1_5",
-                algorithm.hash.name()
+                algorithm.hash.name().as_str()
             ))));
         },
     }
@@ -181,4 +181,23 @@ pub(crate) fn import_key(
 /// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-export-key>
 pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     rsa_common::export_key(RsaAlgorithm::RsassaPkcs1v1_5, format, key)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+/// Step 9 - 15, for RSASSA-PKCS1-v1_5
+pub(crate) fn get_public_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    key: &CryptoKey,
+    algorithm: &KeyAlgorithmAndDerivatives,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    rsa_common::get_public_key(
+        RsaAlgorithm::RsassaPkcs1v1_5,
+        cx,
+        global,
+        key,
+        algorithm,
+        usages,
+    )
 }

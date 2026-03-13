@@ -15,8 +15,9 @@ use super::source::{SourceManager, SourcesReply};
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::frame::{FrameActor, FrameActorMsg};
 use crate::actors::pause::PauseActor;
+use crate::generic_channel::channel;
 use crate::protocol::{ClientRequest, JsonPacketStream};
-use crate::{EmptyReplyMsg, StreamId};
+use crate::{BrowsingContextActor, EmptyReplyMsg, StreamId};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -90,6 +91,12 @@ struct ResumeRequest {
     frame_actor_id: Option<String>,
 }
 
+#[derive(Deserialize, Debug)]
+struct FramesRequest {
+    start: u32,
+    count: u32,
+}
+
 impl ResumeRequest {
     fn get_type(&self) -> Option<String> {
         let resume_limit = self.resume_limit.as_ref()?;
@@ -105,15 +112,21 @@ pub(crate) struct ThreadActor {
     pub source_manager: SourceManager,
     script_sender: GenericSender<DevtoolScriptControlMsg>,
     pub frames: AtomicRefCell<HashSet<String>>,
+    browsing_context: Option<String>,
 }
 
 impl ThreadActor {
-    pub fn new(name: String, script_sender: GenericSender<DevtoolScriptControlMsg>) -> ThreadActor {
+    pub fn new(
+        name: String,
+        script_sender: GenericSender<DevtoolScriptControlMsg>,
+        browsing_context: Option<String>,
+    ) -> ThreadActor {
         ThreadActor {
-            name: name.clone(),
+            name,
             source_manager: SourceManager::new(),
             script_sender,
             frames: Default::default(),
+            browsing_context,
         }
     }
 }
@@ -202,15 +215,32 @@ impl Actor for ThreadActor {
             },
 
             "frames" => {
-                // TODO: This should get the youngest frame and its parents from debugger.js
-                // self.frames is not needed
+                let Some(ref browsing_context) = self.browsing_context else {
+                    return Err(ActorError::Internal);
+                };
+                let browsing_context = registry.find::<BrowsingContextActor>(browsing_context);
+
+                let frames: FramesRequest =
+                    serde_json::from_value(msg.clone().into()).map_err(|_| ActorError::Internal)?;
+
+                let Some((tx, rx)) = channel() else {
+                    return Err(ActorError::Internal);
+                };
+                self.script_sender
+                    .send(DevtoolScriptControlMsg::ListFrames(
+                        browsing_context.pipeline_id(),
+                        frames.start,
+                        frames.count,
+                        tx,
+                    ))
+                    .map_err(|_| ActorError::Internal)?;
+
+                let result = rx.recv().map_err(|_| ActorError::Internal)?;
                 // Frame actors should be registered here
                 // https://searchfox.org/firefox-main/source/devtools/server/actors/thread.js#1425
                 let msg = FramesReply {
                     from: self.name(),
-                    frames: self
-                        .frames
-                        .borrow()
+                    frames: result
                         .iter()
                         .map(|frame| registry.encode::<FrameActor, _>(frame))
                         .collect(),

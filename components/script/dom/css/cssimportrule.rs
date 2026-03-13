@@ -79,7 +79,7 @@ impl CSSImportRuleMethods<crate::DomTypeHolder> for CSSImportRule {
         match &self.import_rule.borrow().read_with(&guard).layer {
             ImportLayer::None => None,
             ImportLayer::Anonymous => Some(DOMString::new()),
-            ImportLayer::Named(name) => Some(DOMString::from_string(name.to_css_string())),
+            ImportLayer::Named(name) => Some(name.to_css_string().into()),
         }
     }
 }

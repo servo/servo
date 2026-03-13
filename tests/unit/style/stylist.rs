@@ -7,8 +7,10 @@ use euclid::{Scale, Size2D};
 use selectors::parser::{AncestorHashes, Selector};
 use servo_arc::Arc;
 use style::context::QuirksMode;
+use style::device::Device;
+use style::device::servo::FontMetricsProvider;
 use style::font_metrics::FontMetrics;
-use style::media_queries::{Device, MediaType};
+use style::media_queries::MediaType;
 use style::properties::style_structs::Font;
 use style::properties::{
     ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock, longhands,
@@ -17,7 +19,6 @@ use style::queries::values::PrefersColorScheme;
 use style::rule_tree::StyleSource;
 use style::selector_map::SelectorMap;
 use style::selector_parser::{SelectorImpl, SelectorParser};
-use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::SharedRwLock;
 use style::stylesheets::StyleRule;
 use style::stylist::{

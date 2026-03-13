@@ -19,7 +19,6 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use app_units::Au;
-use atomic_refcell::AtomicRefCell;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::Epoch;
 use base::generic_channel::GenericSender;
@@ -47,15 +46,16 @@ use style::Atom;
 use style::animation::DocumentAnimationSet;
 use style::attr::{AttrValue, parse_integer, parse_unsigned_integer};
 use style::context::QuirksMode;
-use style::data::ElementData;
+use style::data::ElementDataWrapper;
+use style::device::Device;
 use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::media_queries::Device;
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::str::char_is_whitespace;
-use style::stylesheets::{DocumentStyleSheet, Stylesheet, UrlExtraData};
+use style::stylesheets::{DocumentStyleSheet, Stylesheet};
+use style::stylist::Stylist;
 use style::thread_state::{self, ThreadState};
 use style::values::computed::Overflow;
 use style_traits::CSSPixel;
@@ -68,25 +68,16 @@ pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
 
 pub type GenericLayoutData = dyn GenericLayoutDataTrait + Send + Sync;
 
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 pub struct StyleData {
     /// Data that the style system associates with a node. When the
     /// style system is being used standalone, this is all that hangs
     /// off the node. This must be first to permit the various
     /// transmutations between ElementData and PersistentLayoutData.
-    pub element_data: AtomicRefCell<ElementData>,
+    pub element_data: ElementDataWrapper,
 
     /// Information needed during parallel traversals.
     pub parallel: DomParallelInfo,
-}
-
-impl Default for StyleData {
-    fn default() -> Self {
-        Self {
-            element_data: AtomicRefCell::new(ElementData::default()),
-            parallel: DomParallelInfo::default(),
-        }
-    }
 }
 
 /// Information that we need stored in each DOM node.
@@ -241,24 +232,6 @@ pub struct LayoutConfig {
     pub accessibility_active: bool,
 }
 
-pub struct PropertyRegistration {
-    pub name: String,
-    pub syntax: String,
-    pub initial_value: Option<String>,
-    pub inherits: bool,
-    pub url_data: UrlExtraData,
-}
-
-#[derive(Debug)]
-pub enum RegisterPropertyError {
-    InvalidName,
-    AlreadyRegistered,
-    InvalidSyntax,
-    InvalidInitialValue,
-    InitialValueNotComputationallyIndependent,
-    NoInitialValue,
-}
-
 pub trait LayoutFactory: Send + Sync {
     fn create(&self, config: LayoutConfig) -> Box<dyn Layout>;
 }
@@ -389,10 +362,8 @@ pub trait Layout {
         point: LayoutPoint,
         flags: ElementsFromPointFlags,
     ) -> Vec<ElementsFromPointResult>;
-    fn register_custom_property(
-        &mut self,
-        property_registration: PropertyRegistration,
-    ) -> Result<(), RegisterPropertyError>;
+    fn query_effective_overflow(&self, node: TrustedNodeAddress) -> Option<AxesOverflow>;
+    fn stylist_mut(&mut self) -> &mut Stylist;
 
     fn set_accessibility_active(&self, active: bool);
 }
@@ -476,6 +447,13 @@ impl AxesOverflow {
             y: self.y.to_scrollable(),
         }
     }
+
+    /// Whether or not the `overflow` value establishes a scroll container.
+    pub fn establishes_scroll_container(&self) -> bool {
+        // Checking one axis suffices, because the computed value ensures that
+        // either both axes are scrollable, or none is scrollable.
+        self.x.is_scrollable()
+    }
 }
 
 #[derive(Clone)]
@@ -490,6 +468,7 @@ pub enum QueryMsg {
     BoxAreas,
     ClientRectQuery,
     CurrentCSSZoomQuery,
+    EffectiveOverflow,
     ElementInnerOuterTextQuery,
     ElementsFromPoint,
     InnerWindowDimensionsQuery,

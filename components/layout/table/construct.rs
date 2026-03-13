@@ -223,7 +223,7 @@ impl TableBuilder {
             ComputedValues::initial_values_with_font_override(Font::initial_values());
         Self::new(
             testing_style.clone(),
-            testing_style.clone(),
+            testing_style,
             BaseFragmentInfo::anonymous(),
             true, /* percentage_columns_allowed_for_inline_content_sizes */
         )

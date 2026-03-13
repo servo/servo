@@ -43,7 +43,7 @@ use chrono::{DateTime, Local};
 use constellation_traits::{
     JsEvalResult, LoadData, LoadOrigin, NavigationHistoryBehavior, ScreenshotReadinessResponse,
     ScriptToConstellationChan, ScriptToConstellationMessage, ScrollStateUpdate,
-    StructuredSerializedData, WindowSizeType,
+    StructuredSerializedData, TraversalDirection, WindowSizeType,
 };
 use crossbeam_channel::unbounded;
 use data_url::mime::Mime;
@@ -54,8 +54,8 @@ use devtools_traits::{
 use embedder_traits::user_contents::{UserContentManagerId, UserContents, UserScript};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, EmbedderMsg, FocusSequenceNumber,
-    JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType, Theme,
-    ViewportDetails, WebDriverScriptCommand,
+    InputEventOutcome, JavaScriptEvaluationError, JavaScriptEvaluationId, MediaSessionActionType,
+    Theme, ViewportDetails, WebDriverScriptCommand,
 };
 use encoding_rs::Encoding;
 use fonts::{FontContext, SystemFontServiceProxy};
@@ -345,9 +345,6 @@ pub struct ScriptThread {
 
     /// Periodically print out on which events script threads spend their processing time.
     profile_script_events: bool,
-
-    /// Print Progressive Web Metrics to console.
-    print_pwm: bool,
 
     /// Unminify Javascript.
     unminify_js: bool,
@@ -1025,7 +1022,6 @@ impl ScriptThread {
                     custom_element_reaction_stack: Rc::new(CustomElementReactionStack::new()),
                     paint_api: state.cross_process_paint_api,
                     profile_script_events: opts.debug.profile_script_events,
-                    print_pwm: opts.print_pwm,
                     unminify_js: opts.unminify_js,
                     local_script_source: opts.local_script_source.clone(),
                     unminify_css: opts.unminify_css,
@@ -1139,10 +1135,6 @@ impl ScriptThread {
             return false;
         }
 
-        // TODO: The specification says to filter out non-renderable documents,
-        // as well as those for which a rendering update would be unnecessary,
-        // but this isn't happening here.
-
         // TODO(#31242): the filtering of docs is extended to not exclude the ones that
         // has pending initial observation targets
         // https://w3c.github.io/IntersectionObserver/#pending-initial-observation
@@ -1180,6 +1172,25 @@ impl ScriptThread {
             }
 
             if document.waiting_on_canvas_image_updates() {
+                continue;
+            }
+
+            // Step 3. Filter non-renderable documents:
+            // Remove from docs any Document object doc for which any of the following are true:
+            if
+            // doc is render-blocked;
+            document.is_render_blocked()
+            // doc's visibility state is "hidden";
+            // TODO: Currently, this would mean that the script thread does nothing, since
+            // documents aren't currently correctly set to the visible state when navigating
+
+            // doc's rendering is suppressed for view transitions; or
+            // TODO
+
+            // doc's node navigable doesn't currently have a rendering opportunity.
+            //
+            // This is implicitly the case when we call this method
+            {
                 continue;
             }
 
@@ -1246,8 +1257,11 @@ impl ScriptThread {
                 );
             }
 
-            // TODO(#31870): Implement step 17: if the focused area of doc is not a focusable area,
-            // then run the focusing steps for document's viewport.
+            // <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
+            // > For each doc of docs, if the focused area of doc is not a focusable area, then run the
+            // > focusing steps for doc's viewport, and set doc's relevant global object's navigation API's
+            // > focus changed during ongoing navigation to false.
+            document.perform_focus_fixup_rule(CanGc::from_cx(cx));
 
             // TODO: Perform pending transition operations from
             // https://drafts.csswg.org/css-view-transitions/#perform-pending-transition-operations.
@@ -1716,10 +1730,9 @@ impl ScriptThread {
         for (doc_id, doc) in self.documents.borrow().iter() {
             if let Some(pipeline_id) = pipeline_id {
                 if pipeline_id == doc_id && task_duration.as_nanos() > MAX_TASK_NS {
-                    if self.print_pwm {
+                    if opts::get().debug.progressive_web_metrics {
                         println!(
-                            "Task took longer than max allowed ({:?}) {:?}",
-                            category,
+                            "Task took longer than max allowed ({category:?}) {:?}",
                             task_duration.as_nanos()
                         );
                     }
@@ -2229,6 +2242,15 @@ impl ScriptThread {
             DevtoolScriptControlMsg::RequestAnimationFrame(id, name) => {
                 devtools::handle_request_animation_frame(&documents, id, name)
             },
+            DevtoolScriptControlMsg::NavigateTo(pipeline_id, url) => {
+                self.handle_navigate_to(pipeline_id, url)
+            },
+            DevtoolScriptControlMsg::GoBack(pipeline_id) => {
+                self.handle_traverse_history(pipeline_id, TraversalDirection::Back(1))
+            },
+            DevtoolScriptControlMsg::GoForward(pipeline_id) => {
+                self.handle_traverse_history(pipeline_id, TraversalDirection::Forward(1))
+            },
             DevtoolScriptControlMsg::Reload(id) => self.handle_reload(id, CanGc::from_cx(cx)),
             DevtoolScriptControlMsg::GetCssDatabase(reply) => {
                 devtools::handle_get_css_database(reply)
@@ -2284,6 +2306,22 @@ impl ScriptThread {
             },
             DevtoolScriptControlMsg::Interrupt => {
                 self.debugger_global.fire_interrupt(CanGc::from_cx(cx));
+            },
+            DevtoolScriptControlMsg::ListFrames(pipeline_id, start, count, result_sender) => {
+                self.debugger_global.fire_list_frames(
+                    pipeline_id,
+                    start,
+                    count,
+                    result_sender,
+                    CanGc::from_cx(cx),
+                );
+            },
+            DevtoolScriptControlMsg::GetEnvironment(frame_actor_id, result_sender) => {
+                self.debugger_global.fire_get_environment(
+                    frame_actor_id,
+                    result_sender,
+                    CanGc::from_cx(cx),
+                );
             },
             DevtoolScriptControlMsg::Resume(resume_limit_type, frame_actor_id) => {
                 self.debugger_global.fire_resume(
@@ -2776,7 +2814,7 @@ impl ScriptThread {
             }
 
             let prefix = format!("url({urls})");
-            reports.extend(self.get_cx().get_reports(prefix.clone(), ops));
+            reports.extend(self.get_cx().get_reports(prefix, ops));
         });
 
         reports_chan.send(ProcessReports::new(reports));
@@ -3696,10 +3734,12 @@ impl ScriptThread {
             let _ = self
                 .senders
                 .pipeline_to_embedder_sender
-                .send(EmbedderMsg::InputEventHandled(
+                .send(EmbedderMsg::InputEventsHandled(
                     webview_id,
-                    event.event.id,
-                    Default::default(),
+                    vec![InputEventOutcome {
+                        id: event.event.id,
+                        result: Default::default(),
+                    }],
                 ));
             return;
         };
@@ -3765,7 +3805,7 @@ impl ScriptThread {
             script_source,
             "",
             Some(IntroductionType::JAVASCRIPT_URL),
-            jsval.handle_mut(),
+            Some(jsval.handle_mut()),
         );
 
         load_data.js_eval_result = if jsval.get().is_string() {
@@ -3885,6 +3925,7 @@ impl ScriptThread {
         }
     }
 
+    #[expect(clippy::redundant_clone, reason = "False positive")]
     fn handle_fetch_eof(
         &self,
         cx: &mut js::context::JSContext,
@@ -4097,6 +4138,39 @@ impl ScriptThread {
         }
     }
 
+    fn handle_navigate_to(&self, pipeline_id: PipelineId, url: ServoUrl) {
+        // The constellation only needs to know the WebView ID for navigation,
+        // but actors don't keep track of it. Infer WebView ID from pipeline ID instead.
+        if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+            self.senders
+                .pipeline_to_constellation_sender
+                .send((
+                    document.webview_id(),
+                    pipeline_id,
+                    ScriptToConstellationMessage::LoadUrl(
+                        LoadData::new_for_new_unrelated_webview(url),
+                        NavigationHistoryBehavior::Push,
+                    ),
+                ))
+                .unwrap();
+        }
+    }
+
+    fn handle_traverse_history(&self, pipeline_id: PipelineId, direction: TraversalDirection) {
+        // The constellation only needs to know the WebView ID for navigation,
+        // but actors don't keep track of it. Infer WebView ID from pipeline ID instead.
+        if let Some(document) = self.documents.borrow().find_document(pipeline_id) {
+            self.senders
+                .pipeline_to_constellation_sender
+                .send((
+                    document.webview_id(),
+                    pipeline_id,
+                    ScriptToConstellationMessage::TraverseHistory(direction),
+                ))
+                .unwrap();
+        }
+    }
+
     fn handle_reload(&self, pipeline_id: PipelineId, can_gc: CanGc) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
@@ -4192,7 +4266,7 @@ impl ScriptThread {
             script.into(),
             "",
             None, // No known `introductionType` for JS code from embedder
-            return_value.handle_mut(),
+            Some(return_value.handle_mut()),
         ) {
             _ = self.senders.pipeline_to_constellation_sender.send((
                 webview_id,

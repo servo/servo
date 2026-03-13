@@ -106,7 +106,7 @@ impl GPUCommandEncoder {
 
         GPUCommandEncoder::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             device,
             encoder,
             descriptor.parent.label.clone(),

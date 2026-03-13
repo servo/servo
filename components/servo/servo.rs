@@ -75,7 +75,7 @@ use style::global_style_data::StyleThreadPool;
 
 use crate::clipboard_delegate::StringRequest;
 #[cfg(feature = "gamepad")]
-use crate::gamepad_provider::{GamepadHapticEffectRequest, GamepadHapticEffectRequestType};
+use crate::gamepad_delegate::{GamepadHapticEffectRequest, GamepadHapticEffectRequestType};
 use crate::javascript_evaluator::JavaScriptEvaluator;
 use crate::network_manager::NetworkManager;
 use crate::proxies::ConstellationProxy;
@@ -90,11 +90,6 @@ use crate::webview_delegate::{
 
 #[cfg(feature = "media-gstreamer")]
 mod media_platform {
-    #[cfg(any(windows, target_os = "macos"))]
-    mod gstreamer_plugins {
-        include!(concat!(env!("OUT_DIR"), "/gstreamer_plugins.rs"));
-    }
-
     use servo_media_gstreamer::GStreamerBackend;
 
     use super::ServoMedia;
@@ -109,10 +104,8 @@ mod media_platform {
                 plugin_dir.push("lib");
             }
 
-            match GStreamerBackend::init_with_plugins(
-                plugin_dir,
-                gstreamer_plugins::GSTREAMER_PLUGINS,
-            ) {
+            let plugin_list = crate::gstreamer_plugins::gstreamer_plugins();
+            match GStreamerBackend::init_with_plugins(plugin_dir, &plugin_list) {
                 Ok(b) => b,
                 Err(e) => {
                     log::error!("Error initializing GStreamer: {:?}", e);
@@ -458,17 +451,25 @@ impl ServoInner {
                     .borrow_mut()
                     .finish_evaluation(evaluation_id, result);
             },
-            EmbedderMsg::InputEventHandled(webview_id, input_event_id, result) => {
-                self.paint.borrow_mut().notify_input_event_handled(
-                    webview_id,
-                    input_event_id,
+            EmbedderMsg::InputEventsHandled(webview_id, event_outcomes) => {
+                let webview = self.get_webview_handle(webview_id);
+                for InputEventOutcome {
+                    id: input_event_id,
                     result,
-                );
-
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_input_event_handled(webview, input_event_id, result);
+                } in event_outcomes
+                {
+                    self.paint.borrow_mut().notify_input_event_handled(
+                        webview_id,
+                        input_event_id,
+                        result,
+                    );
+                    if let Some(ref webview) = webview {
+                        webview.delegate().notify_input_event_handled(
+                            webview.clone(),
+                            input_event_id,
+                            result,
+                        );
+                    }
                 }
             },
             EmbedderMsg::ClearClipboard(webview_id) => {
@@ -598,7 +599,7 @@ impl ServoInner {
                         }),
                     );
                     webview
-                        .gamepad_provider()
+                        .gamepad_delegate()
                         .handle_haptic_effect_request(request);
                 }
             },
@@ -615,7 +616,7 @@ impl ServoInner {
                         }),
                     );
                     webview
-                        .gamepad_provider()
+                        .gamepad_delegate()
                         .handle_haptic_effect_request(request);
                 }
             },
@@ -741,8 +742,6 @@ impl Servo {
         );
         style::context::DEFAULT_DUMP_STYLE_STATISTICS
             .store(opts.debug.style_statistics, Ordering::Relaxed);
-        style::traversal::IS_SERVO_NONINCREMENTAL_LAYOUT
-            .store(opts.nonincremental_layout, Ordering::Relaxed);
 
         if !opts.multiprocess {
             media_platform::init();
@@ -795,7 +794,7 @@ impl Servo {
         let paint = Paint::new(InitialPaintState {
             paint_proxy: paint_proxy.clone(),
             receiver: paint_receiver,
-            embedder_to_constellation_sender: constellation_proxy.sender().clone(),
+            embedder_to_constellation_sender: constellation_proxy.sender(),
             time_profiler_chan: time_profiler_chan.clone(),
             mem_profiler_chan: mem_profiler_chan.clone(),
             shutdown_state: shutdown_state.clone(),
@@ -824,7 +823,7 @@ impl Servo {
             embedder_to_constellation_receiver,
             &paint.borrow(),
             embedder_proxy,
-            paint_proxy.clone(),
+            paint_proxy,
             time_profiler_chan,
             mem_profiler_chan,
             devtools_sender,

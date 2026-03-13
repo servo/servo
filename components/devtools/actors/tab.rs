@@ -13,6 +13,7 @@ use devtools_traits::DevtoolScriptControlMsg;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
+use servo_url::ServoUrl;
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
@@ -95,9 +96,12 @@ impl Actor for TabDescriptorActor {
         request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
-        _msg: &Map<String, Value>,
+        msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
+        let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
+        let pipeline = ctx_actor.pipeline_id();
+
         match msg_type {
             "getTarget" => request.reply_final(&GetTargetReply {
                 from: self.name(),
@@ -110,19 +114,46 @@ impl Actor for TabDescriptorActor {
                     favicon: String::new(),
                 })?
             },
-            "getWatcher" => {
-                let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-                request.reply_final(&GetWatcherReply {
-                    from: self.name(),
-                    watcher: registry.encode::<WatcherActor, _>(&ctx_actor.watcher),
-                })?
+            "getWatcher" => request.reply_final(&GetWatcherReply {
+                from: self.name(),
+                watcher: registry.encode::<WatcherActor, _>(&ctx_actor.watcher),
+            })?,
+            "goBack" => {
+                ctx_actor
+                    .script_chan()
+                    .send(DevtoolScriptControlMsg::GoBack(pipeline))
+                    .map_err(|_| ActorError::Internal)?;
+                request.reply_final(&EmptyReplyMsg { from: self.name() })?
+            },
+            "goForward" => {
+                ctx_actor
+                    .script_chan()
+                    .send(DevtoolScriptControlMsg::GoForward(pipeline))
+                    .map_err(|_| ActorError::Internal)?;
+                request.reply_final(&EmptyReplyMsg { from: self.name() })?
+            },
+            "navigateTo" => {
+                if msg.get("waitForLoad").unwrap_or(&Value::Bool(false)) != &Value::Bool(false) {
+                    log::warn!("waitForLoad option for devtools navigation is not supported.");
+                }
+                let url = msg
+                    .get("url")
+                    .and_then(|value| value.as_str())
+                    .map(ServoUrl::parse)
+                    .ok_or(ActorError::Internal)?
+                    .map_err(|_| ActorError::Internal)?;
+
+                ctx_actor
+                    .script_chan()
+                    .send(DevtoolScriptControlMsg::NavigateTo(pipeline, url))
+                    .map_err(|_| ActorError::Internal)?;
+
+                request.reply_final(&EmptyReplyMsg { from: self.name() })?
             },
             "reloadDescriptor" => {
                 // There is an extra bypassCache parameter that we don't currently use.
-                let ctx_actor = registry.find::<BrowsingContextActor>(&self.browsing_context_actor);
-                let pipeline = ctx_actor.pipeline_id();
                 ctx_actor
-                    .script_chan
+                    .script_chan()
                     .send(DevtoolScriptControlMsg::Reload(pipeline))
                     .map_err(|_| ActorError::Internal)?;
 
@@ -175,6 +206,7 @@ impl ActorEncode<TabDescriptorActorMsg> for TabDescriptorActor {
             title,
             traits: DescriptorTraits {
                 watcher: true,
+                supports_navigation: true,
                 supports_reload_descriptor: true,
             },
             url,

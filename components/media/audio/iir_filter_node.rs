@@ -121,7 +121,7 @@ impl IIRFilterNode {
             "InvalidStateError: first feedback coeff must not be zero"
         );
 
-        let filter = IIRFilter::new(options.feedforward.clone(), options.feedback.clone());
+        let filter = IIRFilter::new(options.feedforward.clone(), options.feedback);
 
         Self {
             filters: vec![filter; channel_info.computed_number_of_channels() as usize],

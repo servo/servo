@@ -314,12 +314,8 @@ impl ModuleTree {
             loaded_modules: DomRefCell::new(IndexMap::new()),
         };
 
-        let c_url = cformat!("{url}");
-        let mut compile_options =
-            unsafe { CompileOptionsWrapper::new_raw(*cx, c_url, line_number) };
-        if let Some(introduction_type) = introduction_type {
-            compile_options.set_introduction_type(introduction_type);
-        }
+        let compile_options = fill_module_compile_options(cx, url, introduction_type, line_number);
+
         let mut module_source = ModuleSource {
             source,
             unminified_dir: global.unminified_js_dir(),
@@ -372,7 +368,7 @@ impl ModuleTree {
     /// <https://html.spec.whatwg.org/multipage/#creating-a-json-module-script>
     /// Although the CanGc argument appears unused, it represents the GC operations that
     /// can occur as part of compiling a script.
-    fn crate_a_json_module_script(
+    fn create_a_json_module_script(
         source: &str,
         global: &GlobalScope,
         url: &ServoUrl,
@@ -396,11 +392,7 @@ impl ModuleTree {
         // Step 3. Set script's base URL and fetch options to null.
         // Note: We don't need to call `SetModulePrivate` for json scripts
 
-        let c_url = cformat!("{url}");
-        let mut compile_options = unsafe { CompileOptionsWrapper::new_raw(*cx, c_url, 1) };
-        if let Some(introduction_type) = introduction_type {
-            compile_options.set_introduction_type(introduction_type);
-        }
+        let compile_options = fill_module_compile_options(cx, url, introduction_type, 1);
 
         rooted!(in(*cx) let mut module_script: *mut JSObject = std::ptr::null_mut());
 
@@ -488,7 +480,7 @@ impl ModuleTree {
                     ExceptionStackBehavior::Capture,
                 );
             }
-            report_pending_exception(GlobalScope::get_cx(), true, InRealm::Entered(&ar), can_gc);
+            report_pending_exception(GlobalScope::get_cx(), InRealm::Entered(&ar), can_gc);
         }
     }
 
@@ -640,7 +632,7 @@ pub(crate) enum ModuleOwner {
 impl ModuleOwner {
     pub(crate) fn global(&self) -> DomRoot<GlobalScope> {
         match &self {
-            ModuleOwner::Worker(worker) => (*worker.root().clone()).global(),
+            ModuleOwner::Worker(worker) => (*worker.root()).global(),
             ModuleOwner::Window(script) => (*script.root()).global(),
             ModuleOwner::DynamicModule(dynamic_module) => (*dynamic_module.root()).global(),
         }
@@ -826,7 +818,7 @@ impl FetchResponseListener for ModuleContext {
             // Step 7.4 If mimeType is a JSON MIME type and moduleType is "json",
             // then set moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
             if MimeClassifier::is_json(&mime) && matches!(module_type, ModuleType::JSON) {
-                let module_tree = Rc::new(ModuleTree::crate_a_json_module_script(
+                let module_tree = Rc::new(ModuleTree::create_a_json_module_script(
                     &source_text,
                     &global,
                     &final_url,
@@ -911,7 +903,7 @@ pub(crate) unsafe extern "C" fn host_import_module_dynamically(
     let specifier = unsafe { jsstr_to_string(cx.raw_cx(), NonNull::new(jsstr).unwrap()) };
 
     let mut realm = CurrentRealm::assert(cx);
-    let payload = Payload::PromiseRecord(promise.clone());
+    let payload = Payload::PromiseRecord(promise);
     host_load_imported_module(
         &mut realm,
         None,
@@ -1130,7 +1122,7 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
         let value = HandleValue::from_raw(args.get(0));
 
         match NonNull::new(ToString(cx.raw_cx(), value)) {
-            Some(jsstr) => DOMString::from_string(jsstr_to_string(cx.raw_cx(), jsstr)),
+            Some(jsstr) => jsstr_to_string(cx.raw_cx(), jsstr).into(),
             None => return false,
         }
     };
@@ -1291,8 +1283,8 @@ fn fetch_the_descendants_and_link_module_script(
         }),
     ));
 
-    let rejection_owner = owner.clone();
-    let rejected_module = module_script.clone();
+    let rejection_owner = owner;
+    let rejected_module = module_script;
 
     // Step 7. Upon rejection of loadingPromise, run the following steps:
     let loading_promise_rejection = ModuleHandler::new_boxed(Box::new(
@@ -1456,6 +1448,29 @@ pub(crate) fn fetch_a_single_module_script(
     })
 }
 
+#[expect(unsafe_code)]
+fn fill_module_compile_options(
+    cx: SafeJSContext,
+    url: &ServoUrl,
+    introduction_type: Option<&'static CStr>,
+    line_number: u32,
+) -> CompileOptionsWrapper {
+    let mut options =
+        unsafe { CompileOptionsWrapper::new_raw(*cx, cformat!("{url}"), line_number) };
+    if let Some(introduction_type) = introduction_type {
+        options.set_introduction_type(introduction_type);
+    }
+
+    // https://searchfox.org/firefox-main/rev/46fa95cd7f10222996ec267947ab94c5107b1475/js/public/CompileOptions.h#284
+    options.set_muted_errors(false);
+
+    // https://searchfox.org/firefox-main/rev/46fa95cd7f10222996ec267947ab94c5107b1475/js/public/CompileOptions.h#518
+    options.set_is_run_once(true);
+    options.set_no_script_rval(true);
+
+    options
+}
+
 pub(crate) type ModuleSpecifierMap = IndexMap<String, Option<ServoUrl>>;
 pub(crate) type ModuleIntegrityMap = IndexMap<ServoUrl, String>;
 
@@ -1521,7 +1536,7 @@ pub(crate) fn register_import_map(
         Err(exception) => {
             // Step 1. If result's error to rethrow is not null, then report
             // an exception given by result's error to rethrow for global and return.
-            throw_dom_exception(GlobalScope::get_cx(), global, exception.clone(), can_gc);
+            throw_dom_exception(GlobalScope::get_cx(), global, exception, can_gc);
         },
     }
 }

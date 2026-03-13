@@ -223,7 +223,7 @@ pub(crate) unsafe fn find_enum_value<'a, T>(
 ) -> Result<(Option<&'a T>, DOMString), ()> {
     match ptr::NonNull::new(ToString(cx, v)) {
         Some(jsstr) => {
-            let search = DOMString::from_string(jsstr_to_string(cx, jsstr));
+            let search = jsstr_to_string(cx, jsstr).into();
             Ok((
                 pairs
                     .iter()

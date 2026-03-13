@@ -138,7 +138,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         let document = self.element.owner_document();
         document.request_focus_with_options(
             Some(&self.element),
-            FocusInitiator::Local,
+            FocusInitiator::Script,
             FocusOptions {
                 preventScroll: options.preventScroll,
             },

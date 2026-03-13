@@ -75,10 +75,15 @@ class PackageCommands(CommandBase):
     @CommandArgument("--android", default=None, action="store_true", help="Package Android")
     @CommandArgument("--ohos", default=None, action="store_true", help="Package OpenHarmony")
     @CommandArgument("--target", "-t", default=None, help="Package for given target platform")
+    @CommandArgument("--preserve-app", action="store_true", help="On macOS, keep the .app bundle after packaging")
     @CommandBase.common_command_arguments(build_configuration=False, build_type=True, package_configuration=True)
     @CommandBase.allow_target_configuration
     def package(
-        self, build_type: BuildType, flavor: str | None = None, sanitizer: SanitizerKind = SanitizerKind.NONE
+        self,
+        build_type: BuildType,
+        flavor: str | None = None,
+        sanitizer: SanitizerKind = SanitizerKind.NONE,
+        preserve_app: bool = False,
     ) -> int | None:
         env = self.build_env()
         binary_path = self.get_binary_path(build_type, sanitizer=sanitizer)
@@ -225,7 +230,7 @@ class PackageCommands(CommandBase):
             shutil.copy2(binary_path, content_dir)
 
             print("Packaging GStreamer...")
-            dmg_binary = path.join(content_dir, "servo")
+            dmg_binary = path.join(content_dir, "servoshell")
             servo.gstreamer.package_gstreamer_dylibs(dmg_binary, lib_dir, self.target)
 
             print("Adding version to Credits.rtf")
@@ -268,6 +273,13 @@ class PackageCommands(CommandBase):
                 print("Packaging MacOS dmg exited with return value %d" % e.returncode)
                 return e.returncode
 
+            if preserve_app:
+                preserved_app = path.join(target_dir, "Servo.app")
+                if path.exists(preserved_app):
+                    delete(preserved_app)
+                shutil.copytree(dir_to_app, preserved_app)
+                print("Preserved app bundle at " + preserved_app)
+
             print("Cleaning up")
             delete(dir_to_dmg)
             print("Packaged Servo into " + dmg_path)
@@ -286,10 +298,10 @@ class PackageCommands(CommandBase):
             shutil.copy(binary_path, dir_to_temp)
             copy_windows_dependencies(target_dir, dir_to_temp)
 
-            # generate Servo.wxs
+            # generate ServoShell.wxs
             import mako.template
 
-            template_path = path.join(dir_to_root, "support", "windows", "Servo.wxs.mako")
+            template_path = path.join(dir_to_root, "support", "windows", "ServoShell.wxs.mako")
             template = mako.template.Template(open(template_path).read())
             wxs_path = path.join(dir_to_msi, "Installer.wxs")
             open(wxs_path, "w").write(
@@ -316,8 +328,8 @@ class PackageCommands(CommandBase):
 
             # Generate bundle with Servo installer.
             print("Creating bundle")
-            shutil.copy(path.join(dir_to_root, "support", "windows", "Servo.wxs"), dir_to_msi)
-            bundle_wxs_path = path.join(dir_to_msi, "Servo.wxs")
+            shutil.copy(path.join(dir_to_root, "support", "windows", "ServoShell.wxs"), dir_to_msi)
+            bundle_wxs_path = path.join(dir_to_msi, "ServoShell.wxs")
             try:
                 with cd(dir_to_msi):
                     subprocess.check_call(["candle", bundle_wxs_path, "-ext", "WixBalExtension"])
@@ -331,10 +343,10 @@ class PackageCommands(CommandBase):
             except subprocess.CalledProcessError as e:
                 print("WiX light exited with return value %d" % e.returncode)
                 return e.returncode
-            print("Packaged Servo into " + path.join(dir_to_msi, "Servo.exe"))
+            print("Packaged Servo into " + path.join(dir_to_msi, "ServoShell.exe"))
 
             print("Creating ZIP")
-            zip_path = path.join(dir_to_msi, "Servo.zip")
+            zip_path = path.join(dir_to_msi, "ServoShell.zip")
             archive_deterministically(dir_to_temp, zip_path, prepend_path="servo/")
             print("Packaged Servo into " + zip_path)
 
@@ -451,8 +463,8 @@ class PackageCommands(CommandBase):
         print("\r ➤  Bumping version number...")
         replacements = {
             "ports/servoshell/Cargo.toml": r'^version ?= ?"(?P<version>.*?)"',
-            "ports/servoshell/platform/windows/servo.exe.manifest": r'assemblyIdentity[^\/>]+version="(?P<version>.*?).0\"[^\/>]*\/>',
-            "support/windows/Servo.wxs.mako": r'<Product(.|\n)*Version="(?P<version>.*?)".*>',
+            "ports/servoshell/platform/windows/servoshell.exe.manifest": r'assemblyIdentity[^\/>]+version="(?P<version>.*?).0\"[^\/>]*\/>',
+            "support/windows/ServoShell.wxs.mako": r'<Product(.|\n)*Version="(?P<version>.*?)".*>',
             "ports/servoshell/platform/macos/Info.plist": r"<key>CFBundleShortVersionString</key>\n\s*<string>(?P<version>.*?)</string>",
             "support/android/apk/servoapp/build.gradle.kts": r'versionName\s*=\s*"(?P<version>.*?)"',
             "support/openharmony/oh-package.json5": r'"version"\s*:\s*"(?P<version>.*?)"',

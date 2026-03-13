@@ -282,6 +282,19 @@
       {}
      ]
     ],
+    "textarea-caret-following-linebreak-blank-line.html": [
+     "c6cfb2563e8fa736bf85dcadb7d20e862a4b5d52",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/textarea-caret-following-linebreak-blank-line-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "textarea-caret-following-linebreak.html": [
      "55bc06e372e9ce8ad4d62d368a644c1f1cd3ffd9",
      [
@@ -8357,6 +8370,10 @@
      "af9ec609b175040a66756fb6ce00d81a2e5707ec",
      []
     ],
+    "textarea-caret-following-linebreak-blank-line-ref.html": [
+     "5e70ba743b12012fe3b1116414107cf50ef6a8ab",
+     []
+    ],
     "textarea-caret-following-linebreak-ref.html": [
      "f424853f243ff0fe4c43506db800b51afc294113",
      []
@@ -12887,7 +12904,7 @@
      ]
     ],
     "css-property-listing.html": [
-     "80c1153135371a28e2f0cba60df6645045454581",
+     "75f31b3c83bcc08072e207f1b2d5885db7a759ef",
      [
       null,
       {}
@@ -13100,6 +13117,15 @@
     ]
    },
    "input-events": {
+    "accesskey-on-html-element.html": [
+     "f531e2101852997165c642df2974a9ce7bb57a47",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "collapsed-selection-input-text.html": [
      "c80ddeff12b0ebc6568c03dabe848ac57e44737b",
      [
@@ -13780,13 +13806,6 @@
       {}
      ]
     ],
-    "event_handler_syntax_error.html": [
-     "78962c67d2cd2093ce9e241596b151ee2ce466ec",
-     [
-      null,
-      {}
-     ]
-    ],
     "event_listener.html": [
      "0ba1ce0d5577de68e5e8ff3acbce52043e7dee43",
      [
@@ -14146,7 +14165,7 @@
      ]
     ],
     "interfaces.https.html": [
-     "60016f0fa3a3bcbf00cd632228cc486550f36c69",
+     "355890f678181ca25713ae68d2599d58b0244c39",
      [
       null,
       {}

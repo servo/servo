@@ -107,29 +107,32 @@ jobs:
           APK_SIGNING_KEY_PASS: ${{ secrets.APK_SIGNING_KEY_PASS }}
         run: |
           ./mach build --use-crown --locked --target ${{ matrix.target }} --profile ${{ inputs.profile }}
-          cp -r target/cargo-timings target/cargo-timings-android-${{ matrix.target }}
+          mv target/cargo-timings target/cargo-timings-android-${{ matrix.target }}
       # TODO: This is disabled since APK crashes during startup.
       # See https://github.com/servo/servo/issues/31134
       # - name: Script tests
       #   run: ./mach test-android-startup
       - name: Archive build timing
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: cargo-timings-android-${{ matrix.target }}-${{ inputs.profile }}
           # Using a wildcard here ensures that the archive includes the path.
           path: target/cargo-timings-*
+          if-no-files-found: error
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-apk
         with:
           name: ${{ inputs.profile }}-binary-android-${{ matrix.target }}
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoapp.apk
+          if-no-files-found: error
       - name: Upload AAR artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         id: upload-aar
         with:
           name: ${{ inputs.profile }}-library-android-${{ matrix.target }}
           path: target/android/${{ matrix.target }}/${{ inputs.profile }}/servoview.aar
+          if-no-files-found: error
       - name: Collect artifact IDs needed by the release workflow
         if: matrix.target == 'aarch64-linux-android'
         id: artifact_ids

@@ -8,7 +8,7 @@ use std::default::Default;
 
 use base::generic_channel::GenericSharedMemory;
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use net_traits::image_cache::{
@@ -24,6 +24,7 @@ use script_bindings::root::Dom;
 use servo_arc::Arc;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
+use style::media_queries::MediaList as StyleMediaList;
 use style::stylesheets::Stylesheet;
 use stylo_atoms::Atom;
 use webrender_api::units::DeviceIntSize;
@@ -229,7 +230,7 @@ impl HTMLLinkElement {
 }
 
 fn get_attr(element: &Element, local_name: &LocalName) -> Option<String> {
-    let elem = element.get_attribute(&ns!(), local_name);
+    let elem = element.get_attribute(local_name);
     elem.map(|e| {
         let value = e.value();
         (**value).to_owned()
@@ -252,10 +253,22 @@ impl VirtualMethods for HTMLLinkElement {
             self.handle_disabled_attribute_change(is_removal);
             return;
         }
+        let node = self.upcast::<Node>();
 
-        if !self.upcast::<Node>().is_connected() {
+        if !node.is_connected() {
             return;
         }
+
+        // For stylesheets, we should only refetch when the actual attribute value
+        // has been changed.
+        if self.relations.get().contains(LinkRelations::STYLESHEET) {
+            if let AttributeMutation::Set(Some(previous_value), _) = mutation {
+                if **previous_value == **attr.value() {
+                    return;
+                }
+            }
+        }
+
         match *local_name {
             local_name!("rel") | local_name!("rev") => {
                 let previous_relations = self.relations.get();
@@ -374,6 +387,21 @@ impl VirtualMethods for HTMLLinkElement {
                         },
                         _ => {},
                     };
+                } else if self.relations.get().contains(LinkRelations::STYLESHEET) {
+                    if let Some(ref stylesheet) = *self.stylesheet.borrow_mut() {
+                        let document = self.owner_document();
+                        let shared_lock = document.style_shared_lock().clone();
+                        let mut guard = shared_lock.write();
+                        let media = stylesheet.media.write_with(&mut guard);
+                        match mutation {
+                            AttributeMutation::Set(..) => {
+                                *media =
+                                    MediaList::parse_media_list(&attr.value(), document.window())
+                            },
+                            AttributeMutation::Removed => *media = StyleMediaList::empty(),
+                        };
+                        self.owner_document().invalidate_stylesheets();
+                    }
                 }
 
                 let matches_media_environment =
@@ -444,7 +472,7 @@ impl HTMLLinkElement {
         // representing the state of el's as attribute.
         let element = self.upcast::<Element>();
         element
-            .get_attribute(&ns!(), &local_name!("as"))
+            .get_attribute(&local_name!("as"))
             .and_then(|attr| LinkProcessingOptions::translate_a_preload_destination(&attr.value()))
     }
 
@@ -476,19 +504,18 @@ impl HTMLLinkElement {
         };
 
         // Step 3. If el has an href attribute, then set options's href to the value of el's href attribute.
-        if let Some(href_attribute) = element.get_attribute(&ns!(), &local_name!("href")) {
+        if let Some(href_attribute) = element.get_attribute(&local_name!("href")) {
             options.href = (**href_attribute.value()).to_owned();
         }
 
         // Step 4. If el has an integrity attribute, then set options's integrity
         //         to the value of el's integrity content attribute.
-        if let Some(integrity_attribute) = element.get_attribute(&ns!(), &local_name!("integrity"))
-        {
+        if let Some(integrity_attribute) = element.get_attribute(&local_name!("integrity")) {
             options.integrity = (**integrity_attribute.value()).to_owned();
         }
 
         // Step 5. If el has a type attribute, then set options's type to the value of el's type attribute.
-        if let Some(type_attribute) = element.get_attribute(&ns!(), &local_name!("type")) {
+        if let Some(type_attribute) = element.get_attribute(&local_name!("type")) {
             options.link_type = (**type_attribute.value()).to_owned();
         }
 
@@ -616,6 +643,17 @@ impl HTMLLinkElement {
 
         let element = self.upcast::<Element>();
 
+        // https://html.spec.whatwg.org/multipage/#processing-the-type-attribute
+        // > If the UA does not support the given MIME type for the given link relationship,
+        // > then the UA should not fetch and process the linked resource
+        //
+        // https://html.spec.whatwg.org/multipage/#link-type-stylesheet
+        // > The default type for resources given by the stylesheet keyword is text/css.
+        let type_ = element.get_string_attribute(&local_name!("type"));
+        if !type_.is_empty() && type_ != "text/css" {
+            return;
+        }
+
         // Step 1.
         let href = element.get_string_attribute(&local_name!("href"));
         if href.is_empty() {
@@ -634,21 +672,17 @@ impl HTMLLinkElement {
         // Step 3
         let cors_setting = cors_setting_for_element(element);
 
-        let mq_attribute = element.get_attribute(&ns!(), &local_name!("media"));
+        let mq_attribute = element.get_attribute(&local_name!("media"));
         let value = mq_attribute.as_ref().map(|a| a.value());
         let mq_str = match value {
             Some(ref value) => &***value,
             None => "",
         };
 
-        if !MediaList::matches_environment(&document, mq_str) {
-            return;
-        }
-
         let media = MediaList::parse_media_list(mq_str, document.window());
         let media = Arc::new(document.style_shared_lock().wrap(media));
 
-        let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
+        let im_attribute = element.get_attribute(&local_name!("integrity"));
         let integrity_val = im_attribute.as_ref().map(|a| a.value());
         let integrity_metadata = match integrity_val {
             Some(ref value) => &***value,
@@ -1108,7 +1142,7 @@ impl FetchResponseListener for FaviconFetchContext {
     ) {
         self.image_cache.notify_pending_response(
             self.id,
-            FetchResponseMsg::ProcessResponse(request_id, metadata.clone()),
+            FetchResponseMsg::ProcessResponse(request_id, metadata),
         );
     }
 

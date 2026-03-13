@@ -451,9 +451,7 @@ impl ReadableByteStreamController {
 
                 // Perform readIntoRequest’s error steps, given bufferResult.[[Value]].
                 rooted!(in(*cx) let mut rval = UndefinedValue());
-                error
-                    .clone()
-                    .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
+                error.to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
                 read_into_request.error_steps(rval.handle(), can_gc);
 
                 // Return.
@@ -1645,9 +1643,7 @@ impl ReadableByteStreamController {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut rval = UndefinedValue());
                 // TODO: check if `self.global()` is the right globalscope.
-                error
-                    .clone()
-                    .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
+                error.to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
                 let promise = Promise::new(&global, can_gc);
                 promise.reject_native(&rval.handle(), can_gc);
                 promise
@@ -1832,9 +1828,7 @@ impl ReadableByteStreamController {
         let promise = result.unwrap_or_else(|error| {
             let cx = GlobalScope::get_cx();
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            error
-                .clone()
-                .to_jsval(cx, global, rval.handle_mut(), can_gc);
+            error.to_jsval(cx, global, rval.handle_mut(), can_gc);
             let promise = Promise::new(global, can_gc);
             promise.reject_native(&rval.handle(), can_gc);
             promise
@@ -1913,9 +1907,7 @@ impl ReadableByteStreamController {
                     // Perform readRequest’s error steps, given buffer.[[Value]].
 
                     rooted!(in(*cx) let mut rval = UndefinedValue());
-                    error
-                        .clone()
-                        .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
+                    error.to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
                     read_request.error_steps(rval.handle(), can_gc);
 
                     // Return.

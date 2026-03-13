@@ -133,7 +133,7 @@ impl ByteTeeReadRequest {
         // Helper to surface clone failures exactly once
         let handle_clone_error = |cx: &mut js::context::JSContext, error: Error| {
             rooted!(&in(cx) let mut error_value = UndefinedValue());
-            error.clone().to_jsval(
+            error.to_jsval(
                 cx.into(),
                 &self.global(),
                 error_value.handle_mut(),

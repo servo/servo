@@ -527,7 +527,7 @@ pub fn send_security_info_to_devtools(
 
     if let (Some(devtools_chan), Some(security_info), Some(webview_id)) = (
         context.devtools_chan.clone(),
-        meta.tls_security_info.clone(),
+        meta.tls_security_info,
         request.target_webview_id,
     ) {
         let update = NetworkEvent::SecurityInfo(SecurityInfoUpdate {
@@ -553,7 +553,7 @@ pub fn send_early_httprequest_to_devtools(request: &Request, context: &FetchCont
     ) {
         // Build the partial DevtoolsHttpRequest
         let devtools_request = DevtoolsHttpRequest {
-            url: request.current_url().clone(),
+            url: request.current_url(),
             method: request.method.clone(),
             headers: request.headers.clone(),
             body: None,

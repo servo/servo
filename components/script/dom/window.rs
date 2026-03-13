@@ -55,11 +55,12 @@ use js::rust::{
     MutableHandleValue,
 };
 use layout_api::{
-    BoxAreaType, CSSPixelRectIterator, ElementsFromPointFlags, ElementsFromPointResult,
-    FragmentType, Layout, LayoutImageDestination, PendingImage, PendingImageState,
-    PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestRestyle, ReflowStatistics, RestyleReason, ScrollContainerQueryFlags,
-    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
+    AxesOverflow, BoxAreaType, CSSPixelRectIterator, ElementsFromPointFlags,
+    ElementsFromPointResult, FragmentType, Layout, LayoutImageDestination, PendingImage,
+    PendingImageState, PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal,
+    ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowStatistics, RestyleReason,
+    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
+    combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -176,7 +177,7 @@ use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::storage::Storage;
 #[cfg(feature = "bluetooth")]
 use crate::dom::testrunner::TestRunner;
-use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
+use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::{ImageBitmap, MouseEvent, UIEvent};
 use crate::dom::useractivation::UserActivationTimestamp;
 use crate::dom::visualviewport::{VisualViewport, VisualViewportChanges};
@@ -1840,6 +1841,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         // Step 3: If pseudoElt is provided, is not the empty string, and starts with a colon, then:
         // Step 3.1: Parse pseudoElt as a <pseudo-element-selector>, and let type be the result.
+        // TODO(#43095): This is quite hacky and it would be better to have a parsing function that
+        // is integrated with stylo `PseudoElement` itself. Comparing with stylo, we are now currently
+        // missing `::backdrop`, `::color-swatch`, and `::details-content`.
         let pseudo = pseudo.map(|mut s| {
             s.make_ascii_lowercase();
             s
@@ -1853,6 +1857,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             },
             Some(ref pseudo) if pseudo == "::selection" => Some(PseudoElement::Selection),
             Some(ref pseudo) if pseudo == "::marker" => Some(PseudoElement::Marker),
+            Some(ref pseudo) if pseudo == "::placeholder" => Some(PseudoElement::Placeholder),
             Some(ref pseudo) if pseudo.starts_with(':') => {
                 // Step 3.2: If type is failure, or is a ::slotted() or ::part()
                 // pseudo-element, let obj be null.
@@ -2383,7 +2388,7 @@ impl Window {
             "*" => None,
             "/" => Some(source_origin.clone()),
             url => match ServoUrl::parse(url) {
-                Ok(url) => Some(url.origin().clone()),
+                Ok(url) => Some(url.origin()),
                 Err(_) => return Err(Error::Syntax(None)),
             },
         };
@@ -2763,7 +2768,8 @@ impl Window {
         // iframe size updates.
         //
         // See <https://github.com/servo/servo/issues/14719>
-        if self.Document().update_the_rendering().0.needs_frame() {
+        let document = self.Document();
+        if !document.is_render_blocked() && document.update_the_rendering().0.needs_frame() {
             self.paint_api()
                 .generate_frame(vec![self.webview_id().into()]);
         }
@@ -3021,6 +3027,20 @@ impl Window {
     ) -> Vec<ElementsFromPointResult> {
         self.layout_reflow(QueryMsg::ElementsFromPoint);
         self.layout().query_elements_from_point(point, flags)
+    }
+
+    pub(crate) fn query_effective_overflow(&self, node: &Node) -> Option<AxesOverflow> {
+        self.layout_reflow(QueryMsg::EffectiveOverflow);
+        self.query_effective_overflow_without_reflow(node)
+    }
+
+    pub(crate) fn query_effective_overflow_without_reflow(
+        &self,
+        node: &Node,
+    ) -> Option<AxesOverflow> {
+        self.layout
+            .borrow()
+            .query_effective_overflow(node.to_trusted_node_address())
     }
 
     pub(crate) fn hit_test_from_input_event(
@@ -3432,7 +3452,7 @@ impl Window {
 
         // If viewport units were used, all nodes need to be restyled, because
         // we currently do not track which ones rely on viewport units.
-        if self.layout().device().used_viewport_units() {
+        if self.layout().device().used_viewport_size() {
             self.Document().dirty_all_nodes();
         }
 
@@ -3440,7 +3460,7 @@ impl Window {
         if size_type == WindowSizeType::Resize {
             let uievent = UIEvent::new(
                 self,
-                DOMString::from("resize"),
+                atom!("resize"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::NotCancelable,
                 Some(self),
@@ -3466,7 +3486,7 @@ impl Window {
 
             let uievent = UIEvent::new(
                 self,
-                DOMString::from("resize"),
+                atom!("resize"),
                 EventBubbles::DoesNotBubble,
                 EventCancelable::NotCancelable,
                 Some(self),
@@ -3756,7 +3776,7 @@ impl Window {
                 gpu_id_hub,
                 inherited_secure_context,
                 unminify_js,
-                Some(font_context.clone()),
+                Some(font_context),
             ),
             ongoing_navigation: Default::default(),
             script_chan,
@@ -3777,7 +3797,7 @@ impl Window {
             status: DomRefCell::new(DOMString::new()),
             parent_info,
             dom_static: GlobalStaticData::new(),
-            js_runtime: DomRefCell::new(Some(runtime.clone())),
+            js_runtime: DomRefCell::new(Some(runtime)),
             #[cfg(feature = "bluetooth")]
             bluetooth_thread,
             #[cfg(feature = "bluetooth")]

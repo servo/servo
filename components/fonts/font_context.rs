@@ -33,10 +33,10 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 use style::Atom;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
+use style::device::Device;
 use style::font_face::{
     FontFaceSourceFormat, FontFaceSourceFormatKeyword, Source, SourceList, UrlSource,
 };
-use style::media_queries::Device;
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::shared_lock::SharedRwLockReadGuard;
 use style::stylesheets::{
@@ -371,7 +371,7 @@ impl FontContext {
         variations: Vec<FontVariation>,
         painter_id: PainterId,
     ) -> FontInstanceKey {
-        let identifier = font_template.identifier().clone();
+        let identifier = font_template.identifier();
         let font_data = self
             .get_font_data(&identifier)
             .expect("Web font should have associated font data");
@@ -837,7 +837,7 @@ impl FontContext {
                     .flatten()
                     .and_then(|local_template| {
                         let template = FontTemplate::new_for_local_web_font(
-                            local_template.clone(),
+                            local_template,
                             &state.css_font_face_descriptors,
                             state.initiator.stylesheet().cloned(),
                             state.initiator.font_face_rule().cloned(),

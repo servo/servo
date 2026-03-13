@@ -23,7 +23,6 @@ use js::rust::wrappers2::{
 use js::rust::{HandleValue, IntoHandle};
 use net_traits::request::{Destination, Referrer};
 use script_bindings::settings_stack::run_a_callback;
-use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
@@ -384,7 +383,7 @@ fn continue_dynamic_import(
                 &global_scope,
                 Some(on_fulfilled),
                 Some(Box::new(OnRejectedHandler {
-                    promise: inner_promise.clone(),
+                    promise: inner_promise,
                 })),
                 CanGc::note(),
             );
@@ -463,7 +462,7 @@ pub(crate) fn host_load_imported_module(
     let url = ModuleTree::resolve_module_specifier(
         &global_scope,
         referencing_script,
-        DOMString::from_string(specifier.clone()),
+        specifier.clone().into(),
     );
 
     // Step 9 If the previous step threw an exception, then:

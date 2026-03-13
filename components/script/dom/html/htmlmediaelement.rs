@@ -1092,9 +1092,7 @@ impl HTMLMediaElement {
         let mode = if self.src_object.borrow().is_some() {
             // If the media element has an assigned media provider object, then let mode be object.
             Mode::Object
-        } else if let Some(attribute) = self
-            .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("src"))
+        } else if let Some(attribute) = self.upcast::<Element>().get_attribute(&local_name!("src"))
         {
             // Otherwise, if the media element has no assigned media provider object but has a src
             // attribute, then let mode be attribute.
@@ -1213,7 +1211,7 @@ impl HTMLMediaElement {
         // its src attribute's value is the empty string, then end the synchronous section, and jump
         // down to the failed with elements step below.
         let Some(src) = element
-            .get_attribute(&ns!(), &local_name!("src"))
+            .get_attribute(&local_name!("src"))
             .filter(|attribute| !attribute.value().is_empty())
         else {
             self.load_from_source_child_failure_steps(source);
@@ -1223,7 +1221,7 @@ impl HTMLMediaElement {
         // Step 9.children.3. If candidate has a media attribute whose value does not match the
         // environment, then end the synchronous section, and jump down to the failed with elements
         // step below.
-        if let Some(media) = element.get_attribute(&ns!(), &local_name!("media")) {
+        if let Some(media) = element.get_attribute(&local_name!("media")) {
             if !MediaList::matches_environment(&element.owner_document(), &media.value()) {
                 self.load_from_source_child_failure_steps(source);
                 return;
@@ -1244,7 +1242,7 @@ impl HTMLMediaElement {
         // type (including any codecs described by the codecs parameter, for types that define that
         // parameter), represents a type that the user agent knows it cannot render, then end the
         // synchronous section, and jump down to the failed with elements step below.
-        if let Some(type_) = element.get_attribute(&ns!(), &local_name!("type")) {
+        if let Some(type_) = element.get_attribute(&local_name!("type")) {
             if ServoMedia::get().can_play_type(&type_.value()) == SupportsMediaType::No {
                 self.load_from_source_child_failure_steps(source);
                 return;
@@ -1461,7 +1459,7 @@ impl HTMLMediaElement {
             global.core_resource_thread(),
         ));
         let listener =
-            HTMLMediaElementFetchListener::new(self, request.id, url.clone(), offset.unwrap_or(0));
+            HTMLMediaElementFetchListener::new(self, request.id, url, offset.unwrap_or(0));
 
         self.owner_document().fetch_background(request, listener);
 
@@ -3648,7 +3646,7 @@ impl HTMLMediaElementFetchContext {
             is_seekable: false,
             origin_clean: true,
             data_source: RefCell::new(BufferedDataSource::new()),
-            fetch_canceller: FetchCanceller::new(request_id, false, core_resource_thread.clone()),
+            fetch_canceller: FetchCanceller::new(request_id, false, core_resource_thread),
         }
     }
 

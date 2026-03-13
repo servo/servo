@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 from collections.abc import Iterator
 
 SCRIPT_PATH = os.path.abspath(os.path.dirname(__file__))
-SERVO_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, "..", "..", ".."))
+SCRIPT_BINDINGS_ROOT = os.path.abspath(os.path.join(SCRIPT_PATH, ".."))
 
 FILTER_PATTERN = re.compile("// skip-unless ([A-Z_]+)\n")
 
@@ -24,15 +24,15 @@ if TYPE_CHECKING:
 
 def main() -> None:
     os.chdir(os.path.join(os.path.dirname(__file__)))
-    sys.path.insert(0, os.path.join(SERVO_ROOT, "third_party", "WebIDL"))
-    sys.path.insert(0, os.path.join(SERVO_ROOT, "third_party", "ply"))
+    sys.path.insert(0, os.path.join(SCRIPT_BINDINGS_ROOT, "third_party", "WebIDL"))
+    sys.path.insert(0, os.path.join(SCRIPT_BINDINGS_ROOT, "third_party", "ply"))
 
     css_properties_json, out_dir = sys.argv[1:]
     # Four dotdots: /path/to/target(4)/debug(3)/build(2)/style-*(1)/out
     # Do not ascend above the target dir, because it may not be called target
     # or even have a parent (see CARGO_TARGET_DIR).
     doc_servo = os.path.join(out_dir, "..", "..", "..", "..", "doc")
-    webidls_dir = os.path.join(SCRIPT_PATH, "..", "webidls")
+    webidls_dir = os.path.join(SCRIPT_BINDINGS_ROOT, "webidls")
     config_file = "Bindings.conf"
 
     import WebIDL

@@ -81,12 +81,11 @@ input[type="reset"],
 input[type="color"],
 input[type="file"]::before {
   cursor: default;
-  background: gainsboro;
-  border: 2px outset ButtonBorder;
+  background: ButtonFace;
   border-radius: 2px;
+  border: 1px solid ButtonBorder;
   padding: 4px;
   color: black;
-  background-color: ButtonFace;
 }
 
 button,
@@ -144,6 +143,10 @@ input[type="file"]::before {
   content: "Choose File";
   display: inline-block;
   margin-inline-end: 0.25em;
+}
+
+input[type="file"][multiple]::before {
+  content: "Choose Files";
 }
 
 input[type="file"] {
