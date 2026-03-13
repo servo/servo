@@ -120,14 +120,14 @@ impl Actor for TabDescriptorActor {
             })?,
             "goBack" => {
                 ctx_actor
-                    .script_chan
+                    .script_chan()
                     .send(DevtoolScriptControlMsg::GoBack(pipeline))
                     .map_err(|_| ActorError::Internal)?;
                 request.reply_final(&EmptyReplyMsg { from: self.name() })?
             },
             "goForward" => {
                 ctx_actor
-                    .script_chan
+                    .script_chan()
                     .send(DevtoolScriptControlMsg::GoForward(pipeline))
                     .map_err(|_| ActorError::Internal)?;
                 request.reply_final(&EmptyReplyMsg { from: self.name() })?
@@ -144,7 +144,7 @@ impl Actor for TabDescriptorActor {
                     .map_err(|_| ActorError::Internal)?;
 
                 ctx_actor
-                    .script_chan
+                    .script_chan()
                     .send(DevtoolScriptControlMsg::NavigateTo(pipeline, url))
                     .map_err(|_| ActorError::Internal)?;
 
@@ -153,7 +153,7 @@ impl Actor for TabDescriptorActor {
             "reloadDescriptor" => {
                 // There is an extra bypassCache parameter that we don't currently use.
                 ctx_actor
-                    .script_chan
+                    .script_chan()
                     .send(DevtoolScriptControlMsg::Reload(pipeline))
                     .map_err(|_| ActorError::Internal)?;
 
