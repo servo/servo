@@ -485,6 +485,7 @@ impl Handler {
             .ok_or_else(|| WebDriverError::new(ErrorStatus::UnknownError, "No webview available"))
     }
 
+    // FIXME: This should be completely removed after we revamp the touch chain.
     fn send_input_event_to_embedder(&self, input_event: InputEvent) {
         let _ = self.send_message_to_embedder(WebDriverCommandMsg::InputEvent(
             self.verified_webview_id(),
@@ -2239,9 +2240,9 @@ impl Handler {
                     }
                 },
                 DispatchStringEvent::Composition(event) => {
-                    self.send_input_event_to_embedder(InputEvent::Ime(ImeEvent::Composition(
-                        event,
-                    )));
+                    self.send_blocking_input_event_to_embedder(InputEvent::Ime(
+                        ImeEvent::Composition(event),
+                    ));
                 },
             }
         }
