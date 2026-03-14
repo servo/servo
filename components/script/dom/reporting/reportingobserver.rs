@@ -19,11 +19,14 @@ use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::{
     Report, ReportList, ReportingObserverCallback, ReportingObserverMethods,
     ReportingObserverOptions,
 };
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
+use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
@@ -274,5 +277,57 @@ impl ReportingObserverMethods<crate::DomTypeHolder> for ReportingObserver {
         // Step 2. Empty this’s report queue.
         // Step 3. Return reports.
         std::mem::take(&mut *self.report_queue.borrow_mut())
+    }
+}
+
+impl GlobalScope {
+    fn append_reporting_observer(&self, reporting_observer: &ReportingObserver) {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.append_reporting_observer(DomRoot::from_ref(reporting_observer));
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.append_reporting_observer(DomRoot::from_ref(reporting_observer));
+        }
+        unreachable!();
+    }
+
+    fn remove_reporting_observer(&self, reporting_observer: &ReportingObserver) {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.remove_reporting_observer(reporting_observer);
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.remove_reporting_observer(reporting_observer);
+        }
+        unreachable!();
+    }
+
+    fn registered_reporting_observers(&self) -> Vec<DomRoot<ReportingObserver>> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.registered_reporting_observers();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.registered_reporting_observers();
+        }
+        unreachable!();
+    }
+
+    fn append_report(&self, report: Report) {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.append_report(report);
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.append_report(report);
+        }
+        unreachable!();
+    }
+
+    fn buffered_reports(&self) -> Vec<Report> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.buffered_reports();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.buffered_reports();
+        }
+        unreachable!();
     }
 }

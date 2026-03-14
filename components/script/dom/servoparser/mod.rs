@@ -79,7 +79,7 @@ use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::processingoptions::{
     LinkHeader, LinkProcessingPhase, extract_links_from_headers, process_link_headers,
 };
-use crate::dom::reportingendpoint::ReportingEndpoint;
+use crate::dom::reporting::reportingendpoint::ReportingEndpoint;
 use crate::dom::shadowroot::IsUserAgentWidget;
 use crate::dom::text::Text;
 use crate::dom::types::{HTMLElement, HTMLMediaElement, HTMLOptionElement};

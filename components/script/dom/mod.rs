@@ -371,9 +371,8 @@ pub(crate) mod quotaexceedederror;
 pub(crate) mod radionodelist;
 pub(crate) mod range;
 pub(crate) mod raredata;
-#[allow(dead_code)]
-pub(crate) mod reportingendpoint;
-pub(crate) mod reportingobserver;
+pub(crate) mod reporting;
+pub(crate) use self::reporting::*;
 pub(crate) mod request;
 pub(crate) mod resizeobserver;
 pub(crate) mod resizeobserverentry;
