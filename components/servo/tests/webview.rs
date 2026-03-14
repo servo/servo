@@ -444,10 +444,11 @@ fn test_page_zoom() {
 }
 
 #[test]
-fn test_viewport_meta_tag_initial_zoom() {
+fn test_viewport_meta_tag_initial_zoom_on_visual_viewport() {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
         preferences.viewport_meta_enabled = true;
+        preferences.dom_visual_viewport_enabled = true;
         builder.preferences(preferences)
     });
 
@@ -458,18 +459,62 @@ fn test_viewport_meta_tag_initial_zoom() {
             Url::parse(
                 "data:text/html,\
                     <!DOCTYPE html>\
-                    <meta name=viewport content=\"initial-scale=5\">",
+                    <meta name=viewport content=\"initial-scale=0.5\">",
             )
             .unwrap(),
         )
         .build();
 
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let eval_visual_viewport = |attr: &str| {
+        evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            format!("window.visualViewport.{}", attr),
+        )
+    };
 
-    // Wait for at least one frame after the load completes.
-    delegate.reset();
-    servo_test.spin(move || webview.page_zoom() != 5.0);
+    // The visual viewport dimension after initial-scale
+    assert_eq!(eval_visual_viewport("scale"), Ok(JSValue::Number(0.5)));
+    assert_eq!(eval_visual_viewport("width"), Ok(JSValue::Number(1000.)));
+    assert_eq!(eval_visual_viewport("height"), Ok(JSValue::Number(1000.)));
+}
+
+#[test]
+fn test_viewport_meta_tag_initial_zoom_on_visual_viewport_2() {
+    let servo_test = ServoTest::new_with_builder(|builder| {
+        let mut preferences = Preferences::default();
+        preferences.viewport_meta_enabled = true;
+        preferences.dom_visual_viewport_enabled = true;
+        builder.preferences(preferences)
+    });
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,\
+                    <!DOCTYPE html>\
+                    <meta name=viewport content=\"initial-scale=2.0\">",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let eval_visual_viewport = |attr: &str| {
+        evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            format!("window.visualViewport.{}", attr),
+        )
+    };
+
+    // The visual viewport dimension after initial-scale
+    assert_eq!(eval_visual_viewport("scale"), Ok(JSValue::Number(2.0)));
+    assert_eq!(eval_visual_viewport("width"), Ok(JSValue::Number(250.)));
+    assert_eq!(eval_visual_viewport("height"), Ok(JSValue::Number(250.)));
 }
 
 #[test]
