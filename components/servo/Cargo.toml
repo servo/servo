@@ -112,6 +112,7 @@ script_traits = { workspace = true }
 serde = { workspace = true }
 servo-media = { workspace = true }
 servo-media-dummy = { workspace = true }
+servo-media-ohos = { workspace = true }
 servo-media-gstreamer = { workspace = true, optional = true }
 servo-tracing = { workspace = true }
 servo_allocator = { package = "servo-allocator", path = "../allocator" }
