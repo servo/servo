@@ -857,7 +857,7 @@ impl Handler {
         };
 
         // Step 5. If delta x != 0 or delta y != 0, run the following steps:
-        if delta_x != 0.0 || delta_y != 0.0 || last {
+        if delta_x != 0.0 || delta_y != 0.0 {
             // Step 5.1. Perform implementation-specific action dispatch steps
             let delta = WheelDelta {
                 x: -delta_x,
