@@ -37,6 +37,7 @@ impl FetchResponseListener for LayoutImageContext {
     fn process_request_eof(&mut self, _: RequestId) {}
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {

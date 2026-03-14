@@ -3712,11 +3712,12 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     fn process_request_eof(&mut self, _: RequestId) {}
 
-    #[expect(unsafe_code)]
-    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
-        // TODO: https://github.com/servo/servo/issues/42840
-        let mut cx = unsafe { temp_cx() };
-        let cx = &mut cx;
+    fn process_response(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
         let element = self.element.root();
 
         let (metadata, origin_clean) = match metadata {

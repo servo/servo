@@ -110,9 +110,14 @@ impl FetchResponseListener for XHRContext {
         // todo
     }
 
-    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
         let xhr = self.xhr.root();
-        let rv = xhr.process_headers_available(self.gen_id, metadata, CanGc::note());
+        let rv = xhr.process_headers_available(self.gen_id, metadata, CanGc::from_cx(cx));
         if rv.is_err() {
             *self.sync_status.borrow_mut() = Some(rv);
         }

@@ -541,6 +541,7 @@ impl FetchResponseListener for FetchContext {
 
     fn process_response(
         &mut self,
+        cx: &mut js::context::JSContext,
         _: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -561,14 +562,14 @@ impl FetchResponseListener for FetchContext {
             Err(error) => {
                 promise.reject_error(
                     Error::Type(cformat!("Network error: {:?}", error)),
-                    CanGc::note(),
+                    CanGc::from_cx(cx),
                 );
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
                 response.set_type(DOMResponseType::Error, CanGc::note());
                 response.error_stream(
                     Error::Type(c"Network error occurred".to_owned()),
-                    CanGc::note(),
+                    CanGc::from_cx(cx),
                 );
                 return;
             },
@@ -576,32 +577,36 @@ impl FetchResponseListener for FetchContext {
             // given response, "immutable", and relevantRealm.
             Ok(metadata) => match metadata {
                 FetchMetadata::Unfiltered(m) => {
-                    fill_headers_with_metadata(self.response_object.root(), m, CanGc::note());
+                    fill_headers_with_metadata(self.response_object.root(), m, CanGc::from_cx(cx));
                     self.response_object
                         .root()
-                        .set_type(DOMResponseType::Default, CanGc::note());
+                        .set_type(DOMResponseType::Default, CanGc::from_cx(cx));
                 },
                 FetchMetadata::Filtered { filtered, .. } => match filtered {
                     FilteredMetadata::Basic(m) => {
                         fill_headers_with_metadata(self.response_object.root(), m, CanGc::note());
                         self.response_object
                             .root()
-                            .set_type(DOMResponseType::Basic, CanGc::note());
+                            .set_type(DOMResponseType::Basic, CanGc::from_cx(cx));
                     },
                     FilteredMetadata::Cors(m) => {
-                        fill_headers_with_metadata(self.response_object.root(), m, CanGc::note());
+                        fill_headers_with_metadata(
+                            self.response_object.root(),
+                            m,
+                            CanGc::from_cx(cx),
+                        );
                         self.response_object
                             .root()
-                            .set_type(DOMResponseType::Cors, CanGc::note());
+                            .set_type(DOMResponseType::Cors, CanGc::from_cx(cx));
                     },
                     FilteredMetadata::Opaque => {
                         self.response_object
                             .root()
-                            .set_type(DOMResponseType::Opaque, CanGc::note());
+                            .set_type(DOMResponseType::Opaque, CanGc::from_cx(cx));
                     },
                     FilteredMetadata::OpaqueRedirect(url) => {
                         let r = self.response_object.root();
-                        r.set_type(DOMResponseType::Opaqueredirect, CanGc::note());
+                        r.set_type(DOMResponseType::Opaqueredirect, CanGc::from_cx(cx));
                         r.set_final_url(url);
                     },
                 },
@@ -609,7 +614,7 @@ impl FetchResponseListener for FetchContext {
         }
 
         // Step 12.5. Resolve p with responseObject.
-        promise.resolve_native(&self.response_object.root(), CanGc::note());
+        promise.resolve_native(&self.response_object.root(), CanGc::from_cx(cx));
         self.fetch_promise = Some(TrustedPromise::new(promise));
     }
 
@@ -673,6 +678,7 @@ impl FetchResponseListener for FetchLaterListener {
 
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         _: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {

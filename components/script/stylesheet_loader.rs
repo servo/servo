@@ -337,7 +337,12 @@ impl FetchResponseListener for StylesheetContext {
 
     fn process_request_eof(&mut self, _: RequestId) {}
 
-    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
         if let Ok(FetchMetadata::Filtered {
             filtered: FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_),
             ..
