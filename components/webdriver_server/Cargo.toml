@@ -25,9 +25,9 @@ log = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-servo_config = { package = "servo-config", path = "../config" }
-servo_geometry = { package = "servo-geometry", path = "../geometry" }
-servo_url = { package = "servo-url", path = "../url" }
+servo_config = { workspace = true }
+servo_geometry = { workspace = true }
+servo_url = { workspace = true }
 stylo_traits = { workspace = true }
 time = { workspace = true }
 uuid = { workspace = true }

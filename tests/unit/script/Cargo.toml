@@ -16,5 +16,5 @@ base = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
 keyboard-types = { workspace = true }
-script = { package = "servo-script", path = "../../../components/script"}
-servo_url = { package = "servo-url", path = "../../../components/url"}
+script = { workspace = true }
+servo_url = { workspace = true }

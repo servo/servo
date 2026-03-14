@@ -34,26 +34,26 @@ gleam = { workspace = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }
 log = { workspace = true }
-media = { package = "servo-media-thread", path = "../media/media-thread" }
+media = { workspace = true }
 malloc_size_of = { workspace = true }
 paint_api = { workspace = true }
 profile_traits = { workspace = true }
 rayon = { workspace = true }
 rustc-hash = { workspace = true }
 servo-tracing = { workspace = true }
-servo_allocator = { package = "servo-allocator", path = "../allocator" }
-servo_config = { package = "servo-config", path = "../config" }
-servo_geometry = { package = "servo-geometry", path = "../geometry" }
+servo_allocator = { workspace = true }
+servo_config = { workspace = true }
+servo_geometry = { workspace = true }
 smallvec = { workspace = true }
 stylo_traits = { workspace = true }
 surfman = { workspace = true }
-timers = { package = "servo-timers", path = "../timers" }
+timers = { workspace = true }
 tracing = { workspace = true, optional = true }
-webgl = { package = "servo-webgl", path = "../webgl" }
-webgpu = { package = "servo-webgpu", path = "../webgpu", optional = true }
+webgl = { workspace = true }
+webgpu = { workspace = true, optional = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
-webxr = { package = "servo-webxr", path = "../webxr", optional = true }
+webxr = { workspace = true, optional = true }
 webxr-api = { workspace = true, optional = true }
 wr_malloc_size_of = { workspace = true }
 

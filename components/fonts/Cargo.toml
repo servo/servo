@@ -42,8 +42,8 @@ read-fonts = { workspace = true }
 serde = { workspace = true }
 servo-tracing = { workspace = true }
 servo_arc = { workspace = true }
-servo_config = { package = "servo-config", path = "../config" }
-servo_url = { package = "servo-url", path = "../url" }
+servo_config = { workspace = true }
+servo_url = { workspace = true }
 skrifa = { workspace = true }
 smallvec = { workspace = true }
 rustc-hash = { workspace = true }
@@ -64,7 +64,7 @@ objc2-core-text = { workspace = true }
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
 freetype-sys = { workspace = true }
-servo_allocator = { package = "servo-allocator", path = "../allocator" }
+servo_allocator = { workspace = true }
 
 [target.'cfg(all(target_os = "linux", not(target_env = "ohos")))'.dependencies]
 fontconfig_sys = { package = "yeslogic-fontconfig-sys", version = "6" }

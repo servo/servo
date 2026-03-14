@@ -152,6 +152,16 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual(".toml file should contain a valid license.", next(errors)[2])
         self.assertNoMoreErrors(errors)
 
+    def test_toml_path_dependencies_use_workspace(self):
+        errors = tidy.collect_errors_for_files(
+            iterFile("path_dependency/Cargo.toml"), [], [tidy.check_toml], print_text=False
+        )
+        self.assertEqual(
+            "path dependencies must be declared in the root Cargo.toml and referenced with workspace = true",
+            next(errors)[2],
+        )
+        self.assertNoMoreErrors(errors)
+
     def test_modeline(self):
         errors = tidy.collect_errors_for_files(iterFile("modeline.txt"), [], [tidy.check_modeline], print_text=False)
         self.assertEqual("vi modeline present", next(errors)[2])

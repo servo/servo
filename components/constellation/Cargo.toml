@@ -24,12 +24,12 @@ unwrap_used = "deny"
 panic = "deny"
 
 [dependencies]
-background_hang_monitor = { package = "servo-background-hang-monitor", path = "../background_hang_monitor" }
+background_hang_monitor = { workspace = true }
 background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }
 base = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
-canvas = { package = "servo-canvas", path = "../canvas" }
+canvas = { workspace = true }
 canvas_traits = { workspace = true }
 constellation_traits = { workspace = true }
 content-security-policy = { workspace = true }
@@ -37,30 +37,30 @@ crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
-fonts = { package = "servo-fonts", path = "../fonts" }
+fonts = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
 layout_api = { workspace = true }
 log = { workspace = true }
-media = { package = "servo-media-thread", path = "../media/media-thread" }
-net = { package = "servo-net", path = "../net" }
+media = { workspace = true }
+net = { workspace = true }
 net_traits = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
-profile = { package = "servo-profile", path = "../profile" }
+profile = { workspace = true }
 profile_traits = { workspace = true }
 rand = { workspace = true }
 rustc-hash = { workspace = true }
 script_traits = { workspace = true }
 serde = { workspace = true }
 servo-tracing = { workspace = true }
-servo_config = { package = "servo-config", path = "../config" }
-servo_url = { package = "servo-url", path = "../url" }
+servo_config = { workspace = true }
+servo_url = { workspace = true }
 storage_traits = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
 tracing = { workspace = true, optional = true }
-webgpu = { package = "servo-webgpu", path = "../webgpu" }
+webgpu = { workspace = true }
 webgpu_traits = { workspace = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }

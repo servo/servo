@@ -70,7 +70,7 @@ hitrace = { workspace = true, optional = true }
 image = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
-servo = { path = "../../components/servo", features = ["background_hang_monitor", "bluetooth", "testbinding"], default-features = false }
+servo = { workspace = true, features = ["background_hang_monitor", "bluetooth", "testbinding"], default-features = false }
 log = { workspace = true }
 mime_guess = { workspace = true }
 raw-window-handle = { workspace = true }
@@ -80,7 +80,7 @@ tracing = { workspace = true, optional = true }
 tracing-perfetto = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = ["env-filter"] }
 url = { workspace = true }
-webdriver_server = { package = "servo-webdriver-server", path = "../../components/webdriver_server" }
+webdriver_server = { workspace = true }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.15"
@@ -122,7 +122,7 @@ glow = { workspace = true }
 headers = { workspace = true }
 serde_json = { workspace = true }
 # For optional feature servo_allocator/use-system-allocator and servo_allocator/allocation-tracking
-servo_allocator = { package = "servo-allocator", path = "../../components/allocator" }
+servo_allocator = { workspace = true }
 surfman = { workspace = true, features = ["sm-raw-window-handle-06", "sm-x11"] }
 winit = { workspace = true }
 
@@ -130,7 +130,7 @@ winit = { workspace = true }
 sig = "1.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-servo = { path = "../../components/servo", features = ["no-wgl"] }
+servo = { workspace = true, features = ["no-wgl"] }
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi", "Win32_System_Console"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]

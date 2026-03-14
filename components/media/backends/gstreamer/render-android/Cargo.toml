@@ -17,5 +17,5 @@ gstreamer = { workspace = true }
 gstreamer-gl = { workspace = true }
 gstreamer-gl-egl = { workspace = true }
 gstreamer-video = { workspace = true }
-sm-player = { package = "servo-media-player", path = "../../../player" }
-sm-gst-render = { package = "servo-media-gstreamer-render", path = "../render" }
+sm-player = { workspace = true }
+sm-gst-render = { workspace = true }

@@ -19,7 +19,7 @@ paint_api = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo-media = { workspace = true }
-servo_config = { package = "servo-config", path = "../../config" }
+servo_config = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 webrender_api = { workspace = true }
