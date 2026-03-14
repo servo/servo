@@ -466,10 +466,10 @@ impl WindowProxy {
     // https://html.spec.whatwg.org/multipage/#window-open-steps
     pub(crate) fn open(
         &self,
+        cx: &mut js::context::JSContext,
         url: USVString,
         target: DOMString,
         features: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         // Note: this does not map to the spec,
         // but it does prevent a panic at the constellation because the browsing context
@@ -568,11 +568,11 @@ impl WindowProxy {
 
                 // Check CSP and report violations to the source (existing) window
                 if !ScriptThread::can_navigate_to_javascript_url(
+                    cx,
                     &existing_global,
                     target_window.as_global_scope(),
                     &mut load_data,
                     None,
-                    can_gc,
                 ) {
                     // CSP blocked the navigation, don't proceed
                     return Ok(target_document.browsing_context());
@@ -584,7 +584,7 @@ impl WindowProxy {
             } else {
                 NavigationHistoryBehavior::Push
             };
-            target_window.load_url(history_handling, false, load_data, can_gc);
+            target_window.load_url(history_handling, false, load_data, CanGc::from_cx(cx));
         }
         // Step 17 (Dis-owning has been done in create_auxiliary_browsing_context).
         if noopener {

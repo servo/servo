@@ -6540,7 +6540,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         self.browsing_context()
             .ok_or(Error::InvalidAccess(None))?
-            .open(url, target, features, CanGc::from_cx(cx))
+            .open(cx, url, target, features)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-write>

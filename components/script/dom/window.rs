@@ -1307,12 +1307,12 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-open>
     fn Open(
         &self,
+        cx: &mut JSContext,
         url: USVString,
         target: DOMString,
         features: DOMString,
-        can_gc: CanGc,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
-        self.window_proxy().open(url, target, features, can_gc)
+        self.window_proxy().open(cx, url, target, features)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-opener>
