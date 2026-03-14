@@ -2239,9 +2239,9 @@ impl Handler {
                     }
                 },
                 DispatchStringEvent::Composition(event) => {
-                    self.send_input_event_to_embedder(InputEvent::Ime(ImeEvent::Composition(
-                        event,
-                    )));
+                    self.send_blocking_input_event_to_embedder(InputEvent::Ime(
+                        ImeEvent::Composition(event),
+                    ));
                 },
             }
         }
