@@ -259,13 +259,13 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
-    fn Before(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().before(nodes, can_gc)
+    fn Before(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().before(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-after>
-    fn After(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().after(nodes, can_gc)
+    fn After(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().after(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-replacewith>

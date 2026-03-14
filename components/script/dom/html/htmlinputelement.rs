@@ -372,6 +372,7 @@ impl InputElementShadowTree {
 
 /// Create a div element with a text node within an UA Widget and either append or prepend it to
 /// the designated parent. This is used to create the text container for input elements.
+#[expect(unsafe_code)]
 fn create_ua_widget_div_with_text_node(
     document: &Document,
     parent: &Node,
@@ -379,6 +380,9 @@ fn create_ua_widget_div_with_text_node(
     as_first_child: bool,
     can_gc: CanGc,
 ) -> DomRoot<Element> {
+    let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+    let cx = &mut cx;
+
     let el = Element::create(
         QualName::new(None, ns!(html), local_name!("div")),
         None,
@@ -391,7 +395,7 @@ fn create_ua_widget_div_with_text_node(
 
     parent
         .upcast::<Node>()
-        .AppendChild(el.upcast::<Node>(), can_gc)
+        .AppendChild(cx, el.upcast::<Node>())
         .unwrap();
     el.upcast::<Node>()
         .set_implemented_pseudo_element(implemented_pseudo);
@@ -399,14 +403,14 @@ fn create_ua_widget_div_with_text_node(
 
     if !as_first_child {
         el.upcast::<Node>()
-            .AppendChild(text_node.upcast::<Node>(), can_gc)
+            .AppendChild(cx, text_node.upcast::<Node>())
             .unwrap();
     } else {
         el.upcast::<Node>()
             .InsertBefore(
+                cx,
                 text_node.upcast::<Node>(),
                 el.upcast::<Node>().GetFirstChild().as_deref(),
-                can_gc,
             )
             .unwrap();
     }
@@ -3289,18 +3293,18 @@ impl VirtualMethods for HTMLInputElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
 
         if self.input_type() == InputType::Radio {
-            self.radio_group_updated(self.radio_group_name().as_ref(), can_gc);
+            self.radio_group_updated(self.radio_group_name().as_ref(), CanGc::from_cx(cx));
         }
 
-        self.value_changed(can_gc);
+        self.value_changed(CanGc::from_cx(cx));
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {

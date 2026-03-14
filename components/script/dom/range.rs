@@ -625,9 +625,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 let clone =
                     cdata.clone_with_data(data, &start_node.owner_doc(), CanGc::from_cx(cx));
                 // Step 4.3.
-                fragment
-                    .upcast::<Node>()
-                    .AppendChild(&clone, CanGc::from_cx(cx))?;
+                fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 4.4
                 return Ok(fragment);
             }
@@ -651,16 +649,12 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 let clone =
                     cdata.clone_with_data(data, &start_node.owner_doc(), CanGc::from_cx(cx));
                 // Step 13.3.
-                fragment
-                    .upcast::<Node>()
-                    .AppendChild(&clone, CanGc::from_cx(cx))?;
+                fragment.upcast::<Node>().AppendChild(cx, &clone)?;
             } else {
                 // Step 14.1.
                 let clone = child.CloneNode(cx, /* deep */ false)?;
                 // Step 14.2.
-                fragment
-                    .upcast::<Node>()
-                    .AppendChild(&clone, CanGc::from_cx(cx))?;
+                fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 14.3.
                 let subrange = Range::new(
                     &clone.owner_doc(),
@@ -673,7 +667,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 // Step 14.4.
                 let subfragment = subrange.CloneContents(cx)?;
                 // Step 14.5.
-                clone.AppendChild(subfragment.upcast(), CanGc::from_cx(cx))?;
+                clone.AppendChild(cx, subfragment.upcast())?;
             }
         }
 
@@ -682,9 +676,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             // Step 15.1.
             let clone = child.CloneNode(cx, /* deep */ true)?;
             // Step 15.2.
-            fragment
-                .upcast::<Node>()
-                .AppendChild(&clone, CanGc::from_cx(cx))?;
+            fragment.upcast::<Node>().AppendChild(cx, &clone)?;
         }
 
         if let Some(child) = last_partially_contained_child {
@@ -696,16 +688,12 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 let clone =
                     cdata.clone_with_data(data, &start_node.owner_doc(), CanGc::from_cx(cx));
                 // Step 16.3.
-                fragment
-                    .upcast::<Node>()
-                    .AppendChild(&clone, CanGc::from_cx(cx))?;
+                fragment.upcast::<Node>().AppendChild(cx, &clone)?;
             } else {
                 // Step 17.1.
                 let clone = child.CloneNode(cx, /* deep */ false)?;
                 // Step 17.2.
-                fragment
-                    .upcast::<Node>()
-                    .AppendChild(&clone, CanGc::from_cx(cx))?;
+                fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 17.3.
                 let subrange = Range::new(
                     &clone.owner_doc(),
@@ -718,7 +706,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 // Step 17.4.
                 let subfragment = subrange.CloneContents(cx)?;
                 // Step 17.5.
-                clone.AppendChild(subfragment.upcast(), CanGc::from_cx(cx))?;
+                clone.AppendChild(cx, subfragment.upcast())?;
             }
         }
 
@@ -754,9 +742,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                     .unwrap()
                     .SetData(text.unwrap());
                 // Step 4.3.
-                fragment
-                    .upcast::<Node>()
-                    .AppendChild(&clone, CanGc::from_cx(cx))?;
+                fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 4.4.
                 end_data.ReplaceData(start_offset, end_offset - start_offset, DOMString::new())?;
                 // Step 4.5.
@@ -800,9 +786,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                     .unwrap()
                     .SetData(text.unwrap());
                 // Step 15.3.
-                fragment
-                    .upcast::<Node>()
-                    .AppendChild(&clone, CanGc::from_cx(cx))?;
+                fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 15.4.
                 start_data.ReplaceData(
                     start_offset,
@@ -813,9 +797,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 // Step 16.1.
                 let clone = child.CloneNode(cx, /* deep */ false)?;
                 // Step 16.2.
-                fragment
-                    .upcast::<Node>()
-                    .AppendChild(&clone, CanGc::from_cx(cx))?;
+                fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 16.3.
                 let subrange = Range::new(
                     &clone.owner_doc(),
@@ -828,15 +810,13 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 // Step 16.4.
                 let subfragment = subrange.ExtractContents(cx)?;
                 // Step 16.5.
-                clone.AppendChild(subfragment.upcast(), CanGc::from_cx(cx))?;
+                clone.AppendChild(cx, subfragment.upcast())?;
             }
         }
 
         // Step 17.
         for child in contained_children {
-            fragment
-                .upcast::<Node>()
-                .AppendChild(&child, CanGc::from_cx(cx))?;
+            fragment.upcast::<Node>().AppendChild(cx, &child)?;
         }
 
         if let Some(child) = last_partially_contained_child {
@@ -851,18 +831,14 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                     .unwrap()
                     .SetData(text.unwrap());
                 // Step 18.3.
-                fragment
-                    .upcast::<Node>()
-                    .AppendChild(&clone, CanGc::from_cx(cx))?;
+                fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 18.4.
                 end_data.ReplaceData(0, end_offset, DOMString::new())?;
             } else {
                 // Step 19.1.
                 let clone = child.CloneNode(cx, /* deep */ false)?;
                 // Step 19.2.
-                fragment
-                    .upcast::<Node>()
-                    .AppendChild(&clone, CanGc::from_cx(cx))?;
+                fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 19.3.
                 let subrange = Range::new(
                     &clone.owner_doc(),
@@ -875,7 +851,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 // Step 19.4.
                 let subfragment = subrange.ExtractContents(cx)?;
                 // Step 19.5.
-                clone.AppendChild(subfragment.upcast(), CanGc::from_cx(cx))?;
+                clone.AppendChild(cx, subfragment.upcast())?;
             }
         }
 
@@ -935,7 +911,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let split_text;
         let reference_node = match start_node.downcast::<Text>() {
             Some(text) => {
-                split_text = text.SplitText(start_offset, CanGc::from_cx(cx))?;
+                split_text = text.SplitText(cx, start_offset)?;
                 let new_reference = DomRoot::upcast::<Node>(split_text);
                 assert!(new_reference.GetParentNode().as_deref() == Some(&parent));
                 Some(new_reference)
@@ -967,7 +943,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
             };
 
         // Step 12.
-        Node::pre_insert(node, &parent, reference_node.as_deref(), CanGc::from_cx(cx))?;
+        Node::pre_insert(cx, node, &parent, reference_node.as_deref())?;
 
         // Step 13.
         if self.collapsed() {
@@ -1096,7 +1072,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         self.InsertNode(cx, new_parent)?;
 
         // Step 6.
-        new_parent.AppendChild(fragment.upcast(), CanGc::from_cx(cx))?;
+        new_parent.AppendChild(cx, fragment.upcast())?;
 
         // Step 7.
         self.SelectNode(new_parent)

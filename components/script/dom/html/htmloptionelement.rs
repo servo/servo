@@ -231,7 +231,7 @@ impl HTMLOptionElement {
             // Step 2.2 Append childClone to documentFragment.
             let _ = document_fragment
                 .upcast::<Node>()
-                .AppendChild(&child_clone, CanGc::from_cx(cx));
+                .AppendChild(cx, &child_clone);
         }
 
         // Step 3. Replace all with documentFragment within selectedcontent.
@@ -440,16 +440,16 @@ impl VirtualMethods for HTMLOptionElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
 
         self.upcast::<Element>()
             .check_parent_disabled_state_for_option();
 
         self.pick_if_selected_and_reset();
-        self.update_select_validity(can_gc);
+        self.update_select_validity(CanGc::from_cx(cx));
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {

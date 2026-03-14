@@ -1181,9 +1181,7 @@ impl ParserContext {
         };
         // Step 4. Append an element host element for the media, as described below, to the body element.
         let doc_body = DomRoot::upcast::<Node>(doc.GetBody().unwrap());
-        doc_body
-            .AppendChild(&node, CanGc::from_cx(cx))
-            .expect("Appending failed");
+        doc_body.AppendChild(cx, &node).expect("Appending failed");
         // Step 7. Process link headers given document, navigationParams's response, and "media".
         let link_headers = std::mem::take(&mut self.navigation_params.link_headers);
         process_link_headers(&link_headers, doc, LinkProcessingPhase::Media);
@@ -1494,12 +1492,12 @@ pub(crate) struct FragmentContext<'a> {
 
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
 fn insert(
+    cx: &mut js::context::JSContext,
     parent: &Node,
     reference_child: Option<&Node>,
     child: NodeOrText<Dom<Node>>,
     parsing_algorithm: ParsingAlgorithm,
     custom_element_reaction_stack: &CustomElementReactionStack,
-    can_gc: CanGc,
 ) {
     match child {
         NodeOrText::AppendNode(n) => {
@@ -1511,9 +1509,9 @@ fn insert(
             if element_in_non_fragment {
                 custom_element_reaction_stack.push_new_element_queue();
             }
-            parent.InsertBefore(&n, reference_child, can_gc).unwrap();
+            parent.InsertBefore(cx, &n, reference_child).unwrap();
             if element_in_non_fragment {
-                custom_element_reaction_stack.pop_current_element_queue(can_gc);
+                custom_element_reaction_stack.pop_current_element_queue(CanGc::from_cx(cx));
             }
         },
         NodeOrText::AppendText(t) => {
@@ -1526,9 +1524,13 @@ fn insert(
             if let Some(text) = text {
                 text.upcast::<CharacterData>().append_data(&t);
             } else {
-                let text = Text::new(String::from(t).into(), &parent.owner_doc(), can_gc);
+                let text = Text::new(
+                    String::from(t).into(),
+                    &parent.owner_doc(),
+                    CanGc::from_cx(cx),
+                );
                 parent
-                    .InsertBefore(text.upcast(), reference_child, can_gc)
+                    .InsertBefore(cx, text.upcast(), reference_child)
                     .unwrap();
             }
         },
@@ -1686,19 +1688,24 @@ impl TreeSink for Sink {
         }
     }
 
+    #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn append_before_sibling(&self, sibling: &Dom<Node>, new_node: NodeOrText<Dom<Node>>) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
         let parent = sibling
             .GetParentNode()
             .expect("append_before_sibling called on node without parent");
 
         insert(
+            cx,
             &parent,
             Some(sibling),
             new_node,
             self.parsing_algorithm,
             &self.custom_element_reaction_stack,
-            CanGc::note(),
         );
     }
 
@@ -1715,15 +1722,20 @@ impl TreeSink for Sink {
         self.document.set_quirks_mode(mode);
     }
 
+    #[expect(unsafe_code)]
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn append(&self, parent: &Dom<Node>, child: NodeOrText<Dom<Node>>) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
         insert(
+            cx,
             parent,
             None,
             child,
             self.parsing_algorithm,
             &self.custom_element_reaction_stack,
-            CanGc::note(),
         );
     }
 
@@ -1741,22 +1753,27 @@ impl TreeSink for Sink {
         }
     }
 
+    #[expect(unsafe_code)]
     fn append_doctype_to_document(
         &self,
         name: StrTendril,
         public_id: StrTendril,
         system_id: StrTendril,
     ) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
         let doc = &*self.document;
         let doctype = DocumentType::new(
             DOMString::from(String::from(name)),
             Some(DOMString::from(String::from(public_id))),
             Some(DOMString::from(String::from(system_id))),
             doc,
-            CanGc::note(),
+            CanGc::from_cx(cx),
         );
         doc.upcast::<Node>()
-            .AppendChild(doctype.upcast(), CanGc::note())
+            .AppendChild(cx, doctype.upcast())
             .expect("Appending failed");
     }
 
@@ -1792,9 +1809,14 @@ impl TreeSink for Sink {
         }
     }
 
+    #[expect(unsafe_code)]
     fn reparent_children(&self, node: &Dom<Node>, new_parent: &Dom<Node>) {
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
         while let Some(ref child) = node.GetFirstChild() {
-            new_parent.AppendChild(child, CanGc::note()).unwrap();
+            new_parent.AppendChild(cx, child).unwrap();
         }
     }
 

@@ -72,7 +72,7 @@ impl HTMLOptionsCollection {
                 CanGc::from_cx(cx),
             );
             let node = element.upcast::<Node>();
-            root.AppendChild(node, CanGc::from_cx(cx))?;
+            root.AppendChild(cx, node)?;
         }
         Ok(())
     }
@@ -125,7 +125,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
             let node = value.upcast::<Node>();
             let root = self.upcast().root_node();
             if n >= 0 {
-                Node::pre_insert(node, &root, None, CanGc::from_cx(cx)).map(|_| ())
+                Node::pre_insert(cx, node, &root, None).map(|_| ())
             } else {
                 let child = self.upcast().IndexedGetter(index).unwrap();
                 let child_node = child.upcast::<Node>();
@@ -179,6 +179,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-add>
     fn Add(
         &self,
+        cx: &mut JSContext,
         element: HTMLOptionElementOrHTMLOptGroupElement,
         before: Option<HTMLElementOrLong>,
     ) -> ErrorResult {
@@ -236,7 +237,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
         };
 
         // Step 6: Pre-insert element into parent node before reference.
-        Node::pre_insert(node, &parent, reference_node.as_deref(), CanGc::note()).map(|_| ())
+        Node::pre_insert(cx, node, &parent, reference_node.as_deref()).map(|_| ())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove>

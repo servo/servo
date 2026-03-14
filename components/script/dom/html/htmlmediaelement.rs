@@ -2802,7 +2802,12 @@ impl HTMLMediaElement {
             .unwrap_or_else(|_| self.current_playback_position.get())
     }
 
+    #[expect(unsafe_code)]
     fn render_controls(&self, can_gc: CanGc) {
+        // TODO
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         if self.upcast::<Element>().is_shadow_host() {
             // Bail out if we are already showing the controls.
             return;
@@ -2837,7 +2842,7 @@ impl HTMLMediaElement {
             .set_text_content_for_element(Some(DOMString::from(media_controls_script)), can_gc);
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(script.upcast::<Node>(), can_gc)
+            .AppendChild(cx, script.upcast::<Node>())
         {
             warn!("Could not render media controls {:?}", e);
             return;
@@ -2859,7 +2864,7 @@ impl HTMLMediaElement {
 
         if let Err(e) = shadow_root
             .upcast::<Node>()
-            .AppendChild(style.upcast::<Node>(), can_gc)
+            .AppendChild(cx, style.upcast::<Node>())
         {
             warn!("Could not render media controls {:?}", e);
         }

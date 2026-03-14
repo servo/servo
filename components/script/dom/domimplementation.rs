@@ -143,16 +143,12 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
 
             // Step 4.
             if let Some(doc_type) = maybe_doctype {
-                doc_node
-                    .AppendChild(doc_type.upcast(), CanGc::from_cx(cx))
-                    .unwrap();
+                doc_node.AppendChild(cx, doc_type.upcast()).unwrap();
             }
 
             // Step 5.
             if let Some(ref elem) = maybe_elem {
-                doc_node
-                    .AppendChild(elem.upcast(), CanGc::from_cx(cx))
-                    .unwrap();
+                doc_node.AppendChild(cx, elem.upcast()).unwrap();
             }
         }
 
@@ -209,9 +205,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                 &doc,
                 CanGc::from_cx(cx),
             );
-            doc_node
-                .AppendChild(doc_type.upcast(), CanGc::from_cx(cx))
-                .unwrap();
+            doc_node.AppendChild(cx, doc_type.upcast()).unwrap();
         }
 
         {
@@ -228,7 +222,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                 CanGc::from_cx(cx),
             ));
             doc_node
-                .AppendChild(&doc_html, CanGc::from_cx(cx))
+                .AppendChild(cx, &doc_html)
                 .expect("Appending failed");
 
             {
@@ -243,7 +237,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                     None,
                     CanGc::from_cx(cx),
                 ));
-                doc_html.AppendChild(&doc_head, CanGc::from_cx(cx)).unwrap();
+                doc_html.AppendChild(cx, &doc_head).unwrap();
 
                 // Step 6. If title is given:
                 if let Some(title_str) = title {
@@ -258,16 +252,12 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                         None,
                         CanGc::from_cx(cx),
                     ));
-                    doc_head
-                        .AppendChild(&doc_title, CanGc::from_cx(cx))
-                        .unwrap();
+                    doc_head.AppendChild(cx, &doc_title).unwrap();
 
                     // Step 6.2. Append a new Text node, with its data set to title (which could be the empty string)
                     // and its node document set to doc, to the title element created earlier.
                     let title_text = Text::new(title_str, &doc, CanGc::from_cx(cx));
-                    doc_title
-                        .AppendChild(title_text.upcast(), CanGc::from_cx(cx))
-                        .unwrap();
+                    doc_title.AppendChild(cx, title_text.upcast()).unwrap();
                 }
             }
 
@@ -282,9 +272,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                 None,
                 CanGc::from_cx(cx),
             );
-            doc_html
-                .AppendChild(doc_body.upcast(), CanGc::from_cx(cx))
-                .unwrap();
+            doc_html.AppendChild(cx, doc_body.upcast()).unwrap();
         }
 
         // Step 9. Return doc.

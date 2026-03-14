@@ -2117,14 +2117,10 @@ impl VirtualMethods for HTMLImageElement {
         }
     }
 
-    #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#the-img-element:html-element-insertion-steps>
-    fn bind_to_tree(&self, context: &BindContext, _can_gc: CanGc) {
-        // TODO: https://github.com/servo/servo/issues/42838
-        let mut cx = unsafe { temp_cx() };
-        let cx = &mut cx;
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, CanGc::from_cx(cx));
+            s.bind_to_tree(cx, context);
         }
         let document = self.owner_document();
         if context.tree_connected {

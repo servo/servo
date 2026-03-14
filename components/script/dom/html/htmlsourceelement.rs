@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::script_runtime::temp_cx;
 use style::attr::AttrValue;
@@ -69,9 +70,9 @@ impl HTMLSourceElement {
     }
 
     fn iterate_next_html_image_element_siblings_with_cx(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         next_siblings_iterator: impl Iterator<Item = Root<Dom<Node>>>,
-        callback: impl Fn(&mut js::context::JSContext, &HTMLImageElement),
+        callback: impl Fn(&mut JSContext, &HTMLImageElement),
     ) {
         for next_sibling in next_siblings_iterator {
             if let Some(html_image_element_sibling) = next_sibling.downcast::<HTMLImageElement>() {
@@ -145,15 +146,9 @@ impl VirtualMethods for HTMLSourceElement {
         }
     }
 
-    #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#the-source-element:html-element-insertion-steps>
-    fn bind_to_tree(&self, context: &BindContext, _can_gc: CanGc) {
-        // TODO: https://github.com/servo/servo/issues/42838
-        let mut cx = unsafe { temp_cx() };
-        let cx = &mut cx;
-        self.super_type()
-            .unwrap()
-            .bind_to_tree(context, CanGc::from_cx(cx));
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(cx, context);
 
         // Step 1. Let parent be insertedNode's parent.
         let parent = self.upcast::<Node>().GetParentNode().unwrap();

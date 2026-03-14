@@ -6,6 +6,7 @@ use std::cell::Ref;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 
 use crate::dom::attr::Attr;
@@ -69,7 +70,11 @@ impl HTMLProgressElement {
         )
     }
 
+    #[expect(unsafe_code)]
     fn create_shadow_tree(&self, can_gc: CanGc) {
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         let document = self.owner_document();
         let root = self.upcast::<Element>().attach_ua_shadow_root(true, can_gc);
 
@@ -86,7 +91,7 @@ impl HTMLProgressElement {
         // FIXME: This should use ::-moz-progress-bar
         progress_bar.SetId("-servo-progress-bar".into(), can_gc);
         root.upcast::<Node>()
-            .AppendChild(progress_bar.upcast::<Node>(), can_gc)
+            .AppendChild(cx, progress_bar.upcast::<Node>())
             .unwrap();
 
         let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
@@ -226,8 +231,8 @@ impl VirtualMethods for HTMLProgressElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
-        self.super_type().unwrap().bind_to_tree(context, can_gc);
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
+        self.super_type().unwrap().bind_to_tree(cx, context);
 
         self.update_state(CanGc::note());
     }
