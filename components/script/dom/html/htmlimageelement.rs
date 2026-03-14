@@ -1761,13 +1761,13 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
         // Step 2. Let img be the result of creating an element given document, "img", and the HTML
         // namespace.
         let element = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("img")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             proto,
-            CanGc::from_cx(cx),
         );
 
         let image = DomRoot::downcast::<HTMLImageElement>(element).unwrap();

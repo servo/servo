@@ -77,13 +77,13 @@ impl HTMLMeterElement {
         let root = self.upcast::<Element>().attach_ua_shadow_root(cx, true);
 
         let meter_value = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("div")),
             None,
             &document,
             crate::dom::element::ElementCreator::ScriptCreated,
             crate::dom::element::CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
         root.upcast::<Node>()
             .AppendChild(cx, meter_value.upcast::<Node>())

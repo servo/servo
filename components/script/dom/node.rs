@@ -3582,13 +3582,13 @@ impl Node {
                     local: element.local_name().clone(),
                 };
                 let element = Element::create(
+                    cx,
                     name,
                     element.get_is(),
                     &document,
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Asynchronous,
                     None,
-                    CanGc::from_cx(cx),
                 );
                 // TODO: Move this into `Element::create`
                 element.set_custom_element_registry(registry);

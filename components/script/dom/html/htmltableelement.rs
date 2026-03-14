@@ -153,13 +153,13 @@ impl HTMLTableElement {
         }
 
         let section = Element::create(
+            cx,
             QualName::new(None, ns!(html), atom.clone()),
             None,
             &self.owner_document(),
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
 
         let section = DomRoot::downcast::<HTMLTableSectionElement>(section).unwrap();
@@ -237,13 +237,13 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
             Some(caption) => caption,
             None => {
                 let caption = Element::create(
+                    cx,
                     QualName::new(None, ns!(html), local_name!("caption")),
                     None,
                     &self.owner_document(),
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Asynchronous,
                     None,
-                    CanGc::from_cx(cx),
                 );
                 let caption = DomRoot::downcast::<HTMLTableCaptionElement>(caption).unwrap();
 
@@ -335,13 +335,13 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-table-createtbody>
     fn CreateTBody(&self, cx: &mut JSContext) -> DomRoot<HTMLTableSectionElement> {
         let tbody = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("tbody")),
             None,
             &self.owner_document(),
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
         let tbody = DomRoot::downcast::<HTMLTableSectionElement>(tbody).unwrap();
         let node = self.upcast::<Node>();
@@ -366,13 +366,13 @@ impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
         }
 
         let new_row = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("tr")),
             None,
             &self.owner_document(),
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
         let new_row = DomRoot::downcast::<HTMLTableRowElement>(new_row).unwrap();
         let node = self.upcast::<Node>();

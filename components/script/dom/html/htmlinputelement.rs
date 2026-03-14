@@ -162,13 +162,13 @@ impl TextInputWidgetShadowTree {
     fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
         let document = shadow_root.owner_document();
         let inner_container = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("div")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
 
         Node::replace_all(cx, Some(inner_container.upcast()), shadow_root.upcast());
@@ -293,13 +293,13 @@ struct ColorInputShadowTree {
 impl ColorInputShadowTree {
     fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
         let color_value = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("div")),
             None,
             &shadow_root.owner_document(),
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
 
         Node::replace_all(cx, Some(color_value.upcast()), shadow_root.upcast());
@@ -389,13 +389,13 @@ fn create_ua_widget_div_with_text_node(
     as_first_child: bool,
 ) -> DomRoot<Element> {
     let el = Element::create(
+        cx,
         QualName::new(None, ns!(html), local_name!("div")),
         None,
         document,
         ElementCreator::ScriptCreated,
         CustomElementCreationMode::Asynchronous,
         None,
-        CanGc::from_cx(cx),
     );
 
     parent

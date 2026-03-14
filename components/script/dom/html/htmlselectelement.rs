@@ -285,13 +285,13 @@ impl HTMLSelectElement {
         let root = self.upcast::<Element>().attach_ua_shadow_root(cx, true);
 
         let select_box = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("div")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
         select_box.set_string_attribute(
             &local_name!("style"),
@@ -300,13 +300,13 @@ impl HTMLSelectElement {
         );
 
         let text_container = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("div")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
         text_container.set_string_attribute(
             &local_name!("style"),
@@ -328,13 +328,13 @@ impl HTMLSelectElement {
             .unwrap();
 
         let chevron_container = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("div")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
         chevron_container.set_string_attribute(
             &local_name!("style"),

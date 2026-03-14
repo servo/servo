@@ -1058,13 +1058,13 @@ impl HTMLElement {
                     }
 
                     let br = Element::create(
+                        cx,
                         QualName::new(None, ns!(html), local_name!("br")),
                         None,
                         &document,
                         ElementCreator::ScriptCreated,
                         CustomElementCreationMode::Asynchronous,
                         None,
-                        CanGc::from_cx(cx),
                     );
                     fragment
                         .upcast::<Node>()

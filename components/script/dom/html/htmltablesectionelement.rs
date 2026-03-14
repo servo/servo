@@ -87,13 +87,13 @@ impl HTMLTableSectionElementMethods<crate::DomTypeHolder> for HTMLTableSectionEl
             || self.Rows(),
             |cx| {
                 let row = Element::create(
+                    cx,
                     QualName::new(None, ns!(html), local_name!("tr")),
                     None,
                     &node.owner_doc(),
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Asynchronous,
                     None,
-                    CanGc::from_cx(cx),
                 );
                 DomRoot::downcast::<HTMLTableRowElement>(row).unwrap()
             },

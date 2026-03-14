@@ -2813,13 +2813,13 @@ impl HTMLMediaElement {
         let shadow_root = self.upcast::<Element>().attach_ua_shadow_root(cx, false);
         let document = self.owner_document();
         let script = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("script")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
         // This is our hacky way to temporarily workaround the lack of a privileged
         // JS context.
@@ -2842,13 +2842,13 @@ impl HTMLMediaElement {
         }
 
         let style = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("style")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
 
         style

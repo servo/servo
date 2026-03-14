@@ -110,13 +110,13 @@ impl HTMLTableRowElementMethods<crate::DomTypeHolder> for HTMLTableRowElement {
             || self.Cells(),
             |cx| {
                 let cell = Element::create(
+                    cx,
                     QualName::new(None, ns!(html), local_name!("td")),
                     None,
                     &node.owner_doc(),
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Asynchronous,
                     None,
-                    CanGc::from_cx(cx),
                 );
                 DomRoot::downcast::<HTMLTableCellElement>(cell).unwrap()
             },
