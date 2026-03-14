@@ -22,7 +22,6 @@ use js::rust::wrappers2::{
     GetRequestedModulesCount, JS_GetModulePrivate, ModuleEvaluate, ModuleLink,
 };
 use js::rust::{HandleValue, IntoHandle};
-use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, Referrer};
 use script_bindings::settings_stack::run_a_callback;
 use servo_url::ServoUrl;
@@ -37,8 +36,9 @@ use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::realms::{InRealm, enter_auto_realm};
 use crate::script_module::{
-    ModuleHandler, ModuleObject, ModuleOwner, ModuleTree, RethrowError, ScriptFetchOptions,
-    fetch_a_single_module_script, gen_type_error, module_script_from_reference_private,
+    ModuleFetchClient, ModuleHandler, ModuleObject, ModuleOwner, ModuleTree, RethrowError,
+    ScriptFetchOptions, fetch_a_single_module_script, gen_type_error,
+    module_script_from_reference_private,
 };
 use crate::script_runtime::{CanGc, IntroductionType};
 
@@ -65,9 +65,8 @@ pub(crate) struct LoadState {
     pub(crate) error_to_rethrow: RefCell<Option<RethrowError>>,
     #[no_trace]
     pub(crate) destination: Destination,
-    pub(crate) fetch_client: ModuleOwner,
     #[no_trace]
-    pub(crate) policy_container: Option<PolicyContainer>,
+    pub(crate) fetch_client: ModuleFetchClient,
 }
 
 /// <https://tc39.es/ecma262/#graphloadingstate-record>
@@ -454,6 +453,9 @@ pub(crate) fn host_load_imported_module(
     };
 
     // Step 6.2. Set settingsObject to referencingScript's settings object.
+    let owner = referencing_script
+        .and_then(|script| script.owner.clone())
+        .unwrap_or(ModuleOwner::DynamicModule(Trusted::new(&global_scope)));
     // Note: We later set fetchClient to the `ModuleOwner` provided by loadState,
     // which provides the `GlobalScope` that we will use for fetching.
 
@@ -511,16 +513,15 @@ pub(crate) fn host_load_imported_module(
             // Step 11. Let destination be "script".
             Destination::Script,
             // Step 12. Let fetchClient be settingsObject.
-            ModuleOwner::DynamicModule(Trusted::new(&global_scope)),
+            ModuleFetchClient::from_global_scope(&global_scope),
         ),
     };
 
-    let policy_container = load_state
-        .clone()
-        .and_then(|state| state.policy_container.clone());
-
     let on_single_fetch_complete =
         move |cx: &mut JSContext, module_tree: Option<Rc<ModuleTree>>| {
+            let mut realm = CurrentRealm::assert(cx);
+            let cx = &mut realm;
+
             // Step 1. Let completion be null.
             let completion = match module_tree {
                 // Step 2. If moduleScript is null, then set completion to ThrowCompletion(a new TypeError).
@@ -552,14 +553,7 @@ pub(crate) fn host_load_imported_module(
             };
 
             // Step 5. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, completion).
-            let mut realm = CurrentRealm::assert(cx);
-            finish_loading_imported_module(
-                &mut realm,
-                referrer_module,
-                specifier,
-                payload,
-                completion,
-            );
+            finish_loading_imported_module(cx, referrer_module, specifier, payload, completion);
         };
 
     // Step 14 Fetch a single imported module script given url, fetchClient, destination, fetchOptions, settingsObject,
@@ -570,11 +564,11 @@ pub(crate) fn host_load_imported_module(
         cx,
         url,
         fetch_client,
+        owner,
         destination,
         fetch_options,
         fetch_referrer,
         module_type,
-        policy_container,
         on_single_fetch_complete,
     );
 }
@@ -584,12 +578,12 @@ pub(crate) fn host_load_imported_module(
 fn fetch_a_single_imported_module_script(
     cx: &mut JSContext,
     url: ServoUrl,
+    fetch_client: ModuleFetchClient,
     owner: ModuleOwner,
     destination: Destination,
     options: ScriptFetchOptions,
     referrer: Referrer,
     module_type: ModuleType,
-    policy_container: Option<PolicyContainer>,
     on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + 'static,
 ) {
     // TODO Step 1. Assert: moduleRequest.[[Attributes]] does not contain any Record entry such that entry.[[Key]] is not "type",
@@ -609,7 +603,7 @@ fn fetch_a_single_imported_module_script(
     fetch_a_single_module_script(
         cx,
         url,
-        None,
+        fetch_client,
         owner,
         destination,
         options,
@@ -617,7 +611,6 @@ fn fetch_a_single_imported_module_script(
         Some(module_type),
         false,
         Some(IntroductionType::IMPORTED_MODULE),
-        policy_container,
         on_complete,
     );
 }

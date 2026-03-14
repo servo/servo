@@ -55,7 +55,7 @@ use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::{ScriptFetchContext, WorkerGlobalScope};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
-use crate::script_module::{ModuleOwner, fetch_a_module_worker_script_graph};
+use crate::script_module::{ModuleFetchClient, ModuleOwner, fetch_a_module_worker_script_graph};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime, ThreadSafeJSContext};
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -427,8 +427,8 @@ impl DedicatedWorkerGlobalScope {
                     .insecure_requests_policy(insecure_requests_policy)
                     .has_trustworthy_ancestor_origin(current_global_ancestor_trustworthy)
                     .policy_container(policy_container.clone())
-                    .origin(origin)
-                    .client(request_client);
+                    .origin(origin.clone())
+                    .client(request_client.clone());
 
                 let event_loop_sender = ScriptEventLoopSender::DedicatedWorker {
                     sender: own_sender.clone(),
@@ -517,59 +517,67 @@ impl DedicatedWorkerGlobalScope {
                 global_scope.set_https_state(current_global_https_state);
                 let request = request.https_state(global_scope.get_https_state());
 
-                let task_source = SendableTaskSource {
-                    sender: event_loop_sender.clone(),
-                    pipeline_id,
-                    name: TaskSourceName::Networking,
-                    canceller: scope.shared_task_canceller(),
+                let fetch_client = ModuleFetchClient {
+                    insecure_requests_policy: insecure_requests_policy,
+                    has_trustworthy_ancestor_origin: current_global_ancestor_trustworthy,
+                    policy_container: policy_container.clone(),
+                    client: request_client,
+                    pipeline_id: pipeline_id,
+                    origin: origin,
+                    https_state: current_global_https_state,
                 };
 
-                // Step 12. Obtain script by switching on options["type"]:
-                {
-                    let _ar = AutoWorkerReset::new(&global, worker.clone());
-                    match worker_type {
-                        WorkerType::Classic => {
-                            let context = ScriptFetchContext::new(
-                                Trusted::new(scope),
-                                request.url.clone(),
-                                policy_container,
-                            );
-                            global_scope.fetch(request, context, task_source);
-                        },
-                        WorkerType::Module => {
-                            fetch_a_module_worker_script_graph(
-                                cx,
-                                request.url,
-                                request.client,
-                                ModuleOwner::Worker(Trusted::new(scope)),
-                                request.referrer,
-                                credentials,
-                                policy_container,
-                            );
-                        },
-                    };
+                let _ar = AutoWorkerReset::new(&global, worker.clone());
 
-                    let reporter_name = format!("dedicated-worker-reporter-{}", worker_id);
-                    scope
-                        .upcast::<GlobalScope>()
-                        .mem_profiler_chan()
-                        .run_with_memory_reporting(
-                            || {
-                                // Step 27, Run the responsible event loop specified
-                                // by inside settings until it is destroyed.
-                                // The worker processing model remains on this step
-                                // until the event loop is destroyed,
-                                // which happens after the closing flag is set to true.
-                                while !scope.is_closing() {
-                                    run_worker_event_loop(&*global, Some(&worker), cx);
-                                }
-                            },
-                            reporter_name,
-                            event_loop_sender,
-                            CommonScriptMsg::CollectReports,
+                // Step 12. Obtain script by switching on options["type"]:
+                match worker_type {
+                    WorkerType::Classic => {
+                        let task_source = SendableTaskSource {
+                            sender: event_loop_sender.clone(),
+                            pipeline_id,
+                            name: TaskSourceName::Networking,
+                            canceller: scope.shared_task_canceller(),
+                        };
+
+                        let context = ScriptFetchContext::new(
+                            Trusted::new(scope),
+                            request.url.clone(),
+                            policy_container,
                         );
+                        global_scope.fetch(request, context, task_source);
+                    },
+                    WorkerType::Module => {
+                        fetch_a_module_worker_script_graph(
+                            cx,
+                            request.url,
+                            fetch_client,
+                            ModuleOwner::Worker(Trusted::new(scope)),
+                            request.referrer,
+                            credentials,
+                        );
+                    },
                 }
 
+                let reporter_name = format!("dedicated-worker-reporter-{}", worker_id);
+                scope
+                    .upcast::<GlobalScope>()
+                    .mem_profiler_chan()
+                    .run_with_memory_reporting(
+                        || {
+                            // Step 27, Run the responsible event loop specified
+                            // by inside settings until it is destroyed.
+                            // The worker processing model remains on this step
+                            // until the event loop is destroyed,
+                            // which happens after the closing flag is set to true.
+                            while !scope.is_closing() {
+                                run_worker_event_loop(&*global, Some(&worker), cx);
+                            }
+                        },
+                        reporter_name,
+                        event_loop_sender,
+                        CommonScriptMsg::CollectReports,
+                    );
+                drop(_ar);
                 scope.clear_js_runtime();
             })
             .expect("Thread spawning failed")
