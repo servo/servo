@@ -35,7 +35,7 @@ script_traits = { workspace = true }
 selectors = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
-servo_url = { workspace = true }
+servo-url = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
 webrender_api = { workspace = true }

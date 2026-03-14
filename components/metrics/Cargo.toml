@@ -19,4 +19,4 @@ paint_api = { workspace = true }
 profile_traits = { workspace = true }
 script_traits = { workspace = true }
 servo_config = { workspace = true }
-servo_url = { workspace = true }
+servo-url = { workspace = true }

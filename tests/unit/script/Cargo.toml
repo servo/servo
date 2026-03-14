@@ -17,4 +17,4 @@ encoding_rs = { workspace = true }
 euclid = { workspace = true }
 keyboard-types = { workspace = true }
 script = { workspace = true }
-servo_url = { workspace = true }
+servo-url = { workspace = true }

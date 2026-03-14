@@ -67,7 +67,7 @@ rustls-platform-verifier = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
 servo_config = { workspace = true }
-servo_url = { workspace = true }
+servo-url = { workspace = true }
 sha2 = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }

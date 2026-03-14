@@ -17,5 +17,5 @@ malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 profile_traits = { workspace = true }
 serde = { workspace = true }
-servo_url = { workspace = true }
+servo-url = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }

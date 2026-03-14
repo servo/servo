@@ -43,7 +43,7 @@ serde = { workspace = true }
 servo-tracing = { workspace = true }
 servo_arc = { workspace = true }
 servo_config = { workspace = true }
-servo_url = { workspace = true }
+servo-url = { workspace = true }
 skrifa = { workspace = true }
 smallvec = { workspace = true }
 rustc-hash = { workspace = true }

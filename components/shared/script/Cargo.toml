@@ -40,7 +40,7 @@ profile_traits = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo_config = { workspace = true }
-servo_url = { workspace = true }
+servo-url = { workspace = true }
 storage_traits = { workspace = true }
 strum = { workspace = true }
 stylo_atoms = { workspace = true }
