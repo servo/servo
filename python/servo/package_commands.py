@@ -91,10 +91,10 @@ class PackageCommands(CommandBase):
                 break
 
             if in_section and stripped_line.startswith("version"):
-                lines[index] = f"version = \"{new_version}\""
+                lines[index] = f'version = "{new_version}"'
                 return "\n".join(lines)
 
-        raise ValueError(f"Failed to update workspace package version.")
+        raise ValueError("Failed to update workspace package version.")
 
     @staticmethod
     def _replace_path_versions(content: str, new_version: str) -> str:
@@ -120,7 +120,9 @@ class PackageCommands(CommandBase):
         if count == 0:
             raise ValueError("No workspace-version dependency references found in Cargo.toml.")
         elif count == 1:
-            raise RuntimeError("Our regex only updated one version, but we expect to have many. Please check the regex.")
+            raise RuntimeError(
+                "Our regex only updated one version, but we expect to have many. Please check the regex."
+            )
 
         return f"{content[:block_start]}{updated_block}{content[block_end:]}"
 
