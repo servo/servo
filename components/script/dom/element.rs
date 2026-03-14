@@ -3699,11 +3699,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, html, "Element setHTMLUnsafe", and "script".
-        let html = TrustedHTML::get_trusted_script_compliant_string(
+        let html = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             html,
             "Element setHTMLUnsafe",
-            CanGc::from_cx(cx),
         )?;
         // Step 2. Let target be this's template contents if this is a template element; otherwise this.
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
@@ -3759,11 +3759,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 1: Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, the given value, "Element innerHTML", and "script".
-        let value = TrustedHTML::get_trusted_script_compliant_string(
+        let value = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             value.convert(),
             "Element innerHTML",
-            CanGc::from_cx(cx),
         )?;
         // https://github.com/w3c/DOM-Parsing/issues/1
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
@@ -3819,11 +3819,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 1: Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, the given value, "Element outerHTML", and "script".
-        let value = TrustedHTML::get_trusted_script_compliant_string(
+        let value = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             value.convert(),
             "Element outerHTML",
-            CanGc::from_cx(cx),
         )?;
         let context_document = self.owner_document();
         let context_node = self.upcast::<Node>();
@@ -4040,11 +4040,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 1: Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, string, "Element insertAdjacentHTML", and "script".
-        let text = TrustedHTML::get_trusted_script_compliant_string(
+        let text = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             text,
             "Element insertAdjacentHTML",
-            CanGc::from_cx(cx),
         )?;
         let position = position.parse::<AdjacentPosition>()?;
 

@@ -1150,11 +1150,11 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // Step 1. Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, string, "Range createContextualFragment", and "script".
-        let fragment = TrustedHTML::get_trusted_script_compliant_string(
+        let fragment = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             node.owner_window().upcast(),
             fragment,
             "Range createContextualFragment",
-            CanGc::from_cx(cx),
         )?;
 
         let owner_doc = node.owner_doc();
