@@ -68,11 +68,11 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
         // Step 1. Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, string, "DOMParser parseFromString", and "script".
-        let compliant_string = TrustedHTML::get_trusted_script_compliant_string(
+        let compliant_string = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             self.window.as_global_scope(),
             s,
             "DOMParser parseFromString",
-            CanGc::from_cx(cx),
         )?;
         let url = self.window.get_url();
         let content_type = ty

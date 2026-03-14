@@ -884,22 +884,26 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-iframe-srcdoc>
-    fn SetSrcdoc(&self, value: TrustedHTMLOrString, can_gc: CanGc) -> Fallible<()> {
+    fn SetSrcdoc(
+        &self,
+        cx: &mut js::context::JSContext,
+        value: TrustedHTMLOrString,
+    ) -> Fallible<()> {
         // Step 1: Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, the given value, "HTMLIFrameElement srcdoc", and "script".
         let element = self.upcast::<Element>();
-        let value = TrustedHTML::get_trusted_script_compliant_string(
+        let value = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             &element.owner_global(),
             value,
             "HTMLIFrameElement srcdoc",
-            can_gc,
         )?;
         // Step 2: Set an attribute value given this, srcdoc's local name, and compliantString.
         element.set_attribute(
             &local_name!("srcdoc"),
             AttrValue::String(value.str().to_owned()),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         Ok(())
     }
@@ -909,7 +913,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
     /// The supported tokens for sandbox's DOMTokenList are the allowed values defined in the
     /// sandbox attribute and supported by the user agent. These range of possible values is
     /// defined here: <https://html.spec.whatwg.org/multipage/#attr-iframe-sandbox>
-    fn Sandbox(&self, can_gc: CanGc) -> DomRoot<DOMTokenList> {
+    fn Sandbox(&self, cx: &mut js::context::JSContext) -> DomRoot<DOMTokenList> {
         self.sandbox.or_init(|| {
             DOMTokenList::new(
                 self.upcast::<Element>(),
@@ -929,7 +933,7 @@ impl HTMLIFrameElementMethods<crate::DomTypeHolder> for HTMLIFrameElement {
                     Atom::from("allow-top-navigation-by-user-activation"),
                     Atom::from("allow-top-navigation-to-custom-protocols"),
                 ]),
-                can_gc,
+                CanGc::from_cx(cx),
             )
         })
     }

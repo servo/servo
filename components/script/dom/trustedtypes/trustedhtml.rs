@@ -45,11 +45,11 @@ impl TrustedHTML {
         reflect_dom_object_with_cx(Box::new(Self::new_inherited(data)), global, cx)
     }
 
-    pub(crate) fn get_trusted_script_compliant_string(
+    pub(crate) fn get_trusted_type_compliant_string(
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         value: TrustedHTMLOrString,
         sink: &str,
-        can_gc: CanGc,
     ) -> Fallible<DOMString> {
         match value {
             TrustedHTMLOrString::String(value) => {
@@ -59,7 +59,7 @@ impl TrustedHTML {
                     value,
                     sink,
                     DEFAULT_SCRIPT_SINK_GROUP,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )
             },
 

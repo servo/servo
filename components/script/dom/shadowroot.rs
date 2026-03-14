@@ -494,11 +494,11 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     ) -> ErrorResult {
         // Step 1. Let compliantString be the result of invoking the Get Trusted Type compliant string algorithm
         // with TrustedHTML, this's relevant global object, the given value, "ShadowRoot innerHTML", and "script".
-        let value = TrustedHTML::get_trusted_script_compliant_string(
+        let value = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             value.convert(),
             "ShadowRoot innerHTML",
-            CanGc::from_cx(cx),
         )?;
 
         // Step 2. Let context be this's host.
@@ -530,11 +530,11 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, html, "ShadowRoot setHTMLUnsafe", and "script".
-        let value = TrustedHTML::get_trusted_script_compliant_string(
+        let value = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             value,
             "ShadowRoot setHTMLUnsafe",
-            CanGc::from_cx(cx),
         )?;
         // Step 2. Unsafely set HTMl given this, this's shadow host, and complaintHTML
         let target = self.upcast::<Node>();

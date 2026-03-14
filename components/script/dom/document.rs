@@ -3605,11 +3605,11 @@ impl Document {
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, string, sink, and "script".
         if !is_trusted {
-            string = TrustedHTML::get_trusted_script_compliant_string(
+            string = TrustedHTML::get_trusted_type_compliant_string(
+                cx,
                 &self.global(),
                 TrustedHTMLOrString::String(string.into()),
                 &format!("{} {}", containing_class, field),
-                CanGc::from_cx(cx),
             )?
             .str()
             .to_owned();
@@ -5190,11 +5190,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML, the current global object,
         // html, "Document parseHTMLUnsafe", and "script".
-        let compliant_html = TrustedHTML::get_trusted_script_compliant_string(
+        let compliant_html = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             window.as_global_scope(),
             s,
             "Document parseHTMLUnsafe",
-            CanGc::from_cx(cx),
         )?;
 
         let url = window.get_url();
@@ -6601,11 +6601,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         value: TrustedHTMLOrString,
     ) -> Fallible<bool> {
         let value = if command_id == "insertHTML" {
-            TrustedHTML::get_trusted_script_compliant_string(
+            TrustedHTML::get_trusted_type_compliant_string(
+                cx,
                 self.window.as_global_scope(),
                 value,
                 "Document execCommand",
-                CanGc::from_cx(cx),
             )?
         } else {
             match value {
