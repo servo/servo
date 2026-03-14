@@ -216,9 +216,19 @@ pub enum Cursor {
     ZoomOut,
 }
 
+/// A way for Servo to request that the embedder wake up the main event loop.
+///
+/// A trait which embedders should implement to allow Servo to request that the
+/// embedder spin the Servo event loop on the main thread.
 pub trait EventLoopWaker: 'static + Send + Sync {
     fn clone_box(&self) -> Box<dyn EventLoopWaker>;
-    fn wake(&self) {}
+
+    /// This method is called when Servo wants the embedder to wake up the event loop.
+    ///
+    /// Note that this may be called on a different thread than the thread that was used to
+    /// start Servo. When called, the embedder is expected to call [`Servo::spin_event_loop`]
+    /// on the thread where Servo is running.
+    fn wake(&self);
 }
 
 impl Clone for Box<dyn EventLoopWaker> {
