@@ -24,5 +24,5 @@ gstreamer-gl-egl = { workspace = true, optional = true }
 gstreamer-gl-x11 = { workspace = true, optional = true }
 gstreamer-gl-wayland = { workspace = true, optional = true }
 gstreamer-video = { workspace = true }
-sm-player = { workspace = true }
-sm-gst-render = { workspace = true }
+servo-media-player = { workspace = true }
+servo-media-gstreamer-render = { workspace = true }

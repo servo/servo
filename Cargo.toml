@@ -278,8 +278,6 @@ servo_allocator = { package = "servo-allocator", version = "0.0.1", path = "comp
 servo_config = { package = "servo-config", version = "0.0.1", path = "components/config" }
 servo_config_macro = { package = "servo-config-macro", version = "0.0.1", path = "components/config/macro" }
 servo_geometry = { package = "servo-geometry", version = "0.0.1", path = "components/geometry" }
-sm-gst-render = { package = "servo-media-gstreamer-render", version = "0.0.1", path = "components/media/backends/gstreamer/render" }
-sm-player = { package = "servo-media-player", version = "0.0.1", path = "components/media/player" }
 storage = { package = "servo-storage", version = "0.0.1", path = "components/storage" }
 storage_traits = { package = "servo-storage-traits", version = "0.0.1", path = "components/shared/storage" }
 timers = { package = "servo-timers", version = "0.0.1", path = "components/timers" }
