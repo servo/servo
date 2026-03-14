@@ -64,7 +64,7 @@ pub use webrender_api::units::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, DeviceVector2D,
 };
 
-pub use crate::clipboard_delegate::ClipboardDelegate;
+pub use crate::clipboard_delegate::{ClipboardDelegate, StringRequest};
 #[cfg(feature = "gamepad")]
 pub use crate::gamepad_delegate::{
     GamepadDelegate, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
