@@ -360,7 +360,7 @@ impl Node {
         }
 
         // Step 4. Replace all with fragment within target.
-        Node::replace_all(Some(fragment.upcast()), target, CanGc::from_cx(cx));
+        Node::replace_all(cx, Some(fragment.upcast()), target);
     }
 
     /// Clear this [`Node`]'s layout data and also clear the layout data of all children.
@@ -1248,7 +1248,7 @@ impl Node {
         Node::ensure_pre_insertion_validity(&node, self, None)?;
 
         // Step 3. Replace all with node within this.
-        Node::replace_all(Some(&node), self, CanGc::from_cx(cx));
+        Node::replace_all(cx, Some(&node), self);
         Ok(())
     }
 
@@ -3257,12 +3257,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
-    #[expect(unsafe_code)]
-    pub(crate) fn replace_all(node: Option<&Node>, parent: &Node, _can_gc: CanGc) {
-        // TODO https://github.com/servo/servo/issues/43240
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    pub(crate) fn replace_all(cx: &mut JSContext, node: Option<&Node>, parent: &Node) {
         parent.owner_doc().add_script_and_layout_blocker();
 
         // Step 1. Let removedNodes be parent’s children.
@@ -3315,10 +3310,10 @@ impl Node {
     /// <https://dom.spec.whatwg.org/multipage/#string-replace-all>
     pub(crate) fn string_replace_all(cx: &mut JSContext, string: DOMString, parent: &Node) {
         if string.is_empty() {
-            Node::replace_all(None, parent, CanGc::from_cx(cx));
+            Node::replace_all(cx, None, parent);
         } else {
             let text = Text::new(string, &parent.owner_document(), CanGc::from_cx(cx));
-            Node::replace_all(Some(text.upcast::<Node>()), parent, CanGc::from_cx(cx));
+            Node::replace_all(cx, Some(text.upcast::<Node>()), parent);
         };
     }
 
@@ -3669,13 +3664,13 @@ impl Node {
                 // and node’s shadow root’s slot assignment.
                 let copy_shadow_root =
                     copy_elem.attach_shadow(
+                        cx,
                         IsUserAgentWidget::No,
                         shadow_root.Mode(),
                         shadow_root.Clonable(),
                         shadow_root.Serializable(),
                         shadow_root.DelegatesFocus(),
                         shadow_root.SlotAssignment(),
-                        CanGc::from_cx(cx),
                     )
                     .expect("placement of attached shadow root must be valid, as this is a copy of an existing one");
 
@@ -3727,7 +3722,11 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/#string-replace-all>
-    pub(crate) fn set_text_content_for_element(&self, value: Option<DOMString>, can_gc: CanGc) {
+    pub(crate) fn set_text_content_for_element(
+        &self,
+        cx: &mut JSContext,
+        value: Option<DOMString>,
+    ) {
         // This should only be called for elements and document fragments when setting the
         // text content: https://dom.spec.whatwg.org/#set-text-content
         assert!(matches!(
@@ -3742,12 +3741,12 @@ impl Node {
             // Step 2. If string is not the empty string, then set node to
             // a new Text node whose data is string and node document is parent’s node document.
             Some(DomRoot::upcast(
-                self.owner_doc().CreateTextNode(value, can_gc),
+                self.owner_doc().CreateTextNode(value, CanGc::from_cx(cx)),
             ))
         };
 
         // Step 3. Replace all with node within parent.
-        Self::replace_all(node.as_deref(), self, can_gc);
+        Self::replace_all(cx, node.as_deref(), self);
     }
 
     pub(crate) fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
@@ -4068,14 +4067,14 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#set-text-content>
-    fn SetTextContent(&self, value: Option<DOMString>, can_gc: CanGc) -> Fallible<()> {
+    fn SetTextContent(&self, cx: &mut JSContext, value: Option<DOMString>) -> Fallible<()> {
         match self.type_id() {
             NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
-                self.set_text_content_for_element(value, can_gc);
+                self.set_text_content_for_element(cx, value);
             },
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                attr.SetValue(value.unwrap_or_default(), can_gc)?;
+                attr.SetValue(value.unwrap_or_default(), CanGc::from_cx(cx))?;
             },
             NodeTypeId::CharacterData(..) => {
                 let characterdata = self.downcast::<CharacterData>().unwrap();

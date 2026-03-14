@@ -1427,6 +1427,7 @@ impl Element {
 
     #[expect(unsafe_code)]
     pub(crate) fn reset(&self, _can_gc: CanGc) {
+        // TODO https://github.com/servo/servo/issues/43235
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let cx = &mut cx;
 

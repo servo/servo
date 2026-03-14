@@ -69,9 +69,9 @@ impl HTMLTitleElementMethods<crate::DomTypeHolder> for HTMLTitleElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-title-text>
-    fn SetText(&self, value: DOMString, can_gc: CanGc) {
+    fn SetText(&self, cx: &mut JSContext, value: DOMString) {
         self.upcast::<Node>()
-            .set_text_content_for_element(Some(value), can_gc)
+            .set_text_content_for_element(cx, Some(value))
     }
 }
 

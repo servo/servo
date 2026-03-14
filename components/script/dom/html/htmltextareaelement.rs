@@ -201,9 +201,14 @@ impl HTMLTextAreaElement {
         self.maybe_update_shared_selection();
     }
 
-    fn handle_text_content_changed(&self, can_gc: CanGc) {
-        self.validity_state(can_gc)
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+    #[expect(unsafe_code)]
+    fn handle_text_content_changed(&self, _can_gc: CanGc) {
+        // TODO https://github.com/servo/servo/issues/43255
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
+        self.validity_state(CanGc::from_cx(cx))
+            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
 
         let textinput_content = self.textinput.borrow().get_content();
         let element = self.upcast::<Element>();
@@ -213,10 +218,14 @@ impl HTMLTextAreaElement {
 
         let shadow_root = element
             .shadow_root()
-            .unwrap_or_else(|| element.attach_ua_shadow_root(true, can_gc));
+            .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
         if self.shadow_node.borrow().is_none() {
-            let shadow_node = Text::new(Default::default(), &shadow_root.owner_document(), can_gc);
-            Node::replace_all(Some(shadow_node.upcast()), shadow_root.upcast(), can_gc);
+            let shadow_node = Text::new(
+                Default::default(),
+                &shadow_root.owner_document(),
+                CanGc::from_cx(cx),
+            );
+            Node::replace_all(cx, Some(shadow_node.upcast()), shadow_root.upcast());
             self.shadow_node
                 .borrow_mut()
                 .replace(shadow_node.as_traced());
@@ -402,14 +411,14 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue>
-    fn SetDefaultValue(&self, value: DOMString, can_gc: CanGc) {
+    fn SetDefaultValue(&self, cx: &mut JSContext, value: DOMString) {
         self.upcast::<Node>()
-            .set_text_content_for_element(Some(value), can_gc);
+            .set_text_content_for_element(cx, Some(value));
 
         // if the element's dirty value flag is false, then the element's
         // raw value must be set to the value of the element's textContent IDL attribute
         if !self.value_dirty.get() {
-            self.reset(can_gc);
+            self.reset(CanGc::from_cx(cx));
         }
     }
 

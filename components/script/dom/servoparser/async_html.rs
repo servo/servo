@@ -636,7 +636,7 @@ impl Tokenizer {
                     .collect();
 
                 let did_succeed =
-                    attach_declarative_shadow_inner(&location, &template, &attributes);
+                    attach_declarative_shadow_inner(cx, &location, &template, &attributes);
                 sender.send(did_succeed).unwrap();
             },
         }

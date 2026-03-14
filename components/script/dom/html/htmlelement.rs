@@ -146,13 +146,13 @@ impl HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-inner-text-steps>
-    pub(crate) fn set_inner_text(&self, input: DOMString, can_gc: CanGc) {
+    pub(crate) fn set_inner_text(&self, cx: &mut JSContext, input: DOMString) {
         // Step 1: Let fragment be the rendered text fragment for value given element's node
         // document.
-        let fragment = self.rendered_text_fragment(input, can_gc);
+        let fragment = self.rendered_text_fragment(cx, input);
 
         // Step 2: Replace all with fragment within element.
-        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>(), can_gc);
+        Node::replace_all(cx, Some(fragment.upcast()), self.upcast::<Node>());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#matches-the-environment>
@@ -558,8 +558,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-inner-text-steps>
-    fn SetInnerText(&self, input: DOMString, can_gc: CanGc) {
-        self.set_inner_text(input, can_gc)
+    fn SetInnerText(&self, cx: &mut JSContext, input: DOMString) {
+        self.set_inner_text(cx, input)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-outertext>
@@ -585,7 +585,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
         // Step 4: Let fragment be the rendered text fragment for the given value given this's node
         // document.
-        let fragment = self.rendered_text_fragment(input, CanGc::from_cx(cx));
+        let fragment = self.rendered_text_fragment(cx, input);
 
         // Step 5: If fragment has no children, then append a new Text node whose data is the empty
         // string and node document is this's node document to fragment.
@@ -1023,14 +1023,14 @@ impl HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#rendered-text-fragment>
-    #[expect(unsafe_code)]
-    fn rendered_text_fragment(&self, input: DOMString, can_gc: CanGc) -> DomRoot<DocumentFragment> {
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    fn rendered_text_fragment(
+        &self,
+        cx: &mut JSContext,
+        input: DOMString,
+    ) -> DomRoot<DocumentFragment> {
         // Step 1: Let fragment be a new DocumentFragment whose node document is document.
         let document = self.owner_document();
-        let fragment = DocumentFragment::new(&document, can_gc);
+        let fragment = DocumentFragment::new(&document, CanGc::from_cx(cx));
 
         // Step 2: Let position be a position variable for input, initially pointing at the start
         // of input.
@@ -1064,7 +1064,7 @@ impl HTMLElement {
                         ElementCreator::ScriptCreated,
                         CustomElementCreationMode::Asynchronous,
                         None,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                     fragment
                         .upcast::<Node>()

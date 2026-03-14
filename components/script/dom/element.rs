@@ -605,21 +605,16 @@ impl Element {
 
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
     #[allow(clippy::too_many_arguments)]
-    #[expect(unsafe_code)]
     pub(crate) fn attach_shadow(
         &self,
+        cx: &mut JSContext,
         is_ua_widget: IsUserAgentWidget,
         mode: ShadowRootMode,
         clonable: bool,
         serializable: bool,
         delegates_focus: bool,
         slot_assignment_mode: SlotAssignmentMode,
-        _can_gc: CanGc,
     ) -> Fallible<DomRoot<ShadowRoot>> {
-        // TODO https://github.com/servo/servo/issues/43241
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
         // Step 1. If element’s namespace is not the HTML namespace,
         // then throw a "NotSupportedError" DOMException.
         if self.namespace != ns!(html) {
@@ -756,18 +751,18 @@ impl Element {
     //        for delegate focus, and we are using workarounds for that right now.
     pub(crate) fn attach_ua_shadow_root(
         &self,
+        cx: &mut JSContext,
         use_ua_widget_styling: bool,
-        can_gc: CanGc,
     ) -> DomRoot<ShadowRoot> {
         let root = self
             .attach_shadow(
+                cx,
                 IsUserAgentWidget::Yes,
                 ShadowRootMode::Closed,
                 false,
                 false,
                 false,
                 SlotAssignmentMode::Manual,
-                can_gc,
             )
             .expect("Attaching UA shadow root failed");
 
@@ -3789,7 +3784,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 .iter()
                 .any(|c| matches!(*c, b'&' | b'\0' | b'<' | b'\r'))
         {
-            return Node::SetTextContent(&target, Some(value), CanGc::from_cx(cx));
+            return Node::SetTextContent(&target, cx, Some(value));
         }
 
         // Step 3: Let fragment be the result of invoking the fragment parsing algorithm steps
@@ -3797,7 +3792,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         let frag = self.parse_fragment(value, cx)?;
 
         // Step 5: Replace all with fragment within context.
-        Node::replace_all(Some(frag.upcast()), &target, CanGc::from_cx(cx));
+        Node::replace_all(cx, Some(frag.upcast()), &target);
         Ok(())
     }
 
@@ -4121,17 +4116,21 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-attachshadow>
-    fn AttachShadow(&self, init: &ShadowRootInit, can_gc: CanGc) -> Fallible<DomRoot<ShadowRoot>> {
+    fn AttachShadow(
+        &self,
+        cx: &mut JSContext,
+        init: &ShadowRootInit,
+    ) -> Fallible<DomRoot<ShadowRoot>> {
         // Step 1. Run attach a shadow root with this, init["mode"], init["clonable"], init["serializable"],
         // init["delegatesFocus"], and init["slotAssignment"].
         let shadow_root = self.attach_shadow(
+            cx,
             IsUserAgentWidget::No,
             init.mode,
             init.clonable,
             init.serializable,
             init.delegatesFocus,
             init.slotAssignment,
-            can_gc,
         )?;
 
         // Step 2. Return this’s shadow root.

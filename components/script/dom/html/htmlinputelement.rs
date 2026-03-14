@@ -110,9 +110,13 @@ struct TextValueShadowTree {
 }
 
 impl TextValueShadowTree {
-    fn new(shadow_root: &Node, can_gc: CanGc) -> Self {
-        let value = Text::new(Default::default(), &shadow_root.owner_document(), can_gc);
-        Node::replace_all(Some(value.upcast()), shadow_root, can_gc);
+    fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
+        let value = Text::new(
+            Default::default(),
+            &shadow_root.owner_document(),
+            CanGc::from_cx(cx),
+        );
+        Node::replace_all(cx, Some(value.upcast()), shadow_root);
         Self {
             value: value.as_traced(),
         }
@@ -155,7 +159,7 @@ struct TextInputWidgetShadowTree {
 }
 
 impl TextInputWidgetShadowTree {
-    fn new(shadow_root: &Node, can_gc: CanGc) -> Self {
+    fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
         let document = shadow_root.owner_document();
         let inner_container = Element::create(
             QualName::new(None, ns!(html), local_name!("div")),
@@ -164,20 +168,20 @@ impl TextInputWidgetShadowTree {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
-        Node::replace_all(Some(inner_container.upcast()), shadow_root.upcast(), can_gc);
+        Node::replace_all(cx, Some(inner_container.upcast()), shadow_root.upcast());
         inner_container
             .upcast::<Node>()
             .set_implemented_pseudo_element(PseudoElement::ServoTextControlInnerContainer);
 
         let text_container = create_ua_widget_div_with_text_node(
+            cx,
             &document,
             inner_container.upcast(),
             PseudoElement::ServoTextControlInnerEditor,
             false,
-            can_gc,
         );
 
         Self {
@@ -191,8 +195,8 @@ impl TextInputWidgetShadowTree {
     /// element with shadow dom that is quite bulky.
     fn init_placeholder_container_if_necessary(
         &self,
+        cx: &mut JSContext,
         host: &HTMLInputElement,
-        can_gc: CanGc,
     ) -> Option<DomRoot<Element>> {
         if let Some(placeholder_container) = &*self.placeholder_container.borrow() {
             return Some(placeholder_container.root_element());
@@ -204,11 +208,11 @@ impl TextInputWidgetShadowTree {
         }
 
         let placeholder_container = create_ua_widget_div_with_text_node(
+            cx,
             &host.owner_document(),
             self.inner_container.upcast::<Node>(),
             PseudoElement::Placeholder,
             true,
-            can_gc,
         );
         *self.placeholder_container.borrow_mut() = Some(placeholder_container.as_traced());
         Some(placeholder_container)
@@ -216,18 +220,18 @@ impl TextInputWidgetShadowTree {
 
     fn placeholder_character_data(
         &self,
+        cx: &mut JSContext,
         input_element: &HTMLInputElement,
-        can_gc: CanGc,
     ) -> Option<DomRoot<CharacterData>> {
-        self.init_placeholder_container_if_necessary(input_element, can_gc)
+        self.init_placeholder_container_if_necessary(cx, input_element)
             .and_then(|placeholder_container| {
                 let first_child = placeholder_container.upcast::<Node>().GetFirstChild()?;
                 Some(DomRoot::from_ref(first_child.downcast::<CharacterData>()?))
             })
     }
 
-    fn update_placeholder(&self, input_element: &HTMLInputElement, can_gc: CanGc) {
-        if let Some(character_data) = self.placeholder_character_data(input_element, can_gc) {
+    fn update_placeholder(&self, cx: &mut JSContext, input_element: &HTMLInputElement) {
+        if let Some(character_data) = self.placeholder_character_data(cx, input_element) {
             let placeholder_value = input_element.placeholder.borrow().clone();
             if character_data.Data() != placeholder_value {
                 character_data.SetData(placeholder_value);
@@ -287,7 +291,7 @@ struct ColorInputShadowTree {
 }
 
 impl ColorInputShadowTree {
-    fn new(shadow_root: &Node, can_gc: CanGc) -> Self {
+    fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
         let color_value = Element::create(
             QualName::new(None, ns!(html), local_name!("div")),
             None,
@@ -295,10 +299,10 @@ impl ColorInputShadowTree {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
-        Node::replace_all(Some(color_value.upcast()), shadow_root.upcast(), can_gc);
+        Node::replace_all(cx, Some(color_value.upcast()), shadow_root.upcast());
         color_value
             .upcast::<Node>()
             .set_implemented_pseudo_element(PseudoElement::ColorSwatch);
@@ -327,20 +331,25 @@ enum InputElementShadowTree {
 }
 
 impl InputElementShadowTree {
-    fn new(input_element: &HTMLInputElement, can_gc: CanGc) -> Self {
+    #[expect(unsafe_code)]
+    fn new(input_element: &HTMLInputElement, _can_gc: CanGc) -> Self {
+        // TODO https://github.com/servo/servo/issues/43253
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         let element = input_element.upcast::<Element>();
         let shadow_root = element
             .shadow_root()
-            .unwrap_or_else(|| element.attach_ua_shadow_root(true, can_gc));
+            .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
         let shadow_root = shadow_root.upcast();
 
         if input_element.input_type() == InputType::Color {
-            return Self::ColorInput(ColorInputShadowTree::new(shadow_root, can_gc));
+            return Self::ColorInput(ColorInputShadowTree::new(cx, shadow_root));
         }
         if input_element.renders_as_text_input_widget() {
-            return Self::TextInput(TextInputWidgetShadowTree::new(shadow_root, can_gc));
+            return Self::TextInput(TextInputWidgetShadowTree::new(cx, shadow_root));
         }
-        Self::TextValue(TextValueShadowTree::new(shadow_root, can_gc))
+        Self::TextValue(TextValueShadowTree::new(cx, shadow_root))
     }
 
     fn is_valid_for_element(&self, input_element: &HTMLInputElement) -> bool {
@@ -353,9 +362,9 @@ impl InputElementShadowTree {
         matches!(self, InputElementShadowTree::TextValue(_))
     }
 
-    fn update_placeholder_contents(&self, input_element: &HTMLInputElement, can_gc: CanGc) {
+    fn update_placeholder_contents(&self, cx: &mut JSContext, input_element: &HTMLInputElement) {
         if let InputElementShadowTree::TextInput(shadow_tree) = self {
-            shadow_tree.update_placeholder(input_element, can_gc);
+            shadow_tree.update_placeholder(cx, input_element);
         }
     }
 
@@ -372,17 +381,13 @@ impl InputElementShadowTree {
 
 /// Create a div element with a text node within an UA Widget and either append or prepend it to
 /// the designated parent. This is used to create the text container for input elements.
-#[expect(unsafe_code)]
 fn create_ua_widget_div_with_text_node(
+    cx: &mut JSContext,
     document: &Document,
     parent: &Node,
     implemented_pseudo: PseudoElement,
     as_first_child: bool,
-    can_gc: CanGc,
 ) -> DomRoot<Element> {
-    let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-    let cx = &mut cx;
-
     let el = Element::create(
         QualName::new(None, ns!(html), local_name!("div")),
         None,
@@ -390,7 +395,7 @@ fn create_ua_widget_div_with_text_node(
         ElementCreator::ScriptCreated,
         CustomElementCreationMode::Asynchronous,
         None,
-        can_gc,
+        CanGc::from_cx(cx),
     );
 
     parent
@@ -399,7 +404,7 @@ fn create_ua_widget_div_with_text_node(
         .unwrap();
     el.upcast::<Node>()
         .set_implemented_pseudo_element(implemented_pseudo);
-    let text_node = document.CreateTextNode("".into(), can_gc);
+    let text_node = document.CreateTextNode("".into(), CanGc::from_cx(cx));
 
     if !as_first_child {
         el.upcast::<Node>()
@@ -3049,12 +3054,17 @@ impl VirtualMethods for HTMLInputElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    #[expect(unsafe_code)]
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, _can_gc: CanGc) {
+        // TODO: https://github.com/servo/servo/issues/42812
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         let could_have_had_embedder_control = self.may_have_embedder_control();
 
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(attr, mutation, CanGc::from_cx(cx));
 
         match *attr.local_name() {
             local_name!("disabled") => {
@@ -3085,7 +3095,7 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     AttributeMutation::Removed => false,
                 };
-                self.update_checked_state(checked_state, false, can_gc);
+                self.update_checked_state(checked_state, false, CanGc::from_cx(cx));
             },
             local_name!("size") => {
                 let size = mutation.new_value(attr).map(|value| value.as_uint());
@@ -3112,7 +3122,7 @@ impl VirtualMethods for HTMLInputElement {
 
                         if new_type == InputType::File {
                             let window = self.owner_window();
-                            let filelist = FileList::new(&window, vec![], can_gc);
+                            let filelist = FileList::new(&window, vec![], CanGc::from_cx(cx));
                             self.filelist.set(Some(&filelist));
                         }
 
@@ -3121,7 +3131,7 @@ impl VirtualMethods for HTMLInputElement {
                             // Step 1
                             (&ValueMode::Value, false, ValueMode::Default) |
                             (&ValueMode::Value, false, ValueMode::DefaultOn) => {
-                                self.SetValue(old_idl_value, can_gc)
+                                self.SetValue(old_idl_value, CanGc::from_cx(cx))
                                     .expect("Failed to set input value on type change to a default ValueMode.");
                             },
 
@@ -3133,7 +3143,7 @@ impl VirtualMethods for HTMLInputElement {
                                         .map_or(DOMString::from(""), |a| {
                                             DOMString::from(a.summarize().value)
                                         }),
-                                    can_gc,
+                                    CanGc::from_cx(cx),
                                 )
                                 .expect(
                                     "Failed to set input value on type change to ValueMode::Value.",
@@ -3145,7 +3155,7 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Filename)
                                 if old_value_mode != ValueMode::Filename =>
                             {
-                                self.SetValue(DOMString::from(""), can_gc)
+                                self.SetValue(DOMString::from(""), CanGc::from_cx(cx))
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             },
                             _ => {},
@@ -3153,7 +3163,10 @@ impl VirtualMethods for HTMLInputElement {
 
                         // Step 5
                         if new_type == InputType::Radio {
-                            self.radio_group_updated(self.radio_group_name().as_ref(), can_gc);
+                            self.radio_group_updated(
+                                self.radio_group_name().as_ref(),
+                                CanGc::from_cx(cx),
+                            );
                         }
 
                         // Step 6
@@ -3170,7 +3183,11 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     AttributeMutation::Removed => {
                         if self.input_type() == InputType::Radio {
-                            broadcast_radio_checked(self, self.radio_group_name().as_ref(), can_gc);
+                            broadcast_radio_checked(
+                                self,
+                                self.radio_group_name().as_ref(),
+                                CanGc::from_cx(cx),
+                            );
                         }
                         self.input_type.set(InputType::default());
                         let el = self.upcast::<Element>();
@@ -3181,8 +3198,8 @@ impl VirtualMethods for HTMLInputElement {
                 }
 
                 self.update_placeholder_shown_state();
-                self.get_or_create_shadow_tree(can_gc)
-                    .update_placeholder_contents(self, can_gc);
+                self.get_or_create_shadow_tree(CanGc::from_cx(cx))
+                    .update_placeholder_contents(cx, self);
             },
             local_name!("value") if !self.value_dirty.get() => {
                 // This is only run when the `value` or `defaultValue` attribute is set. It
@@ -3198,7 +3215,7 @@ impl VirtualMethods for HTMLInputElement {
             local_name!("name") if self.input_type() == InputType::Radio => {
                 self.radio_group_updated(
                     mutation.new_value(attr).as_ref().map(|name| name.as_atom()),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             },
             local_name!("maxlength") => match *attr.value() {
@@ -3235,8 +3252,8 @@ impl VirtualMethods for HTMLInputElement {
                     }
                 }
                 self.update_placeholder_shown_state();
-                self.get_or_create_shadow_tree(can_gc)
-                    .update_placeholder_contents(self, can_gc);
+                self.get_or_create_shadow_tree(CanGc::from_cx(cx))
+                    .update_placeholder_contents(cx, self);
             },
             local_name!("readonly") => {
                 if self.input_type().is_textual() {
@@ -3252,7 +3269,7 @@ impl VirtualMethods for HTMLInputElement {
                 }
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, can_gc);
+                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
             },
             local_name!("alpha") | local_name!("colorspace") => {
                 // https://html.spec.whatwg.org/multipage/#attr-input-colorspace
@@ -3266,7 +3283,7 @@ impl VirtualMethods for HTMLInputElement {
             _ => {},
         }
 
-        self.value_changed(can_gc);
+        self.value_changed(CanGc::from_cx(cx));
 
         if could_have_had_embedder_control && !self.may_have_embedder_control() {
             self.owner_document()

@@ -1847,13 +1847,18 @@ impl TreeSink for Sink {
     /// <https://html.spec.whatwg.org/multipage/#parsing-main-inhead>
     /// A start tag whose tag name is "template"
     /// Attach shadow path
+    #[expect(unsafe_code)]
     fn attach_declarative_shadow(
         &self,
         host: &Dom<Node>,
         template: &Dom<Node>,
         attributes: &[Attribute],
     ) -> bool {
-        attach_declarative_shadow_inner(host, template, attributes)
+        // TODO: https://github.com/servo/servo/issues/42839
+        let mut cx = unsafe { temp_cx() };
+        let cx = &mut cx;
+
+        attach_declarative_shadow_inner(cx, host, template, attributes)
     }
 
     #[expect(unsafe_code)]
@@ -1994,7 +1999,12 @@ fn create_element_for_token(
     element
 }
 
-fn attach_declarative_shadow_inner(host: &Node, template: &Node, attributes: &[Attribute]) -> bool {
+fn attach_declarative_shadow_inner(
+    cx: &mut js::context::JSContext,
+    host: &Node,
+    template: &Node,
+    attributes: &[Attribute],
+) -> bool {
     let host_element = host.downcast::<Element>().unwrap();
 
     if host_element.shadow_root().is_some() {
@@ -2051,13 +2061,13 @@ fn attach_declarative_shadow_inner(host: &Node, template: &Node, attributes: &[A
     // Step 8.1. Attach a shadow root with declarative shadow host element,
     // mode, clonable, serializable, delegatesFocus, and "named".
     match host_element.attach_shadow(
+        cx,
         IsUserAgentWidget::No,
         shadow_root_mode,
         clonable,
         serializable,
         delegatesfocus,
         SlotAssignmentMode::Named,
-        CanGc::note(),
     ) {
         Ok(shadow_root) => {
             // Step 8.3. Set shadow's declarative to true.

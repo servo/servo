@@ -2802,12 +2802,7 @@ impl HTMLMediaElement {
             .unwrap_or_else(|_| self.current_playback_position.get())
     }
 
-    #[expect(unsafe_code)]
-    fn render_controls(&self, can_gc: CanGc) {
-        // TODO
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    fn render_controls(&self, cx: &mut JSContext) {
         if self.upcast::<Element>().is_shadow_host() {
             // Bail out if we are already showing the controls.
             return;
@@ -2815,9 +2810,7 @@ impl HTMLMediaElement {
 
         // FIXME(stevennovaryo): Recheck styling of media element to avoid
         //                       reparsing styles.
-        let shadow_root = self
-            .upcast::<Element>()
-            .attach_ua_shadow_root(false, can_gc);
+        let shadow_root = self.upcast::<Element>().attach_ua_shadow_root(cx, false);
         let document = self.owner_document();
         let script = Element::create(
             QualName::new(None, ns!(html), local_name!("script")),
@@ -2826,7 +2819,7 @@ impl HTMLMediaElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
         // This is our hacky way to temporarily workaround the lack of a privileged
         // JS context.
@@ -2839,7 +2832,7 @@ impl HTMLMediaElement {
         *self.media_controls_id.borrow_mut() = Some(id);
         script
             .upcast::<Node>()
-            .set_text_content_for_element(Some(DOMString::from(media_controls_script)), can_gc);
+            .set_text_content_for_element(cx, Some(DOMString::from(media_controls_script)));
         if let Err(e) = shadow_root
             .upcast::<Node>()
             .AppendChild(cx, script.upcast::<Node>())
@@ -2855,12 +2848,12 @@ impl HTMLMediaElement {
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
         style
             .upcast::<Node>()
-            .set_text_content_for_element(Some(DOMString::from(MEDIA_CONTROL_CSS)), can_gc);
+            .set_text_content_for_element(cx, Some(DOMString::from(MEDIA_CONTROL_CSS)));
 
         if let Err(e) = shadow_root
             .upcast::<Node>()
@@ -3409,7 +3402,7 @@ impl VirtualMethods for HTMLMediaElement {
             },
             local_name!("controls") => {
                 if mutation.new_value(attr).is_some() {
-                    self.render_controls(CanGc::from_cx(cx));
+                    self.render_controls(cx);
                 } else {
                     self.remove_controls();
                 }

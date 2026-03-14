@@ -5875,7 +5875,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             return;
         };
 
-        node.set_text_content_for_element(Some(title), CanGc::from_cx(cx));
+        node.set_text_content_for_element(cx, Some(title));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-head>
@@ -6477,7 +6477,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         // Step 11. Replace all with null within document.
-        Node::replace_all(None, self.upcast::<Node>(), CanGc::from_cx(cx));
+        Node::replace_all(cx, None, self.upcast::<Node>());
 
         // Specs and tests are in a state of flux about whether
         // we want to clear the selection when we remove the contents;

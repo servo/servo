@@ -1066,7 +1066,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         let fragment = self.ExtractContents(cx)?;
 
         // Step 4.
-        Node::replace_all(None, new_parent, CanGc::from_cx(cx));
+        Node::replace_all(cx, None, new_parent);
 
         // Step 5.
         self.InsertNode(cx, new_parent)?;

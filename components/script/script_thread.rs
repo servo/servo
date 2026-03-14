@@ -1960,7 +1960,7 @@ impl ScriptThread {
                 );
             },
             ScriptThreadMessage::EmbedderControlResponse(id, response) => {
-                self.handle_embedder_control_response(id, response, CanGc::from_cx(cx));
+                self.handle_embedder_control_response(id, response, cx);
             },
             ScriptThreadMessage::SetUserContents(user_content_manager_id, user_contents) => {
                 self.user_contents_for_manager_id
@@ -2106,7 +2106,7 @@ impl ScriptThread {
                 control_id,
                 response,
             ) => {
-                self.handle_embedder_control_response(control_id, response, CanGc::from_cx(cx));
+                self.handle_embedder_control_response(control_id, response, cx);
             },
         }
     }
@@ -4318,14 +4318,14 @@ impl ScriptThread {
         &self,
         id: EmbedderControlId,
         response: EmbedderControlResponse,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         let Some(document) = self.documents.borrow().find_document(id.pipeline_id) else {
             return;
         };
         document
             .embedder_controls()
-            .handle_embedder_control_response(id, response, can_gc);
+            .handle_embedder_control_response(cx, id, response);
     }
 
     pub(crate) fn handle_update_pinch_zoom_infos(
