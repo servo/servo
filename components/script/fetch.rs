@@ -57,7 +57,7 @@ use crate::dom::window::Window;
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener, submit_timing_data,
 };
-use crate::realms::enter_realm;
+use crate::realms::{enter_auto_realm, enter_realm};
 use crate::script_runtime::CanGc;
 
 /// Fetch canceller object. By default initialized to having a
@@ -551,7 +551,8 @@ impl FetchResponseListener for FetchContext {
             .expect("fetch promise is missing")
             .root();
 
-        let _ac = enter_realm(&*promise);
+        let mut realm = enter_auto_realm(cx, &*promise);
+        let cx = &mut realm.current_realm();
         match fetch_metadata {
             // Step 12.3. If response is a network error, then reject
             // p with a TypeError and abort these steps.
