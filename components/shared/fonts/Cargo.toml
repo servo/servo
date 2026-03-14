@@ -24,7 +24,7 @@ parking_lot = { workspace = true }
 profile_traits = { workspace = true }
 read-fonts = { workspace = true }
 serde = { workspace = true }
-servo_url = { workspace = true }
+servo-url = { workspace = true }
 stylo = { workspace = true }
 webrender_api = { workspace = true }
 
