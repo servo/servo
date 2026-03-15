@@ -15,7 +15,7 @@ use crate::dom::types::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-/// Event for Rust → JS calls in [`crate::dom::DebuggerGlobalScope`].
+/// Event for Rust → JS calls in [`crate::dom::debugger::DebuggerGlobalScope`].
 pub(crate) struct DebuggerSetBreakpointEvent {
     event: Event,
     spidermonkey_id: u32,

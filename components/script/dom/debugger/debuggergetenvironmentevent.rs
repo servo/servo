@@ -5,8 +5,9 @@
 use std::fmt::Debug;
 
 use dom_struct::dom_struct;
+use script_bindings::str::DOMString;
 
-use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::DebuggerInterruptEventMethods;
+use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::DebuggerGetEnvironmentEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
@@ -15,32 +16,44 @@ use crate::dom::types::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-/// Event for Rust → JS calls in [`crate::dom::DebuggerGlobalScope`].
-pub(crate) struct DebuggerInterruptEvent {
+/// Event for Rust → JS calls in [`crate::dom::debugger::DebuggerGlobalScope`].
+pub(crate) struct DebuggerGetEnvironmentEvent {
     event: Event,
+    frame_actor_id: DOMString,
 }
 
-impl DebuggerInterruptEvent {
-    pub(crate) fn new(debugger_global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
+impl DebuggerGetEnvironmentEvent {
+    pub(crate) fn new(
+        debugger_global: &GlobalScope,
+        frame_actor_id: DOMString,
+        can_gc: CanGc,
+    ) -> DomRoot<Self> {
         let result = Box::new(Self {
             event: Event::new_inherited(),
+            frame_actor_id,
         });
         let result = reflect_dom_object(result, debugger_global, can_gc);
-        result.event.init_event("interrupt".into(), false, false);
+        result
+            .event
+            .init_event("getEnvironment".into(), false, false);
 
         result
     }
 }
 
-impl DebuggerInterruptEventMethods<crate::DomTypeHolder> for DebuggerInterruptEvent {
+impl DebuggerGetEnvironmentEventMethods<crate::DomTypeHolder> for DebuggerGetEnvironmentEvent {
     // check-tidy: no specs after this line
+    fn FrameActorId(&self) -> DOMString {
+        self.frame_actor_id.clone()
+    }
+
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }
 }
 
-impl Debug for DebuggerInterruptEvent {
+impl Debug for DebuggerGetEnvironmentEvent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("DebuggerInterruptEvent").finish()
+        f.debug_struct("DebuggerGetEnvironmentEvent").finish()
     }
 }

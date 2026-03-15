@@ -36,12 +36,12 @@ use crate::dom::bindings::codegen::Bindings::DebuggerInterruptEventBinding::{
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
-use crate::dom::debuggerclearbreakpointevent::DebuggerClearBreakpointEvent;
-use crate::dom::debuggerframeevent::DebuggerFrameEvent;
-use crate::dom::debuggergetenvironmentevent::DebuggerGetEnvironmentEvent;
-use crate::dom::debuggerinterruptevent::DebuggerInterruptEvent;
-use crate::dom::debuggerresumeevent::DebuggerResumeEvent;
-use crate::dom::debuggersetbreakpointevent::DebuggerSetBreakpointEvent;
+use crate::dom::debugger::debuggerclearbreakpointevent::DebuggerClearBreakpointEvent;
+use crate::dom::debugger::debuggerframeevent::DebuggerFrameEvent;
+use crate::dom::debugger::debuggergetenvironmentevent::DebuggerGetEnvironmentEvent;
+use crate::dom::debugger::debuggerinterruptevent::DebuggerInterruptEvent;
+use crate::dom::debugger::debuggerresumeevent::DebuggerResumeEvent;
+use crate::dom::debugger::debuggersetbreakpointevent::DebuggerSetBreakpointEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::{
     DebuggerAddDebuggeeEvent, DebuggerEvalEvent, DebuggerGetPossibleBreakpointsEvent, Event,

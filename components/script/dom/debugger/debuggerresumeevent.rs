@@ -7,7 +7,7 @@ use std::fmt::Debug;
 use dom_struct::dom_struct;
 use script_bindings::str::DOMString;
 
-use crate::dom::bindings::codegen::Bindings::DebuggerGetEnvironmentEventBinding::DebuggerGetEnvironmentEventMethods;
+use crate::dom::bindings::codegen::Bindings::DebuggerResumeEventBinding::DebuggerResumeEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::root::DomRoot;
@@ -16,44 +16,49 @@ use crate::dom::types::GlobalScope;
 use crate::script_runtime::CanGc;
 
 #[dom_struct]
-/// Event for Rust → JS calls in [`crate::dom::DebuggerGlobalScope`].
-pub(crate) struct DebuggerGetEnvironmentEvent {
+/// Event for Rust → JS calls in [`crate::dom::debugger::DebuggerGlobalScope`].
+pub(crate) struct DebuggerResumeEvent {
     event: Event,
-    frame_actor_id: DOMString,
+    resume_limit_type: Option<DOMString>,
+    frame_actor_id: Option<DOMString>,
 }
 
-impl DebuggerGetEnvironmentEvent {
+impl DebuggerResumeEvent {
     pub(crate) fn new(
         debugger_global: &GlobalScope,
-        frame_actor_id: DOMString,
+        resume_limit_type: Option<DOMString>,
+        frame_actor_id: Option<DOMString>,
         can_gc: CanGc,
     ) -> DomRoot<Self> {
         let result = Box::new(Self {
             event: Event::new_inherited(),
+            resume_limit_type,
             frame_actor_id,
         });
         let result = reflect_dom_object(result, debugger_global, can_gc);
-        result
-            .event
-            .init_event("getEnvironment".into(), false, false);
+        result.event.init_event("resume".into(), false, false);
 
         result
     }
 }
 
-impl DebuggerGetEnvironmentEventMethods<crate::DomTypeHolder> for DebuggerGetEnvironmentEvent {
+impl DebuggerResumeEventMethods<crate::DomTypeHolder> for DebuggerResumeEvent {
     // check-tidy: no specs after this line
-    fn FrameActorId(&self) -> DOMString {
-        self.frame_actor_id.clone()
-    }
-
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }
+
+    fn GetResumeLimitType(&self) -> Option<DOMString> {
+        self.resume_limit_type.clone()
+    }
+
+    fn GetFrameActorID(&self) -> Option<DOMString> {
+        self.frame_actor_id.clone()
+    }
 }
 
-impl Debug for DebuggerGetEnvironmentEvent {
+impl Debug for DebuggerResumeEvent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("DebuggerGetEnvironmentEvent").finish()
+        f.debug_struct("DebuggerResumeEvent").finish()
     }
 }

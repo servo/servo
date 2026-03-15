@@ -254,16 +254,8 @@ pub(crate) mod customstateset;
 pub(crate) mod datatransfer;
 pub(crate) mod datatransferitem;
 pub(crate) mod datatransferitemlist;
-pub(crate) mod debuggeradddebuggeeevent;
-pub(crate) mod debuggerclearbreakpointevent;
-pub(crate) mod debuggerevalevent;
-pub(crate) mod debuggerframeevent;
-pub(crate) mod debuggergetenvironmentevent;
-pub(crate) mod debuggergetpossiblebreakpointsevent;
-pub(crate) mod debuggerglobalscope;
-pub(crate) mod debuggerinterruptevent;
-pub(crate) mod debuggerresumeevent;
-pub(crate) mod debuggersetbreakpointevent;
+pub(crate) mod debugger;
+pub(crate) use self::debugger::*;
 pub(crate) mod dissimilaroriginlocation;
 pub(crate) mod dissimilaroriginwindow;
 #[expect(dead_code)]
