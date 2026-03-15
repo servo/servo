@@ -1634,22 +1634,20 @@ dependencies = [
 [[package]]
 name = "cssparser"
 version = "0.36.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dae61cf9c0abb83bd659dab65b7e4e38d8236824c85f0f804f173567bda257d2"
+source = "git+https://github.com/servo/rust-cssparser?rev=1f49c85dd2ce0505f7514de20334fe7f33e57619#1f49c85dd2ce0505f7514de20334fe7f33e57619"
 dependencies = [
  "cssparser-macros",
- "dtoa-short",
  "itoa",
  "phf",
  "serde",
  "smallvec",
+ "zmij",
 ]
 
 [[package]]
 name = "cssparser-macros"
 version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13b588ba4ac1a99f7f2964d24b3d896ddc6bf847ee3855dbd4366f058cfcd331"
+source = "git+https://github.com/servo/rust-cssparser?rev=1f49c85dd2ce0505f7514de20334fe7f33e57619#1f49c85dd2ce0505f7514de20334fe7f33e57619"
 dependencies = [
  "quote",
  "syn",
@@ -1960,21 +1958,6 @@ name = "dpi"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
-
-[[package]]
-name = "dtoa"
-version = "1.0.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4c3cf4824e2d5f025c7b531afcb2325364084a16806f6d47fbc1f5fbd9960590"
-
-[[package]]
-name = "dtoa-short"
-version = "0.3.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd1511a7b6a56299bd043a9c167a6d2bfb37bf84a6dfceaba651168adfb43c87"
-dependencies = [
- "dtoa",
-]
 
 [[package]]
 name = "dtor"
