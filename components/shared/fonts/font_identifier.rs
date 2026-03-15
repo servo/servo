@@ -22,7 +22,7 @@ impl FontIdentifier {
     }
 }
 
-#[cfg(any(target_os = "linux", target_os = "android"))]
+#[cfg(any(target_os = "linux", target_os = "android", target_os = "freebsd"))]
 mod platform {
     use std::fs::File;
     use std::path::{Path, PathBuf};
