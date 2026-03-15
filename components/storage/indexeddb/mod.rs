@@ -1157,9 +1157,37 @@ impl IndexedDBManager {
         }
     }
 
+    fn rollback_newly_created_database(&mut self, key: &IndexedDBDescription) {
+        // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
+        // IndexedDB §5.8 Step 3: "or 0 (zero) if database was newly created."
+        // IndexedDB §5.8 Step 4: "or the empty set if database was newly created."
+        // Keep the SQLite backing file on disk for interop, but reset the logical
+        // database state (version 0 with no object stores) and drop the active
+        // in-memory handle.
+        let Some(mut db) = self.databases.remove(key) else {
+            return;
+        };
+
+        let version_result = db.set_version(0);
+        debug_assert!(
+            version_result.is_ok(),
+            "Setting a db version should not fail."
+        );
+
+        let store_names = db.object_store_names().unwrap_or_default();
+        for store_name in store_names {
+            let delete_result = db.delete_object_store(&store_name);
+            if let Err(err) = delete_result {
+                error!(
+                    "Failed to delete object store '{}' during upgrade abort: {:?}",
+                    store_name, err
+                );
+            }
+        }
+    }
+
     /// Aborting the current upgrade for an origin.
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-    /// Note: this only reverts the version at this point.
     fn abort_pending_upgrade(&mut self, name: String, id: Uuid, origin: ImmutableOrigin) {
         let key = IndexedDBDescription { name, origin };
         let old = {
@@ -1182,12 +1210,7 @@ impl IndexedDBManager {
         };
         if let Some(old_version) = old {
             if old_version == 0 {
-                // IndexedDB §5.8 "Aborting an upgrade transaction" sets connection version to 0
-                // for newly created databases; Servo also drops the just-created backend entry
-                // so it is not observable via `indexedDB.databases()` after the abort.
-                // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-                // Invariant: aborting initial creation leaves no database entry behind.
-                self.databases.remove(&key);
+                self.rollback_newly_created_database(&key);
             } else {
                 let Some(db) = self.databases.get_mut(&key) else {
                     return debug_assert!(false, "Db should have been created");
@@ -1206,7 +1229,6 @@ impl IndexedDBManager {
 
     /// Aborting all upgrades for an origin
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-    /// Note: this only reverts the version at this point.
     fn abort_pending_upgrades(
         &mut self,
         pending_upgrades: HashMap<String, HashSet<Uuid>>,
@@ -1247,12 +1269,7 @@ impl IndexedDBManager {
             }
             if let Some(version) = version_to_revert {
                 if version == 0 {
-                    // IndexedDB §5.8 "Aborting an upgrade transaction" sets connection version to 0
-                    // for newly created databases; Servo also drops the just-created backend entry
-                    // so it is not observable via `indexedDB.databases()` after the abort.
-                    // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
-                    // Invariant: aborted initial upgrades must not remain as version-0 databases.
-                    self.databases.remove(&key);
+                    self.rollback_newly_created_database(&key);
                 } else {
                     let Some(db) = self.databases.get_mut(&key) else {
                         return debug_assert!(false, "Db should have been created");
