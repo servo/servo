@@ -476,6 +476,7 @@ def run_tests(config, product, test_paths, **kwargs):
                                  ssl_config,
                                  env_extras,
                                  kwargs["enable_webtransport_h3"],
+                                 kwargs["enable_dns"],
                                  mojojs_path,
                                  inject_script,
                                  kwargs["suppress_handler_traceback"],

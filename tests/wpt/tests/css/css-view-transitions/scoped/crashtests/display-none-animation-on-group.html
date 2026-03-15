@@ -52,10 +52,12 @@
 </body>
 <script>
   window.onload = async () => {
-    const vt = target.startViewTransition(() => {
-      target.classList.add('update');
-    });
-    await vt.finished;
+    if (target.startViewTransition) {
+      const vt = target.startViewTransition(() => {
+        target.classList.add('update');
+      });
+      await vt.finished;
+    }
     document.documentElement.classList.remove('test-wait');
   };
 </script>

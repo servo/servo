@@ -8,9 +8,9 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <div id="log"></div>
-<input type="number">
+<input type="number" id="input">
+<input type="number" id="required" required>
 <script>
-  const input = document.querySelector("input");
   const invalidInputNumber = "1.e";
   const invalidSetNumber = "1.";
 
@@ -39,4 +39,11 @@
     assert_equals(input.value.length, 0);
     assert_false(input.validity.badInput);
   }, "Setting .value to a parsable but invalid floating point number triggers sanitization but doesn't set badInput.");
+
+  promise_test(async () => {
+    await test_driver.click(required);
+    await test_driver.send_keys(required, invalidInputNumber);
+    assert_true(required.validity.valueMissing);
+  }, "Unparsable number user input causes valueMissing to be set on required input.");
+
 </script>

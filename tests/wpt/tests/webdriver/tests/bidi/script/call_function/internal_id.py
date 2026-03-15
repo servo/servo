@@ -2,8 +2,9 @@ import pytest
 
 from ... import recursive_compare, any_string
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize(
     "return_structure, result_type",
     [
@@ -52,7 +53,6 @@ async def test_remote_values_with_internal_id(
     recursive_compare(value, result_value)
 
 
-@pytest.mark.asyncio
 async def test_different_remote_values_have_unique_internal_ids(call_function):
     result = await call_function(
         "() => { const obj1 = [1]; const obj2 = {'foo': 'bar'}; return [obj1, obj2, obj1, obj2]; }"

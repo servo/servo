@@ -94,3 +94,12 @@ promise_test(async t => {
   assert_rejects_invalid_expected_input_languages(
       t, LanguageDetector.availability, invalid_language_tags);
 }, 'LanguageDetector.availability() throws RangeError for invalid language tags');
+
+promise_test(async t => {
+  const unsupported_language_tags = ['xx', 'zz'];
+  for (const languageTag of unsupported_language_tags) {
+    await promise_rejects_dom(t, 'NotSupportedError', LanguageDetector.create({
+      expectedInputLanguages: [languageTag]
+    }));
+  }
+}, 'LanguageDetector.create() throws NotSupportedError for unsupported language tags');

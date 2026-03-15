@@ -31,6 +31,9 @@
     width: 50px;
     height: 50px;
   }
+  .spacer {
+    height: 1000px;
+  }
 </style>
 
 <div class=box id="base" style=""></div>
@@ -38,6 +41,7 @@
   <div class=box id="a"></div>
   <div class=box id="b"></div>
 </div>
+<div class=spacer></div>
 <script>
 async_test((t) => {
   base.scrollIntoView({block: 'center'});
@@ -45,8 +49,20 @@ async_test((t) => {
 
   requestAnimationFrame(() => requestAnimationFrame(() => {
     t.step(() => {
-      assert_equals(b.getBoundingClientRect().top, a.getBoundingClientRect().bottom);
-      t.done();
+      assert_equals(b.getBoundingClientRect().top, a.getBoundingClientRect().bottom, "initial");
+      assert_equals(document.elementFromPoint(a.getBoundingClientRect().left + 1, a.getBoundingClientRect().top + 1), a, "a initial");
+      assert_equals(document.elementFromPoint(b.getBoundingClientRect().left + 1, b.getBoundingClientRect().top + 1), b, "b initial");
+    });
+
+    window.scrollBy(0, 100);
+
+    requestAnimationFrame(() => {
+      t.step(() => {
+        assert_equals(b.getBoundingClientRect().top, a.getBoundingClientRect().bottom, "after scroll");
+        assert_equals(document.elementFromPoint(a.getBoundingClientRect().left + 1, a.getBoundingClientRect().top + 1), a, "a after scroll");
+        assert_equals(document.elementFromPoint(b.getBoundingClientRect().left + 1, b.getBoundingClientRect().top + 1), b, "b after scroll");
+        t.done();
+      });
     });
   }));
 }, '#b top should be at #a bottom');

@@ -4,10 +4,10 @@ from webdriver.bidi.modules.script import ContextTarget, ScriptEvaluateResultExc
 from ... import any_int, any_string, recursive_compare
 from .. import any_stack_trace, PRIMITIVE_VALUES, REMOTE_VALUES
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("expression, expected", PRIMITIVE_VALUES + REMOTE_VALUES)
-@pytest.mark.asyncio
 async def test_exception_details(bidi_session, top_context, expression, expected):
     function_declaration = f"()=>{{ throw {expression} }}"
 
@@ -33,7 +33,6 @@ async def test_exception_details(bidi_session, top_context, expression, expected
     )
 
 
-@pytest.mark.asyncio
 async def test_invalid_function(bidi_session, top_context):
     with pytest.raises(ScriptEvaluateResultException) as exception:
         await bidi_session.script.call_function(
@@ -56,7 +55,6 @@ async def test_invalid_function(bidi_session, top_context):
     )
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("chained", [True, False])
 async def test_rejected_promise(bidi_session, top_context, chained):
     if chained:

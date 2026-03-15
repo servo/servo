@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVG Path Data: Lineto commands (L/l, H/h, V/v)</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathDataBNF">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<svg id="svg" width="400" height="400">
+  <!-- Absolute lineto -->
+  <path id="test-L" d="M 50,50 L 150,150" fill="none" stroke="black" stroke-width="2"/>
+
+  <!-- Relative lineto -->
+  <path id="test-l" d="M 50,50 l 100,100" fill="none" stroke="blue" stroke-width="1"/>
+
+  <!-- Horizontal lineto -->
+  <path id="test-H" d="M 50,200 H 150" fill="none" stroke="green" stroke-width="2"/>
+
+  <!-- Vertical lineto -->
+  <path id="test-V" d="M 200,50 V 150" fill="none" stroke="red" stroke-width="2"/>
+</svg>
+
+<script>
+test(function() {
+  const path = document.getElementById('test-L');
+  const length = path.getTotalLength();
+  const expectedLength = Math.sqrt(100*100 + 100*100); // Diagonal line
+
+  assert_approx_equals(length, expectedLength, 0.5, "L command creates line");
+}, "Absolute lineto: L 150,150");
+
+test(function() {
+  const pathL = document.getElementById('test-L');
+  const pathl = document.getElementById('test-l');
+
+  // Both should have same length (both create same diagonal from (50,50) to (150,150))
+  assert_approx_equals(pathL.getTotalLength(), pathl.getTotalLength(), 0.5,
+    "Relative lineto creates same result as absolute");
+}, "Relative lineto: l 100,100 from (50,50) equals L 150,150");
+
+test(function() {
+  const path = document.getElementById('test-H');
+  const length = path.getTotalLength();
+
+  assert_approx_equals(length, 100, 0.5, "H command creates horizontal line of length 100");
+}, "Horizontal lineto: H 150 from (50,200) creates 100-unit line");
+
+test(function() {
+  const path = document.getElementById('test-V');
+  const length = path.getTotalLength();
+
+  assert_approx_equals(length, 100, 0.5, "V command creates vertical line of length 100");
+}, "Vertical lineto: V 150 from (200,50) creates 100-unit line");
+
+test(function() {
+  // Multiple coordinate pairs after L
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,0 L 10,0 20,0 30,0');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_approx_equals(length, 30, 0.5, "Multiple coordinates create multiple line segments");
+}, "Multiple lineto coordinates: L 10,0 20,0 30,0");
+
+test(function() {
+  // Multiple coordinates after H
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,50 H 10 20 30');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_approx_equals(length, 30, 0.5, "Multiple H coordinates");
+}, "Multiple horizontal lineto: H 10 20 30");
+
+test(function() {
+  // Multiple coordinates after V
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50,0 V 10 20 30');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_approx_equals(length, 30, 0.5, "Multiple V coordinates");
+}, "Multiple vertical lineto: V 10 20 30");
+
+test(function() {
+  // Relative horizontal lineto
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50,50 h 100');
+  svg.appendChild(path);
+
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+  assert_approx_equals(endPoint.x, 150, 0.5, "h adds to current x");
+  assert_approx_equals(endPoint.y, 50, 0.5, "y remains unchanged");
+}, "Relative horizontal lineto: h 100 from (50,50)");
+
+test(function() {
+  // Relative vertical lineto
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50,50 v 100');
+  svg.appendChild(path);
+
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+  assert_approx_equals(endPoint.x, 50, 0.5, "x remains unchanged");
+  assert_approx_equals(endPoint.y, 150, 0.5, "v adds to current y");
+}, "Relative vertical lineto: v 100 from (50,50)");
+
+test(function() {
+  // Negative relative movements
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 100,100 h -50 v -50');
+  svg.appendChild(path);
+
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+  assert_approx_equals(endPoint.x, 50, 0.5, "Negative h moves left");
+  assert_approx_equals(endPoint.y, 50, 0.5, "Negative v moves up");
+}, "Negative relative lineto: h -50 v -50 from (100,100)");
+
+test(function() {
+  // Combined line commands
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50,50 L 100,50 L 100,100 L 50,100 Z');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_approx_equals(length, 200, 0.5, "Square perimeter is 200");
+}, "Combined lineto and closepath: creates square");
+
+test(function() {
+  // Mixed absolute and relative
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,0 L 50,0 l 50,0 L 150,0');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_approx_equals(length, 150, 0.5, "Mixed absolute and relative commands");
+}, "Mixed absolute and relative lineto");
+
+test(function() {
+  // Closepath (Z/z)
+  const svg = document.getElementById('svg');
+  const pathZ = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  pathZ.setAttribute('d', 'M 0,0 L 100,0 L 100,100 Z');
+  svg.appendChild(pathZ);
+
+  const pathz = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  pathz.setAttribute('d', 'M 0,0 L 100,0 L 100,100 z');
+  svg.appendChild(pathz);
+
+  assert_approx_equals(pathZ.getTotalLength(), pathz.getTotalLength(), 0.1,
+    "Z and z are equivalent");
+}, "Closepath: Z and z are case-insensitive");
+</script>
+</body>
+</html>

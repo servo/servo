@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>JPEG XL integration: embed object iframe</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<link rel="match" href="html-embed-object-iframe-ref.html">
+<meta name=fuzzy content="0-8;0-10000">
+<meta name="assert" content="embed/object/iframe render JPEG XL images similarly to PNG references.">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+  .row {
+    display: flex;
+    gap: 8px;
+  }
+  embed,
+  object,
+  iframe {
+    width: 60px;
+    height: 60px;
+    border: 0;
+    image-rendering: pixelated;
+  }
+</style>
+
+<div class="row">
+  <embed src="resources/3x3_srgb_lossless.jxl" type="image/jxl">
+  <object data="resources/3x3_srgb_lossless.jxl" type="image/jxl"></object>
+  <iframe src="resources/3x3_srgb_lossless.jxl"></iframe>
+</div>
+
+<script>
+const elements = document.querySelectorAll('embed, object, iframe');
+Promise.all([...elements].map(el =>
+  new Promise(resolve => el.addEventListener('load', resolve))
+)).then(takeScreenshot);
+</script>
+</html>

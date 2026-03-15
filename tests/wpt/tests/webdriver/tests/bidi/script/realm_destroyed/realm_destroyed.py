@@ -81,7 +81,7 @@ async def test_reload_context(
 
 
 @pytest.mark.parametrize("method", ["evaluate", "call_function"])
-async def test_sandbox(bidi_session, subscribe_events, new_tab, method):
+async def test_sandbox(bidi_session, configuration, subscribe_events, new_tab, method):
     await subscribe_events(events=[REALM_DESTROYED_EVENT])
 
     # Track all received script.realmDestroyed events in the destroyed_realm_ids array
@@ -98,7 +98,7 @@ async def test_sandbox(bidi_session, subscribe_events, new_tab, method):
 
     await bidi_session.browsing_context.close(context=new_tab["context"])
 
-    await wait_for_bidi_events(bidi_session, destroyed_realm_ids, 2)
+    await wait_for_bidi_events(bidi_session, configuration, destroyed_realm_ids, 2)
 
     assert sandbox_realm in destroyed_realm_ids
 
@@ -106,7 +106,7 @@ async def test_sandbox(bidi_session, subscribe_events, new_tab, method):
 
 
 async def test_subscribe_after_sandbox_creation(
-    bidi_session, subscribe_events, new_tab, inline
+    bidi_session, configuration, subscribe_events, new_tab, inline
 ):
     sandbox_realm = await create_sandbox(bidi_session, new_tab["context"])
 
@@ -125,7 +125,7 @@ async def test_subscribe_after_sandbox_creation(
         context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
     )
 
-    await wait_for_bidi_events(bidi_session, destroyed_realm_ids, 1)
+    await wait_for_bidi_events(bidi_session, configuration, destroyed_realm_ids, 1)
 
     remove_listener()
 
@@ -159,7 +159,7 @@ async def test_iframe(
 
 
 async def test_iframe_destroy_parent(
-    bidi_session, subscribe_events, test_page_same_origin_frame, new_tab
+    bidi_session, configuration, subscribe_events, test_page_same_origin_frame, new_tab
 ):
     await bidi_session.browsing_context.navigate(
         url=test_page_same_origin_frame, context=new_tab["context"], wait="complete"
@@ -184,7 +184,7 @@ async def test_iframe_destroy_parent(
 
     await bidi_session.browsing_context.close(context=new_tab["context"])
 
-    await wait_for_bidi_events(bidi_session, destroyed_realm_ids, 2)
+    await wait_for_bidi_events(bidi_session, configuration, destroyed_realm_ids, 2)
 
     assert realm_for_iframe[0]["realm"] in destroyed_realm_ids
     assert realm_for_parent[0]["realm"] in destroyed_realm_ids
@@ -193,7 +193,7 @@ async def test_iframe_destroy_parent(
 
 
 async def test_subscribe_to_one_context(
-    bidi_session, subscribe_events, new_tab, inline, top_context
+    bidi_session, configuration, subscribe_events, new_tab, inline, top_context
 ):
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
@@ -218,7 +218,7 @@ async def test_subscribe_to_one_context(
 
     # Make sure we didn't receive the event for the top context
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, destroyed_realm_ids, 1, timeout=0.5)
+        await wait_for_bidi_events(bidi_session, configuration, destroyed_realm_ids, 1, timeout=0.5)
 
     result = await bidi_session.script.get_realms(context=new_tab["context"])
 
@@ -226,7 +226,7 @@ async def test_subscribe_to_one_context(
         context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
     )
 
-    await wait_for_bidi_events(bidi_session, destroyed_realm_ids, 1)
+    await wait_for_bidi_events(bidi_session, configuration, destroyed_realm_ids, 1)
 
     assert result[0]["realm"] in destroyed_realm_ids
 
@@ -235,6 +235,7 @@ async def test_subscribe_to_one_context(
 
 async def test_dedicated_worker(
     bidi_session,
+    configuration,
     subscribe_events,
     top_context,
     inline,
@@ -272,8 +273,8 @@ async def test_dedicated_worker(
         url=url, context=top_context["context"], wait="complete"
     )
 
-    await wait_for_bidi_events(bidi_session, created_events, 1)
-    await wait_for_bidi_events(bidi_session, destroyed_events, 1)
+    await wait_for_bidi_events(bidi_session, configuration, created_events, 1)
+    await wait_for_bidi_events(bidi_session, configuration, destroyed_events, 1)
 
     assert len(created_events) == 1
     assert len(destroyed_events) == 1
@@ -285,6 +286,7 @@ async def test_dedicated_worker(
 
 async def test_shared_worker(
     bidi_session,
+    configuration,
     subscribe_events,
     top_context,
     inline,
@@ -319,14 +321,14 @@ async def test_shared_worker(
         url=url, context=top_context["context"], wait="complete"
     )
 
-    await wait_for_bidi_events(bidi_session, created_events, 1)
+    await wait_for_bidi_events(bidi_session, configuration, created_events, 1)
 
     url = inline("")
     await bidi_session.browsing_context.navigate(
         url=url, context=top_context["context"], wait="complete"
     )
 
-    await wait_for_bidi_events(bidi_session, destroyed_events, 1)
+    await wait_for_bidi_events(bidi_session, configuration, destroyed_events, 1)
 
     assert len(created_events) == 1
     assert len(destroyed_events) == 1
@@ -338,6 +340,7 @@ async def test_shared_worker(
 
 async def test_dedicated_worker_subscribe_to_one_context(
     bidi_session,
+    configuration,
     subscribe_events,
     new_tab,
     top_context,
@@ -386,8 +389,8 @@ async def test_dedicated_worker_subscribe_to_one_context(
         url=url, context=new_tab["context"], wait="complete"
     )
 
-    await wait_for_bidi_events(bidi_session, created_events, 1)
-    await wait_for_bidi_events(bidi_session, destroyed_events, 1)
+    await wait_for_bidi_events(bidi_session, configuration, created_events, 1)
+    await wait_for_bidi_events(bidi_session, configuration, destroyed_events, 1)
 
     assert len(created_events) == 1
     assert len(destroyed_events) == 1
@@ -413,7 +416,7 @@ async def test_dedicated_worker_subscribe_to_one_context(
 
     # Check that no realm created or destroyed event was emitted.
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, created_events, 1, timeout=0.5)
+        await wait_for_bidi_events(bidi_session, configuration, created_events, 1, timeout=0.5)
 
     remove_realm_created_listener()
     remove_realm_destroyed_listener()
@@ -421,6 +424,7 @@ async def test_dedicated_worker_subscribe_to_one_context(
 
 async def test_dedicated_worker_subscribe_to_user_context(
     bidi_session,
+    configuration,
     subscribe_events,
     create_user_context,
     inline,
@@ -470,8 +474,8 @@ async def test_dedicated_worker_subscribe_to_user_context(
         url=url, context=context_a["context"], wait="complete"
     )
 
-    await wait_for_bidi_events(bidi_session, created_events, 1)
-    await wait_for_bidi_events(bidi_session, destroyed_events, 1)
+    await wait_for_bidi_events(bidi_session, configuration, created_events, 1)
+    await wait_for_bidi_events(bidi_session, configuration, destroyed_events, 1)
 
     assert len(created_events) == 1
     assert len(destroyed_events) == 1
@@ -500,7 +504,7 @@ async def test_dedicated_worker_subscribe_to_user_context(
 
     # Check that no realm created or destroyed event was emitted.
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, created_events, 1, timeout=0.5)
+        await wait_for_bidi_events(bidi_session, configuration, created_events, 1, timeout=0.5)
 
     remove_realm_created_listener()
     remove_realm_destroyed_listener()

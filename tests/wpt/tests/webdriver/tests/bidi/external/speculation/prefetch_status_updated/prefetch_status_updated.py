@@ -1,7 +1,9 @@
 import pytest
 from webdriver.error import TimeoutException
+
 pytestmark = pytest.mark.asyncio
-@pytest.mark.asyncio
+
+
 async def test_speculation_rules_generate_ready_events(
     bidi_session, subscribe_events, new_tab, url, wait_for_events, add_speculation_rules_and_link
 ):
@@ -40,7 +42,8 @@ async def test_speculation_rules_generate_ready_events(
             "context": new_tab["context"]
         })
     ], f"Events don't match expected sequence: {events}"
-@pytest.mark.asyncio
+
+
 async def test_speculation_rules_generate_events_with_navigation(
     bidi_session, subscribe_events, new_tab, url, wait_for_events, add_speculation_rules_and_link
 ):
@@ -102,7 +105,8 @@ async def test_speculation_rules_generate_events_with_navigation(
             "context": new_tab["context"]
         })
     ], f"Success event doesn't match expected sequence: {success_event}"
-@pytest.mark.asyncio
+
+
 async def test_speculation_rules_generate_failure_events(
     bidi_session, subscribe_events, new_tab, url, wait_for_events, add_speculation_rules_and_link
 ):
@@ -142,7 +146,8 @@ async def test_speculation_rules_generate_failure_events(
             "context": new_tab["context"]
         })
     ], f"Events don't match expected sequence: {events}"
-@pytest.mark.asyncio
+
+
 async def test_subscribe_unsubscribe_event_emission(
     bidi_session, subscribe_events, new_tab, url, wait_for_events, add_speculation_rules_and_link
 ):
@@ -189,7 +194,8 @@ async def test_subscribe_unsubscribe_event_emission(
         await add_speculation_rules_and_link(new_tab, speculation_rules_2, prefetch_target_2)
         with pytest.raises(TimeoutException):
             await waiter.get_events(lambda events: len(events) >= 1, timeout=0.5)
-@pytest.mark.asyncio
+
+
 async def test_subscribe_unsubscribe_module_subscription(
     bidi_session, subscribe_events, new_tab, url, wait_for_events, add_speculation_rules_and_link
 ):
@@ -236,7 +242,8 @@ async def test_subscribe_unsubscribe_module_subscription(
         await add_speculation_rules_and_link(new_tab, speculation_rules_2, prefetch_target_2)
         with pytest.raises(TimeoutException):
             await waiter.get_events(lambda events: len(events) >= 1, timeout=0.5)
-@pytest.mark.asyncio
+
+
 async def test_unsubscribe_from_prefetch_status_updated(
     bidi_session
 ):

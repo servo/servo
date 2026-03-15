@@ -417,6 +417,27 @@ promise_test(async t => {
 }, 'Commit composites on top of the underlying value');
 
 // -------------------------
+// Tests of concurrent animations with different props
+// -------------------------
+
+test(t => {
+  const div = createDiv(t);
+  div.style.left = "0px";
+  div.style.top = "0px";
+
+  const animA = div.animate({ left: "200px" }, { duration: 30_000 });
+  const animB = div.animate({ top: "200px" }, { duration: 50_000 });
+
+  animA.finish();
+  animA.commitStyles();
+  assert_equals(getComputedStyle(div).left, "200px");
+
+  animB.finish();
+  animB.commitStyles();
+  assert_equals(getComputedStyle(div).top, "200px");
+}, 'Commit styles of an animation when another animation runs with a different prop');
+
+// -------------------------
 // Tests covering handling of logical properties
 // -------------------------
 

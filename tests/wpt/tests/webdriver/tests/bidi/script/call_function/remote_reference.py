@@ -4,8 +4,9 @@ from webdriver.bidi.modules.script import ContextTarget, SerializationOptions
 
 from ... import any_string, recursive_compare
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize(
     "setup_expression, function_declaration, expected",
     [
@@ -116,7 +117,6 @@ async def test_remote_reference_argument(
     assert result == expected
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "value_fn, function_declaration",
     [
@@ -164,7 +164,6 @@ async def test_remote_reference_deserialization(
     )
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "setup_expression, expected_node_type",
     [
@@ -213,7 +212,6 @@ async def test_remote_reference_node_argument(
     assert result == {"type": "number", "value": expected_node_type}
 
 
-@pytest.mark.asyncio
 async def test_remote_reference_node_cdata(bidi_session, inline, top_context):
     xml_page = inline("""<foo>CDATA section: <![CDATA[ < > & ]]>.</foo>""", doctype="xml")
 
@@ -237,7 +235,6 @@ async def test_remote_reference_node_cdata(bidi_session, inline, top_context):
     assert result == {"type": "number", "value": 4}
 
 
-@pytest.mark.asyncio
 async def test_remote_reference_sharedId_precedence_over_handle(
     bidi_session, get_test_page, top_context
 ):
@@ -265,7 +262,6 @@ async def test_remote_reference_sharedId_precedence_over_handle(
         )
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "expression, function_declaration, expected",
     [

@@ -183,10 +183,10 @@
     test_valid_attr('width', 'attr(data-foo type(invalid), 10px)', '0px', '10px');
     test_invalid_attr('width', 'attr(data-foo type(invalid |), 10px)', '0px');
 
-    test_valid_attr('background-color', 'attr(data-foo type("<color>")', '#ff0099aa', '#ff0099aa');
-    test_valid_attr('background-color', 'attr(data-foo type("invalid | blue")', 'blue', 'blue');
-    test_valid_attr('width', 'attr(data-foo type("<length> | <percentage>")', '10%', '10%');
-    test_invalid_attr('width', 'attr(data-foo type("<invalid>")', '10px');
+    test_valid_attr('background-color', 'attr(data-foo type(<color>)', '#ff0099aa', '#ff0099aa');
+    test_valid_attr('background-color', 'attr(data-foo type(invalid | blue)', 'blue', 'blue');
+    test_valid_attr('width', 'attr(data-foo type(<length> | <percentage>)', '10%', '10%');
+    test_invalid_attr('width', 'attr(data-foo type(<invalid>)', '10px');
 
     test_valid_attr('height', 'attr(data-foo px)', '10', '10px');
     test_valid_attr('width', 'calc(attr(data-foo px) + 1px)', '10', '11px');

@@ -17,7 +17,7 @@ function assert_is_font_weight(weight, result) {
   assert_style_value_equals(result, new CSSUnitValue(weight, 'number'));
 }
 
-function assert_is_equal_with_clamping_number(input, result) {
+function assert_is_equal_with_clamping_and_rounding_number(input, result) {
   const number = input.to('number');
 
   // TODO: The above 1000 case is currently not evaluated, since the infra
@@ -27,7 +27,11 @@ function assert_is_equal_with_clamping_number(input, result) {
   else if (number.value > 1000)
     assert_style_value_equals(result, new CSSUnitValue(1000, 'number'));
   else
-    assert_style_value_equals(result, new CSSUnitValue(number, 'number'));
+    assert_style_value_equals(
+      result,
+      new CSSUnitValue(number, 'number'),
+      0.25
+    );
 }
 
 runPropertyTests('font-weight', [
@@ -65,7 +69,7 @@ runPropertyTests('font-weight', [
         }
       }
     },
-    computed: assert_is_equal_with_clamping_number
+    computed: assert_is_equal_with_clamping_and_rounding_number
   },
 ]);
 

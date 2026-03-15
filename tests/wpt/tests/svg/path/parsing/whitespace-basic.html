@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVG Path Data: Whitespace handling</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathDataBNF">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<svg id="svg" width="400" height="400">
+  <!-- Reference path -->
+  <path id="ref" d="M 100,100 L 200,200" fill="none" stroke="red" stroke-width="1"/>
+</svg>
+
+<script>
+test(function() {
+  // Space (0x20)
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 100 100 L 200 200');
+  svg.appendChild(path);
+
+  const refPath = document.getElementById('ref');
+  assert_approx_equals(path.getTotalLength(), refPath.getTotalLength(), 0.1,
+    "Space separator works");
+}, "Whitespace: Space (0x20) as separator");
+
+test(function() {
+  // Tab (0x09)
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M\t100\t100\tL\t200\t200');
+  svg.appendChild(path);
+
+  const refPath = document.getElementById('ref');
+  assert_approx_equals(path.getTotalLength(), refPath.getTotalLength(), 0.1,
+    "Tab separator works");
+}, "Whitespace: Tab (0x09) as separator");
+
+test(function() {
+  // Line Feed (0x0A)
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M\n100\n100\nL\n200\n200');
+  svg.appendChild(path);
+
+  const refPath = document.getElementById('ref');
+  assert_approx_equals(path.getTotalLength(), refPath.getTotalLength(), 0.1,
+    "Line feed separator works");
+}, "Whitespace: Line Feed (0x0A) as separator");
+
+test(function() {
+  // Carriage Return (0x0D)
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M\r100\r100\rL\r200\r200');
+  svg.appendChild(path);
+
+  const refPath = document.getElementById('ref');
+  assert_approx_equals(path.getTotalLength(), refPath.getTotalLength(), 0.1,
+    "Carriage return separator works");
+}, "Whitespace: Carriage Return (0x0D) as separator");
+
+test(function() {
+  // Form Feed (0x0C)
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M\x0C100\x0C100\x0CL\x0C200\x0C200');
+  svg.appendChild(path);
+
+  const refPath = document.getElementById('ref');
+  assert_approx_equals(path.getTotalLength(), refPath.getTotalLength(), 0.1,
+    "Form feed separator works");
+}, "Whitespace: Form Feed (0x0C) as separator");
+
+test(function() {
+  // Mixed whitespace
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M \t\n\r\x0C 100 \t\n\r\x0C 100 \t\n\r\x0C L \t\n\r\x0C 200 \t\n\r\x0C 200');
+  svg.appendChild(path);
+
+  const refPath = document.getElementById('ref');
+  assert_approx_equals(path.getTotalLength(), refPath.getTotalLength(), 0.1,
+    "Mixed whitespace works");
+}, "Whitespace: Mixed whitespace characters");
+
+test(function() {
+  // Leading whitespace
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', '   \t\n\r  M 100,100 L 200,200');
+  svg.appendChild(path);
+
+  const refPath = document.getElementById('ref');
+  assert_approx_equals(path.getTotalLength(), refPath.getTotalLength(), 0.1,
+    "Leading whitespace allowed");
+}, "Whitespace: Leading whitespace in path data");
+
+test(function() {
+  // Trailing whitespace
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 100,100 L 200,200   \t\n\r  ');
+  svg.appendChild(path);
+
+  const refPath = document.getElementById('ref');
+  assert_approx_equals(path.getTotalLength(), refPath.getTotalLength(), 0.1,
+    "Trailing whitespace allowed");
+}, "Whitespace: Trailing whitespace in path data");
+
+test(function() {
+  // No whitespace (where optional)
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M100,100L200,200');
+  svg.appendChild(path);
+
+  const refPath = document.getElementById('ref');
+  assert_approx_equals(path.getTotalLength(), refPath.getTotalLength(), 0.1,
+    "Minimal whitespace works");
+}, "Whitespace: No whitespace (where optional)");
+
+test(function() {
+  // Multiple spaces
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M     100     100     L     200     200');
+  svg.appendChild(path);
+
+  const refPath = document.getElementById('ref');
+  assert_approx_equals(path.getTotalLength(), refPath.getTotalLength(), 0.1,
+    "Multiple consecutive spaces work");
+}, "Whitespace: Multiple consecutive spaces");
+
+test(function() {
+  // comma_wsp with comma and spaces
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 100 , 100 L 200 , 200');
+  svg.appendChild(path);
+
+  const refPath = document.getElementById('ref');
+  assert_approx_equals(path.getTotalLength(), refPath.getTotalLength(), 0.1,
+    "Comma with surrounding spaces works");
+}, "Whitespace: Comma with surrounding spaces");
+
+test(function() {
+  // comma_wsp: comma without spaces
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 100,100 L 200,200');
+  svg.appendChild(path);
+
+  const refPath = document.getElementById('ref');
+  assert_approx_equals(path.getTotalLength(), refPath.getTotalLength(), 0.1,
+    "Comma without spaces works");
+}, "Whitespace: Comma without spaces");
+
+test(function() {
+  // comma_wsp: spaces before comma
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 100 ,100 L 200 ,200');
+  svg.appendChild(path);
+
+  const refPath = document.getElementById('ref');
+  assert_approx_equals(path.getTotalLength(), refPath.getTotalLength(), 0.1,
+    "Spaces before comma works");
+}, "Whitespace: Spaces before comma");
+
+test(function() {
+  // comma_wsp: spaces after comma
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 100, 100 L 200, 200');
+  svg.appendChild(path);
+
+  const refPath = document.getElementById('ref');
+  assert_approx_equals(path.getTotalLength(), refPath.getTotalLength(), 0.1,
+    "Spaces after comma works");
+}, "Whitespace: Spaces after comma");
+</script>
+</body>
+</html>

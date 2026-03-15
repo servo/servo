@@ -1,2 +1,0 @@
-Feature-Policy: geolocation 'none', fullscreen 'none'
-Permissions-Policy: geolocation=self, payment=()

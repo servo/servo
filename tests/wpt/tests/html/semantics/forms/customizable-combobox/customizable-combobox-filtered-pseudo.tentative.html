@@ -79,4 +79,41 @@ promise_test(async () => {
   checkOptions([optionTwo],
     'Only option two should match when setting input.value to "tw".');
 }, 'Customizable combobox option:filtered behavior');
+
+promise_test(async () => {
+  input.value = '';
+  optionTwo.remove();
+  optionThree.remove();
+  checkOptions([optionOne],
+    'options should not be filtered out at the start of the test.');
+
+  function testCombination(one, two) {
+    if (typeof one === 'number') {
+      one = String.fromCodePoint(one);
+    }
+    if (typeof two === 'number') {
+      two = String.fromCodePoint(two);
+    }
+
+    optionOne.textContent = 'foo';
+    input.value = 'bar';
+    checkOptions([], `'bar' should not find 'foo'.`);
+
+    optionOne.textContent = two;
+    input.value = one;
+    checkOptions([optionOne], `'${one}' should find '${two}'`);
+
+    optionOne.textContent = one;
+    input.value = two;
+    checkOptions([optionOne], `'${two}' should find '${one}'`);
+  }
+
+  // u_strFoldCase from ICU is used to do case folding.
+  testCombination('a', 'A');
+  testCombination(0xe7, 0xc7); // ç Ç
+  testCombination(0xff, 0x178); // ÿ Ÿ
+  testCombination(0x188, 0x187); // ƈ Ƈ
+  testCombination(0xa727, 0xa726); // ꜧ Ꜧ
+  testCombination(0x10428, 0x10400); // 𐐨 𐐀
+}, 'Case folding');
 </script>

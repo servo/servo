@@ -1,0 +1,20 @@
+<!doctype html>
+<title>overflow: auto clips overflow on both inner and outer SVG</title>
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1072">
+<link rel="match" href="inner-outer-svg-overflow-auto-ref.html">
+
+<svg style="overflow: auto" height="90px" width="90px">
+  <svg style="overflow: visible" height="90px" width="90px" x="0" y="0">
+    <rect height="100px" width="100px" fill="red" x="-5px" y="-5px" />
+    <rect height="90px" width="90px" fill="green" />
+  </svg>
+</svg>
+
+<br>
+
+<svg style="overflow: visible" height="90px" width="90px">
+  <svg style="overflow: auto" height="90px" width="90px" x="0" y="0">
+    <rect height="100px" width="100px" fill="red" x="-5px" y="-5px" />
+    <rect height="90px" width="90px" fill="green" />
+  </svg>
+</svg>

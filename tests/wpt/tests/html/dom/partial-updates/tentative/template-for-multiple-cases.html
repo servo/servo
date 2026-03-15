@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>
+  HTML partial updates: various scenarios of patching using template for
+</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    async function parseHTML(method, chunks) {
+      switch (method) {
+        case "innerHTML":
+          const div = document.createElement("div");
+          div.innerHTML = chunks.join("");
+          return div.innerHTML;
+        case "iframe":
+          const iframe = document.createElement("iframe");
+          document.body.appendChild(iframe);
+          for (const chunk of chunks) {
+            iframe.contentDocument.write(chunk);
+          }
+          iframe.contentDocument.close();
+          return iframe.contentDocument.body.innerHTML;
+        case "template":
+          const template = document.createElement("template");
+          template.innerHTML = chunks.join("");
+          return template.innerHTML;
+        case "parse":
+          const parser = new DOMParser();
+          return parser.parseFromString(chunks.join(""), "text/html").body
+            .innerHTML;
+        case "contextualFragment":
+          const fragment = new Range().createContextualFragment(
+            chunks.join(""),
+          );
+          let result = "";
+          for (const node of fragment.childNodes) {
+            result += node.outerHTML;
+          }
+          return result;
+        case "stream":
+          const element = document.createElement("div");
+          const writer = element.streamAppendHTMLUnsafe().getWriter();
+          for (const chunk of chunks) {
+            await writer.write(chunk);
+          }
+          await writer.close();
+          return element.innerHTML;
+      }
+    }
+    function add_test_scenario(label, placeholder, patch, expected_output, options = {}) {
+      const tail = options.tail ? patch : "";
+      const wrapped_html = `<div marker="p">${placeholder}</div>${patch}`;
+      const wrapped_expected_output = `<div marker="p">${expected_output}</div>${tail}`;
+      for (const method of [
+        "innerHTML",
+        "iframe",
+        "template",
+        "parse",
+        "contextualFragment",
+        "stream",
+      ]) {
+        for (const num_chunks of [1, 2, 4]) {
+          promise_test(
+            async (t) => {
+              let chunks = [wrapped_html];
+              if (num_chunks > 1) {
+                chunks = [];
+                const split_point = Math.floor(
+                  wrapped_html.length / num_chunks,
+                );
+                for (let i = 0; i < num_chunks; i++) {
+                  chunks.push(
+                    wrapped_html.substring(
+                      i * split_point,
+                      (i + 1) * split_point,
+                    ),
+                  );
+                }
+              }
+              const fragment = await parseHTML(method, chunks);
+              assert_equals(fragment, wrapped_expected_output);
+            },
+            `${label} - ${method} ${num_chunks > 1 ? "with " + num_chunks + " chunks" : ""}`,
+          );
+        }
+      }
+    }
+
+    add_test_scenario(
+      "Simple replacement with only start",
+      `<?start>Old content`,
+      `<template for="p">New content</template>`,
+      `New content`,
+    );
+
+    add_test_scenario(
+      "Simple replacement with start and end",
+      `<?start>Old<?end> content`,
+      `<template for="p">New</template>`,
+      `New content`,
+    );
+
+    add_test_scenario(
+      "Void marker at start",
+      `<?marker> content`,
+      `<template for="p">New</template>`,
+      `New content`,
+    );
+
+    add_test_scenario(
+      "Void marker at end",
+      `New <?marker>`,
+      `<template for="p">content</template>`,
+      `New content`,
+    );
+
+    add_test_scenario(
+      "Void marker in the middle",
+      `New <?marker> content`,
+      `<template for="p">X</template>`,
+      `New X content`,
+    );
+
+    add_test_scenario(
+      "Multiple named markers",
+      `New <?marker name="a"> content <?marker name="b">`,
+      `<template for="p#a">X</template><template for="p#b">Y</template>`,
+      `New X content Y`,
+    );
+
+    add_test_scenario(
+      "Multiple named markers with same name only replaces first one",
+      `New <?marker name="a"> content <?marker name="a">`,
+      `<template for="p#a">X</template>`,
+      `New X content <?marker name="a"?>`,
+    );
+
+    add_test_scenario(
+      "Named and unnamed markers",
+      `New <?marker name="a"> content <?marker>`,
+      `<template for="p#a">X</template><template for="p">Y</template>`,
+      `New X content Y`,
+    );
+
+    add_test_scenario(
+      "Unnamed and named markers",
+      `New <?marker> content <?marker name="a">`,
+      `<template for="p#a">X</template><template for="p">Y</template>`,
+      `New Y content X`,
+    );
+
+    add_test_scenario(
+      "Multiple templates for same marker",
+      `<?marker> <?marker> content <?marker name="a">`,
+      `<template for="p#a">X</template><template for="p">Y</template>`,
+      `Y <?marker ?> content X`,
+    );
+
+    add_test_scenario(
+      "Nested named markers - replace outer",
+      `<?start name="a">New <?start name="b"> content <?end> after <?end>`,
+      `<template for="p#a">X</template>`,
+      `X`,
+    );
+
+    add_test_scenario(
+      "Nested named markers - replace outer anonymous",
+      `<?start>New <?start name="b"> content <?end> after <?end>`,
+      `<template for="p">X</template>`,
+      `X`,
+    );
+
+    add_test_scenario(
+      "Nested named markers - replace inner",
+      `<?start name="a">New <?start name="b"> content <?end> after`,
+      `<template for="p#b">X</template>`,
+      `<?start name="a"?>New X after`,
+    );
+
+    add_test_scenario(
+      "Nested named markers - replace inner anonymous",
+      `<?start name="a">New <?start> content <?end> after`,
+      `<template for="p">X</template>`,
+      `<?start name="a"?>New X after`,
+    );
+
+    add_test_scenario(
+      "Interleaved markers (a)",
+      `<?start name="a">New <?start> content <?end name="a"> after<?end>`,
+      `<template for="p#a">X</template>`,
+      `X`,
+    );
+
+    add_test_scenario(
+      "Interleaved markers (b)",
+      `<?start name="a">New <?start> content <?end name="a"> after<?end>`,
+      `<template for="p">X</template>`,
+      `<?start name="a"?>New X after<?end ?>`,
+    );
+
+    add_test_scenario(
+      "Hash in marker name",
+      `<?start name="a#b">New <?start> content <?end> after<?end>`,
+      `<template for="p#a#b">X</template>`,
+      `X`,
+    );
+
+    add_test_scenario(
+      "Hash in marker name matches precisely",
+      `<?start name="a#b">New <?start> content <?end> after<?end>`,
+      `<template for="p#a">X</template>`,
+      `<?start name="a#b"?>New <?start ?> content <?end ?> after<?end ?>`,
+      {tail: true}
+    );
+  </script>
+</body>

@@ -37,7 +37,7 @@ async def test_unsubscribe(bidi_session):
 
 
 @pytest.mark.parametrize("type_hint", ["window", "tab"])
-async def test_create_context(bidi_session, subscribe_events, type_hint):
+async def test_create_context(bidi_session, configuration, subscribe_events, type_hint):
     await subscribe_events(events=[REALM_CREATED_EVENT])
 
     events = []
@@ -50,7 +50,7 @@ async def test_create_context(bidi_session, subscribe_events, type_hint):
 
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
 
-    await wait_for_bidi_events(bidi_session, events, 1, equal_check=False)
+    await wait_for_bidi_events(bidi_session, configuration, events, 1, equal_check=False)
 
     result = await bidi_session.script.get_realms(context=new_context["context"])
 
@@ -163,7 +163,7 @@ async def test_iframe(bidi_session, subscribe_events, top_context, inline, domai
 
 
 async def test_subscribe_to_one_context(
-    bidi_session, subscribe_events, new_tab, inline, top_context
+    bidi_session, configuration, subscribe_events, new_tab, inline, top_context
 ):
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
@@ -186,7 +186,7 @@ async def test_subscribe_to_one_context(
 
     # Make sure we didn't receive the event for the top context
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
+        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
 
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
@@ -234,6 +234,7 @@ async def test_script_when_realm_is_created(
 
 async def test_dedicated_worker(
     bidi_session,
+    configuration,
     subscribe_events,
     top_context,
     inline,
@@ -256,7 +257,7 @@ async def test_dedicated_worker(
         url=url, context=top_context["context"], wait="complete"
     )
 
-    await wait_for_bidi_events(bidi_session, events, 1)
+    await wait_for_bidi_events(bidi_session, configuration, events, 1)
     remove_listener()
 
     assert len(events) == 1
@@ -278,6 +279,7 @@ async def test_dedicated_worker(
 
 async def test_shared_worker(
     bidi_session,
+    configuration,
     subscribe_events,
     top_context,
     inline,
@@ -303,7 +305,7 @@ async def test_shared_worker(
         url=url, context=top_context["context"], wait="complete"
     )
 
-    await wait_for_bidi_events(bidi_session, events, 1)
+    await wait_for_bidi_events(bidi_session, configuration, events, 1)
     remove_listener()
 
     assert len(events) == 1
@@ -320,6 +322,7 @@ async def test_shared_worker(
 
 async def test_service_worker(
     bidi_session,
+    configuration,
     subscribe_events,
     top_context,
     inline,
@@ -347,7 +350,7 @@ async def test_service_worker(
         url=url, context=top_context["context"], wait="complete"
     )
 
-    await wait_for_bidi_events(bidi_session, events, 1)
+    await wait_for_bidi_events(bidi_session, configuration, events, 1)
     remove_listener()
 
     assert len(events) == 1
@@ -396,6 +399,7 @@ async def test_existing_realm(bidi_session, wait_for_event, wait_for_future_safe
 
 async def test_dedicated_worker_subscribe_to_one_context(
     bidi_session,
+    configuration,
     subscribe_events,
     new_tab,
     top_context,
@@ -426,7 +430,7 @@ async def test_dedicated_worker_subscribe_to_one_context(
         url=url, context=new_tab["context"], wait="complete"
     )
 
-    await wait_for_bidi_events(bidi_session, events, 1)
+    await wait_for_bidi_events(bidi_session, configuration, events, 1)
 
     assert len(events) == 1
 
@@ -457,13 +461,14 @@ async def test_dedicated_worker_subscribe_to_one_context(
 
     # Check that no realm created event was emitted.
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
+        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
 
     remove_listener()
 
 
 async def test_dedicated_worker_subscribe_to_user_context(
     bidi_session,
+    configuration,
     subscribe_events,
     create_user_context,
     inline,
@@ -495,7 +500,7 @@ async def test_dedicated_worker_subscribe_to_user_context(
         url=url, context=context_a["context"], wait="complete"
     )
 
-    await wait_for_bidi_events(bidi_session, events, 1)
+    await wait_for_bidi_events(bidi_session, configuration, events, 1)
 
     assert len(events) == 1
 
@@ -529,6 +534,6 @@ async def test_dedicated_worker_subscribe_to_user_context(
 
     # Check that no realm created event was emitted.
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
+        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
 
     remove_listener()

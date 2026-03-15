@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com"><style>
+body {
+  margin: 0;
+}
+
+.flex {
+  display: flex;
+  flex-wrap: wrap;
+  width: 130px;
+  column-gap: 10px;
+  row-gap: 10px;
+  background: green;
+}
+
+.item {
+  width: 60px;
+}
+
+.tall {
+  height: 50px;
+  background: lightblue;
+}
+
+.zero {
+  height: 0;
+  background: red;
+}
+
+.column-rule {
+  position: absolute;
+  top: 0px;
+  left: 60px;
+  height: 120px;
+  background: gold;
+  width: 10px;
+}
+
+.row-rule {
+  position: absolute;
+  top: 50px;
+  height: 20px;
+  width: 130px;
+  left: 0px;
+  background: blue;
+}
+</style>
+<div class="column-rule"></div>
+<div class="row-rule"></div>
+<div class="flex">
+  <div class="item tall"></div>
+  <div class="item tall"></div>
+  <div class="item zero"></div>
+  <div class="item zero"></div>
+  <div class="item tall"></div>
+  <div class="item tall"></div>
+</div>

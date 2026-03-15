@@ -3,6 +3,7 @@
   border: 1px solid;
   width: 150px;
   height: 1lh;
+  box-sizing: border-box;
 }
 
 .customizable-combobox-datalist {

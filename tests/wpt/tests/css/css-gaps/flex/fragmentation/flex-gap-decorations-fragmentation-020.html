@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Fragmented flex container gaps are painted when a fragment processes a line not in
+    ascending order.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="match" href="flex-gap-decorations-fragmentation-020-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body {
+    margin: 0px;
+  }
+  .multicol {
+    column-count: 5;
+    width: 600px;
+    column-gap: 1px;
+    height: 101px;
+  }
+  #flex {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    height: 500px;
+    border: 1px solid black;
+    column-gap: 3px;
+    column-rule: 3px solid green;
+    row-gap: 3px;
+    row-rule: 3px solid gold;
+  }
+
+  #flex > div {
+    background: lightblue;
+  }
+</style>
+<div class="multicol">
+  <div id="flex" style="">
+    <div style="height: 100px;"></div>
+    <div style="height: 50px;"></div>
+    <div style="height: 50px;"></div>
+    <div style="height: 250px;"></div>
+    <div style="height: 400px;"></div>
+  </div>
+</div>

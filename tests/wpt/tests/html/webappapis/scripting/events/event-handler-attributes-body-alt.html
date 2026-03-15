@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<title>HTMLBodyElement event handlers: reflection from document.createElement("body")</title>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="resources/event-handler-body.js"></script>
+
+<body>
+<script>
+setup({ explicit_done: true });
+
+handlersListPromise.then(({ shadowedHandlers, notShadowedHandlers }) => {
+  const altBody = document.createElement("body");
+  runEventHandlerReflectionTest(shadowedHandlers, notShadowedHandlers, 'document.createElement("body")', altBody, document.body, window, "alternative body", "body", "window");
+
+  done();
+});
+</script>

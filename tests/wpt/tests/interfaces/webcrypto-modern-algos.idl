@@ -80,6 +80,16 @@ dictionary CShakeParams : Algorithm {
   BufferSource customization;
 };
 
+dictionary TurboShakeParams : Algorithm {
+  required [EnforceRange] unsigned long outputLength;
+  [EnforceRange] octet domainSeparation;
+};
+
+dictionary KangarooTwelveParams : Algorithm {
+  required [EnforceRange] unsigned long outputLength;
+  BufferSource customization;
+};
+
 dictionary KmacKeyGenParams : Algorithm {
   [EnforceRange] unsigned long length;
 };

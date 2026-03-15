@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<title>The revert-rule keyword: interaction with shadow DOM scopes</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-rule-keyword">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Test 1: revert-rule in document rule falls back to :host rule -->
+<div id="host1"></div>
+<script>
+host1.attachShadow({mode: 'open'}).innerHTML = `
+<style>
+  :host { color: green; }
+</style>
+`;
+</script>
+<style>
+  #host1 {
+    color: red;
+    color: revert-rule;
+  }
+</style>
+<script>
+  test(() => {
+    assert_true(CSS.supports('color:revert-rule'));
+    assert_equals(getComputedStyle(host1).color, 'rgb(0, 128, 0)');
+  }, 'revert-rule in document rule falls back to :host rule');
+</script>
+
+<!-- Test 2: revert-rule in document rule falls back to ::slotted rule -->
+<div id="host2"><div id="slotted2"></div></div>
+<script>
+host2.attachShadow({mode: 'open'}).innerHTML = `
+<style>
+  ::slotted(*) { color: green; }
+</style>
+<slot></slot>
+`;
+</script>
+<style>
+  #slotted2 {
+    color: red;
+    color: revert-rule;
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(slotted2).color, 'rgb(0, 128, 0)');
+  }, 'revert-rule in document rule falls back to ::slotted rule');
+</script>
+
+<!-- Test 3: revert-rule in :host rule has no effect when a document rule wins -->
+<div id="host3"></div>
+<script>
+host3.attachShadow({mode: 'open'}).innerHTML = `
+<style>
+  :host { color: revert-rule; }
+</style>
+`;
+</script>
+<style>
+  #host3 { color: green; }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(host3).color, 'rgb(0, 128, 0)');
+  }, 'revert-rule in :host rule has no effect when a document rule already wins');
+</script>
+
+<!-- Test 4: revert-rule in document rule with no fallback falls through to unset -->
+<div id="host4"></div>
+<script>
+host4.attachShadow({mode: 'open'}).innerHTML = `<slot></slot>`;
+</script>
+<style>
+  #host4 {
+    color: red;
+    color: revert-rule;
+  }
+</style>
+<script>
+  test(() => {
+    // No :host rule exists; color is inherited from the document body (rgb(0,0,0)).
+    assert_equals(getComputedStyle(host4).color, 'rgb(0, 0, 0)');
+  }, 'revert-rule with no shadow fallback falls through to unset (inherited)');
+</script>
+
+<!-- Test 5: revert-rule in document rule, multiple competing :host rules -->
+<div id="host5"></div>
+<script>
+host5.attachShadow({mode: 'open'}).innerHTML = `
+<style>
+  :host { color: green; }
+  :host { color: red; }
+</style>
+`;
+</script>
+<style>
+  #host5 {
+    color: blue;
+    color: revert-rule;
+  }
+</style>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(host5).color, 'rgb(255, 0, 0)');
+  }, 'revert-rule in document rule falls back to the winning :host rule');
+</script>
+
+<!-- Test 6: revert-rule in document rule, :host rule also reverts -->
+<div id="host6"></div>
+<script>
+host6.attachShadow({mode: 'open'}).innerHTML = `
+<style>
+  :host { color: green; }
+  :host { color: revert-rule; }
+</style>
+`;
+</script>
+<style>
+  #host6 {
+    color: blue;
+    color: revert-rule;
+  }
+</style>
+<script>
+  test(() => {
+    // The document revert-rule falls back to the :host block. Within the :host
+    // block, the second :host rule says revert-rule, which falls back to the
+    // first :host rule's green.
+    assert_equals(getComputedStyle(host6).color, 'rgb(0, 128, 0)');
+  }, 'revert-rule chain across document rule and :host rule');
+</script>
+
+<!-- Test 7: revert-rule in ::part() rule falls back to earlier ::part() rule -->
+<div id="host7"></div>
+<script>
+{
+  const shadow = host7.attachShadow({mode: 'open'});
+  shadow.innerHTML = `<span id="p7" part="mypart">text</span>`;
+}
+</script>
+<style>
+  #host7::part(mypart) { color: green; }
+  #host7::part(mypart) { color: revert-rule; }
+</style>
+<script>
+  test(() => {
+    const part = host7.shadowRoot.getElementById('p7');
+    assert_equals(getComputedStyle(part).color, 'rgb(0, 128, 0)');
+  }, 'revert-rule in ::part() rule falls back to earlier ::part() rule');
+</script>
+
+<!-- Test 8: revert-rule in ::part() rule falls back to shadow-internal rule -->
+<div id="host8"></div>
+<script>
+{
+  const shadow = host8.attachShadow({mode: 'open'});
+  shadow.innerHTML = `
+    <style>span { color: green; }</style>
+    <span id="p8" part="mypart">text</span>
+  `;
+}
+</script>
+<style>
+  #host8::part(mypart) { color: revert-rule; }
+</style>
+<script>
+  test(() => {
+    // The ::part() rule reverts, falling back to the shadow-internal span rule (green).
+    const part = host8.shadowRoot.getElementById('p8');
+    assert_equals(getComputedStyle(part).color, 'rgb(0, 128, 0)');
+  }, 'revert-rule in ::part() rule falls back to shadow-internal rule');
+</script>
+
+<!-- Test 9: revert-rule in shadow-internal rule, ::part() rule wins -->
+<div id="host9"></div>
+<script>
+{
+  const shadow = host9.attachShadow({mode: 'open'});
+  shadow.innerHTML = `
+    <style>
+      span { color: blue; }
+      span { color: revert-rule; }
+    </style>
+    <span id="p9" part="mypart">text</span>
+  `;
+}
+</script>
+<style>
+  #host9::part(mypart) { color: green; }
+</style>
+<script>
+  test(() => {
+    // The ::part() rule in the document wins. revert-rule inside the shadow
+    // does not affect the winning ::part() declaration.
+    const part = host9.shadowRoot.getElementById('p9');
+    assert_equals(getComputedStyle(part).color, 'rgb(0, 128, 0)');
+  }, 'revert-rule in shadow-internal rule has no effect when ::part() rule wins');
+</script>
+
+<!-- Test 10: revert-rule chain across two ::part() rules -->
+<div id="host10"></div>
+<script>
+{
+  const shadow = host10.attachShadow({mode: 'open'});
+  shadow.innerHTML = `<span id="p10" part="mypart">text</span>`;
+}
+</script>
+<style>
+  #host10::part(mypart) { color: red; }
+  #host10::part(mypart) { color: green; }
+  #host10::part(mypart) { color: revert-rule; }
+</style>
+<script>
+  test(() => {
+    // Third rule reverts to what would exist without it → second rule (green).
+    const part = host10.shadowRoot.getElementById('p10');
+    assert_equals(getComputedStyle(part).color, 'rgb(0, 128, 0)');
+  }, 'revert-rule in third ::part() rule falls back to second ::part() rule');
+</script>
+
+<!-- Test 11: revert-rule in ::part() and :host on same host element -->
+<div id="host11"></div>
+<script>
+{
+  const shadow = host11.attachShadow({mode: 'open'});
+  shadow.innerHTML = `
+    <style>:host { color: blue; }</style>
+    <span id="p11" part="mypart">text</span>
+  `;
+}
+</script>
+<style>
+  #host11 { color: red; color: revert-rule; }
+  #host11::part(mypart) { color: green; }
+</style>
+<script>
+  test(() => {
+    // Host color reverts to :host rule (blue).
+    assert_equals(getComputedStyle(host11).color, 'rgb(0, 0, 255)');
+    // Part color is set by ::part() rule (green), independent of host revert.
+    const part = host11.shadowRoot.getElementById('p11');
+    assert_equals(getComputedStyle(part).color, 'rgb(0, 128, 0)');
+  }, 'revert-rule on host and ::part() rule on part are independent');
+</script>
+
+<!-- Test 12: revert-rule in ::part() rule falls back across selector specificity -->
+<div id="host12" class="host12cls"></div>
+<script>
+{
+  const shadow = host12.attachShadow({mode: 'open'});
+  shadow.innerHTML = `<span id="p12" part="mypart">text</span>`;
+}
+</script>
+<style>
+  #host12::part(mypart) { color: green; }
+  #host12.host12cls::part(mypart) { color: revert-rule; }
+</style>
+<script>
+  test(() => {
+    // Higher specificity rule reverts, so falls back to the lower-specificity green.
+    const part = host12.shadowRoot.getElementById('p12');
+    assert_equals(getComputedStyle(part).color, 'rgb(0, 128, 0)');
+  }, 'revert-rule in higher-specificity ::part() rule falls back to lower-specificity ::part() rule');
+</script>

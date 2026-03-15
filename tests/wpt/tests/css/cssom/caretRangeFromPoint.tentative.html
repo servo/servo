@@ -15,11 +15,7 @@
   };
 </style>
 <div id="div">abc</div>
-<div id="shadow">
-  <template shadowrootmode="open">
-    <div>def</div>
-  </template>
-</div>
+<div id="shadow"><template shadowrootmode="open"><div>def</div></template></div>
 
 <canvas id="canvas" width="500" height="500"></canvas>
 <input id="input" value="aaaaaaaaaaaaaaaaaaaaaaaaaaa">
@@ -95,7 +91,7 @@
   test(() => {
     const shadowDiv = shadow.shadowRoot.querySelector("div");
     const rect = shadow.getBoundingClientRect();
-    const characterWidth = rect.width / shadow.textContent.length;
+    const characterWidth = rect.width / shadow.shadowRoot.textContent.length;
     const characterIndex = 2;
     const x = rect.left + characterWidth * characterIndex;
     const y = rect.top + rect.height / 2;
@@ -104,8 +100,8 @@
     assert_true(range instanceof Range);
     assert_equals(range.startContainer, point.offsetNode);
     assert_equals(range.endContainer, point.offsetNode);
-    assert_equals(range.startOffset, characterIndex);
-    assert_equals(range.endOffset, characterIndex);
+    assert_equals(range.startOffset, point.offset);
+    assert_equals(range.endOffset, point.offset);
     assert_true(range.collapsed);
   }, "document.caretRangeFromPoint() on a shadow should return a Range pointing at the same node as caretPositionFromPoint");
 

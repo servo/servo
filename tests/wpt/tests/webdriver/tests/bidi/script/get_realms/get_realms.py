@@ -4,10 +4,12 @@ from webdriver.bidi.modules.script import ContextTarget
 
 from ... import any_string, recursive_compare
 
+pytestmark = pytest.mark.asyncio
+
+
 PAGE_ABOUT_BLANK = "about:blank"
 
 
-@pytest.mark.asyncio
 async def test_payload_types(bidi_session):
     result = await bidi_session.script.get_realms()
 
@@ -23,7 +25,6 @@ async def test_payload_types(bidi_session):
     )
 
 
-@pytest.mark.asyncio
 async def test_realm_is_consistent_when_calling_twice(bidi_session):
     result = await bidi_session.script.get_realms()
 
@@ -32,7 +33,6 @@ async def test_realm_is_consistent_when_calling_twice(bidi_session):
     assert result[0]["realm"] == result_calling_again[0]["realm"]
 
 
-@pytest.mark.asyncio
 async def test_realm_is_different_after_reload(bidi_session, top_context):
     result = await bidi_session.script.get_realms()
 
@@ -46,7 +46,6 @@ async def test_realm_is_different_after_reload(bidi_session, top_context):
     assert result[0]["realm"] != result_after_reload[0]["realm"]
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("type_hint", ["tab", "window"])
 async def test_multiple_top_level_contexts(bidi_session, top_context, type_hint):
     new_context = await bidi_session.browsing_context.create(type_hint=type_hint)
@@ -85,7 +84,6 @@ async def test_multiple_top_level_contexts(bidi_session, top_context, type_hint)
     )
 
 
-@pytest.mark.asyncio
 async def test_iframes(
     bidi_session,
     top_context,
@@ -147,7 +145,6 @@ async def test_iframes(
     )
 
 
-@pytest.mark.asyncio
 async def test_origin(bidi_session, inline, top_context, test_origin):
     url = inline("<div>foo</div>")
     await bidi_session.browsing_context.navigate(

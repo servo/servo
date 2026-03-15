@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>TextPath path-length with display:none path</title>
+  <metadata>
+    <html:link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com"/>
+    <html:link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathLengthAttribute"/>
+    <html:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextPathElement"/>
+    <html:link rel="match" href="textpath-pathlength-css-display-none-ref.tentative.svg"/>
+  </metadata>
+
+  <style>
+    text { font-family: sans-serif; font-size: 20px; fill: black; }
+  </style>
+
+  <defs>
+    <path id="path1" d="M10 60 L210 60" style="display:none; path-length:10"/>
+  </defs>
+
+  <text>
+     <textPath href="#path1" startOffset="5">X</textPath>
+  </text>
+</svg>
+

@@ -4,8 +4,9 @@ from webdriver.bidi.modules.script import ContextTarget, ScriptEvaluateResultExc
 from ... import recursive_compare
 from .. import specific_error_response
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_strict_mode(bidi_session, top_context):
     # As long as there is no `SOME_VARIABLE`, the command should fail in strict mode.
     with pytest.raises(ScriptEvaluateResultException) as exception:

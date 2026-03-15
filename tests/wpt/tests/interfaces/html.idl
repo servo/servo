@@ -363,6 +363,7 @@ interface HTMLAnchorElement : HTMLElement {
 
   // also has obsolete members
 };
+HTMLAnchorElement includes HyperlinkElementUtils;
 HTMLAnchorElement includes HTMLHyperlinkElementUtils;
 
 [Exposed=Window]
@@ -391,8 +392,7 @@ interface HTMLBRElement : HTMLElement {
   // also has obsolete members
 };
 
-interface mixin HTMLHyperlinkElementUtils {
-  [CEReactions, ReflectSetter] stringifier attribute USVString href;
+interface mixin HyperlinkElementUtils {
   readonly attribute USVString origin;
   [CEReactions] attribute USVString protocol;
   [CEReactions] attribute USVString username;
@@ -403,6 +403,10 @@ interface mixin HTMLHyperlinkElementUtils {
   [CEReactions] attribute USVString pathname;
   [CEReactions] attribute USVString search;
   [CEReactions] attribute USVString hash;
+};
+
+interface mixin HTMLHyperlinkElementUtils {
+  [CEReactions, ReflectSetter] stringifier attribute USVString href;
 };
 
 [Exposed=Window]
@@ -765,6 +769,7 @@ interface HTMLAreaElement : HTMLElement {
 
   // also has obsolete members
 };
+HTMLAreaElement includes HyperlinkElementUtils;
 HTMLAreaElement includes HTMLHyperlinkElementUtils;
 
 [Exposed=Window]
@@ -2695,11 +2700,15 @@ Worker includes MessageEventTarget;
 
 [Exposed=Window]
 interface SharedWorker : EventTarget {
-  constructor((TrustedScriptURL or USVString) scriptURL, optional (DOMString or WorkerOptions) options = {});
+  constructor((TrustedScriptURL or USVString) scriptURL, optional (DOMString or SharedWorkerOptions) options = {});
 
   readonly attribute MessagePort port;
 };
 SharedWorker includes AbstractWorker;
+
+dictionary SharedWorkerOptions : WorkerOptions {
+  boolean extendedLifetime = false;
+};
 
 interface mixin NavigatorConcurrentHardware {
   readonly attribute unsigned long long hardwareConcurrency;

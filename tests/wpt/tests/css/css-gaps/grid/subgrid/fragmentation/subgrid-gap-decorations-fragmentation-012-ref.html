@@ -17,7 +17,7 @@
   .grid-container {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    grid-template-rows: 20px 10px 20px 20px 10px 20px 20px 10px 10px;
+    grid-template-rows: 20px 10px 20px 20px 10px 10px 10px 10px 10px 10px 10px;
     background: lightgray;
     column-gap: 10px;
     height: 140px;
@@ -28,7 +28,7 @@
     grid-template-rows: subgrid;
     background: orange;
     grid-column: 2 / -2;
-    grid-row: 3 / -4;
+    grid-row: 3 / 8;
   }
   .inner-subgrid {
     display: grid;
@@ -73,8 +73,8 @@
       <div class="inner-subgrid">
         <div class="item"></div>
         <div class="item"></div>
-        <div class="item" style="grid-row: -1;"></div>
-        <div class="item" style="grid-row: -1;"></div>
+        <div class="item" style="grid-row: 3/5;"></div>
+        <div class="item" style="grid-row: 3/5;"></div>
       </div>
     </div>
   </div>
@@ -97,7 +97,13 @@
     <div class="col-gap" style="background: red;"></div>
     <div class="col-gap"></div>
   </div>
-  <div class="col-gap-group" style="left: 300px; height: 20px">
+  <div class="col-gap-group" style="left: 300px; height: 10px">
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+    <div class="col-gap"></div>
+  </div>
+  <div class="col-gap-group" style="left: 300px; height: 20px; top: 20px;">
     <div class="col-gap"></div>
     <div class="col-gap"></div>
     <div class="col-gap"></div>
@@ -107,10 +113,15 @@
   <div class="row-gap-group">
     <div class="row-gap"></div>
   </div>
-  <div class="row-gap-group" style="left: 140px;">
-    <div class="row-gap"></div>
+  <div class="row-gap-group" style="flex-direction: row; width: 140px; top: 30px; left: 140px;">
+    <div class="row-gap" style="width: 30px;"></div>
+    <div style="width: 80px; height: 10px;"></div>
+    <div class="row-gap" style="width: 30px;"></div>
   </div>
   <div class="row-gap-group" style="top: 20px; left: 170px; width: 80px;">
     <div class="row-gap" style="background: blue;"> </div>
+  </div>
+  <div class="row-gap-group" style="left: 280px; top: 10px;">
+    <div class="row-gap"></div>
   </div>
 </div>

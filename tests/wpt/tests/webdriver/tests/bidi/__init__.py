@@ -279,12 +279,14 @@ def remote_mapping_to_dict(js_object) -> Dict:
     return obj
 
 
-async def wait_for_bidi_events(bidi_session, events, count, timeout=2, equal_check=True):
+async def wait_for_bidi_events(bidi_session, configuration, events, count, timeout=2, equal_check=True):
     def check_bidi_events(_, events, count):
         assert len(
             events) >= count, f"Did not receive at least {count} BiDi event(s)"
 
-    wait = AsyncPoll(bidi_session, timeout=timeout)
+    final_timeout = timeout * configuration["timeout_multiplier"]
+
+    wait = AsyncPoll(bidi_session, timeout=final_timeout)
     await wait.until(check_bidi_events, events, count)
 
     if equal_check:

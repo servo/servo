@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<title>Element scroll promises are interrupted correctly</title>
+<meta name="timeout" content="long">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="author" title="Mustaq Ahmed" href="mailto:mustaq@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#scrolling">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  .filler { height: 5000px }
+
+  #scroller {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+<div id="scroller">
+  <div class="filler"></div>
+  <div class="filler"></div>
+  <div class="filler"></div>
+</div>
+<script>
+  "use strict";
+
+  const scroller = document.getElementById("scroller");
+
+  function resetScrollPosition() {
+    scroller.scrollTop = 0;
+    assert_equals(scroller.scrollTop, 0, "Sanity check initial position");
+  }
+
+  promise_setup(async () => {
+    await waitForCompositorReady();
+  });
+
+  for (const scroll_method of ["scrollTo", "scrollBy"]) {
+    promise_test(async () => {
+      resetScrollPosition();
+
+      const pos1 = 5000;
+      let promise1 = scroller[scroll_method]({ top: pos1, behavior: "smooth" });
+
+      const pos2 = 10000;
+      scroller.scrollTop = pos2;
+
+      assert_equals(scroller.scrollTop, pos2, "Position before promise wait");
+      await promise1;
+      assert_equals(scroller.scrollTop, pos2, "Position after interruption");
+    }, `Element.${scroll_method} interruption by a non-promise scroll call`);
+  }
+
+  for (const interrupt_behavior of ["auto", "smooth"]) {
+    promise_test(async () => {
+      resetScrollPosition();
+
+      const pos1 = 5000;
+      let promise1 = scroller.scrollTo({ top: pos1, behavior: "smooth" });
+
+      const pos2 = 10000;
+      let promise2 =
+            scroller.scrollTo({ top: pos2, behavior: interrupt_behavior });
+
+      assert_not_equals(scroller.scrollTop, pos1,
+            "Position before first promise wait");
+      await promise1;
+      assert_not_equals(scroller.scrollTop, pos1,
+            "Position after first promise wait");
+
+      await promise2;
+      assert_equals(scroller.scrollTop, pos2,
+            "Position after interrupting promise wait");
+    }, `Element.scrollTo: interruption by ${interrupt_behavior} scroll call`);
+
+    promise_test(async () => {
+      resetScrollPosition();
+
+      const pos1 = 5000;
+      let promise1 = scroller.scrollBy({ top: pos1, behavior: "smooth" });
+
+      const pos2 = 2000;
+      let promise2 =
+            scroller.scrollBy({ top: pos2, behavior: interrupt_behavior });
+
+      assert_not_equals(scroller.scrollTop, pos1,
+            "Position before first promise wait");
+      await promise1;
+      assert_not_equals(scroller.scrollTop, pos1,
+            "Position after first promise wait");
+
+      await promise2;
+      assert_equals(scroller.scrollTop, pos2,
+            "Position after interrupting promise wait");
+    }, `Element.scrollBy: interruption by ${interrupt_behavior} scroll call`);
+  }
+
+
+</script>

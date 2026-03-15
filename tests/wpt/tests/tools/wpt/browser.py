@@ -89,7 +89,7 @@ def get_file_github(repo: str, ref: str, path: str) -> bytes:
     return data
 
 
-class Browser(metaclass=ABCMeta):
+class Browser:
     def __init__(self, logger):
         self.logger = logger
 
@@ -141,7 +141,6 @@ class Browser(metaclass=ABCMeta):
 
         return output_path
 
-    @abstractmethod
     def download(self, dest=None, channel=None, rename=None):
         """Download a package or installer for the browser
         :param dest: Directory in which to put the dowloaded package
@@ -150,9 +149,8 @@ class Browser(metaclass=ABCMeta):
                        extension is preserved.
         :return: The path to the downloaded package/installer
         """
-        return NotImplemented
+        raise NotImplementedError
 
-    @abstractmethod
     def install(self, dest=None, channel=None):
         """Download and install the browser.
 
@@ -162,9 +160,8 @@ class Browser(metaclass=ABCMeta):
         :param channel: Browser channel to install
         :return: The path to the installed browser
         """
-        return NotImplemented
+        raise NotImplementedError
 
-    @abstractmethod
     def install_webdriver(self, dest=None, channel=None, browser_binary=None):
         """Download and install the WebDriver implementation for this browser.
 
@@ -173,9 +170,8 @@ class Browser(metaclass=ABCMeta):
         :param browser_binary: The path to the browser binary
         :return: The path to the installed WebDriver
         """
-        return NotImplemented
+        raise NotImplementedError
 
-    @abstractmethod
     def find_binary(self, venv_path=None, channel=None):
         """Find the binary of the browser.
 
@@ -183,22 +179,20 @@ class Browser(metaclass=ABCMeta):
         method doesn't need to be implemented, in which case NotImplementedError
         is suggested to be raised to prevent accidental use.
         """
-        return NotImplemented
+        return None
 
-    @abstractmethod
     def find_webdriver(self, venv_path=None, channel=None):
         """Find the binary of the WebDriver."""
-        return NotImplemented
+        return None
 
-    @abstractmethod
     def version(self, binary=None, webdriver_binary=None):
         """Retrieve the release version of the installed browser."""
-        return NotImplemented
+        return None
 
-    @abstractmethod
+    @property
     def requirements(self):
         """Name of the browser-specific wptrunner requirements file"""
-        return NotImplemented
+        return None
 
 
 class FirefoxPrefs:
@@ -729,9 +723,6 @@ class FirefoxAndroid(Browser):
 
     def install_webdriver(self, dest=None, channel=None, browser_binary=None):
         return self._fx_browser.install_webdriver(dest, channel, None)
-
-    def version(self, binary=None, webdriver_binary=None):
-        return None
 
 
 class ChromeChromiumBase(Browser):
@@ -1565,12 +1556,6 @@ class HeadlessShell(ChromeChromiumBase):
         # TODO(crbug.com/344669542): Download binaries via CfT.
         raise NotImplementedError
 
-    def install(self, dest=None, channel=None):
-        raise NotImplementedError
-
-    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        raise NotImplementedError
-
     def find_binary(self, venv_path=None, channel=None):
         # `which()` adds `.exe` extension automatically for Windows.
         # Chromium builds an executable named `headless_shell`, whereas CfT
@@ -1596,15 +1581,9 @@ class ChromeAndroidBase(Browser, metaclass=ABCMeta):
         self.device_serial = None
         self.adb_binary = "adb"
 
-    def download(self, dest=None, channel=None, rename=None):
-        raise NotImplementedError
-
-    def install(self, dest=None, channel=None):
-        raise NotImplementedError
-
     @abstractmethod
     def find_binary(self, venv_path=None, channel=None):
-        raise NotImplementedError
+        pass
 
     def find_webdriver(self, venv_path=None, channel=None):
         return which("chromedriver")
@@ -1690,21 +1669,6 @@ class ChromeiOS(Browser):
     product = "chrome_ios"
     requirements = None
 
-    def download(self, dest=None, channel=None, rename=None):
-        raise NotImplementedError
-
-    def install(self, dest=None, channel=None):
-        raise NotImplementedError
-
-    def find_binary(self, venv_path=None, channel=None):
-        raise NotImplementedError
-
-    def find_webdriver(self, venv_path=None, channel=None):
-        raise NotImplementedError
-
-    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        raise NotImplementedError
-
     def version(self, binary=None, webdriver_binary=None):
         if webdriver_binary is None:
             self.logger.warning(
@@ -1742,12 +1706,6 @@ class Opera(Browser):
         self.logger.warning("Unable to find the browser binary.")
         return None
 
-    def download(self, dest=None, channel=None, rename=None):
-        raise NotImplementedError
-
-    def install(self, dest=None, channel=None):
-        raise NotImplementedError
-
     def platform_string(self):
         platform = {
             "Linux": "linux",
@@ -1766,9 +1724,6 @@ class Opera(Browser):
             bits = "32"
 
         return "%s%s" % (platform, bits)
-
-    def find_binary(self, venv_path=None, channel=None):
-        raise NotImplementedError
 
     def find_webdriver(self, venv_path=None, channel=None):
         return which("operadriver")
@@ -1914,9 +1869,6 @@ class Edge(Browser):
 
     def find_webdriver(self, venv_path=None, channel=None):
         return which("msedgedriver")
-
-    def install(self, dest=None, channel=None):
-        raise NotImplementedError
 
     def install_webdriver(self, dest=None, channel=None, browser_binary=None):
         if dest is None:
@@ -2229,17 +2181,11 @@ class Safari(Browser):
         # requires admin permissions to install.
         raise NotImplementedError
 
-    def find_binary(self, venv_path=None, channel=None):
-        raise NotImplementedError
-
     def find_webdriver(self, venv_path=None, channel=None):
         path = None
         if channel == "preview":
             path = "/Applications/Safari Technology Preview.app/Contents/MacOS"
         return which("safaridriver", path=path)
-
-    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        raise NotImplementedError
 
     def version(self, binary=None, webdriver_binary=None):
         if webdriver_binary is None:
@@ -2326,12 +2272,6 @@ class Servo(Browser):
             path = which("servo")
         return path
 
-    def find_webdriver(self, venv_path=None, channel=None):
-        return None
-
-    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        raise NotImplementedError
-
     def version(self, binary=None, webdriver_binary=None):
         """Retrieve the release version of the installed browser."""
         output = call(binary, "--version")
@@ -2350,24 +2290,6 @@ class Sauce(Browser):
     product = "sauce"
     requirements = "requirements_sauce.txt"
 
-    def download(self, dest=None, channel=None, rename=None):
-        raise NotImplementedError
-
-    def install(self, dest=None, channel=None):
-        raise NotImplementedError
-
-    def find_binary(self, venev_path=None, channel=None):
-        raise NotImplementedError
-
-    def find_webdriver(self, venv_path=None, channel=None):
-        raise NotImplementedError
-
-    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        raise NotImplementedError
-
-    def version(self, binary=None, webdriver_binary=None):
-        return None
-
 
 class WebKit(Browser):
     """WebKit-specific interface."""
@@ -2375,42 +2297,15 @@ class WebKit(Browser):
     product = "webkit"
     requirements = None
 
-    def download(self, dest=None, channel=None, rename=None):
-        raise NotImplementedError
-
-    def install(self, dest=None, channel=None):
-        raise NotImplementedError
-
-    def find_binary(self, venv_path=None, channel=None):
-        return None
-
-    def find_webdriver(self, venv_path=None, channel=None):
-        return None
-
-    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        raise NotImplementedError
-
-    def version(self, binary=None, webdriver_binary=None):
-        return None
-
 class Ladybird(Browser):
     product = "ladybird"
     requirements = None
-
-    def download(self, dest=None, channel=None, rename=None):
-        raise NotImplementedError
-
-    def install(self, dest=None, channel=None):
-        raise NotImplementedError
 
     def find_binary(self, venv_path=None, channel=None):
         return which("ladybird")
 
     def find_webdriver(self, venv_path=None, channel=None):
         return which("WebDriver")
-
-    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        raise NotImplementedError
 
     def version(self, binary=None, webdriver_binary=None):
         if not binary:
@@ -2515,15 +2410,9 @@ class WebKitTestRunner(Browser):
         with open(installer_path, "rb") as f:
             unzip(f, dest)
 
-    def install_webdriver(self, dest=None, channel="main", browser_binary=None):
-        raise NotImplementedError
-
     def find_binary(self, venv_path=None, channel="main"):
         path = self._get_browser_binary_dir(venv_path, channel)
         return which("WebKitTestRunner", path=os.path.join(path, "Release"))
-
-    def find_webdriver(self, venv_path=None, channel="main"):
-        return None
 
     def version(self, binary=None, webdriver_binary=None):
         dirname = os.path.dirname(binary)
@@ -2704,20 +2593,11 @@ class Epiphany(Browser):
     product = "epiphany"
     requirements = None
 
-    def download(self, dest=None, channel=None, rename=None):
-        raise NotImplementedError
-
-    def install(self, dest=None, channel=None):
-        raise NotImplementedError
-
     def find_binary(self, venv_path=None, channel=None):
         return which("epiphany")
 
     def find_webdriver(self, venv_path=None, channel=None):
         return which("WebKitWebDriver")
-
-    def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        raise NotImplementedError
 
     def version(self, binary=None, webdriver_binary=None):
         if binary is None:

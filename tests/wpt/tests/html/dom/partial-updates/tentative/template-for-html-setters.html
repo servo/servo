@@ -1,0 +1,189 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates: patching via various HTML setters</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    function parseHTML(container, method, content) {
+      switch (method) {
+        case "innerHTML":
+          container.innerHTML = content;
+          break;
+        case "outerHTML":
+          container.outerHTML = content;
+          break;
+        case "setHTMLUnsafe":
+          container.setHTMLUnsafe(content);
+          break;
+        case "insertAdjacentHTML":
+          container.insertAdjacentHTML("afterbegin", content);
+          break;
+        case "appendHTMLUnsafe":
+          container.appendHTMLUnsafe(content);
+          break;
+        case "prependHTMLUnsafe":
+          container.prependHTMLUnsafe(content);
+          break;
+        case "beforeHTMLUnsafe":
+          container.beforeHTMLUnsafe(content);
+          break;
+        case "afterHTMLUnsafe":
+          container.afterHTMLUnsafe(content);
+          break;
+        case "replaceWithHTMLUnsafe":
+          container.replaceWithHTMLUnsafe(content);
+          break;
+        case "createContextualFragment":
+          const fragment = new Range().createContextualFragment(content);
+          container.appendChild(fragment);
+          break;
+      }
+    }
+
+    for (const method of [
+      "innerHTML",
+      "outerHTML",
+      "setHTMLUnsafe",
+      "insertAdjacentHTML",
+      "appendHTMLUnsafe",
+      "prependHTMLUnsafe",
+      "beforeHTMLUnsafe",
+      "afterHTMLUnsafe",
+      "replaceWithHTMLUnsafe",
+      "createContextualFragment",
+    ]) {
+      test((t) => {
+        // Create an isolated iframe for the test
+        const iframe = document.createElement("iframe");
+        document.body.appendChild(iframe);
+        t.add_cleanup(() => iframe.remove());
+
+        const iframeDoc = iframe.contentDocument;
+
+        // 1. Setup the target in the head
+        iframeDoc.head.innerHTML = `<?start>Old content<?end>`;
+        iframeDoc.head.setAttribute("marker", "p");
+
+        // 2. Setup the test container in the body
+        const container = iframeDoc.createElement("div");
+        container.id = "container";
+        iframeDoc.body.appendChild(container);
+
+        // For outerHTML and replaceWithHTMLUnsafe, we can't operate on the container directly
+        // without losing it as an attachment point, so we create an inner target.
+        let targetElement = iframeDoc.body;
+        if (["outerHTML", "replaceWithHTMLUnsafe"].includes(method)) {
+          targetElement = container;
+        }
+
+        // Apply HTML using the setter. The template is in the body, but targets the marker in the head.
+        parseHTML(
+          targetElement,
+          method,
+          `<template for="p">New content</template>`,
+        );
+
+        assert_equals(
+          iframeDoc.head.textContent,
+          "Old content",
+          "Head target should not be patched",
+        );
+      }, `Setter ${method} should not patch existing target in head`);
+
+      test((t) => {
+        // Create an isolated iframe for the test
+        const iframe = document.createElement("iframe");
+        document.body.appendChild(iframe);
+        t.add_cleanup(() => iframe.remove());
+
+        const iframeDoc = iframe.contentDocument;
+
+        // 1. Setup the target in the head
+        iframeDoc.head.innerHTML = `<?start>Old content<?end>`;
+        iframeDoc.head.setAttribute("marker", "p");
+
+        // 2. Setup the test container in the body
+        const container = iframeDoc.createElement("div");
+        container.id = "container";
+        iframeDoc.body.appendChild(container);
+
+        // For outerHTML and replaceWithHTMLUnsafe, we can't operate on the container directly
+        // without losing it as an attachment point, so we create an inner target.
+        let targetElement = iframeDoc.body;
+        if (
+          [
+            "outerHTML",
+            "replaceWithHTMLUnsafe",
+            "afterHTMLUnsafe",
+            "beforeHTMLUnsafe",
+            "replaceWithHTMLUnsafe",
+          ].includes(method)
+        ) {
+          targetElement = container;
+        }
+
+        // Apply HTML using the setter. The template is in the body, but targets the marker in the head.
+        parseHTML(
+          targetElement,
+          method,
+          `<div marker=p><?start>DIV content</div><template for="p">New content</template>`,
+        );
+
+        assert_equals(
+          iframeDoc.head.textContent,
+          "Old content",
+          "Head should not be patched",
+        );
+        assert_equals(
+          iframeDoc.body.querySelector("div[marker=p]").textContent,
+          "New content",
+          "Inner target should be patched",
+        );
+      }, `Setter ${method} should patch targets inside the fragment`);
+
+      if (method !== "innerHTML" && method !== "setHTMLUnsafe") {
+        test((t) => {
+          const target = document.createElement("div");
+          target.innerHTML = `<?start>Old content<?end>`;
+          target.setAttribute("marker", `p-body-${method}`);
+          document.body.appendChild(target);
+
+          const container = document.createElement("div");
+          document.body.appendChild(container);
+
+          t.add_cleanup(() => {
+            target.remove();
+            container.remove();
+            document.querySelectorAll(`template[for="p-body-${method}"]`).forEach(el => el.remove());
+          });
+
+          let targetElement = document.body;
+          if (
+            [
+              "outerHTML",
+              "replaceWithHTMLUnsafe",
+              "afterHTMLUnsafe",
+              "beforeHTMLUnsafe",
+            ].includes(method)
+          ) {
+            targetElement = container;
+          }
+
+          parseHTML(
+            targetElement,
+            method,
+            `<template for="p-body-${method}">New content</template>`,
+          );
+
+          assert_equals(
+            target.textContent,
+            "Old content",
+            "Target in body outside the fragment should not be patched",
+          );
+        }, `Setter ${method} should not patch existing target in body`);
+      }
+    }
+  </script>
+</body>

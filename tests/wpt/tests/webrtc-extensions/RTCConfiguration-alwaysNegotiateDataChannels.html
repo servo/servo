@@ -1,0 +1,122 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpParameters encodings</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webrtc/third_party/sdp/sdp.js"></script>
+<script>
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const config = pc.getConfiguration();
+  assert_false(config.alwaysNegotiateDataChannels);
+}, 'alwaysNegotiateDataChannels defaults to false');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection({alwaysNegotiateDataChannels: true});
+  t.add_cleanup(() => pc.close());
+  const config = pc.getConfiguration();
+  assert_true(config.alwaysNegotiateDataChannels);
+}, 'alwaysNegotiateDataChannels is returned by getConfiguration');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection({alwaysNegotiateDataChannels: true});
+  t.add_cleanup(() => pc.close());
+  const offer = await pc.createOffer();
+  const sections = SDPUtils.splitSections(offer.sdp);
+  assert_equals(sections.length, 2);
+}, 'alwaysNegotiateDataChannels creates a datachannel m-line');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection({alwaysNegotiateDataChannels: false});
+  t.add_cleanup(() => pc.close());
+  const config = pc.getConfiguration();
+  config.alwaysNegotiateDataChannels = true;
+  pc.setConfiguration(config);
+  const offer = await pc.createOffer();
+  const sections = SDPUtils.splitSections(offer.sdp);
+  assert_equals(sections.length, 2);
+}, 'setConfiguration can modify alwaysNegotiateDataChannels from false to true');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection({alwaysNegotiateDataChannels: true});
+  t.add_cleanup(() => pc.close());
+  const config = pc.getConfiguration();
+  config.alwaysNegotiateDataChannels = false;
+  pc.setConfiguration(config);
+  const offer = await pc.createOffer();
+  const sections = SDPUtils.splitSections(offer.sdp);
+  assert_equals(sections.length, 1);
+}, 'setConfiguration can modify alwaysNegotiateDataChannels from true to false');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection({alwaysNegotiateDataChannels: false});
+  t.add_cleanup(() => pc.close());
+  let offer = await pc.createOffer();
+  let sections = SDPUtils.splitSections(offer.sdp);
+  assert_equals(sections.length, 1);
+
+  const config = pc.getConfiguration();
+  config.alwaysNegotiateDataChannels = true;
+  pc.setConfiguration(config);
+  offer = await pc.createOffer();
+  sections = SDPUtils.splitSections(offer.sdp);
+  assert_equals(sections.length, 2);
+}, 'setConfiguration can modify alwaysNegotiateDataChannels from false to true after createOffer');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection({alwaysNegotiateDataChannels: true});
+  t.add_cleanup(() => pc.close());
+  let offer = await pc.createOffer();
+  let sections = SDPUtils.splitSections(offer.sdp);
+  assert_equals(sections.length, 2);
+
+  const config = pc.getConfiguration();
+  config.alwaysNegotiateDataChannels = false;
+  pc.setConfiguration(config);
+  offer = await pc.createOffer();
+  sections = SDPUtils.splitSections(offer.sdp);
+  assert_equals(sections.length, 1);
+}, 'setConfiguration can modify alwaysNegotiateDataChannels from true to false after createOffer');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection({alwaysNegotiateDataChannels: false});
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  const config = pc1.getConfiguration();
+  config.alwaysNegotiateDataChannels = true;
+  pc1.setConfiguration(config);
+  const offer = await pc1.createOffer();
+  const sections = SDPUtils.splitSections(offer.sdp);
+  assert_equals(sections.length, 2);
+}, 'setConfiguration can modify alwaysNegotiateDataChannels from false to true after negotiation');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection({alwaysNegotiateDataChannels: true});
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  await pc1.setLocalDescription();
+  const sections = SDPUtils.splitSections(pc1.localDescription.sdp);
+  assert_equals(sections.length, 2);
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+
+  // Does not get negotiated away.
+  const config = pc1.getConfiguration();
+  config.alwaysNegotiateDataChannels = false;
+  pc1.setConfiguration(config);
+  const offer = await pc1.createOffer();
+  const newSections = SDPUtils.splitSections(offer.sdp);
+  assert_equals(newSections.length, 2);
+}, 'setConfiguration can modify alwaysNegotiateDataChannels from true to false after negotiation');
+</script>

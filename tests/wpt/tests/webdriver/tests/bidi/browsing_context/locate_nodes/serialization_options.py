@@ -3,12 +3,13 @@ import pytest
 from webdriver.bidi.modules.script import SerializationOptions
 from ... import any_string, recursive_compare
 
+pytestmark = pytest.mark.asyncio
+
 
 @pytest.mark.parametrize("mode", [
     "open",
     "closed"
 ])
-@pytest.mark.asyncio
 async def test_locate_nodes_serialization_options(bidi_session, top_context, get_test_page, mode):
     await bidi_session.browsing_context.navigate(
         context=top_context["context"],

@@ -82,7 +82,7 @@
 				</div>
 				<br />
 				<div class="no-wrap">
-					<span class="hanging">“これは、満たすための</span><br />文字です。”
+					<span class="hanging hanging-iq">”これは、満たすための</span><br />文字です。”
 				</div>
 			</div>
 		</div>
@@ -96,7 +96,7 @@
 				</div>
 				<br />
 				<div class="no-wrap">
-					これは、“満たす文<br />字”です。
+					これは、”満たす文字”<br />です。
 				</div>
 			</div>
 		</div>
@@ -104,5 +104,21 @@
 			<span class="attention">* You will need a Japanese font.</span><br />
 			If you are unable to see font glyphs for certain characters using the browsers default font, install the <a href="http://ossipedia.ipa.go.jp/ipafont/">IPA Font(http://ossipedia.ipa.go.jp/ipafont/)</a> and reload this page.
 		</p>
+	<script type="text/javascript">
+	//<![CDATA[
+	(function() {
+		var probe = document.createElement('span');
+		probe.textContent = '\u201C';
+		probe.style.visibility = 'hidden';
+		probe.style.position = 'absolute';
+		document.body.appendChild(probe);
+		var w = probe.getBoundingClientRect().width;
+		document.body.removeChild(probe);
+		var spans = document.getElementsByClassName('hanging-iq');
+		for (var i = 0; i < spans.length; i++)
+			spans[i].style.left = '-' + w + 'px';
+	})();
+	//]]>
+	</script>
 	</body>
 </html>

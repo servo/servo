@@ -1226,3 +1226,26 @@ async def match_media_query(bidi_session):
         return result["value"]
 
     return match_media_query
+
+
+@pytest_asyncio.fixture
+async def install_webextension(bidi_session):
+    installed_extensions = []
+
+    async def install(extension_data, _extension_params=None):
+        if _extension_params is None:
+            _extension_params = {}
+        extension = await bidi_session.web_extension.install(
+            extension_data=extension_data,
+            _extension_params=_extension_params
+        )
+        installed_extensions.append(extension)
+        return extension
+
+    yield install
+
+    for extension in installed_extensions:
+        try:
+            await bidi_session.web_extension.uninstall(extension=extension)
+        except Exception as e:
+            print(f"Failed to uninstall extension {extension}. Error: {e}")

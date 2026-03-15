@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-properties-values-api/#calculation-of-computed-values" />
+<link rel="author" title="Sam Weinig" href="sam@webkit.org">
+<link rel="match" href="registered-property-computation-color-001-ref.html">
+<style>
+@property --x {
+  inherits: true;
+  initial-value: currentcolor;
+  syntax: "<color>";
+}
+:root {
+  color: green;
+}
+div {
+  background-color: var(--x);
+  width: 100px;
+  height: 100px;
+}
+</style>
+<div></div>

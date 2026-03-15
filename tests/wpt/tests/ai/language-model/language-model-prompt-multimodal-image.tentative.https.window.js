@@ -24,9 +24,9 @@ promise_test(async () => {
   };
   await ensureLanguageModel(options);
   const session = await LanguageModel.create(options);
-  const tokenLength = await session.measureContextUsage(options.initialPrompts);
-  assert_greater_than(tokenLength, 0);
-  assert_true(isValueInRange(session.contextUsage, tokenLength));
+  const usage = await session.measureContextUsage(options.initialPrompts);
+  assert_greater_than(usage, 0);
+  assert_equals(session.contextUsage, usage);
   assert_regexp_match(
       await session.prompt([{role: 'system', content: ''}]), kValidImageRegex);
 }, 'Test Image initialPrompt');

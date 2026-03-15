@@ -35,7 +35,7 @@ promise_test(async t => {
   await load_image();
   await assertNoFirstContentfulPaint(t);
   change_opacity();
-  await waitForAnimationFrames(3);
+  await waitForAnimationFrames(10);
   const fcp_entries = performance.getEntriesByName('first-contentful-paint');
   assert_equals(fcp_entries.length, 1, "Got an FCP entry");
   const lcp_entries = await new Promise(resolve => {new PerformanceObserver((list) => resolve(list.getEntries())).observe({type: 'largest-contentful-paint', buffered: true})});

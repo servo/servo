@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://open-ui.org/components/combobox.explainer/">
+<link rel=match href="filterable-select-appearance-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+
+<style>
+input, select {
+  appearance: base;
+  display: block;
+}
+input {
+  width: 150px;
+  height: 20px;
+}
+</style>
+
+<input filter=select>
+<select id=select size=4>
+  <option>one</option>
+  <option>two</option>
+  <option>three</option>
+</select>
+
+<script>
+(async () => {
+  document.querySelector('input').focus();
+  const arrowDown = '\uE015';
+  await (new test_driver.Actions()
+    .keyDown(arrowDown)
+    .keyUp(arrowDown))
+    .send();
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

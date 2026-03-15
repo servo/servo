@@ -129,11 +129,12 @@
 
     // cleanup
     svg.style.removeProperty(property);
+    target.style.removeProperty(property);
     target.style.removeProperty('zoom');
     if (requiredProperties) {
       for (const [prop, reqValue] of Object.entries(requiredProperties)) {
-        svg.style.removeProperty(reqValue);
-        target.style.removeProperty(reqValue);
+        svg.style.removeProperty(prop);
+        target.style.removeProperty(prop);
       }
     }
   }

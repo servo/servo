@@ -9,14 +9,8 @@ partial interface Navigator {
 
 [Exposed=Window, SecureContext]
 interface ModelContext {
-  undefined provideContext(optional ModelContextOptions options = {});
-  undefined clearContext();
   undefined registerTool(ModelContextTool tool);
   undefined unregisterTool(DOMString name);
-};
-
-dictionary ModelContextOptions {
-  sequence<ModelContextTool> tools = [];
 };
 
 dictionary ModelContextTool {
@@ -28,7 +22,7 @@ dictionary ModelContextTool {
 };
 
 dictionary ToolAnnotations {
-  boolean readOnlyHint;
+  boolean readOnlyHint = false;
 };
 
 callback ToolExecuteCallback = Promise<any> (object input, ModelContextClient client);
