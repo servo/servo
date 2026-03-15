@@ -22,7 +22,7 @@ use crate::dom::csppolicyviolationreport::{
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::dom::reportingobserver::ReportingObserver;
+use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::securitypolicyviolationevent::SecurityPolicyViolationEvent;
 use crate::dom::types::GlobalScope;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};

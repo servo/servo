@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::SecurityPolicyViolationEventBinding
     SecurityPolicyViolationEventDisposition, SecurityPolicyViolationEventInit,
 };
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::reportingobserver::ReportingObserver;
+use crate::dom::reporting::reportingobserver::ReportingObserver;
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
