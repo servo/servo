@@ -15,6 +15,7 @@ from itertools import groupby
 from typing import cast, Optional, Any, Generic, TypeVar, TypeGuard
 from collections.abc import Generator, Callable, Iterator, Iterable
 from abc import abstractmethod
+from enum import IntEnum
 
 import operator
 import os
@@ -1474,9 +1475,16 @@ def wrapForType(jsvalRef: str, result: str = 'result', successCode: str = 'true'
     return wrap
 
 
-def typeNeedsCx(type: IDLType | None, retVal: bool = False) -> bool:
+class Context(IntEnum):
+    No = 0
+    OldCx = 1
+    Cx = 2
+    CurrentRealm = 3
+
+
+def typeNeedsCx(type: IDLType | None, retVal: bool = False) -> Context:
     if type is None:
-        return False
+        return Context.No
     if type.nullable():
         assert isinstance(type, IDLNullableType)
         type = type.inner
@@ -1488,10 +1496,10 @@ def typeNeedsCx(type: IDLType | None, retVal: bool = False) -> bool:
         flatMemberTypes = type.unroll().flatMemberTypes
         assert flatMemberTypes is not None
 
-        return any(typeNeedsCx(t) for t in flatMemberTypes)
+        return max(typeNeedsCx(t) for t in flatMemberTypes)
     if retVal and type.isSpiderMonkeyInterface():
-        return True
-    return type.isAny() or type.isObject()
+        return Context.OldCx
+    return Context.OldCx if type.isAny() or type.isObject() else Context.No
 
 
 def returnTypeNeedsOutparam(type: IDLType | None) -> bool:
@@ -4090,10 +4098,8 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         )
 
 
-def needCx(returnType: IDLType | None, arguments: Iterable[IDLArgument | FakeArgument], considerTypes: bool) -> bool:
-    return (considerTypes
-            and (typeNeedsCx(returnType, True)
-                 or any(typeNeedsCx(a.type) for a in arguments)))
+def needCx(returnType: IDLType | None, arguments: Iterable[IDLArgument | FakeArgument], considerTypes: bool) -> Context:
+    return max([typeNeedsCx(a.type) for a in arguments] + [typeNeedsCx(returnType, True)]) if considerTypes else Context.No
 
 
 class CGCallGenerator(CGThing):
@@ -4139,7 +4145,16 @@ class CGCallGenerator(CGThing):
                 name = f"&{name}"
             args.append(CGGeneric(name))
 
-        needsCx = needCx(returnType, (a for (a, _) in arguments), True)
+        needsCx = False
+        match needCx(returnType, (a for (a, _) in arguments), True):
+            case Context.Cx:
+                descriptor.cxMethods.append(nativeMethodName)
+            case Context.CurrentRealm:
+                descriptor.realmMethods.append(nativeMethodName)
+            case Context.OldCx:
+                needsCx = True
+            case _:
+                pass
 
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
@@ -8304,6 +8319,16 @@ def method_arguments(descriptorProvider: DescriptorProvider,
                      inRealm: bool = False,
                      canGc: bool = False
                      ) -> Iterator[tuple[str, str]]:
+    old_cx = False
+    match needCx(returnType, arguments, passJSBits):
+        case Context.Cx:
+            cx = True
+        case Context.CurrentRealm:
+            realm = True
+        case Context.OldCx:
+            old_cx = True
+        case _:
+            pass
     if cx_no_gc:
         yield "cx", "&JSContext"
     elif cx:
@@ -8313,7 +8338,7 @@ def method_arguments(descriptorProvider: DescriptorProvider,
 
     safe_cx = cx or cx_no_gc or realm
 
-    if needCx(returnType, arguments, passJSBits) and not safe_cx:
+    if old_cx and not safe_cx:
         yield "cx", "SafeJSContext"
 
     for argument in arguments:
