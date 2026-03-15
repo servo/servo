@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+    <head>
+        <script src="/common/reftest-wait.js"></script>
+    </head>
+    <body>
+        <canvas id="canvas" width="500px" height="500px"></canvas>
+        <script>
+        const ahem_font = new FontFace(
+          "FontFamily AhemTest",
+          "url(/fonts/Ahem.ttf)",
+        );
+        document.fonts.add(ahem_font);
+        ahem_font.load().then(
+          () => {
+            const ctx = canvas.getContext("2d");
+            ctx.font = '36px "FontFamily AhemTest"';
+            ctx.fillText("Ahem font loaded", 20, 50);
+            takeScreenshot();
+          },
+        );
+        </script>
+    </body>
+</html>
