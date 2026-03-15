@@ -1937,9 +1937,9 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     make_setter!(SetReferrerPolicy, "referrerpolicy");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
-    fn Decode(&self, can_gc: CanGc) -> Rc<Promise> {
+    fn Decode(&self, cx: &mut JSContext) -> Rc<Promise> {
         // Step 1. Let promise be a new promise.
-        let promise = Promise::new(&self.global(), can_gc);
+        let promise = Promise::new2(cx, &self.global());
 
         // Step 2. Queue a microtask to perform the following steps:
         let task = ImageElementMicrotask::Decode {
