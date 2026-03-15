@@ -1009,7 +1009,12 @@ impl HTMLScriptElement {
         let script = match result {
             // Step 4. If el's result is null, then fire an event named error at el, and return.
             Err(_) => {
-                self.dispatch_error_event(can_gc);
+                self.dispatch_event(
+                    atom!("error"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                    can_gc,
+                );
                 return;
             },
 
@@ -1078,7 +1083,12 @@ impl HTMLScriptElement {
 
         // Step 8. If el's from an external file is true, then fire an event named load at el.
         if self.from_an_external_file.get() {
-            self.dispatch_load_event(can_gc);
+            self.dispatch_event(
+                atom!("load"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::NotCancelable,
+                can_gc,
+            );
         }
     }
 
@@ -1087,24 +1097,6 @@ impl HTMLScriptElement {
             .task_manager()
             .dom_manipulation_task_source()
             .queue_simple_event(self.upcast(), atom!("error"));
-    }
-
-    pub(crate) fn dispatch_load_event(&self, can_gc: CanGc) {
-        self.dispatch_event(
-            atom!("load"),
-            EventBubbles::DoesNotBubble,
-            EventCancelable::NotCancelable,
-            can_gc,
-        );
-    }
-
-    pub(crate) fn dispatch_error_event(&self, can_gc: CanGc) {
-        self.dispatch_event(
-            atom!("error"),
-            EventBubbles::DoesNotBubble,
-            EventCancelable::NotCancelable,
-            can_gc,
-        );
     }
 
     // https://html.spec.whatwg.org/multipage/#prepare-a-script Step 7.
