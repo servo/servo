@@ -253,6 +253,10 @@ impl DisplayListBuilder<'_> {
         self.paint_info.pipeline_id
     }
 
+    fn mark_first_paint(&mut self) {
+        self.paint_info.first_paint = true;
+    }
+
     fn mark_is_contentful(&mut self) {
         self.paint_info.is_contentful = true;
     }
@@ -531,14 +535,14 @@ impl DisplayListBuilder<'_> {
         }
     }
 
-    fn check_for_contentful_paint(
-        &mut self,
-        bounds: LayoutRect,
-        clip_rect: LayoutRect,
-        opacity: f32,
-    ) {
+    fn check_if_paintable(&mut self, bounds: LayoutRect, clip_rect: LayoutRect, opacity: f32) {
         // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
         // An element el is paintable when all of the following apply:
+        // > el is being rendered.
+        // > el’s used visibility is visible.
+        // This is sufficient to mark the first paint
+        self.mark_first_paint();
+
         // > el and all of its ancestors' used opacity is greater than zero.
         if opacity <= 0.0 {
             return;
@@ -700,7 +704,7 @@ impl Fragment {
                             // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
                             // An element target is contentful when one or more of the following apply:
                             // > target is a replaced element representing an available image.
-                            builder.check_for_contentful_paint(
+                            builder.check_if_paintable(
                                 rect,
                                 common.clip_rect,
                                 style.clone_opacity(),
@@ -887,11 +891,7 @@ impl Fragment {
         // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
         // An element target is contentful when one or more of the following apply:
         // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
-        builder.check_for_contentful_paint(
-            glyph_bounds,
-            common.clip_rect,
-            parent_style.clone_opacity(),
-        );
+        builder.check_if_paintable(glyph_bounds, common.clip_rect, parent_style.clone_opacity());
 
         for text_decoration in text_decorations.iter() {
             if text_decoration
@@ -1481,7 +1481,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                         // An element target is contentful when one or more of the following apply:
                         // > target has a background-image which is a contentful image, and its used
                         // > background-size has non-zero width and height values.
-                        builder.check_for_contentful_paint(
+                        builder.check_if_paintable(
                             layer.bounds,
                             layer.common.clip_rect,
                             style.clone_opacity(),
@@ -1675,7 +1675,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 // An element target is contentful when one or more of the following apply:
                 // > target has a background-image which is a contentful image,
                 // > and its used background-size has non-zero width and height values.
-                builder.check_for_contentful_paint(
+                builder.check_if_paintable(
                     Box2D::from_size(size.cast_unit()),
                     common.clip_rect,
                     style.clone_opacity(),
