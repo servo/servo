@@ -3003,7 +3003,9 @@ impl ScriptThread {
             Some(window) => {
                 let mut last = None;
                 for browsing_context_id in source_with_ancestry.into_iter().rev() {
-                    if let Some(window_proxy) = self.window_proxies.get(browsing_context_id) {
+                    if let Some(window_proxy) =
+                        self.window_proxies.find_window_proxy(browsing_context_id)
+                    {
                         last = Some(window_proxy);
                         continue;
                     }

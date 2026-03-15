@@ -45,13 +45,6 @@ impl ScriptWindowProxies {
         None
     }
 
-    pub(crate) fn get(&self, id: BrowsingContextId) -> Option<DomRoot<WindowProxy>> {
-        self.map
-            .borrow()
-            .get(&id)
-            .map(|context| DomRoot::from_ref(&**context))
-    }
-
     pub(crate) fn insert(&self, id: BrowsingContextId, proxy: DomRoot<WindowProxy>) {
         self.map.borrow_mut().insert(id, Dom::from_ref(&*proxy));
     }
@@ -77,7 +70,7 @@ impl ScriptWindowProxies {
     ) -> Option<DomRoot<WindowProxy>> {
         let (browsing_context_id, parent_pipeline_id) =
             self.ask_constellation_for_browsing_context_info(senders, webview_id, pipeline_id)?;
-        if let Some(window_proxy) = self.get(browsing_context_id) {
+        if let Some(window_proxy) = self.find_window_proxy(browsing_context_id) {
             return Some(window_proxy);
         }
 
@@ -123,7 +116,7 @@ impl ScriptWindowProxies {
         parent_info: Option<PipelineId>,
         opener: Option<BrowsingContextId>,
     ) -> DomRoot<WindowProxy> {
-        if let Some(window_proxy) = self.get(browsing_context_id) {
+        if let Some(window_proxy) = self.find_window_proxy(browsing_context_id) {
             // Note: we do not set the window to be the currently-active one,
             // this will be done instead when the script-thread handles the `SetDocumentActivity` msg.
             return window_proxy;
