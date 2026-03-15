@@ -726,14 +726,16 @@ impl Painter {
         if need_zoom {
             self.send_root_pipeline_display_list_in_transaction(&mut transaction);
         }
-        for update in scroll_offset_updates {
-            transaction.set_scroll_offsets(
-                update.external_scroll_id,
-                vec![SampledScrollOffset {
-                    offset: update.offset,
-                    generation: 0,
-                }],
-            );
+        for result in scroll_offset_updates {
+            for (external_scroll_id, offset) in result.inner.iter() {
+                transaction.set_scroll_offsets(
+                    *external_scroll_id,
+                    vec![SampledScrollOffset {
+                        offset: *offset,
+                        generation: 0,
+                    }],
+                );
+            }
         }
 
         self.generate_frame(&mut transaction, RenderReasons::APZ);
@@ -882,7 +884,7 @@ impl Painter {
             return;
         };
 
-        let Some(offset) = pipeline_details
+        let Some(scroll_result) = pipeline_details
             .scroll_tree
             .set_scroll_offset_for_node_with_external_scroll_id(
                 external_scroll_id,
@@ -897,13 +899,15 @@ impl Painter {
         };
 
         let mut transaction = Transaction::new();
-        transaction.set_scroll_offsets(
-            external_scroll_id,
-            vec![SampledScrollOffset {
-                offset,
-                generation: 0,
-            }],
-        );
+        for (external_scroll_id, offset) in scroll_result.iter() {
+            transaction.set_scroll_offsets(
+                *external_scroll_id,
+                vec![SampledScrollOffset {
+                    offset: *offset,
+                    generation: 0,
+                }],
+            );
+        }
 
         self.generate_frame(&mut transaction, RenderReasons::APZ);
         self.send_transaction(transaction);

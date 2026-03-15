@@ -36,6 +36,7 @@ fn add_mock_scroll_node(tree: &mut ScrollTree) -> (ScrollTreeNodeId, ExternalScr
             },
             offset: LayoutVector2D::zero(),
             offset_changed: Cell::new(false),
+            linked_nodes: None,
         }),
     );
     (scroll_node_id, external_id)
@@ -103,6 +104,7 @@ fn test_scroll_tree_simple_scroll_chaining() {
             },
             offset: LayoutVector2D::zero(),
             offset_changed: Cell::new(false),
+            linked_nodes: None,
         }),
     );
 

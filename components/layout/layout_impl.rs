@@ -1328,7 +1328,7 @@ impl LayoutThread {
             return false;
         };
 
-        if let Some(offset) = stacking_context_tree
+        if let Some(result) = stacking_context_tree
             .paint_info
             .scroll_tree
             .set_scroll_offset_for_node_with_external_scroll_id(
@@ -1337,10 +1337,11 @@ impl LayoutThread {
                 ScrollType::Script,
             )
         {
+            let (_, new_offset) = result.first();
             self.paint_api.scroll_node_by_delta(
                 self.webview_id,
                 self.id.into(),
-                offset,
+                *new_offset,
                 external_scroll_id,
             );
             true

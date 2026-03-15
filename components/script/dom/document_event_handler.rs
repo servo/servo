@@ -1868,7 +1868,7 @@ impl DocumentEventHandler {
             document.handle_viewport_scroll_event();
         } else {
             // Otherwise, check whether it is for a relevant element within the document.
-            let Some(node_id) = node_id_from_scroll_id(scrolled_node.0 as usize) else {
+            let Some(node_id) = node_id_from_scroll_id(scrolled_node.0) else {
                 return;
             };
             let node = unsafe {
