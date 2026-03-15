@@ -10,7 +10,7 @@ use dom_struct::dom_struct;
 use fonts::{FontContext, FontContextWebFontMethods, FontTemplate, LowercaseFontFamilyName};
 use js::rust::HandleObject;
 use style::error_reporting::ParseErrorReporter;
-use style::font_face::SourceList;
+use style::font_face::{FontFaceRuleData, SourceList};
 use style::stylesheets::{CssRuleType, FontFaceRule, UrlExtraData};
 use style_traits::{ParsingMode, ToCss};
 
@@ -321,14 +321,7 @@ impl FontFace {
 
     /// Step 3 of <https://drafts.csswg.org/css-font-loading/#font-face-constructor>
     fn load_from_data(&self, global: &GlobalScope, data: Vec<u8>) {
-        // TODO: We should not have to parse the descriptors again here.
-        let parsed_font_face_rule = parse_font_face_descriptors(
-            global,
-            &self.family_name.borrow(),
-            None,
-            &self.descriptors.borrow(),
-        )
-        .expect("Parsing shouldn't fail as descriptors are valid by construction");
+        let parsed_font_face_rule = self.font_face_rule_data(global);
 
         // Step 3.1 Set font face’s status attribute to "loading".
         self.status.set(FontFaceLoadStatus::Loading);
@@ -409,6 +402,18 @@ impl FontFace {
 
         *self.descriptors.borrow_mut() = serialize_parsed_descriptors(&parsed_font_face_rule);
         Ok(())
+    }
+
+    fn font_face_rule_data(&self, global: &GlobalScope) -> FontFaceRuleData {
+        // TODO: We should not have to parse the descriptors over and over again here.
+        // We can probably store them on the `FontFace` instead.
+        parse_font_face_descriptors(
+            global,
+            &self.family_name.borrow(),
+            None,
+            &self.descriptors.borrow(),
+        )
+        .expect("Parsing shouldn't fail as descriptors are valid by construction")
     }
 }
 
@@ -618,13 +623,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
 
         // We parse the descriptors again because they are stored as `DOMString`s in this `FontFace`
         // but the `load_web_font_for_script` API needs parsed values.
-        let parsed_font_face_rule = parse_font_face_descriptors(
-            &global,
-            &self.family_name.borrow(),
-            None,
-            &self.descriptors.borrow(),
-        )
-        .expect("Parsing shouldn't fail as descriptors are valid by construction");
+        let parsed_font_face_rule = self.font_face_rule_data(&global);
 
         // Construct a WebFontDocumentContext object for the current document.
         let document_context = global.as_window().web_font_context();
