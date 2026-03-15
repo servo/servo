@@ -553,11 +553,16 @@ impl WebView {
     ///
     /// The final pinch zoom values will be clamped to reasonable defaults (currently to
     /// the inclusive range [1.0, 10.0]).
-    pub fn pinch_zoom(&self, pinch_zoom_delta: f32, center: DevicePoint) {
+    pub fn adjust_pinch_zoom(&self, pinch_zoom_delta: f32, center: DevicePoint) {
         self.inner()
             .servo
             .paint()
-            .pinch_zoom(self.id(), pinch_zoom_delta, center);
+            .adjust_pinch_zoom(self.id(), pinch_zoom_delta, center);
+    }
+
+    /// Get the pinch zoom of the [`WebView`].
+    pub fn pinch_zoom(&self) -> f32 {
+        self.inner().servo.paint().pinch_zoom(self.id())
     }
 
     pub fn device_pixels_per_css_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
