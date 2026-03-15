@@ -776,6 +776,7 @@ impl WebViewTrait for ServoRendererWebView {
     }
 }
 
+/// Builder for [`WebView`].
 pub struct WebViewBuilder {
     servo: Servo,
     rendering_context: Rc<dyn RenderingContext>,

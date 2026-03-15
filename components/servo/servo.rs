@@ -874,7 +874,7 @@ impl Servo {
     }
 
     /// **EXPERIMENTAL:** Intialize GL accelerated media playback. This currently only works on a limited number
-    /// of platforms. This should be run *before* calling [`Servo::new`] and creating the first [`WebView`].
+    /// of platforms. This should be run *before* creating [`Servo`] and its first [`WebView`].
     pub fn initialize_gl_accelerated_media(display: NativeDisplay, api: GlApi, context: GlContext) {
         WindowGLContext::initialize(display, api, context)
     }
@@ -882,7 +882,7 @@ impl Servo {
     /// Spin the Servo event loop, which:
     ///
     ///   - Performs updates in `Paint`, such as queued pinch zoom events
-    ///   - Runs delebgate methods on all `WebView`s and `Servo` itself
+    ///   - Runs delegate methods on all `WebView`s and `Servo` itself
     ///   - Maybe update the rendered `Paint` output, but *without* swapping buffers.
     pub fn spin_event_loop(&self) {
         self.0.spin_event_loop();
@@ -1232,6 +1232,7 @@ struct DefaultWebXrRegistry;
 #[cfg(feature = "webxr")]
 impl webxr::WebXrRegistry for DefaultWebXrRegistry {}
 
+/// Builder for [`Servo`].
 pub struct ServoBuilder {
     opts: Option<Box<Opts>>,
     preferences: Option<Box<Preferences>>,
