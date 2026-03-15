@@ -240,6 +240,15 @@ pub async fn fetch_with_cors_cache(
             .retain(|record| record.request_id != request_id);
     }
 
+    if fetch_params.request.mode != RequestMode::Navigate {
+        // Lifecycle: Non-Navigate fetches complete redirect/body replay within this
+        // function, so no later `extract_source()` can occur after this return.
+        // we can close the stream.
+        if let Some(body) = fetch_params.request.body.as_ref() {
+            body.close_stream();
+        }
+    }
+
     // Step 18: Return fetchParams’s controller.
     // TODO: We don't implement fetchParams as defined in the spec
     response
@@ -942,11 +951,17 @@ fn handle_allowcert_request(request: &mut Request, context: &FetchContext) -> io
         None => return error("No body found"),
     };
 
-    let stream = body.take_stream();
-    let stream = stream.lock();
+    let stream = body.clone_stream();
+    let mut stream = stream.lock();
     let (body_chan, body_port) = ipc::channel().unwrap();
-    let _ = stream.send(BodyChunkRequest::Connect(body_chan));
-    let _ = stream.send(BodyChunkRequest::Chunk);
+    let Some(chunk_requester) = stream.as_mut() else {
+        log::error!(
+            "Could not send BodyChunkRequest to chunk_requester as stream got already neutered."
+        );
+        return Err(std::io::Error::other("Could not send BodyChunkRequest"));
+    };
+    let _ = chunk_requester.send(BodyChunkRequest::Connect(body_chan));
+    let _ = chunk_requester.send(BodyChunkRequest::Chunk);
     let body_bytes = match body_port.recv().ok() {
         Some(BodyChunkResponse::Chunk(bytes)) => bytes,
         _ => return error("Certificate not sent in a single chunk"),
