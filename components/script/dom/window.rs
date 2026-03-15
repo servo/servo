@@ -1504,11 +1504,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-settimeout>
     fn SetTimeout(
         &self,
-        _cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
-        can_gc: CanGc,
     ) -> Fallible<i32> {
         let callback = match callback {
             TrustedScriptOrStringOrFunction::String(i) => {
@@ -1520,11 +1519,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             TrustedScriptOrStringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
         };
         self.as_global_scope().set_timeout_or_interval(
+            cx,
             callback,
             args,
             Duration::from_millis(timeout.max(0) as u64),
             IsInterval::NonInterval,
-            can_gc,
         )
     }
 
@@ -1536,11 +1535,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval>
     fn SetInterval(
         &self,
-        _cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
-        can_gc: CanGc,
     ) -> Fallible<i32> {
         let callback = match callback {
             TrustedScriptOrStringOrFunction::String(i) => {
@@ -1552,11 +1550,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             TrustedScriptOrStringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
         };
         self.as_global_scope().set_timeout_or_interval(
+            cx,
             callback,
             args,
             Duration::from_millis(timeout.max(0) as u64),
             IsInterval::Interval,
-            can_gc,
         )
     }
 

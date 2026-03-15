@@ -11,6 +11,7 @@ use std::time::{Duration, Instant};
 
 use base::id::PipelineId;
 use deny_public_fields::DenyPublicFields;
+use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::HandleValue;
@@ -46,7 +47,7 @@ use crate::task_source::SendableTaskSource;
 
 type TimerKey = i32;
 type RunStepsDeadline = Instant;
-type CompletionStep = Box<dyn FnOnce(&mut js::context::JSContext, &GlobalScope) + 'static>;
+type CompletionStep = Box<dyn FnOnce(&mut JSContext, &GlobalScope) + 'static>;
 
 /// <https://html.spec.whatwg.org/multipage/#run-steps-after-a-timeout>
 /// OrderingIdentifier per spec ("orderingIdentifier")
@@ -143,7 +144,7 @@ pub(crate) enum OneshotTimerCallback {
 }
 
 impl OneshotTimerCallback {
-    fn invoke<T: DomObject>(self, this: &T, js_timers: &JsTimers, cx: &mut js::context::JSContext) {
+    fn invoke<T: DomObject>(self, this: &T, js_timers: &JsTimers, cx: &mut JSContext) {
         match self {
             OneshotTimerCallback::XhrTimeout(callback) => callback.invoke(CanGc::from_cx(cx)),
             OneshotTimerCallback::EventSourceTimeout(callback) => callback.invoke(),
@@ -320,12 +321,7 @@ impl OneshotTimers {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
-    pub(crate) fn fire_timer(
-        &self,
-        id: TimerEventId,
-        global: &GlobalScope,
-        cx: &mut js::context::JSContext,
-    ) {
+    pub(crate) fn fire_timer(&self, id: TimerEventId, global: &GlobalScope, cx: &mut JSContext) {
         // Step 9.2. If id does not exist in global's map of setTimeout and setInterval IDs, then abort these steps.
         let expected_id = self.expected_event_id.get();
         if expected_id != id {
@@ -529,22 +525,22 @@ impl OneshotTimers {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn set_timeout_or_interval(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
         callback: TimerCallback,
         arguments: Vec<HandleValue>,
         timeout: Duration,
         is_interval: IsInterval,
         source: TimerSource,
-        can_gc: CanGc,
     ) -> Fallible<i32> {
         self.js_timers.set_timeout_or_interval(
+            cx,
             global,
             callback,
             arguments,
             timeout,
             is_interval,
             source,
-            can_gc,
         )
     }
 
@@ -627,13 +623,13 @@ impl JsTimers {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn set_timeout_or_interval(
         &self,
+        cx: &mut JSContext,
         global: &GlobalScope,
         callback: TimerCallback,
         arguments: Vec<HandleValue>,
         timeout: Duration,
         is_interval: IsInterval,
         source: TimerSource,
-        can_gc: CanGc,
     ) -> Fallible<i32> {
         let callback = match callback {
             TimerCallback::StringTimerCallback(trusted_script_or_string) => {
@@ -657,7 +653,7 @@ impl JsTimers {
                     global,
                     trusted_script_or_string,
                     &sink,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 )?;
                 // Step 9.6.3. Perform EnsureCSPDoesNotBlockStringCompilation(realm, « », handler, handler, timer, « », handler).
                 // If this throws an exception, catch it, report it for global, and abort these steps.
@@ -780,12 +776,7 @@ fn clamp_duration(nesting_level: u32, unclamped: Duration) -> Duration {
 
 impl JsTimerTask {
     // see https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
-    pub(crate) fn invoke<T: DomObject>(
-        self,
-        this: &T,
-        timers: &JsTimers,
-        cx: &mut js::context::JSContext,
-    ) {
+    pub(crate) fn invoke<T: DomObject>(self, this: &T, timers: &JsTimers, cx: &mut JSContext) {
         // step 9.2 can be ignored, because we proactively prevent execution
         // of this task when its scheduled execution is canceled.
 
