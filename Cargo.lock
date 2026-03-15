@@ -1770,7 +1770,7 @@ dependencies = [
 
 [[package]]
 name = "deny_public_fields_tests"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "servo-deny-public-fields",
 ]
@@ -4792,7 +4792,7 @@ dependencies = [
 
 [[package]]
 name = "malloc_size_of_tests"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "servo-malloc-size-of",
  "servo_arc",
@@ -6371,7 +6371,7 @@ dependencies = [
 
 [[package]]
 name = "profile_tests"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "ipc-channel",
  "servo-config",
@@ -7060,7 +7060,7 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "script_tests"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "encoding_rs",
  "euclid",
@@ -7277,7 +7277,7 @@ dependencies = [
 
 [[package]]
 name = "servo"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "accesskit",
  "arboard",
@@ -7350,7 +7350,7 @@ dependencies = [
 
 [[package]]
 name = "servo-allocator"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "backtrace",
  "libc",
@@ -7363,7 +7363,7 @@ dependencies = [
 
 [[package]]
 name = "servo-background-hang-monitor"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "backtrace",
  "crossbeam-channel",
@@ -7380,7 +7380,7 @@ dependencies = [
 
 [[package]]
 name = "servo-background-hang-monitor-api"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "serde",
  "servo-base",
@@ -7388,7 +7388,7 @@ dependencies = [
 
 [[package]]
 name = "servo-base"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "accesskit",
  "crossbeam-channel",
@@ -7412,7 +7412,7 @@ dependencies = [
 
 [[package]]
 name = "servo-bluetooth"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "bitflags 2.11.0",
  "blurdroid",
@@ -7430,7 +7430,7 @@ dependencies = [
 
 [[package]]
 name = "servo-bluetooth-traits"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "regex",
  "serde",
@@ -7440,7 +7440,7 @@ dependencies = [
 
 [[package]]
 name = "servo-canvas"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "bytemuck",
  "crossbeam-channel",
@@ -7468,7 +7468,7 @@ dependencies = [
 
 [[package]]
 name = "servo-canvas-traits"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "crossbeam-channel",
  "euclid",
@@ -7489,7 +7489,7 @@ dependencies = [
 
 [[package]]
 name = "servo-config"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "serde",
  "serde_json",
@@ -7499,7 +7499,7 @@ dependencies = [
 
 [[package]]
 name = "servo-config-macro"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7509,7 +7509,7 @@ dependencies = [
 
 [[package]]
 name = "servo-constellation"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "backtrace",
  "content-security-policy",
@@ -7557,7 +7557,7 @@ dependencies = [
 
 [[package]]
 name = "servo-constellation-traits"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "content-security-policy",
  "encoding_rs",
@@ -7592,7 +7592,7 @@ dependencies = [
 
 [[package]]
 name = "servo-deny-public-fields"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "syn",
  "synstructure",
@@ -7600,7 +7600,7 @@ dependencies = [
 
 [[package]]
 name = "servo-devtools"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "atomic_refcell",
  "base64 0.22.1",
@@ -7628,7 +7628,7 @@ dependencies = [
 
 [[package]]
 name = "servo-devtools-traits"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "bitflags 2.11.0",
  "http 1.4.0",
@@ -7646,7 +7646,7 @@ dependencies = [
 
 [[package]]
 name = "servo-dom-struct"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7655,7 +7655,7 @@ dependencies = [
 
 [[package]]
 name = "servo-embedder-traits"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "accesskit",
  "bitflags 2.11.0",
@@ -7687,7 +7687,7 @@ dependencies = [
 
 [[package]]
 name = "servo-fonts"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "app_units",
  "bitflags 2.11.0",
@@ -7740,7 +7740,7 @@ dependencies = [
 
 [[package]]
 name = "servo-fonts-traits"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "atomic_refcell",
  "dwrote",
@@ -7762,7 +7762,7 @@ dependencies = [
 
 [[package]]
 name = "servo-geometry"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "app_units",
  "euclid",
@@ -7789,7 +7789,7 @@ dependencies = [
 
 [[package]]
 name = "servo-jstraceable-derive"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "proc-macro2",
  "syn",
@@ -7798,7 +7798,7 @@ dependencies = [
 
 [[package]]
 name = "servo-layout"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "accesskit",
  "app_units",
@@ -7854,7 +7854,7 @@ dependencies = [
 
 [[package]]
 name = "servo-layout-api"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "app_units",
  "atomic_refcell",
@@ -7887,7 +7887,7 @@ dependencies = [
 
 [[package]]
 name = "servo-malloc-size-of"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "accountable-refcell",
  "app_units",
@@ -7926,7 +7926,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "once_cell",
  "servo-media-audio",
@@ -7938,7 +7938,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-audio"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "byte-slice-cast",
  "euclid",
@@ -7960,7 +7960,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-auto"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "servo-media-dummy",
  "servo-media-gstreamer",
@@ -7968,7 +7968,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-derive"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7977,7 +7977,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-dummy"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "ipc-channel",
  "servo-media",
@@ -7990,7 +7990,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-examples"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "euclid",
  "rand 0.9.2",
@@ -8002,7 +8002,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-gstreamer"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "byte-slice-cast",
  "glib",
@@ -8034,7 +8034,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-gstreamer-render"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "gstreamer",
  "gstreamer-video",
@@ -8043,7 +8043,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-gstreamer-render-android"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "glib",
  "gstreamer",
@@ -8056,7 +8056,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-gstreamer-render-unix"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "glib",
  "gstreamer",
@@ -8071,7 +8071,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-player"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "ipc-channel",
  "malloc_size_of_derive",
@@ -8084,7 +8084,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-streams"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "malloc_size_of_derive",
  "servo-malloc-size-of",
@@ -8093,7 +8093,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-thread"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "euclid",
  "ipc-channel",
@@ -8110,7 +8110,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-traits"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "malloc_size_of_derive",
  "servo-malloc-size-of",
@@ -8118,7 +8118,7 @@ dependencies = [
 
 [[package]]
 name = "servo-media-webrtc"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "log",
  "servo-media-streams",
@@ -8127,7 +8127,7 @@ dependencies = [
 
 [[package]]
 name = "servo-metrics"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "malloc_size_of_derive",
  "servo-base",
@@ -8141,7 +8141,7 @@ dependencies = [
 
 [[package]]
 name = "servo-net"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "async-compression",
  "async-recursion",
@@ -8211,7 +8211,7 @@ dependencies = [
 
 [[package]]
 name = "servo-net-traits"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "content-security-policy",
  "cookie 0.18.1",
@@ -8250,7 +8250,7 @@ dependencies = [
 
 [[package]]
 name = "servo-paint"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "bitflags 2.11.0",
  "crossbeam-channel",
@@ -8290,7 +8290,7 @@ dependencies = [
 
 [[package]]
 name = "servo-paint-api"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "bitflags 2.11.0",
  "crossbeam-channel",
@@ -8326,7 +8326,7 @@ dependencies = [
 
 [[package]]
 name = "servo-pixels"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "criterion",
  "euclid",
@@ -8341,7 +8341,7 @@ dependencies = [
 
 [[package]]
 name = "servo-profile"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "libc",
  "log",
@@ -8359,7 +8359,7 @@ dependencies = [
 
 [[package]]
 name = "servo-profile-traits"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "crossbeam-channel",
  "ipc-channel",
@@ -8376,7 +8376,7 @@ dependencies = [
 
 [[package]]
 name = "servo-script"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "accountable-refcell",
  "aes",
@@ -8518,7 +8518,7 @@ dependencies = [
 
 [[package]]
 name = "servo-script-bindings"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "bitflags 2.11.0",
  "crossbeam-channel",
@@ -8557,7 +8557,7 @@ dependencies = [
 
 [[package]]
 name = "servo-script-traits"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "accesskit",
  "content-security-policy",
@@ -8595,7 +8595,7 @@ dependencies = [
 
 [[package]]
 name = "servo-storage"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "libc",
  "log",
@@ -8626,7 +8626,7 @@ dependencies = [
 
 [[package]]
 name = "servo-storage-traits"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "malloc_size_of_derive",
  "serde",
@@ -8639,7 +8639,7 @@ dependencies = [
 
 [[package]]
 name = "servo-timers"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "crossbeam-channel",
  "malloc_size_of_derive",
@@ -8648,7 +8648,7 @@ dependencies = [
 
 [[package]]
 name = "servo-tracing"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "prettyplease",
  "proc-macro2",
@@ -8658,7 +8658,7 @@ dependencies = [
 
 [[package]]
 name = "servo-url"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "encoding_rs",
  "malloc_size_of_derive",
@@ -8671,7 +8671,7 @@ dependencies = [
 
 [[package]]
 name = "servo-webdriver-server"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "base64 0.22.1",
  "cookie 0.18.1",
@@ -8697,7 +8697,7 @@ dependencies = [
 
 [[package]]
 name = "servo-webgl"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "bitflags 2.11.0",
  "byteorder",
@@ -8722,7 +8722,7 @@ dependencies = [
 
 [[package]]
 name = "servo-webgpu"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "arrayvec",
  "euclid",
@@ -8740,7 +8740,7 @@ dependencies = [
 
 [[package]]
 name = "servo-webgpu-traits"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "arrayvec",
  "malloc_size_of_derive",
@@ -8755,7 +8755,7 @@ dependencies = [
 
 [[package]]
 name = "servo-webxr"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "crossbeam-channel",
  "euclid",
@@ -8773,7 +8773,7 @@ dependencies = [
 
 [[package]]
 name = "servo-webxr-api"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "euclid",
  "ipc-channel",
@@ -8788,7 +8788,7 @@ dependencies = [
 
 [[package]]
 name = "servo-xpath"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "log",
  "malloc_size_of_derive",
@@ -9200,7 +9200,7 @@ dependencies = [
 
 [[package]]
 name = "style_tests"
-version = "0.0.1"
+version = "0.0.6"
 dependencies = [
  "app_units",
  "cssparser",
