@@ -7,15 +7,17 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use fonts::FontContextWebFontMethods;
 use js::rust::HandleObject;
+use script_bindings::like::Setlike;
 
-use super::fontface::FontFace;
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FontFaceSetBinding::FontFaceSetMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object_with_proto};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::fontface::FontFace;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
@@ -29,6 +31,8 @@ pub(crate) struct FontFaceSet {
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-readypromise-slot>
     #[conditional_malloc_size_of]
     promise: Rc<Promise>,
+
+    set_entries: DomRefCell<Vec<Dom<FontFace>>>,
 }
 
 impl FontFaceSet {
@@ -36,6 +40,7 @@ impl FontFaceSet {
         FontFaceSet {
             target: EventTarget::new_inherited(),
             promise: Promise::new(global, can_gc),
+            set_entries: Default::default(),
         }
     }
 
@@ -80,6 +85,23 @@ impl FontFaceSet {
     pub(crate) fn waiting_to_fullfill_promise(&self) -> bool {
         !self.promise.is_fulfilled()
     }
+
+    fn contains_face(&self, target: &FontFace) -> bool {
+        self.set_entries
+            .borrow()
+            .iter()
+            .any(|face| &**face == target)
+    }
+
+    /// Removes a face from the set's set entries.
+    fn delete_face(&self, target: &FontFace) -> bool {
+        let mut set_entries = self.set_entries.borrow_mut();
+        let Some(index) = set_entries.iter().position(|face| &**face == target) else {
+            return false;
+        };
+        set_entries.remove(index);
+        true
+    }
 }
 
 impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
@@ -90,9 +112,48 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-add>
     fn Add(&self, font_face: &FontFace) -> DomRoot<FontFaceSet> {
+        // Step 1. If font is already in the FontFaceSet’s set entries,
+        // skip to the last step of this algorithm immediately.
+        if self.contains_face(font_face) {
+            return DomRoot::from_ref(self);
+        }
+
+        // TODO: Step 2. If font is CSS-connected, throw an InvalidModificationError
+        // exception and exit this algorithm immediately.
+
+        // Step 3. Add the font argument to the FontFaceSet’s set entries.
+        self.set_entries.borrow_mut().push(Dom::from_ref(font_face));
         font_face.set_associated_font_face_set(self);
+
+        // Step 4. If font’s status attribute is "loading":
+        // Step 4.1 If the FontFaceSet’s [[LoadingFonts]] list is empty, switch the FontFaceSet to loading.
+        // Step 4.2 Append font to the FontFaceSet’s [[LoadingFonts]] list.
         self.handle_font_face_status_changed(font_face);
+
+        // Step 5. Return the FontFaceSet.
         DomRoot::from_ref(self)
+    }
+
+    /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-delete>
+    fn Delete(&self, to_delete: &FontFace) -> bool {
+        // TODO Step 1. If font is CSS-connected, return false and exit this algorithm immediately.
+
+        // Step 2. Let deleted be the result of removing font from the FontFaceSet’s set entries.
+        // TODO: Step 3. If font is present in the FontFaceSet’s [[LoadedFonts]], or [[FailedFonts]] lists, remove it.
+        // TODO: Step 4. If font is present in the FontFaceSet’s [[LoadingFonts]] list, remove it. If font was the last
+        // item in that list (and so the list is now empty), switch the FontFaceSet to loaded.
+        // Step 5. Return deleted.
+        self.delete_face(to_delete)
+    }
+
+    /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-clear>
+    fn Clear(&self) {
+        // Step 1. Remove all non-CSS-connected items from the FontFaceSet’s set entries,
+        // its [[LoadedFonts]] list, and its [[FailedFonts]] list.
+        self.set_entries.borrow_mut().clear();
+
+        // TODO Step 2. If the FontFaceSet’s [[LoadingFonts]] list is non-empty, remove all items from it,
+        // then switch the FontFaceSet to loaded.
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-load>
@@ -125,5 +186,47 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
 
         // Step 2. Return promise. Complete the rest of these steps asynchronously.
         promise
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#customstateset>
+    fn Size(&self) -> u32 {
+        self.set_entries.borrow().len() as u32
+    }
+}
+
+impl Setlike for FontFaceSet {
+    type Key = DomRoot<FontFace>;
+
+    #[inline(always)]
+    fn get_index(&self, index: u32) -> Option<Self::Key> {
+        self.set_entries
+            .borrow()
+            .get(index as usize)
+            .map(|face| face.as_rooted())
+    }
+
+    #[inline(always)]
+    fn size(&self) -> u32 {
+        self.set_entries.borrow().len() as u32
+    }
+
+    #[inline(always)]
+    fn add(&self, face: Self::Key) {
+        self.set_entries.borrow_mut().push(face.as_traced());
+    }
+
+    #[inline(always)]
+    fn has(&self, target: Self::Key) -> bool {
+        self.contains_face(&target)
+    }
+
+    #[inline(always)]
+    fn clear(&self) {
+        self.set_entries.borrow_mut().clear();
+    }
+
+    #[inline(always)]
+    fn delete(&self, to_delete: Self::Key) -> bool {
+        self.delete_face(&to_delete)
     }
 }
