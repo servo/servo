@@ -27,6 +27,7 @@ serde = { workspace = true }
 servo-url = { workspace = true }
 stylo = { workspace = true }
 webrender_api = { workspace = true }
+uuid = { workspace = true }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = { workspace = true }
