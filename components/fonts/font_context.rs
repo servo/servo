@@ -774,22 +774,19 @@ impl FontContext {
         data: &[u8],
         descriptors: CSSFontFaceDescriptors,
     ) -> Option<(LowercaseFontFamilyName, FontTemplate)> {
-        let font_data = match fontsan::process(data) {
-            Ok(bytes) => FontData::from_bytes(&bytes),
-            Err(error) => {
+        let bytes = fontsan::process(data)
+            .inspect_err(|error| {
                 debug!(
                     "Sanitiser rejected FontFace font: family={} with {error:?}",
                     descriptors.family_name,
                 );
-                return None;
-            },
-        };
+            })
+            .ok()?;
+        let font_data = FontData::from_bytes(&bytes);
+
         let identifier = FontIdentifier::ArrayBuffer(Uuid::new_v4());
-        let Ok(handle) =
-            PlatformFont::new_from_data(identifier.clone(), &font_data, None, &[], false)
-        else {
-            return None;
-        };
+        let handle =
+            PlatformFont::new_from_data(identifier.clone(), &font_data, None, &[], false).ok()?;
 
         let new_template = FontTemplate::new(identifier.clone(), handle.descriptor(), None, None);
 
