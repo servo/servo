@@ -1939,7 +1939,7 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-img-decode>
     fn Decode(&self, cx: &mut JSContext) -> Rc<Promise> {
         // Step 1. Let promise be a new promise.
-        let promise = Promise::new(&self.global(), CanGc::from_cx(cx));
+        let promise = Promise::new2(cx, &self.global());
 
         // Step 2. Queue a microtask to perform the following steps:
         let task = ImageElementMicrotask::Decode {
