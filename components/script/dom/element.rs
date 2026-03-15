@@ -1911,11 +1911,15 @@ impl Element {
         !self.focusable_area_kind().is_empty()
     }
 
-    /// Returns the focusable shadow host if this is a text control inner editor.
-    /// This is a workaround for the focus delegation of shadow DOM and should be
-    /// used only to delegate focusable inner editor of [HTMLInputElement] and
-    /// [HTMLTextAreaElement].
-    pub(crate) fn find_click_focusable_shadow_host_if_necessary(&self) -> Option<DomRoot<Element>> {
+    /// Returns the focusable appropriate DOM anchor for the focuable area when this element is
+    /// clicked on.
+    ///
+    /// This returns the shadow host if this is a text control inner editor. This is a workaround
+    /// for the focus delegation of shadow DOM and should be used only to delegate focusable inner
+    /// editor of [HTMLInputElement] and [HTMLTextAreaElement].
+    ///
+    /// TODO: This should eventually handle `delegatesFocus` in shadow DOM.
+    pub(crate) fn find_click_focusable_area(&self) -> Option<DomRoot<Element>> {
         if self.is_click_focusable() {
             return Some(DomRoot::from_ref(self));
         }
@@ -1934,7 +1938,11 @@ impl Element {
             return Some(containing_shadow_host);
         }
 
-        None
+        self.node
+            .inclusive_ancestors(ShadowIncluding::Yes)
+            .find_map(|node| {
+                DomRoot::downcast::<Element>(node).filter(|element| element.is_click_focusable())
+            })
     }
 
     pub(crate) fn is_actually_disabled(&self) -> bool {

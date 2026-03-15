@@ -192,6 +192,8 @@ pub(crate) struct DocumentEventHandler {
     next_touch_pointer_id: Cell<i32>,
     /// A map holding information about currently registered access key handlers.
     access_key_handlers: DomRefCell<FxHashMap<char, Dom<HTMLElement>>>,
+    /// <https://html.spec.whatwg.org/multipage/#sequential-focus-navigation-starting-point>
+    sequential_focus_navigation_starting_point: MutNullableDom<Node>,
 }
 
 impl DocumentEventHandler {
@@ -215,6 +217,7 @@ impl DocumentEventHandler {
             active_pointer_ids: Default::default(),
             next_touch_pointer_id: Cell::new(1),
             access_key_handlers: Default::default(),
+            sequential_focus_navigation_starting_point: Default::default(),
         }
     }
 
@@ -782,6 +785,12 @@ impl DocumentEventHandler {
             event.action, hit_test_result.point_in_frame
         );
 
+        // Set the sequential focus navigation starting point for any mouse button down event, no
+        // matter if the target is not a node.
+        if event.action == MouseButtonAction::Down {
+            self.set_sequential_focus_navigation_starting_point(&hit_test_result.node);
+        }
+
         let Some(element) = hit_test_result
             .node
             .inclusive_ancestors(ShadowIncluding::Yes)
@@ -866,7 +875,7 @@ impl DocumentEventHandler {
                 // delegate the focus target into its shadow host.
                 // TODO: This focus delegation should be done
                 // with shadow DOM delegateFocus attribute.
-                let target_el = element.find_click_focusable_shadow_host_if_necessary();
+                let target_el = element.find_click_focusable_area();
 
                 let document = self.window.Document();
                 document.begin_focus_transaction();
@@ -965,7 +974,7 @@ impl DocumentEventHandler {
         // > The click event type MUST be dispatched on the topmost event target indicated by the
         // > pointer, when the user presses down and releases the primary pointer button.
         // For nodes inside a text input UA shadow DOM, dispatch dblclick at the shadow host.
-        let delegated = element.find_click_focusable_shadow_host_if_necessary();
+        let delegated = element.find_click_focusable_area();
         let element = delegated.as_deref().unwrap_or(element);
         self.most_recently_clicked_element.set(Some(element));
 
@@ -1895,7 +1904,7 @@ impl DocumentEventHandler {
             Key::Named(NamedKey::PageDown) => KeyboardScroll::PageDown,
             Key::Named(NamedKey::PageUp) => KeyboardScroll::PageUp,
             Key::Named(NamedKey::Tab) => {
-                self.do_tab_navigation(event, can_gc);
+                self.sequential_focus_navigation_via_keyboard_event(event, can_gc);
                 return;
             },
             _ => return,
@@ -1906,35 +1915,111 @@ impl DocumentEventHandler {
         }
     }
 
-    pub(crate) fn do_tab_navigation(&self, event: &KeyboardEvent, can_gc: CanGc) {
-        let focus_direction = if event.modifiers().contains(Modifiers::SHIFT) {
-            FocusDirection::Backward
-        } else {
-            FocusDirection::Forward
-        };
-
-        if let Some(element) = self.find_element_for_tab_focus(focus_direction) {
-            self.focus_and_scroll_to_element_for_key_event(&element, can_gc);
-        }
+    pub(crate) fn set_sequential_focus_navigation_starting_point(&self, node: &Node) {
+        self.sequential_focus_navigation_starting_point
+            .set(Some(node));
     }
 
-    fn find_element_for_tab_focus(&self, direction: FocusDirection) -> Option<DomRoot<Element>> {
-        match self.window.Document().get_focused_element() {
-            Some(focused_element) => {
-                self.find_element_for_tab_focus_following_element(direction, focused_element)
-            },
-            None => self.find_first_tab_focusable_element(direction),
+    pub(crate) fn sequential_focus_navigation_starting_point(&self) -> Option<DomRoot<Node>> {
+        self.sequential_focus_navigation_starting_point
+            .get()
+            .filter(|node| node.is_connected())
+    }
+
+    fn sequential_focus_navigation_via_keyboard_event(&self, event: &KeyboardEvent, can_gc: CanGc) {
+        let direction = if event.modifiers().contains(Modifiers::SHIFT) {
+            SequentialFocusDirection::Backward
+        } else {
+            SequentialFocusDirection::Forward
+        };
+
+        self.sequential_focus_navigation(direction, can_gc);
+    }
+
+    /// <<https://html.spec.whatwg.org/multipage/#sequential-focus-navigation:currently-focused-area-of-a-top-level-traversable>
+    fn sequential_focus_navigation(&self, direction: SequentialFocusDirection, can_gc: CanGc) {
+        // > When the user requests that focus move from the currently focused area of a top-level
+        // > traversable to the next or previous focusable area (e.g., as the default action of
+        // > pressing the tab key), or when the user requests that focus sequentially move to a
+        // > top-level traversable in the first place (e.g., from the browser's location bar), the
+        // > user agent must use the following algorithm:
+
+        // > 1. Let starting point be the currently focused area of a top-level traversable, if the
+        // > user requested to move focus sequentially from there, or else the top-level traversable
+        // > itself, if the user instead requested to move focus from outside the top-level
+        // > traversable.
+        //
+        // TODO: We do not yet implement support for doing sequential focus navigation between traversibles
+        // according to the specification, so the implementation is currently adapted to work with a single
+        // traversible.
+        //
+        // Note: Here `None` represents the current traversible.
+        let mut starting_point = self
+            .window
+            .Document()
+            .get_focused_element()
+            .map(DomRoot::upcast::<Node>);
+
+        // > 2. If there is a sequential focus navigation starting point defined and it is inside
+        // > starting point, then let starting point be the sequential focus navigation starting point
+        // > instead.
+        if let Some(sequential_focus_navigation_starting_point) =
+            self.sequential_focus_navigation_starting_point()
+        {
+            if starting_point.as_ref().is_none_or(|starting_point| {
+                starting_point.is_ancestor_of(&sequential_focus_navigation_starting_point)
+            }) {
+                starting_point = Some(sequential_focus_navigation_starting_point);
+            }
         }
+
+        // > 3. Let direction be "forward" if the user requested the next control, and "backward" if
+        // > the user requested the previous control.
+        //
+        // Note: This is handled by the `direction` argument to this method.
+
+        // > 4. Loop: Let selection mechanism be "sequential" if starting point is a navigable or if
+        // > starting point is in its Document's sequential focus navigation order.
+        // > Otherwise, starting point is not in its Document's sequential focus navigation order;
+        // > let selection mechanism be "DOM".
+        // TODO: Implement this.
+
+        // > 5. Let candidate be the result of running the sequential navigation search algorithm
+        // > with starting point, direction, and selection mechanism.
+        let candidate = starting_point
+            .map(|starting_point| {
+                self.find_element_for_tab_focus_following_element(direction, starting_point)
+            })
+            .unwrap_or_else(|| self.find_first_tab_focusable_element(direction));
+
+        // > 6. If candidate is not null, then run the focusing steps for candidate and return.
+        if let Some(candidate) = candidate {
+            self.focus_and_scroll_to_element_for_key_event(&candidate, can_gc);
+            return;
+        }
+
+        // > 7. Otherwise, unset the sequential focus navigation starting point.
+        self.sequential_focus_navigation_starting_point.clear();
+
+        // > 8. If starting point is a top-level traversable, or a focusable area in the top-level
+        // > traversable, the user agent should transfer focus to its own controls appropriately (if
+        // > any), honouring direction, and then return.
+        // TODO: Implement this.
+
+        // > 9. Otherwise, starting point is a focusable area in a child navigable. Set starting
+        // > point to that child navigable's parent and return to the step labeled loop.
+        // TODO: Implement this.
     }
 
     fn find_element_for_tab_focus_following_element(
         &self,
-        direction: FocusDirection,
-        focused_element: DomRoot<Element>,
+        direction: SequentialFocusDirection,
+        starting_point: DomRoot<Node>,
     ) -> Option<DomRoot<Element>> {
         let root_node = self.window.Document().GetDocumentElement()?;
-        let focused_element_tab_index = focused_element
-            .explicitly_set_tab_index()
+        let focused_element_tab_index = starting_point
+            .downcast::<Element>()
+            .and_then(Element::explicitly_set_tab_index)
             .unwrap_or_default();
         let mut winning_node_and_tab_index: Option<(DomRoot<Element>, i32)> = None;
         let mut saw_focused_element = false;
@@ -1943,13 +2028,14 @@ impl DocumentEventHandler {
             .upcast::<Node>()
             .traverse_preorder(ShadowIncluding::Yes)
         {
-            let Some(candidate_element) = DomRoot::downcast(node) else {
-                continue;
-            };
-            if candidate_element == focused_element {
+            if node == starting_point {
                 saw_focused_element = true;
                 continue;
             }
+
+            let Some(candidate_element) = DomRoot::downcast::<Element>(node) else {
+                continue;
+            };
             if !candidate_element.is_sequentially_focusable() {
                 continue;
             }
@@ -1960,7 +2046,7 @@ impl DocumentEventHandler {
             let ordering =
                 compare_tab_indices(focused_element_tab_index, candidate_element_tab_index);
             match direction {
-                FocusDirection::Forward => {
+                SequentialFocusDirection::Forward => {
                     // If moving forward the first element with equal tab index after the current
                     // element is the winner.
                     if saw_focused_element && ordering == Ordering::Equal {
@@ -1991,7 +2077,7 @@ impl DocumentEventHandler {
                             Some((candidate_element, candidate_element_tab_index))
                     }
                 },
-                FocusDirection::Backward => {
+                SequentialFocusDirection::Backward => {
                     // If moving backward the last element with an equal tab index that precedes
                     // the focused element in the DOM is the winner.
                     if !saw_focused_element && ordering == Ordering::Equal {
@@ -2026,7 +2112,7 @@ impl DocumentEventHandler {
 
     fn find_first_tab_focusable_element(
         &self,
-        direction: FocusDirection,
+        direction: SequentialFocusDirection,
     ) -> Option<DomRoot<Element>> {
         let root_node = self.window.Document().GetDocumentElement()?;
         let mut winning_node_and_tab_index: Option<(DomRoot<Element>, i32)> = None;
@@ -2045,7 +2131,7 @@ impl DocumentEventHandler {
                 .explicitly_set_tab_index()
                 .unwrap_or_default();
             match direction {
-                FocusDirection::Forward => {
+                SequentialFocusDirection::Forward => {
                     // We can immediately return the first time we find an element with the lowest
                     // possible tab index (1). We are guaranteed not to find any lower tab index
                     // and all other equal tab indices are later in the DOM.
@@ -2066,7 +2152,7 @@ impl DocumentEventHandler {
                             Some((candidate_element, candidate_element_tab_index));
                     }
                 },
-                FocusDirection::Backward => {
+                SequentialFocusDirection::Backward => {
                     // Only promote a candidate to winner if it has tab index equal to or
                     // greater than the winner's tab index. This gives precedence to elements
                     // later in the DOM.
@@ -2366,8 +2452,13 @@ impl DocumentEventHandler {
     }
 }
 
-#[derive(PartialEq)]
-enum FocusDirection {
+/// <https://html.spec.whatwg.org/multipage/#sequential-focus-direction>
+///
+/// > A sequential focus direction is one of two possible values: "forward", or "backward". They are
+/// > used in the below algorithms to describe the direction in which sequential focus travels at the
+/// > user's request.
+#[derive(Clone, Copy, PartialEq)]
+enum SequentialFocusDirection {
     Forward,
     Backward,
 }

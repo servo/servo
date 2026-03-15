@@ -326,6 +326,11 @@ impl<T: DomObject> MutNullableDom<T> {
         value
     }
 
+    /// Sets the current value of this [`MutNullableDom`] to `None`.
+    pub(crate) fn clear(&self) {
+        self.set(None)
+    }
+
     /// Runs the given callback on the object if it's not null.
     pub(crate) fn if_is_some<F, R>(&self, cb: F) -> Option<&R>
     where

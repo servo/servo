@@ -1255,8 +1255,10 @@ impl Document {
         );
         // Step 3.6. Run the focusing steps for target, with the Document's viewport as the fallback target.
         // TODO
+
         // Step 3.7. Move the sequential focus navigation starting point to target.
-        // TODO
+        self.event_handler()
+            .set_sequential_focus_navigation_starting_point(target.upcast());
     }
 
     fn get_anchor_by_name(&self, name: &str) -> Option<DomRoot<Element>> {

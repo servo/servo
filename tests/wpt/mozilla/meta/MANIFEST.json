@@ -13240,6 +13240,24 @@
       }
      ]
     ],
+    "sequential-focus-navigation-starting-point-001.html": [
+     "4fecfba641a3acec0132d1d21fc862e02b182416",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "sequential-focus-navigation-starting-point-002.html": [
+     "6faf21b24025de2b0ba2dfdbbd5d0aa57f6ae6c4",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "spurious-mouse-move-events.html": [
      "9cfa22aaf90a0d3399fd03a80aa87dd0f16f76d6",
      [
