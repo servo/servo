@@ -681,8 +681,8 @@ impl Handler {
                             TouchId(*pointer_id as i32),
                             point,
                         ));
-                        // We should NOT block here. TouchMove is special, and may never
-                        // be forwarded to constellation and handled.
+                        // FIXME: Should replace with `send_blocking_input_event_to_embedder`
+                        // after we revamp the touch chain.
                         self.send_input_event_to_embedder(input_event);
                     }
                 },
