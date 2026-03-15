@@ -2,24 +2,34 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
+
 use devtools_traits::EnvironmentInfo;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
-use serde_json::{Map, Value};
+use serde_json::Value;
 
 use crate::actor::{Actor, ActorEncode, ActorRegistry};
 use crate::actors::object::ObjectActorMsg;
 
-#[derive(Default, Serialize)]
+#[derive(Serialize)]
 struct EnvironmentBindings {
     arguments: Vec<Value>,
-    variables: Map<String, Value>,
+    variables: HashMap<String, EnvironmentVariableDesc>,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct EnvironmentFunction {
     display_name: String,
+}
+
+#[derive(Serialize)]
+struct EnvironmentVariableDesc {
+    value: String,
+    configurable: bool,
+    enumerable: bool,
+    writable: bool,
 }
 
 #[derive(Serialize)]
@@ -87,13 +97,32 @@ impl ActorEncode<EnvironmentActorMsg> for EnvironmentActor {
             type_: self.environment.type_.clone(),
             scope_kind: self.environment.scope_kind.clone(),
             parent,
-            bindings: None,
             function: self
                 .environment
                 .function_display_name
                 .clone()
                 .map(|display_name| EnvironmentFunction { display_name }),
             object: None,
+            bindings: Some(EnvironmentBindings {
+                arguments: [].to_vec(),
+                variables: self
+                    .environment
+                    .binding_variables
+                    .clone()
+                    .into_iter()
+                    .map(|(key, value)| {
+                        (
+                            key,
+                            EnvironmentVariableDesc {
+                                value,
+                                configurable: false,
+                                enumerable: true,
+                                writable: false,
+                            },
+                        )
+                    })
+                    .collect(),
+            }),
         }
     }
 }

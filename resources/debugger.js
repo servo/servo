@@ -411,11 +411,28 @@ function createEnvironmentActor(environment) {
             parent = createEnvironmentActor(environment.parent);
         }
 
+        if (environment.type == "declarative") {
+            info.bindingVariables = buildBindings(environment)
+        }
+
+        // TODO: Update this instead of registering
         actor = registerEnvironmentActor(info, parent);
         environmentActorsToEnvironments.set(actor, environment);
     }
 
     return actor;
+}
+
+function buildBindings(environment) {
+    let bindingVar = new Map();
+    for (const name of environment.names()) {
+        const value = environment.getVariable(name);
+        // <https://searchfox.org/firefox-main/source/devtools/server/actors/environment.js#87>
+        // We should not do this, it is more of a place holder for now.
+        // TODO: build and pass correct structure for this. This structure is very similar to "eval"
+        bindingVar[name] = JSON.stringify(value);
+    }
+    return bindingVar;
 }
 
 // Get a `Debugger.Environment` instance within which evaluation is taking place.
