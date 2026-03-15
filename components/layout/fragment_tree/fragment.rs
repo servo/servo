@@ -14,6 +14,7 @@ use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_url::ServoUrl;
 use style::Zero;
+use style::servo::selector_parser::PseudoElement;
 use style_traits::CSSPixel;
 use webrender_api::{FontInstanceKey, ImageKey};
 
@@ -310,9 +311,10 @@ impl Fragment {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
                 let fragment = fragment.borrow();
                 let style = fragment.style();
-                let content_rect = fragment
-                    .content_rect()
-                    .translate(containing_block.origin.to_vector());
+                let content_rect = fragment.content_rect();
+                let translated_containing_block =
+                    containing_block.translate(content_rect.origin.to_vector());
+                let content_rect = content_rect.translate(containing_block.origin.to_vector());
                 let padding_rect = fragment
                     .padding_rect()
                     .translate(containing_block.origin.to_vector());
@@ -324,8 +326,13 @@ impl Fragment {
                     .establishes_containing_block_for_absolute_descendants(fragment.base.flags)
                 {
                     manager.new_for_absolute_descendants(&content_rect, &padding_rect)
-                } else {
+                } else if !matches!(style.pseudo(), Some(PseudoElement::ServoAnonymousBox)) {
                     manager.new_for_non_absolute_descendants(&content_rect)
+                } else {
+                    // The box doesn't establish a containing block. Use the original CB,
+                    // just translated because the coordinates of the children originate
+                    // at the content rect of the anonymous box.
+                    manager.new_for_non_absolute_descendants(&translated_containing_block)
                 };
 
                 fragment
@@ -334,12 +341,14 @@ impl Fragment {
                     .find_map(|child| child.find(&new_manager, level + 1, process_func))
             },
             Fragment::Positioning(fragment) => {
+                // Line boxes don't establish a containing block. Use the original CB,
+                // just translated because the coordinates of the children originate
+                // at the line box.
                 let fragment = fragment.borrow();
-                let content_rect = fragment
-                    .base
-                    .rect
-                    .translate(containing_block.origin.to_vector());
-                let new_manager = manager.new_for_non_absolute_descendants(&content_rect);
+                let translated_containing_block =
+                    containing_block.translate(fragment.base.rect.origin.to_vector());
+                let new_manager =
+                    manager.new_for_non_absolute_descendants(&translated_containing_block);
                 fragment
                     .children
                     .iter()
