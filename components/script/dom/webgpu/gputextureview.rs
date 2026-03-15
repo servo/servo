@@ -14,16 +14,36 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gputexture::GPUTexture;
 use crate::script_runtime::CanGc;
 
-#[dom_struct]
-pub(crate) struct GPUTextureView {
-    reflector_: Reflector,
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPUTextureView {
     #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
-    label: DomRefCell<USVString>,
     #[no_trace]
     texture_view: WebGPUTextureView,
+}
+
+impl Drop for DroppableGPUTextureView {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropTextureView(self.texture_view.0))
+        {
+            warn!(
+                "Failed to send DropTextureView ({:?}) ({})",
+                self.texture_view.0, e
+            );
+        }
+    }
+}
+
+#[dom_struct]
+pub(crate) struct GPUTextureView {
+    reflector_: Reflector,
+    label: DomRefCell<USVString>,
     texture: Dom<GPUTexture>,
+    droppable: DroppableGPUTextureView,
 }
 
 impl GPUTextureView {
@@ -35,10 +55,12 @@ impl GPUTextureView {
     ) -> GPUTextureView {
         Self {
             reflector_: Reflector::new(),
-            channel,
             texture: Dom::from_ref(texture),
             label: DomRefCell::new(label),
-            texture_view,
+            droppable: DroppableGPUTextureView {
+                channel,
+                texture_view,
+            },
         }
     }
 
@@ -65,7 +87,7 @@ impl GPUTextureView {
 
 impl GPUTextureView {
     pub(crate) fn id(&self) -> WebGPUTextureView {
-        self.texture_view
+        self.droppable.texture_view
     }
 }
 
@@ -78,20 +100,5 @@ impl GPUTextureViewMethods<crate::DomTypeHolder> for GPUTextureView {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
-    }
-}
-
-impl Drop for GPUTextureView {
-    fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropTextureView(self.texture_view.0))
-        {
-            warn!(
-                "Failed to send DropTextureView ({:?}) ({})",
-                self.texture_view.0, e
-            );
-        }
     }
 }
