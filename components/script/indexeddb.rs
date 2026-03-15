@@ -9,15 +9,17 @@ use itertools::Itertools;
 use js::context::JSContext;
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::jsapi::{
-    ClippedTime, ESClass, IsArrayBufferObject, JS_GetStringLength, JS_IsArrayBufferViewObject,
-    PropertyKey,
+    ClippedTime, ESClass, IsArrayBufferObject, IsDetachedArrayBufferObject,
+    JS_GetArrayBufferViewBuffer, JS_GetStringLength, JS_IsArrayBufferViewObject, PropertyKey,
 };
 use js::jsval::{DoubleValue, JSVal, UndefinedValue};
+use js::rust::wrappers::SameValue;
 use js::rust::wrappers2::{
     GetArrayLength, GetBuiltinClass, IsArrayObject, JS_HasOwnPropertyById, JS_IndexToId,
     JS_IsIdentifier, JS_NewObject, NewDateObject,
 };
 use js::rust::{HandleValue, MutableHandleValue};
+use js::typedarray::{ArrayBuffer, ArrayBufferView};
 use storage_traits::indexeddb::{BackendError, IndexedDBKeyRange, IndexedDBKeyType};
 
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
@@ -28,7 +30,6 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::utils::{
     define_dictionary_property, get_dictionary_property, has_own_property,
 };
@@ -148,24 +149,34 @@ pub fn convert_value_to_key(
     // Step 1: If seen was not given, then let seen be a new empty set.
     let mut seen = seen.unwrap_or_default();
 
-    // Step 2: If seen contains input, then return invalid.
-    // FIXME:(arihant2math) implement this
-    // Check if we have seen this key
-    // Does not currently work with HandleValue,
-    // as it does not implement PartialEq
+    // Step 2: If seen contains input, then return "invalid value".
+    for seen_input in &seen {
+        let mut same = false;
+        if unsafe { !SameValue(cx.raw_cx(), *seen_input, input, &mut same) } {
+            return Err(Error::JSFailed);
+        }
+        if same {
+            return Ok(ConversionResult::Invalid);
+        }
+    }
 
-    // Step 3
-    // FIXME:(arihant2math) Accept array as well
+    // Step 3. Jump to the appropriate step below.
+
+    // If Type(input) is Number:
     if input.is_number() {
+        // 3.1. If input is NaN then return "invalid value".
         if input.to_number().is_nan() {
             return Ok(ConversionResult::Invalid);
         }
+        // 3.2. Otherwise, return a new key with type number and value input.
         return Ok(ConversionResult::Valid(IndexedDBKeyType::Number(
             input.to_number(),
         )));
     }
 
+    // If Type(input) is String:
     if input.is_string() {
+        // 3.1. Return a new key with type string and value input.
         let string_ptr = std::ptr::NonNull::new(input.to_string()).unwrap();
         let key = unsafe { jsstr_to_string(cx.raw_cx(), string_ptr) };
         return Ok(ConversionResult::Valid(IndexedDBKeyType::String(key)));
@@ -180,64 +191,115 @@ pub fn convert_value_to_key(
                 return Err(Error::JSFailed);
             }
 
+            // If input is a Date (has a [[DateValue]] internal slot):
             if let ESClass::Date = built_in_class {
-                let mut f = f64::NAN;
-                if !js::rust::wrappers2::DateGetMsecSinceEpoch(cx, object.handle(), &mut f) {
+                // 3.1. Let ms be the value of input's [[DateValue]] internal slot.
+                let mut ms = f64::NAN;
+                if !js::rust::wrappers2::DateGetMsecSinceEpoch(cx, object.handle(), &mut ms) {
                     return Err(Error::JSFailed);
                 }
-                if f.is_nan() {
-                    return Err(Error::Data(None));
+                // 3.2. If ms is NaN then return "invalid value".
+                if ms.is_nan() {
+                    return Ok(ConversionResult::Invalid);
                 }
-                return Ok(ConversionResult::Valid(IndexedDBKeyType::Date(f)));
+                // 3.3. Otherwise, return a new key with type date and value ms.
+                return Ok(ConversionResult::Valid(IndexedDBKeyType::Date(ms)));
             }
 
+            // If input is a buffer source type:
             if IsArrayBufferObject(*object) || JS_IsArrayBufferViewObject(*object) {
-                // FIXME:(arihant2math) implement it the correct way (is this correct?)
-                let key = structuredclone::write(cx.into(), input, None)?;
-                return Ok(ConversionResult::Valid(IndexedDBKeyType::Binary(
-                    key.serialized,
-                )));
+                let is_detached = if IsArrayBufferObject(*object) {
+                    IsDetachedArrayBufferObject(*object)
+                } else {
+                    let mut is_shared = false;
+                    rooted!(
+                        in (cx.raw_cx()) let view_buffer =
+                            JS_GetArrayBufferViewBuffer(
+                                cx.raw_cx(),
+                                object.handle().into(),
+                                &mut is_shared
+                            )
+                    );
+                    !is_shared && IsDetachedArrayBufferObject(*view_buffer.handle())
+                };
+                // 3.1. If input is detached then return "invalid value".
+                if is_detached {
+                    return Ok(ConversionResult::Invalid);
+                }
+                // 3.2. Let bytes be the result of getting a copy of the bytes held
+                // by the buffer source input.
+                let bytes = if IsArrayBufferObject(*object) {
+                    let array_buffer = ArrayBuffer::from(*object).map_err(|()| Error::JSFailed)?;
+                    array_buffer.to_vec()
+                } else {
+                    let array_buffer_view =
+                        ArrayBufferView::from(*object).map_err(|()| Error::JSFailed)?;
+                    array_buffer_view.to_vec()
+                };
+                // 3.3. Return a new key with type binary and value bytes.
+                return Ok(ConversionResult::Valid(IndexedDBKeyType::Binary(bytes)));
             }
 
+            // If input is an Array exotic object:
             if let ESClass::Array = built_in_class {
+                // 3.1. Let len be ? ToLength( ? Get(input, "length")).
                 let mut len = 0;
                 if !GetArrayLength(cx, object.handle(), &mut len) {
                     return Err(Error::JSFailed);
                 }
+                // 3.2. Append input to seen.
                 seen.push(input);
-                let mut values = vec![];
-                for i in 0..len {
+                // 3.3. Let keys be a new empty list.
+                let mut keys = vec![];
+                // 3.4. Let index be 0.
+                let mut index: u32 = 0;
+                // 3.5. While index is less than len:
+                while index < len {
                     rooted!(&in(cx) let mut id: PropertyKey);
-                    if !JS_IndexToId(cx, i, id.handle_mut()) {
+                    if !JS_IndexToId(cx, index, id.handle_mut()) {
                         return Err(Error::JSFailed);
                     }
-                    let mut has_own = false;
-                    if !JS_HasOwnPropertyById(cx, object.handle(), id.handle(), &mut has_own) {
+                    // 3.5.1. Let hop be ? HasOwnProperty(input, index).
+                    let mut hop = false;
+                    if !JS_HasOwnPropertyById(cx, object.handle(), id.handle(), &mut hop) {
                         return Err(Error::JSFailed);
                     }
-                    if !has_own {
+                    // 3.5.2. If hop is false, return "invalid value".
+                    if !hop {
                         return Ok(ConversionResult::Invalid);
                     }
-                    rooted!(&in(cx) let mut item = UndefinedValue());
+                    // 3.5.3. Let entry be ? Get(input, index).
+                    rooted!(&in(cx) let mut entry = UndefinedValue());
                     if !js::rust::wrappers2::JS_GetPropertyById(
                         cx,
                         object.handle(),
                         id.handle(),
-                        item.handle_mut(),
+                        entry.handle_mut(),
                     ) {
                         return Err(Error::JSFailed);
                     }
-                    let key = match convert_value_to_key(cx, item.handle(), Some(seen.clone()))? {
+
+                    // 3.5.4. Let key be the result of converting a value to a key
+                    //        with arguments entry and seen.
+                    // 3.5.5. ReturnIfAbrupt(key).
+                    let key = match convert_value_to_key(cx, entry.handle(), Some(seen.clone()))? {
                         ConversionResult::Valid(key) => key,
+                        // 3.5.6. If key is "invalid value" or "invalid type"
+                        //        abort these steps and return "invalid value".
                         ConversionResult::Invalid => return Ok(ConversionResult::Invalid),
                     };
-                    values.push(key);
+                    // 3.5.7. Append key to keys.
+                    keys.push(key);
+                    // 3.5.8. Increase index by 1.
+                    index += 1;
                 }
-                return Ok(ConversionResult::Valid(IndexedDBKeyType::Array(values)));
+                // 3.6. Return a new array key with value keys.
+                return Ok(ConversionResult::Valid(IndexedDBKeyType::Array(keys)));
             }
         }
     }
 
+    // Otherwise, return "invalid type".
     Ok(ConversionResult::Invalid)
 }
 
