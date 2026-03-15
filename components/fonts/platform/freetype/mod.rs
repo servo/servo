@@ -10,8 +10,8 @@ pub mod font_list;
 
 #[cfg(target_os = "android")]
 mod android {
+    pub mod font;
     pub mod font_list;
-    mod xml;
 }
 #[cfg(target_os = "android")]
 pub use self::android::font_list;
