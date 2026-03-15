@@ -21,6 +21,7 @@ use js::rust::wrappers2::{
     GetRequestedModulesCount, JS_GetModulePrivate, ModuleEvaluate, ModuleLink,
 };
 use js::rust::{HandleValue, IntoHandle};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{Destination, Referrer};
 use script_bindings::settings_stack::run_a_callback;
 use servo_url::ServoUrl;
@@ -64,6 +65,8 @@ pub(crate) struct LoadState {
     #[no_trace]
     pub(crate) destination: Destination,
     pub(crate) fetch_client: ModuleOwner,
+    #[no_trace]
+    pub(crate) policy_container: Option<PolicyContainer>,
 }
 
 /// <https://tc39.es/ecma262/#graphloadingstate-record>
@@ -511,6 +514,10 @@ pub(crate) fn host_load_imported_module(
         ),
     };
 
+    let policy_container = load_state
+        .clone()
+        .and_then(|state| state.policy_container.clone());
+
     let on_single_fetch_complete = move |module_tree: Option<Rc<ModuleTree>>| {
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
         let mut realm = CurrentRealm::assert(&mut cx);
@@ -561,11 +568,13 @@ pub(crate) fn host_load_imported_module(
         fetch_options,
         fetch_referrer,
         module_type,
+        policy_container,
         on_single_fetch_complete,
     );
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-single-imported-module-script>
+#[expect(clippy::too_many_arguments)]
 fn fetch_a_single_imported_module_script(
     url: ServoUrl,
     owner: ModuleOwner,
@@ -573,6 +582,7 @@ fn fetch_a_single_imported_module_script(
     options: ScriptFetchOptions,
     referrer: Referrer,
     module_type: ModuleType,
+    policy_container: Option<PolicyContainer>,
     on_complete: impl FnOnce(Option<Rc<ModuleTree>>) + 'static,
 ) {
     // TODO Step 1. Assert: moduleRequest.[[Attributes]] does not contain any Record entry such that entry.[[Key]] is not "type",
@@ -591,6 +601,7 @@ fn fetch_a_single_imported_module_script(
     // moduleRequest, false, and onComplete. If performFetch was given, pass it along as well.
     fetch_a_single_module_script(
         url,
+        None,
         owner,
         destination,
         options,
@@ -598,6 +609,7 @@ fn fetch_a_single_imported_module_script(
         Some(module_type),
         false,
         Some(IntroductionType::IMPORTED_MODULE),
+        policy_container,
         on_complete,
     );
 }
