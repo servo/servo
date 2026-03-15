@@ -382,15 +382,15 @@ egui-winit = { git = "https://github.com/emilk/egui.git", rev = "5d8f393335e0517
 #
 # Or for Stylo:
 #
-# [patch."https://github.com/servo/stylo"]
-# selectors = { path = "../stylo/selectors" }
-# servo_arc = { path = "../stylo/servo_arc" }
-# stylo = { path = "../stylo/style" }
-# stylo_atoms = { path = "../stylo/stylo_atoms" }
-# stylo_dom = { path = "../stylo/stylo_dom" }
-# stylo_malloc_size_of = { path = "../stylo/malloc_size_of" }
-# stylo_static_prefs = { path = "../stylo/stylo_static_prefs" }
-# stylo_traits = { path = "../stylo/style_traits" }
+[patch."https://github.com/servo/stylo"]
+selectors = { git = "https://github.com/BudiArb/stylo", branch = "slide-bar" }
+servo_arc = { git = "https://github.com/BudiArb/stylo", branch = "slide-bar" }
+stylo = { git = "https://github.com/BudiArb/stylo", branch = "slide-bar" }
+stylo_atoms = { git = "https://github.com/BudiArb/stylo", branch = "slide-bar" }
+stylo_dom = { git = "https://github.com/BudiArb/stylo", branch = "slide-bar" }
+stylo_malloc_size_of = { git = "https://github.com/BudiArb/stylo", branch = "slide-bar" }
+stylo_static_prefs = { git = "https://github.com/BudiArb/stylo", branch = "slide-bar" }
+stylo_traits = { git = "https://github.com/BudiArb/stylo", branch = "slide-bar" }
 #
 # Or for another Git dependency:
 #
