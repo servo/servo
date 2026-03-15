@@ -2,11 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use script_bindings::inheritance::Castable;
+
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
+use crate::dom::execcommand::commands::fontsize::legacy_font_size_for;
+use crate::dom::html::htmlfontelement::HTMLFontElement;
+use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::selection::Selection;
 use crate::script_runtime::CanGc;
 
@@ -64,6 +69,7 @@ impl Document {
         Some(match &*command_id.str().to_lowercase() {
             "delete" => CommandName::Delete,
             "defaultparagraphseparator" => CommandName::DefaultParagraphSeparator,
+            "fontsize" => CommandName::FontSize,
             "stylewithcss" => CommandName::StyleWithCss,
             _ => return None,
         })
@@ -125,13 +131,23 @@ impl DocumentExecCommandSupport for Document {
         let Some(value) = command.current_value(self) else {
             return DOMString::new();
         };
-        // Step 2. If command is "fontSize" and its value override is set,
-        // convert the value override to an integer number of pixels and return the legacy font size for the result.
-        // TODO
-
         // Step 3. If the value override for command is set, return it.
         if let Some(value_override) = self.value_override(&command) {
-            return value_override;
+            // Step 2. If command is "fontSize" and its value override is set,
+            // convert the value override to an integer number of pixels and return the legacy font size for the result.
+            return if command == CommandName::FontSize {
+                let Ok(value_override) = value_override.parse() else {
+                    return value_override;
+                };
+                let font_elements = self
+                    .upcast::<Node>()
+                    .traverse_preorder(ShadowIncluding::No)
+                    .filter_map(DomRoot::downcast::<HTMLFontElement>)
+                    .collect();
+                legacy_font_size_for(value_override, font_elements)
+            } else {
+                value_override
+            };
         }
         // Step 4. Return command's value.
         value
