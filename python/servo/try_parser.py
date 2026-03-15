@@ -29,6 +29,7 @@ class Workflow(str, Enum):
     ANDROID = "android"
     OHOS = "ohos"
     LINT = "lint"
+    LINUX_ARM = "linux-arm"
 
 
 @dataclass
@@ -67,6 +68,8 @@ class JobConfig(object):
     def update_name(self) -> None:
         if self.workflow is Workflow.LINUX:
             self.name = "Linux"
+        elif self.workflow is Workflow.LINUX_ARM:
+            self.name = "Linux ARM"
         elif self.workflow is Workflow.MACOS:
             self.name = "MacOS"
         elif self.workflow is Workflow.MACOS_ARM:
@@ -97,7 +100,9 @@ class JobConfig(object):
 def handle_preset(s: str) -> Optional[JobConfig]:
     s = s.lower()
 
-    if any(word in s for word in ["linux"]):
+    if s == "linux-arm" or any(word in s for word in ["arm"]):
+        return JobConfig("Linux ARM", Workflow.LINUX_ARM)
+    elif any(word in s for word in ["linux"]):
         return JobConfig("Linux", Workflow.LINUX)
     elif any(word in s for word in ["mac-arm", "macos-arm", "mac-arm64", "macos-arm64"]):
         return JobConfig("MacOS Arm64", Workflow.MACOS_ARM)
