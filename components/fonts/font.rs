@@ -81,7 +81,7 @@ pub trait PlatformFontMethods: Sized {
                 variations,
                 synthetic_bold,
             ),
-            FontIdentifier::Web(_) => Self::new_from_data(
+            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => Self::new_from_data(
                 font_identifier,
                 data.as_ref()
                     .expect("Should never create a web font without data."),

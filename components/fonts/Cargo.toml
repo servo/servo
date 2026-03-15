@@ -53,6 +53,7 @@ tracing = { workspace = true, optional = true }
 unicode-properties = { workspace = true }
 unicode-script = { workspace = true }
 url = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
 webrender_api = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
