@@ -41,6 +41,7 @@ use js::jsapi::{
 };
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::panic::wrap_panic;
+use js::realm::CurrentRealm;
 pub(crate) use js::rust::ThreadSafeJSContext;
 use js::rust::wrappers::{GetPromiseIsHandled, JS_GetPromiseResult};
 use js::rust::wrappers2::{
@@ -498,10 +499,10 @@ unsafe extern "C" fn promise_rejection_tracker(
 }
 
 #[expect(unsafe_code)]
-fn safely_convert_null_to_string(cx: JSContext, str_: HandleString) -> DOMString {
+fn safely_convert_null_to_string(cx: &mut js::context::JSContext, str_: HandleString) -> DOMString {
     DOMString::from(match std::ptr::NonNull::new(*str_) {
         None => "".to_owned(),
-        Some(str_) => unsafe { jsstr_to_string(*cx, str_) },
+        Some(str_) => unsafe { jsstr_to_string(cx.raw_cx(), str_) },
     })
 }
 
@@ -534,11 +535,13 @@ unsafe extern "C" fn content_security_policy_allows(
     can_compile_strings: *mut bool,
 ) -> bool {
     let mut allowed = false;
-    let cx = unsafe { JSContext::from_ptr(cx) };
+    // SAFETY: We are in SM hook
+    let mut cx = unsafe { js::context::JSContext::from_ptr(NonNull::new(cx).unwrap()) };
+    let cx = &mut cx;
     wrap_panic(&mut || {
         // SpiderMonkey provides null pointer when executing webassembly.
-        let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
-        let global = unsafe { &GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)) };
+        let realm = CurrentRealm::assert(cx);
+        let global = GlobalScope::from_current_realm(&realm);
         let csp_list = global.get_csp_list();
 
         // If we don't have any CSP checks to run, short-circuit all logic here
@@ -567,9 +570,9 @@ unsafe extern "C" fn content_security_policy_allows(
                         };
                         let value = arg.into_handle().get();
                         if value.is_object() {
-                            if let Ok(trusted_script) =
-                                unsafe { root_from_object::<TrustedScript>(value.to_object(), *cx) }
-                            {
+                            if let Ok(trusted_script) = unsafe {
+                                root_from_object::<TrustedScript>(value.to_object(), cx.raw_cx())
+                            } {
                                 parameter_args_vec
                                     .push(TrustedScriptOrString::TrustedScript(trusted_script));
                             } else {
@@ -588,19 +591,21 @@ unsafe extern "C" fn content_security_policy_allows(
                         }
                     }
 
+                    let code_string = safely_convert_null_to_string(cx, code_string);
+                    let body_string = safely_convert_null_to_string(cx, body_string);
+
                     TrustedScript::can_compile_string_with_trusted_type(
                         cx,
-                        global,
-                        safely_convert_null_to_string(cx, code_string),
+                        &global,
+                        code_string,
                         compilation_type,
                         parameter_strings_vec,
-                        safely_convert_null_to_string(cx, body_string),
+                        body_string,
                         parameter_args_vec,
                         unsafe { HandleValue::from_raw(body_arg) },
-                        CanGc::note(),
                     )
                 },
-                RuntimeCode::WASM => global.get_csp_list().is_wasm_evaluation_allowed(global),
+                RuntimeCode::WASM => global.get_csp_list().is_wasm_evaluation_allowed(&global),
             };
     });
     unsafe { *can_compile_strings = allowed };

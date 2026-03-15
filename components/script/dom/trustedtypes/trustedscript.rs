@@ -4,6 +4,7 @@
 use std::fmt;
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::jsapi::CompilationType;
 use js::rust::HandleValue;
 
@@ -19,7 +20,7 @@ use crate::dom::trustedtypes::trustedtypepolicy::TrustedType;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::{
     DEFAULT_SCRIPT_SINK_GROUP, TrustedTypePolicyFactory,
 };
-use crate::script_runtime::{CanGc, JSContext};
+use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct TrustedScript {
@@ -36,11 +37,7 @@ impl TrustedScript {
         }
     }
 
-    pub(crate) fn new(
-        cx: &mut js::context::JSContext,
-        data: DOMString,
-        global: &GlobalScope,
-    ) -> DomRoot<Self> {
+    pub(crate) fn new(cx: &mut JSContext, data: DOMString, global: &GlobalScope) -> DomRoot<Self> {
         reflect_dom_object_with_cx(Box::new(Self::new_inherited(data)), global, cx)
     }
 
@@ -73,7 +70,7 @@ impl TrustedScript {
     /// <https://www.w3.org/TR/CSP/#can-compile-strings>
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn can_compile_string_with_trusted_type(
-        cx: JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         code_string: DOMString,
         compilation_type: CompilationType,
@@ -81,7 +78,6 @@ impl TrustedScript {
         body_string: DOMString,
         parameter_args: Vec<TrustedScriptOrString>,
         body_arg: HandleValue,
-        can_gc: CanGc,
     ) -> bool {
         // Step 2.1. Let compilationSink be "Function" if compilationType is "FUNCTION",
         // and "eval" otherwise.
@@ -92,7 +88,8 @@ impl TrustedScript {
         };
         // Step 2.2. Let isTrusted be true if bodyArg implements TrustedScript,
         // and false otherwise.
-        let mut is_trusted = match TrustedTypePolicyFactory::is_trusted_script(cx, body_arg) {
+        let mut is_trusted = match TrustedTypePolicyFactory::is_trusted_script(cx.into(), body_arg)
+        {
             // Step 2.3. If isTrusted is true then:
             Ok(trusted_script) => {
                 // Step 2.3.1. If bodyString is not equal to bodyArg’s data, set isTrusted to false.
@@ -138,7 +135,7 @@ impl TrustedScript {
                 global,
                 TrustedScriptOrString::String(code_string.clone()),
                 compilation_sink,
-                can_gc,
+                CanGc::from_cx(cx),
             ) {
                 // Step 2.7. If the algorithm throws an error, throw an EvalError.
                 Err(_) => {
