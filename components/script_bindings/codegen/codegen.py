@@ -2973,7 +2973,7 @@ def DomTypes(descriptors: list[Descriptor],
             ]
     elements += [CGGeneric("}\n")]
     imports = [
-        CGGeneric("#[cfg(feature = \"testbinding\")] use crate::root::DomRoot;\n"),
+        CGGeneric("use crate::root::DomRoot;\n"),
         CGGeneric("use crate::domstring::DOMString;\n"),
     ]
     return CGList(imports + elements)
