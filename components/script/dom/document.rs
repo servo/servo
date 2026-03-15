@@ -5121,8 +5121,12 @@ impl Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#state-override>
-    pub(crate) fn set_state_override(&self, command_name: CommandName, state: bool) {
-        self.state_override.borrow_mut().insert(command_name, state);
+    pub(crate) fn set_state_override(&self, command_name: CommandName, state: Option<bool>) {
+        if let Some(state) = state {
+            self.state_override.borrow_mut().insert(command_name, state);
+        } else {
+            self.value_override.borrow_mut().remove(&command_name);
+        }
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#value-override>

@@ -19,6 +19,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
+use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrElementCreationOptions;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::{DomRoot, DomSlice};
@@ -36,7 +37,7 @@ use crate::dom::html::htmltablecellelement::HTMLTableCellElement;
 use crate::dom::html::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
-use crate::dom::range::Range;
+use crate::dom::range::{ContainedChildren, Range};
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
 use crate::script_runtime::CanGc;
@@ -214,6 +215,34 @@ impl Document {
 impl HTMLElement {
     fn local_name(&self) -> &str {
         self.upcast::<Element>().local_name()
+    }
+}
+
+impl Element {
+    /// <https://w3c.github.io/editing/docs/execCommand/#clear-the-value>
+    fn clear_the_value(&self) {
+        // Step 1. Let command be the current command.
+        // TODO
+        // Step 2. If element is not editable, return the empty list.
+        // TODO
+        // Step 3. If element's specified command value for command is null, return the empty list.
+        // TODO
+        // Step 4. If element is a simple modifiable element:
+        // TODO
+        // Step 5. If command is "strikethrough", and element has a style attribute that sets "text-decoration" to some value containing "line-through", delete "line-through" from the value.
+        // TODO
+        // Step 6. If command is "underline", and element has a style attribute that sets "text-decoration" to some value containing "underline", delete "underline" from the value.
+        // TODO
+        // Step 7. If the relevant CSS property for command is not null, unset that property of element.
+        // TODO
+        // Step 8. If element is a font element:
+        // TODO
+        // Step 9. If element is an a element and command is "createLink" or "unlink", unset the href property of element.
+        // TODO
+        // Step 10. If element's specified command value for command is null, return the empty list.
+        // TODO
+        // Step 11. Set the tag name of element to "span", and return the one-node list consisting of the result.
+        // TODO
     }
 }
 
@@ -662,6 +691,73 @@ pub(crate) fn split_the_parent<'a>(cx: &mut js::context::JSContext, node_list: &
 impl Node {
     fn resolved_display_value(&self) -> Option<DisplayOutside> {
         self.style().map(|style| style.get_box().display.outside())
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#push-down-values>
+    fn push_down_values(&self, command: CommandName, new_value: Option<DOMString>) {
+        // Step 1. Let command be the current command.
+        //
+        // Passed in as argument
+
+        // Step 4. Let current ancestor be node's parent.
+        let mut current_ancestor = self.GetParentElement();
+        // Step 2. If node's parent is not an Element, abort this algorithm.
+        if current_ancestor.is_none() {
+            return;
+        };
+        // Step 3. If the effective command value of command is loosely equivalent to new value on node,
+        // abort this algorithm.
+        if command.are_loosely_equivalent_values(
+            self.effective_command_value(command).as_ref(),
+            new_value.as_ref(),
+        ) {
+            return;
+        }
+        // Step 5. Let ancestor list be a list of nodes, initially empty.
+        rooted_vec!(let mut ancestor_list);
+        // Step 6. While current ancestor is an editable Element and
+        // the effective command value of command is not loosely equivalent to new value on it,
+        // append current ancestor to ancestor list, then set current ancestor to its parent.
+        while let Some(ancestor) = current_ancestor {
+            let ancestor_node = ancestor.upcast::<Node>();
+            if ancestor_node.is_editable() &&
+                !command.are_loosely_equivalent_values(
+                    ancestor_node.effective_command_value(command).as_ref(),
+                    new_value.as_ref(),
+                )
+            {
+                ancestor_list.push(ancestor.clone());
+                current_ancestor = ancestor_node.GetParentElement();
+                continue;
+            }
+            break;
+        }
+        let Some(last_ancestor) = ancestor_list.last() else {
+            // Step 7. If ancestor list is empty, abort this algorithm.
+            return;
+        };
+        // Step 8. Let propagated value be the specified command value of command on the last member of ancestor list.
+        let propagated_value = command.specified_command_value(last_ancestor);
+        // Step 9. If propagated value is null and is not equal to new value, abort this algorithm.
+        if propagated_value.is_none() && new_value.is_some() {
+            return;
+        }
+        // Step 10. If the effective command value of command is not loosely equivalent to new value on the parent
+        // of the last member of ancestor list, and new value is not null, abort this algorithm.
+        if new_value.is_some() &&
+            !last_ancestor
+                .upcast::<Node>()
+                .GetParentNode()
+                .is_some_and(|last_ancestor| {
+                    command.are_loosely_equivalent_values(
+                        last_ancestor.effective_command_value(command).as_ref(),
+                        new_value.as_ref(),
+                    )
+                })
+        {
+            return;
+        }
+        // Step 11. While ancestor list is not empty:
     }
 }
 
@@ -1742,7 +1838,7 @@ impl Range {
                 // Step 3.1. If override is a boolean, set the state override for command to override.
                 match override_state.value {
                     BoolOrOptionalString::Bool(bool_) => {
-                        context_object.set_state_override(override_state.name, bool_)
+                        context_object.set_state_override(override_state.name, Some(bool_))
                     },
                     // Step 3.2. If override is a string, set the value override for command to override.
                     BoolOrOptionalString::OptionalString(optional_string) => {
@@ -1785,6 +1881,28 @@ impl Range {
     }
 }
 
+impl ContainedChildren {
+    fn for_each_effectively_contained_child<Callback: Fn(&Node)>(
+        &self,
+        range: &Range,
+        callback: Callback,
+    ) {
+        if let Some(first_child) = self.first_partially_contained_child.as_ref() {
+            if range.is_effectively_contained_node(first_child) {
+                callback(first_child);
+            }
+        }
+        for contained_child in &self.contained_children {
+            callback(contained_child);
+        }
+        if let Some(last_child) = self.last_partially_contained_child.as_ref() {
+            if range.is_effectively_contained_node(last_child) {
+                callback(last_child);
+            }
+        }
+    }
+}
+
 #[derive(Default, PartialEq)]
 pub(crate) enum SelectionDeletionBlockMerging {
     #[default]
@@ -1813,6 +1931,13 @@ pub(crate) trait SelectionExecCommandSupport {
         block_merging: SelectionDeletionBlockMerging,
         strip_wrappers: SelectionDeletionStripWrappers,
         direction: SelectionDeleteDirection,
+    );
+    fn set_the_selection_value(
+        &self,
+        cx: &mut js::context::JSContext,
+        new_value: Option<DOMString>,
+        command: CommandName,
+        context_object: &Document,
     );
 }
 
@@ -2459,5 +2584,92 @@ impl SelectionExecCommandSupport for Selection {
 
         // Step 41. Restore states and values from overrides.
         active_range.restore_states_and_values(context_object, overrides);
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#set-the-selection's-value>
+    fn set_the_selection_value(
+        &self,
+        cx: &mut js::context::JSContext,
+        new_value: Option<DOMString>,
+        command: CommandName,
+        context_object: &Document,
+    ) {
+        let active_range = self
+            .active_range()
+            .expect("Must always have an active range");
+
+        // Step 1. Let command be the current command.
+        //
+        // Passed as argument
+
+        // Step 2. If there is no formattable node effectively contained in the active range:
+        if active_range.first_formattable_contained_node().is_none() {
+            // Step 2.1. If command has inline command activated values, set the state override to true if new value is among them and false if it's not.
+            // TODO
+
+            // Step 2.2. If command is "subscript", unset the state override for "superscript".
+            if command == CommandName::Subscript {
+                context_object.set_state_override(CommandName::Superscript, None);
+            }
+            // Step 2.3. If command is "superscript", unset the state override for "subscript".
+            if command == CommandName::Superscript {
+                context_object.set_state_override(CommandName::Subscript, None);
+            }
+            // Step 2.4. If new value is null, unset the value override (if any).
+            // Step 2.5. Otherwise, if command is "createLink" or it has a value specified, set the value override to new value.
+            context_object.set_value_override(command, new_value);
+            // Step 2.6. Abort these steps.
+            return;
+        }
+        // Step 3. If the active range's start node is an editable Text node,
+        // and its start offset is neither zero nor its start node's length,
+        // call splitText() on the active range's start node,
+        // with argument equal to the active range's start offset.
+        // Then set the active range's start node to the result, and its start offset to zero.
+        let start_node = active_range.start_container();
+        let start_offset = active_range.start_offset();
+        if start_node.is_editable() && start_offset != 0 && start_offset != start_node.len() {
+            if let Some(start_text) = start_node.downcast::<Text>() {
+                let Ok(start_text) = start_text.SplitText(cx, start_offset) else {
+                    unreachable!("Must always be able to split");
+                };
+                active_range.set_start(start_text.upcast(), 0);
+            }
+        }
+        // Step 4. If the active range's end node is an editable Text node,
+        // and its end offset is neither zero nor its end node's length,
+        // call splitText() on the active range's end node,
+        // with argument equal to the active range's end offset.
+        let end_node = active_range.end_container();
+        let end_offset = active_range.end_offset();
+        if end_node.is_editable() && end_offset != 0 && end_offset != end_node.len() {
+            if let Some(end_text) = end_node.downcast::<Text>() {
+                if end_text.SplitText(cx, end_offset).is_err() {
+                    unreachable!("Must always be able to split");
+                };
+            }
+        }
+        // Step 5. Let element list be all editable Elements effectively contained in the active range.
+        // Step 6. For each element in element list, clear the value of element.
+        let Ok(contained_children) = active_range.contained_children() else {
+            unreachable!("Must always be able to obtain contained children");
+        };
+        contained_children.for_each_effectively_contained_child(&active_range, |child| {
+            if child.upcast::<Node>().is_editable() {
+                if let Some(element_child) = child.downcast::<Element>() {
+                    element_child.clear_the_value();
+                }
+            }
+        });
+        // Step 7. Let node list be all editable nodes effectively contained in the active range.
+        // Step 8. For each node in node list:
+        contained_children.for_each_effectively_contained_child(&active_range, |child| {
+            if child.is_editable() {
+                // Step 8.1. Push down values on node.
+                child.push_down_values(command, new_value.clone());
+                // Step 8.2. If node is an allowed child of "span", force the value of node.
+                // TODO
+            }
+        });
     }
 }
