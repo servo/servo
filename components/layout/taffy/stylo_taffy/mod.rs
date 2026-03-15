@@ -12,6 +12,7 @@ pub(crate) use wrapper::TaffyStyloStyle;
 /// Private module of type aliases so we can refer to stylo types with nicer names
 mod stylo {
     pub(crate) use style::properties::generated::longhands::box_sizing::computed_value::T as BoxSizing;
+    pub(crate) use style::properties::generated::longhands::direction::computed_value::T as Direction;
     pub(crate) use style::properties::longhands::aspect_ratio::computed_value::T as AspectRatio;
     pub(crate) use style::properties::longhands::position::computed_value::T as Position;
     pub(crate) use style::values::computed::length_percentage::{
