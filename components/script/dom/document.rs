@@ -139,7 +139,7 @@ use crate::dom::element::{
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::execcommand::basecommand::DefaultSingleLineContainerName;
+use crate::dom::execcommand::basecommand::{CommandName, DefaultSingleLineContainerName};
 use crate::dom::execcommand::contenteditable::ContentEditableRange;
 use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 use crate::dom::focusevent::FocusEvent;
@@ -631,10 +631,12 @@ pub(crate) struct Document {
     layout_animations_test_enabled: bool,
 
     /// <https://w3c.github.io/editing/docs/execCommand/#state-override>
-    state_override: Cell<bool>,
+    #[no_trace]
+    state_override: DomRefCell<FxHashMap<CommandName, bool>>,
 
     /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
-    value_override: DomRefCell<Option<DOMString>>,
+    #[no_trace]
+    value_override: DomRefCell<FxHashMap<CommandName, DOMString>>,
 
     /// <https://w3c.github.io/editing/docs/execCommand/#default-single-line-container-name>
     #[no_trace]
@@ -5114,13 +5116,27 @@ impl Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#state-override>
-    pub(crate) fn state_override(&self) -> bool {
-        self.state_override.get()
+    pub(crate) fn state_override(&self, command_name: &CommandName) -> Option<bool> {
+        self.state_override.borrow().get(command_name).copied()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#state-override>
+    pub(crate) fn set_state_override(&self, command_name: CommandName, state: bool) {
+        self.state_override.borrow_mut().insert(command_name, state);
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
-    pub(crate) fn value_override(&self) -> Option<DOMString> {
-        self.value_override.borrow().clone()
+    pub(crate) fn value_override(&self, command_name: &CommandName) -> Option<DOMString> {
+        self.value_override.borrow().get(command_name).cloned()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
+    pub(crate) fn set_value_override(&self, command_name: CommandName, value: Option<DOMString>) {
+        if let Some(value) = value {
+            self.value_override.borrow_mut().insert(command_name, value);
+        } else {
+            self.value_override.borrow_mut().remove(&command_name);
+        }
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#default-single-line-container-name>

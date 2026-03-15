@@ -22,9 +22,11 @@ use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrElementCreationOptions;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::{DomRoot, DomSlice};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
+use crate::dom::execcommand::basecommand::CommandName;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlbrelement::HTMLBRElement;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -34,6 +36,7 @@ use crate::dom::html::htmltablecellelement::HTMLTableCellElement;
 use crate::dom::html::htmltablerowelement::HTMLTableRowElement;
 use crate::dom::html::htmltablesectionelement::HTMLTableSectionElement;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
+use crate::dom::range::Range;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
 use crate::script_runtime::CanGc;
@@ -669,6 +672,7 @@ pub(crate) trait NodeExecCommandSupport {
     fn block_node_of(&self) -> Option<DomRoot<Node>>;
     fn is_visible(&self) -> bool;
     fn is_invisible(&self) -> bool;
+    fn is_formattable(&self) -> bool;
     fn is_block_start_point(&self, offset: usize) -> bool;
     fn is_block_end_point(&self, offset: u32) -> bool;
     fn is_block_boundary_point(&self, offset: u32) -> bool;
@@ -684,6 +688,7 @@ pub(crate) trait NodeExecCommandSupport {
     fn remove_extraneous_line_breaks_before(&self, cx: &mut js::context::JSContext);
     fn remove_extraneous_line_breaks_at_the_end_of(&self, cx: &mut js::context::JSContext);
     fn remove_preserving_its_descendants(&self, cx: &mut js::context::JSContext);
+    fn effective_command_value(&self, command_name: CommandName) -> Option<DOMString>;
 }
 
 impl NodeExecCommandSupport for Node {
@@ -777,6 +782,14 @@ impl NodeExecCommandSupport for Node {
     fn is_invisible(&self) -> bool {
         // > Something is invisible if it is a node that is not visible.
         !self.is_visible()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#formattable-node>
+    fn is_formattable(&self) -> bool {
+        // > A formattable node is an editable visible node that is either a Text node, an img, or a br.
+        self.is_editable() &&
+            self.is_visible() &&
+            (self.is::<Text>() || self.is::<HTMLImageElement>() || self.is::<HTMLBRElement>())
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#block-start-point>
@@ -1293,6 +1306,99 @@ impl NodeExecCommandSupport for Node {
             split_the_parent(cx, children.r());
         }
     }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#effective-command-value>
+    fn effective_command_value(&self, command_name: CommandName) -> Option<DOMString> {
+        // Step 1. If neither node nor its parent is an Element, return null.
+        // Step 2. If node is not an Element, return the effective command value of its parent for command.
+        if !self.is::<Element>() {
+            return self.GetParentElement().and_then(|parent| {
+                parent
+                    .upcast::<Node>()
+                    .effective_command_value(command_name)
+            });
+        }
+        match command_name {
+            // Step 3. If command is "createLink" or "unlink":
+            CommandName::CreateLink | CommandName::Unlink => {
+                // Step 3.1. While node is not null, and is not an a element that has an href attribute, set node to its parent.
+                let mut current_node = Some(DomRoot::from_ref(self));
+                while let Some(node) = current_node {
+                    if let Some(anchor_value) =
+                        node.downcast::<HTMLAnchorElement>().and_then(|anchor| {
+                            anchor
+                                .upcast::<Element>()
+                                .get_attribute(&local_name!("href"))
+                        })
+                    {
+                        // Step 3.3. Return the value of node's href attribute.
+                        return Some(DOMString::from(&**anchor_value.value()));
+                    }
+                    current_node = node.GetParentNode();
+                }
+                // Step 3.2. If node is null, return null.
+                None
+            },
+            // Step 4. If command is "backColor" or "hiliteColor":
+            CommandName::BackColor | CommandName::HiliteColor => {
+                // Step 4.1. While the resolved value of "background-color" on node is any fully transparent value,
+                // and node's parent is an Element, set node to its parent.
+                // TODO
+                // Step 4.2. Return the resolved value of "background-color" for node.
+                // TODO
+                None
+            },
+            // Step 5. If command is "subscript" or "superscript":
+            CommandName::Subscript | CommandName::Superscript => {
+                // Step 5.1. Let affected by subscript and affected by superscript be two boolean variables,
+                // both initially false.
+                let mut affected_by_subscript = false;
+                let mut affected_by_superscript = false;
+                // Step 5.2. While node is an inline node:
+                let mut current_node = Some(DomRoot::from_ref(self));
+                while let Some(node) = current_node {
+                    if !node.is_inline_node() {
+                        break;
+                    }
+                    if let Some(element) = node.downcast::<Element>() {
+                        // Step 5.2.1. If node is a sub, set affected by subscript to true.
+                        if *element.local_name() == local_name!("sub") {
+                            affected_by_subscript = true;
+                        } else if *element.local_name() == local_name!("sup") {
+                            // Step 5.2.2. Otherwise, if node is a sup, set affected by superscript to true.
+                            affected_by_superscript = true;
+                        }
+                    }
+                    // Step 5.2.3. Set node to its parent.
+                    current_node = node.GetParentNode();
+                }
+                Some(match (affected_by_subscript, affected_by_superscript) {
+                    // Step 5.3. If affected by subscript and affected by superscript are both true,
+                    // return the string "mixed".
+                    (true, true) => "mixed".into(),
+                    // Step 5.4. If affected by subscript is true, return "subscript".
+                    (true, false) => "subscript".into(),
+                    // Step 5.5. If affected by superscript is true, return "superscript".
+                    (false, true) => "superscript".into(),
+                    // Step 5.6. Return null.
+                    (false, false) => return None,
+                })
+            },
+            // Step 6. If command is "strikethrough",
+            // and the "text-decoration" property of node or any of its ancestors has resolved value containing "line-through",
+            // return "line-through". Otherwise, return null.
+            // TODO
+            CommandName::Strikethrough => None,
+            // Step 7. If command is "underline",
+            // and the "text-decoration" property of node or any of its ancestors has resolved value containing "underline",
+            // return "underline". Otherwise, return null.
+            // TODO
+            CommandName::Underline => None,
+            // Step 8. Return the resolved value for node of the relevant CSS property for command.
+            // TODO
+            _ => None,
+        }
+    }
 }
 
 pub(crate) trait ContentEditableRange {
@@ -1505,6 +1611,180 @@ impl EquivalentPoint for (DomRoot<Node>, u32) {
     }
 }
 
+enum BoolOrOptionalString {
+    Bool(bool),
+    OptionalString(Option<DOMString>),
+}
+
+impl From<Option<DOMString>> for BoolOrOptionalString {
+    fn from(optional_string: Option<DOMString>) -> Self {
+        Self::OptionalString(optional_string)
+    }
+}
+
+impl From<bool> for BoolOrOptionalString {
+    fn from(bool_: bool) -> Self {
+        Self::Bool(bool_)
+    }
+}
+
+struct RecordedStateOfNode {
+    name: CommandName,
+    value: BoolOrOptionalString,
+}
+
+impl Range {
+    /// <https://w3c.github.io/editing/docs/execCommand/#effectively-contained>
+    fn is_effectively_contained_node(&self, node: &Node) -> bool {
+        assert!(!self.collapsed());
+        // > A node node is effectively contained in a range range if range is not collapsed,
+        // > and at least one of the following holds:
+        // > node is range's start node, it is a Text node, and its length is different from range's start offset.
+        let start_container = self.start_container();
+        if *start_container == *node && node.is::<Text>() && node.len() != self.start_offset() {
+            return true;
+        }
+        // > node is range's end node, it is a Text node, and range's end offset is not 0.
+        let end_container = self.end_container();
+        if *end_container == *node && node.is::<Text>() && self.end_offset() != 0 {
+            return true;
+        }
+        // > node is contained in range.
+        //
+        // Already checked by caller
+
+        // > node has at least one child; and all its children are effectively contained in range;
+        node.children_count() > 0 && node.children().all(|child| self.is_effectively_contained_node(&child))
+        // > and either range's start node is not a descendant of node or is not a Text node or range's start offset is zero;
+        && (!node.is_ancestor_of(&start_container) || !start_container.is::<Text>() || self.start_offset() == 0)
+        // > and either range's end node is not a descendant of node or is not a Text node or range's end offset is its end node's length.
+        && (!node.is_ancestor_of(&end_container) || !end_container.is::<Text>() || self.end_offset() == end_container.len())
+    }
+
+    fn first_formattable_contained_node(&self) -> Option<DomRoot<Node>> {
+        if self.collapsed() {
+            return None;
+        }
+        let Ok(contained_children) = self.contained_children() else {
+            unreachable!("Must always be able to obtain contained children");
+        };
+        contained_children
+            .first_partially_contained_child
+            .as_ref()
+            .filter(|child| child.is_formattable() && self.is_effectively_contained_node(child))
+            .or_else(|| {
+                // We don't call `is_effectively_contained_node` here, since nodes are considered
+                // effectively contained if they are in `contained_children`
+                contained_children
+                    .contained_children
+                    .iter()
+                    .find(|child| child.is_formattable())
+            })
+            .or_else(|| {
+                contained_children
+                    .last_partially_contained_child
+                    .as_ref()
+                    .filter(|child| {
+                        child.is_formattable() && self.is_effectively_contained_node(child)
+                    })
+            })
+            .cloned()
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#record-current-states-and-values>
+    fn record_current_states_and_values(&self) -> Vec<RecordedStateOfNode> {
+        // Step 1. Let overrides be a list of (string, string or boolean) ordered pairs, initially empty.
+        //
+        // We return the vec in one go for the relevant values
+
+        // Step 2. Let node be the first formattable node effectively contained in the active range,
+        // or null if there is none.
+        let Some(node) = self.first_formattable_contained_node() else {
+            // Step 3. If node is null, return overrides.
+            return vec![];
+        };
+        // Step 8. Return overrides.
+        vec![
+            // Step 4. Add ("createLink", node's effective command value for "createLink") to overrides.
+            RecordedStateOfNode {
+                name: CommandName::CreateLink,
+                value: node.effective_command_value(CommandName::CreateLink).into(),
+            },
+            // Step 5. For each command in the list
+            // "bold", "italic", "strikethrough", "subscript", "superscript", "underline", in order:
+            // if node's effective command value for command is one of its inline command activated values,
+            // add (command, true) to overrides, and otherwise add (command, false) to overrides.
+            // TODO
+
+            // Step 6. For each command in the list "fontName", "foreColor", "hiliteColor", in order:
+            // add (command, command's value) to overrides.
+            // TODO
+
+            // Step 7. Add ("fontSize", node's effective command value for "fontSize") to overrides.
+            RecordedStateOfNode {
+                name: CommandName::FontSize,
+                value: node.effective_command_value(CommandName::FontSize).into(),
+            },
+        ]
+    }
+
+    /// <https://w3c.github.io/editing/docs/execCommand/#restore-states-and-values>
+    fn restore_states_and_values(
+        &self,
+        context_object: &Document,
+        overrides: Vec<RecordedStateOfNode>,
+    ) {
+        // Step 1. Let node be the first formattable node effectively contained in the active range,
+        // or null if there is none.
+        let Some(_node) = self.first_formattable_contained_node() else {
+            // Step 3. Otherwise, for each (command, override) pair in overrides, in order:
+            for override_state in overrides {
+                // Step 3.1. If override is a boolean, set the state override for command to override.
+                match override_state.value {
+                    BoolOrOptionalString::Bool(bool_) => {
+                        context_object.set_state_override(override_state.name, bool_)
+                    },
+                    // Step 3.2. If override is a string, set the value override for command to override.
+                    BoolOrOptionalString::OptionalString(optional_string) => {
+                        context_object.set_value_override(override_state.name, optional_string)
+                    },
+                }
+            }
+            return;
+        };
+        // Step 2. If node is not null, then for each (command, override) pair in overrides, in order:
+        // TODO
+
+        // Step 2.1. If override is a boolean, and queryCommandState(command)
+        // returns something different from override, take the action for command,
+        // with value equal to the empty string.
+        // TODO
+
+        // Step 2.2. Otherwise, if override is a string, and command is neither "createLink" nor "fontSize",
+        // and queryCommandValue(command) returns something not equivalent to override,
+        // take the action for command, with value equal to override.
+        // TODO
+
+        // Step 2.3. Otherwise, if override is a string; and command is "createLink";
+        // and either there is a value override for "createLink" that is not equal to override,
+        // or there is no value override for "createLink" and node's effective command value
+        // for "createLink" is not equal to override: take the action for "createLink", with value equal to override.
+        // TODO
+
+        // Step 2.4. Otherwise, if override is a string; and command is "fontSize";
+        // and either there is a value override for "fontSize" that is not equal to override,
+        // or there is no value override for "fontSize" and node's effective command value for "fontSize"
+        // is not loosely equivalent to override:
+        // TODO
+
+        // Step 2.5. Otherwise, continue this loop from the beginning.
+        // TODO
+
+        // Step 2.6. Set node to the first formattable node effectively contained in the active range, if there is one.
+        // TODO
+    }
+}
+
 #[derive(Default, PartialEq)]
 pub(crate) enum SelectionDeletionBlockMerging {
     #[default]
@@ -1693,7 +1973,7 @@ impl SelectionExecCommandSupport for Selection {
         // This step does not exist in the spec
 
         // Step 19. Record current states and values, and let overrides be the result.
-        // TODO
+        let overrides = active_range.record_current_states_and_values();
 
         // Step 20.
         //
@@ -1724,8 +2004,7 @@ impl SelectionExecCommandSupport for Selection {
                     }
                 }
                 // Step 21.5. Restore states and values from overrides.
-                //
-                // TODO
+                active_range.restore_states_and_values(context_object, overrides);
 
                 // Step 21.6. Abort these steps.
                 return;
@@ -1865,8 +2144,7 @@ impl SelectionExecCommandSupport for Selection {
                 }
             }
             // Step 30.3. Restore states and values from overrides.
-            //
-            // TODO
+            active_range.restore_states_and_values(context_object, overrides);
 
             // Step 30.4. Abort these steps.
             return;
@@ -1961,8 +2239,7 @@ impl SelectionExecCommandSupport for Selection {
                     end_block.remove_self(cx);
                 }
                 // Step 32.4.4. Restore states and values from overrides.
-                //
-                // TODO
+                active_range.restore_states_and_values(context_object, overrides);
 
                 // Step 32.4.5. Abort these steps.
                 return;
@@ -2181,6 +2458,6 @@ impl SelectionExecCommandSupport for Selection {
         start_block.remove_extraneous_line_breaks_at_the_end_of(cx);
 
         // Step 41. Restore states and values from overrides.
-        // TODO
+        active_range.restore_states_and_values(context_object, overrides);
     }
 }

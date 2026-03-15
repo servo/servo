@@ -6,18 +6,20 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
-use crate::dom::execcommand::basecommand::BaseCommand;
-use crate::dom::execcommand::commands::defaultparagraphseparator::DefaultParagraphSeparatorCommand;
-use crate::dom::execcommand::commands::delete::DeleteCommand;
-use crate::dom::execcommand::commands::stylewithcss::StyleWithCssCommand;
+use crate::dom::execcommand::basecommand::CommandName;
 use crate::dom::selection::Selection;
 use crate::script_runtime::CanGc;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#miscellaneous-commands>
-fn is_command_listed_in_miscellaneous_section(command_id: &str) -> bool {
+fn is_command_listed_in_miscellaneous_section(command_name: CommandName) -> bool {
     matches!(
-        command_id.to_lowercase().as_str(),
-        "defaultparagraphseparator" | "redo" | "selectall" | "stylewithcss" | "undo" | "usecss"
+        command_name,
+        CommandName::DefaultParagraphSeparator |
+            CommandName::Redo |
+            CommandName::SelectAll |
+            CommandName::StyleWithCss |
+            CommandName::Undo |
+            CommandName::Usecss
     )
 }
 
@@ -26,14 +28,14 @@ impl Document {
     fn selection_if_command_is_enabled(
         &self,
         cx: &mut js::context::JSContext,
-        command_id: &DOMString,
+        command_name: CommandName,
     ) -> Option<DomRoot<Selection>> {
         let selection = self.GetSelection(CanGc::from_cx(cx))?;
         // > Among commands defined in this specification, those listed in Miscellaneous commands are always enabled,
         // > except for the cut command and the paste command.
         //
         // Note: cut and paste are listed in the "clipboard commands" section, not the miscellaneous section
-        if is_command_listed_in_miscellaneous_section(&command_id.str()) {
+        if is_command_listed_in_miscellaneous_section(command_name) {
             return Some(selection);
         }
         // > The other commands defined here are enabled if the active range is not null,
@@ -56,16 +58,13 @@ impl Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#supported>
-    fn command_if_command_is_supported(
-        &self,
-        command_id: &DOMString,
-    ) -> Option<Box<dyn BaseCommand>> {
+    fn command_if_command_is_supported(&self, command_id: &DOMString) -> Option<CommandName> {
         // https://w3c.github.io/editing/docs/execCommand/#methods-to-query-and-execute-commands
         // > All of these methods must treat their command argument ASCII case-insensitively.
         Some(match &*command_id.str().to_lowercase() {
-            "delete" => Box::new(DeleteCommand {}),
-            "defaultparagraphseparator" => Box::new(DefaultParagraphSeparatorCommand {}),
-            "stylewithcss" => Box::new(StyleWithCssCommand {}),
+            "delete" => CommandName::Delete,
+            "defaultparagraphseparator" => CommandName::DefaultParagraphSeparator,
+            "stylewithcss" => CommandName::StyleWithCss,
             _ => return None,
         })
     }
@@ -80,7 +79,7 @@ pub(crate) trait DocumentExecCommandSupport {
         &self,
         cx: &mut js::context::JSContext,
         command_id: &DOMString,
-    ) -> Option<(Box<dyn BaseCommand>, DomRoot<Selection>)>;
+    ) -> Option<(CommandName, DomRoot<Selection>)>;
     fn exec_command_for_command_id(
         &self,
         cx: &mut js::context::JSContext,
@@ -113,11 +112,8 @@ impl DocumentExecCommandSupport for Document {
             return false;
         };
         // Step 2. If the state override for command is set, return it.
-        if self.state_override() {
-            return true;
-        }
         // Step 3. Return true if command's state is true, otherwise false.
-        state
+        self.state_override(&command).unwrap_or(state)
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandvalue()>
@@ -134,7 +130,7 @@ impl DocumentExecCommandSupport for Document {
         // TODO
 
         // Step 3. If the value override for command is set, return it.
-        if let Some(value_override) = self.value_override() {
+        if let Some(value_override) = self.value_override(&command) {
             return value_override;
         }
         // Step 4. Return command's value.
@@ -146,10 +142,11 @@ impl DocumentExecCommandSupport for Document {
         &self,
         cx: &mut js::context::JSContext,
         command_id: &DOMString,
-    ) -> Option<(Box<dyn BaseCommand>, DomRoot<Selection>)> {
+    ) -> Option<(CommandName, DomRoot<Selection>)> {
         // Step 2. Return true if command is both supported and enabled, false otherwise.
-        self.command_if_command_is_supported(command_id)
-            .zip(self.selection_if_command_is_enabled(cx, command_id))
+        let command = self.command_if_command_is_supported(command_id)?;
+        let selection = self.selection_if_command_is_enabled(cx, command)?;
+        Some((command, selection))
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#execcommand()>
