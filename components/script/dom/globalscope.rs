@@ -2923,20 +2923,20 @@ impl GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
     pub(crate) fn set_timeout_or_interval(
         &self,
+        cx: &mut js::context::JSContext,
         callback: TimerCallback,
         arguments: Vec<HandleValue>,
         timeout: Duration,
         is_interval: IsInterval,
-        can_gc: CanGc,
     ) -> Fallible<i32> {
         self.timers().set_timeout_or_interval(
+            cx,
             self,
             callback,
             arguments,
             timeout,
             is_interval,
             self.timer_source(),
-            can_gc,
         )
     }
 
