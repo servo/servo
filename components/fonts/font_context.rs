@@ -44,6 +44,7 @@ use style::stylesheets::{
 };
 use style::values::computed::font::{FamilyName, FontFamilyNameSyntax, SingleFontFamily};
 use url::Url;
+use uuid::Uuid;
 use webrender_api::{FontInstanceFlags, FontInstanceKey, FontKey, FontVariation};
 
 use crate::font::{Font, FontFamilyDescriptor, FontGroup, FontRef, FontSearchScope};
@@ -171,7 +172,9 @@ impl FontContext {
 
     fn get_font_data(&self, identifier: &FontIdentifier) -> Option<FontData> {
         match identifier {
-            FontIdentifier::Web(_) => self.font_data.read().get(identifier).cloned(),
+            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => {
+                self.font_data.read().get(identifier).cloned()
+            },
             FontIdentifier::Local(_) => None,
         }
     }
@@ -353,13 +356,14 @@ impl FontContext {
                 font.variations().to_owned(),
                 painter_id,
             ),
-            FontIdentifier::Web(_) => self.create_web_font_instance(
-                font.template.clone(),
-                font.descriptor.pt_size,
-                font.webrender_font_instance_flags(),
-                font.variations().to_owned(),
-                painter_id,
-            ),
+            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => self
+                .create_web_font_instance(
+                    font.template.clone(),
+                    font.descriptor.pt_size,
+                    font.webrender_font_instance_flags(),
+                    font.variations().to_owned(),
+                    painter_id,
+                ),
         }
     }
 
@@ -765,6 +769,32 @@ impl FontContextWebFontMethods for Arc<FontContext> {
 }
 
 impl FontContext {
+    pub fn construct_web_font_from_data(
+        &self,
+        data: &[u8],
+        descriptors: CSSFontFaceDescriptors,
+    ) -> Option<(LowercaseFontFamilyName, FontTemplate)> {
+        let bytes = fontsan::process(data)
+            .inspect_err(|error| {
+                debug!(
+                    "Sanitiser rejected FontFace font: family={} with {error:?}",
+                    descriptors.family_name,
+                );
+            })
+            .ok()?;
+        let font_data = FontData::from_bytes(&bytes);
+
+        let identifier = FontIdentifier::ArrayBuffer(Uuid::new_v4());
+        let handle =
+            PlatformFont::new_from_data(identifier.clone(), &font_data, None, &[], false).ok()?;
+
+        let new_template = FontTemplate::new(identifier.clone(), handle.descriptor(), None, None);
+
+        self.font_data.write().insert(identifier, font_data);
+
+        Some((descriptors.family_name, new_template))
+    }
+
     fn start_loading_one_web_font(
         self: &Arc<FontContext>,
         webview_id: Option<WebViewId>,

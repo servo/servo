@@ -7732,6 +7732,7 @@ dependencies = [
  "unicode-properties",
  "unicode-script",
  "url",
+ "uuid",
  "webrender_api",
  "winapi",
  "xml",
@@ -7757,6 +7758,7 @@ dependencies = [
  "servo-profile-traits",
  "servo-url",
  "stylo",
+ "uuid",
  "webrender_api",
 ]
 

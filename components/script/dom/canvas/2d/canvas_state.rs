@@ -2497,7 +2497,9 @@ impl UnshapedTextRun<'_> {
         let identifier = font.identifier();
         let font_data = match &identifier {
             FontIdentifier::Local(_) => None,
-            FontIdentifier::Web(_) => Some(font.font_data_and_index().ok()?),
+            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => {
+                Some(font.font_data_and_index().ok()?)
+            },
         }
         .cloned();
         let canvas_font = CanvasFont {
