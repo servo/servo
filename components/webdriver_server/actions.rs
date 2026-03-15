@@ -452,15 +452,15 @@ impl Handler {
             ..
         } = *self.get_pointer_input_state(source_id);
         match subtype {
-            PointerType::Pen | PointerType::Touch => {
+            PointerType::Touch => {
                 self.send_blocking_input_event_to_embedder(InputEvent::Touch(TouchEvent::new(
                     TouchEventType::Cancel,
                     TouchId(pointer_id as i32),
                     WebViewPoint::Page(Point2D::new(x as f32, y as f32)),
                 )));
             },
-            PointerType::Mouse => {
-                info!("WebDriver pointerCancel is not implemented for mouse yet");
+            PointerType::Pen | PointerType::Mouse => {
+                info!("WebDriver pointerCancel is not implemented for mouse and pen yet");
             },
         }
     }
@@ -482,12 +482,10 @@ impl Handler {
         // TODO: We have not considered pen pointer type
         let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
         let input_event = match subtype {
-            PointerType::Mouse => InputEvent::MouseButton(MouseButtonEvent::new(
-                MouseButtonAction::Down,
-                action.button.into(),
-                point,
-            )),
-            PointerType::Pen | PointerType::Touch => InputEvent::Touch(TouchEvent::new(
+            PointerType::Pen | PointerType::Mouse => InputEvent::MouseButton(
+                MouseButtonEvent::new(MouseButtonAction::Down, action.button.into(), point),
+            ),
+            PointerType::Touch => InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Down,
                 TouchId(pointer_input_state.pointer_id as i32),
                 point,
@@ -533,12 +531,10 @@ impl Handler {
         // Step 7. Perform implementation-specific action dispatch steps
         let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
         let input_event = match subtype {
-            PointerType::Mouse => InputEvent::MouseButton(MouseButtonEvent::new(
-                MouseButtonAction::Up,
-                action.button.into(),
-                point,
-            )),
-            PointerType::Pen | PointerType::Touch => InputEvent::Touch(TouchEvent::new(
+            PointerType::Pen | PointerType::Mouse => InputEvent::MouseButton(
+                MouseButtonEvent::new(MouseButtonAction::Up, action.button.into(), point),
+            ),
+            PointerType::Touch => InputEvent::Touch(TouchEvent::new(
                 TouchEventType::Up,
                 TouchId(pointer_id as i32),
                 point,
@@ -665,16 +661,16 @@ impl Handler {
             // Step 7.2. Perform implementation-specific action dispatch steps
             let point = WebViewPoint::Page(Point2D::new(x as f32, y as f32));
 
-            // For a pointer of type "mouse"
+            // For a pointer of type "mouse" or pen
             // this will always produce events including at least a pointerMove event.
             match subtype {
-                PointerType::Mouse => {
+                PointerType::Pen | PointerType::Mouse => {
                     let input_event = InputEvent::MouseMove(MouseMoveEvent::new(point));
                     self.send_blocking_input_event_to_embedder(input_event);
                 },
-                // In the case where the pointerType is "pen" or "touch", and buttons is empty,
+                // In the case where the pointerType "touch", and buttons is empty,
                 // this may be a no-op.
-                PointerType::Touch | PointerType::Pen => {
+                PointerType::Touch => {
                     if pressed.contains(&ELEMENT_CLICK_BUTTON) {
                         let input_event = InputEvent::Touch(TouchEvent::new(
                             TouchEventType::Move,
