@@ -15,8 +15,9 @@ from .. import (
     STYLESHEET_RED_COLOR,
 )
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_cached(
     wait_for_event,
     wait_for_future_safe,
@@ -78,9 +79,9 @@ async def test_cached(
     )
 
 
-@pytest.mark.asyncio
 async def test_cached_redirect(
     bidi_session,
+    configuration,
     url,
     fetch,
     setup_network_test,
@@ -101,7 +102,7 @@ async def test_cached_redirect(
     await fetch(cached_url)
 
     # Expect two events, one for the initial request and one for the redirect.
-    await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 2, timeout=2)
 
     # The first request/response is used to fill the cache, so we expect
     # fromCache to be False here.
@@ -131,7 +132,7 @@ async def test_cached_redirect(
     )
 
     await fetch(cached_url)
-    await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 4, timeout=2)
 
     # The third request hits cached_url again and has to be read from the local cache.
     expected_response = {
@@ -165,7 +166,6 @@ async def test_cached_redirect(
         "OPTIONS",
     ],
 )
-@pytest.mark.asyncio
 async def test_cached_revalidate(
     wait_for_event, wait_for_future_safe, url, fetch, setup_network_test, method
 ):
@@ -224,9 +224,9 @@ async def test_cached_revalidate(
     )
 
 
-@pytest.mark.asyncio
 async def test_page_with_cached_link_stylesheet(
     bidi_session,
+    configuration,
     url,
     inline,
     setup_network_test,
@@ -254,7 +254,7 @@ async def test_page_with_cached_link_stylesheet(
     )
 
     # Expect two events, one for the document, one for the stylesheet.
-    await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 2, timeout=2)
     assert_response_event(
         events[0],
         expected_event={
@@ -276,7 +276,7 @@ async def test_page_with_cached_link_stylesheet(
     )
 
     # Expect two events after reload, for the document and the stylesheet.
-    await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 4, timeout=2)
     assert_response_event(
         events[2],
         expected_event={
@@ -293,9 +293,9 @@ async def test_page_with_cached_link_stylesheet(
     )
 
 
-@pytest.mark.asyncio
 async def test_page_with_cached_import_stylesheet(
     bidi_session,
+    configuration,
     url,
     inline,
     setup_network_test,
@@ -330,7 +330,7 @@ async def test_page_with_cached_import_stylesheet(
 
     # Expect three events, one for the document, one for the linked stylesheet,
     # one for the imported stylesheet.
-    await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 2, timeout=2)
     assert_response_event(
         events[0],
         expected_event={
@@ -352,7 +352,7 @@ async def test_page_with_cached_import_stylesheet(
     )
 
     # Expect three events after reload, for the document and the 2 stylesheets.
-    await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 4, timeout=2)
     assert_response_event(
         events[2],
         expected_event={
@@ -372,9 +372,9 @@ async def test_page_with_cached_import_stylesheet(
 # Similar test to test_page_with_cached_import_stylesheet, but with 3 links
 # loading the same stylesheet, and a style tag with 3 identical imports.
 # The browser should not issue requests for the duplicated stylesheets.
-@pytest.mark.asyncio
 async def test_page_with_cached_duplicated_stylesheets(
     bidi_session,
+    configuration,
     url,
     inline,
     setup_network_test,
@@ -418,7 +418,7 @@ async def test_page_with_cached_duplicated_stylesheets(
 
     # Expect three events, one for the document, one for the linked stylesheet,
     # one for the imported stylesheet.
-    await wait_for_bidi_events(bidi_session, events, 3, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 3, timeout=2)
     assert_response_event(
         events[0],
         expected_event={
@@ -455,7 +455,7 @@ async def test_page_with_cached_duplicated_stylesheets(
     )
 
     # Expect three events after reload, for the document and the 2 stylesheets.
-    await wait_for_bidi_events(bidi_session, events, 6, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 6, timeout=2)
 
     # Assert only cached events after reload.
     cached_events = events[3:]
@@ -488,9 +488,9 @@ async def test_page_with_cached_duplicated_stylesheets(
     )
 
 
-@pytest.mark.asyncio
 async def test_page_with_cached_script_javascript(
     bidi_session,
+    configuration,
     url,
     inline,
     setup_network_test,
@@ -518,7 +518,7 @@ async def test_page_with_cached_script_javascript(
     )
 
     # Expect two events, one for the document and one for the javascript file.
-    await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 2, timeout=2)
     assert_response_event(
         events[0],
         expected_event={
@@ -540,7 +540,7 @@ async def test_page_with_cached_script_javascript(
     )
 
     # Expect two events, one for the document and one for the javascript file.
-    await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 4, timeout=2)
     assert_response_event(
         events[2],
         expected_event={
@@ -575,7 +575,7 @@ async def test_page_with_cached_script_javascript(
     # Expect two or three events, one for the document and the rest for javascript files.
     # If the browser uses memory caching there may be only single request for the javascript files,
     # see issue https://github.com/whatwg/html/issues/6110.
-    await wait_for_bidi_events(bidi_session, events, 6, timeout=2, equal_check=False)
+    await wait_for_bidi_events(bidi_session, configuration, events, 6, timeout=2, equal_check=False)
 
     # Assert only cached events after reload.
     cached_events = events[4:]
@@ -611,9 +611,9 @@ async def test_page_with_cached_script_javascript(
         ("dynamically-imported", """<script type="module">const ns = await import("{url}"); ns.default();</script>"""),
     ]
 )
-@pytest.mark.asyncio
 async def test_page_with_cached_javascript_module(
     bidi_session,
+    configuration,
     url,
     inline,
     setup_network_test,
@@ -648,7 +648,7 @@ async def test_page_with_cached_javascript_module(
     )
 
     # Expect two events, one for the document and one for the javascript module.
-    await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 2, timeout=2)
     assert_response_event(
         events[0],
         expected_event={
@@ -670,7 +670,7 @@ async def test_page_with_cached_javascript_module(
     )
 
     # Expect two events, one for the document and one for the javascript module.
-    await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 4, timeout=2)
     assert_response_event(
         events[2],
         expected_event={
@@ -703,7 +703,7 @@ async def test_page_with_cached_javascript_module(
     )
 
     # Expect two events, one for the document and one for the javascript module.
-    await wait_for_bidi_events(bidi_session, events, 6, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 6, timeout=2)
 
     # Assert only cached events after reload.
     cached_events = events[4:]
@@ -723,9 +723,9 @@ async def test_page_with_cached_javascript_module(
     )
 
 
-@pytest.mark.asyncio
 async def test_page_with_cached_image(
     bidi_session,
+    configuration,
     url,
     inline,
     setup_network_test,
@@ -755,7 +755,7 @@ async def test_page_with_cached_image(
     )
 
     # Expect two events, one for the document and one for the image.
-    await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 2, timeout=2)
     assert_response_event(
         events[0],
         expected_event={
@@ -777,7 +777,7 @@ async def test_page_with_cached_image(
     )
 
     # Expect two events, one for the document and one for the image.
-    await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 4, timeout=2)
     assert_response_event(
         events[2],
         expected_event={

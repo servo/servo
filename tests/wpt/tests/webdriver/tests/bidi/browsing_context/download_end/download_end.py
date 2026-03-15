@@ -99,6 +99,9 @@ async def test_download_attribute(bidi_session, subscribe_events, new_tab, inlin
     assert file_content == CONTENT
 
 
+@pytest.mark.parametrize(
+    "target", ["_self", "_blank"], ids=["in the same page", "in the other page"]
+)
 async def test_content_disposition_header(
     bidi_session,
     subscribe_events,
@@ -108,6 +111,7 @@ async def test_content_disposition_header(
     wait_for_event,
     wait_for_future_safe,
     filename,
+    target,
 ):
     content_disposition_link = url(
         "/webdriver/tests/support/http_handlers/headers.py?"
@@ -115,14 +119,18 @@ async def test_content_disposition_header(
         + f"&header=Content-Disposition:attachment;%20filename={filename}"
     )
     page_url = inline(
-        f"""<a id="content_disposition_link" href="{content_disposition_link}">contentdisposition</a>"""
+        f"""<a id="content_disposition_link" target={target} href="{content_disposition_link}">contentdisposition</a>"""
     )
 
     await bidi_session.browsing_context.navigate(
         context=new_tab["context"], url=page_url, wait="complete"
     )
 
-    await subscribe_events(events=[DOWNLOAD_END, NAVIGATION_STARTED])
+    # In some cases Firefox sends an extra navigation event in the temporary browsing context,
+    # to filter them out subscribe only in the observed context.
+    await subscribe_events(
+        events=[DOWNLOAD_END, NAVIGATION_STARTED], contexts=[new_tab["context"]]
+    )
     on_navigation_started = wait_for_event(NAVIGATION_STARTED)
     on_download_end = wait_for_event(DOWNLOAD_END)
 

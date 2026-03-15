@@ -5,10 +5,10 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<div id="placeholder" marker="a b c"><?Start name=a><?ENd name=a><?MARKER name=b><?marKER name=c></div>
-<template for="a">a</template>
-<template for="b">b</template>
-<template for="c">c</template>
+<div id="placeholder" marker="ph"><?Start name=a><?ENd><?MARKER name=b><?marKER></div>
+<template for="ph#a">a</template>
+<template for="ph#b">b</template>
+<template for="ph">c</template>
 <script>
   test(() => {
     assert_equals(document.getElementById("placeholder").textContent, "abc");

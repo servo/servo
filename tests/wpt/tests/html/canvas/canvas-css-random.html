@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#random">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<canvas id="canvas"></canvas>
+<script>
+  test(() => {
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "green";
+    ctx.fillStyle = "rgb(random(30, 10) random(60, 10) random(90, 10))";
+    assert_equals(ctx.fillStyle, "#008000");
+  }, "CSS random() should not be allowed in random() context");
+</script>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVG Path Data: Curveto commands (C/c, S/s)</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathDataBNF">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+
+<svg id="svg" width="400" height="400">
+  <!-- Cubic Bezier curve -->
+  <path id="test-C" d="M 50,50 C 100,25 150,75 200,50" fill="none" stroke="black" stroke-width="2"/>
+
+  <!-- Relative cubic Bezier -->
+  <path id="test-c" d="M 50,50 c 50,-25 100,25 150,0" fill="none" stroke="blue" stroke-width="1" stroke-dasharray="2,2"/>
+
+  <!-- Smooth cubic Bezier -->
+  <path id="test-S" d="M 50,150 C 75,100 100,100 125,150 S 175,200 200,150" fill="none" stroke="green" stroke-width="2"/>
+</svg>
+
+<script>
+test(function() {
+  const path = document.getElementById('test-C');
+  const length = path.getTotalLength();
+
+  assert_greater_than(length, 0, "C command creates a curve");
+  assert_greater_than(length, 100, "Curve is longer than straight distance");
+}, "Absolute curveto: C 100,25 150,75 200,50");
+
+test(function() {
+  const pathC = document.getElementById('test-C');
+  const pathc = document.getElementById('test-c');
+
+  // Both should create similar curves
+  assert_approx_equals(pathC.getTotalLength(), pathc.getTotalLength(), 1,
+    "Relative curveto creates same curve as absolute");
+}, "Relative curveto: c 50,-25 100,25 150,0 from (50,50)");
+
+test(function() {
+  const pathC = document.getElementById('test-C');
+  const startPoint = pathC.getPointAtLength(0);
+  const endPoint = pathC.getPointAtLength(pathC.getTotalLength());
+
+  assert_approx_equals(startPoint.x, 50, 0.1, "Curve starts at M point");
+  assert_approx_equals(startPoint.y, 50, 0.1, "Curve starts at M point");
+  assert_approx_equals(endPoint.x, 200, 0.1, "Curve ends at specified point");
+  assert_approx_equals(endPoint.y, 50, 0.1, "Curve ends at specified point");
+}, "Curveto endpoints are correct");
+
+test(function() {
+  // Multiple curve triplets
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,50 C 25,0 50,0 75,50 100,100 125,100 150,50');
+  svg.appendChild(path);
+
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+  assert_approx_equals(endPoint.x, 150, 0.5, "Multiple curves end at last point");
+  assert_approx_equals(endPoint.y, 50, 0.5, "Multiple curves end at last point");
+}, "Multiple curveto triplets: C x1,y1 x2,y2 x,y x1,y1 x2,y2 x,y");
+
+test(function() {
+  const path = document.getElementById('test-S');
+  const length = path.getTotalLength();
+
+  assert_greater_than(length, 0, "S command creates a curve");
+}, "Smooth curveto: S 175,200 200,150");
+
+test(function() {
+  // S command reflects previous control point
+  const svg = document.getElementById('svg');
+  const path1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path1.setAttribute('d', 'M 0,50 C 25,0 50,0 75,50 S 125,100 150,50');
+  svg.appendChild(path1);
+
+  const length = path1.getTotalLength();
+  assert_greater_than(length, 0, "S after C creates smooth curve");
+}, "Smooth curveto after C: reflects control point");
+
+test(function() {
+  // Relative smooth curveto
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50,50 C 75,25 100,75 125,50 s 50,-25 75,0');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 0, "Relative s command works");
+}, "Relative smooth curveto: s x2,y2 x,y");
+
+test(function() {
+  // S without preceding curve (uses current point as reflection)
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50,50 S 100,25 150,50');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 0, "S without preceding C uses current point");
+}, "Smooth curveto without preceding curve");
+
+test(function() {
+  // Multiple S commands
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,50 C 25,0 50,0 75,50 S 125,100 150,50 175,0 200,50');
+  svg.appendChild(path);
+
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+  assert_approx_equals(endPoint.x, 200, 0.5, "Multiple S commands");
+  assert_approx_equals(endPoint.y, 50, 0.5, "Multiple S commands");
+}, "Multiple smooth curveto pairs");
+
+test(function() {
+  // Curveto with minimal spacing (no commas)
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50 50 C 75 25 100 75 125 50');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 0, "C command works with space separators only");
+}, "Curveto with space separators (no commas)");
+
+test(function() {
+  // Curveto with all commas
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50,50 C 75,25,100,75,125,50');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 0, "C command works with all comma separators");
+}, "Curveto with all comma separators");
+</script>
+</body>
+</html>

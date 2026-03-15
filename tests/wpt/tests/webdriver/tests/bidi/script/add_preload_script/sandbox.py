@@ -2,8 +2,9 @@ import pytest
 
 from webdriver.bidi.modules.script import ContextTarget
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_add_preload_script_to_sandbox(bidi_session, add_preload_script):
     # Add preload script to make changes in window
     await add_preload_script(function_declaration="() => { window.foo = 1; }")
@@ -39,7 +40,6 @@ async def test_add_preload_script_to_sandbox(bidi_session, add_preload_script):
     assert result_in_sandbox == {"type": "number", "value": 2}
 
 
-@pytest.mark.asyncio
 async def test_remove_properties_set_by_preload_script(
     bidi_session, add_preload_script, new_tab, inline
 ):

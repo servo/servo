@@ -75,6 +75,41 @@
   <button id=buttonExplicitChild role="listitem">List Item</button>
 </div>
 
+<!-- Popup button child should be inferred (menu) -->
+<div id=fgPopupButtonMenu focusgroup="menu">
+  <button id=popupButtonMenuChild aria-haspopup="menu">Submenu</button>
+</div>
+
+<!-- Popup button child should be inferred (menubar) -->
+<div id=fgPopupButtonMenubar focusgroup="menubar">
+  <button id=popupButtonMenubarChild aria-haspopup="menu">Submenu</button>
+</div>
+
+<!-- Popup button child should be inferred (tablist) -->
+<div id=fgPopupButtonTablist focusgroup="tablist">
+  <button id=popupButtonTablistChild aria-haspopup="menu">Tab with popup</button>
+</div>
+
+<!-- Popup button child should be inferred (radiogroup) -->
+<div id=fgPopupButtonRadiogroup focusgroup="radiogroup">
+  <button id=popupButtonRadiogroupChild aria-haspopup="menu">Radio with popup</button>
+</div>
+
+<!-- Popup button with explicit role should be preserved -->
+<div id=fgPopupButtonExplicit focusgroup="menubar">
+  <button id=popupButtonExplicitChild aria-haspopup="menu" role="listitem">List Item</button>
+</div>
+
+<!-- aria-haspopup="listbox" also produces kPopUpButton; should infer menuitem -->
+<div id=fgPopupButtonListbox focusgroup="menubar">
+  <button id=popupButtonListboxChild aria-haspopup="listbox">Options</button>
+</div>
+
+<!-- aria-haspopup="dialog" produces kButton (not kPopUpButton); should still infer -->
+<div id=fgPopupButtonDialog focusgroup="menubar">
+  <button id=popupButtonDialogChild aria-haspopup="dialog">Open Dialog</button>
+</div>
+
 <script>
 // Use WebDriver get_computed_role to assert author vs implied roles.
 // This mirrors pattern in wai-aria/role/basic.html.
@@ -146,4 +181,41 @@ promise_test(async t => {
   // Explicit role on button should be preserved.
   await assert_role_equals('buttonExplicitChild', 'listitem');
 }, 'Button child with explicit role preserved over implied mapping');
+
+promise_test(async t => {
+  // Popup button inside menu should be inferred as menuitem.
+  await assert_role_equals('popupButtonMenuChild', 'menuitem');
+}, 'Popup button child gets implied menuitem role in menu');
+
+promise_test(async t => {
+  // Popup button inside menubar should be inferred as menuitem.
+  await assert_role_equals('popupButtonMenubarChild', 'menuitem');
+}, 'Popup button child gets implied menuitem role in menubar');
+
+promise_test(async t => {
+  // Popup button inside tablist should be inferred as tab.
+  await assert_role_equals('popupButtonTablistChild', 'tab');
+}, 'Popup button child gets implied tab role in tablist');
+
+promise_test(async t => {
+  // Popup button inside radiogroup should be inferred as radio.
+  await assert_role_equals('popupButtonRadiogroupChild', 'radio');
+}, 'Popup button child gets implied radio role in radiogroup');
+
+promise_test(async t => {
+  // Explicit role on popup button should be preserved.
+  await assert_role_equals('popupButtonExplicitChild', 'listitem');
+}, 'Popup button child with explicit role preserved over implied mapping');
+
+promise_test(async t => {
+  // aria-haspopup="listbox" produces kPopUpButton; should be inferred as
+  // menuitem inside a menubar focusgroup.
+  await assert_role_equals('popupButtonListboxChild', 'menuitem');
+}, 'Popup button with aria-haspopup=listbox gets implied menuitem role in menubar');
+
+promise_test(async t => {
+  // aria-haspopup="dialog" produces kButton (not kPopUpButton); should still
+  // be inferred as menuitem via the kButton branch.
+  await assert_role_equals('popupButtonDialogChild', 'menuitem');
+}, 'Popup button with aria-haspopup=dialog gets implied menuitem role in menubar');
 </script>

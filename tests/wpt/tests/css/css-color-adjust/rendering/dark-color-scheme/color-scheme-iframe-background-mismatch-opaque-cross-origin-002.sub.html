@@ -1,0 +1,38 @@
+<!doctype html>
+
+<html class="reftest-wait">
+
+<title>CSS Color Adjustment Test: Cross-origin frame with a light color-scheme should get an opaque background when parent frame is dark</title>
+<link rel="author" title="Kiet Ho" href="mailto:kiet.ho@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-effect">
+<link rel="match" href="support/light-frame.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    color-scheme: dark;
+  }
+  iframe {
+    margin: 0;
+    border: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+</style>
+
+<iframe src="http://{{hosts[alt][]}}:{{ports[http][0]}}/css/css-color-adjust/rendering/dark-color-scheme/support/light-frame.html" onload="iframeLoaded()"></iframe>
+<script>
+  async function iframeLoaded() {
+    // This helps with flakiness on WebKit.
+    await waitForAtLeastOneFrame();
+    await waitForAtLeastOneFrame();
+
+    takeScreenshot();
+  }
+</script>
+
+</html>

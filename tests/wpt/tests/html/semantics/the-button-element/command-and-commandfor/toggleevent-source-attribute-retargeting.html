@@ -33,8 +33,7 @@ promise_test(async () => {
   }
 
   shadowButton.click();
-  await new Promise(requestAnimationFrame);
-  await new Promise(requestAnimationFrame);
+  await new Promise(resolve => step_timeout(resolve, 0));
 
   for (const eventName of eventNames) {
     const event = eventNameToEvent[eventName];
@@ -118,8 +117,7 @@ promise_test(async () => {
   }
 
   button.click();
-  await new Promise(requestAnimationFrame);
-  await new Promise(requestAnimationFrame);
+  await new Promise(resolve => step_timeout(resolve, 0));
 
   for (const eventName of eventNames) {
     const event = eventNameToEvent[eventName];

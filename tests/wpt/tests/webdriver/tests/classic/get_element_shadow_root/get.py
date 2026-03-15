@@ -95,13 +95,21 @@ def test_get_shadow_root(session, get_test_page):
     assert_same_element(session, host_element, expected_host)
 
 
-@pytest.mark.parametrize("html, selector", [
-    ("<div><p>no shadow root</p></div>", "div"),
-    ("<select></select>", "select"),
-    ("<video></video>", "video")
-])
-def test_no_shadow_root(session, inline, html, selector):
+@pytest.mark.parametrize(
+    "html, selector",
+    [
+        ("<div><p>no shadow root</p></div>", "div"),
+        ("<select></select>", "select"),
+        ("<video></video>", "video"),
+    ],
+    ids=["div", "select", "video"],
+)
+def test_no_user_agent_shadow_root(session, inline, html, selector):
     session.url = inline(html)
+
     element = session.find.css(selector, all=False)
+
+    # Make sure user-agent shadow roots are not leaked by get shadow root
+    # (eg Firefox uses shadow dom to implement the select widget).
     response = get_shadow_root(session, element.id)
     assert_error(response, "no such shadow root")

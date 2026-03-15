@@ -6,7 +6,7 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <template for="placeholder">New content</template>
-<div id="placeholder" marker="placeholder"><?start name="placeholder">Old content<?end name="placeholder"></div>
+<div id="placeholder" marker="placeholder"><?start>Old content<?end></div>
 <script>
 test(() => {
     assert_equals(document.querySelector("#placeholder").innerText, "Old content");

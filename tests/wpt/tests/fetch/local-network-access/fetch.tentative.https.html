@@ -15,7 +15,7 @@
         sourceResolveOptions({ server: Server.HTTPS_PUBLIC }));
 
     function checkResult(evt) {
-      checkTestResult(evt.data, FetchTestResult.SUCCESS);
+      checkFetchTestResult(evt.data, FetchTestResult.SUCCESS);
       t.done();
     }
 
@@ -35,7 +35,7 @@
         sourceResolveOptions({ server: Server.HTTPS_PUBLIC }));
 
     function checkResult(evt) {
-      checkTestResult(evt.data, FetchTestResult.FAILURE);
+      checkFetchTestResult(evt.data, FetchTestResult.FAILURE);
       t.done();
     }
 
@@ -53,7 +53,7 @@
         sourceResolveOptions({ server: Server.HTTPS_PUBLIC }));
 
     function checkResult(evt) {
-      checkTestResult(evt.data, FetchTestResult.SUCCESS);
+      checkFetchTestResult(evt.data, FetchTestResult.SUCCESS);
       t.done();
     }
 
@@ -71,7 +71,7 @@
         sourceResolveOptions({ server: Server.HTTPS_PUBLIC }));
 
     function checkResult(evt) {
-      checkTestResult(evt.data, FetchTestResult.FAILURE);
+      checkFetchTestResult(evt.data, FetchTestResult.FAILURE);
       t.done();
     }
 

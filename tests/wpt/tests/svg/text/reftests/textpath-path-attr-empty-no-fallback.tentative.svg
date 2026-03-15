@@ -1,0 +1,15 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Empty `path` attribute takes precedence over `href` and does not render</title>
+  <metadata>
+    <html:link rel="author" title="Virali Purbey" href="mailto:viralipurbey@microsoft.com"/>
+    <html:link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextPathElementPathAttribute"/>
+    <html:link rel="help" href="https://github.com/w3c/svgwg/issues/393"/>
+    <html:link rel="match" href="textpath-path-attr-empty-ref.tentative.svg"/>
+  </metadata>
+  <defs>
+    <path id="curve" d="M 10 50 Q 100 10 200 50 T 390 50"/>
+  </defs>
+  <text font-size="20" fill="black">
+    <textPath href="#curve" path="">Empty path</textPath>
+  </text>
+</svg>

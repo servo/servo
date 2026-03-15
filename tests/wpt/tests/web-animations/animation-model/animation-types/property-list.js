@@ -1263,6 +1263,13 @@ const gCSSProperties2 = {
       { type: 'discrete', options: [ [ 'fill', 'stroke' ] ] }
     ]
   },
+  'path-length': {
+    // https://svgwg.org/svg2-draft/paths.html#PathLengthAttribute
+    types: [ 'positiveNumber' ],
+    setup: t => {
+      return createElement(t, 'path');
+    }
+  },
   'perspective': {
     // https://drafts.csswg.org/css-transforms-1/#propdef-perspective
     types: [ 'length' ]

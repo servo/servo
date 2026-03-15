@@ -100,6 +100,7 @@ async def test_cross_origin(
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
 async def test_user_context(
     bidi_session,
+    configuration,
     create_user_context,
     subscribe_events,
     wait_for_event,
@@ -137,7 +138,7 @@ async def test_user_context(
     )
 
     # Wait until all iframes have been loaded.
-    await wait_for_bidi_events(bidi_session, events, 3)
+    await wait_for_bidi_events(bidi_session, configuration, events, 3)
 
     top_level_context_id = context["context"]
     all_contexts = await bidi_session.browsing_context.get_tree(

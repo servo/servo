@@ -13,16 +13,9 @@ promise_test(async t => {
   const session = await createLanguageModel();
   const contextWindow = session.contextWindow;
   const initialPrompt = kTestPrompt.repeat(contextWindow);
-  const measuredUsage = await session.measureContextUsage(initialPrompt);
-
-  assert_greater_than(
-      measuredUsage, contextWindow,
-      'Measured usage should be greater than contextWindow');
-
+  const usage = await session.measureContextUsage(initialPrompt);
+  assert_greater_than(usage, contextWindow);
   const promise = createLanguageModel(
       { initialPrompts: [ { role: "system", content: initialPrompt } ] });
-  // Measured and actual usage may vary slightly for delimiter tokens.
-  await promise_rejects_quotaexceedederror(t, promise, (actual) => {
-    return isValueInRange(actual, measuredUsage);
-  }, contextWindow);
+  await promise_rejects_quotaexceedederror(t, promise, usage, contextWindow);
 }, 'QuotaExceededError is thrown when initial prompts are too large.');

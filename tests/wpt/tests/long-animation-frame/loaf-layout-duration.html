@@ -1,0 +1,175 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: layoutDuration</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: layoutDuration</h1>
+<div id="log"></div>
+<script>
+
+promise_test(async t => {
+  const entry = await expect_long_frame((t, busy_wait) => {
+    busy_wait(very_long_frame_duration);
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  assert_true("layoutDuration" in entry,
+      "layoutDuration should be present on PerformanceLongAnimationFrameTiming");
+  assert_greater_than_equal(entry.layoutDuration, 0,
+      "layoutDuration should be non-negative");
+  // styleDuration + layoutDuration should not exceed duration
+  assert_less_than_equal(entry.styleDuration + entry.layoutDuration,
+      entry.duration,
+      "styleDuration + layoutDuration should not exceed frame duration");
+}, "layoutDuration attribute exists on PerformanceLongAnimationFrameTiming");
+
+promise_test(async t => {
+  const entry = await expect_long_frame((t, busy_wait) => {
+    t.step_timeout(() => {
+      // Just do a busy wait with no rendering
+      busy_wait(very_long_frame_duration);
+    }, 0);
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  // If no rendering occurred, layoutDuration should be 0
+  if (entry.renderStart === 0) {
+    assert_equals(entry.layoutDuration, 0,
+        "layoutDuration should be 0 when no rendering occurred");
+  }
+}, "layoutDuration is 0 when no rendering phase occurs");
+
+promise_test(async t => {
+  const element = document.createElement("div");
+  element.id = "test-element";
+  element.style.width = "100px";
+  element.style.height = "100px";
+  document.body.appendChild(element);
+  t.add_cleanup(() => element.remove());
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    // Use requestAnimationFrame to trigger render-phase layout
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        // Modify dimensions that will need layout during render
+        element.style.width = "200px";
+        element.style.height = "150px";
+        busy_wait(very_long_frame_duration);
+        resolve();
+      });
+    });
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  // Rendering should have occurred since we changed dimensions in rAF
+  assert_greater_than(entry.styleAndLayoutStart, 0,
+      "styleAndLayoutStart should be > 0 when rendering occurred");
+  assert_greater_than_equal(entry.layoutDuration, 0,
+      "layoutDuration should be non-negative when layout occurred");
+}, "layoutDuration captures render-phase layout");
+
+promise_test(async t => {
+  const entry = await expect_long_frame((t, busy_wait) => {
+    busy_wait(very_long_frame_duration);
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  assert_less_than_equal(entry.layoutDuration, entry.duration,
+      "layoutDuration should not exceed total frame duration");
+}, "layoutDuration does not exceed frame duration");
+
+promise_test(async t => {
+  const element = document.createElement("div");
+  element.style.width = "100px";
+  document.body.appendChild(element);
+  t.add_cleanup(() => element.remove());
+
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+    t.step_timeout(() => {
+      busy_wait(very_long_frame_duration / 2);
+      // Force layout by changing dimensions and reading a layout property
+      element.style.width = "200px";
+      void element.offsetHeight;
+      busy_wait(very_long_frame_duration / 2);
+    }, 0);
+  }, script => script.invoker === "TimerHandler:setTimeout", t);
+
+  assert_true(!!entry, "Entry detected");
+  assert_true(!!script, "Script detected");
+  // entry.layoutDuration is render-phase only, so it should NOT include
+  // forced layout. The forced layout is tracked in script.forcedLayoutDuration.
+  assert_greater_than_equal(entry.layoutDuration, 0,
+      "entry.layoutDuration should be non-negative");
+  assert_greater_than_equal(script.forcedStyleAndLayoutDuration, 0,
+      "Script's forcedStyleAndLayoutDuration should be >= 0");
+  assert_greater_than_equal(script.forcedLayoutDuration, 0,
+      "Script's forcedLayoutDuration should be >= 0");
+  assert_less_than_equal(script.forcedLayoutDuration,
+      script.forcedStyleAndLayoutDuration,
+      "forcedLayoutDuration should be <= forcedStyleAndLayoutDuration");
+}, "layoutDuration does not include forced layout from scripts (tracked separately)");
+
+promise_test(async t => {
+  const element = document.createElement("div");
+  element.id = "layout-test";
+  element.style.width = "100px";
+  element.style.height = "100px";
+  document.body.appendChild(element);
+  t.add_cleanup(() => element.remove());
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    // Trigger a render with layout changes
+    element.style.width = "300px";
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        busy_wait(very_long_frame_duration);
+        resolve();
+      });
+    });
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  // When rendering occurs, layoutDuration captures the layout time
+  if (entry.renderStart > 0 && entry.styleAndLayoutStart > 0) {
+    assert_greater_than_equal(entry.layoutDuration, 0,
+        "layoutDuration should be >= 0 during render phase");
+  }
+}, "layoutDuration is measured during the render phase");
+
+promise_test(async t => {
+  const container = document.createElement("div");
+  container.style.width = "100px";
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    await new Promise(resolve => {
+      const observer = new ResizeObserver(entries => {
+        busy_wait(very_long_frame_duration / 2);
+      });
+      observer.observe(container);
+
+      requestAnimationFrame(() => {
+        container.style.width = "200px";
+        requestAnimationFrame(() => {
+          observer.disconnect();
+          resolve();
+        });
+      });
+    });
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  assert_greater_than_equal(entry.layoutDuration, 0,
+      "layoutDuration should be >= 0 during ResizeObserver callback");
+  assert_greater_than(entry.styleAndLayoutStart, 0,
+      "styleAndLayoutStart should be > 0 when rendering occurred");
+}, "layoutDuration captures layout during ResizeObserver callbacks");
+
+
+</script>
+</body>

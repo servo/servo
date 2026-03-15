@@ -19,14 +19,14 @@ object {
 <script>
 const object = document.querySelector("object");
 
-Promise.all([
-  new Promise((resolve) => {
-    object.addEventListener("load", resolve);
-    object.data = "/images/100px-green-rect.svg";
-  }),
-  new Promise((resolve) => {
-    document.addEventListener("fullscreenchange", resolve);
-    test_driver.bless('fullscreen', () => object.requestFullscreen());
-  }),
-]).then(() => document.documentElement.classList.remove('reftest-wait'));
+document.addEventListener("fullscreenchange", async () => {
+  // Await fullscreen animation. It seems to always be done within 3 frames.
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  document.documentElement.classList.remove('reftest-wait');
+});
+
+object.onload = () => test_driver.bless('fullscreen', () => object.requestFullscreen());
+object.data = "/images/100px-green-rect.svg";
 </script>

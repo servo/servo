@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS ::before and ::after pseudo-elements on select::picker(select)</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-forms/#the-picker-pseudo-element">
+<link rel="match" href="select-picker-pseudo-before-after-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+
+select::picker(select)::before {
+  content: "";
+  display: block;
+  height: 20px;
+  background: lime;
+}
+
+select::picker(select)::after {
+  content: "";
+  display: block;
+  height: 20px;
+  background: blue;
+}
+</style>
+
+<select>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+(async () => {
+  await test_driver.bless();
+  document.querySelector("select").showPicker();
+  document.documentElement.classList.remove("reftest-wait");
+})();
+</script>

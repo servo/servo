@@ -6,8 +6,9 @@ from tests.support.image import png_dimensions
 from . import get_physical_viewport_dimensions
 from ... import get_device_pixel_ratio, get_viewport_dimensions
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("activate", [True, False],
                          ids=["with activate", "without activate"])
 async def test_capture(bidi_session, top_context, inline, compare_png_bidi,
@@ -53,7 +54,6 @@ async def test_capture(bidi_session, top_context, inline, compare_png_bidi,
 
 @pytest.mark.parametrize("delta_width", [-10, +20], ids=["width smaller", "width larger"])
 @pytest.mark.parametrize("delta_height", [-30, +40], ids=["height smaller", "height larger"])
-@pytest.mark.asyncio
 async def test_capture_with_viewport(bidi_session, new_tab, delta_width, delta_height):
     original_viewport = await get_viewport_dimensions(bidi_session, new_tab)
 
@@ -82,7 +82,6 @@ async def test_capture_with_viewport(bidi_session, new_tab, delta_width, delta_h
 
 
 @pytest.mark.parametrize("dpr", [0.5, 2])
-@pytest.mark.asyncio
 async def test_capture_with_different_dpr(bidi_session, new_tab, inline, dpr):
     page = inline("<div style='background-color: black; width: 100px; height: 100px;'></div>")
     await bidi_session.browsing_context.navigate(
@@ -106,7 +105,6 @@ async def test_capture_with_different_dpr(bidi_session, new_tab, inline, dpr):
     assert floor(expected_height) <= actual_height <= ceil(expected_height)
 
 
-@pytest.mark.asyncio
 async def test_clip_huge_element_to_viewport(bidi_session, top_context, inline):
     width = "32768px"
     height = "32768px"

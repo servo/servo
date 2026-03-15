@@ -9,7 +9,7 @@ import pytest
 
 from tools.wpt import run
 from tools import localpaths  # noqa: F401
-from wptrunner.browsers import product_list
+from wptrunner.products import get_all_products
 
 
 @pytest.fixture(scope="module")
@@ -60,7 +60,7 @@ def test_check_environ_fail(platform):
     assert "wpt make-hosts-file" in str(excinfo.value)
 
 
-@pytest.mark.parametrize("product", product_list)
+@pytest.mark.parametrize("product", list(get_all_products()))
 def test_setup_wptrunner(venv, logger, product):
     if product == "firefox_android":
         pytest.skip("Android emulator doesn't work on docker")

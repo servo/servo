@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    // A network-loaded worker script served WITHOUT Document-Policy header
+    // should NOT inherit js-profiling from the creator document. This verifies
+    // no unintentional policy inheritance occurs for network workers.
+    promise_test(async t => {
+      const worker = new Worker('/js-self-profiling/without-document-policy/dedicated-worker-profiler-test.js');
+      const result = await new Promise((resolve, reject) => {
+        worker.onmessage = e => resolve(e.data);
+        worker.onerror = e => reject(new Error(e.message));
+      });
+      assert_false(result.success,
+                   'profiling should fail in dedicated worker without document policy header');
+      assert_equals(result.error, 'NotAllowedError',
+                    'profiling should be blocked without document policy header');
+      worker.terminate();
+    }, 'profiling should be blocked for network worker without document policy header');
+  </script>
+</body>
+</html>

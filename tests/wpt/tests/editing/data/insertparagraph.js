@@ -362,9 +362,14 @@ var browserTests = [
     "<pre>foo<br><br>{}<br></pre>",
     [true],
     {"insertparagraph":[false,false,"",false,false,""]}],
+// The trailing linefeed is invisible so that new empty line should be inserted
+// to the end of the <pre>.
 ["<pre>foo&#10;[]</pre>",
     [["insertparagraph",""]],
-    "<pre>foo\n<br>{}<br></pre>",
+    ["<pre>foo<br>\n</pre>",
+     "<pre>foo\n<br></pre>",
+     "<pre>foo<br><br></pre>",
+    ],
     [true],
     {"insertparagraph":[false,false,"",false,false,""]}],
 ["<pre>foo[]&#10;</pre>",

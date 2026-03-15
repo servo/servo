@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Canvas test: 2d.text.measure.actualBoundingBox.small-font</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/canvas-tests.js"></script>
+<link rel="stylesheet" href="/html/canvas/resources/canvas-tests.css">
+<style>
+@font-face {
+  font-family: CanvasTest;
+  src: url("/fonts/CanvasTest.ttf");
+}
+</style>
+<body class="show_output">
+
+<h1>2d.text.measure.actualBoundingBox.small-font</h1>
+<p class="desc">Testing that actualBoundingBox metrics are precise enough to center text at small font sizes</p>
+
+<span style="font-family: CanvasTest; position: absolute; visibility: hidden">A</span>
+<p class="output">Actual output:</p>
+<canvas id="c" class="output" width="64" height="64"><p class="fallback">FAIL (fallback content)</p></canvas>
+
+<ul id="d"></ul>
+<script>
+promise_test(async t => {
+  var canvas = document.getElementById('c');
+  var ctx = canvas.getContext('2d');
+
+  await document.fonts.ready;
+
+  // Fill background with red.
+  ctx.fillStyle = 'red';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Move origin to center and scale up so small font fills the canvas.
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.scale(32, 32);
+
+  // Use a small font size and center text at the origin using
+  // actualBoundingBox metrics. If the metrics are integer-quantized,
+  // the centering offset will be wrong and the text will not appear
+  // at the center of the canvas.
+  ctx.font = '1.5px CanvasTest';
+  ctx.fillStyle = 'yellow';
+  const text = 'A';
+  const m = ctx.measureText(text);
+
+  const drawX = -(m.actualBoundingBoxLeft + m.actualBoundingBoxRight) / 2
+                + m.actualBoundingBoxLeft;
+  const drawY = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) / 2
+                - m.actualBoundingBoxDescent;
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(text, drawX, drawY);
+
+  // The center pixel should be yellow (text), not red (background).
+  // Yellow has a high green channel; red background has green=0.
+  var pixel = _getPixel(canvas, canvas.width / 2, canvas.height / 2);
+  _assert(pixel[1] > 128,
+    'Center pixel green channel (' + pixel[1] + ') should be > 128 (yellow text, not red background)');
+
+}, "actualBoundingBox centers text correctly at small font sizes");
+</script>

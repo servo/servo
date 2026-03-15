@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS ::target-text pseudo-element on select::picker(select)</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-forms/#the-picker-pseudo-element">
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/#target-text-pseudo">
+<link rel="match" href="select-picker-pseudo-target-text-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+
+select::picker(select)::target-text {
+  background-color: green;
+  color: white;
+}
+</style>
+
+<select>
+  Hello World
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+window.location.hash = "#:~:text=Hello";
+
+(async () => {
+  await test_driver.bless();
+  document.querySelector("select").showPicker();
+  await new Promise(requestAnimationFrame);
+  document.documentElement.classList.remove("reftest-wait");
+})();
+</script>

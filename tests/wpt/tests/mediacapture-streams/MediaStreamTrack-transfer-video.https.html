@@ -17,7 +17,7 @@ promise_test(async () => {
     };
   });
   iframe.addEventListener("load", () => {
-    iframe.contentWindow.postMessage(track);
+    iframe.contentWindow.postMessage(track, "*", [track]);
   });
   iframe.src = "support/iframe-MediaStreamTrack-transfer-video.html";
   document.body.appendChild(iframe);

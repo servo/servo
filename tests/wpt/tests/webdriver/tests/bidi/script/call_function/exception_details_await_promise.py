@@ -4,10 +4,10 @@ from webdriver.bidi.modules.script import ContextTarget, ScriptEvaluateResultExc
 from ... import any_int, any_string, recursive_compare
 from .. import any_stack_trace, PRIMITIVE_VALUES, REMOTE_VALUES
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("expression, expected", PRIMITIVE_VALUES + REMOTE_VALUES)
-@pytest.mark.asyncio
 async def test_exception_details(bidi_session, top_context, expression, expected):
     function_declaration = f"async()=>{{ throw {expression} }}"
 

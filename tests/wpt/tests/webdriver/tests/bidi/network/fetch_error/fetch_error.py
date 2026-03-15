@@ -15,8 +15,9 @@ from .. import (
     PAGE_INVALID_URL,
 )
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_subscribe_status(
     bidi_session,
     subscribe_events,
@@ -63,7 +64,6 @@ async def test_subscribe_status(
     remove_listener()
 
 
-@pytest.mark.asyncio
 async def test_aborted_request(
     new_tab,
     wait_for_event,
@@ -95,9 +95,9 @@ async def test_aborted_request(
     )
 
 
-@pytest.mark.asyncio
 async def test_iframe_load(
     bidi_session,
+    configuration,
     new_tab,
     setup_network_test,
     inline,
@@ -112,7 +112,7 @@ async def test_iframe_load(
         url=inline(f"<iframe src='{PAGE_INVALID_URL}'></iframe>"),
     )
 
-    await wait_for_bidi_events(bidi_session, events, 1, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=2)
 
     contexts = await bidi_session.browsing_context.get_tree(root=new_tab["context"])
     frame_context = contexts[0]["children"][0]
@@ -127,7 +127,6 @@ async def test_iframe_load(
     )
 
 
-@pytest.mark.asyncio
 async def test_navigation_id(
     bidi_session,
     new_tab,
@@ -174,9 +173,9 @@ async def test_navigation_id(
         ("PUT", True),
     ],
 )
-@pytest.mark.asyncio
 async def test_request_method(
     bidi_session,
+    configuration,
     new_tab,
     wait_for_event,
     wait_for_future_safe,
@@ -196,7 +195,7 @@ async def test_request_method(
     # request which uses the OPTIONS method.
     expected_events = 2 if has_preflight else 1
 
-    await wait_for_bidi_events(bidi_session, events, expected_events, timeout=2)
+    await wait_for_bidi_events(bidi_session, configuration, events, expected_events, timeout=2)
 
     # TODO: At the moment the event order for preflight requests differs between
     # Chrome and Firefox so we cannot assume the order of fetchError events.
@@ -213,7 +212,6 @@ async def test_request_method(
         )
 
 
-@pytest.mark.asyncio
 async def test_request_timing_info(
     bidi_session,
     new_tab,
@@ -251,7 +249,6 @@ async def test_request_timing_info(
     )
 
 
-@pytest.mark.asyncio
 async def test_redirect_fetch(
     bidi_session, new_tab, wait_for_event, url, fetch, setup_network_test
 ):
@@ -294,7 +291,6 @@ async def test_redirect_fetch(
     )
 
 
-@pytest.mark.asyncio
 async def test_redirect_navigation(
     bidi_session, new_tab, wait_for_event, url, setup_network_test
 ):

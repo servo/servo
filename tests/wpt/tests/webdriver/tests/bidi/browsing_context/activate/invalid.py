@@ -19,7 +19,6 @@ async def test_params_context_invalid_value(bidi_session, value):
         )
 
 
-@pytest.mark.asyncio
 async def test_params_context_iframe(bidi_session, new_tab, get_test_page):
     url = get_test_page(as_frame=True)
     await bidi_session.browsing_context.navigate(

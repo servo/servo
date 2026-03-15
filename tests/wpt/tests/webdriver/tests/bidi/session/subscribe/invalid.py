@@ -6,41 +6,37 @@ from webdriver.bidi.error import InvalidArgumentException, NoSuchFrameException,
 
 from ... import create_console_api_message
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_params_empty(send_blocking_command):
     with pytest.raises(InvalidArgumentException):
         await send_blocking_command("session.subscribe", {})
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("value", [None, True, "foo", 42, {}])
 async def test_params_events_invalid_type(bidi_session, value):
     with pytest.raises(InvalidArgumentException):
         await bidi_session.session.subscribe(events=value)
 
 
-@pytest.mark.asyncio
 async def test_params_events_empty(bidi_session):
     with pytest.raises(InvalidArgumentException):
         await bidi_session.session.subscribe(events=[])
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("value", [None, True, 42, [], {}])
 async def test_params_events_value_invalid_type(bidi_session, value):
     with pytest.raises(InvalidArgumentException):
         await bidi_session.session.subscribe(events=[value])
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("value", ["", "foo", "foo.bar", "log.invalidEvent"])
 async def test_params_events_value_invalid_event_name(bidi_session, value):
     with pytest.raises(InvalidArgumentException):
         await bidi_session.session.subscribe(events=[value])
 
 
-@pytest.mark.asyncio
 async def test_params_events_value_valid_and_invalid_event_names(
     bidi_session, top_context
 ):
@@ -68,33 +64,28 @@ async def test_params_events_value_valid_and_invalid_event_names(
     remove_listener()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("value", [True, "foo", 42, {}])
 async def test_params_contexts_invalid_type(bidi_session, value):
     with pytest.raises(InvalidArgumentException):
         await bidi_session.session.subscribe(events=["log.entryAdded"], contexts=value)
 
 
-@pytest.mark.asyncio
 async def test_params_contexts_empty(bidi_session):
     with pytest.raises(InvalidArgumentException):
         await bidi_session.session.subscribe(events=["log.entryAdded"], contexts=[])
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("value", [None, True, 42, [], {}])
 async def test_params_contexts_value_invalid_type(bidi_session, value):
     with pytest.raises(InvalidArgumentException):
         await bidi_session.session.subscribe(events=["log.entryAdded"], contexts=[value])
 
 
-@pytest.mark.asyncio
 async def test_params_contexts_value_invalid_value(bidi_session):
     with pytest.raises(NoSuchFrameException):
         await bidi_session.session.subscribe(events=["log.entryAdded"], contexts=["foo"])
 
 
-@pytest.mark.asyncio
 async def test_params_contexts_valid_and_invalid_value(
     bidi_session, top_context
 ):
@@ -122,7 +113,6 @@ async def test_params_contexts_valid_and_invalid_value(
     remove_listener()
 
 
-@pytest.mark.asyncio
 async def test_subscribe_to_closed_tab(bidi_session):
     new_tab = await bidi_session.browsing_context.create(type_hint="tab")
     await bidi_session.browsing_context.close(context=new_tab["context"])
@@ -132,39 +122,33 @@ async def test_subscribe_to_closed_tab(bidi_session):
         await bidi_session.session.subscribe(events=["log.entryAdded"], contexts=[new_tab["context"]])
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("value", [True, "foo", 42, {}])
 async def test_params_user_context_invalid_type(bidi_session, value):
     with pytest.raises(InvalidArgumentException):
         await bidi_session.session.subscribe(events=["browsingContext.load"], user_contexts=value)
 
 
-@pytest.mark.asyncio
 async def test_params_user_context_empty(bidi_session):
     with pytest.raises(InvalidArgumentException):
         await bidi_session.session.subscribe(events=["browsingContext.load"], user_contexts=[])
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("value", [None, True, 42, [], {}])
 async def test_params_user_context_value_invalid_type(bidi_session, value):
     with pytest.raises(InvalidArgumentException):
         await bidi_session.session.subscribe(events=["browsingContext.load"], user_contexts=[value])
 
 
-@pytest.mark.asyncio
 async def test_params_user_context_value_invalid_value(bidi_session):
     with pytest.raises(NoSuchUserContextException):
         await bidi_session.session.subscribe(events=["browsingContext.load"], user_contexts=["foo"])
 
 
-@pytest.mark.asyncio
 async def test_params_user_context_and_contexts(bidi_session, top_context):
     with pytest.raises(InvalidArgumentException):
         await bidi_session.session.subscribe(events=["browsingContext.load"], user_contexts=["default"], contexts=[top_context["context"]])
 
 
-@pytest.mark.asyncio
 async def test_subscribe_to_closed_user_context(bidi_session, create_user_context):
     user_context = await create_user_context()
     await bidi_session.browser.remove_user_context(user_context=user_context)

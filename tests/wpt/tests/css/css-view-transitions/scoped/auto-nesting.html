@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="match" href="auto-nesting-ref.html">
   <link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+  <!-- Anti-aliasing along borders of boxes -->
+  <meta name="fuzzy" content="maxDifference=0-150; totalPixels=0-2400">
   <title>Auto-nesting</title>
   <style>
     .box {
@@ -45,9 +47,16 @@
       top: 0;
     }
 
-    ::view-transition-group(*) {
-      animation-play-state: paused;
-    }
+
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    /* freeze all animations at the end */
+    animation-duration: 100000s;
+    animation-timing-function: steps(1, jump-start);
+  }
+
   </style>
   <script src="/common/reftest-wait.js"></script>
 </head>
@@ -77,7 +86,6 @@
     let vt1 = start_transition(document.getElementById('a'));
     let vt2 = start_transition(document.getElementById('b'));
     await Promise.all([vt1.ready, vt2.ready]);
-    document.getAnimations().forEach(a => a.finish());
     requestAnimationFrame(takeScreenshot);
   }
 </script>

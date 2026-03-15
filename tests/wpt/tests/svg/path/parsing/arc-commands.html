@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVG Path Data: Elliptical arc (A/a)</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathDataBNF">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+
+<svg id="svg" width="400" height="400">
+  <!-- Absolute arc -->
+  <path id="test-A" d="M 100,100 A 50,50 0 0,1 200,100" fill="none" stroke="black" stroke-width="2"/>
+
+  <!-- Relative arc -->
+  <path id="test-a" d="M 100,150 a 50,50 0 0,1 100,0" fill="none" stroke="blue" stroke-width="2"/>
+</svg>
+
+<script>
+test(function() {
+  const path = document.getElementById('test-A');
+  const length = path.getTotalLength();
+
+  assert_greater_than(length, 0, "A command creates an arc");
+  assert_greater_than(length, 100, "Arc is longer than straight line");
+}, "Absolute arc: A 50,50 0 0,1 200,100");
+
+test(function() {
+  const pathA = document.getElementById('test-A');
+  const patha = document.getElementById('test-a');
+
+  // Both should create similar arcs
+  assert_approx_equals(pathA.getTotalLength(), patha.getTotalLength(), 1,
+    "Relative arc creates same curve as absolute");
+}, "Relative arc: a 50,50 0 0,1 100,0 from (100,150)");
+
+test(function() {
+  const path = document.getElementById('test-A');
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+
+  assert_approx_equals(endPoint.x, 200, 0.5, "Arc ends at specified x");
+  assert_approx_equals(endPoint.y, 100, 0.5, "Arc ends at specified y");
+}, "Arc endpoint is correct");
+
+test(function() {
+  // Test large-arc-flag = 1
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 100,200 A 50,50 0 1,1 200,200');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 100, "Large arc flag creates larger arc");
+}, "Large arc flag: A 50,50 0 1,1 200,200");
+
+test(function() {
+  // Test sweep-flag variations
+  const svg = document.getElementById('svg');
+  const path0 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path0.setAttribute('d', 'M 100,250 A 50,50 0 0,0 200,250');
+  svg.appendChild(path0);
+
+  const path1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path1.setAttribute('d', 'M 100,250 A 50,50 0 0,1 200,250');
+  svg.appendChild(path1);
+
+  // Both paths share the same start (100,250) and end (200,250) with r=50.
+  // The chord length (100) equals the diameter (2×50), so both arcs are semicircles
+  // with identical path lengths — comparing lengths would yield near-zero floating-point
+  // noise instead of a meaningful difference.
+  //
+  // The arcs bow in opposite directions:
+  //
+  //       (150, 200)  ← midpoint of sweep=1 arc (bows up)
+  //            ●
+  //   ●─────────────●
+  // (100,250)     (200,250)
+  //            ●
+  //       (150, 300)  ← midpoint of sweep=0 arc (bows down)
+  //
+  // Comparing the midpoint y-coordinates gives a ~100-unit difference on all platforms.
+  const mid0 = path0.getPointAtLength(path0.getTotalLength() / 2);
+  const mid1 = path1.getPointAtLength(path1.getTotalLength() / 2);
+  assert_greater_than(Math.abs(mid0.y - mid1.y), 10,
+    "Different sweep flags create different arcs");
+}, "Sweep flag variations: 0 vs 1");
+
+test(function() {
+  // Test x-axis-rotation
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 100,300 A 50,25 45 0,1 200,300');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 0, "Rotated elliptical arc works");
+}, "X-axis rotation: A 50,25 45 0,1 200,300");
+
+test(function() {
+  // Multiple arc arguments
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50,350 A 25,25 0 0,1 100,350 25,25 0 0,1 150,350');
+  svg.appendChild(path);
+
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+  assert_approx_equals(endPoint.x, 150, 0.5, "Multiple arcs end at last point");
+}, "Multiple arc arguments");
+
+test(function() {
+  // Flags without comma
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 200,100 A 50,50 0 01 300,100');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 0, "Flags without comma separator work");
+}, "Arc flags without comma: 01 instead of 0,1");
+
+test(function() {
+  // Flags with spaces
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 200,150 A 50,50 0 0 1 300,150');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 0, "Flags with space separator work");
+}, "Arc flags with spaces: 0 1 instead of 0,1");
+
+test(function() {
+  // Different radii (ellipse)
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 200,200 A 75,25 0 0,1 300,200');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 0, "Elliptical arc with different radii works");
+}, "Elliptical arc: A 75,25 (different rx and ry)");
+
+test(function() {
+  // Zero radius (should create line)
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 200,250 A 0,0 0 0,1 300,250');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_approx_equals(length, 100, 0.5, "Zero radius creates straight line");
+}, "Arc with zero radius becomes line");
+
+test(function() {
+  // Negative radius (should use absolute value)
+  const svg = document.getElementById('svg');
+  const path1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path1.setAttribute('d', 'M 200,300 A -50,50 0 0,1 300,300');
+  svg.appendChild(path1);
+
+  const path2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path2.setAttribute('d', 'M 200,300 A 50,50 0 0,1 300,300');
+  svg.appendChild(path2);
+
+  // Negative radius should be treated as absolute value
+  assert_approx_equals(path1.getTotalLength(), path2.getTotalLength(), 0.5,
+    "Negative radius treated as positive");
+}, "Arc with negative radius uses absolute value");
+</script>
+</body>
+</html>

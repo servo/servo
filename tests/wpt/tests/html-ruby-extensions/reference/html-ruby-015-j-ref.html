@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" >
+<meta charset="utf-8">
+<title>test reference</title>
+<link rel='author' title='Florian Rivoal' href='https://florian.rivoal.net'>
+<style>
+.r1 { color: orange; }
+.r2 { color: blue; }
+.r3 { color: purple; }
+.s { font-size: 50%; }
+ruby { ruby-merge: separate; } /* Not strictly required, but added just in case some user agent otherwise has a jukugo-like default rendering. */
+</style>
+<body>
+<p>The example below consists of 3 base characters, each annotated with its pronunciation.
+“<span class=r1>浄</span>” is annotated by “<span class=r1>じょう</span>”.
+“<span class=r2>瑠</span>” is annotated by “<span class=r2>る</span>”.
+“<span class=r3>璃</span>” is annotated by “<span class=r3>り</span>”.
+There is also one excess annotation with no base after the first one: “け”.
+For ease of comparison, it is preceded by some context text: “例文は”.
+This test passes if:
+<ul>
+    <li>each base character is presented inline with and similarly to the context text, as if they are all part of the same sentence, and
+    <li>each annotation is presented as an annotation, and
+    <li>the correct annotation is presented clearly as being associated with the correct base, and
+    <li>the excess annotation appears to be annotating an empty base next to the first one.
+</ul>
+
+<p>Note: The colors are not part of the test,
+they are merely provided as help to the person running the test,
+to make it easier to recognize the various parts of the text.
+
+<p>Note: This is not a layout or rendering test.
+The precise appearance is not specified,
+and implementations may therefore validly vary.
+
+<hr> <!-- incorrect rendering: extra annotation associated with second base, rest off by one, last one at base level with small font size.-->
+例文は<ruby><span class=r1>浄</span><rt class=r1>じょう</rt><span class=r2>瑠</span><rt>け</rt><span class=r3>璃</span><rt class=r2>る</rt></ruby><span class="r3 s">り</span>

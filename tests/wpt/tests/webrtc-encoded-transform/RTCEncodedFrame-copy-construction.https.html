@@ -16,8 +16,11 @@
 const assert_json_equals = (a, b) => assert_equals(JSON.stringify(a), JSON.stringify(b));
 const assert_json_not_equals = (a, b) => assert_not_equals(JSON.stringify(a), JSON.stringify(b));
 
+const reuse = {}; // speed up tests
+
 promise_test(async t => {
    const frame = await createRTCEncodedFrameFromScratch("video");
+   reuse["video"] = frame;
    assert_true(frame instanceof RTCEncodedVideoFrame);
    assert_equals(frame.type, "key"); // first frame is key
 
@@ -30,6 +33,7 @@ promise_test(async t => {
 
 promise_test(async t => {
    const frame = await createRTCEncodedFrameFromScratch("audio");
+   reuse["audio"] = frame;
    assert_true(frame instanceof RTCEncodedAudioFrame);
 
    const clone = new RTCEncodedAudioFrame(frame);
@@ -52,7 +56,7 @@ function different(value) {
   const kind = constr.includes("Video")? "video" : "audio";
 
   promise_test(async t => {
-    const frame = await createRTCEncodedFrameFromScratch(kind);
+    const frame = reuse[kind];
     const oldData = frame.getMetadata();
     // test single key replacement
     for (const key of Object.keys(oldData)) {
@@ -78,7 +82,7 @@ function different(value) {
   }, `${constr} copy construction metadata override on main thread.`);
 
   promise_test(async t => {
-    const frame = await createRTCEncodedFrameFromScratch(kind);
+    const frame = reuse[kind];
     assert_greater_than(frame.data.byteLength, 0);
     const length = frame.data.byteLength;
     const clone = structuredClone(frame);
@@ -88,7 +92,7 @@ function different(value) {
   }, `${constr} structuredClone on main thread.`);
 
   promise_test(async t => {
-    const frame = await createRTCEncodedFrameFromScratch(kind);
+    const frame = reuse[kind];
     assert_greater_than(frame.data.byteLength, 0);
     const length = frame.data.byteLength;
     const clone = structuredClone(frame, {transfer: [frame.data]});

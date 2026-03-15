@@ -13,9 +13,11 @@ from .. import (
     get_next_event_for_url,
 )
 
+pytestmark = pytest.mark.asyncio
+
 
 @pytest_asyncio.fixture
-async def setup_cached_resource_test(bidi_session, top_context, setup_network_test, add_data_collector):
+async def setup_cached_resource_test(bidi_session, configuration, top_context, setup_network_test, add_data_collector):
     async def _setup_cached_resource_test(page_url, resource_url):
         network_events = await setup_network_test(
             events=[
@@ -31,7 +33,7 @@ async def setup_cached_resource_test(bidi_session, top_context, setup_network_te
         )
 
         # Expect two events, one for the document, one for the resource.
-        await wait_for_bidi_events(bidi_session, events, 2, timeout=2)
+        await wait_for_bidi_events(bidi_session, configuration, events, 2, timeout=2)
 
         collector = await add_data_collector(
             collector_type="blob", data_types=["response"], max_encoded_data_size=1000
@@ -43,7 +45,7 @@ async def setup_cached_resource_test(bidi_session, top_context, setup_network_te
         )
 
         # Expect two events after reload, for the document and the resource.
-        await wait_for_bidi_events(bidi_session, events, 4, timeout=2)
+        await wait_for_bidi_events(bidi_session, configuration, events, 4, timeout=2)
 
         # Assert only cached events after reload.
         cached_events = events[2:]
@@ -60,7 +62,6 @@ async def setup_cached_resource_test(bidi_session, top_context, setup_network_te
     return _setup_cached_resource_test
 
 
-@pytest.mark.asyncio
 async def test_cached_image(
     url,
     inline,
@@ -81,7 +82,6 @@ async def test_cached_image(
     assert IMAGE_RESPONSE_DATA.decode("utf-8") == data["value"]
 
 
-@pytest.mark.asyncio
 async def test_cached_javascript(
     url,
     inline,
@@ -100,7 +100,6 @@ async def test_cached_javascript(
     assert isinstance(data["value"], str)
 
 
-@pytest.mark.asyncio
 async def test_cached_stylesheet(
     url,
     inline,

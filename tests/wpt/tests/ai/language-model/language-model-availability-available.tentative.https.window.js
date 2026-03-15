@@ -27,7 +27,7 @@ promise_test(async () => {
   }
 }, 'LanguageModel.availability() returns available with supported options');
 
-promise_test(async () => {
+promise_test(async t => {
   await ensureLanguageModel();
   // An array of unsupported test options.
   const kUnsupportedCreateOptions = [
@@ -42,8 +42,9 @@ promise_test(async () => {
   ];
   for (const options of kUnsupportedCreateOptions) {
     assert_equals(await LanguageModel.availability(options), 'unavailable', JSON.stringify(options));
+    await promise_rejects_dom(t, 'NotSupportedError', LanguageModel.create(options), JSON.stringify(options));
   }
-}, 'LanguageModel.availability() returns unavailable with unsupported options');
+}, 'LanguageModel.availability() returns unavailable and create() rejects with unsupported options');
 
 promise_test(async t => {
   await ensureLanguageModel();

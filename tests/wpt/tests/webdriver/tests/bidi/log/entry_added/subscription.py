@@ -4,8 +4,9 @@ import pytest
 
 from . import assert_base_entry, create_log
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("log_type", ["console_api_log", "javascript_error"])
 async def test_subscribe_twice(bidi_session, new_tab, wait_for_event, wait_for_future_safe, log_type):
     # Subscribe to log.entryAdded twice and check that events are received once.
@@ -35,7 +36,6 @@ async def test_subscribe_twice(bidi_session, new_tab, wait_for_event, wait_for_f
     remove_listener()
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("log_type", ["console_api_log", "javascript_error"])
 async def test_subscribe_unsubscribe(bidi_session, new_tab, wait_for_event, wait_for_future_safe, log_type):
     # Subscribe for log events globally

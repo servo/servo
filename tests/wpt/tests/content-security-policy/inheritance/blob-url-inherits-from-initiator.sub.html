@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>Blob URL inherits CSP from initiator.</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
@@ -22,8 +24,8 @@
       t.add_cleanup(() => target.close());
 
       // Create a child frame in the popup. The child frame has
-      // Content-Security-Policy: script-src 'unsafe-inline'. The child frame
-      // will navigate the popup to a blob URL, which will try if eval is
+      // Content-Security-Policy: script-src 'self' 'unsafe-inline'. The child
+      // frame will navigate the popup to a blob URL, which will try if eval is
       // allowed and message back.
       let initiator = target.document.createElement('iframe');
       initiator.sandbox = "allow-scripts allow-same-origin allow-top-navigation";

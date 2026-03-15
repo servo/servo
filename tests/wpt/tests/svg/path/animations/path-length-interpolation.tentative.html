@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>path-length interpolation</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathLengthProperty"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+<body>
+<script>
+// Verify that interpolation from 0 clamps at the non-negative boundary.
+test_interpolation({
+  property: 'path-length',
+  from: '0',
+  to: '100',
+}, [
+  {at: -0.3, expect: '0'},
+  {at: 0, expect: '0'},
+  {at: 0.5, expect: '50'},
+  {at: 1, expect: '100'},
+  {at: 1.5, expect: '150'},
+]);
+</script>
+</body>

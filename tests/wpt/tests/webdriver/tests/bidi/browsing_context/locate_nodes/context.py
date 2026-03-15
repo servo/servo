@@ -3,8 +3,9 @@ import webdriver.bidi.error as error
 
 from ... import any_string, recursive_compare
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_params_context_invalid_value(bidi_session, inline, top_context):
     url = inline("""<div>foo</div>""")
     await bidi_session.browsing_context.navigate(
@@ -17,7 +18,6 @@ async def test_params_context_invalid_value(bidi_session, inline, top_context):
         )
 
 
-@pytest.mark.asyncio
 async def test_locate_in_different_contexts(bidi_session, inline, top_context, new_tab):
     url = inline("""<div class="in-top-context">foo</div>""")
     await bidi_session.browsing_context.navigate(
@@ -54,7 +54,6 @@ async def test_locate_in_different_contexts(bidi_session, inline, top_context, n
 
 
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
-@pytest.mark.asyncio
 async def test_locate_in_iframe(bidi_session, inline, top_context, domain, iframe):
     iframe_html_1 = "<div id='in-iframe'>foo</div>"
     page_url = inline(iframe(iframe_html_1, domain=domain))

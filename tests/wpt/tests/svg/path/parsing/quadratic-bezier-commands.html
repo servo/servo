@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVG Path Data: Quadratic Bezier curveto (Q/q, T/t)</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathDataBNF">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+
+<svg id="svg" width="400" height="400">
+  <!-- Quadratic Bezier curve -->
+  <path id="test-Q" d="M 50,50 Q 100,25 150,50" fill="none" stroke="black" stroke-width="2"/>
+
+  <!-- Relative quadratic Bezier -->
+  <path id="test-q" d="M 50,50 q 50,-25 100,0" fill="none" stroke="blue" stroke-width="1" stroke-dasharray="2,2"/>
+
+  <!-- Smooth quadratic Bezier -->
+  <path id="test-T" d="M 50,150 Q 75,125 100,150 T 150,150" fill="none" stroke="green" stroke-width="2"/>
+</svg>
+
+<script>
+test(function() {
+  const path = document.getElementById('test-Q');
+  const length = path.getTotalLength();
+
+  assert_greater_than(length, 0, "Q command creates a curve");
+  assert_greater_than(length, 90, "Curve is longer than straight distance");
+}, "Absolute quadratic bezier: Q 100,25 150,50");
+
+test(function() {
+  const pathQ = document.getElementById('test-Q');
+  const pathq = document.getElementById('test-q');
+
+  // Both should create same curve
+  assert_approx_equals(pathQ.getTotalLength(), pathq.getTotalLength(), 1,
+    "Relative quadratic bezier creates same curve as absolute");
+}, "Relative quadratic bezier: q 50,-25 100,0 from (50,50)");
+
+test(function() {
+  const pathQ = document.getElementById('test-Q');
+  const startPoint = pathQ.getPointAtLength(0);
+  const endPoint = pathQ.getPointAtLength(pathQ.getTotalLength());
+
+  assert_approx_equals(startPoint.x, 50, 0.1, "Curve starts at M point");
+  assert_approx_equals(startPoint.y, 50, 0.1, "Curve starts at M point");
+  assert_approx_equals(endPoint.x, 150, 0.1, "Curve ends at specified point");
+  assert_approx_equals(endPoint.y, 50, 0.1, "Curve ends at specified point");
+}, "Quadratic bezier endpoints are correct");
+
+test(function() {
+  // Multiple quadratic bezier pairs
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,50 Q 25,25 50,50 75,75 100,50');
+  svg.appendChild(path);
+
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+  assert_approx_equals(endPoint.x, 100, 0.5, "Multiple Q curves end at last point");
+  assert_approx_equals(endPoint.y, 50, 0.5, "Multiple Q curves end at last point");
+}, "Multiple quadratic bezier pairs: Q x1,y1 x,y x1,y1 x,y");
+
+test(function() {
+  const path = document.getElementById('test-T');
+  const length = path.getTotalLength();
+
+  assert_greater_than(length, 0, "T command creates a curve");
+}, "Smooth quadratic bezier: T 150,150");
+
+test(function() {
+  // T command reflects previous control point
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,100 Q 25,75 50,100 T 100,100');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 50, "T after Q creates smooth curve");
+}, "Smooth quadratic bezier after Q: reflects control point");
+
+test(function() {
+  // Relative smooth quadratic bezier
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50,50 Q 75,25 100,50 t 50,0');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 50, "Relative t command works");
+}, "Relative smooth quadratic bezier: t x,y");
+
+test(function() {
+  // T without preceding Q (uses current point as reflection)
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50,200 T 100,200');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 0, "T without preceding Q uses current point");
+}, "Smooth quadratic bezier without preceding Q");
+
+test(function() {
+  // Multiple T commands
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,150 Q 25,125 50,150 T 100,150 150,150');
+  svg.appendChild(path);
+
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+  assert_approx_equals(endPoint.x, 150, 0.5, "Multiple T commands");
+  assert_approx_equals(endPoint.y, 150, 0.5, "Multiple T commands");
+}, "Multiple smooth quadratic bezier coordinates");
+
+test(function() {
+  // Chain of T commands
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,200 Q 12.5,187.5 25,200 T 50,200 T 75,200');
+  svg.appendChild(path);
+
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+  assert_approx_equals(endPoint.x, 75, 0.5, "Chain of T commands works");
+  assert_approx_equals(endPoint.y, 200, 0.5, "Chain of T commands works");
+}, "Chain of T commands: each T reflects previous control point");
+
+test(function() {
+  // Quadratic bezier with minimal spacing
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50 250 Q 75 225 100 250');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 0, "Q command works with space separators only");
+}, "Quadratic bezier with space separators (no commas)");
+
+test(function() {
+  // Quadratic bezier with all commas
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50,300 Q 75,275,100,300');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 0, "Q command works with all comma separators");
+}, "Quadratic bezier with all comma separators");
+
+test(function() {
+  // T after C (cubic) command
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,250 C 12.5,237.5 25,237.5 37.5,250 T 75,250');
+  svg.appendChild(path);
+
+  const length = path.getTotalLength();
+  assert_greater_than(length, 0, "T after C command works");
+}, "Smooth quadratic bezier after cubic curve");
+
+test(function() {
+  // Q after T
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,300 Q 12.5,287.5 25,300 T 50,300 Q 62.5,287.5 75,300');
+  svg.appendChild(path);
+
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+  assert_approx_equals(endPoint.x, 75, 0.5, "Q after T works");
+  assert_approx_equals(endPoint.y, 300, 0.5, "Q after T works");
+}, "Quadratic bezier after smooth quadratic bezier");
+</script>
+</body>
+</html>

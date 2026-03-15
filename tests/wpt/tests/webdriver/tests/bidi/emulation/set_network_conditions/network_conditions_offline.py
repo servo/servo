@@ -38,6 +38,27 @@ async def test_fetch(bidi_session, top_context, url, get_can_fetch):
     assert await get_can_fetch(top_context)
 
 
+async def test_fetch_keepalive(bidi_session, top_context, url, get_can_fetch):
+    # Navigate away from about:blank to allow fetch requests.
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"],
+        url=url("/common/blank.html"),
+        wait="complete")
+
+    fetch_url = url("/common/dummy.json")
+    fetch_options = {"cache": "no-store", "keepalive": True}
+
+    assert await get_can_fetch(top_context, fetch_url, fetch_options)
+    await bidi_session.emulation.set_network_conditions(
+        network_conditions=OFFLINE_NETWORK_CONDITIONS,
+        contexts=[top_context["context"]])
+    assert not await get_can_fetch(top_context, fetch_url, fetch_options)
+    await bidi_session.emulation.set_network_conditions(
+        network_conditions=None,
+        contexts=[top_context["context"]])
+    assert await get_can_fetch(top_context, fetch_url, fetch_options)
+
+
 async def test_navigate(bidi_session, top_context, url,
         get_can_navigate):
     assert await get_can_navigate(top_context)

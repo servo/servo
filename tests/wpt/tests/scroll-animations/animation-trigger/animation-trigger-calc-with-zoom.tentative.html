@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<head>
+<link rel="author" title="jj" href="mailto:jj@imput.net">
+<link rel="help" src="https://issues.chromium.org/issues/464929457">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="support/support.js"></script>
+<script src="support/trigger-scope-support.js"></script>
+</head>
+<style>
+@keyframes anim {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+
+.scroller { overflow-y: scroll; height: 500px; width: 500px }
+.spacer { height: 600px; width: 50px }
+.subject { height: 50px; width: 50px }
+.wrapper { zoom: 2 }
+
+#target_plain, #target_calc { animation: anim linear 10s both }
+#target_plain {
+  animation-trigger: --trigger_plain play-once;
+  timeline-trigger:
+    --trigger_plain view() contain 100px contain calc(100% - 100px);
+}
+#target_calc {
+  animation-trigger: --trigger_calc play-once;
+  timeline-trigger:
+    --trigger_calc view() contain calc(0% + 100px) contain calc(100% - 100px);
+}
+</style>
+<div class="wrapper">
+  <div id="scroller_plain" class="scroller">
+    <div class="spacer"></div>
+    <div id="target_plain" class="subject"></div>
+    <div class="spacer"></div>
+  </div>
+  <div id="scroller_calc" class="scroller">
+    <div class="spacer"></div>
+    <div id="target_calc" class="subject"></div>
+    <div class="spacer"></div>
+  </div>
+</div>
+<script>
+promise_test(async (test) => {
+  assertAnimationTriggerSupport();
+
+  const zoom = +getComputedStyle(scroller_plain).zoom;
+
+  const contain_start =
+    computeContainOffset(scroller_calc, target_calc, 0);
+
+  // Scroll to a position before the expected 100px trigger start.
+  // With the bug, the calc trigger would erroneously activate here
+  // because the doubled pixel offset would shift the boundary.
+  const offset_before_range = contain_start + 95 * zoom;
+  await setScrollTop(scroller_plain, offset_before_range);
+  await setScrollTop(scroller_calc, offset_before_range);
+  await waitForAnimationFrames(5);
+
+
+  assert_element_animation_state(target_plain, "paused",
+                "plain px trigger should not be active yet");
+  assert_element_animation_state(target_calc, "paused",
+                "calc() trigger should not be active yet");
+}, "contain calc(0% + 100px) matches contain 100px at offset before range under CSS zoom");
+
+promise_test(async (test) => {
+  assertAnimationTriggerSupport();
+
+  const zoom = +getComputedStyle(scroller_plain).zoom;
+  const contain_start_plain =
+    computeContainOffset(scroller_plain, target_plain, 0);
+  const contain_start_calc =
+    computeContainOffset(scroller_calc, target_calc, 0);
+
+  assert_equals(contain_start_plain, contain_start_calc,
+    "Both scrollers should have the same contain start offset");
+
+  const offset_inside_range = contain_start_plain + 100 * zoom + 10;
+  await setScrollTop(scroller_plain, offset_inside_range);
+  await setScrollTop(scroller_calc, offset_inside_range);
+  await waitForAnimationFrames(5);
+
+  assert_element_animation_state(target_plain, "running",
+               "plain px trigger should be active at this scroll offset");
+  assert_element_animation_state(target_calc, "running",
+               "calc() trigger should be active at the same offset as plain px");
+}, "contain calc(0% + 100px) triggers at the same offset as contain 100px under CSS zoom");
+</script>
