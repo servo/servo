@@ -62,7 +62,6 @@ use fonts::{FontContext, SystemFontServiceProxy};
 use headers::{HeaderMapExt, LastModified, ReferrerPolicy as ReferrerPolicyHeader};
 use http::header::REFRESH;
 use hyper_serde::Serde;
-use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{GCReason, JS_GC, JSContext as UnsafeJSContext};
@@ -3367,7 +3366,7 @@ impl ScriptThread {
         sender_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
     ) -> Option<WebViewId> {
-        let (result_sender, result_receiver) = ipc::channel().unwrap();
+        let (result_sender, result_receiver) = generic_channel::channel().unwrap();
         let msg = ScriptToConstellationMessage::GetTopForBrowsingContext(
             browsing_context_id,
             result_sender,

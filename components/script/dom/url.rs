@@ -10,7 +10,7 @@ use js::rust::HandleObject;
 use net_traits::CoreResourceMsg;
 use net_traits::blob_url_store::parse_blob_url;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
-use profile_traits::ipc;
+use profile_traits::generic_channel;
 use script_bindings::cformat;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
@@ -215,7 +215,8 @@ impl URLMethods<crate::DomTypeHolder> for URL {
             if url.fragment().is_none() && *origin == url.origin() {
                 if let Ok((id, _)) = parse_blob_url(&url) {
                     let resource_threads = global.resource_threads();
-                    let (tx, rx) = ipc::channel(global.time_profiler_chan().clone()).unwrap();
+                    let (tx, rx) =
+                        generic_channel::channel(global.time_profiler_chan().clone()).unwrap();
                     let msg = FileManagerThreadMsg::RevokeBlobURL(id, origin.clone(), tx);
                     let _ = resource_threads.send(CoreResourceMsg::ToFileManager(msg));
 

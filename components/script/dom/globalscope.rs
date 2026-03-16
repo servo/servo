@@ -59,7 +59,10 @@ use net_traits::response::HttpsState;
 use net_traits::{
     CoreResourceMsg, CoreResourceThread, ReferrerPolicy, ResourceThreads, fetch_async,
 };
-use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
+use profile_traits::{
+    generic_channel as profile_generic_channel, ipc as profile_ipc, mem as profile_mem,
+    time as profile_time,
+};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::interfaces::GlobalScopeHelpers;
 use script_bindings::settings_stack::run_a_script;
@@ -1877,7 +1880,7 @@ impl GlobalScope {
     fn decrement_file_ref(&self, id: Uuid) {
         let origin = self.origin().immutable();
 
-        let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
+        let (tx, rx) = profile_generic_channel::channel(self.time_profiler_chan().clone()).unwrap();
 
         let msg = FileManagerThreadMsg::DecRef(id, origin.clone(), tx);
         self.send_to_file_manager(msg);
@@ -2072,7 +2075,7 @@ impl GlobalScope {
     ) -> Uuid {
         let origin = self.origin().immutable();
 
-        let (tx, rx) = profile_ipc::channel(self.time_profiler_chan().clone()).unwrap();
+        let (tx, rx) = profile_generic_channel::channel(self.time_profiler_chan().clone()).unwrap();
         let msg =
             FileManagerThreadMsg::AddSlicedURLEntry(*parent_file_id, *rel_pos, tx, origin.clone());
         self.send_to_file_manager(msg);

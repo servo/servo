@@ -50,7 +50,7 @@ use net_traits::request::{
 };
 use net_traits::response::HttpsState;
 use percent_encoding::percent_decode;
-use profile_traits::ipc as profile_ipc;
+use profile_traits::generic_channel as profile_generic_channel;
 use profile_traits::time::TimerMetadataFrameType;
 use regex::bytes::Regex;
 use rustc_hash::{FxBuildHasher, FxHashMap};
@@ -6164,7 +6164,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         }
 
         let url = self.url();
-        let (tx, rx) = profile_ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+        let (tx, rx) =
+            profile_generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let _ = self
             .window
             .as_global_scope()

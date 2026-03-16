@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use base::generic_channel;
 use base::id::{BrowsingContextId, PipelineId, WebViewId};
 use constellation_traits::ScriptToConstellationMessage;
-use ipc_channel::ipc;
 use rustc_hash::FxBuildHasher;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
@@ -165,7 +165,7 @@ impl ScriptWindowProxies {
         webview_id: WebViewId,
         pipeline_id: PipelineId,
     ) -> Option<(BrowsingContextId, Option<PipelineId>)> {
-        let (result_sender, result_receiver) = ipc::channel().unwrap();
+        let (result_sender, result_receiver) = generic_channel::channel().unwrap();
         let msg = ScriptToConstellationMessage::GetBrowsingContextInfo(pipeline_id, result_sender);
         senders
             .pipeline_to_constellation_sender

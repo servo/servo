@@ -13,7 +13,6 @@ use embedder_traits::{
     EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg,
 };
 use euclid::{Point2D, Rect, Size2D};
-use ipc_channel::router::ROUTER;
 use js::context::JSContext;
 use net_traits::CoreResourceMsg;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
@@ -134,14 +133,10 @@ impl DocumentEmbedderControls {
                 .window
                 .send_to_embedder(EmbedderMsg::ShowEmbedderControl(id, rect, request)),
             EmbedderControlRequest::FilePicker(file_picker_request) => {
-                let (sender, receiver) = profile_traits::ipc::channel(
-                    self.window.as_global_scope().time_profiler_chan().clone(),
-                )
-                .expect("Error initializing channel");
                 let main_thread_sender = self.window.main_thread_script_chan().clone();
-                ROUTER.add_typed_route(
-                    receiver.to_ipc_receiver(),
-                    Box::new(move |result| {
+                let callback = profile_traits::generic_callback::GenericCallback::new(
+                    self.window.as_global_scope().time_profiler_chan().clone(),
+                    move |result| {
                         let Ok(embedder_control_response) = result else {
                             return;
                         };
@@ -153,14 +148,15 @@ impl DocumentEmbedderControls {
                         ) {
                             warn!("Could not send FileManager response to main thread: {error}")
                         }
-                    }),
-                );
+                    },
+                )
+                .expect("Could not create callback");
                 self.window
                     .as_global_scope()
                     .resource_threads()
                     .sender()
                     .send(CoreResourceMsg::ToFileManager(
-                        FileManagerThreadMsg::SelectFiles(id, file_picker_request, sender),
+                        FileManagerThreadMsg::SelectFiles(id, file_picker_request, callback),
                     ))
                     .unwrap();
             },
