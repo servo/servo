@@ -7638,6 +7638,7 @@ version = "0.0.6"
 dependencies = [
  "accesskit",
  "backtrace",
+ "base64 0.22.1",
  "content-security-policy",
  "crossbeam-channel",
  "euclid",

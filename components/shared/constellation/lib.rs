@@ -14,7 +14,7 @@ mod structured_data;
 use std::collections::VecDeque;
 use std::fmt;
 use std::time::Duration;
-
+use http::HeaderMap;
 use embedder_traits::user_contents::{
     UserContentManagerId, UserScript, UserScriptId, UserStyleSheet, UserStyleSheetId,
 };
@@ -47,8 +47,17 @@ pub enum EmbedderToConstellationMessage {
     Exit,
     /// Whether to allow script to navigate.
     AllowNavigationResponse(PipelineId, bool),
-    /// Request to load a page.
-    LoadUrl(WebViewId, ServoUrl),
+    /// Request to load a page, optionally with additional HTTP headers.
+    LoadUrl(WebViewId, ServoUrl, Option<HeaderMap>),
+    /// Request to load inline content from a data string with a base URL.
+    LoadData(
+        WebViewId,
+        Option<ServoUrl>,
+        String,
+        Option<String>,
+        Option<String>,
+        Option<ServoUrl>,
+    ),
     /// Request to traverse the joint session history of the provided browsing context.
     TraverseHistory(WebViewId, TraversalDirection, TraversalId),
     /// Inform the Constellation that a `WebView`'s [`ViewportDetails`] have changed.

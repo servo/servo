@@ -454,6 +454,41 @@ impl WebView {
             .send(EmbedderToConstellationMessage::LoadUrl(
                 self.id(),
                 url.into(),
+                None,
+            ))
+    }
+
+    /// Load a URL with additional HTTP headers.
+    pub fn load_url_with_headers(&self, url: Url, headers: http::HeaderMap) {
+        self.inner()
+            .servo
+            .constellation_proxy()
+            .send(EmbedderToConstellationMessage::LoadUrl(
+                self.id(),
+                url.into(),
+                Some(headers),
+            ))
+    }
+
+    /// Loads the given data into this WebView, using `base_url` as the base URL for the content.
+    pub fn load_data(
+        &self,
+        base_url: Option<Url>,
+        data: String,
+        mime_type: Option<String>,
+        encoding: Option<String>,
+        history_url: Option<Url>,
+    ) {
+        self.inner()
+            .servo
+            .constellation_proxy()
+            .send(EmbedderToConstellationMessage::LoadData(
+                self.id(),
+                base_url.map(Into::into),
+                data,
+                mime_type,
+                encoding,
+                history_url.map(Into::into),
             ))
     }
 
