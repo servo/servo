@@ -123,11 +123,7 @@ impl HTMLDialogElement {
         // TODO: Step 9. If subject is in the popover showing state, then return.
 
         // Step 10. Queue a dialog toggle event task given subject, "closed", "open", and source.
-        self.queue_dialog_toggle_event_task(
-            "closed",
-            "open",
-            source,
-        );
+        self.queue_dialog_toggle_event_task("closed", "open", source);
 
         // Step 11. Add an open attribute to subject, whose value is the empty string.
         subject.set_bool_attribute(&local_name!("open"), true, can_gc);
@@ -191,11 +187,7 @@ impl HTMLDialogElement {
         }
 
         // Step 4. Queue a dialog toggle event task given subject, "open", "closed", and source.
-        self.queue_dialog_toggle_event_task(
-            "open",
-            "closed",
-            source,
-        );
+        self.queue_dialog_toggle_event_task("open", "closed", source);
 
         // Step 5. Remove subject's open attribute.
         subject.remove_attribute(&ns!(), &local_name!("open"), can_gc);
@@ -337,11 +329,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
         }
 
         // Step 5. Queue a dialog toggle event task given this, "closed", "open", and null.
-        self.queue_dialog_toggle_event_task(
-            "closed",
-            "open",
-            None,
-        );
+        self.queue_dialog_toggle_event_task("closed", "open", None);
 
         // Step 6. Add an open attribute to this, whose value is the empty string.
         element.set_bool_attribute(&local_name!("open"), true, can_gc);
