@@ -531,14 +531,13 @@ pub(crate) fn import_key(
             // structure algorithm, with data as the privateKey field of privateKeyInfo, structure
             // as asn1Structure, and exactData set to true.
             // Step 2.8. If an error occurred while parsing, then throw a DataError.
+            // Step 2.9. If mlDsaPrivateKey represents an ML-DSA key in the expandedKey format, or
+            // if mlDsaPrivateKey represents an ML-DSA key in the both format and the both format
+            // is not supported, throw a NotSupportedError.
+            // Step 2.10. If mlDsaPrivateKey represents an ML-DSA key in the both format, and the
+            // seed field does not correspond to the expandedKey field, throw a DataError.
             //
-            // NOTE: There is an ongoing discussion on how to handle private keys in the
-            // "expandedKey" and "both" formats.
-            // - <https://github.com/WICG/webcrypto-modern-algos/issues/29>
-            // - <https://github.com/WICG/webcrypto-modern-algos/pull/34>
-            // For now, we accept the "seed" format, reject the "expandedKey" format with a
-            // NotSupportedError, and accept the "both" format subject to a consistency check. This
-            // behavior may change in the future once the discussion is settled.
+            // NOTE: We support the `both` format, with consistency check.
             let private_key_structure =
                 MlDsaPrivateKeyStructure::from_der(private_key_info.private_key).map_err(|_| {
                     Error::Data(Some(
@@ -572,13 +571,13 @@ pub(crate) fn import_key(
                 },
             };
 
-            // Step 2.9. Let key be a new CryptoKey that represents the ML-DSA private key
+            // Step 2.11. Let key be a new CryptoKey that represents the ML-DSA private key
             // identified by mlDsaPrivateKey.
-            // Step 2.10. Set the [[type]] internal slot of key to "private"
-            // Step 2.11. Let algorithm be a new KeyAlgorithm.
-            // Step 2.12. Set the name attribute of algorithm to the name attribute of
+            // Step 2.12. Set the [[type]] internal slot of key to "private"
+            // Step 2.13. Let algorithm be a new KeyAlgorithm.
+            // Step 2.14. Set the name attribute of algorithm to the name attribute of
             // normalizedAlgorithm.
-            // Step 2.13. Set the [[algorithm]] internal slot of key to algorithm.
+            // Step 2.15. Set the [[algorithm]] internal slot of key to algorithm.
             let algorithm = SubtleKeyAlgorithm {
                 name: normalized_algorithm.name,
             };
