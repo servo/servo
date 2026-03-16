@@ -1034,10 +1034,10 @@ impl HTMLLinkElement {
 
         // Step 14. Fetch a modulepreload module script graph given url, destination, settings object, options,
         // and with the following steps given result:
-        fetch_a_modulepreload_module(url, destination, &global, options, move |module_tree| {
+        fetch_a_modulepreload_module(url, destination, &global, options, move |fetch_failed| {
             // Step 1. If result is null, then fire an event named error at el, and return.
             // Step 2. Fire an event named load at el.
-            let event = match module_tree.is_none() {
+            let event = match fetch_failed {
                 true => atom!("error"),
                 false => atom!("load"),
             };

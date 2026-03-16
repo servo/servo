@@ -642,7 +642,7 @@ impl ModuleOwner {
     fn notify_owner_to_finish(&self, module_tree: Option<Rc<ModuleTree>>, can_gc: CanGc) {
         match &self {
             ModuleOwner::Worker(_) => unimplemented!(),
-            ModuleOwner::DynamicModule(_) => unimplemented!(),
+            ModuleOwner::DynamicModule(_) => {},
             ModuleOwner::Window(script) => {
                 let script = script.root();
                 let document = script.owner_document();
@@ -1195,7 +1195,7 @@ pub(crate) fn fetch_a_modulepreload_module(
     destination: Destination,
     global: &GlobalScope,
     options: ScriptFetchOptions,
-    on_complete: impl FnOnce(Option<Rc<ModuleTree>>) + 'static,
+    on_complete: impl FnOnce(bool) + 'static,
 ) {
     let referrer = global.get_referrer();
     let owner = ModuleOwner::DynamicModule(Trusted::new(global));
@@ -1219,15 +1219,18 @@ pub(crate) fn fetch_a_modulepreload_module(
         module_type,
         true,
         Some(IntroductionType::SRC_SCRIPT),
-        move |module_tree| {
+        move |result| {
             // Step 1. Run onComplete given result.
-            on_complete(module_tree);
+            on_complete(result.is_none());
 
             // Step 2. Assert: settingsObject's global object implements Window.
             assert!(owner.global().is::<Window>());
 
-            // TODO Step 3. If result is not null, optionally fetch the descendants of and link result
+            // Step 3. If result is not null, optionally fetch the descendants of and link result
             // given settingsObject, destination, and an empty algorithm.
+            if let Some(module) = result {
+                fetch_the_descendants_and_link_module_script(module, destination, owner);
+            }
         },
     );
 }
