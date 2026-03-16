@@ -10,8 +10,8 @@ use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
 use egui::{
-    Button, Key, Label, LayerId, Modifiers, PaintCallback, TopBottomPanel, Vec2, WidgetInfo,
-    WidgetType, pos2,
+    Button, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback, TopBottomPanel, Vec2,
+    WidgetInfo, WidgetType, pos2,
 };
 use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
@@ -485,11 +485,12 @@ impl Gui {
             if let Some(status_text) = &self.status_text {
                 egui::Tooltip::always_open(
                     ctx.clone(),
-                    LayerId::background(),
+                    LayerId::new(Order::Tooltip, Id::new("tooltip")),
                     "tooltip layer".into(),
                     pos2(0.0, ctx.available_rect().max.y),
                 )
                 .show(|ui| ui.add(Label::new(status_text.clone()).extend()));
+                window.set_needs_repaint();
             }
 
             window.repaint_webviews();
