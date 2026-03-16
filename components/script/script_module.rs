@@ -1707,9 +1707,16 @@ pub(crate) fn register_import_map(
             merge_existing_and_new_import_maps(global, new_import_map);
         },
         Err(exception) => {
+            let mut realm = enter_auto_realm(cx, global);
+            let cx = &mut realm.current_realm();
+
+            let in_realm_proof = cx.into();
+            let in_realm = InRealm::Already(&in_realm_proof);
+
             // Step 1. If result's error to rethrow is not null, then report
             // an exception given by result's error to rethrow for global and return.
             throw_dom_exception(cx.into(), global, exception, CanGc::from_cx(cx));
+            report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
         },
     }
 }
