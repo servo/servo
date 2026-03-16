@@ -18,6 +18,7 @@ use embedder_traits::{
     Theme, TraversalId, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Scale, Size2D};
+use http::HeaderMap;
 use image::RgbaImage;
 use paint_api::WebViewTrait;
 use paint_api::rendering_context::RenderingContext;
@@ -438,6 +439,19 @@ impl WebView {
             .send(EmbedderToConstellationMessage::LoadUrl(
                 self.id(),
                 url.into(),
+                None,
+            ))
+    }
+
+    /// Load a specific url in this webview with some additional headers
+    pub fn load_with_additional_headers(&self, url: Url, additional_headers: HeaderMap) {
+        self.inner()
+            .servo
+            .constellation_proxy()
+            .send(EmbedderToConstellationMessage::LoadUrl(
+                self.id(),
+                url.into(),
+                Some(additional_headers),
             ))
     }
 

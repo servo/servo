@@ -27,6 +27,7 @@ use embedder_traits::{
     ViewportDetails, WebDriverCommandMsg,
 };
 pub use from_script_message::*;
+use http::HeaderMap;
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::PinchZoomInfos;
 use profile_traits::mem::MemoryReportResult;
@@ -47,8 +48,8 @@ pub enum EmbedderToConstellationMessage {
     Exit,
     /// Whether to allow script to navigate.
     AllowNavigationResponse(PipelineId, bool),
-    /// Request to load a page.
-    LoadUrl(WebViewId, ServoUrl),
+    /// Request to load a page, optionally with additional headers.
+    LoadUrl(WebViewId, ServoUrl, Option<HeaderMap>),
     /// Request to traverse the joint session history of the provided browsing context.
     TraverseHistory(WebViewId, TraversalDirection, TraversalId),
     /// Inform the Constellation that a `WebView`'s [`ViewportDetails`] have changed.
