@@ -292,6 +292,7 @@ impl DocumentEventHandler {
         }
     }
 
+    /// Guarantee: `pending_input_events` is non-empty.
     pub(crate) fn handle_pending_input_events(&self, can_gc: CanGc) {
         let _realm = enter_realm(&*self.window);
 
@@ -370,9 +371,7 @@ impl DocumentEventHandler {
             });
         }
 
-        if !input_event_outcomes.is_empty() {
-            self.notify_embedder_that_events_were_handled(input_event_outcomes);
-        }
+        self.notify_embedder_that_events_were_handled(input_event_outcomes);
     }
 
     fn notify_embedder_that_events_were_handled(
