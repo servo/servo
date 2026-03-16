@@ -5790,7 +5790,7 @@ pub(crate) fn cors_setting_for_element(element: &Element) -> Option<CorsSettings
 /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute-credentials-mode>
 pub(crate) fn cors_settings_attribute_credential_mode(element: &Element) -> CredentialsMode {
     element
-        .get_attribute(&ns!(), &local_name!("crossorigin"))
+        .get_attribute(&local_name!("crossorigin"))
         .map(|attr| {
             if attr.value().eq_ignore_ascii_case("use-credentials") {
                 CredentialsMode::Include

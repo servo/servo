@@ -955,7 +955,7 @@ impl HTMLLinkElement {
 
         // Step 2. Let destination be the current state of el's as attribute (a destination), or "script" if it is in no state.
         let destination = el
-            .get_attribute(&ns!(), &local_name!("as"))
+            .get_attribute(&local_name!("as"))
             .map(|attr| attr.value().to_ascii_lowercase())
             .and_then(|value| match value.as_str() {
                 // `Destination::from_str` will map an empty string to `Destination::None`
@@ -1002,7 +1002,7 @@ impl HTMLLinkElement {
         let cryptographic_nonce = el.nonce_value();
 
         // Step 9. Let integrity metadata be the value of el's integrity attribute, if it is specified, or the empty string otherwise.
-        let integrity_attribute = el.get_attribute(&ns!(), &local_name!("integrity"));
+        let integrity_attribute = el.get_attribute(&local_name!("integrity"));
         let integrity_value = integrity_attribute.as_ref().map(|attr| attr.value());
         let integrity_metadata = match integrity_value {
             Some(ref value) => (***value).to_owned(),
