@@ -45,6 +45,7 @@
 </div>
 
 <script>
+const shift = "\uE008";
 const end = "\uE010";
 const home = "\uE011";
 const arrowDown = "\uE015";
@@ -56,8 +57,21 @@ const pageUp = "\uE00E";
 const lineSize = 76;
 const pageSize = scrollportHeight => scrollportHeight - 2 * lineSize;
 
-const pressKeyAndAssert = async (key, element, [expectedX, expectedY], description) => {
-    await test_driver.send_keys(document.body, key);
+const pressKeyAndAssert = async (keys, element, [expectedX, expectedY], description) => {
+    let actions = new test_driver.Actions();
+    if (!Array.isArray(keys)) {
+      keys = [keys];
+    }
+    for (key of keys) {
+      actions = actions.keyDown(key);
+    }
+
+    let reversedKeys = keys.reverse();
+    for (key of reversedKeys) {
+      actions = actions.keyUp(key);
+    }
+    await actions.send()
+
     const actualX =
         element == null ? scrollX
         : element.nodeName == "IFRAME" ? element.contentWindow.scrollX
@@ -87,6 +101,10 @@ promise_test(async () => {
     await pressKeyAndAssert(pageDown, iframe, [0, pageSize(iframe.contentWindow.innerHeight) * 2], "PageDown key scrolls #iframe down by almost a screenful");
     await pressKeyAndAssert(pageUp, iframe, [0, pageSize(iframe.contentWindow.innerHeight)], "PageUp key scrolls #iframe up by almost a screenful");
     await pressKeyAndAssert(pageUp, iframe, [0, 0], "PageUp key scrolls #iframe up by almost a screenful");
+    await pressKeyAndAssert(" ", iframe, [0, pageSize(iframe.contentWindow.innerHeight)], "Spacebar key scrolls #box down by almost a screenful");
+    await pressKeyAndAssert(" ", iframe, [0, pageSize(iframe.contentWindow.innerHeight) * 2], "Spacebar key scrolls #box down by almost a screenful");
+    await pressKeyAndAssert([shift, " "], iframe, [0, pageSize(iframe.contentWindow.innerHeight)], "Shift + spacebar key scrolls #box up by almost a screenful");
+    await pressKeyAndAssert([shift, " "], iframe, [0, 0], "Shift + spacebar key scrolls #box up by almost a screenful");
 
     // At the bottom of the IFRAME, we should not chain up to scrolling the document.
     await pressKeyAndAssert(end, iframe, [0, bottom], "End key scrolls #iframe to bottom");
