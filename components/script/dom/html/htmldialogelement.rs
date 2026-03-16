@@ -124,8 +124,8 @@ impl HTMLDialogElement {
 
         // Step 10. Queue a dialog toggle event task given subject, "closed", "open", and source.
         self.queue_dialog_toggle_event_task(
-            DOMString::from("closed"),
-            DOMString::from("open"),
+            "closed",
+            "open",
             source,
         );
 
@@ -192,8 +192,8 @@ impl HTMLDialogElement {
 
         // Step 4. Queue a dialog toggle event task given subject, "open", "closed", and source.
         self.queue_dialog_toggle_event_task(
-            DOMString::from("open"),
-            DOMString::from("closed"),
+            "open",
+            "closed",
             source,
         );
 
@@ -233,8 +233,8 @@ impl HTMLDialogElement {
     /// <https://html.spec.whatwg.org/multipage/#queue-a-dialog-toggle-event-task>
     pub fn queue_dialog_toggle_event_task(
         &self,
-        old_state: DOMString,
-        new_state: DOMString,
+        old_state: &str,
+        new_state: &str,
         source: Option<DomRoot<Element>>,
     ) {
         // TODO: Step 1. If element's dialog toggle task tracker is not null, then:
@@ -338,8 +338,8 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
 
         // Step 5. Queue a dialog toggle event task given this, "closed", "open", and null.
         self.queue_dialog_toggle_event_task(
-            DOMString::from("closed"),
-            DOMString::from("open"),
+            "closed",
+            "open",
             None,
         );
 
