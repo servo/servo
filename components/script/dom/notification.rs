@@ -11,6 +11,7 @@ use embedder_traits::{
     EmbedderMsg, Notification as EmbedderNotification,
     NotificationAction as EmbedderNotificationAction,
 };
+use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
@@ -58,7 +59,6 @@ use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-
 // TODO: Service Worker API (persistent notification)
 // https://notifications.spec.whatwg.org/#service-worker-api
 
@@ -122,7 +122,7 @@ pub(crate) struct Notification {
 impl Notification {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         title: DOMString,
         options: RootedTraceableBox<NotificationOptions>,
@@ -348,7 +348,7 @@ impl Notification {
 impl NotificationMethods<crate::DomTypeHolder> for Notification {
     /// <https://notifications.spec.whatwg.org/#constructors>
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         title: DOMString,
@@ -399,7 +399,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-requestpermission>
     fn RequestPermission(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         permission_callback: Option<Rc<NotificationPermissionCallback>>,
     ) -> Rc<Promise> {
@@ -571,7 +571,7 @@ struct Action {
 
 /// <https://notifications.spec.whatwg.org/#create-a-notification-with-a-settings-object>
 fn create_notification_with_settings_object(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     global: &GlobalScope,
     title: DOMString,
     options: RootedTraceableBox<NotificationOptions>,
@@ -604,7 +604,7 @@ fn create_notification_with_settings_object(
 /// <https://notifications.spec.whatwg.org/#create-a-notification
 #[expect(clippy::too_many_arguments)]
 fn create_notification(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     global: &GlobalScope,
     title: DOMString,
     options: RootedTraceableBox<NotificationOptions>,
@@ -685,7 +685,7 @@ fn get_notifications_permission_state(global: &GlobalScope) -> NotificationPermi
 }
 
 fn request_notification_permission(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     global: &GlobalScope,
 ) -> NotificationPermission {
     let promise = &Promise::new(global, CanGc::from_cx(cx));
@@ -777,7 +777,7 @@ impl FetchResponseListener for ResourceFetchListener {
 
     fn process_response_eof(
         self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
