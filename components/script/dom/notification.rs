@@ -11,6 +11,7 @@ use embedder_traits::{
     EmbedderMsg, Notification as EmbedderNotification,
     NotificationAction as EmbedderNotificationAction,
 };
+use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, MutableHandleValue};
@@ -58,7 +59,6 @@ use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
-
 // TODO: Service Worker API (persistent notification)
 // https://notifications.spec.whatwg.org/#service-worker-api
 
@@ -122,7 +122,7 @@ pub(crate) struct Notification {
 impl Notification {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         title: DOMString,
         options: RootedTraceableBox<NotificationOptions>,
@@ -348,7 +348,7 @@ impl Notification {
 impl NotificationMethods<crate::DomTypeHolder> for Notification {
     /// <https://notifications.spec.whatwg.org/#constructors>
     fn Constructor(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         title: DOMString,
@@ -399,7 +399,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-requestpermission>
     fn RequestPermission(
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         global: &GlobalScope,
         permission_callback: Option<Rc<NotificationPermissionCallback>>,
     ) -> Rc<Promise> {
@@ -452,62 +452,75 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         // TODO: determine the maximum number of actions
         2
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-title>
     fn Title(&self) -> DOMString {
         self.title.clone()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-dir>
     fn Dir(&self) -> NotificationDirection {
         self.dir
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-lang>
     fn Lang(&self) -> DOMString {
         self.lang.clone()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-body>
     fn Body(&self) -> DOMString {
         self.body.clone()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-tag>
     fn Tag(&self) -> DOMString {
         self.tag.clone()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-image>
     fn Image(&self) -> USVString {
         // step 1: If there is no this’s notification’s image URL, then return the empty string.
         // step 2: Return this’s notification’s image URL, serialized.
         self.image.clone().unwrap_or_default()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-icon>
     fn Icon(&self) -> USVString {
         // step 1: If there is no this’s notification’s icon URL, then return the empty string.
         // step 2: Return this’s notification’s icon URL, serialized.
         self.icon.clone().unwrap_or_default()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-badge>
     fn Badge(&self) -> USVString {
         // step 1: If there is no this’s notification’s badge URL, then return the empty string.
         // step 2: Return this’s notification’s badge URL, serialized.
         self.badge.clone().unwrap_or_default()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-renotify>
     fn Renotify(&self) -> bool {
         self.renotify
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-silent>
     fn GetSilent(&self) -> Option<bool> {
         self.silent
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-requireinteraction>
     fn RequireInteraction(&self) -> bool {
         self.require_interaction
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-data>
     fn Data(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
         retval.set(self.data.get());
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-actions>
-    fn Actions(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
+    fn Actions(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         // step 1: Let frozenActions be an empty list of type NotificationAction.
         let mut frozen_actions: Vec<NotificationAction> = Vec::new();
 
@@ -527,16 +540,29 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         }
 
         // step 3: Return the result of create a frozen array from frozenActions.
-        to_frozen_array(frozen_actions.as_slice(), cx, retval, can_gc);
+        to_frozen_array(
+            frozen_actions.as_slice(),
+            cx.into(),
+            retval,
+            CanGc::from_cx(cx),
+        );
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-vibrate>
-    fn Vibrate(&self, cx: SafeJSContext, can_gc: CanGc, retval: MutableHandleValue) {
-        to_frozen_array(self.vibration_pattern.as_slice(), cx, retval, can_gc);
+    fn Vibrate(&self, cx: &mut JSContext, retval: MutableHandleValue) {
+        to_frozen_array(
+            self.vibration_pattern.as_slice(),
+            cx.into(),
+            retval,
+            CanGc::from_cx(cx),
+        );
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-timestamp>
     fn Timestamp(&self) -> u64 {
         self.timestamp
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-close>
     fn Close(&self) {
         // TODO: If notification is a persistent notification and notification was closed by the end user
@@ -571,7 +597,7 @@ struct Action {
 
 /// <https://notifications.spec.whatwg.org/#create-a-notification-with-a-settings-object>
 fn create_notification_with_settings_object(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     global: &GlobalScope,
     title: DOMString,
     options: RootedTraceableBox<NotificationOptions>,
@@ -604,7 +630,7 @@ fn create_notification_with_settings_object(
 /// <https://notifications.spec.whatwg.org/#create-a-notification
 #[expect(clippy::too_many_arguments)]
 fn create_notification(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     global: &GlobalScope,
     title: DOMString,
     options: RootedTraceableBox<NotificationOptions>,
@@ -685,7 +711,7 @@ fn get_notifications_permission_state(global: &GlobalScope) -> NotificationPermi
 }
 
 fn request_notification_permission(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     global: &GlobalScope,
 ) -> NotificationPermission {
     let promise = &Promise::new(global, CanGc::from_cx(cx));
@@ -777,7 +803,7 @@ impl FetchResponseListener for ResourceFetchListener {
 
     fn process_response_eof(
         self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
