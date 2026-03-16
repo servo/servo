@@ -14,7 +14,7 @@ pub mod wrapper_traits;
 use std::any::Any;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicIsize, AtomicU64, Ordering};
+use std::sync::atomic::AtomicIsize;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
@@ -669,6 +669,23 @@ pub enum FragmentType {
     AfterPseudoContent,
 }
 
+impl TryFrom<usize> for FragmentType {
+    type Error = ();
+
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            x if x == FragmentType::FragmentBody as usize => Ok(FragmentType::AfterPseudoContent),
+            x if x == FragmentType::BeforePseudoContent as usize => {
+                Ok(FragmentType::AfterPseudoContent)
+            },
+            x if x == FragmentType::AfterPseudoContent as usize => {
+                Ok(FragmentType::AfterPseudoContent)
+            },
+            _ => Err(()),
+        }
+    }
+}
+
 impl From<Option<PseudoElement>> for FragmentType {
     fn from(value: Option<PseudoElement>) -> Self {
         match value {
@@ -679,20 +696,16 @@ impl From<Option<PseudoElement>> for FragmentType {
     }
 }
 
-/// If none of the bits outside this mask are set, the scroll root is a special scroll root.
-/// Note that we assume that the top 16 bits of the address space are unused on the platform.
-const SPECIAL_SCROLL_ROOT_ID_MASK: u64 = 0xffff;
-
 pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> u64 {
     debug_assert_eq!(id & (fragment_type as usize), 0);
     (id as u64) | (fragment_type as u64)
 }
 
-pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
-    if (id as u64 & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
-        return Some(id & !3);
-    }
-    None
+pub fn node_id_from_scroll_id(id: usize) -> Option<(usize, FragmentType)> {
+    let node_id = id & !3;
+    let pseudo = FragmentType::try_from(id & 3)
+        .expect("The scroll id should have convertible back to `FragmentType`.");
+    Some((node_id, pseudo))
 }
 
 #[derive(Clone, Debug, MallocSizeOf)]
