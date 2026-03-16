@@ -28,6 +28,7 @@ background_hang_monitor = { package = "servo-background-hang-monitor", path = ".
 background_hang_monitor_api = { workspace = true }
 backtrace = { workspace = true }
 base = { workspace = true }
+base64 = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas = { package = "servo-canvas", path = "../canvas" }
 canvas_traits = { workspace = true }

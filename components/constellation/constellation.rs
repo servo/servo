@@ -99,6 +99,8 @@ use background_hang_monitor::HangMonitorRegister;
 use background_hang_monitor_api::{
     BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
 };
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+use base64::Engine;
 use base::generic_channel::{
     GenericCallback, GenericSend, GenericSender, RoutedReceiver, SendError,
 };
@@ -1394,8 +1396,11 @@ where
             // Load a new page from a typed url
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
-            EmbedderToConstellationMessage::LoadUrl(webview_id, url) => {
-                let load_data = LoadData::new_for_new_unrelated_webview(url);
+            EmbedderToConstellationMessage::LoadUrl(webview_id, url, optional_headers) => {
+                let mut load_data = LoadData::new_for_new_unrelated_webview(url);
+                if let Some(headers) = optional_headers {
+                    load_data.headers.extend(headers);
+                }
                 let ctx_id = BrowsingContextId::from(webview_id);
                 let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
                     Some(ctx) => ctx.pipeline_id,
@@ -1405,6 +1410,51 @@ where
                 };
                 // Since this is a top-level load, initiated by the embedder, go straight to load_url,
                 // bypassing schedule_navigation.
+                self.load_url(
+                    webview_id,
+                    pipeline_id,
+                    load_data,
+                    NavigationHistoryBehavior::Push,
+                );
+            },
+            // Load inline content from a data string with a base URL.
+            EmbedderToConstellationMessage::LoadData(
+                webview_id,
+                base_url,
+                data,
+                mime_type,
+                encoding,
+                _history_url,
+            ) => {
+                let mime = mime_type.as_deref().unwrap_or("text/html");
+                let encoded = BASE64_STANDARD.encode(data.as_bytes());
+                let charset_part = match &encoding {
+                    Some(enc) => format!(";charset={}", enc),
+                    None => String::new(),
+                };
+                let data_url_string =
+                    format!("data:{}{};base64,{}", mime, charset_part, encoded);
+                let url = match ServoUrl::parse(&data_url_string) {
+                    Ok(url) => url,
+                    Err(e) => {
+                        return warn!(
+                            "{}: LoadData failed to construct data URL: {}",
+                            webview_id, e
+                        );
+                    },
+                };
+                let mut load_data = LoadData::new_for_new_unrelated_webview(url);
+                load_data.about_base_url = base_url;
+                let ctx_id = BrowsingContextId::from(webview_id);
+                let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
+                    Some(ctx) => ctx.pipeline_id,
+                    None => {
+                        return warn!(
+                            "{}: LoadData for unknown browsing context",
+                            webview_id
+                        );
+                    },
+                };
                 self.load_url(
                     webview_id,
                     pipeline_id,

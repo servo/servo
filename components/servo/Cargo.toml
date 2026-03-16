@@ -91,6 +91,7 @@ env_logger = { workspace = true }
 euclid = { workspace = true }
 fonts = { package = "servo-fonts", path = "../fonts" }
 gstreamer = { workspace = true, optional = true }
+http = { workspace = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }
 keyboard-types = { workspace = true }
