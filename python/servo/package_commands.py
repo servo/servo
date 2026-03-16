@@ -71,6 +71,61 @@ def check_call_with_randomized_backoff(args: list[str], retries: int) -> int:
 
 @CommandProvider
 class PackageCommands(CommandBase):
+    @staticmethod
+    def _replace_workspace_version(content: str, new_version: str) -> str:
+        """
+        Given the `content` of servo's workspace Cargo.toml, update the workspace version to
+        `new_version` and return the modified Cargo.toml content.
+        """
+        lines = content.splitlines()
+        section_header = "[workspace.package]"
+        in_section = False
+
+        for index, line in enumerate(lines):
+            stripped_line = line.strip()
+            if stripped_line == section_header:
+                in_section = True
+                continue
+
+            if in_section and stripped_line.startswith("[") and stripped_line.endswith("]"):
+                break
+
+            if in_section and stripped_line.startswith("version"):
+                lines[index] = f'version = "{new_version}"'
+                return "\n".join(lines)
+
+        raise ValueError("Failed to update workspace package version.")
+
+    @staticmethod
+    def _replace_path_versions(content: str, new_version: str) -> str:
+        """
+        Given content of the workspace Cargo.toml file, update the version requirements of `path`
+        dependencies that are versioned with the workspace version.
+        We mark the relevant section in our Cargo.toml so we can easily find the dependencies
+        we need to update the version of.
+        """
+        begin_marker = "# Begin workspace-version dependencies - Don't change this comment, we grep for it in scripts!"
+        end_marker = "# End workspace-version dependencies - Don't change this comment, we grep for it in scripts!"
+        block_start = content.find(begin_marker)
+        if block_start == -1:
+            raise ValueError(f"Could not find begin marker: {begin_marker}")
+
+        block_start += len(begin_marker)
+        block_end = content.find(end_marker, block_start)
+        if block_end == -1:
+            raise ValueError(f"Could not find end marker: {end_marker}")
+
+        block = content[block_start:block_end]
+        updated_block, count = re.subn(r'version\s*=\s*"[^"]*"', f'version = "{new_version}"', block)
+        if count == 0:
+            raise ValueError("No workspace-version dependency references found in Cargo.toml.")
+        elif count == 1:
+            raise RuntimeError(
+                "Our regex only updated one version, but we expect to have many. Please check the regex."
+            )
+
+        return f"{content[:block_start]}{updated_block}{content[block_end:]}"
+
     @Command("package", description="Package Servo", category="package")
     @CommandArgument("--android", default=None, action="store_true", help="Package Android")
     @CommandArgument("--ohos", default=None, action="store_true", help="Package OpenHarmony")
@@ -448,7 +503,7 @@ class PackageCommands(CommandBase):
         return 1
 
     @Command(
-        "release", description="Perform necessary updates before release a new servoshell version", category="package"
+        "release", description="Perform necessary updates before releasing a new servo version", category="package"
     )
     @CommandArgument("target", type=str, help="Target version to bump to")
     @CommandArgument("--allow-dirty", action="store_true", help="Allow working directory to be dirty")
@@ -461,8 +516,23 @@ class PackageCommands(CommandBase):
                 print("To bypass this check, use --allow-dirty.")
                 return 1
         print("\r ➤  Bumping version number...")
+        workspace_toml_path = path.join(self.get_top_dir(), "Cargo.toml")
+        with open(workspace_toml_path, "r") as file:
+            workspace_toml_content = file.read()
+
+        try:
+            workspace_toml_content = self._replace_workspace_version(workspace_toml_content, target)
+            workspace_toml_content = self._replace_path_versions(workspace_toml_content, target)
+        except (ValueError, RuntimeError) as error:
+            print(f"Failed to update workspace version: `{error}`", file=sys.stderr)
+            return 1
+
+        with open(workspace_toml_path, "w") as file:
+            file.write(workspace_toml_content)
+
+        print("Updated occurrences in workspace Cargo.toml.")
+
         replacements = {
-            "ports/servoshell/Cargo.toml": r'^version ?= ?"(?P<version>.*?)"',
             "ports/servoshell/platform/windows/servoshell.exe.manifest": r'assemblyIdentity[^\/>]+version="(?P<version>.*?).0\"[^\/>]*\/>',
             "support/windows/ServoShell.wxs.mako": r'<Product(.|\n)*Version="(?P<version>.*?)".*>',
             "ports/servoshell/platform/macos/Info.plist": r"<key>CFBundleShortVersionString</key>\n\s*<string>(?P<version>.*?)</string>",
