@@ -68,13 +68,14 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformcontrolscollection::HTMLFormControlsCollection;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
-use crate::dom::html::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmllegendelement::HTMLLegendElement;
 use crate::dom::html::htmlobjectelement::HTMLObjectElement;
 use crate::dom::html::htmloutputelement::HTMLOutputElement;
 use crate::dom::html::htmlselectelement::HTMLSelectElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::html::input_element::HTMLInputElement;
+use crate::dom::input_element::input_type::InputType;
 use crate::dom::node::{
     BindContext, Node, NodeFlags, NodeTraits, UnbindContext, VecPreOrderInsertionHelper,
 };
@@ -168,7 +169,7 @@ impl HTMLFormElement {
                     {
                         if let Some(inp) = child.downcast::<HTMLInputElement>() {
                             // input, only return it if it's not image-button state
-                            return inp.input_type() != InputType::Image;
+                            return !matches!(*inp.input_type(), InputType::Image(_));
                         } else {
                             // control, but not an input
                             return true;
@@ -382,7 +383,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
                         },
                         HTMLElementTypeId::HTMLInputElement => {
                             let input_elem = elem.downcast::<HTMLInputElement>().unwrap();
-                            if input_elem.input_type() == InputType::Image {
+                            if matches!(*input_elem.input_type(), InputType::Image(_)) {
                                 return false;
                             }
                             input_elem.form_owner()
@@ -1286,7 +1287,10 @@ impl HTMLFormElement {
             let input_matches = child_element
                 .downcast::<HTMLInputElement>()
                 .is_some_and(|input| {
-                    matches!(input.input_type(), InputType::Text | InputType::Search)
+                    matches!(
+                        *input.input_type(),
+                        InputType::Text(_) | InputType::Search(_)
+                    )
                 });
             let textarea_matches = child_element.is::<HTMLTextAreaElement>();
             let dirname = child_element.get_string_attribute(&local_name!("dirname"));
