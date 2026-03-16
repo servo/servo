@@ -1092,6 +1092,9 @@ impl ScriptThread {
             warn!("Input event sent to a pipeline with a closed window {pipeline_id}.");
             return;
         }
+        if !document.event_handler().has_pending_input_events() {
+            return;
+        }
 
         let _guard = ScriptUserInteractingGuard::new(self.is_user_interacting.clone());
         document.event_handler().handle_pending_input_events(can_gc);

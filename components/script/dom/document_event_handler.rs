@@ -293,6 +293,10 @@ impl DocumentEventHandler {
     }
 
     pub(crate) fn handle_pending_input_events(&self, can_gc: CanGc) {
+        debug_assert!(
+            !self.pending_input_events.borrow().is_empty(),
+            "handle_pending_input_events called with no events"
+        );
         let _realm = enter_realm(&*self.window);
 
         // Reset the mouse and wheel event indices.
@@ -370,9 +374,7 @@ impl DocumentEventHandler {
             });
         }
 
-        if !input_event_outcomes.is_empty() {
-            self.notify_embedder_that_events_were_handled(input_event_outcomes);
-        }
+        self.notify_embedder_that_events_were_handled(input_event_outcomes);
     }
 
     fn notify_embedder_that_events_were_handled(
