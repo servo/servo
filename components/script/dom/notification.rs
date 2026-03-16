@@ -452,60 +452,73 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         // TODO: determine the maximum number of actions
         2
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-title>
     fn Title(&self) -> DOMString {
         self.title.clone()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-dir>
     fn Dir(&self) -> NotificationDirection {
         self.dir
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-lang>
     fn Lang(&self) -> DOMString {
         self.lang.clone()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-body>
     fn Body(&self) -> DOMString {
         self.body.clone()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-tag>
     fn Tag(&self) -> DOMString {
         self.tag.clone()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-image>
     fn Image(&self) -> USVString {
         // step 1: If there is no this’s notification’s image URL, then return the empty string.
         // step 2: Return this’s notification’s image URL, serialized.
         self.image.clone().unwrap_or_default()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-icon>
     fn Icon(&self) -> USVString {
         // step 1: If there is no this’s notification’s icon URL, then return the empty string.
         // step 2: Return this’s notification’s icon URL, serialized.
         self.icon.clone().unwrap_or_default()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-badge>
     fn Badge(&self) -> USVString {
         // step 1: If there is no this’s notification’s badge URL, then return the empty string.
         // step 2: Return this’s notification’s badge URL, serialized.
         self.badge.clone().unwrap_or_default()
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-renotify>
     fn Renotify(&self) -> bool {
         self.renotify
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-silent>
     fn GetSilent(&self) -> Option<bool> {
         self.silent
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-requireinteraction>
     fn RequireInteraction(&self) -> bool {
         self.require_interaction
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-data>
     fn Data(&self, _cx: SafeJSContext, mut retval: MutableHandleValue) {
         retval.set(self.data.get());
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-actions>
     fn Actions(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         // step 1: Let frozenActions be an empty list of type NotificationAction.
@@ -534,6 +547,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
             CanGc::from_cx(cx),
         );
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-vibrate>
     fn Vibrate(&self, cx: &mut JSContext, retval: MutableHandleValue) {
         to_frozen_array(
@@ -543,10 +557,12 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
             CanGc::from_cx(cx),
         );
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-timestamp>
     fn Timestamp(&self) -> u64 {
         self.timestamp
     }
+
     /// <https://notifications.spec.whatwg.org/#dom-notification-close>
     fn Close(&self) {
         // TODO: If notification is a persistent notification and notification was closed by the end user
