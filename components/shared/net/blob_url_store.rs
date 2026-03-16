@@ -38,25 +38,25 @@ pub struct BlobBuf {
 
 /// Parse URL as Blob URL scheme's definition
 ///
-/// <https://w3c.github.io/FileAPI/#DefinitionOfScheme>
+/// <https://w3c.github.io/FileAPI/#url-intro>
 pub fn parse_blob_url(url: &ServoUrl) -> Result<(Uuid, ImmutableOrigin), &'static str> {
-    let url_inner = Url::parse(url.path()).map_err(|_| "Failed to parse URL path")?;
-    let segs = url_inner
-        .path_segments()
-        .map(|c| c.collect::<Vec<_>>())
-        .ok_or("URL has no path segments")?;
-
     if url.query().is_some() {
         return Err("URL should not contain a query");
     }
 
-    if segs.len() > 1 {
-        return Err("URL should not have more than one path segment");
-    }
-
-    let id = {
-        let id = segs.first().ok_or("URL has no path segments")?;
-        Uuid::from_str(id).map_err(|_| "Failed to parse UUID from path segment")?
+    let Some((_, uuid)) = url.path().rsplit_once('/') else {
+        return Err("Failed to split origin from uuid");
     };
-    Ok((id, ServoUrl::from_url(url_inner).origin()))
+
+    // See https://url.spec.whatwg.org/#origin - "blob" case
+    let origin = Url::parse(url.path())
+        .ok()
+        .filter(|url| matches!(url.scheme(), "http" | "https" | "file"))
+        .map(|url| url.origin())
+        .map(ImmutableOrigin::new)
+        .unwrap_or(ImmutableOrigin::new_opaque());
+
+    let id = Uuid::from_str(uuid).map_err(|_| "Failed to parse UUID from path segment")?;
+
+    Ok((id, origin))
 }
