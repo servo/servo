@@ -77,6 +77,7 @@ mod actors {
     pub mod performance;
     pub mod preference;
     pub mod process;
+    pub mod property_iterator;
     pub mod reflow;
     pub mod root;
     pub mod source;
