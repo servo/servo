@@ -82,6 +82,7 @@ use crate::dom::bindings::root::trace_roots;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::bindings::{principals, settings_stack};
+use crate::dom::console::stringify_handle_value;
 use crate::dom::csp::CspReporting;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -616,73 +617,79 @@ unsafe extern "C" fn content_security_policy_allows(
 /// <https://html.spec.whatwg.org/multipage/#notify-about-rejected-promises>
 pub(crate) fn notify_about_rejected_promises(global: &GlobalScope) {
     let cx = GlobalScope::get_cx();
-    unsafe {
-        // Step 2.
-        if !global.get_uncaught_rejections().borrow().is_empty() {
-            // Step 1.
-            let uncaught_rejections: Vec<TrustedPromise> = global
-                .get_uncaught_rejections()
-                .borrow()
-                .iter()
-                .map(|promise| {
-                    let promise =
-                        Promise::new_with_js_promise(Handle::from_raw(promise.handle()), cx);
 
-                    TrustedPromise::new(promise)
-                })
-                .collect();
+    // Step 1. Let list be a clone of global's about-to-be-notified rejected promises list.
+    let uncaught_rejections: Vec<TrustedPromise> = global
+        .get_uncaught_rejections()
+        .borrow_mut()
+        .drain(..)
+        .map(|promise| {
+            let promise =
+                Promise::new_with_js_promise(unsafe { Handle::from_raw(promise.handle()) }, cx);
 
-            // Step 3.
-            global.get_uncaught_rejections().borrow_mut().clear();
+            TrustedPromise::new(promise)
+        })
+        .collect();
 
-            let target = Trusted::new(global.upcast::<EventTarget>());
-
-            // Step 4.
-            global.task_manager().dom_manipulation_task_source().queue(
-                task!(unhandled_rejection_event: move || {
-                    let target = target.root();
-                    let cx = GlobalScope::get_cx();
-
-                    for promise in uncaught_rejections {
-                        let promise = promise.root();
-
-                        // Step 4-1.
-                        let promise_is_handled = GetPromiseIsHandled(promise.reflector().get_jsobject());
-                        if promise_is_handled {
-                            continue;
-                        }
-
-                        // Step 4-2.
-                        rooted!(in(*cx) let mut reason = UndefinedValue());
-                        JS_GetPromiseResult(promise.reflector().get_jsobject(), reason.handle_mut());
-
-                        let event = PromiseRejectionEvent::new(
-                            &target.global(),
-                            atom!("unhandledrejection"),
-                            EventBubbles::DoesNotBubble,
-                            EventCancelable::Cancelable,
-                            promise.clone(),
-                            reason.handle(),
-                            CanGc::note()
-                        );
-
-                        let not_canceled = event.upcast::<Event>().fire(&target, CanGc::note());
-
-                        // Step 4-3. If notCanceled is true, then the user agent
-                        // may report p.[[PromiseResult]] to a developer console.
-                        if not_canceled {
-                            // TODO: The promise rejection is not handled; we need to add it back to the list.
-                        }
-
-                        // Step 4-4.
-                        if !promise_is_handled {
-                            target.global().add_consumed_rejection(promise.reflector().get_jsobject().into_handle());
-                        }
-                    }
-                })
-            );
-        }
+    // Step 2. If list is empty, then return.
+    if uncaught_rejections.is_empty() {
+        return;
     }
+
+    // Step 3. Empty global's about-to-be-notified rejected promises list.
+    // NOTE: We did this as part of Step 1. using the "drain(..)" call.
+
+    // Step 4. Queue a global task on the DOM manipulation task source given global to run the following step:
+    let target = Trusted::new(global.upcast::<EventTarget>());
+    global.task_manager().dom_manipulation_task_source().queue(
+        task!(unhandled_rejection_event: move |cx| {
+            let target = target.root();
+
+            // Step 4.1 For each promise p of list:
+            for promise in uncaught_rejections {
+                let promise = promise.root();
+
+                // 4.1.1 If p.[[PromiseIsHandled]] is true, then continue.
+                let promise_is_handled = unsafe { GetPromiseIsHandled(promise.reflector().get_jsobject()) };
+                if promise_is_handled {
+                    continue;
+                }
+
+                // Step 4.1.2 Let notCanceled be the result of firing an event named unhandledrejection at global,
+                // using PromiseRejectionEvent, with the cancelable attribute initialized to true,
+                // the promise attribute initialized to p, and the reason attribute initialized to p.[[PromiseResult]].
+                rooted!(&in(cx) let mut reason = UndefinedValue());
+                unsafe {
+                    JS_GetPromiseResult(promise.reflector().get_jsobject(), reason.handle_mut());
+                }
+
+                log::error!(
+                    "Unhandled promise rejection: {}",
+                    stringify_handle_value(reason.handle())
+                );
+
+                let event = PromiseRejectionEvent::new(
+                    &target.global(),
+                    atom!("unhandledrejection"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::Cancelable,
+                    promise.clone(),
+                    reason.handle(),
+                    CanGc::from_cx(cx)
+                );
+                event.upcast::<Event>().fire(&target, CanGc::from_cx(cx));
+
+                // TODO: Step 4.1.3 If notCanceled is true, then the user agent may report
+                // p.[[PromiseResult]] to a developer console.
+
+                // Step 4.1.4 If p.[[PromiseIsHandled]] is false, then append p to global's outstanding
+                // rejected promises weak set.
+                if !promise_is_handled {
+                    target.global().add_consumed_rejection(promise.reflector().get_jsobject().into_handle());
+                }
+            }
+        })
+    );
 }
 
 /// Data that is sent to SpiderMonkey runtime callbacks as a pointer, which allows access

@@ -2356,6 +2356,7 @@ impl GlobalScope {
     // `Heap` values must stay boxed, as they need semantics like `Pin`
     // (that is, they cannot be moved).
     #[allow(clippy::vec_box)]
+    /// <https://html.spec.whatwg.org/multipage/#about-to-be-notified-rejected-promises-list>
     pub(crate) fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
         &self.uncaught_rejections
     }
