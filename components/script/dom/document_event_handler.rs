@@ -292,8 +292,11 @@ impl DocumentEventHandler {
         }
     }
 
-    /// Guarantee: `pending_input_events` is non-empty.
     pub(crate) fn handle_pending_input_events(&self, can_gc: CanGc) {
+        debug_assert!(
+            !self.pending_input_events.borrow().is_empty(),
+            "handle_pending_input_events called with no events"
+        );
         let _realm = enter_realm(&*self.window);
 
         // Reset the mouse and wheel event indices.
