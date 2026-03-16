@@ -52,10 +52,11 @@ use crate::dom::html::htmldetailselement::HTMLDetailsElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::html::htmlframesetelement::HTMLFrameSetElement;
 use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
-use crate::dom::html::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::html::input_element::HTMLInputElement;
 use crate::dom::htmlformelement::FormControlElementHelpers;
+use crate::dom::input_element::input_type::InputType;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::{
     BindContext, MoveContext, Node, NodeTraits, ShadowIncluding, UnbindContext,
@@ -806,9 +807,10 @@ impl HTMLElement {
     pub(crate) fn is_labelable_element(&self) -> bool {
         match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(type_id)) => match type_id {
-                HTMLElementTypeId::HTMLInputElement => {
-                    self.downcast::<HTMLInputElement>().unwrap().input_type() != InputType::Hidden
-                },
+                HTMLElementTypeId::HTMLInputElement => !matches!(
+                    *self.downcast::<HTMLInputElement>().unwrap().input_type(),
+                    InputType::Hidden(_)
+                ),
                 HTMLElementTypeId::HTMLButtonElement |
                 HTMLElementTypeId::HTMLMeterElement |
                 HTMLElementTypeId::HTMLOutputElement |
@@ -934,7 +936,7 @@ impl HTMLElement {
         }
 
         if let Some(input) = self.downcast::<HTMLInputElement>() {
-            if input.input_type() == InputType::Tel {
+            if matches!(*input.input_type(), InputType::Tel(_)) {
                 return Some("ltr".to_owned());
             }
         }
