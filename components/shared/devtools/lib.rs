@@ -611,6 +611,7 @@ pub struct EnvironmentInfo {
     pub type_: Option<String>,
     pub scope_kind: Option<String>,
     pub function_display_name: Option<String>,
+    pub binding_variables: HashMap<String, String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

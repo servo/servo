@@ -23,4 +23,5 @@ dictionary EnvironmentInfo {
     DOMString type_;
     DOMString scopeKind;
     DOMString functionDisplayName;
+    record<DOMString, DOMString> bindingVariables;
 };
