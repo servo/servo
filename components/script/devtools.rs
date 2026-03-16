@@ -9,20 +9,14 @@ use std::str;
 use base::generic_channel::GenericSender;
 use base::id::PipelineId;
 use devtools_traits::{
-    AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty, EvaluateJSReply,
-    EvaluateJSReplyValue, EventListenerInfo, NodeInfo, NodeStyle, RuleModification, TimelineMarker,
-    TimelineMarkerType,
+    AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty, EventListenerInfo,
+    NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
 };
-use js::context::JSContext;
-use js::conversions::jsstr_to_string;
-use js::jsval::UndefinedValue;
-use js::rust::ToString;
 use markup5ever::{LocalName, ns};
 use rustc_hash::FxHashMap;
 use script_bindings::root::Dom;
 use servo_config::pref;
 use style::attr::AttrValue;
-use uuid::Uuid;
 
 use crate::document_collection::DocumentCollection;
 use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
@@ -35,7 +29,6 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -44,11 +37,10 @@ use crate::dom::css::cssstyledeclaration::ENABLED_LONGHAND_PROPERTIES;
 use crate::dom::css::cssstylerule::CSSStyleRule;
 use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
-use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits, ShadowIncluding};
 use crate::dom::types::{EventTarget, HTMLElement};
-use crate::realms::{enter_auto_realm, enter_realm};
-use crate::script_runtime::{CanGc, IntroductionType};
+use crate::realms::enter_realm;
+use crate::script_runtime::CanGc;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable)]
@@ -121,64 +113,6 @@ impl DevtoolsState {
             .get(node_id)
             .map(|node: &Dom<Node>| node.as_rooted())
     }
-}
-
-#[expect(unsafe_code)]
-pub(crate) fn handle_evaluate_js(
-    global: &GlobalScope,
-    eval: String,
-    reply: GenericSender<EvaluateJSReply>,
-    cx: &mut JSContext,
-) {
-    let value = unsafe {
-        let mut realm = enter_auto_realm(cx, global);
-        let cx = &mut realm.current_realm();
-        rooted!(&in(cx) let mut rval = UndefinedValue());
-        // TODO: run code with SpiderMonkey Debugger API, like Firefox does
-        // <https://searchfox.org/mozilla-central/rev/f6a806c38c459e0e0d797d264ca0e8ad46005105/devtools/server/actors/webconsole/eval-with-debugger.js#270>
-        _ = global.evaluate_js_on_global(
-            cx,
-            eval.into(),
-            "<eval>",
-            Some(IntroductionType::DEBUGGER_EVAL),
-            Some(rval.handle_mut()),
-        );
-
-        if rval.is_undefined() {
-            EvaluateJSReplyValue::VoidValue
-        } else if rval.is_boolean() {
-            EvaluateJSReplyValue::BooleanValue(rval.to_boolean())
-        } else if rval.is_double() || rval.is_int32() {
-            EvaluateJSReplyValue::NumberValue(
-                match FromJSValConvertible::from_jsval(cx.raw_cx(), rval.handle(), ()) {
-                    Ok(ConversionResult::Success(v)) => v,
-                    _ => unreachable!(),
-                },
-            )
-        } else if rval.is_string() {
-            let jsstr = std::ptr::NonNull::new(rval.to_string()).unwrap();
-            EvaluateJSReplyValue::StringValue(jsstr_to_string(cx.raw_cx(), jsstr))
-        } else if rval.is_null() {
-            EvaluateJSReplyValue::NullValue
-        } else {
-            assert!(rval.is_object());
-
-            let jsstr = std::ptr::NonNull::new(ToString(cx.raw_cx(), rval.handle())).unwrap();
-            let class_name = jsstr_to_string(cx.raw_cx(), jsstr);
-
-            EvaluateJSReplyValue::ActorValue {
-                class: class_name,
-                uuid: Uuid::new_v4().to_string(),
-                name: None,
-            }
-        }
-    };
-
-    let result = EvaluateJSReply {
-        value,
-        has_exception: false,
-    };
-    reply.send(result).unwrap();
 }
 
 pub(crate) fn handle_set_timeline_markers(

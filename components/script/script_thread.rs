@@ -86,7 +86,6 @@ use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::script_runtime::{JSContext, temp_cx};
-use script_bindings::settings_stack::run_a_script;
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewPipelineInfo, Painter, ProgressiveWebMetricType, ScriptThreadMessage,
@@ -164,7 +163,7 @@ use crate::script_runtime::{
 use crate::script_window_proxies::ScriptWindowProxies;
 use crate::task_queue::TaskQueue;
 use crate::webdriver_handlers::jsval_to_webdriver;
-use crate::{DomTypeHolder, devtools, webdriver_handlers};
+use crate::{devtools, webdriver_handlers};
 
 thread_local!(static SCRIPT_THREAD_ROOT: Cell<Option<*const ScriptThread>> = const { Cell::new(None) });
 
@@ -2121,15 +2120,6 @@ impl ScriptThread {
     ) {
         let documents = self.documents.borrow();
         match msg {
-            DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => match documents.find_window(id) {
-                Some(window) => {
-                    let global = window.as_global_scope();
-                    run_a_script::<DomTypeHolder, _>(global, || {
-                        devtools::handle_evaluate_js(global, s, reply, cx)
-                    });
-                },
-                None => warn!("Message sent to closed pipeline {}.", id),
-            },
             DevtoolScriptControlMsg::GetEventListenerInfo(id, node, reply) => {
                 devtools::handle_get_event_listener_info(&self.devtools_state, id, &node, reply)
             },

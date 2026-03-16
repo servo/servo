@@ -282,8 +282,6 @@ pub struct AutoMargins {
 /// TODO: better error handling, e.g. if pipeline id lookup fails?
 #[derive(Debug, Deserialize, Serialize)]
 pub enum DevtoolScriptControlMsg {
-    /// Evaluate a JS snippet in the context of the global for the given pipeline.
-    EvaluateJS(PipelineId, String, GenericSender<EvaluateJSReply>),
     /// Retrieve the details of the root node (ie. the document) for the given pipeline.
     GetRootNode(PipelineId, GenericSender<Option<NodeInfo>>),
     /// Retrieve the details of the document element for the given pipeline.
