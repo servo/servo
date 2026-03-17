@@ -17,19 +17,16 @@ webgpu = ["webgpu_traits"]
 
 [dependencies]
 accesskit = { workspace = true }
-background_hang_monitor_api = { workspace = true }
 base = { workspace = true }
 bluetooth_traits = { workspace = true, optional = true }
 canvas_traits = { workspace = true }
 constellation_traits = { workspace = true }
-content-security-policy = { workspace = true }
 crossbeam-channel = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fonts_traits = { workspace = true }
 keyboard-types = { workspace = true }
-log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 media = { workspace = true }

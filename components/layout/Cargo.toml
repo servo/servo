@@ -17,12 +17,10 @@ doctest = false
 tracing = ["dep:tracing"]
 
 [dependencies]
-accesskit = { workspace = true }
 app_units = { workspace = true }
 atomic_refcell = { workspace = true }
 base = { workspace = true }
 bitflags = { workspace = true }
-cssparser = { workspace = true }
 data-url = { workspace = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }

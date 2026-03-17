@@ -23,6 +23,5 @@ malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 serde = { workspace = true }
 servo_allocator = { workspace = true }
-servo_config = { workspace = true }
 time = { workspace = true }
 tracing = { workspace = true, optional = true }
