@@ -775,6 +775,14 @@ pub enum LoadStatus {
     /// `document.readyState` == `complete`.
     /// See <https://developer.mozilla.org/en-US/docs/Web/API/Document/readyState>
     Complete,
+    /// The load failed with a StatusCode.
+    Failed(
+        #[serde(
+            deserialize_with = "hyper_serde::deserialize",
+            serialize_with = "hyper_serde::serialize"
+        )]
+        http::StatusCode,
+    ),
 }
 
 /// Data that could be used to display a desktop notification to the end user

@@ -398,6 +398,11 @@ impl ServoInner {
                 self.site_data_manager
                     .handle_cookie_response(operation_id, CookieOperationResponse::Done);
             },
+            NetToEmbedderMsg::RequestError(webview_id, status) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_load_status(LoadStatus::Failed(status));
+                }
+            },
         }
     }
 
