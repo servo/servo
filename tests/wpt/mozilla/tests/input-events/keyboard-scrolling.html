@@ -46,6 +46,7 @@
 </div>
 
 <script>
+const shift = "\uE008";
 const end = "\uE010";
 const home = "\uE011";
 const arrowDown = "\uE015";
@@ -56,8 +57,21 @@ const pageDown = "\uE00F";
 const pageUp = "\uE00E";
 const lineSize = 76;
 const pageSize = scrollportHeight => scrollportHeight - 2 * lineSize;
-const pressKeyAndAssert = async (key, element, [expectedX, expectedY], description) => {
-    await test_driver.send_keys(document.body, key);
+const pressKeyAndAssert = async (keys, element, [expectedX, expectedY], description) => {
+    let actions = new test_driver.Actions();
+    if (!Array.isArray(keys)) {
+      keys = [keys];
+    }
+    for (key of keys) {
+      actions = actions.keyDown(key);
+    }
+
+    let reversedKeys = keys.reverse();
+    for (key of reversedKeys) {
+      actions = actions.keyUp(key);
+    }
+    await actions.send()
+
     const actualX =
         element == null ? scrollX : element.scrollLeft;
     const actualY =
@@ -80,6 +94,10 @@ promise_test(async () => {
     await pressKeyAndAssert(pageDown, null, [0, pageSize(innerHeight) * 2], "PageDown key scrolls viewport down by almost a screenful");
     await pressKeyAndAssert(pageUp, null, [0, pageSize(innerHeight)], "PageUp key scrolls viewport up by almost a screenful");
     await pressKeyAndAssert(pageUp, null, [0, 0], "PageUp key scrolls viewport up by almost a screenful");
+    await pressKeyAndAssert(" ", null, [0, pageSize(innerHeight)], "Spacebar key scrolls #box down by almost a screenful");
+    await pressKeyAndAssert(" ", null, [0, pageSize(innerHeight) * 2], "Spacebar key scrolls #box down by almost a screenful");
+    await pressKeyAndAssert([shift, " "], null, [0, pageSize(innerHeight)], "Shift + spacebar key scrolls #box up by almost a screenful");
+    await pressKeyAndAssert([shift, " "], null, [0, 0], "Shift + spacebar key scrolls #box up by almost a screenful");
 }, "Keyboard scrolling works in the viewport");
 
 promise_test(async () => {
@@ -99,6 +117,10 @@ promise_test(async () => {
     await pressKeyAndAssert(pageDown, box, [0, pageSize(box.clientHeight) * 2], "PageDown key scrolls #box down by almost a screenful");
     await pressKeyAndAssert(pageUp, box, [0, pageSize(box.clientHeight)], "PageUp key scrolls #box up by almost a screenful");
     await pressKeyAndAssert(pageUp, box, [0, 0], "PageUp key scrolls #box up by almost a screenful");
+    await pressKeyAndAssert(" ", box, [0, pageSize(box.clientHeight)], "Spacebar key scrolls #box down by almost a screenful");
+    await pressKeyAndAssert(" ", box, [0, pageSize(box.clientHeight) * 2], "Spacebar key scrolls #box down by almost a screenful");
+    await pressKeyAndAssert([shift, " "], box, [0, pageSize(box.clientHeight)], "Shift + spacebar key scrolls #box up by almost a screenful");
+    await pressKeyAndAssert([shift, " "], box, [0, 0], "Shift + spacebar key scrolls #box up by almost a screenful");
 
     // At the bottom of the DIV, we should not chain up to scrolling the document.
     let bottom = box.scrollHeight - box.clientHeight;
@@ -126,6 +148,10 @@ promise_test(async () => {
     await pressKeyAndAssert(pageDown, focusableBox, [0, pageSize(box.clientHeight) * 2], "PageDown key scrolls #focusableBox down by almost a screenful");
     await pressKeyAndAssert(pageUp, focusableBox, [0, pageSize(box.clientHeight)], "PageUp key scrolls #focusableBox up by almost a screenful");
     await pressKeyAndAssert(pageUp, focusableBox, [0, 0], "PageUp key scrolls #focusableBox up by almost a screenful");
+    await pressKeyAndAssert(" ", focusableBox, [0, pageSize(box.clientHeight)], "Spacebar key scrolls #box down by almost a screenful");
+    await pressKeyAndAssert(" ", focusableBox, [0, pageSize(box.clientHeight) * 2], "Spacebar key scrolls #box down by almost a screenful");
+    await pressKeyAndAssert([shift, " "], focusableBox, [0, pageSize(box.clientHeight)], "Shift + spacebar key scrolls #box up by almost a screenful");
+    await pressKeyAndAssert([shift, " "], focusableBox, [0, 0], "Shift + spacebar key scrolls #box up by almost a screenful");
     focusableBox.blur();
 }, "Keyboard scrolling works in #focusableBox");
 

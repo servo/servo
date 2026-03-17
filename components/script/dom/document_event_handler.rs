@@ -1917,6 +1917,7 @@ impl DocumentEventHandler {
             return;
         }
 
+        let mut is_space = false;
         let scroll = match event.key() {
             Key::Named(NamedKey::ArrowDown) => KeyboardScroll::Down,
             Key::Named(NamedKey::ArrowLeft) => KeyboardScroll::Left,
@@ -1926,6 +1927,14 @@ impl DocumentEventHandler {
             Key::Named(NamedKey::Home) => KeyboardScroll::Home,
             Key::Named(NamedKey::PageDown) => KeyboardScroll::PageDown,
             Key::Named(NamedKey::PageUp) => KeyboardScroll::PageUp,
+            Key::Character(string) if &string == " " => {
+                is_space = true;
+                if event.modifiers().contains(Modifiers::SHIFT) {
+                    KeyboardScroll::PageUp
+                } else {
+                    KeyboardScroll::PageDown
+                }
+            },
             Key::Named(NamedKey::Tab) => {
                 // From <https://w3c.github.io/uievents/#keydown>:
                 //
@@ -1938,9 +1947,11 @@ impl DocumentEventHandler {
             _ => return,
         };
 
-        if event.modifiers().is_empty() {
-            self.do_keyboard_scroll(scroll);
+        if !event.modifiers().is_empty() && !is_space {
+            return;
         }
+
+        self.do_keyboard_scroll(scroll);
     }
 
     pub(crate) fn set_sequential_focus_navigation_starting_point(&self, node: &Node) {
