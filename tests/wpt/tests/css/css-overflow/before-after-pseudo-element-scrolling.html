@@ -1,0 +1,69 @@
+<!doctype html>
+<html class="reftest-wait">
+  <head>
+    <title>Scrolls of `::before` and `::after` pseudo element should persist after a reflow.</title>
+    <link rel="help" href="https://github.com/servo/servo/pull/42005">
+    <link rel="author" title="Steven Novaryo" href="mailto:steven.novaryo@gmail.com">
+    <link rel="match" href="reference/before-after-pseudo-element-scrolling-ref.html">
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/dom/events/scrolling/scroll_support.js"></script>
+    <style>
+    #target::before, #target::after {
+      display: block;
+      content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et "
+                "dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip "
+                "ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu "
+                "fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt "
+                "mollit anim id est laborum.";
+      text-wrap: wrap;
+      height: 100px;
+      width: 100px;
+      overflow: scroll;
+      scrollbar-width: none;
+      background-color: lightblue;
+    }
+    #item {
+      height: 20px;
+    }
+    </style>
+  </head>
+  <body>
+    <div id="dummy">dummy</div>
+    <div id="target">
+      Content
+    </div>
+
+    <script>
+      window.onload = async () => {
+        await waitForCompositorCommit();
+        let rect = target.getBoundingClientRect();
+        let scroll_event_promise = () => new Promise((resolve) => {
+          target.addEventListener("scroll", () => resolve());
+        });
+
+        // Scrolls the `::before` pseudo element and wait for the event.
+        let promise_scroll_before = scroll_event_promise();
+        new test_driver
+          .Actions()
+          .scroll(rect.left + 10, Math.round(rect.top + 50), 0, 1000)
+          .send();
+        await promise_scroll_before;
+
+        // Scrolls the `::after` pseudo element and wait for the event.
+        let promise_scroll_after = scroll_event_promise();
+        new test_driver
+          .Actions()
+          .scroll(rect.left + 10, Math.round(rect.top + 170), 0, 1000)
+          .send();
+        await promise_scroll_after;
+
+        // This should force a reflow.
+        dummy.style.display = "none";
+        await waitForNextFrame();
+        document.documentElement.classList.remove("reftest-wait");
+      }
+    </script>
+  </body>
+</html>

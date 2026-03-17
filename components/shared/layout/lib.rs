@@ -676,7 +676,7 @@ impl TryFrom<usize> for FragmentType {
         match value {
             x if x == FragmentType::FragmentBody as usize => Ok(FragmentType::AfterPseudoContent),
             x if x == FragmentType::BeforePseudoContent as usize => {
-                Ok(FragmentType::AfterPseudoContent)
+                Ok(FragmentType::BeforePseudoContent)
             },
             x if x == FragmentType::AfterPseudoContent as usize => {
                 Ok(FragmentType::AfterPseudoContent)
