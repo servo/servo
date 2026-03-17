@@ -1,88 +1,99 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="org.servo.servoshell.MainActivity"
->
+    android:orientation="vertical">
 
-    <org.servo.servoview.ServoView
-        android:id="@+id/servoview"
+    <com.google.android.material.appbar.MaterialToolbar
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="2"
-        android:focusable="true"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/navigationRail"
-        />
+        android:layout_height="wrap_content"
+        >
 
-    <!--androidx.appcompat.widget.Toolbar
-        android:id="@+id/my_toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
-        android:layout_weight="0"
-        android:elevation="4dp">
-
-        <LinearLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:orientation="horizontal">
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:id="@+id/toolbarButtons"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                app:layout_constraintStart_toStartOf="parent"
+                >
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/history_back_menu_item"
+                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:icon="@drawable/arrow_back"
+                    android:contentDescription="@string/history_back"
+                    android:enabled="false"
+                    />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/history_forward_menu_item"
+                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    app:icon="@drawable/arrow_forward"
+                    android:contentDescription="@string/history_forward"
+                    android:enabled="false"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/refresh_menu_item"
+                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/refresh"
+                    app:icon="@drawable/refresh"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/cancel_menu_item"
+                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/cancel"
+                    app:icon="@drawable/cancel"
+                    android:visibility="gone"
+                    />
+
+
+            </LinearLayout>
 
             <EditText
                 android:id="@+id/urlfield"
                 style="@android:style/Widget.Material.EditText"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:ems="10"
-                android:hint="URL or Search"
+                android:autofillHints="url"
+                android:hint="@string/url_or_search"
                 android:imeOptions="actionDone"
                 android:inputType="textUri"
                 android:selectAllOnFocus="true"
-                android:singleLine="true" />
+                android:singleLine="true"
+                android:layout_marginEnd="10dp"
+                app:layout_constraintStart_toEndOf="@id/toolbarButtons"
+                app:layout_constraintEnd_toStartOf="@+id/progressbar"
+                app:layout_constraintHorizontal_bias="0.0"
+                tools:layout_editor_absoluteY="0dp" />
 
-            <ProgressBar
+            <com.google.android.material.progressindicator.CircularProgressIndicator
                 android:id="@+id/progressbar"
-                style="@android:style/Widget.ProgressBar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:indeterminate="true" />
-
-            <ViewSwitcher
-                android:id="@+id/reloadbuttonswitcher"
-                android:layout_width="5dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1">
-
-                <ImageButton
-                    android:id="@+id/reloadbutton"
-                    style="@android:style/Widget.Material.ImageButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:adjustViewBounds="true"
-                    android:gravity="center"
-                    android:onClick="onReloadClicked"
-                    android:scaleType="centerInside"
-                    android:src="@drawable/refresh" />
-
-                <ImageButton
-                    android:id="@+id/stopbutton"
-                    style="@android:style/Widget.Material.ImageButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:adjustViewBounds="true"
-                    android:gravity="center"
-                    android:onClick="onStopClicked"
-                    android:scaleType="centerInside"
-                    android:src="@drawable/cancel" />
-            </ViewSwitcher>
+                android:layout_width="0dp"
+                android:layout_height="22dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="10dp"
+                android:layout_weight="0"
+                android:indeterminate="true"
+                android:visibility="gone"
+                app:indicatorSize="20dp"
+                app:layout_constraintEnd_toStartOf="@+id/redrawing"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
                 android:id="@+id/redrawing"
@@ -91,23 +102,34 @@
                 android:layout_weight="1"
                 android:fontFamily="monospace"
                 android:gravity="center"
-                android:text="idle"
+                android:text="@string/idle"
                 android:textAlignment="center"
-                android:textSize="10sp"
+                android:textSize="12sp"
+                android:layout_marginEnd="10dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/settings_menu_item"
+                app:layout_constraintTop_toTopOf="parent"
                 android:visibility="visible" />
 
-        </LinearLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/settings_menu_item"
+                style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/options"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:icon="@drawable/settings"
+                />
 
-    </androidx.appcompat.widget.Toolbar-->
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </com.google.android.material.appbar.MaterialToolbar>
 
-    <com.google.android.material.navigationrail.NavigationRailView
-        android:id="@+id/navigationRail"
-        android:layout_width="60dp"
-        android:layout_height="match_parent"
-        app:menu="@menu/bottom_menu"
-        android:layout_weight="0"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+    <org.servo.servoview.ServoView
+        android:id="@+id/servoview"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:focusable="true" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

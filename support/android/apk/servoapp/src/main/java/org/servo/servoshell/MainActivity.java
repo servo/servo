@@ -7,10 +7,8 @@ package org.servo.servoshell;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.system.ErrnoException;
@@ -21,12 +19,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
-import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.ViewSwitcher;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
@@ -42,11 +36,6 @@ public class MainActivity extends Activity implements Servo.Client {
 
     ServoView mServoView;
     BottomNavigationView mBottomNav;
-    MenuItem mBackMenuItem;
-    MenuItem mForwardMenuItem;
-
-    MenuItem mReloadMenuItem;
-    MenuItem mStopMenuItem;
 
     EditText mUrlField;
     boolean mUrlFieldIsFocused;
@@ -66,16 +55,23 @@ public class MainActivity extends Activity implements Servo.Client {
     }
     Settings mSettings;
 
+    private final View.OnClickListener actionClickListener = v -> {
+        dispatchAction(v.getId());
+    };
+
+    // Binds a click listener to a View if it exists.
+    // Useful for handling buttons that only exist in the tablet+ layout
+    private void bindClick(int id) {
+        View v = findViewById(id);
+        if (v != null) {
+            v.setOnClickListener(actionClickListener);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        mBottomNav = findViewById(R.id.bottom_bar);
-        mBackMenuItem = mBottomNav.getMenu().findItem(R.id.history_back_menu_item);
-        mForwardMenuItem = mBottomNav.getMenu().findItem(R.id.history_forward_menu_item);
-        mReloadMenuItem = mBottomNav.getMenu().findItem(R.id.refresh_menu_item);
-        mStopMenuItem = mBottomNav.getMenu().findItem(R.id.cancel_menu_item);
 
         mServoView = findViewById(R.id.servoview);
         mUrlField = findViewById(R.id.urlfield);
@@ -85,6 +81,32 @@ public class MainActivity extends Activity implements Servo.Client {
         mCanGoBack = false;
 
         updateSettingsIfNecessary(true);
+
+        /*
+        We use both Menu+MenuItems and Buttons for the same functions,
+        depending on whether we’re in a phone or tablet+ layout. For the phone, we want
+        the affordances of a navigation bar that uses a Menu (mBottomNav), but there’s no
+        straightforward way to re-use these MenuItems to place them in the top toolbar
+        in the tablet layout. The inverse approach has other problems. So we use
+        - mBottomNav with a Menu + MenuItems on phones
+        - individual Buttons added to the MaterialToolbar that also holds the URLInput on
+          tablets and larger sizes
+         */
+
+        // Bind handlers to menu items (phone layout)
+        mBottomNav = findViewById(R.id.bottom_bar);
+        if (mBottomNav != null) {
+            mBottomNav.setOnItemSelectedListener(item ->
+                dispatchAction(item.getItemId())
+            );
+        }
+
+        // Bind handlers to buttons, if they exist (tablet layout)
+        bindClick(R.id.history_back_menu_item);
+        bindClick(R.id.history_forward_menu_item);
+        bindClick(R.id.refresh_menu_item);
+        bindClick(R.id.cancel_menu_item);
+        bindClick(R.id.settings_menu_item);
 
         mServoView.setClient(this);
         mServoView.requestFocus();
@@ -96,7 +118,6 @@ public class MainActivity extends Activity implements Servo.Client {
         } catch (ErrnoException e) {
             e.printStackTrace();
         }
-
 
         Intent intent = getIntent();
         String args = intent.getStringExtra("servoargs");
@@ -115,6 +136,24 @@ public class MainActivity extends Activity implements Servo.Client {
         if (mMediaSession != null) {
             mMediaSession.hideMediaSessionControls();
         }
+    }
+
+    // Handle UI actions (same handlers for MenuItems in phone layout
+    // and View buttons in tablet layout
+    private boolean dispatchAction(int id) {
+        if (id == R.id.history_back_menu_item) {
+            mServoView.goBack();
+        } else if (id == R.id.history_forward_menu_item) {
+            mServoView.goForward();
+        } else if (id == R.id.refresh_menu_item) {
+            mServoView.reload();
+        } else if (id == R.id.cancel_menu_item) {
+            mServoView.stop();
+        } else if (id == R.id.settings_menu_item) {
+            Intent myIntent = new Intent(this, SettingsActivity.class);
+            startActivity(myIntent);
+        }
+        return false;
     }
 
     private void setupUrlField() {
@@ -142,30 +181,6 @@ public class MainActivity extends Activity implements Servo.Client {
         text = text.trim();
 
         mServoView.loadUri(text);
-    }
-
-    // From activity_main.xml:
-
-    public void onSettingsItemClicked(MenuItem m) {
-        Intent myIntent = new Intent(this, SettingsActivity.class);
-        startActivity(myIntent);
-    }
-
-    public void onReloadItemClicked(MenuItem m) {
-        mServoView.reload();
-    }
-
-    public void onBackItemClicked(MenuItem m) {
-        mServoView.goBack();
-    }
-
-    public void onForwardItemClicked(MenuItem m) {
-        mServoView.goForward();
-    }
-
-    public void onStopItemClicked(MenuItem m) {
-        Log.i(TAG, "onStopItemClicked");
-        mServoView.stop();
     }
 
     @Override
@@ -207,16 +222,29 @@ public class MainActivity extends Activity implements Servo.Client {
     @Override
     public void onLoadStarted() {
         Log.i(TAG, "onLoadStarted: ");
-        mStopMenuItem.setVisible(true);
-        mReloadMenuItem.setVisible(false);
+        // Phone view
+        if (mBottomNav != null) {
+            mBottomNav.getMenu().findItem(R.id.cancel_menu_item).setVisible(true);
+            mBottomNav.getMenu().findItem(R.id.refresh_menu_item).setVisible(false);
+        }
+        // tablet view
+        findViewById(R.id.cancel_menu_item).setVisibility(View.VISIBLE);
+        findViewById(R.id.refresh_menu_item).setVisibility(View.GONE);
+
         mProgressBar.setVisibility(View.VISIBLE);
     }
 
     @Override
     public void onLoadEnded() {
         Log.i(TAG, "onLoadEnded: ");
-        mStopMenuItem.setVisible(false);
-        mReloadMenuItem.setVisible(true);
+        // Phone view
+        if (mBottomNav != null) {
+            mBottomNav.getMenu().findItem(R.id.cancel_menu_item).setVisible(false);
+            mBottomNav.getMenu().findItem(R.id.refresh_menu_item).setVisible(true);
+        }
+        // tablet view
+        findViewById(R.id.cancel_menu_item).setVisibility(View.GONE);
+        findViewById(R.id.refresh_menu_item).setVisibility(View.VISIBLE);
         mProgressBar.setVisibility(View.GONE);
     }
 
@@ -232,8 +260,14 @@ public class MainActivity extends Activity implements Servo.Client {
     @Override
     public void onHistoryChanged(boolean canGoBack, boolean canGoForward) {
         Log.i(TAG, "onHistoryChanged: " + canGoBack + "<->" + canGoForward);
-        mBackMenuItem.setEnabled(canGoBack);
-        mForwardMenuItem.setEnabled(canGoForward);
+        // Phone view
+        if (mBottomNav != null) {
+            mBottomNav.getMenu().findItem(R.id.history_back_menu_item).setEnabled(canGoBack);
+            mBottomNav.getMenu().findItem(R.id.history_forward_menu_item).setEnabled(canGoForward);
+        }
+        // tablet view
+        findViewById(R.id.history_back_menu_item).setEnabled(canGoBack);
+        findViewById(R.id.history_forward_menu_item).setEnabled(canGoForward);
         mCanGoBack = canGoBack;
     }
 

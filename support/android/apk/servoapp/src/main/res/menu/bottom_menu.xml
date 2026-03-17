@@ -2,25 +2,20 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@+id/history_back_menu_item"
         android:icon="@drawable/arrow_back"
-        android:onClick="onBackItemClicked"
         android:enabled="false"
         android:title="@string/history_back" />
     <item android:id="@+id/history_forward_menu_item"
         android:icon="@drawable/arrow_forward"
-        android:onClick="onForwardItemClicked"
         android:enabled="false"
         android:title="@string/history_forward" />
     <item android:id="@+id/refresh_menu_item"
         android:icon="@drawable/refresh"
-        android:onClick="onReloadItemClicked"
         android:title="@string/refresh" />
     <item android:id="@+id/cancel_menu_item"
         android:icon="@drawable/cancel"
-        android:onClick="onStopItemClicked"
         android:visible="false"
         android:title="@string/cancel" />
     <item android:id="@+id/settings_menu_item"
         android:icon="@drawable/settings"
-        android:onClick="onSettingsItemClicked"
         android:title="@string/options" />
 </menu>
