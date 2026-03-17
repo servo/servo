@@ -4758,7 +4758,7 @@ impl VirtualMethods for Node {
         if let Some(event) = event.downcast::<KeyboardEvent>() {
             self.owner_document()
                 .event_handler()
-                .run_default_keyboard_event_handler(event, can_gc);
+                .run_default_keyboard_event_handler(self, event, can_gc);
         }
     }
 }

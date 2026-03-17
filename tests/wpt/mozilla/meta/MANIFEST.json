@@ -13258,6 +13258,15 @@
       }
      ]
     ],
+    "spacebar-and-enter-in-input-text.html": [
+     "5bc302968caf6b31927e175eea188f5bab808d3b",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "spurious-mouse-move-events.html": [
      "9cfa22aaf90a0d3399fd03a80aa87dd0f16f76d6",
      [

@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::str::FromStr;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use keyboard_types::{Key, Modifiers, NamedKey};
+use keyboard_types::{Code, Key, Modifiers, NamedKey};
 use style::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
@@ -30,6 +31,8 @@ pub(crate) struct KeyboardEvent {
     #[no_trace]
     typed_key: DomRefCell<Key>,
     code: DomRefCell<DOMString>,
+    #[no_trace]
+    original_code: DomRefCell<Option<Code>>,
     location: Cell<u32>,
     #[no_trace]
     modifiers: Cell<Modifiers>,
@@ -40,18 +43,19 @@ pub(crate) struct KeyboardEvent {
 }
 
 impl KeyboardEvent {
-    fn new_inherited() -> KeyboardEvent {
-        KeyboardEvent {
+    fn new_inherited() -> Self {
+        Self {
             uievent: UIEvent::new_inherited(),
-            key: DomRefCell::new(DOMString::new()),
-            typed_key: DomRefCell::new(Key::Named(NamedKey::Unidentified)),
-            code: DomRefCell::new(DOMString::new()),
-            location: Cell::new(0),
-            modifiers: Cell::new(Modifiers::empty()),
-            repeat: Cell::new(false),
-            is_composing: Cell::new(false),
-            char_code: Cell::new(0),
-            key_code: Cell::new(0),
+            key: Default::default(),
+            typed_key: Default::default(),
+            code: Default::default(),
+            original_code: Default::default(),
+            location: Default::default(),
+            modifiers: Default::default(),
+            repeat: Default::default(),
+            is_composing: Default::default(),
+            char_code: Default::default(),
+            key_code: Default::default(),
         }
     }
 
@@ -88,6 +92,7 @@ impl KeyboardEvent {
             0,            /* detail */
             keyboard_event.key.clone(),
             DOMString::from(keyboard_event.code.to_string()),
+            Some(keyboard_event.code),
             keyboard_event.location as u32,
             keyboard_event.repeat,
             keyboard_event.is_composing,
@@ -109,6 +114,7 @@ impl KeyboardEvent {
         _detail: i32,
         key: Key,
         code: DOMString,
+        original_code: Option<Code>,
         location: u32,
         repeat: bool,
         is_composing: bool,
@@ -117,8 +123,8 @@ impl KeyboardEvent {
         key_code: u32,
         can_gc: CanGc,
     ) -> DomRoot<KeyboardEvent> {
-        let ev = KeyboardEvent::new_uninitialized_with_proto(window, proto, can_gc);
-        ev.init_event(
+        let event = KeyboardEvent::new_uninitialized_with_proto(window, proto, can_gc);
+        event.init_event(
             event_type,
             can_bubble,
             cancelable,
@@ -127,18 +133,23 @@ impl KeyboardEvent {
             location,
             repeat,
         );
-        *ev.typed_key.borrow_mut() = key;
-        *ev.code.borrow_mut() = code;
-        ev.modifiers.set(modifiers);
-        ev.is_composing.set(is_composing);
-        ev.char_code.set(char_code);
-        ev.key_code.set(key_code);
-        ev.uievent.set_which(key_code);
-        ev
+        *event.typed_key.borrow_mut() = key;
+        *event.code.borrow_mut() = code;
+        *event.original_code.borrow_mut() = original_code;
+        event.modifiers.set(modifiers);
+        event.is_composing.set(is_composing);
+        event.char_code.set(char_code);
+        event.key_code.set(key_code);
+        event.uievent.set_which(key_code);
+        event
     }
 
     pub(crate) fn key(&self) -> Key {
         self.typed_key.borrow().clone()
+    }
+
+    pub(crate) fn original_code(&self) -> Option<Code> {
+        *self.original_code.borrow()
     }
 
     pub(crate) fn modifiers(&self) -> Modifiers {
@@ -147,7 +158,7 @@ impl KeyboardEvent {
 
     /// <https://w3c.github.io/uievents/#widl-KeyboardEvent-initKeyboardEvent>
     #[expect(clippy::too_many_arguments)]
-    pub fn init_event(
+    pub(crate) fn init_event(
         &self,
         event_type: Atom,
         can_bubble_arg: bool,
@@ -198,6 +209,7 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
             init.parent.parent.detail,
             Key::Named(NamedKey::Unidentified),
             init.code.clone(),
+            Code::from_str(&init.code.str()).ok(),
             init.location,
             init.repeat,
             init.isComposing,
