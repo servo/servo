@@ -581,7 +581,11 @@ impl FetchResponseListener for FetchContext {
                 },
                 FetchMetadata::Filtered { filtered, .. } => match filtered {
                     FilteredMetadata::Basic(m) => {
-                        fill_headers_with_metadata(self.response_object.root(), m, CanGc::from_cx(cx));
+                        fill_headers_with_metadata(
+                            self.response_object.root(),
+                            m,
+                            CanGc::from_cx(cx),
+                        );
                         self.response_object
                             .root()
                             .set_type(DOMResponseType::Basic, CanGc::from_cx(cx));
