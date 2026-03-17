@@ -4153,7 +4153,7 @@ class CGCallGenerator(CGThing):
                 descriptor.realmMethods.append(nativeMethodName)
             case Context.OldCx:
                 needsCx = True
-            case _:
+            case Context.No:
                 pass
 
         # Build up our actual call
@@ -8327,7 +8327,7 @@ def method_arguments(descriptorProvider: DescriptorProvider,
             realm = True
         case Context.OldCx:
             old_cx = True
-        case _:
+        case Context.No:
             pass
     if cx_no_gc:
         yield "cx", "&JSContext"
