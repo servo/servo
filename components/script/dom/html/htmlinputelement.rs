@@ -846,6 +846,25 @@ impl HTMLInputElement {
         )
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-apply>
+    fn does_readonly_apply(&self) -> bool {
+        matches!(
+            self.input_type(),
+            InputType::Date |
+                InputType::DatetimeLocal |
+                InputType::Email |
+                InputType::Month |
+                InputType::Number |
+                InputType::Password |
+                InputType::Search |
+                InputType::Tel |
+                InputType::Text |
+                InputType::Time |
+                InputType::Url |
+                InputType::Week
+        )
+    }
+
     fn does_multiple_apply(&self) -> bool {
         self.input_type() == InputType::Email
     }
@@ -2323,7 +2342,13 @@ impl HTMLInputElement {
     pub(crate) fn is_mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
-        !(self.upcast::<Element>().disabled_state() || self.ReadOnly())
+        !(self.upcast::<Element>().disabled_state() || self.is_readonly())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-apply>
+    /// readonly should only apply to specific input types.
+    fn is_readonly(&self) -> bool {
+        self.does_readonly_apply() && self.ReadOnly()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control>:
@@ -3082,7 +3107,7 @@ impl VirtualMethods for HTMLInputElement {
                 el.check_ancestors_disabled_state_for_form_control();
 
                 if self.input_type().is_textual() {
-                    let read_write = !(self.ReadOnly() || el.disabled_state());
+                    let read_write = !(self.is_readonly() || el.disabled_state());
                     el.set_read_write_state(read_write);
                 }
             },
@@ -3114,7 +3139,7 @@ impl VirtualMethods for HTMLInputElement {
                         self.input_type.set(new_type);
 
                         if new_type.is_textual() {
-                            let read_write = !(self.ReadOnly() || el.disabled_state());
+                            let read_write = !(self.is_readonly() || el.disabled_state());
                             el.set_read_write_state(read_write);
                         } else {
                             el.set_read_write_state(false);
@@ -3192,7 +3217,7 @@ impl VirtualMethods for HTMLInputElement {
                         self.input_type.set(InputType::default());
                         let el = self.upcast::<Element>();
 
-                        let read_write = !(self.ReadOnly() || el.disabled_state());
+                        let read_write = !(self.is_readonly() || el.disabled_state());
                         el.set_read_write_state(read_write);
                     },
                 }
