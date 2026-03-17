@@ -288,7 +288,7 @@ impl Callback for PipeTo {
             PipeToState::Starting => unreachable!("PipeTo should not be in the Starting state."),
             PipeToState::PendingReady => {
                 // Read a chunk.
-                self.read_chunk(&global, realm, CanGc::from_cx(cx));
+                self.read_chunk(cx, &global);
             },
             PipeToState::PendingRead => {
                 // Write the chunk.
@@ -300,7 +300,7 @@ impl Callback for PipeTo {
                 }
 
                 // Wait for the writer to be ready again.
-                self.wait_for_writer_ready(&global, realm, CanGc::from_cx(cx));
+                self.wait_for_writer_ready(cx, &global);
             },
             PipeToState::ShuttingDownWithPendingWrites(action) => {
                 // Wait until every chunk that has been read has been written
@@ -316,7 +316,7 @@ impl Callback for PipeTo {
                     self.perform_action(cx, &global, action);
                 } else {
                     // Finalize, passing along error if it was given.
-                    self.finalize(cx.into(), &global, CanGc::from_cx(cx));
+                    self.finalize(cx, &global);
                 }
             },
             PipeToState::ShuttingDownPendingAction => {
@@ -351,7 +351,7 @@ impl Callback for PipeTo {
                     // and should overwrite the current shutdown error.
                     self.set_shutdown_error(result);
                 }
-                self.finalize(cx.into(), &global, CanGc::from_cx(cx));
+                self.finalize(cx, &global);
             },
             PipeToState::Finalized => {},
         }
@@ -371,7 +371,10 @@ impl PipeTo {
 
     /// Wait for the writer to be ready,
     /// which implements the constraint that backpressure must be enforced.
-    fn wait_for_writer_ready(&self, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {
+    fn wait_for_writer_ready(&self, cx: &mut CurrentRealm, global: &GlobalScope) {
+        let realm = cx.into();
+        let realm = InRealm::Already(&realm);
+
         {
             let mut state = self.state.borrow_mut();
             *state = PipeToState::PendingReady;
@@ -379,40 +382,43 @@ impl PipeTo {
 
         let ready_promise = self.writer.Ready();
         if ready_promise.is_fulfilled() {
-            self.read_chunk(global, realm, can_gc);
+            self.read_chunk(cx, global);
         } else {
             let handler = PromiseNativeHandler::new(
                 global,
                 Some(Box::new(self.clone())),
                 Some(Box::new(self.clone())),
-                can_gc,
+                CanGc::from_cx(cx),
             );
-            ready_promise.append_native_handler(&handler, realm, can_gc);
+            ready_promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
 
             // Note: if the writer is not ready,
             // in order to ensure progress we must
             // also react to the closure of the source(because source may close empty).
             let closed_promise = self.reader.Closed();
-            closed_promise.append_native_handler(&handler, realm, can_gc);
+            closed_promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
         }
     }
 
     /// Read a chunk
-    fn read_chunk(&self, global: &GlobalScope, realm: InRealm, can_gc: CanGc) {
+    fn read_chunk(&self, cx: &mut CurrentRealm, global: &GlobalScope) {
+        let realm = cx.into();
+        let realm = InRealm::Already(&realm);
+
         *self.state.borrow_mut() = PipeToState::PendingRead;
-        let chunk_promise = self.reader.Read(can_gc);
+        let chunk_promise = self.reader.Read(cx);
         let handler = PromiseNativeHandler::new(
             global,
             Some(Box::new(self.clone())),
             Some(Box::new(self.clone())),
-            can_gc,
+            CanGc::from_cx(cx),
         );
-        chunk_promise.append_native_handler(&handler, realm, can_gc);
+        chunk_promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
 
         // Note: in order to ensure progress we must
         // also react to the closure of the destination.
         let ready_promise = self.writer.Closed();
-        ready_promise.append_native_handler(&handler, realm, can_gc);
+        ready_promise.append_native_handler(&handler, realm, CanGc::from_cx(cx));
     }
 
     /// Try to write a chunk using the jsval, and returns wether it succeeded
@@ -633,7 +639,7 @@ impl PipeTo {
                 self.perform_action(cx, global, action);
             } else {
                 // Finalize, passing along error if it was given.
-                self.finalize(cx.into(), global, CanGc::from_cx(cx));
+                self.finalize(cx, global);
             }
         }
     }
@@ -730,11 +736,11 @@ impl PipeTo {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-pipeTo-finalize>
-    fn finalize(&self, cx: SafeJSContext, global: &GlobalScope, can_gc: CanGc) {
+    fn finalize(&self, cx: &mut js::context::JSContext, global: &GlobalScope) {
         *self.state.borrow_mut() = PipeToState::Finalized;
 
         // Perform ! WritableStreamDefaultWriterRelease(writer).
-        self.writer.release(cx, global, can_gc);
+        self.writer.release(cx.into(), global, CanGc::from_cx(cx));
 
         // If reader implements ReadableStreamBYOBReader,
         // perform ! ReadableStreamBYOBReaderRelease(reader).
@@ -742,7 +748,7 @@ impl PipeTo {
 
         // Otherwise, perform ! ReadableStreamDefaultReaderRelease(reader).
         self.reader
-            .release(can_gc)
+            .release(CanGc::from_cx(cx))
             .expect("Releasing the reader should not fail");
 
         // If signal is not undefined, remove abortAlgorithm from signal.
@@ -751,13 +757,14 @@ impl PipeTo {
         // so for now not implementing this step.
 
         if let Some(shutdown_error) = self.shutdown_error.borrow().as_ref() {
-            rooted!(in(*cx) let mut error = UndefinedValue());
+            rooted!(&in(cx) let mut error = UndefinedValue());
             error.set(shutdown_error.get());
             // If error was given, reject promise with error.
-            self.result_promise.reject_native(&error.handle(), can_gc);
+            self.result_promise
+                .reject_native(&error.handle(), CanGc::from_cx(cx));
         } else {
             // Otherwise, resolve promise with undefined.
-            self.result_promise.resolve_native(&(), can_gc);
+            self.result_promise.resolve_native(&(), CanGc::from_cx(cx));
         }
     }
 }
@@ -1312,7 +1319,7 @@ impl ReadableStream {
     /// and before `stop_reading`.
     /// Native call to
     /// <https://streams.spec.whatwg.org/#readable-stream-default-reader-read>
-    pub(crate) fn read_a_chunk(&self, can_gc: CanGc) -> Rc<Promise> {
+    pub(crate) fn read_a_chunk(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
         match self.reader.borrow().as_ref() {
             Some(ReaderType::Default(reader)) => {
                 let Some(reader) = reader.get() else {
@@ -1320,7 +1327,7 @@ impl ReadableStream {
                         "Attempt to read stream chunk without having first acquired a reader."
                     );
                 };
-                reader.Read(can_gc)
+                reader.Read(cx)
             },
             _ => {
                 unreachable!("Native reading of a chunk can only be done with a default reader.")
@@ -1857,8 +1864,6 @@ impl ReadableStream {
         prevent_cancel: bool,
         signal: Option<&AbortSignal>,
     ) -> Rc<Promise> {
-        let realm = cx.into();
-        let realm = InRealm::Already(&realm);
         // Assert: source implements ReadableStream.
         // Assert: dest implements WritableStream.
         // Assert: prevent_close, prevent_abort, and prevent_cancel are all booleans.
@@ -1941,7 +1946,7 @@ impl ReadableStream {
         // If we are not closed or errored,
         if *pipe_to.state.borrow() == PipeToState::Starting {
             // Start the pipe, by waiting on the writer being ready for a chunk.
-            pipe_to.wait_for_writer_ready(global, realm, CanGc::from_cx(cx));
+            pipe_to.wait_for_writer_ready(cx, global);
         }
 
         // Return promise.
@@ -2147,17 +2152,20 @@ impl ReadableStreamMethods<crate::DomTypeHolder> for ReadableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#rs-cancel>
-    fn Cancel(&self, cx: SafeJSContext, reason: SafeHandleValue, can_gc: CanGc) -> Rc<Promise> {
+    fn Cancel(&self, cx: &mut js::context::JSContext, reason: SafeHandleValue) -> Rc<Promise> {
         let global = self.global();
         if self.is_locked() {
             // If ! IsReadableStreamLocked(this) is true,
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type(c"stream is locked".to_owned()), can_gc);
+            let promise = Promise::new2(cx, &global);
+            promise.reject_error(
+                Error::Type(c"stream is locked".to_owned()),
+                CanGc::from_cx(cx),
+            );
             promise
         } else {
             // Return ! ReadableStreamCancel(this, reason).
-            self.cancel(cx, &global, reason, can_gc)
+            self.cancel(cx.into(), &global, reason, CanGc::from_cx(cx))
         }
     }
 

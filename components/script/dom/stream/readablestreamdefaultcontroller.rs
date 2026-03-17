@@ -897,19 +897,19 @@ impl ReadableStreamDefaultControllerMethods<crate::DomTypeHolder>
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-enqueue>
-    fn Enqueue(&self, cx: SafeJSContext, chunk: SafeHandleValue, can_gc: CanGc) -> Fallible<()> {
+    fn Enqueue(&self, cx: &mut js::context::JSContext, chunk: SafeHandleValue) -> Fallible<()> {
         // If ! ReadableStreamDefaultControllerCanCloseOrEnqueue(this) is false, throw a TypeError exception.
         if !self.can_close_or_enqueue() {
             return Err(Error::Type(c"Stream cannot be enqueued to.".to_owned()));
         }
 
         // Perform ? ReadableStreamDefaultControllerEnqueue(this, chunk).
-        self.enqueue(cx, chunk, can_gc)
+        self.enqueue(cx.into(), chunk, CanGc::from_cx(cx))
     }
 
     /// <https://streams.spec.whatwg.org/#rs-default-controller-error>
-    fn Error(&self, _cx: SafeJSContext, e: SafeHandleValue, can_gc: CanGc) -> Fallible<()> {
-        self.error(e, can_gc);
+    fn Error(&self, cx: &mut js::context::JSContext, e: SafeHandleValue) -> Fallible<()> {
+        self.error(e, CanGc::from_cx(cx));
         Ok(())
     }
 }
