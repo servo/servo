@@ -566,16 +566,16 @@ impl HTMLScriptElement {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-prepare-the-script-text>
-    fn prepare_the_script_text(&self, can_gc: CanGc) -> Fallible<()> {
+    fn prepare_the_script_text(&self, cx: &mut JSContext) -> Fallible<()> {
         // Step 1. If script’s script text value is not equal to its child text content,
         // set script’s script text to the result of executing
         // Get Trusted Type compliant string, with the following arguments:
         if self.script_text.borrow().clone() != self.text() {
-            *self.script_text.borrow_mut() = TrustedScript::get_trusted_script_compliant_string(
+            *self.script_text.borrow_mut() = TrustedScript::get_trusted_type_compliant_string(
+                cx,
                 &self.owner_global(),
                 self.Text(),
                 "HTMLScriptElement text",
-                can_gc,
             )?;
         }
 
@@ -608,7 +608,11 @@ impl HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#prepare-the-script-element>
-    pub(crate) fn prepare(&self, introduction_type_override: Option<&'static CStr>, can_gc: CanGc) {
+    pub(crate) fn prepare(
+        &self,
+        cx: &mut JSContext,
+        introduction_type_override: Option<&'static CStr>,
+    ) {
         self.introduction_type_override
             .set(introduction_type_override);
 
@@ -635,7 +639,7 @@ impl HTMLScriptElement {
 
         // Step 5. Execute the Prepare the script text algorithm on el.
         // If that algorithm threw an error, then return.
-        if self.prepare_the_script_text(can_gc).is_err() {
+        if self.prepare_the_script_text(cx).is_err() {
             return;
         }
         // Step 5a. Let source text be el’s script text value.
@@ -882,7 +886,7 @@ impl HTMLScriptElement {
                         url,
                         ModuleOwner::Window(Trusted::new(self)),
                         options,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
 
                     if !asynch && was_parser_inserted {
@@ -930,7 +934,7 @@ impl HTMLScriptElement {
                         doc.set_pending_parsing_blocking_script(self, Some(result));
                     } else {
                         // Step 34.3: otherwise.
-                        self.execute(result, can_gc);
+                        self.execute(result, CanGc::from_cx(cx));
                     }
                 },
                 ScriptType::Module => {
@@ -951,7 +955,7 @@ impl HTMLScriptElement {
                         base_url,
                         options,
                         self.line_number as u32,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                 },
                 ScriptType::ImportMap => {
@@ -972,7 +976,7 @@ impl HTMLScriptElement {
                     ));
 
                     // Step 34.3
-                    self.execute(Ok(script), can_gc);
+                    self.execute(Ok(script), CanGc::from_cx(cx));
                 },
             }
         }
@@ -1184,14 +1188,19 @@ impl VirtualMethods for HTMLScriptElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
+    #[expect(unsafe_code)]
     fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+        // TODO: https://github.com/servo/servo/issues/42812
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         self.super_type()
             .unwrap()
             .attribute_mutated(attr, mutation, can_gc);
         if *attr.local_name() == local_name!("src") {
             if let AttributeMutation::Set(..) = mutation {
                 if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
-                    self.prepare(Some(IntroductionType::INJECTED_SCRIPT), can_gc);
+                    self.prepare(cx, Some(IntroductionType::INJECTED_SCRIPT));
                 }
             }
         } else if *attr.local_name() == local_name!("blocking") &&
@@ -1215,8 +1224,8 @@ impl VirtualMethods for HTMLScriptElement {
             // as DOM mutations have not yet settled. We use a delayed task to avoid
             // running any scripts until the DOM tree is safe for interactions.
             self.owner_document().add_delayed_task(
-                task!(ScriptPrepare: |script: DomRoot<HTMLScriptElement>| {
-                    script.prepare(Some(IntroductionType::INJECTED_SCRIPT), CanGc::note());
+                task!(ScriptPrepare: |cx, script: DomRoot<HTMLScriptElement>| {
+                    script.prepare(cx, Some(IntroductionType::INJECTED_SCRIPT));
                 }),
             );
         }
@@ -1229,7 +1238,7 @@ impl VirtualMethods for HTMLScriptElement {
         }
 
         if self.upcast::<Node>().is_connected() && !self.parser_inserted.get() {
-            self.prepare(Some(IntroductionType::INJECTED_SCRIPT), CanGc::from_cx(cx));
+            self.prepare(cx, Some(IntroductionType::INJECTED_SCRIPT));
         }
     }
 
@@ -1374,11 +1383,11 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     fn SetInnerText(&self, cx: &mut JSContext, input: TrustedScriptOrString) -> Fallible<()> {
         // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
         // this's relevant global object, the given value, HTMLScriptElement innerText, and script.
-        let value = TrustedScript::get_trusted_script_compliant_string(
+        let value = TrustedScript::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             input,
             "HTMLScriptElement innerText",
-            CanGc::from_cx(cx),
         )?;
         *self.script_text.borrow_mut() = value.clone();
         // Step 3: Run set the inner text steps with this and value.
@@ -1395,11 +1404,11 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     fn SetText(&self, cx: &mut JSContext, value: TrustedScriptOrString) -> Fallible<()> {
         // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
         // this's relevant global object, the given value, HTMLScriptElement text, and script.
-        let value = TrustedScript::get_trusted_script_compliant_string(
+        let value = TrustedScript::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             value,
             "HTMLScriptElement text",
-            CanGc::from_cx(cx),
         )?;
         // Step 2: Set this's script text value to the given value.
         *self.script_text.borrow_mut() = value.clone();
@@ -1424,11 +1433,11 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     ) -> Fallible<()> {
         // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
         // this's relevant global object, the given value, HTMLScriptElement textContent, and script.
-        let value = TrustedScript::get_trusted_script_compliant_string(
+        let value = TrustedScript::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             value.unwrap_or(TrustedScriptOrString::String(DOMString::from(""))),
             "HTMLScriptElement textContent",
-            CanGc::from_cx(cx),
         )?;
         // Step 2: Set this's script text value to value.
         *self.script_text.borrow_mut() = value.clone();

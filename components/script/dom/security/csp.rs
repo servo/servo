@@ -29,7 +29,6 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::security::cspviolationreporttask::CSPViolationReportTask;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::window::Window;
-use crate::script_runtime::CanGc;
 
 pub(crate) trait CspReporting {
     fn is_js_evaluation_allowed(&self, global: &GlobalScope, source: &str) -> bool;
@@ -135,11 +134,11 @@ impl CspReporting for Option<CspList> {
             |script_source| {
                 // Step 4. Let convertedScriptSource be the result of executing
                 // Process value with a default policy algorithm, with the following arguments:
-                TrustedScript::get_trusted_script_compliant_string(
+                TrustedScript::get_trusted_type_compliant_string(
+                    cx,
                     global,
                     TrustedScriptOrString::String(script_source.into()),
                     "Location href",
-                    CanGc::from_cx(cx),
                 )
                 .ok()
                 .map(|s| s.into())

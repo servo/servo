@@ -729,7 +729,7 @@ impl ServoParser {
             script.set_initial_script_text();
             let introduction_type_override =
                 (script_nesting_level > 0).then_some(IntroductionType::INJECTED_SCRIPT);
-            script.prepare(introduction_type_override, CanGc::from_cx(cx));
+            script.prepare(cx, introduction_type_override);
             self.script_nesting_level.set(script_nesting_level);
 
             if self.document.has_pending_parsing_blocking_script() {
