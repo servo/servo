@@ -475,7 +475,6 @@ impl TouchHandler {
                     Some(ScrollZoomEvent::Scroll(ScrollEvent {
                         scroll: Scroll::Delta((-delta).into()),
                         point,
-                        event_count: 1,
                     }))
                 } else if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX * scale ||
                     delta.y.abs() > TOUCH_PAN_MIN_SCREEN_PX * scale
@@ -497,7 +496,6 @@ impl TouchHandler {
                     Some(ScrollZoomEvent::Scroll(ScrollEvent {
                         scroll: Scroll::Delta((-delta).into()),
                         point,
-                        event_count: 1,
                     }))
                 } else {
                     // We don't update the touchpoint, so multiple small moves can
