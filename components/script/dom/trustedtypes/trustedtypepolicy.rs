@@ -98,11 +98,11 @@ impl TrustedTypePolicy {
     /// <https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-policy-value-algorithm>
     pub(crate) fn get_trusted_type_policy_value(
         &self,
+        cx: &mut js::context::JSContext,
         expected_type: TrustedType,
         input: DOMString,
         arguments: Vec<HandleValue>,
         throw_if_missing: bool,
-        can_gc: CanGc,
     ) -> Fallible<Option<DOMString>> {
         // Step 1: Let functionName be a function name for the given trustedTypeName, based on the following table:
         match expected_type {
@@ -114,7 +114,12 @@ impl TrustedTypePolicy {
                     // Step 4: Let policyValue be the result of invoking function with value as a first argument,
                     // items of arguments as subsequent arguments, and callback **this** value set to undefined,
                     // rethrowing any exceptions.
-                    callback.Call__(input, arguments, ExceptionHandling::Rethrow, can_gc)
+                    callback.Call__(
+                        input,
+                        arguments,
+                        ExceptionHandling::Rethrow,
+                        CanGc::from_cx(cx),
+                    )
                 },
             },
             TrustedType::TrustedScript => match &self.create_script {
@@ -125,7 +130,12 @@ impl TrustedTypePolicy {
                     // Step 4: Let policyValue be the result of invoking function with value as a first argument,
                     // items of arguments as subsequent arguments, and callback **this** value set to undefined,
                     // rethrowing any exceptions.
-                    callback.Call__(input, arguments, ExceptionHandling::Rethrow, can_gc)
+                    callback.Call__(
+                        input,
+                        arguments,
+                        ExceptionHandling::Rethrow,
+                        CanGc::from_cx(cx),
+                    )
                 },
             },
             TrustedType::TrustedScriptURL => match &self.create_script_url {
@@ -137,7 +147,12 @@ impl TrustedTypePolicy {
                     // items of arguments as subsequent arguments, and callback **this** value set to undefined,
                     // rethrowing any exceptions.
                     callback
-                        .Call__(input, arguments, ExceptionHandling::Rethrow, can_gc)
+                        .Call__(
+                            input,
+                            arguments,
+                            ExceptionHandling::Rethrow,
+                            CanGc::from_cx(cx),
+                        )
                         .map(|result| result.map(DOMString::from))
                 },
             },
@@ -169,13 +184,8 @@ impl TrustedTypePolicy {
     {
         // Step 1: Let policyValue be the result of executing Get Trusted Type policy value
         // with the same arguments as this algorithm and additionally true as throwIfMissing.
-        let policy_value = self.get_trusted_type_policy_value(
-            expected_type,
-            input,
-            arguments,
-            true,
-            CanGc::from_cx(cx),
-        );
+        let policy_value =
+            self.get_trusted_type_policy_value(cx, expected_type, input, arguments, true);
         match policy_value {
             // Step 2: If the algorithm threw an error, rethrow the error and abort the following steps.
             Err(error) => Err(error),

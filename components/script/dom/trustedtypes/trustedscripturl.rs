@@ -17,7 +17,6 @@ use crate::dom::trustedtypes::trustedtypepolicy::TrustedType;
 use crate::dom::trustedtypes::trustedtypepolicyfactory::{
     DEFAULT_SCRIPT_SINK_GROUP, TrustedTypePolicyFactory,
 };
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct TrustedScriptURL {
@@ -51,12 +50,12 @@ impl TrustedScriptURL {
         match value {
             TrustedScriptURLOrUSVString::USVString(value) => {
                 TrustedTypePolicyFactory::get_trusted_type_compliant_string(
+                    cx,
                     TrustedType::TrustedScriptURL,
                     global,
                     value.as_ref().into(),
                     sink,
                     DEFAULT_SCRIPT_SINK_GROUP,
-                    CanGc::from_cx(cx),
                 )
             },
             TrustedScriptURLOrUSVString::TrustedScriptURL(trusted_script_url) => {

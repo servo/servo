@@ -2334,9 +2334,9 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
             .structured_clone(cx, value, options, retval, can_gc)
     }
 
-    fn TrustedTypes(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
+    fn TrustedTypes(&self, cx: &mut JSContext) -> DomRoot<TrustedTypePolicyFactory> {
         self.trusted_types
-            .or_init(|| TrustedTypePolicyFactory::new(self.as_global_scope(), can_gc))
+            .or_init(|| TrustedTypePolicyFactory::new(cx, self.as_global_scope()))
     }
 }
 

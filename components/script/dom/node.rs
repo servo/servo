@@ -4034,11 +4034,11 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-nodevalue>
-    fn SetNodeValue(&self, val: Option<DOMString>, can_gc: CanGc) -> Fallible<()> {
+    fn SetNodeValue(&self, cx: &mut JSContext, val: Option<DOMString>) -> Fallible<()> {
         match self.type_id() {
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                attr.SetValue(val.unwrap_or_default(), can_gc)?;
+                attr.SetValue(cx, val.unwrap_or_default())?;
             },
             NodeTypeId::CharacterData(_) => {
                 let character_data = self.downcast::<CharacterData>().unwrap();
@@ -4074,7 +4074,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             },
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
-                attr.SetValue(value.unwrap_or_default(), CanGc::from_cx(cx))?;
+                attr.SetValue(cx, value.unwrap_or_default())?;
             },
             NodeTypeId::CharacterData(..) => {
                 let characterdata = self.downcast::<CharacterData>().unwrap();
