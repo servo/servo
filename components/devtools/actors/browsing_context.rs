@@ -6,8 +6,6 @@
 //! Connection point for remote devtools that wish to investigate a particular Browsing Context's contents.
 //! Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
-use std::net::TcpStream;
-
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::DevtoolScriptControlMsg::{self, GetCssDatabase, SimulateColorScheme};
 use devtools_traits::{DevtoolsPageInfo, NavigationState};
@@ -29,7 +27,7 @@ use crate::actors::tab::TabDescriptorActor;
 use crate::actors::thread::ThreadActor;
 use crate::actors::watcher::{SessionContext, SessionContextType, WatcherActor};
 use crate::id::{DevtoolsBrowserId, DevtoolsBrowsingContextId, DevtoolsOuterWindowId, IdMap};
-use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::resource::ResourceAvailable;
 use crate::{EmptyReplyMsg, StreamId};
 
@@ -295,7 +293,7 @@ impl BrowsingContextActor {
         &self,
         state: NavigationState,
         id_map: &mut IdMap,
-        connections: impl Iterator<Item = &'a mut TcpStream>,
+        connections: impl Iterator<Item = &'a mut DevtoolsConnection>,
     ) {
         let (pipeline_id, title, url, state) = match state {
             NavigationState::Start(url) => (None, None, url, "start"),

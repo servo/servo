@@ -11,7 +11,6 @@
 //! [Firefox JS implementation]: https://searchfox.org/mozilla-central/source/devtools/server/actors/descriptors/watcher.js
 
 use std::collections::HashMap;
-use std::net::TcpStream;
 
 use devtools_traits::get_time_stamp;
 use log::warn;
@@ -33,7 +32,7 @@ use crate::actors::watcher::target_configuration::{
     TargetConfigurationActor, TargetConfigurationActorMsg,
 };
 use crate::actors::watcher::thread_configuration::ThreadConfigurationActor;
-use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 use crate::{ActorMsg, EmptyReplyMsg, IdMap, StreamId, WorkerActor};
 
@@ -460,7 +459,7 @@ impl WatcherActor {
         &self,
         browsing_context_id: BrowsingContextId,
         url: ServoUrl,
-        connections: impl Iterator<Item = &'a mut TcpStream>,
+        connections: impl Iterator<Item = &'a mut DevtoolsConnection>,
         id_map: &mut IdMap,
     ) {
         let msg = WillNavigateMessage {

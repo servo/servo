@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::net::TcpStream;
 use std::sync::Arc;
 
 use devtools_traits::NetworkEvent;
@@ -11,6 +10,7 @@ use serde::Serialize;
 use crate::actor::{ActorEncode, ActorRegistry};
 use crate::actors::network_event::NetworkEventActor;
 use crate::actors::watcher::WatcherActor;
+use crate::protocol::DevtoolsConnection;
 use crate::resource::{ResourceArrayType, ResourceAvailable};
 
 #[derive(Clone, Serialize)]
@@ -24,7 +24,7 @@ pub(crate) struct Cause {
 pub(crate) fn handle_network_event(
     registry: Arc<ActorRegistry>,
     netevent_actor_name: String,
-    mut connections: Vec<TcpStream>,
+    mut connections: Vec<DevtoolsConnection>,
     network_event: NetworkEvent,
 ) {
     let actor = registry.find::<NetworkEventActor>(&netevent_actor_name);

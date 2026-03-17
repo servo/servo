@@ -56,7 +56,7 @@ use crate::actors::watcher::WatcherActor;
 use crate::actors::worker::{WorkerActor, WorkerType};
 use crate::id::IdMap;
 use crate::network_handler::handle_network_event;
-use crate::protocol::JsonPacketStream;
+use crate::protocol::{DevtoolsConnection, JsonPacketStream};
 
 mod actor;
 /// <https://searchfox.org/mozilla-central/source/devtools/server/actors>
@@ -166,7 +166,7 @@ struct DevtoolsInstance {
     ///
     /// Client threads remove their connection from here once they exit.
     #[conditional_malloc_size_of]
-    connections: Arc<Mutex<FxHashMap<StreamId, TcpStream>>>,
+    connections: Arc<Mutex<FxHashMap<StreamId, DevtoolsConnection>>>,
     next_resource_id: u64,
 }
 
@@ -255,30 +255,31 @@ impl DevtoolsInstance {
             trace!("{:?}", msg);
             match msg {
                 DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream)) => {
-                    let registry = self.registry.clone();
                     let id = next_id;
                     next_id = StreamId(id.0 + 1);
 
-                    let mut connections = self.connections.lock().unwrap();
-                    if connections.is_empty() {
-                        // We used to have no connection, now we have one.
-                        // Therefore, we need updates from script threads.
-                        for browsing_context in self.browsing_contexts.values() {
-                            let actor =
-                                self.registry.find::<BrowsingContextActor>(browsing_context);
-                            actor.instruct_script_to_send_live_updates(true);
+                    {
+                        let connections = self.connections.lock().expect("Mutex poisoned.");
+                        if connections.is_empty() {
+                            // We used to have no connection, now we have one.
+                            // Therefore, we need updates from script threads.
+                            for name in self.browsing_contexts.values() {
+                                let actor = self.registry.find::<BrowsingContextActor>(name);
+                                actor.instruct_script_to_send_live_updates(true);
+                            }
                         }
                     }
-                    connections.insert(id, stream.try_clone().unwrap());
 
+                    let connection: DevtoolsConnection = stream.into();
+                    let registry_clone = self.registry.clone();
                     let connections_clone = self.connections.clone();
                     let sender_clone = self.sender.clone();
                     thread::Builder::new()
                         .name("DevtoolsClientHandler".to_owned())
                         .spawn(move || {
                             handle_client(
-                                registry,
-                                stream.try_clone().unwrap(),
+                                registry_clone,
+                                connection,
                                 id,
                                 connections_clone,
                                 sender_clone,
@@ -391,9 +392,9 @@ impl DevtoolsInstance {
                     // FIXME: Why do we need to do this? Cloning the connections here is
                     // almost certainly wrong and means that they might shut down without
                     // us noticing.
-                    let mut connections = Vec::<TcpStream>::new();
-                    for stream in self.connections.lock().unwrap().values() {
-                        connections.push(stream.try_clone().unwrap());
+                    let mut connections = Vec::<DevtoolsConnection>::new();
+                    for connection in self.connections.lock().unwrap().values() {
+                        connections.push(connection.clone());
                     }
                     self.handle_network_event(connections, request_id, network_event);
                 },
@@ -558,12 +559,12 @@ impl DevtoolsInstance {
         let console_actor = self.registry.find::<ConsoleActor>(&console_actor_name);
         let id = worker_id.map_or(UniqueId::Pipeline(pipeline_id), UniqueId::Worker);
 
-        for stream in self.connections.lock().unwrap().values_mut() {
+        for connection in self.connections.lock().unwrap().values_mut() {
             console_actor.handle_console_resource(
                 resource.clone(),
                 id.clone(),
                 &self.registry,
-                stream,
+                connection,
             );
         }
     }
@@ -589,8 +590,8 @@ impl DevtoolsInstance {
             .find::<InspectorActor>(&browsing_context_actor.inspector);
         let walker_actor = self.registry.find::<WalkerActor>(&inspector_actor.walker);
 
-        for stream in self.connections.lock().unwrap().values_mut() {
-            walker_actor.handle_dom_mutation(dom_mutation.clone(), stream)?;
+        for connection in self.connections.lock().unwrap().values_mut() {
+            walker_actor.handle_dom_mutation(dom_mutation.clone(), connection)?;
         }
 
         Ok(())
@@ -636,7 +637,7 @@ impl DevtoolsInstance {
 
     fn handle_network_event(
         &mut self,
-        connections: Vec<TcpStream>,
+        connections: Vec<DevtoolsConnection>,
         request_id: String,
         network_event: NetworkEvent,
     ) {
@@ -890,11 +891,16 @@ fn allow_devtools_client(stream: &mut TcpStream, embedder: &EmbedderProxy, token
 /// Process the input from a single devtools client until EOF.
 fn handle_client(
     registry: Arc<ActorRegistry>,
-    mut stream: TcpStream,
+    mut stream: DevtoolsConnection,
     stream_id: StreamId,
-    connections: Arc<Mutex<FxHashMap<StreamId, TcpStream>>>,
+    connections: Arc<Mutex<FxHashMap<StreamId, DevtoolsConnection>>>,
     sender: Sender<DevtoolsControlMsg>,
 ) {
+    connections
+        .lock()
+        .expect("Mutex poisoned.")
+        .insert(stream_id, stream.clone());
+
     log::info!("Connection established to {}", stream.peer_addr().unwrap());
     let msg = registry.encode::<RootActor, _>("root");
     if let Err(error) = stream.write_json_packet(&msg) {

@@ -5,7 +5,6 @@
 use std::any::{Any, type_name};
 use std::collections::HashMap;
 use std::marker::PhantomData;
-use std::net::TcpStream;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -18,7 +17,7 @@ use serde_json::{Map, Value, json};
 use servo_base::id::PipelineId;
 
 use crate::StreamId;
-use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 
 /// Error replies.
 ///
@@ -198,7 +197,7 @@ impl ActorRegistry {
     pub(crate) fn handle_message(
         &self,
         msg: &Map<String, Value>,
-        stream: &mut TcpStream,
+        stream: &mut DevtoolsConnection,
         stream_id: StreamId,
     ) -> Result<(), ()> {
         let to = match msg.get("to") {
@@ -221,7 +220,7 @@ impl ActorRegistry {
             },
             Some(actor) => {
                 let msg_type = msg.get("type").unwrap().as_str().unwrap();
-                if let Err(error) = ClientRequest::handle(stream, to, |req| {
+                if let Err(error) = ClientRequest::handle(stream.clone(), to, |req| {
                     actor.handle_message(req, self, msg_type, msg, stream_id)
                 }) {
                     // <https://firefox-source-docs.mozilla.org/devtools/backend/protocol.html#error-packets>

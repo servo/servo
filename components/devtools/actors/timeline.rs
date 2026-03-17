@@ -4,7 +4,6 @@
 
 #![expect(dead_code)]
 
-use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -23,7 +22,7 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::framerate::FramerateActor;
 use crate::actors::memory::{MemoryActor, TimelineMemoryReply};
-use crate::protocol::{ClientRequest, JsonPacketStream};
+use crate::protocol::{ClientRequest, DevtoolsConnection, JsonPacketStream};
 
 #[derive(MallocSizeOf)]
 pub(crate) struct TimelineActor {
@@ -33,7 +32,6 @@ pub(crate) struct TimelineActor {
     pipeline_id: PipelineId,
     #[conditional_malloc_size_of]
     is_recording: Arc<Mutex<bool>>,
-    stream: AtomicRefCell<Option<TcpStream>>,
     framerate_actor: AtomicRefCell<Option<String>>,
     memory_actor: AtomicRefCell<Option<String>>,
     #[conditional_malloc_size_of]
@@ -43,7 +41,7 @@ pub(crate) struct TimelineActor {
 
 struct Emitter {
     from: String,
-    stream: TcpStream,
+    stream: DevtoolsConnection,
     registry: Arc<Mutex<ActorRegistry>>,
     start_stamp: CrossProcessInstant,
 
@@ -148,7 +146,6 @@ impl TimelineActor {
             marker_types,
             script_sender,
             is_recording: Arc::new(Mutex::new(false)),
-            stream: AtomicRefCell::new(None),
             framerate_actor: AtomicRefCell::new(None),
             memory_actor: AtomicRefCell::new(None),
             start_stamp: CrossProcessInstant::now(),
@@ -216,9 +213,6 @@ impl Actor for TimelineActor {
                     ))
                     .unwrap();
 
-                // TODO: support multiple connections by using root actor's streams instead.
-                *self.stream.borrow_mut() = request.try_clone_stream().ok();
-
                 // init memory actor
                 if let Some(with_memory) = msg.get("withMemory") {
                     if let Some(true) = with_memory.as_bool() {
@@ -242,7 +236,7 @@ impl Actor for TimelineActor {
                     self.name(),
                     self.registry.clone(),
                     self.start_stamp,
-                    request.try_clone_stream().unwrap(),
+                    request.stream(),
                     self.memory_actor.borrow().clone(),
                     self.framerate_actor.borrow().clone(),
                 );
@@ -279,7 +273,6 @@ impl Actor for TimelineActor {
                 }
 
                 **self.is_recording.lock().as_mut().unwrap() = false;
-                self.stream.borrow_mut().take();
                 request.reply_final(&msg)?
             },
 
@@ -303,7 +296,7 @@ impl Emitter {
         name: String,
         registry: Arc<Mutex<ActorRegistry>>,
         start_stamp: CrossProcessInstant,
-        stream: TcpStream,
+        stream: DevtoolsConnection,
         memory_actor_name: Option<String>,
         framerate_actor_name: Option<String>,
     ) -> Emitter {
