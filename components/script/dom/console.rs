@@ -268,7 +268,7 @@ fn console_object_from_handle_value(
 }
 
 #[expect(unsafe_code)]
-fn stringify_handle_value(message: HandleValue) -> DOMString {
+pub(crate) fn stringify_handle_value(message: HandleValue) -> DOMString {
     let cx = GlobalScope::get_cx();
     unsafe {
         if message.is_string() {
