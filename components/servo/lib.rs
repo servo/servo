@@ -54,6 +54,7 @@ pub use servo_base::id::WebViewId;
 pub use servo_config::opts::{DiagnosticsLogging, Opts, OutputOptions};
 pub use servo_config::prefs::{PrefValue, Preferences, UserAgentPlatform};
 pub use servo_config::{opts, pref, prefs};
+pub use servo_constellation_traits::UrlRequest;
 pub use servo_geometry::{
     DeviceIndependentIntRect, DeviceIndependentPixel, convert_rect_to_css_pixel,
 };

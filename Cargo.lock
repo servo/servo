@@ -7420,6 +7420,7 @@ dependencies = [
  "hyper 1.8.1",
  "image",
  "ipc-channel",
+ "itertools 0.14.0",
  "keyboard-types",
  "log",
  "mozangle",
@@ -7683,6 +7684,7 @@ dependencies = [
 name = "servo-constellation-traits"
 version = "0.0.6"
 dependencies = [
+ "base64 0.22.1",
  "content-security-policy",
  "encoding_rs",
  "euclid",

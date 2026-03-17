@@ -24,7 +24,7 @@ use paint_api::rendering_context::RenderingContext;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::WebViewId;
 use servo_config::pref;
-use servo_constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
+use servo_constellation_traits::{EmbedderToConstellationMessage, TraversalDirection, UrlRequest};
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
@@ -453,42 +453,18 @@ impl WebView {
             .constellation_proxy()
             .send(EmbedderToConstellationMessage::LoadUrl(
                 self.id(),
-                url.into(),
-                None,
+                UrlRequest::new(url.into()),
             ))
     }
 
     /// Load a URL with additional HTTP headers.
-    pub fn load_url_with_headers(&self, url: Url, headers: http::HeaderMap) {
+    pub fn load_with_request(&self, url_request: UrlRequest) {
         self.inner()
             .servo
             .constellation_proxy()
             .send(EmbedderToConstellationMessage::LoadUrl(
                 self.id(),
-                url.into(),
-                Some(headers),
-            ))
-    }
-
-    /// Loads the given data into this WebView, using `base_url` as the base URL for the content.
-    pub fn load_data(
-        &self,
-        base_url: Option<Url>,
-        data: String,
-        mime_type: Option<String>,
-        encoding: Option<String>,
-        history_url: Option<Url>,
-    ) {
-        self.inner()
-            .servo
-            .constellation_proxy()
-            .send(EmbedderToConstellationMessage::LoadData(
-                self.id(),
-                base_url.map(Into::into),
-                data,
-                mime_type,
-                encoding,
-                history_url.map(Into::into),
+                url_request,
             ))
     }
 

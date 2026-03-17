@@ -14,7 +14,9 @@ mod structured_data;
 use std::collections::VecDeque;
 use std::fmt;
 use std::time::Duration;
-use http::HeaderMap;
+
+use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use embedder_traits::user_contents::{
     UserContentManagerId, UserScript, UserScriptId, UserStyleSheet, UserStyleSheetId,
 };
@@ -24,6 +26,8 @@ use embedder_traits::{
     ViewportDetails, WebDriverCommandMsg,
 };
 pub use from_script_message::*;
+use http::HeaderMap;
+use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::PinchZoomInfos;
 use profile_traits::mem::MemoryReportResult;
@@ -47,17 +51,8 @@ pub enum EmbedderToConstellationMessage {
     Exit,
     /// Whether to allow script to navigate.
     AllowNavigationResponse(PipelineId, bool),
-    /// Request to load a page, optionally with additional HTTP headers.
-    LoadUrl(WebViewId, ServoUrl, Option<HeaderMap>),
-    /// Request to load inline content from a data string with a base URL.
-    LoadData(
-        WebViewId,
-        Option<ServoUrl>,
-        String,
-        Option<String>,
-        Option<String>,
-        Option<ServoUrl>,
-    ),
+    /// Request to load a page, with optionally additional data in [`URLRequest`].
+    LoadUrl(WebViewId, UrlRequest),
     /// Request to traverse the joint session history of the provided browsing context.
     TraverseHistory(WebViewId, TraversalDirection, TraversalId),
     /// Inform the Constellation that a `WebView`'s [`ViewportDetails`] have changed.
@@ -135,6 +130,89 @@ pub enum UserContentManagerAction {
     RemoveUserScript(UserScriptId),
     AddUserStyleSheet(UserStyleSheet),
     RemoveUserStyleSheet(UserStyleSheetId),
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+/// Data that can be additionally loaded for a given url such as extra headers
+/// or other data.
+/// ```
+/// let url_request = URLRequest::new().headers(headers);
+/// webview.load_url(url, Some(url_request));
+/// ```
+pub struct UrlRequest {
+    url: ServoUrl,
+    #[serde(
+        deserialize_with = "hyper_serde::deserialize",
+        serialize_with = "hyper_serde::serialize"
+    )]
+    headers: HeaderMap,
+    data: Option<Vec<u8>>,
+    mime_type: Option<String>,
+    encoding: Option<String>,
+    base_url: Option<String>,
+}
+
+impl UrlRequest {
+    pub fn new(url: ServoUrl) -> Self {
+        UrlRequest {
+            url,
+            headers: HeaderMap::new(),
+            data: None,
+            mime_type: None,
+            encoding: None,
+            base_url: None,
+        }
+    }
+
+    /// Set headers that will be added to the Headers
+    pub fn headers(mut self, headers: HeaderMap) -> Self {
+        self.headers = headers;
+        self
+    }
+
+    /// Loads the given data into the webview with `mime_type` and using the `encoding`
+    /// using `base_url` as the base url.
+    pub fn data(
+        mut self,
+        data: Vec<u8>,
+        mime_type: Option<String>,
+        encoding: String,
+        base_url: String,
+    ) -> Self {
+        self.data = Some(data);
+        self.mime_type = Some(mime_type.unwrap_or_else(|| String::from("text/html")));
+        self.encoding = Some(encoding);
+        self.base_url = Some(base_url);
+        self
+    }
+
+    /// Create a [`LoadData`] struct to be used by the constellation to load a webview.
+    pub fn load_data(self) -> Option<LoadData> {
+        let mut load_data = if let Some(data) = self.data {
+            let data_url_string = format!(
+                "data:{};charset={};base64,{}",
+                self.mime_type.unwrap(),
+                self.encoding.unwrap(),
+                BASE64_STANDARD.encode(data)
+            );
+
+            let Ok(url) = ServoUrl::parse(&data_url_string) else {
+                warn!("LoadUrl failed with failure to construct data URL");
+                return None;
+            };
+            let mut load_data = LoadData::new_for_new_unrelated_webview(url);
+            load_data.about_base_url = ServoUrl::parse(&self.base_url.unwrap()).ok();
+            load_data
+        } else {
+            LoadData::new_for_new_unrelated_webview(self.url)
+        };
+
+        if !self.headers.is_empty() {
+            load_data.headers.extend(self.headers);
+        }
+
+        Some(load_data)
+    }
 }
 
 /// A description of a paint metric that is sent from the Servo renderer to the

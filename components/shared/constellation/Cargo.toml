@@ -18,6 +18,7 @@ bluetooth = []
 webgpu = ["wgpu-core"]
 
 [dependencies]
+base64 = { workspace = true }
 content-security-policy = { workspace = true }
 devtools_traits = { workspace = true }
 embedder_traits = { workspace = true }

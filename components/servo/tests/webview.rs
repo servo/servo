@@ -8,12 +8,16 @@ mod common;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::atomic::AtomicUsize;
 
 use dpi::PhysicalSize;
 use euclid::{Point2D, Size2D};
+use http::{HeaderMap, HeaderName, HeaderValue};
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
+use itertools::Itertools;
 use net::test_util::{make_body, make_server, replace_host_table};
 use servo::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
@@ -23,6 +27,7 @@ use servo::{
     WebViewDelegate, WebViewPoint, WebViewVector,
 };
 use servo_config::prefs::Preferences;
+use servo_constellation_traits::UrlRequest;
 use servo_url::ServoUrl;
 use url::Url;
 use webrender_api::units::{DeviceIntSize, DevicePoint, DeviceVector2D};
@@ -904,4 +909,120 @@ fn test_pinch_zoom_update_dom_visual_viewport() {
     assert_eq!(eval_visual_viewport("height"), Some(100.));
     assert_eq!(eval_visual_viewport("offsetLeft"), Some(100.));
     assert_eq!(eval_visual_viewport("offsetTop"), Some(100.));
+}
+
+#[test]
+fn test_webview_load_with_headers() {
+    let servo_test = ServoTest::new();
+    let request_count = Arc::new(AtomicUsize::new(0));
+    let request_count_clone = request_count.clone();
+
+    let mut headers = HeaderMap::new();
+    headers.append(HeaderName::from_static("world"), "hello".parse().unwrap());
+    headers.append(HeaderName::from_static("second"), "header".parse().unwrap());
+    headers.append(
+        HeaderName::from_static("accept-encoding"),
+        "customzip".parse().unwrap(),
+    );
+    static MESSAGE: &'static [u8] = b"<!DOCTYPE html>\nHello";
+    let handler =
+        move |req: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            if request_count_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 2 {
+                let headers = req.headers();
+                assert_eq!(
+                    headers.get("world"),
+                    Some(&HeaderValue::from_static("hello"))
+                );
+                assert_eq!(
+                    headers.get("second"),
+                    Some(&HeaderValue::from_static("header"))
+                );
+
+                // headers should be added if they already exist.
+                assert!(
+                    headers
+                        .get_all("accept-encoding")
+                        .iter()
+                        .contains(&HeaderValue::from_static("customzip"))
+                );
+                assert!(headers.get_all("accept-encoding").iter().count() > 1);
+            } else {
+                *response.body_mut() = make_body(MESSAGE.to_vec());
+            }
+        };
+    let (server, url) = make_server(handler);
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(url.clone().into_url())
+        .build();
+
+    {
+        let delegate = delegate.clone();
+        servo_test.spin(move || !delegate.url_changed.get());
+    }
+
+    let urlrequest = UrlRequest::new(url).headers(headers);
+    webview.load_with_request(urlrequest);
+    {
+        let request_count = request_count.clone();
+        servo_test.spin(move || request_count.load(std::sync::atomic::Ordering::SeqCst) < 2);
+    }
+    assert_eq!(request_count.load(std::sync::atomic::Ordering::SeqCst), 2);
+    server.close();
+}
+
+#[test]
+fn test_webview_load_bytes() {
+    let servo_test = ServoTest::new();
+    let request_count = Arc::new(AtomicUsize::new(0));
+    let request_count_clone = request_count.clone();
+    static MESSAGE: &'static [u8] = b"<!DOCTYPE html><title>NoTesting</title>\nHello";
+    const MESSAGE2: &[u8] = b"<!DOCTYPE html>\n<title>Testing</title>\nHello for this test";
+
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            request_count_clone.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            *response.body_mut() = make_body(MESSAGE.to_vec());
+        };
+    let (server, url) = make_server(handler);
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(url.clone().into_url())
+        .build();
+
+    {
+        let delegate = delegate.clone();
+        servo_test.spin(move || !delegate.url_changed.get());
+    }
+    delegate.url_changed.set(false);
+
+    let urlrequest = UrlRequest::new(url).data(
+        MESSAGE2.to_vec(),
+        Some("text/html".into()),
+        "UTF-8".into(),
+        "about:blank".into(),
+    );
+    webview.load_with_request(urlrequest);
+    {
+        let webview = webview.clone();
+
+        // servo needs to spin a while to reset the load status
+        let spin_count = AtomicUsize::new(0);
+        servo_test.spin(move || {
+            !(spin_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst) > 50 &&
+                webview.load_status() == LoadStatus::Complete)
+        });
+    }
+
+    assert_eq!(request_count.load(std::sync::atomic::Ordering::SeqCst), 1);
+    assert_eq!(webview.page_title(), Some("Testing".into()));
+    server.close();
 }
