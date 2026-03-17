@@ -32,7 +32,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
@@ -339,10 +339,10 @@ impl HTMLVideoElementMethods<crate::DomTypeHolder> for HTMLVideoElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-video-poster
-    make_getter!(Poster, "poster");
+    make_url_getter!(Poster, "poster");
 
     // https://html.spec.whatwg.org/multipage/#dom-video-poster
-    make_setter!(SetPoster, "poster");
+    make_url_setter!(SetPoster, "poster");
 
     // For testing purposes only. This is not an event from
     // https://html.spec.whatwg.org/multipage/#dom-video-poster
