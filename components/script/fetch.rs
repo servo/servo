@@ -563,7 +563,7 @@ impl FetchResponseListener for FetchContext {
                 );
                 self.fetch_promise = Some(TrustedPromise::new(promise));
                 let response = self.response_object.root();
-                response.set_type(DOMResponseType::Error, CanGc::note());
+                response.set_type(DOMResponseType::Error, CanGc::from_cx(cx));
                 response.error_stream(
                     Error::Type(c"Network error occurred".to_owned()),
                     CanGc::from_cx(cx),
@@ -581,7 +581,7 @@ impl FetchResponseListener for FetchContext {
                 },
                 FetchMetadata::Filtered { filtered, .. } => match filtered {
                     FilteredMetadata::Basic(m) => {
-                        fill_headers_with_metadata(self.response_object.root(), m, CanGc::note());
+                        fill_headers_with_metadata(self.response_object.root(), m, CanGc::from_cx(cx));
                         self.response_object
                             .root()
                             .set_type(DOMResponseType::Basic, CanGc::from_cx(cx));
