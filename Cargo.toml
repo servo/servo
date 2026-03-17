@@ -56,7 +56,7 @@ cssparser = { version = "0.36", features = ["serde"] }
 ctr = "0.9.2"
 data-url = "0.3"
 der = { version = "0.7", features = ["alloc", "derive"] }
-digest = "0.10"
+digest = "0.11"
 dpi = "0.1"
 dwrote = "0.11.5"
 ecdsa = "0.16"
