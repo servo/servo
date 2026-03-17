@@ -7310,7 +7310,6 @@ dependencies = [
  "rustls",
  "serde",
  "servo",
- "servo-allocator",
  "servo-background-hang-monitor",
  "servo-base",
  "servo-bluetooth",
@@ -7486,7 +7485,6 @@ dependencies = [
  "malloc_size_of_derive",
  "serde",
  "servo-base",
- "servo-config",
  "servo-fonts-traits",
  "servo-malloc-size-of",
  "servo-pixels",
@@ -7548,7 +7546,6 @@ dependencies = [
  "servo-net",
  "servo-net-traits",
  "servo-paint-api",
- "servo-profile",
  "servo-profile-traits",
  "servo-script-traits",
  "servo-storage-traits",
@@ -7560,8 +7557,6 @@ dependencies = [
  "stylo",
  "stylo_traits",
  "tracing",
- "webrender",
- "webrender_api",
 ]
 
 [[package]]
@@ -7593,7 +7588,6 @@ dependencies = [
  "servo-url",
  "servo-webgpu-traits",
  "strum",
- "stylo_traits",
  "uuid",
  "webrender_api",
  "wgpu-core",
@@ -7639,9 +7633,7 @@ dependencies = [
 name = "servo-devtools-traits"
 version = "0.0.6"
 dependencies = [
- "bitflags 2.11.0",
  "http 1.4.0",
- "log",
  "malloc_size_of_derive",
  "serde",
  "servo-base",
@@ -7687,7 +7679,6 @@ dependencies = [
  "strum",
  "stylo",
  "stylo_traits",
- "tokio",
  "url",
  "uuid",
  "webdriver",
@@ -7811,11 +7802,9 @@ dependencies = [
 name = "servo-layout"
 version = "0.0.6"
 dependencies = [
- "accesskit",
  "app_units",
  "atomic_refcell",
  "bitflags 2.11.0",
- "cssparser",
  "data-url",
  "euclid",
  "html5ever",
@@ -7882,7 +7871,6 @@ dependencies = [
  "servo-base",
  "servo-embedder-traits",
  "servo-fonts",
- "servo-fonts-traits",
  "servo-malloc-size-of",
  "servo-net-traits",
  "servo-paint-api",
@@ -8322,7 +8310,6 @@ dependencies = [
  "servo-embedder-traits",
  "servo-geometry",
  "servo-malloc-size-of",
- "servo-pixels",
  "servo-profile-traits",
  "servo-tracing",
  "servo-url",
@@ -8379,7 +8366,6 @@ dependencies = [
  "serde",
  "servo-allocator",
  "servo-base",
- "servo-config",
  "servo-malloc-size-of",
  "time",
  "tracing",
@@ -8426,12 +8412,10 @@ dependencies = [
  "hkdf",
  "html5ever",
  "http 1.4.0",
- "image",
  "indexmap",
  "ipc-channel",
  "itertools 0.14.0",
  "keyboard-types",
- "kurbo 0.12.0",
  "libc",
  "log",
  "malloc_size_of_derive",
@@ -8514,7 +8498,6 @@ dependencies = [
  "tracing",
  "unicode-bidi",
  "unicode-script",
- "unicode-segmentation",
  "url",
  "urlpattern",
  "utf-8",
@@ -8571,15 +8554,12 @@ name = "servo-script-traits"
 version = "0.0.6"
 dependencies = [
  "accesskit",
- "content-security-policy",
  "crossbeam-channel",
  "euclid",
  "keyboard-types",
- "log",
  "malloc_size_of_derive",
  "rustc-hash 2.1.1",
  "serde",
- "servo-background-hang-monitor-api",
  "servo-base",
  "servo-bluetooth-traits",
  "servo-canvas-traits",
@@ -8617,7 +8597,6 @@ dependencies = [
  "sea-query",
  "sea-query-rusqlite",
  "serde",
- "serde_json",
  "servo-base",
  "servo-config",
  "servo-malloc-size-of",
@@ -8627,10 +8606,6 @@ dependencies = [
  "servo-storage-traits",
  "servo-url",
  "tempfile",
- "tokio",
- "tokio-rustls",
- "tokio-stream",
- "tokio-util",
  "url",
  "uuid",
 ]
@@ -8727,7 +8702,6 @@ dependencies = [
  "servo-webxr",
  "servo-webxr-api",
  "surfman",
- "webrender",
  "webrender_api",
 ]
 

@@ -26,15 +26,10 @@ rustc-hash = { workspace = true }
 sea-query = { workspace = true }
 sea-query-rusqlite = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
 servo_config = { workspace = true }
 servo-url = { workspace = true }
 storage_traits = { workspace = true }
 tempfile = "3"
-tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
-tokio-rustls = { workspace = true }
-tokio-stream = { workspace = true }
-tokio-util = { workspace = true, features = ["codec", "io"] }
 uuid = { workspace = true }
 
 [dev-dependencies]

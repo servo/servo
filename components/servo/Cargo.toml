@@ -114,7 +114,6 @@ servo-media = { workspace = true }
 servo-media-dummy = { workspace = true }
 servo-media-gstreamer = { workspace = true, optional = true }
 servo-tracing = { workspace = true }
-servo_allocator = { workspace = true }
 servo_config = { workspace = true }
 servo_geometry = { workspace = true }
 servo-url = { workspace = true }

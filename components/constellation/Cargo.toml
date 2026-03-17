@@ -47,7 +47,6 @@ net = { workspace = true }
 net_traits = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
-profile = { workspace = true }
 profile_traits = { workspace = true }
 rand = { workspace = true }
 rustc-hash = { workspace = true }
@@ -62,8 +61,6 @@ stylo_traits = { workspace = true }
 tracing = { workspace = true, optional = true }
 webgpu = { workspace = true }
 webgpu_traits = { workspace = true }
-webrender = { workspace = true }
-webrender_api = { workspace = true }
 webxr-api = { workspace = true }
 
 [target.'cfg(any(target_os="macos", all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_env="ohos"), not(target_arch="arm"), not(target_arch="aarch64"))))'.dependencies]

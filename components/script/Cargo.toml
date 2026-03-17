@@ -81,14 +81,12 @@ hkdf = { workspace = true }
 html5ever = { workspace = true }
 http = { workspace = true }
 hyper_serde = { workspace = true }
-image = { workspace = true }
 indexmap = { workspace = true }
 ipc-channel = { workspace = true }
 itertools = { workspace = true }
 js = { workspace = true }
 jstraceable_derive = { workspace = true }
 keyboard-types = { workspace = true }
-kurbo = { workspace = true }
 layout_api = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
@@ -153,7 +151,6 @@ timers = { workspace = true }
 tracing = { workspace = true, optional = true }
 unicode-bidi = { workspace = true }
 unicode-script = { workspace = true }
-unicode-segmentation = { workspace = true }
 url = { workspace = true }
 urlpattern = { workspace = true }
 utf-8 = { workspace = true }
