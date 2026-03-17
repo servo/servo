@@ -1392,25 +1392,6 @@ impl DocumentEventHandler {
             flags = event.flags();
         }
 
-        if flags.contains(EventFlags::Canceled) {
-            return flags.into();
-        }
-
-        // This behavior is unspecced
-        // We are supposed to dispatch synthetic click activation for Space and/or Return,
-        // however *when* we do it is up to us.
-        // Here, we're dispatching it after the key event so the script has a chance to cancel it
-        // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27337
-        if (keyboard_event.event.key == Key::Named(NamedKey::Enter) ||
-            keyboard_event.event.code == Code::Space) &&
-            keyboard_event.event.state == KeyState::Up
-        {
-            if let Some(elem) = target.downcast::<Element>() {
-                elem.upcast::<Node>()
-                    .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
-            }
-        }
-
         flags.into()
     }
 
@@ -1887,8 +1868,48 @@ impl DocumentEventHandler {
         }
     }
 
-    pub(crate) fn run_default_keyboard_event_handler(&self, event: &KeyboardEvent, can_gc: CanGc) {
+    /// <https://w3c.github.io/uievents/#keydown>
+    ///
+    /// > If the key is the Enter or (Space) key and the current focus is on a state-changing element,
+    /// > the default action MUST be to dispatch a click event, and a DOMActivate event if that event
+    /// > type is supported by the user agent.
+    pub(crate) fn maybe_dispatch_simulated_click(
+        &self,
+        node: &Node,
+        event: &KeyboardEvent,
+        can_gc: CanGc,
+    ) -> bool {
+        if event.key() != Key::Named(NamedKey::Enter) && event.original_code() != Some(Code::Space)
+        {
+            return false;
+        }
+
+        // Check whether this node is a state-changing element. Note that the specification doesn't
+        // seem to have a good definition of what "state-changing" means, so we merely check to
+        // see if the element is activatable here.
+        if node
+            .downcast::<Element>()
+            .and_then(Element::as_maybe_activatable)
+            .is_none()
+        {
+            return false;
+        }
+
+        node.fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
+        true
+    }
+
+    pub(crate) fn run_default_keyboard_event_handler(
+        &self,
+        node: &Node,
+        event: &KeyboardEvent,
+        can_gc: CanGc,
+    ) {
         if event.upcast::<Event>().type_() != atom!("keydown") {
+            return;
+        }
+
+        if self.maybe_dispatch_simulated_click(node, event, can_gc) {
             return;
         }
 
@@ -1906,6 +1927,11 @@ impl DocumentEventHandler {
             Key::Named(NamedKey::PageDown) => KeyboardScroll::PageDown,
             Key::Named(NamedKey::PageUp) => KeyboardScroll::PageUp,
             Key::Named(NamedKey::Tab) => {
+                // From <https://w3c.github.io/uievents/#keydown>:
+                //
+                // > If the key is the Tab key, the default action MUST be to shift the document focus
+                // > from the currently focused element (if any) to the new focused element, as
+                // > described in Focus Event Types
                 self.sequential_focus_navigation_via_keyboard_event(event, can_gc);
                 return;
             },
