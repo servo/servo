@@ -204,8 +204,7 @@ static CONTENT_EVENT_HANDLER_NAMES: LazyLock<FxHashSet<&str>> = LazyLock::new(||
             "onbegin",
             "onend",
             "onrepeat",
-        ]
-        .into_iter(),
+        ],
     )
 });
 
