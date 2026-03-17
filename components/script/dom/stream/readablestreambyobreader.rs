@@ -429,7 +429,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
         let view = HeapBufferSource::<ArrayBufferViewU8>::from_view(view);
         let min = options.min;
         // Let promise be a new promise.
-        let promise = Promise::new(&self.global(), CanGc::from_cx(cx));
+        let promise = Promise::new2(cx, &self.global());
 
         // If view.[[ByteLength]] is 0, return a promise rejected with a TypeError exception.
         if view.byte_length() == 0 {

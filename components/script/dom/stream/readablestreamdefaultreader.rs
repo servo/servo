@@ -665,7 +665,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
             );
         }
         // Let promise be a new promise.
-        let promise = Promise::new(&self.global(), CanGc::from_cx(cx));
+        let promise = Promise::new2(cx, &self.global());
 
         // Let readRequest be a new read request with the following items:
         // chunk steps, given chunk
