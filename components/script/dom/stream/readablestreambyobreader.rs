@@ -422,14 +422,14 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
     /// <https://streams.spec.whatwg.org/#byob-reader-read>
     fn Read(
         &self,
-        cx: &mut CurrentRealm,
+        cx: &mut js::context::JSContext,
         view: CustomAutoRooterGuard<ArrayBufferView>,
         options: &ReadableStreamBYOBReaderReadOptions,
     ) -> Rc<Promise> {
         let view = HeapBufferSource::<ArrayBufferViewU8>::from_view(view);
         let min = options.min;
         // Let promise be a new promise.
-        let promise = Promise::new_in_realm(cx);
+        let promise = Promise::new(&self.global(), CanGc::from_cx(cx));
 
         // If view.[[ByteLength]] is 0, return a promise rejected with a TypeError exception.
         if view.byte_length() == 0 {
@@ -532,7 +532,7 @@ impl ReadableStreamBYOBReaderMethods<crate::DomTypeHolder> for ReadableStreamBYO
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
-    fn Cancel(&self, cx: &mut CurrentRealm, reason: SafeHandleValue) -> Rc<Promise> {
+    fn Cancel(&self, cx: &mut js::context::JSContext, reason: SafeHandleValue) -> Rc<Promise> {
         self.generic_cancel(cx, &self.global(), reason)
     }
 }

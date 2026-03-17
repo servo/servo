@@ -5,7 +5,6 @@
 use std::rc::Rc;
 
 use js::jsval::UndefinedValue;
-use js::realm::CurrentRealm;
 use js::rust::HandleValue as SafeHandleValue;
 
 use super::readablestream::ReaderType;
@@ -142,14 +141,14 @@ pub(crate) trait ReadableStreamGenericReader {
     // <https://streams.spec.whatwg.org/#generic-reader-cancel>
     fn generic_cancel(
         &self,
-        cx: &mut CurrentRealm,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
     ) -> Rc<Promise> {
         if self.get_stream().is_none() {
             // If this.[[stream]] is undefined,
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new_in_realm(cx);
+            let promise = Promise::new(global, CanGc::from_cx(cx));
             promise.reject_error(
                 Error::Type(c"stream is undefined".to_owned()),
                 CanGc::from_cx(cx),

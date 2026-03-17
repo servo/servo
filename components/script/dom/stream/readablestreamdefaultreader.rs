@@ -647,7 +647,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
     }
 
     /// <https://streams.spec.whatwg.org/#default-reader-read>
-    fn Read(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+    fn Read(&self, cx: &mut js::context::JSContext) -> Rc<Promise> {
         // If this.[[stream]] is undefined, return a promise rejected with a TypeError exception.
         if self.stream.get().is_none() {
             rooted!(&in(cx) let mut error = UndefinedValue());
@@ -665,7 +665,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
             );
         }
         // Let promise be a new promise.
-        let promise = Promise::new_in_realm(cx);
+        let promise = Promise::new(&self.global(), CanGc::from_cx(cx));
 
         // Let readRequest be a new read request with the following items:
         // chunk steps, given chunk
@@ -706,7 +706,7 @@ impl ReadableStreamDefaultReaderMethods<crate::DomTypeHolder> for ReadableStream
     }
 
     /// <https://streams.spec.whatwg.org/#generic-reader-cancel>
-    fn Cancel(&self, cx: &mut CurrentRealm, reason: SafeHandleValue) -> Rc<Promise> {
+    fn Cancel(&self, cx: &mut js::context::JSContext, reason: SafeHandleValue) -> Rc<Promise> {
         self.generic_cancel(cx, &self.global(), reason)
     }
 }
