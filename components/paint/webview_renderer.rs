@@ -45,6 +45,7 @@ pub(crate) struct ScrollEvent {
     /// Scroll the scroll node that is found at this point.
     pub point: DevicePoint,
     /// The number of OS events that have been coalesced together into this one event.
+    #[cfg(target_os = "macos")]
     pub event_count: u32,
 }
 
@@ -511,8 +512,8 @@ impl WebViewRenderer {
         if !self.touch_handler.is_handling_touch_move_for_touch_id(
             self.touch_handler.current_sequence_id,
             event.touch_id,
-        ) && self.send_touch_event(render_api, event, id) &&
-            event.is_cancelable()
+        ) && self.send_touch_event(render_api, event, id)
+            && event.is_cancelable()
         {
             self.touch_handler.set_handling_touch_move_for_touch_id(
                 self.touch_handler.current_sequence_id,
@@ -602,11 +603,11 @@ impl WebViewRenderer {
                         TouchSequenceState::Finished => {
                             self.touch_handler.remove_touch_sequence(sequence_id);
                         },
-                        TouchSequenceState::Touching |
-                        TouchSequenceState::Panning { .. } |
-                        TouchSequenceState::Pinching |
-                        TouchSequenceState::MultiTouch |
-                        TouchSequenceState::PendingFling { .. } => {
+                        TouchSequenceState::Touching
+                        | TouchSequenceState::Panning { .. }
+                        | TouchSequenceState::Pinching
+                        | TouchSequenceState::MultiTouch
+                        | TouchSequenceState::PendingFling { .. } => {
                             // It's possible to transition from Pinch to pan, Which means that
                             // a touch_up event for a pinch might have arrived here, but we
                             // already transitioned to pan or even PendingFling.
@@ -670,9 +671,9 @@ impl WebViewRenderer {
                         TouchSequenceState::Finished => {
                             self.touch_handler.remove_touch_sequence(sequence_id);
                         },
-                        TouchSequenceState::Panning { .. } |
-                        TouchSequenceState::Pinching |
-                        TouchSequenceState::PendingFling { .. } => {
+                        TouchSequenceState::Panning { .. }
+                        | TouchSequenceState::Pinching
+                        | TouchSequenceState::PendingFling { .. } => {
                             // It's possible to transition from Pinch to pan, Which means that
                             // a touch_up event for a pinch might have arrived here, but we
                             // already transitioned to pan or even PendingFling.
@@ -729,6 +730,7 @@ impl WebViewRenderer {
             .push(ScrollZoomEvent::Scroll(ScrollEvent {
                 scroll,
                 point: cursor,
+                #[cfg(target_os = "macos")]
                 event_count: 1,
             }));
     }
@@ -768,11 +770,12 @@ impl WebViewRenderer {
                     };
 
                     match (combined_event.scroll, scroll_event_info.scroll) {
+                        // Mac OS X sometimes delivers scroll events out of vsync during a
+                        // fling. This causes events to get bunched up occasionally, causing
+                        // nasty-looking "pops". To mitigate this, during a fling we average
+                        // deltas instead of summing them.
+                        #[cfg(target_os = "macos")]
                         (Scroll::Delta(old_delta), Scroll::Delta(new_delta)) => {
-                            // Mac OS X sometimes delivers scroll events out of vsync during a
-                            // fling. This causes events to get bunched up occasionally, causing
-                            // nasty-looking "pops". To mitigate this, during a fling we average
-                            // deltas instead of summing them.
                             let old_event_count = combined_event.event_count as f32;
                             combined_event.event_count += 1;
                             let new_event_count = combined_event.event_count as f32;
@@ -781,6 +784,15 @@ impl WebViewRenderer {
                             let new_delta =
                                 new_delta.as_device_vector(device_pixels_per_page_pixel);
                             let delta = (old_delta * old_event_count + new_delta) / new_event_count;
+                            combined_event.scroll = Scroll::Delta(delta.into());
+                        },
+                        #[cfg(not(target_os = "macos"))]
+                        (Scroll::Delta(old_delta), Scroll::Delta(new_delta)) => {
+                            let old_delta =
+                                old_delta.as_device_vector(device_pixels_per_page_pixel);
+                            let new_delta =
+                                new_delta.as_device_vector(device_pixels_per_page_pixel);
+                            let delta = old_delta + new_delta;
                             combined_event.scroll = Scroll::Delta(delta.into());
                         },
                         (Scroll::Start, _) | (Scroll::End, _) => {
@@ -866,8 +878,8 @@ impl WebViewRenderer {
         let mut previous_pipeline_id = None;
         for hit_test_result in hit_test_results {
             let pipeline_details = self.pipelines.get_mut(&hit_test_result.pipeline_id)?;
-            if previous_pipeline_id.replace(hit_test_result.pipeline_id) !=
-                Some(hit_test_result.pipeline_id)
+            if previous_pipeline_id.replace(hit_test_result.pipeline_id)
+                != Some(hit_test_result.pipeline_id)
             {
                 let scroll_result = pipeline_details.scroll_tree.scroll_node_or_ancestor(
                     hit_test_result.external_scroll_id,

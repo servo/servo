@@ -475,6 +475,7 @@ impl TouchHandler {
                     Some(ScrollZoomEvent::Scroll(ScrollEvent {
                         scroll: Scroll::Delta((-delta).into()),
                         point,
+                        #[cfg(target_os = "macos")]
                         event_count: 1,
                     }))
                 } else if delta.x.abs() > TOUCH_PAN_MIN_SCREEN_PX * scale ||
@@ -497,6 +498,7 @@ impl TouchHandler {
                     Some(ScrollZoomEvent::Scroll(ScrollEvent {
                         scroll: Scroll::Delta((-delta).into()),
                         point,
+                        #[cfg(target_os = "macos")]
                         event_count: 1,
                     }))
                 } else {
