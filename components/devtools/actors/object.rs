@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use devtools_traits::PropertyPreview;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
-use serde_json::{Map, Value};
+use serde_json::{Map, Number, Value};
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
+use crate::actors::property_iterator::PropertyIteratorActor;
 use crate::protocol::ClientRequest;
 
 #[derive(Serialize)]
@@ -58,11 +60,76 @@ pub(crate) struct ObjectActorMsg {
     preview: ObjectPreview,
 }
 
+#[derive(Serialize)]
+pub(crate) struct PropertyDescriptor {
+    pub configurable: bool,
+    pub enumerable: bool,
+    pub writable: bool,
+    pub value: Value,
+}
+
+impl From<&PropertyPreview> for PropertyDescriptor {
+    fn from(prop: &PropertyPreview) -> Self {
+        Self {
+            configurable: prop.configurable,
+            enumerable: prop.enumerable,
+            writable: prop.writable,
+            value: property_value_to_json(prop),
+        }
+    }
+}
+
+/// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/utils.js#148>
+fn property_value_to_json(prop: &PropertyPreview) -> Value {
+    match prop.value_type.as_str() {
+        "undefined" => {
+            let mut v = Map::new();
+            v.insert("type".to_owned(), Value::String("undefined".to_owned()));
+            Value::Object(v)
+        },
+        "null" => Value::Null,
+        "boolean" => Value::Bool(prop.boolean_value.unwrap_or(false)),
+        "number" => {
+            let num = prop.number_value.unwrap_or(0.0);
+            if num.is_nan() {
+                let mut v = Map::new();
+                v.insert("type".to_owned(), Value::String("NaN".to_owned()));
+                Value::Object(v)
+            } else if num.is_infinite() {
+                let mut v = Map::new();
+                let type_str = if num.is_sign_positive() {
+                    "Infinity"
+                } else {
+                    "-Infinity"
+                };
+                v.insert("type".to_owned(), Value::String(type_str.to_owned()));
+                Value::Object(v)
+            } else {
+                Value::Number(Number::from_f64(num).unwrap_or(Number::from(0)))
+            }
+        },
+        "string" => Value::String(prop.string_value.clone().unwrap_or_default()),
+        "object" => {
+            let mut v = Map::new();
+            v.insert("type".to_owned(), Value::String("object".to_owned()));
+            if let Some(ref obj_class) = prop.object_class {
+                v.insert("class".to_owned(), Value::String(obj_class.clone()));
+            }
+            if let Some(ref obj_name) = prop.value_name {
+                v.insert("name".to_owned(), Value::String(obj_name.clone()));
+            }
+            Value::Object(v)
+        },
+        _ => Value::Null,
+    }
+}
+
 #[derive(MallocSizeOf)]
 pub(crate) struct ObjectActor {
     name: String,
     _uuid: Option<String>,
     class: String,
+    properties: Vec<PropertyPreview>,
 }
 
 impl Actor for ObjectActor {
@@ -81,15 +148,18 @@ impl Actor for ObjectActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "enumProperties" => {
-                let property_iterator = PropertyIteratorActor {
-                    name: registry.new_name::<PropertyIteratorActor>(),
-                };
+                let property_iterator = PropertyIteratorActor::new(
+                    registry.new_name::<PropertyIteratorActor>(),
+                    self.properties.clone(),
+                );
+                let count = property_iterator.count();
+                let actor_name = property_iterator.name();
                 let msg = EnumReply {
                     from: self.name(),
                     iterator: EnumIterator {
-                        actor: property_iterator.name(),
+                        actor: actor_name,
                         type_: EnumIteratorType::PropertyIterator,
-                        count: 0,
+                        count,
                     },
                 };
                 registry.register(property_iterator);
@@ -128,12 +198,22 @@ impl Actor for ObjectActor {
 
 impl ObjectActor {
     pub fn register(registry: &ActorRegistry, uuid: Option<String>, class: String) -> String {
+        Self::register_with_properties(registry, uuid, class, Vec::new())
+    }
+
+    pub fn register_with_properties(
+        registry: &ActorRegistry,
+        uuid: Option<String>,
+        class: String,
+        properties: Vec<PropertyPreview>,
+    ) -> String {
         let Some(uuid) = uuid else {
             let name = registry.new_name::<Self>();
             let actor = ObjectActor {
                 name: name.clone(),
                 _uuid: None,
                 class,
+                properties,
             };
             registry.register(actor);
             return name;
@@ -144,6 +224,7 @@ impl ObjectActor {
                 name: name.clone(),
                 _uuid: Some(uuid.clone()),
                 class,
+                properties,
             };
 
             registry.register_script_actor(uuid, name.clone());
@@ -162,7 +243,7 @@ impl ActorEncode<ObjectActorMsg> for ObjectActor {
             actor: self.name(),
             type_: "object".into(),
             class: self.class.clone(),
-            own_property_length: 0,
+            own_property_length: self.properties.len() as i32,
             extensible: true,
             frozen: false,
             sealed: false,
@@ -172,18 +253,6 @@ impl ActorEncode<ObjectActorMsg> for ObjectActor {
                 url: "".into(), // TODO: Use the correct url
             },
         }
-    }
-}
-
-// TODO: Implement functionality of property and symbol iterators
-#[derive(MallocSizeOf)]
-struct PropertyIteratorActor {
-    name: String,
-}
-
-impl Actor for PropertyIteratorActor {
-    fn name(&self) -> String {
-        self.name.clone()
     }
 }
 

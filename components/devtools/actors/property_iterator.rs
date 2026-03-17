@@ -2,38 +2,41 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// TODO: Remove once the actor is used
-#![allow(dead_code)]
-
 use std::collections::HashMap;
 
+use devtools_traits::PropertyPreview;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
 
 use crate::StreamId;
 use crate::actor::{Actor, ActorError, ActorRegistry};
+use crate::actors::object::PropertyDescriptor;
 use crate::protocol::ClientRequest;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct SliceReply {
     from: String,
-    own_properties: HashMap<String, Value>,
+    own_properties: HashMap<String, PropertyDescriptor>,
 }
 
 #[derive(MallocSizeOf)]
-pub struct PropertyIteratorActor {
+pub(crate) struct PropertyIteratorActor {
     name: String,
+    properties: Vec<PropertyPreview>,
 }
 
 impl PropertyIteratorActor {
-    pub fn new(name: String) -> Self {
-        Self { name }
+    pub fn new(name: String, properties: Vec<PropertyPreview>) -> Self {
+        Self { name, properties }
+    }
+
+    pub fn count(&self) -> u32 {
+        self.properties.len() as u32
     }
 }
 
-// <https://searchfox.org/firefox-main/source/devtools/server/actors/object/property-iterator.js>
 impl Actor for PropertyIteratorActor {
     fn name(&self) -> String {
         self.name.clone()
@@ -44,15 +47,25 @@ impl Actor for PropertyIteratorActor {
         request: ClientRequest,
         _registry: &ActorRegistry,
         msg_type: &str,
-        _msg: &Map<String, Value>,
+        msg: &Map<String, Value>,
         _id: StreamId,
     ) -> Result<(), ActorError> {
         match msg_type {
             "slice" => {
-                // TODO: Return actual properties based on start/count from msg
+                let start = msg.get("start").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+                let count = msg
+                    .get("count")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(self.properties.len() as u64) as usize;
+
+                let mut own_properties = HashMap::new();
+                for prop in self.properties.iter().skip(start).take(count) {
+                    own_properties.insert(prop.name.clone(), PropertyDescriptor::from(prop));
+                }
+
                 let reply = SliceReply {
                     from: self.name(),
-                    own_properties: HashMap::new(),
+                    own_properties,
                 };
                 request.reply_final(&reply)?
             },

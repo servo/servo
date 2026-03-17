@@ -72,10 +72,133 @@ addEventListener("addDebuggee", event => {
     }
 });
 
-// Create a result value object from a debuggee value.
-// Debuggee values: <https://firefox-source-docs.mozilla.org/js/Debugger/Conventions.html#debuggee-values>
-// Type detection follows Firefox's createValueGrip pattern:
+// Maximum number of properties to include in preview
+// <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#29>
+const OBJECT_PREVIEW_MAX_ITEMS = 10;
+
+// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#80>
+const previewers = {
+    Function: [],
+    Object: [],
+    // TODO: Add Array, Map, FormData etc
+};
+
+// Convert debuggee value to property descriptor value
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/utils.js#116>
+function valueToPropertyValue(val) {
+    switch (typeof val) {
+        case "undefined":
+            return { valueType: "undefined" };
+        case "boolean":
+            return { valueType: "boolean", booleanValue: val };
+        case "number":
+            return { valueType: "number", numberValue: val };
+        case "string":
+            return { valueType: "string", stringValue: val };
+        case "object":
+            if (val === null) {
+                return { valueType: "null" };
+            }
+            return {
+                valueType: "object",
+                objectClass: val.class,
+                valueName: val.callable ? val.name : undefined,
+            };
+        default:
+            return { valueType: "string", stringValue: String(val) };
+    }
+}
+
+// Extract own properties from a debuggee object
+// <https://firefox-source-docs.mozilla.org/devtools-user/debugger-api/debugger.object/index.html#function-properties-of-the-debugger-object-prototype>
+function extractOwnProperties(obj, maxItems = OBJECT_PREVIEW_MAX_ITEMS) {
+    const ownProperties = [];
+    let totalLength = 0;
+
+    let names;
+    try {
+        names = obj.getOwnPropertyNames();
+        totalLength = names.length;
+    } catch (e) {
+        return { ownProperties, ownPropertiesLength: 0 };
+    }
+
+    let count = 0;
+    for (const name of names) {
+        if (count >= maxItems) break;
+        try {
+            const desc = obj.getOwnPropertyDescriptor(name);
+            if (desc) {
+                const prop = {
+                    name: name,
+                    configurable: desc.configurable ?? false,
+                    enumerable: desc.enumerable ?? false,
+                    writable: desc.writable ?? false,
+                    isAccessor: desc.get !== undefined || desc.set !== undefined,
+                    valueType: "undefined",
+                };
+
+                if (desc.value !== undefined) {
+                    Object.assign(prop, valueToPropertyValue(desc.value));
+                } else if (desc.get) {
+                    try {
+                        const result = desc.get.call(obj);
+                        if (result && "return" in result) {
+                            Object.assign(prop, valueToPropertyValue(result.return));
+                        }
+                    } catch (e) {
+                        prop.valueType = "undefined";
+                    }
+                }
+
+                ownProperties.push(prop);
+                count++;
+            }
+        } catch (e) {
+            // For now skip properties that throw on access
+        }
+    }
+
+    return { ownProperties, ownPropertiesLength: totalLength };
+}
+
+// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#125>
+previewers.Function.push(function FunctionPreviewer(obj) {
+    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj);
+
+    return {
+        displayName: obj.displayName,
+        parameterNames: obj.parameterNames,
+        isAsync: obj.isAsyncFunction,
+        isGenerator: obj.isGeneratorFunction,
+        ownProperties,
+        ownPropertiesLength,
+    };
+});
+
+// Generic fallback for object previewer
+// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#856>
+previewers.Object.push(function ObjectPreviewer(obj) {
+    const { ownProperties, ownPropertiesLength } = extractOwnProperties(obj);
+    return {
+        ownProperties,
+        ownPropertiesLength,
+    };
+});
+
+function getPreview(obj) {
+    const className = obj.class;
+
+    // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object.js#295>
+    const typePreviewers = previewers[className] || previewers.Object;
+    for (const previewer of typePreviewers) {
+        const result = previewer(obj);
+        if (result) return result;
+    }
+
+    return { ownProperties: [], ownPropertiesLength: 0 };
+}
+
 function createValueResult(value) {
     switch (typeof value) {
         case "undefined":
@@ -90,16 +213,15 @@ function createValueResult(value) {
             if (value === null) {
                 return { valueType: "null" };
             }
-            // Debugger.Object - use the `class` accessor property
+            // Debugger.Object - get preview using registered previewers
             // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Object.html>
-            if (value.callable) {
-                return {
-                    valueType: "object",
-                    objectClass: value.class,
-                    name: value.name
-                };
-            }
-            return { valueType: "object", objectClass: value.class };
+            const preview = getPreview(value);
+            return {
+                valueType: "object",
+                objectClass: value.class,
+                name: value.name,
+                ...preview,
+            };
         default:
             return { valueType: "string", stringValue: String(value) };
     }

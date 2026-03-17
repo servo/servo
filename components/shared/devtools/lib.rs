@@ -151,7 +151,28 @@ pub enum DomMutation {
     },
 }
 
-/// Serialized JS return values
+/// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/property-iterator.js#51>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PropertyPreview {
+    pub name: String,
+    pub configurable: bool,
+    pub enumerable: bool,
+    pub writable: bool,
+    pub is_accessor: bool,
+    pub value_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub boolean_value: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub number_value: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub string_value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub object_class: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value_name: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub enum EvaluateJSReplyValue {
     VoidValue,
@@ -163,6 +184,14 @@ pub enum EvaluateJSReplyValue {
         class: String,
         uuid: String,
         name: Option<String>,
+        // Function-specific
+        display_name: Option<String>,
+        parameter_names: Option<Vec<String>>,
+        is_async: Option<bool>,
+        is_generator: Option<bool>,
+        // Object preview
+        own_properties: Option<Vec<PropertyPreview>>,
+        own_properties_length: Option<u32>,
     },
 }
 

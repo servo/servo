@@ -27,7 +27,7 @@ use uuid::Uuid;
 
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
-use crate::actors::object::ObjectActor;
+use crate::actors::object::{ObjectActor, PropertyDescriptor};
 use crate::actors::worker::WorkerActor;
 use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
@@ -74,14 +74,6 @@ fn console_argument_to_value(argument: ConsoleArgument, registry: &ActorRegistry
             // These are currently never cleaned up, and we make no attempt at re-using the same actor
             // if the same object is logged repeatedly.
             let actor = ObjectActor::register(registry, None, object.class.clone());
-
-            #[derive(Serialize)]
-            struct PropertyDescriptor {
-                configurable: bool,
-                enumerable: bool,
-                writable: bool,
-                value: Value,
-            }
 
             #[derive(Serialize)]
             #[serde(rename_all = "camelCase")]
@@ -378,9 +370,26 @@ impl ConsoleActor {
                 }
             },
             StringValue(s) => Value::String(s),
-            ActorValue { class, uuid, name } => {
+            ActorValue {
+                class,
+                uuid,
+                name,
+                display_name,
+                parameter_names,
+                is_async,
+                is_generator,
+                own_properties,
+                own_properties_length,
+            } => {
+                let properties = own_properties.clone().unwrap_or_default();
+
                 let mut m = Map::new();
-                let actor = ObjectActor::register(registry, Some(uuid), class.clone());
+                let actor = ObjectActor::register_with_properties(
+                    registry,
+                    Some(uuid),
+                    class.clone(),
+                    properties,
+                );
 
                 m.insert("type".to_owned(), Value::String("object".to_owned()));
                 m.insert("class".to_owned(), Value::String(class));
@@ -391,6 +400,49 @@ impl ConsoleActor {
                 if let Some(name) = name {
                     m.insert("name".to_owned(), Value::String(name));
                 }
+
+                // Function-specific metadata
+                if let Some(display_name) = display_name {
+                    m.insert("displayName".to_owned(), Value::String(display_name));
+                }
+                if let Some(param_names) = parameter_names {
+                    m.insert(
+                        "parameterNames".to_owned(),
+                        Value::Array(param_names.into_iter().map(Value::String).collect()),
+                    );
+                }
+                if let Some(is_async) = is_async {
+                    m.insert("isAsync".to_owned(), Value::Bool(is_async));
+                }
+                if let Some(is_generator) = is_generator {
+                    m.insert("isGenerator".to_owned(), Value::Bool(is_generator));
+                }
+
+                // Build preview with ownProperties
+                // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#849>
+                let mut preview = Map::new();
+                preview.insert("kind".to_owned(), Value::String("Object".to_owned()));
+
+                if let Some(ref props) = own_properties {
+                    let mut own_props_map = Map::new();
+                    for prop in props {
+                        let descriptor =
+                            serde_json::to_value(PropertyDescriptor::from(prop)).unwrap();
+                        own_props_map.insert(prop.name.clone(), descriptor);
+                    }
+                    preview.insert("ownProperties".to_owned(), Value::Object(own_props_map));
+                }
+
+                if let Some(length) = own_properties_length {
+                    preview.insert(
+                        "ownPropertiesLength".to_owned(),
+                        Value::Number(length.into()),
+                    );
+                    m.insert("ownPropertyLength".to_owned(), Value::Number(length.into()));
+                }
+
+                m.insert("preview".to_owned(), Value::Object(preview));
+
                 Value::Object(m)
             },
         };
