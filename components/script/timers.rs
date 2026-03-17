@@ -649,11 +649,11 @@ impl JsTimers {
                 let sink = format!("{} {}", global_name, method_name);
                 // Step 9.6.1.4. Set handler to the result of invoking the
                 // Get Trusted Type compliant string algorithm with TrustedScript, global, handler, sink, and "script".
-                let code_str = TrustedScript::get_trusted_script_compliant_string(
+                let code_str = TrustedScript::get_trusted_type_compliant_string(
+                    cx,
                     global,
                     trusted_script_or_string,
                     &sink,
-                    CanGc::from_cx(cx),
                 )?;
                 // Step 9.6.3. Perform EnsureCSPDoesNotBlockStringCompilation(realm, « », handler, handler, timer, « », handler).
                 // If this throws an exception, catch it, report it for global, and abort these steps.
