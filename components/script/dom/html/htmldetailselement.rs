@@ -180,13 +180,13 @@ impl HTMLDetailsElement {
         let root = self.upcast::<Element>().attach_ua_shadow_root(cx, true);
 
         let summary = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("slot")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
         let summary = DomRoot::downcast::<HTMLSlotElement>(summary).unwrap();
         root.upcast::<Node>()
@@ -194,13 +194,13 @@ impl HTMLDetailsElement {
             .unwrap();
 
         let fallback_summary = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("summary")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
         let fallback_summary = DomRoot::downcast::<HTMLElement>(fallback_summary).unwrap();
         fallback_summary
@@ -212,13 +212,13 @@ impl HTMLDetailsElement {
             .unwrap();
 
         let details_content = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("slot")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
         let details_content = DomRoot::downcast::<HTMLSlotElement>(details_content).unwrap();
 

@@ -68,13 +68,13 @@ impl HTMLAudioElementMethods<crate::DomTypeHolder> for HTMLAudioElement {
         // Step 2. Let audio be the result of creating an element given document, "audio", and the
         // HTML namespace.
         let audio = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("audio")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             proto,
-            CanGc::from_cx(cx),
         );
 
         // Step 3. Set an attribute value for audio using "preload" and "auto".

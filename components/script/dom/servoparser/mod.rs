@@ -1139,26 +1139,26 @@ impl ParserContext {
         // to the address of the image, video, or audio resource.
         let node = if media_type == MediaType::Image {
             let img = Element::create(
+                cx,
                 QualName::new(None, ns!(html), local_name!("img")),
                 None,
                 doc,
                 ElementCreator::ParserCreated(1),
                 CustomElementCreationMode::Asynchronous,
                 None,
-                CanGc::from_cx(cx),
             );
             let img = DomRoot::downcast::<HTMLImageElement>(img).unwrap();
             img.SetSrc(USVString(self.url.to_string()));
             DomRoot::upcast::<Node>(img)
         } else if mime_type.type_() == mime::AUDIO {
             let audio = Element::create(
+                cx,
                 QualName::new(None, ns!(html), local_name!("audio")),
                 None,
                 doc,
                 ElementCreator::ParserCreated(1),
                 CustomElementCreationMode::Asynchronous,
                 None,
-                CanGc::from_cx(cx),
             );
             let audio = DomRoot::downcast::<HTMLMediaElement>(audio).unwrap();
             audio.SetControls(true);
@@ -1166,13 +1166,13 @@ impl ParserContext {
             DomRoot::upcast::<Node>(audio)
         } else {
             let video = Element::create(
+                cx,
                 QualName::new(None, ns!(html), local_name!("video")),
                 None,
                 doc,
                 ElementCreator::ParserCreated(1),
                 CustomElementCreationMode::Asynchronous,
                 None,
-                CanGc::from_cx(cx),
             );
             let video = DomRoot::downcast::<HTMLMediaElement>(video).unwrap();
             video.SetControls(true);
@@ -1946,15 +1946,7 @@ fn create_element_for_token(
     } else {
         CustomElementCreationMode::Asynchronous
     };
-    let element = Element::create(
-        name,
-        is,
-        document,
-        creator,
-        creation_mode,
-        None,
-        CanGc::from_cx(cx),
-    );
+    let element = Element::create(cx, name, is, document, creator, creation_mode, None);
 
     // Step 11. Append each attribute in the given token to element.
     for attr in attrs {

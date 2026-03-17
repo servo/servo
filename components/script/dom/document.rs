@@ -5518,13 +5518,13 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             },
         };
         Ok(Element::create(
+            cx,
             name,
             is,
             self,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             None,
-            CanGc::from_cx(cx),
         ))
     }
 
@@ -5554,13 +5554,13 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         // Step 4. Return the result of creating an element given document, localName, namespace, prefix, is, and true.
         Ok(Element::create(
+            cx,
             name,
             is,
             self,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             None,
-            CanGc::from_cx(cx),
         ))
     }
 
@@ -5848,13 +5848,13 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                 None => {
                     let name = QualName::new(None, ns!(svg), local_name!("title"));
                     let elem = Element::create(
+                        cx,
                         name,
                         None,
                         self,
                         ElementCreator::ScriptCreated,
                         CustomElementCreationMode::Synchronous,
                         None,
-                        CanGc::from_cx(cx),
                     );
                     let parent = root.upcast::<Node>();
                     let child = elem.upcast::<Node>();
@@ -5874,13 +5874,13 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
                     Some(head) => {
                         let name = QualName::new(None, ns!(html), local_name!("title"));
                         let elem = Element::create(
+                            cx,
                             name,
                             None,
                             self,
                             ElementCreator::ScriptCreated,
                             CustomElementCreationMode::Synchronous,
                             None,
-                            CanGc::from_cx(cx),
                         );
                         head.upcast::<Node>()
                             .AppendChild(cx, elem.upcast())

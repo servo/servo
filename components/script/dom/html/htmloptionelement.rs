@@ -255,13 +255,13 @@ impl HTMLOptionElementMethods<crate::DomTypeHolder> for HTMLOptionElement {
         selected: bool,
     ) -> Fallible<DomRoot<HTMLOptionElement>> {
         let element = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("option")),
             None,
             &window.Document(),
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Synchronous,
             proto,
-            CanGc::from_cx(cx),
         );
 
         let option = DomRoot::downcast::<HTMLOptionElement>(element).unwrap();

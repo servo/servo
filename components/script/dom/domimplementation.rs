@@ -213,13 +213,13 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             // and the HTML namespace, to doc.
             let doc_node = doc.upcast::<Node>();
             let doc_html = DomRoot::upcast::<Node>(Element::create(
+                cx,
                 QualName::new(None, ns!(html), local_name!("html")),
                 None,
                 &doc,
                 ElementCreator::ScriptCreated,
                 CustomElementCreationMode::Asynchronous,
                 None,
-                CanGc::from_cx(cx),
             ));
             doc_node
                 .AppendChild(cx, &doc_html)
@@ -229,13 +229,13 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                 // Step 5. Append the result of creating an element given doc, "head",
                 // and the HTML namespace, to the html element created earlier.
                 let doc_head = DomRoot::upcast::<Node>(Element::create(
+                    cx,
                     QualName::new(None, ns!(html), local_name!("head")),
                     None,
                     &doc,
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Asynchronous,
                     None,
-                    CanGc::from_cx(cx),
                 ));
                 doc_html.AppendChild(cx, &doc_head).unwrap();
 
@@ -244,13 +244,13 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
                     // Step 6.1. Append the result of creating an element given doc, "title",
                     // and the HTML namespace, to the head element created earlier.
                     let doc_title = DomRoot::upcast::<Node>(Element::create(
+                        cx,
                         QualName::new(None, ns!(html), local_name!("title")),
                         None,
                         &doc,
                         ElementCreator::ScriptCreated,
                         CustomElementCreationMode::Asynchronous,
                         None,
-                        CanGc::from_cx(cx),
                     ));
                     doc_head.AppendChild(cx, &doc_title).unwrap();
 
@@ -264,13 +264,13 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
             // Step 7. Append the result of creating an element given doc, "body",
             // and the HTML namespace, to the html element created earlier.
             let doc_body = Element::create(
+                cx,
                 QualName::new(None, ns!(html), local_name!("body")),
                 None,
                 &doc,
                 ElementCreator::ScriptCreated,
                 CustomElementCreationMode::Asynchronous,
                 None,
-                CanGc::from_cx(cx),
             );
             doc_html.AppendChild(cx, doc_body.upcast()).unwrap();
         }

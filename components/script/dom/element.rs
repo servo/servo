@@ -280,15 +280,15 @@ impl FromStr for AdjacentPosition {
 //
 impl Element {
     pub(crate) fn create(
+        cx: &mut JSContext,
         name: QualName,
         is: Option<LocalName>,
         document: &Document,
         creator: ElementCreator,
         mode: CustomElementCreationMode,
         proto: Option<HandleObject>,
-        can_gc: CanGc,
     ) -> DomRoot<Element> {
-        create_element(name, is, document, creator, mode, proto, can_gc)
+        create_element(cx, name, is, document, creator, mode, proto)
     }
 
     pub(crate) fn new_inherited(
@@ -2884,13 +2884,13 @@ impl Element {
             // set context to the result of creating an element
             // given this's node document, "body", and the HTML namespace.
             _ => Element::create(
+                cx,
                 QualName::new(None, ns!(html), local_name!("body")),
                 None,
                 owner_doc,
                 ElementCreator::ScriptCreated,
                 CustomElementCreationMode::Asynchronous,
-                None,
-                CanGc::from_cx(cx),
+                None
             ),
         }
     }
@@ -3853,13 +3853,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             // creating an element given this's node document, "body", and the HTML namespace.
             NodeTypeId::DocumentFragment(_) => {
                 let body_elem = Element::create(
+                    cx,
                     QualName::new(None, ns!(html), local_name!("body")),
                     None,
                     &context_document,
                     ElementCreator::ScriptCreated,
                     CustomElementCreationMode::Synchronous,
                     None,
-                    CanGc::from_cx(cx),
                 );
                 DomRoot::upcast(body_elem)
             },

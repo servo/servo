@@ -75,13 +75,13 @@ impl HTMLProgressElement {
         let root = self.upcast::<Element>().attach_ua_shadow_root(cx, true);
 
         let progress_bar = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("div")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            CanGc::from_cx(cx),
         );
 
         // FIXME: This should use ::-moz-progress-bar

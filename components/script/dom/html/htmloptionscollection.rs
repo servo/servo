@@ -63,13 +63,13 @@ impl HTMLOptionsCollection {
 
         for _ in 0..count {
             let element = Element::create(
+                cx,
                 QualName::new(None, ns!(html), local_name!("option")),
                 None,
                 &document,
                 ElementCreator::ScriptCreated,
                 CustomElementCreationMode::Asynchronous,
                 None,
-                CanGc::from_cx(cx),
             );
             let node = element.upcast::<Node>();
             root.AppendChild(cx, node)?;
