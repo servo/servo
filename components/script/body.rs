@@ -271,30 +271,30 @@ impl TransmitBodyConnectHandler {
             task!(setup_native_body_promise_handler: move |cx| {
                 let rooted_stream = stream.root();
                 let global = rooted_stream.global();
+                let mut realm = enter_auto_realm(cx, &*global);
+                let realm = &mut realm.current_realm();
 
                 // Step 4, the result of reading a chunk from body’s stream with reader.
-                let promise = rooted_stream.read_a_chunk(cx);
+                let promise = rooted_stream.read_a_chunk(realm);
 
                 // Step 5, the parallel steps waiting for and handling the result of the read promise,
                 // are a combination of the promise native handler here,
                 // and the corresponding IPC route in `component::net::http_loader`.
-                rooted!(&in(cx) let mut promise_handler = Some(TransmitBodyPromiseHandler {
+                rooted!(&in(realm) let mut promise_handler = Some(TransmitBodyPromiseHandler {
                     bytes_sender: bytes_sender.clone(),
                     stream: Dom::from_ref(&rooted_stream),
                     control_sender: control_sender.clone().unwrap(),
                 }));
 
-                rooted!(&in(cx) let mut rejection_handler = Some(TransmitBodyPromiseRejectionHandler {
+                rooted!(&in(realm) let mut rejection_handler = Some(TransmitBodyPromiseRejectionHandler {
                     bytes_sender,
                     stream: Dom::from_ref(&rooted_stream),
                     control_sender: control_sender.unwrap(),
                 }));
 
                 let handler =
-                    PromiseNativeHandler::new(&global, promise_handler.take().map(|h| Box::new(h) as Box<_>), rejection_handler.take().map(|h| Box::new(h) as Box<_>), CanGc::from_cx(cx));
+                    PromiseNativeHandler::new(&global, promise_handler.take().map(|h| Box::new(h) as Box<_>), rejection_handler.take().map(|h| Box::new(h) as Box<_>), CanGc::from_cx(realm));
 
-                let mut realm = enter_auto_realm(cx, &*global);
-                let realm = &mut realm.current_realm();
                 let in_realm_proof = realm.into();
                 let comp = InRealm::Already(&in_realm_proof);
                 promise.append_native_handler(&handler, comp, CanGc::from_cx(realm));
