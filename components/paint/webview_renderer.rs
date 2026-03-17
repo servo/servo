@@ -44,8 +44,6 @@ pub(crate) struct ScrollEvent {
     pub scroll: Scroll,
     /// Scroll the scroll node that is found at this point.
     pub point: DevicePoint,
-    /// The number of OS events that have been coalesced together into this one event.
-    pub event_count: u32,
 }
 
 #[derive(Clone, Copy)]
@@ -729,7 +727,6 @@ impl WebViewRenderer {
             .push(ScrollZoomEvent::Scroll(ScrollEvent {
                 scroll,
                 point: cursor,
-                event_count: 1,
             }));
     }
 
@@ -769,19 +766,11 @@ impl WebViewRenderer {
 
                     match (combined_event.scroll, scroll_event_info.scroll) {
                         (Scroll::Delta(old_delta), Scroll::Delta(new_delta)) => {
-                            // Mac OS X sometimes delivers scroll events out of vsync during a
-                            // fling. This causes events to get bunched up occasionally, causing
-                            // nasty-looking "pops". To mitigate this, during a fling we average
-                            // deltas instead of summing them.
-                            let old_event_count = combined_event.event_count as f32;
-                            combined_event.event_count += 1;
-                            let new_event_count = combined_event.event_count as f32;
                             let old_delta =
                                 old_delta.as_device_vector(device_pixels_per_page_pixel);
                             let new_delta =
                                 new_delta.as_device_vector(device_pixels_per_page_pixel);
-                            let delta = (old_delta * old_event_count + new_delta) / new_event_count;
-                            combined_event.scroll = Scroll::Delta(delta.into());
+                            combined_event.scroll = Scroll::Delta((old_delta + new_delta).into());
                         },
                         (Scroll::Start, _) | (Scroll::End, _) => {
                             // Once we see Start or End, we shouldn't process any more events.
