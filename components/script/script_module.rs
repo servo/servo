@@ -56,6 +56,7 @@ use script_bindings::error::Fallible;
 use script_bindings::settings_stack::run_a_callback;
 use script_bindings::trace::CustomTraceable;
 use serde_json::{Map as JsonMap, Value as JsonValue};
+use servo_config::pref;
 use servo_url::ServoUrl;
 
 use crate::DomTypeHolder;
@@ -1328,7 +1329,9 @@ pub(crate) fn fetch_a_modulepreload_module(
 
             // Step 3. If result is not null, optionally fetch the descendants of and link result
             // given settingsObject, destination, and an empty algorithm.
-            if let Some(module) = result {
+            if let Some(module) = result &&
+                pref!(dom_allow_preloading_module_descendants)
+            {
                 fetch_the_descendants_and_link_module_script(module, destination, owner, None);
             }
         },
