@@ -263,7 +263,7 @@ impl Callback for PipeTo {
 
                     if !done {
                         // If any chunks have been read but not yet written, write them to dest.
-                        self.write_chunk(cx.into(), &global, result, CanGc::from_cx(cx));
+                        self.write_chunk(cx, &global, result);
                     }
                 }
             }
@@ -292,7 +292,7 @@ impl Callback for PipeTo {
             },
             PipeToState::PendingRead => {
                 // Write the chunk.
-                self.write_chunk(cx.into(), &global, result, CanGc::from_cx(cx));
+                self.write_chunk(cx, &global, result);
 
                 // An early return is necessary if the write algorithm aborted the pipe.
                 if self.shutting_down.get() {
@@ -426,21 +426,26 @@ impl PipeTo {
     #[expect(unsafe_code)]
     fn write_chunk(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
-        can_gc: CanGc,
     ) -> bool {
         if chunk.is_object() {
-            rooted!(in(*cx) let object = chunk.to_object());
-            rooted!(in(*cx) let mut bytes = UndefinedValue());
+            rooted!(&in(cx) let object = chunk.to_object());
+            rooted!(&in(cx) let mut bytes = UndefinedValue());
             let has_value = unsafe {
-                get_dictionary_property(*cx, object.handle(), c"value", bytes.handle_mut(), can_gc)
-                    .expect("Chunk should have a value.")
+                get_dictionary_property(
+                    cx.raw_cx(),
+                    object.handle(),
+                    c"value",
+                    bytes.handle_mut(),
+                    CanGc::from_cx(cx),
+                )
+                .expect("Chunk should have a value.")
             };
             if has_value {
                 // Write the chunk.
-                let write_promise = self.writer.write(cx, global, bytes.handle(), can_gc);
+                let write_promise = self.writer.write(cx, global, bytes.handle());
                 self.pending_writes.borrow_mut().push_back(write_promise);
                 return true;
             }
@@ -669,9 +674,9 @@ impl PipeTo {
                     .expect("Reader should have a stream.");
                 source.cancel(cx, global, error.handle())
             },
-            ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation => self
-                .writer
-                .close_with_error_propagation(cx.into(), global, CanGc::from_cx(cx)),
+            ShutdownAction::WritableStreamDefaultWriterCloseWithErrorPropagation => {
+                self.writer.close_with_error_propagation(cx, global)
+            },
             ShutdownAction::Abort => {
                 // Note: implementation of the `abortAlgorithm`
                 // of the signal associated with this piping operation.

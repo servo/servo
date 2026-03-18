@@ -207,15 +207,14 @@ impl CompressionStreamMethods<crate::DomTypeHolder> for CompressionStream {
 
 /// <https://compression.spec.whatwg.org/#compress-and-enqueue-a-chunk>
 pub(crate) fn compress_and_enqueue_a_chunk(
-    cx: SafeJSContext,
+    cx: &mut js::context::JSContext,
     global: &GlobalScope,
     cs: &CompressionStream,
     chunk: SafeHandleValue,
     controller: &TransformStreamDefaultController,
-    can_gc: CanGc,
 ) -> Fallible<()> {
     // Step 1. If chunk is not a BufferSource type, then throw a TypeError.
-    let chunk = convert_chunk_to_vec(cx, chunk, can_gc)?;
+    let chunk = convert_chunk_to_vec(cx.into(), chunk, CanGc::from_cx(cx))?;
 
     // Step 2. Let buffer be the result of compressing chunk with cs’s format and context.
     // NOTE: In our implementation, the enum type of context already indicates the format.
@@ -238,13 +237,17 @@ pub(crate) fn compress_and_enqueue_a_chunk(
     // converting them into Uint8Arrays.
     // Step 5. For each Uint8Array array of arrays, enqueue array in cs’s transform.
     // NOTE: We process the result in a single Uint8Array.
-    rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
-    let buffer_source =
-        create_buffer_source::<Uint8>(cx, buffer, js_object.handle_mut(), can_gc)
-            .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
-    rooted!(in(*cx) let mut rval = UndefinedValue());
-    buffer_source.safe_to_jsval(cx, rval.handle_mut(), can_gc);
-    controller.enqueue(cx, global, rval.handle(), can_gc)?;
+    rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
+    let buffer_source = create_buffer_source::<Uint8>(
+        cx.into(),
+        buffer,
+        js_object.handle_mut(),
+        CanGc::from_cx(cx),
+    )
+    .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
+    rooted!(&in(cx) let mut rval = UndefinedValue());
+    buffer_source.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+    controller.enqueue(cx, global, rval.handle())?;
 
     // NOTE: We don't need to keep result that has been copied to Uint8Array. Clear the inner
     // buffer of compressor to save memory.
@@ -255,11 +258,10 @@ pub(crate) fn compress_and_enqueue_a_chunk(
 
 /// <https://compression.spec.whatwg.org/#compress-flush-and-enqueue>
 pub(crate) fn compress_flush_and_enqueue(
-    cx: SafeJSContext,
+    cx: &mut js::context::JSContext,
     global: &GlobalScope,
     cs: &CompressionStream,
     controller: &TransformStreamDefaultController,
-    can_gc: CanGc,
 ) -> Fallible<()> {
     // Step 1. Let buffer be the result of compressing an empty input with cs’s format and context,
     // with the finish flag.
@@ -280,13 +282,17 @@ pub(crate) fn compress_flush_and_enqueue(
     // converting them into Uint8Arrays.
     // Step 4. For each Uint8Array array of arrays, enqueue array in cs’s transform.
     // NOTE: We process the result in a single Uint8Array.
-    rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
-    let buffer_source =
-        create_buffer_source::<Uint8>(cx, buffer, js_object.handle_mut(), can_gc)
-            .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
-    rooted!(in(*cx) let mut rval = UndefinedValue());
-    buffer_source.safe_to_jsval(cx, rval.handle_mut(), can_gc);
-    controller.enqueue(cx, global, rval.handle(), can_gc)?;
+    rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
+    let buffer_source = create_buffer_source::<Uint8>(
+        cx.into(),
+        buffer,
+        js_object.handle_mut(),
+        CanGc::from_cx(cx),
+    )
+    .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
+    rooted!(&in(cx) let mut rval = UndefinedValue());
+    buffer_source.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
+    controller.enqueue(cx, global, rval.handle())?;
 
     // NOTE: We don't need to keep result that has been copied to Uint8Array. Clear the inner
     // buffer of compressor to save memory.
