@@ -473,7 +473,12 @@ impl WebViewRenderer {
         result
     }
 
-    fn on_touch_down(&mut self, render_api: &RenderApi, event: TouchEvent, id: InputEventId) -> bool {
+    fn on_touch_down(
+        &mut self,
+        render_api: &RenderApi,
+        event: TouchEvent,
+        id: InputEventId,
+    ) -> bool {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
@@ -481,7 +486,12 @@ impl WebViewRenderer {
         self.send_touch_event(render_api, event, id)
     }
 
-    fn on_touch_move(&mut self, render_api: &RenderApi, mut event: TouchEvent, id: InputEventId) -> bool {
+    fn on_touch_move(
+        &mut self,
+        render_api: &RenderApi,
+        mut event: TouchEvent,
+        id: InputEventId,
+    ) -> bool {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
@@ -523,7 +533,7 @@ impl WebViewRenderer {
         reached_constellation
     }
 
-    fn on_touch_up(&mut self, render_api: &RenderApi, event: TouchEvent, id: InputEventId)-> bool {
+    fn on_touch_up(&mut self, render_api: &RenderApi, event: TouchEvent, id: InputEventId) -> bool {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
@@ -531,7 +541,12 @@ impl WebViewRenderer {
         self.send_touch_event(render_api, event, id)
     }
 
-    fn on_touch_cancel(&mut self, render_api: &RenderApi, event: TouchEvent, id: InputEventId) -> bool {
+    fn on_touch_cancel(
+        &mut self,
+        render_api: &RenderApi,
+        event: TouchEvent,
+        id: InputEventId,
+    ) -> bool {
         let point = event
             .point
             .as_device_point(self.device_pixels_per_page_pixel());
