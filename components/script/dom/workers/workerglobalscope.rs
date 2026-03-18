@@ -81,7 +81,7 @@ use crate::fetch::{CspViolationsProcessor, Fetch, RequestWithGlobalScope, load_w
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
@@ -923,12 +923,11 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
     fn Fetch(
         &self,
+        realm: &mut CurrentRealm,
         input: RequestOrUSVString,
         init: RootedTraceableBox<RequestInit>,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
-        Fetch(self.upcast(), input, init, comp, can_gc)
+        Fetch(self.upcast(), input, init, realm)
     }
 
     /// <https://w3c.github.io/hr-time/#the-performance-attribute>

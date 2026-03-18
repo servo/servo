@@ -1798,10 +1798,9 @@ impl ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#rbs-controller-private-cancel>
     pub(crate) fn perform_cancel_steps(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Perform ! ReadableByteStreamControllerClearPendingPullIntos(this).
         self.clear_pending_pull_intos();
@@ -1816,19 +1815,18 @@ impl ReadableByteStreamController {
 
         // Let result be the result of performing this.[[cancelAlgorithm]], passing in reason.
         let result = underlying_source
-            .call_cancel_algorithm(cx, global, reason, can_gc)
+            .call_cancel_algorithm(cx, global, reason)
             .unwrap_or_else(|| {
-                let promise = Promise::new(global, can_gc);
-                promise.resolve_native(&(), can_gc);
+                let promise = Promise::new2(cx, global);
+                promise.resolve_native(&(), CanGc::from_cx(cx));
                 Ok(promise)
             });
 
         let promise = result.unwrap_or_else(|error| {
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let mut rval = UndefinedValue());
-            error.to_jsval(cx, global, rval.handle_mut(), can_gc);
-            let promise = Promise::new(global, can_gc);
-            promise.reject_native(&rval.handle(), can_gc);
+            rooted!(&in(cx) let mut rval = UndefinedValue());
+            error.to_jsval(cx.into(), global, rval.handle_mut(), CanGc::from_cx(cx));
+            let promise = Promise::new2(cx, global);
+            promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
             promise
         });
 

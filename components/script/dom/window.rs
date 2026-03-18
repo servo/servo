@@ -191,7 +191,7 @@ use crate::layout_image::fetch_image_for_layout;
 use crate::messaging::{MainThreadScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, UserMicrotask};
 use crate::network_listener::{ResourceTimingListener, submit_timing};
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::enter_realm;
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext, Runtime};
 use crate::script_thread::ScriptThread;
 use crate::script_window_proxies::ScriptWindowProxies;
@@ -2101,12 +2101,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
     fn Fetch(
         &self,
+        realm: &mut CurrentRealm,
         input: RequestOrUSVString,
         init: RootedTraceableBox<RequestInit>,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
-        fetch::Fetch(self.upcast(), input, init, comp, can_gc)
+        fetch::Fetch(self.upcast(), input, init, realm)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>

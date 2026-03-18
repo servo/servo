@@ -103,8 +103,7 @@ impl DefaultTeeReadRequest {
         global: &GlobalScope,
         reason: SafeHandleValue,
     ) {
-        self.stream
-            .cancel(cx.into(), global, reason, CanGc::from_cx(cx));
+        self.stream.cancel(cx, global, reason);
     }
     /// Enqueue a microtask to perform the chunk steps
     /// <https://streams.spec.whatwg.org/#ref-for-read-request-chunk-steps%E2%91%A2>
