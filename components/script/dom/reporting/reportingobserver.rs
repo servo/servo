@@ -210,7 +210,10 @@ impl ReportingObserver {
     pub(crate) fn strip_url_for_reports(mut url: ServoUrl) -> String {
         let scheme = url.scheme();
         // Step 1: If url’s scheme is not an HTTP(S) scheme, then return url’s scheme.
-        if scheme != "https" && scheme != "http" {
+        //
+        // Note we also treat ws(s) schemes as HTTP(S) per
+        // https://github.com/w3c/webappsec-csp/issues/735
+        if scheme != "https" && scheme != "http" && scheme != "ws" && scheme != "wss" {
             return scheme.to_owned();
         }
         // Step 2: Set url’s fragment to the empty string.

@@ -26,6 +26,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::security::cspviolationreporttask::CSPViolationReportTask;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::window::Window;
@@ -299,6 +300,33 @@ fn compute_scripted_caller_source_position() -> SourcePosition {
     }
 }
 
+/// <https://www.w3.org/TR/CSP3/#obtain-violation-blocked-uri>
+fn obtain_blocked_uri_for_violation_resource_with_sample(
+    resource: ViolationResource,
+) -> (Option<String>, String) {
+    // Step 1. Assert: resource is a URL or a string.
+    //
+    // Already done since we destructure the relevant enum value
+
+    // Step 3. Return resource.
+    match resource {
+        ViolationResource::Inline { sample } => (sample, "inline".to_owned()),
+        // Step 2. If resource is a URL, return the result of executing § 5.4 Strip URL for use in reports on resource.
+        ViolationResource::Url(url) => (
+            Some(String::new()),
+            ReportingObserver::strip_url_for_reports(url.into()),
+        ),
+        ViolationResource::TrustedTypePolicy { sample } => {
+            (Some(sample), "trusted-types-policy".to_owned())
+        },
+        ViolationResource::TrustedTypeSink { sample } => {
+            (Some(sample), "trusted-types-sink".to_owned())
+        },
+        ViolationResource::Eval { sample } => (sample, "eval".to_owned()),
+        ViolationResource::WasmEval => (None, "wasm-eval".to_owned()),
+    }
+}
+
 impl GlobalCspReporting for GlobalScope {
     /// <https://www.w3.org/TR/CSP/#report-violation>
     fn report_csp_violations(
@@ -314,18 +342,8 @@ impl GlobalCspReporting for GlobalScope {
         let source_position =
             source_position.unwrap_or_else(compute_scripted_caller_source_position);
         for violation in violations {
-            let (sample, resource) = match violation.resource {
-                ViolationResource::Inline { sample } => (sample, "inline".to_owned()),
-                ViolationResource::Url(url) => (Some(String::new()), url.into()),
-                ViolationResource::TrustedTypePolicy { sample } => {
-                    (Some(sample), "trusted-types-policy".to_owned())
-                },
-                ViolationResource::TrustedTypeSink { sample } => {
-                    (Some(sample), "trusted-types-sink".to_owned())
-                },
-                ViolationResource::Eval { sample } => (sample, "eval".to_owned()),
-                ViolationResource::WasmEval => (None, "wasm-eval".to_owned()),
-            };
+            let (sample, resource) =
+                obtain_blocked_uri_for_violation_resource_with_sample(violation.resource);
             let report = CSPViolationReportBuilder::default()
                 .resource(resource)
                 .sample(sample)

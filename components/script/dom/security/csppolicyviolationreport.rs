@@ -16,15 +16,12 @@ use crate::dom::bindings::codegen::Bindings::SecurityPolicyViolationEventBinding
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::reporting::reportingobserver::ReportingObserver;
 
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone)]
 pub(crate) struct SecurityPolicyViolationReport {
     sample: Option<String>,
-    #[serde(rename = "blockedURL")]
     blocked_url: String,
     referrer: String,
     status_code: u16,
-    #[serde(rename = "documentURL")]
     document_url: String,
     source_file: String,
     violated_directive: String,
@@ -32,7 +29,6 @@ pub(crate) struct SecurityPolicyViolationReport {
     line_number: u32,
     column_number: u32,
     original_policy: String,
-    #[serde(serialize_with = "serialize_disposition")]
     disposition: SecurityPolicyViolationEventDisposition,
 }
 
