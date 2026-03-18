@@ -539,6 +539,8 @@ impl ReplacedContents {
                         image_key: Some(image_key),
                         showing_broken_image_icon: image_info.showing_broken_image_icon,
                         url: image_info.url.clone(),
+                        natural_width: self.natural_size.width,
+                        natural_height: self.natural_size.height,
                     }))
                 })
                 .into_iter()
@@ -551,6 +553,8 @@ impl ReplacedContents {
                     image_key: video_info.image_key,
                     showing_broken_image_icon: false,
                     url: video_info.poster_url.clone(),
+                    natural_width: self.natural_size.width,
+                    natural_height: self.natural_size.height,
                 }))]
             },
             ReplacedContentKind::IFrame(iframe) => {
@@ -593,6 +597,8 @@ impl ReplacedContents {
                     image_key: Some(image_key),
                     showing_broken_image_icon: false,
                     url: None,
+                    natural_width: self.natural_size.width,
+                    natural_height: self.natural_size.height,
                 }))]
             },
             ReplacedContentKind::SVGElement {
@@ -646,6 +652,8 @@ impl ReplacedContents {
                             image_key: Some(image_key),
                             showing_broken_image_icon: false,
                             url: None,
+                            natural_width: self.natural_size.width,
+                            natural_height: self.natural_size.height,
                         }))
                     })
                     .into_iter()
