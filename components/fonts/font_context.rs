@@ -814,7 +814,7 @@ impl FontContext {
                         .url()
                         .cloned()
                         .map(ServoUrl::from)
-                        .map(FontIdentifier::from)
+                        .map(FontIdentifier::Web)
                         .is_some_and(|ident| !self.font_data.read().contains_key(&ident))
                 } else {
                     true
