@@ -23,6 +23,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::{CanGc, JSContext};
 
+/// <https://encoding.spec.whatwg.org/#textencoder>
 #[dom_struct]
 pub(crate) struct TextEncoder {
     reflector_: Reflector,
