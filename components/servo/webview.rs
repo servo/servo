@@ -13,10 +13,9 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
-    InputEvent, InputEventAndId, InputEventOutcome, InputEventResult, JSValue,
-    JavaScriptEvaluationError, LoadStatus, MediaSessionActionType, NewWebViewDetails,
-    ScreenGeometry, ScreenshotCaptureError, Scroll, Theme, TraversalId, ViewportDetails,
-    WebViewPoint, WebViewRect,
+    InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError, LoadStatus,
+    MediaSessionActionType, NewWebViewDetails, ResidueEvent, ScreenGeometry,
+    ScreenshotCaptureError, Scroll, Theme, TraversalId, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
@@ -500,9 +499,10 @@ impl WebView {
             .notify_scroll_event(self.id(), scroll, point);
     }
 
-    pub fn notify_input_event(&self, event: InputEvent) -> InputEventOutcome {
+    pub fn notify_input_event(&self, event: InputEvent) -> InputEventId {
         let event: InputEventAndId = event.into();
         let event_id = event.id;
+        let webview_id = self.id();
         // Events with a `point` first go to `Paint` for hit testing.
         if event.event.point().is_some() {
             if !self
@@ -511,25 +511,21 @@ impl WebView {
                 .paint()
                 .notify_input_event(self.id(), event)
             {
-                return InputEventOutcome {
-                    id: event_id,
-                    result: InputEventResult::DispatchFailed,
-                };
+                self.inner().servo.add_residue_event(ResidueEvent {
+                    event_id,
+                    webview_id,
+                });
+                self.inner().servo.paint().event_loop_waker.wake();
             }
         } else {
             self.inner().servo.constellation_proxy().send(
                 EmbedderToConstellationMessage::ForwardInputEvent(
-                    self.id(),
-                    event,
-                    None, /* hit_test */
+                    webview_id, event, None, /* hit_test */
                 ),
             );
         }
 
-        InputEventOutcome {
-            id: event_id,
-            result: InputEventResult::default(),
-        }
+        event_id
     }
 
     pub fn notify_media_session_action_event(&self, event: MediaSessionActionType) {

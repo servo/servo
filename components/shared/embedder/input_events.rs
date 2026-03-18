@@ -4,6 +4,7 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use base::id::WebViewId;
 use bitflags::bitflags;
 use keyboard_types::{Code, CompositionEvent, Key, KeyState, Location, Modifiers};
 use malloc_size_of_derive::MallocSizeOf;
@@ -13,6 +14,11 @@ use crate::WebViewPoint;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct InputEventId(usize);
+
+pub struct ResidueEvent {
+    pub event_id: InputEventId,
+    pub webview_id: WebViewId,
+}
 
 static INPUT_EVENT_ID: AtomicUsize = AtomicUsize::new(0);
 

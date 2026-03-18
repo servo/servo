@@ -158,6 +158,8 @@ struct ServoInner {
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
     _js_engine_setup: Option<JSEngineSetup>,
+    /// [`InputEventId`]s that failed to send.
+    residue_events: RefCell<Vec<ResidueEvent>>,
 }
 
 impl ServoInner {
@@ -195,6 +197,25 @@ impl ServoInner {
             }
             if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
                 break;
+            }
+        }
+        let residue_events = std::mem::take(&mut *self.residue_events.borrow_mut());
+        for ResidueEvent {
+            event_id,
+            webview_id,
+        } in residue_events
+        {
+            self.paint.borrow_mut().notify_input_event_handled(
+                webview_id,
+                event_id,
+                InputEventResult::DispatchFailed,
+            );
+            if let Some(webview) = self.get_webview_handle(webview_id) {
+                webview.delegate().notify_input_event_handled(
+                    webview,
+                    event_id,
+                    InputEventResult::DispatchFailed,
+                );
             }
         }
 
@@ -862,6 +883,7 @@ impl Servo {
             webviews: Default::default(),
             servo_errors: ServoErrorChannel::default(),
             _js_engine_setup: js_engine_setup,
+            residue_events: Default::default(),
         }))
     }
 
@@ -947,6 +969,10 @@ impl Servo {
 
     pub(crate) fn javascript_evaluator_mut<'a>(&'a self) -> RefMut<'a, JavaScriptEvaluator> {
         self.0.javascript_evaluator.borrow_mut()
+    }
+
+    pub(crate) fn add_residue_event(&self, residue_event: ResidueEvent) {
+        self.0.residue_events.borrow_mut().push(residue_event);
     }
 }
 

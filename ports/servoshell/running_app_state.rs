@@ -21,11 +21,11 @@ use log::{error, info, warn};
 use servo::{
     AllowOrDenyRequest, AuthenticationRequest, CSSPixel, ConsoleLogLevel, CreateNewWebViewRequest,
     DeviceIntPoint, DeviceIntSize, EmbedderControl, EmbedderControlId, EventLoopWaker,
-    GenericSender, InputEvent, InputEventId, InputEventOutcome, InputEventResult, JSValue,
-    LoadStatus, MediaSessionEvent, PermissionRequest, PrefValue, Preferences,
-    ScreenshotCaptureError, Servo, ServoDelegate, ServoError, TraversalId, UserContentManager,
-    WebDriverCommandMsg, WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand,
-    WebDriverSenders, WebView, WebViewDelegate, WebViewId, pref,
+    GenericSender, InputEvent, InputEventId, InputEventResult, JSValue, LoadStatus,
+    MediaSessionEvent, PermissionRequest, PrefValue, Preferences, ScreenshotCaptureError, Servo,
+    ServoDelegate, ServoError, TraversalId, UserContentManager, WebDriverCommandMsg,
+    WebDriverJSResult, WebDriverLoadStatus, WebDriverScriptCommand, WebDriverSenders, WebView,
+    WebViewDelegate, WebViewId, pref,
 };
 use url::Url;
 
@@ -549,17 +549,11 @@ impl RunningAppState {
         response_sender: Option<Sender<()>>,
     ) {
         if let Some(webview) = self.webview_by_id(webview_id) {
-            let InputEventOutcome {
-                id: event_id,
-                result,
-            } = webview.notify_input_event(input_event);
+            let event_id = webview.notify_input_event(input_event);
             if let Some(response_sender) = response_sender {
                 self.pending_webdriver_events
                     .borrow_mut()
                     .insert(event_id, response_sender);
-            }
-            if result.intersects(InputEventResult::DispatchFailed) {
-                self.notify_input_event_handled(webview, event_id, result);
             }
         } else {
             error!("Could not find WebView ({webview_id:?}) for WebDriver event: {input_event:?}");
