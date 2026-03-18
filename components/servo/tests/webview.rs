@@ -861,7 +861,7 @@ fn test_pinch_zoom_update_dom_visual_viewport() {
     assert_eq!(eval_visual_viewport("offsetLeft"), Ok(JSValue::Number(0.)));
     assert_eq!(eval_visual_viewport("offsetTop"), Ok(JSValue::Number(0.)));
 
-    webview.pinch_zoom(5., DevicePoint::new(100., 100.));
+    webview.adjust_pinch_zoom(5., DevicePoint::new(100., 100.));
     wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
 
     // The visual viewport dimension is correct after a pinch zoom.

@@ -1299,7 +1299,7 @@ impl Painter {
         self.webview_renderers
             .get(&webview_id)
             .map(|webview_renderer| webview_renderer.page_zoom.get())
-            .unwrap_or_default()
+            .unwrap_or(1.)
     }
 
     pub(crate) fn notify_input_event(&mut self, webview_id: WebViewId, event: InputEventAndId) {
@@ -1348,7 +1348,7 @@ impl Painter {
         self.lcp_calculator.enabled_for_webview(webview_id)
     }
 
-    pub(crate) fn pinch_zoom(
+    pub(crate) fn adjust_pinch_zoom(
         &mut self,
         webview_id: WebViewId,
         pinch_zoom_delta: f32,
@@ -1357,6 +1357,13 @@ impl Painter {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             webview_renderer.adjust_pinch_zoom(pinch_zoom_delta, center);
         }
+    }
+
+    pub(crate) fn pinch_zoom(&self, webview_id: WebViewId) -> f32 {
+        self.webview_renderers
+            .get(&webview_id)
+            .map(|webview_renderer| webview_renderer.pinch_zoom().zoom_factor().0)
+            .unwrap_or(1.)
     }
 
     pub(crate) fn device_pixels_per_page_pixel(
