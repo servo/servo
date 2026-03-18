@@ -1245,7 +1245,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
 
         if let Some(scrollbar_descriptor) = self.scrollbar_slider {
-            self.build_scroll_bar(builder, scrollbar_descriptor);
+            self.build_scrollbar(builder, scrollbar_descriptor);
             return;
         }
 
@@ -1263,7 +1263,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         self.build_border(builder);
     }
 
-    fn build_scroll_bar(
+    fn build_scrollbar(
         &self,
         builder: &mut DisplayListBuilder,
         scrollbar_slider: &ScrollbarSlider,
@@ -1273,7 +1273,9 @@ impl<'a> BuilderForBoxFragment<'a> {
 
         // Because scroll node offset's move in an opposite direction we need to offset the scrollbar position.
         let scrollable_size = scrollbar_slider.track.size() - scrollbar_slider.thumb.size();
-        let scrollbar_thumb_rect = scrollbar_slider.thumb.translate(scrollable_size.to_vector());
+        let scrollbar_thumb_rect = scrollbar_slider
+            .thumb
+            .translate(scrollable_size.to_vector());
 
         let commons = builder.common_properties(scrollbar_slider.track, style);
         builder

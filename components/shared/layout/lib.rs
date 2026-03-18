@@ -698,7 +698,6 @@ pub enum FragmentType {
     AfterPseudoContent,
 }
 
-
 /// The type to represent the additional fragment that is generated along with the main [`FragmentType`].
 ///
 /// Currently we use this to identify such fragment, maintain the offset of such fragment across reflow.
@@ -754,7 +753,11 @@ pub fn combine_id_with_fragment_type(id: usize, fragment_type: FragmentType) -> 
     combine_id_with_fragment_type_and_aux(id, fragment_type, AuxiliaryFragmentType::None)
 }
 
-pub fn combine_id_with_fragment_type_and_aux(id: usize, fragment_type: FragmentType, aux_fragment_type: AuxiliaryFragmentType) -> u64 {
+pub fn combine_id_with_fragment_type_and_aux(
+    id: usize,
+    fragment_type: FragmentType,
+    aux_fragment_type: AuxiliaryFragmentType,
+) -> u64 {
     let shifted_id = (id as u64) << TOTAL_SIZE_OF_FRAGMENT_TYPE;
     shifted_id | fragment_type.into_mask_with_aux(aux_fragment_type)
 }
@@ -762,7 +765,11 @@ pub fn combine_id_with_fragment_type_and_aux(id: usize, fragment_type: FragmentT
 pub fn node_id_from_scroll_id(id: u64) -> Option<usize> {
     if (id & !SPECIAL_SCROLL_ROOT_ID_MASK) != 0 {
         let node_id = id >> TOTAL_SIZE_OF_FRAGMENT_TYPE;
-        return Some(node_id.try_into().expect("We have ensured that this fits in u32"));
+        return Some(
+            node_id
+                .try_into()
+                .expect("We have ensured that this fits in u32"),
+        );
     }
     None
 }

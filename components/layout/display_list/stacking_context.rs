@@ -12,7 +12,7 @@ use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use embedder_traits::ViewportDetails;
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use layout_api::{AxesOverflow, AuxiliaryFragmentType};
+use layout_api::{AuxiliaryFragmentType, AxesOverflow};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::display_list::{
@@ -231,7 +231,6 @@ impl StackingContextTree {
         external_id: wr::ExternalScrollId,
         content_rect: LayoutRect,
         clip_rect: LayoutRect,
-        offset: LayoutVector2D,
         scroll_sensitivity: AxesScrollSensitivity,
     ) -> ScrollTreeNodeId {
         self.paint_info.scroll_tree.add_scroll_tree_node(
@@ -241,7 +240,7 @@ impl StackingContextTree {
                 content_rect,
                 clip_rect,
                 scroll_sensitivity,
-                offset,
+                offset: LayoutVector2D::zero(),
                 offset_changed: Cell::new(false),
                 linked_nodes: None,
             }),
@@ -1783,7 +1782,6 @@ impl BoxFragment {
             external_scroll_id,
             self.scrollable_overflow().to_webrender(),
             scroll_frame_rect,
-            LayoutVector2D::zero(),
             sensitivity,
         );
 
@@ -1806,7 +1804,6 @@ impl BoxFragment {
         })
     }
 
-    /// MYTODO: For sensitivity we technically should ignore it for scrollbar.
     fn build_scrollbar_if_necessary(
         &self,
         stacking_context_tree: &mut StackingContextTree,
@@ -1849,15 +1846,12 @@ impl BoxFragment {
                 tag.to_display_list_fragment_id_for_aux(AuxiliaryFragmentType::VerticalScrollbar),
                 stacking_context_tree.paint_info.pipeline_id,
             );
-            // The initial scroll offset of a scrollbar fragment should be reverse to the initial offset of scroll container.
-            let initial_offset = (vertical_overflow_rect.size() - vertical_track.size()).to_vector();
 
             let vertical_scroll_tree_node_id = stacking_context_tree.define_scroll_frame(
                 parent_scroll_node_id,
                 external_scroll_id,
                 vertical_overflow_rect,
                 vertical_track,
-                initial_offset,
                 *sensitivity,
             );
 
@@ -1882,15 +1876,12 @@ impl BoxFragment {
                 tag.to_display_list_fragment_id_for_aux(AuxiliaryFragmentType::HorizontalScrollbar),
                 stacking_context_tree.paint_info.pipeline_id,
             );
-            // The initial scroll offset of a scrollbar fragment should be reverse to the initial offset of scroll container.
-            let initial_offset = (horizontal_overflow_rect.size() - horizontal_track.size()).to_vector();
 
             let horizontal_scroll_tree_node_id = stacking_context_tree.define_scroll_frame(
                 parent_scroll_node_id,
                 external_scroll_id,
                 horizontal_overflow_rect,
                 horizontal_track,
-                initial_offset,
                 *sensitivity,
             );
 
@@ -1906,7 +1897,7 @@ impl BoxFragment {
         stacking_context_tree
             .paint_info
             .scroll_tree
-            .set_linked_nodes(
+            .set_linked_scrollbar_nodes(
                 main_scroll_tree_node_id,
                 horizontal_slider
                     .as_ref()

@@ -175,9 +175,11 @@ pub struct ReferenceFrameNodeInfo {
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum LinkedScrollNodes {
-    // MYTODO unit test
-    VerticalScrollbar(ScrollTreeNodeId),
-    HorizontalScrollbar(ScrollTreeNodeId),
+    /// The node is a vertical scrollbar of a linked scroll node.
+    VerticalScrollbarOf(ScrollTreeNodeId),
+    /// The node is a vertical scrollbar of a linked scroll node.
+    HorizontalScrollbarOf(ScrollTreeNodeId),
+    /// The node is a vertical scrollbar of a main node.
     ContainerWithScrollbars {
         horizontal: Option<ScrollTreeNodeId>,
         vertical: Option<ScrollTreeNodeId>,
@@ -208,7 +210,8 @@ pub struct ScrollableNodeInfo {
     /// cached transformations invalidated.
     pub offset_changed: Cell<bool>,
 
-    /// For a scroll node with a scrollbar the scrollbar's offset also represented by the scroll node. MYTODO
+    /// For a scroll node with a scrollbar we handle the scrollbar by having an additional scroll node
+    /// for each scrollbar. These scroll node's offset would then be synced with the main scroll nodes.
     pub linked_nodes: Option<Box<LinkedScrollNodes>>,
 }
 
@@ -288,7 +291,7 @@ impl ScrollableNodeInfo {
 }
 
 impl ScrollableNodeInfo {
-    fn scrollable_size(&self) -> LayoutSize {
+    pub fn scrollable_size(&self) -> LayoutSize {
         self.content_rect.size() - self.clip_rect.size()
     }
 }
@@ -417,7 +420,7 @@ impl ScrollTreeNode {
         };
     }
 
-    fn as_scroll_info_mut(&mut self) -> Option<&mut ScrollableNodeInfo> {
+    pub fn as_scroll_info_mut(&mut self) -> Option<&mut ScrollableNodeInfo> {
         if let SpatialTreeNodeInfo::Scroll(ref mut info) = self.info {
             Some(info)
         } else {
@@ -425,7 +428,7 @@ impl ScrollTreeNode {
         }
     }
 
-    fn as_scroll_info(&self) -> Option<&ScrollableNodeInfo> {
+    pub fn as_scroll_info(&self) -> Option<&ScrollableNodeInfo> {
         if let SpatialTreeNodeInfo::Scroll(ref info) = self.info {
             Some(info)
         } else {
@@ -467,34 +470,41 @@ pub struct ScrollTree {
 /// The first element would contains the main node to be scrolled, and the rest
 /// are containing the additional node that is affected by the scrolls.
 #[derive(Clone, Debug)]
-pub struct ScrollResult(Vec<(ExternalScrollId, LayoutVector2D)>);
+pub struct ScrollResult {
+    inner: Vec<(ExternalScrollId, LayoutVector2D)>,
+}
 
 impl ScrollResult {
     pub fn new_from_pair(scroll_pair: (ExternalScrollId, LayoutVector2D)) -> Self {
-        ScrollResult(
-            vec![scroll_pair]
-        )
+        ScrollResult {
+            inner: vec![scroll_pair],
+        }
     }
 
     pub fn new(external_scroll_id: ExternalScrollId, offset: LayoutVector2D) -> Self {
-        ScrollResult(
-            vec![(external_scroll_id, offset)]
-        )
+        ScrollResult {
+            inner: vec![(external_scroll_id, offset)],
+        }
     }
 
     pub fn push(&mut self, external_scroll_id: ExternalScrollId, offset: LayoutVector2D) {
-        self.0.push((external_scroll_id, offset));
+        self.inner.push((external_scroll_id, offset));
     }
 
     pub fn first(&self) -> &(ExternalScrollId, LayoutVector2D) {
-        self.0.first().expect("We had ensured that ScrollResult is non-empty")
+        self.inner
+            .first()
+            .expect("We had ensured that ScrollResult is non-empty")
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &(ExternalScrollId, LayoutVector2D)> {
-        self.0.iter()
+        self.inner.iter()
+    }
+
+    pub fn append(&mut self, result_list: &mut Vec<(ExternalScrollId, LayoutVector2D)>) {
+        self.inner.append(result_list);
     }
 }
-
 
 impl ScrollTree {
     /// Add a scroll node to this ScrollTree returning the id of the new node.
@@ -546,7 +556,7 @@ impl ScrollTree {
         self.get_node(id).webrender_id()
     }
 
-    pub fn set_linked_nodes(
+    pub fn set_linked_scrollbar_nodes(
         &mut self,
         main_node_id: ScrollTreeNodeId,
         horizontal_scrollbar_id: Option<ScrollTreeNodeId>,
@@ -564,32 +574,34 @@ impl ScrollTree {
             horizontal_scrollbar_id.and_then(|id| self.get_node_mut(id).as_scroll_info_mut());
         if let Some(horizontal_scrollbar) = horizontal_scrollbar {
             horizontal_scrollbar
-                .set_linked_nodes(LinkedScrollNodes::HorizontalScrollbar(main_node_id));
+                .set_linked_nodes(LinkedScrollNodes::HorizontalScrollbarOf(main_node_id));
         }
 
         let vertical_scrollbar =
             vertical_scrollbar_id.and_then(|id| self.get_node_mut(id).as_scroll_info_mut());
         if let Some(vertical_scrollbar) = vertical_scrollbar {
-            vertical_scrollbar.set_linked_nodes(LinkedScrollNodes::VerticalScrollbar(main_node_id));
+            vertical_scrollbar
+                .set_linked_nodes(LinkedScrollNodes::VerticalScrollbarOf(main_node_id));
         }
+
+        self.maybe_sync_scroll_offsets_for_scrollbar(main_node_id);
     }
 
-    pub fn maybe_push_scroll_update_for_scrollbar(
+    pub fn maybe_sync_scroll_offsets_for_scrollbar(
         &mut self,
         id: ScrollTreeNodeId,
-        result: &mut ScrollResult,
-        context: ScrollType,
-    ) {
-        let Some(info) = self.get_node(id).as_scroll_info() else {
-            return;
-        };
-
-        let Some(linked_nodes) = info.linked_nodes.as_deref().cloned() else {
-            return;
-        };
+    ) -> Option<Box<Vec<(ExternalScrollId, LayoutVector2D)>>> {
+        let info = self.get_node(id).as_scroll_info()?;
+        let linked_nodes = info.linked_nodes.as_deref().cloned()?;
 
         let scrollable_size = info.scrollable_size();
-        let (_, new_offset) = *result.first();
+        let new_offset = info.offset;
+
+        // Using scripts here would force the scroll operation to be synced, considering that
+        // scrollbar's offset should follow the scroll container offset no matter what is the inputs,
+        let context = ScrollType::Script;
+
+        let mut result = Box::new(vec![]);
 
         match linked_nodes {
             LinkedScrollNodes::ContainerWithScrollbars {
@@ -602,14 +614,14 @@ impl ScrollTree {
                         horizontal_node.info
                     {
                         let sc_scrollable_width = horizontal_info.scrollable_size().width;
-                        let scaled_offset_x = new_offset.x * sc_scrollable_width /
-                                scrollable_size.width;
-                        let horizontal_offset = LayoutVector2D::new(
-                            sc_scrollable_width - scaled_offset_x,
-                            0.,
-                        );
-                        if let Some(new_offset) = horizontal_info.scroll_to_offset(horizontal_offset, context) {
-                            result.push(horizontal_info.external_id, new_offset);
+                        let scaled_offset_x =
+                            new_offset.x * sc_scrollable_width / scrollable_size.width;
+                        let horizontal_offset =
+                            LayoutVector2D::new(sc_scrollable_width - scaled_offset_x, 0.);
+                        if let Some(new_offset) =
+                            horizontal_info.scroll_to_offset(horizontal_offset, context)
+                        {
+                            result.push((horizontal_info.external_id, new_offset));
                         }
                     }
                 }
@@ -617,20 +629,22 @@ impl ScrollTree {
                     let vertical_node = self.get_node_mut(vertical_id);
                     if let SpatialTreeNodeInfo::Scroll(ref mut vertical_info) = vertical_node.info {
                         let sc_scrollable_height = vertical_info.scrollable_size().height;
-                        let scaled_offset_y = new_offset.y * sc_scrollable_height /
-                                scrollable_size.height;
-                        let vertical_offset = LayoutVector2D::new(
-                            0.,
-                            sc_scrollable_height - scaled_offset_y,
-                        );
-                        if let Some(new_offset) = vertical_info.scroll_to_offset(vertical_offset, context) {
-                            result.push(vertical_info.external_id, new_offset);
+                        let scaled_offset_y =
+                            new_offset.y * sc_scrollable_height / scrollable_size.height;
+                        let vertical_offset =
+                            LayoutVector2D::new(0., sc_scrollable_height - scaled_offset_y);
+                        if let Some(new_offset) =
+                            vertical_info.scroll_to_offset(vertical_offset, context)
+                        {
+                            result.push((vertical_info.external_id, new_offset));
                         }
                     }
                 }
             },
-            _ => unreachable!("We doesn't allow node of a scrollbar to be scrolled yet."),
+            _ => unreachable!("We doesn't allow scroll node of a scrollbar to be scrolled yet."),
         };
+
+        Some(result)
     }
 
     pub fn scroll_node_or_ancestor_inner(
@@ -641,10 +655,13 @@ impl ScrollTree {
     ) -> Option<ScrollResult> {
         let parent = {
             let node = &mut self.get_node_mut(scroll_node_id);
-            let mut maybe_result = node.scroll(scroll_location, context);
-            if let Some(ref mut result) = maybe_result {
-                self.maybe_push_scroll_update_for_scrollbar(scroll_node_id, result, context);
-                return maybe_result;
+            if let Some(mut result) = node.scroll(scroll_location, context) {
+                if let Some(mut scrollbar_results) =
+                    self.maybe_sync_scroll_offsets_for_scrollbar(scroll_node_id)
+                {
+                    result.append(&mut scrollbar_results);
+                }
+                return Some(result);
             }
             node.parent
         };
@@ -703,7 +720,11 @@ impl ScrollTree {
 
         let mut result = ScrollResult::new(external_scroll_id, new_offset);
 
-        self.maybe_push_scroll_update_for_scrollbar(scroll_tree_node_id, &mut result, context);
+        if let Some(mut scrollbar_results) =
+            self.maybe_sync_scroll_offsets_for_scrollbar(scroll_tree_node_id)
+        {
+            result.append(&mut scrollbar_results);
+        }
         self.invalidate_cached_transforms();
 
         Some(result)
@@ -715,12 +736,28 @@ impl ScrollTree {
         &mut self,
         offsets: &FxHashMap<ExternalScrollId, LayoutVector2D>,
     ) {
-        for node in self.nodes.iter_mut() {
+        // The pending node with scroll offsets that require a syncing with the scrollbars.
+        let mut pending_node_to_sync = vec![];
+
+        for (index, node) in self.nodes.iter_mut().enumerate() {
             if let SpatialTreeNodeInfo::Scroll(ref mut scroll_info) = node.info {
                 if let Some(offset) = offsets.get(&scroll_info.external_id) {
-                    scroll_info.scroll_to_offset(*offset, ScrollType::Script);
+                    match scroll_info.linked_nodes.as_deref() {
+                        None => {
+                            scroll_info.scroll_to_offset(*offset, ScrollType::Script);
+                        },
+                        Some(LinkedScrollNodes::ContainerWithScrollbars { .. }) => {
+                            scroll_info.scroll_to_offset(*offset, ScrollType::Script);
+                            pending_node_to_sync.push(ScrollTreeNodeId { index });
+                        },
+                        _ => {},
+                    }
                 }
             }
+        }
+
+        for scroll_id in pending_node_to_sync {
+            self.maybe_sync_scroll_offsets_for_scrollbar(scroll_id);
         }
 
         self.invalidate_cached_transforms();
@@ -728,11 +765,26 @@ impl ScrollTree {
 
     /// Set the offsets of all scrolling nodes in this tree to 0.
     pub fn reset_all_scroll_offsets(&mut self) {
-        for node in self.nodes.iter_mut() {
-            // MYTODO: this should handle the initial offsets of the scrollbar as well.
+        // The pending node with scroll offsets that require a syncing with the scrollbars.
+        let mut pending_node_to_sync = vec![];
+
+        for (index, node) in self.nodes.iter_mut().enumerate() {
             if let SpatialTreeNodeInfo::Scroll(ref mut scroll_info) = node.info {
-                scroll_info.scroll_to_offset(LayoutVector2D::zero(), ScrollType::Script);
+                match scroll_info.linked_nodes.as_deref() {
+                    None => {
+                        scroll_info.scroll_to_offset(LayoutVector2D::zero(), ScrollType::Script);
+                    },
+                    Some(LinkedScrollNodes::ContainerWithScrollbars { .. }) => {
+                        scroll_info.scroll_to_offset(LayoutVector2D::zero(), ScrollType::Script);
+                        pending_node_to_sync.push(ScrollTreeNodeId { index });
+                    },
+                    _ => {},
+                }
             }
+        }
+
+        for scroll_id in pending_node_to_sync {
+            self.maybe_sync_scroll_offsets_for_scrollbar(scroll_id);
         }
 
         self.invalidate_cached_transforms();
