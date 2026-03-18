@@ -18,8 +18,8 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::encoding::textdecodercommon::TextDecoderCommon;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::textdecodercommon::TextDecoderCommon;
 use crate::script_runtime::CanGc;
 
 /// <https://encoding.spec.whatwg.org/#textdecoder>

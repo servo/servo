@@ -18,9 +18,9 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::encoding::textdecodercommon::TextDecoderCommon;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
-use crate::dom::textdecodercommon::TextDecoderCommon;
 use crate::dom::types::{TransformStream, TransformStreamDefaultController};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 
