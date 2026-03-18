@@ -37,6 +37,7 @@ use crate::dom::css::cssstyledeclaration::{
 };
 use crate::dom::customelementregistry::{CallbackReaction, CustomElementState};
 use crate::dom::document::{Document, FocusInitiator};
+use crate::dom::document_event_handler::character_to_code;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domstringmap::DOMStringMap;
 use crate::dom::element::{
@@ -1152,12 +1153,9 @@ impl HTMLElement {
 
             // 2. If the value does not correspond to a key on the system's keyboard, then skip the
             //    remainder of these steps for this value.
-            //    TODO: This is just a heuristic for whether or not the character is on the keyboard.
-            //    We should do better here, but as we don't know anything about the keyboard hardware,
-            //    it's quite difficult at the moment.
-            if !character.is_ascii_graphic() {
+            let Some(code) = character_to_code(character) else {
                 continue;
-            }
+            };
 
             // 3. If the user agent can find a mix of zero or more modifier keys that, combined with
             //    the key that corresponds to the value given in the attribute, can be used as the
@@ -1165,7 +1163,7 @@ impl HTMLElement {
             //    assigned access key and return.
             self.owner_document()
                 .event_handler()
-                .assign_access_key(self, character);
+                .assign_access_key(self, code);
             return;
         }
 

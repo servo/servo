@@ -8,6 +8,7 @@ use std::cmp::Ordering;
 use std::f64::consts::PI;
 use std::mem;
 use std::rc::Rc;
+use std::str::FromStr;
 use std::time::{Duration, Instant};
 
 use base::generic_channel::GenericCallback;
@@ -32,6 +33,7 @@ use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosi
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
+use script_bindings::codegen::GenericBindings::KeyboardEventBinding::KeyboardEventMethods;
 use script_bindings::codegen::GenericBindings::NavigatorBinding::NavigatorMethods;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMethods;
 use script_bindings::codegen::GenericBindings::TouchBinding::TouchMethods;
@@ -53,6 +55,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
+use crate::dom::bindings::trace::NoTrace;
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::document::{FireMouseEventType, FocusInitiator};
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
@@ -191,7 +194,7 @@ pub(crate) struct DocumentEventHandler {
     /// Counter for generating unique pointer IDs for touch inputs
     next_touch_pointer_id: Cell<i32>,
     /// A map holding information about currently registered access key handlers.
-    access_key_handlers: DomRefCell<FxHashMap<char, Dom<HTMLElement>>>,
+    access_key_handlers: DomRefCell<FxHashMap<NoTrace<Code>, Dom<HTMLElement>>>,
     /// <https://html.spec.whatwg.org/multipage/#sequential-focus-navigation-starting-point>
     sequential_focus_navigation_starting_point: MutNullableDom<Node>,
 }
@@ -2398,11 +2401,11 @@ impl DocumentEventHandler {
             .retain(|_, value| &**value != element)
     }
 
-    pub(crate) fn assign_access_key(&self, element: &HTMLElement, character: char) {
+    pub(crate) fn assign_access_key(&self, element: &HTMLElement, code: Code) {
         let mut access_key_handlers = self.access_key_handlers.borrow_mut();
         // If an element is already assigned this access key, ignore the request.
         access_key_handlers
-            .entry(character)
+            .entry(code.into())
             .or_insert(Dom::from_ref(element));
     }
 
@@ -2416,22 +2419,14 @@ impl DocumentEventHandler {
             return false;
         }
 
-        let Key::Character(ref string) = event.key() else {
-            return false;
-        };
-
-        let mut characters = string.chars();
-        let Some(character) = characters.next() else {
-            return false;
-        };
-        if characters.count() > 0 {
+        let Ok(code) = Code::from_str(&event.Code().str()) else {
             return false;
         };
 
         let Some(html_element) = self
             .access_key_handlers
             .borrow()
-            .get(&character)
+            .get(&code.into())
             .map(|html_element| html_element.as_rooted())
         else {
             return false;
@@ -2512,4 +2507,58 @@ fn compare_tab_indices(a: i32, b: i32) -> Ordering {
     } else {
         a.cmp(&b)
     }
+}
+
+pub(crate) fn character_to_code(character: char) -> Option<Code> {
+    Some(match character.to_ascii_lowercase() {
+        '`' => Code::Backquote,
+        '\\' => Code::Backslash,
+        '[' | '{' => Code::BracketLeft,
+        ']' | '}' => Code::BracketRight,
+        ',' | '<' => Code::Comma,
+        '0' => Code::Digit0,
+        '1' => Code::Digit1,
+        '2' => Code::Digit2,
+        '3' => Code::Digit3,
+        '4' => Code::Digit4,
+        '5' => Code::Digit5,
+        '6' => Code::Digit6,
+        '7' => Code::Digit7,
+        '8' => Code::Digit8,
+        '9' => Code::Digit9,
+        '=' => Code::Equal,
+        'a' => Code::KeyA,
+        'b' => Code::KeyB,
+        'c' => Code::KeyC,
+        'd' => Code::KeyD,
+        'e' => Code::KeyE,
+        'f' => Code::KeyF,
+        'g' => Code::KeyG,
+        'h' => Code::KeyH,
+        'i' => Code::KeyI,
+        'j' => Code::KeyJ,
+        'k' => Code::KeyK,
+        'l' => Code::KeyL,
+        'm' => Code::KeyM,
+        'n' => Code::KeyN,
+        'o' => Code::KeyO,
+        'p' => Code::KeyP,
+        'q' => Code::KeyQ,
+        'r' => Code::KeyR,
+        's' => Code::KeyS,
+        't' => Code::KeyT,
+        'u' => Code::KeyU,
+        'v' => Code::KeyV,
+        'w' => Code::KeyW,
+        'x' => Code::KeyX,
+        'y' => Code::KeyY,
+        'z' => Code::KeyZ,
+        '-' => Code::Minus,
+        '.' => Code::Period,
+        '\'' | '"' => Code::Quote,
+        ';' => Code::Semicolon,
+        '/' => Code::Slash,
+        ' ' => Code::Space,
+        _ => return None,
+    })
 }
