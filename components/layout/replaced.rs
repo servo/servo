@@ -515,6 +515,8 @@ impl ReplacedContents {
                         image_key: Some(image_key),
                         showing_broken_image_icon: image_info.showing_broken_image_icon,
                         url: image_info.url.clone(),
+                        using_fallback_size: self.natural_size.width.is_some() ||
+                            self.natural_size.height.is_some(),
                     }))
                 })
                 .into_iter()
@@ -526,6 +528,8 @@ impl ReplacedContents {
                     image_key: video_info.image_key,
                     showing_broken_image_icon: false,
                     url: None,
+                    using_fallback_size: self.natural_size.width.is_some() ||
+                        self.natural_size.height.is_some(),
                 }))]
             },
             ReplacedContentKind::IFrame(iframe) => {
@@ -565,6 +569,8 @@ impl ReplacedContents {
                     image_key: Some(image_key),
                     showing_broken_image_icon: false,
                     url: None,
+                    using_fallback_size: self.natural_size.width.is_some() ||
+                        self.natural_size.height.is_some(),
                 }))]
             },
             ReplacedContentKind::SVGElement(vector_image) => {
@@ -610,6 +616,8 @@ impl ReplacedContents {
                             image_key: Some(image_key),
                             showing_broken_image_icon: false,
                             url: None,
+                            using_fallback_size: self.natural_size.width.is_some() ||
+                                self.natural_size.height.is_some(),
                         }))
                     })
                     .into_iter()

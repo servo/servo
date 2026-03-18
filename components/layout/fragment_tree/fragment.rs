@@ -89,6 +89,7 @@ pub(crate) struct ImageFragment {
     pub image_key: Option<ImageKey>,
     pub showing_broken_image_icon: bool,
     pub url: Option<ServoUrl>,
+    pub using_fallback_size: bool,
 }
 
 #[derive(MallocSizeOf)]
