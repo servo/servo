@@ -705,6 +705,15 @@ impl Fragment {
                                 common.clip_rect,
                                 style.clone_opacity(),
                             );
+
+                            if !image.using_fallback_size {
+                                builder.check_for_lcp_candidate(
+                                    common.clip_rect,
+                                    rect,
+                                    image.base.tag,
+                                    image.url.clone(),
+                                );
+                            }
                         }
 
                         if image.showing_broken_image_icon {
