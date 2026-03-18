@@ -361,6 +361,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
             width /= density;
             height /= density;
         }
+        dbg!("", width, height);
         Some((
             ImageInfo {
                 image: resource,

@@ -705,7 +705,7 @@ impl Fragment {
                                 common.clip_rect,
                                 style.clone_opacity(),
                             );
-
+                            dbg!("", rect, common.clip_rect, image.base.rect);
                             if !image.using_fallback_size {
                                 builder.check_for_lcp_candidate(
                                     common.clip_rect,
