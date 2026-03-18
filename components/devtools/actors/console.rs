@@ -382,7 +382,7 @@ impl ConsoleActor {
                 own_properties_length,
             } => {
                 let properties = own_properties.clone().unwrap_or_default();
-
+                // TODO: Replace this with a struct to avoid having the Map.
                 let mut m = Map::new();
                 let actor = ObjectActor::register_with_properties(
                     registry,

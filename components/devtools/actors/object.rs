@@ -148,21 +148,20 @@ impl Actor for ObjectActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "enumProperties" => {
-                let property_iterator = PropertyIteratorActor::new(
-                    registry.new_name::<PropertyIteratorActor>(),
-                    self.properties.clone(),
-                );
+                let property_iterator_name =
+                    PropertyIteratorActor::register(registry, self.properties.clone());
+                let property_iterator =
+                    registry.find::<PropertyIteratorActor>(&property_iterator_name);
                 let count = property_iterator.count();
-                let actor_name = property_iterator.name();
                 let msg = EnumReply {
                     from: self.name(),
                     iterator: EnumIterator {
-                        actor: actor_name,
+                        actor: property_iterator_name,
                         type_: EnumIteratorType::PropertyIterator,
                         count,
                     },
                 };
-                registry.register(property_iterator);
+
                 request.reply_final(&msg)?
             },
 

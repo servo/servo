@@ -52,6 +52,7 @@ dictionary EvalResultValue {
     unsigned long? ownPropertiesLength;
 };
 
+// TODO: Maybe merge some parts of this with the EvalResultValue
 dictionary PropertyPreview {
     required DOMString name;
     required boolean configurable;

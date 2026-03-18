@@ -28,8 +28,14 @@ pub(crate) struct PropertyIteratorActor {
 }
 
 impl PropertyIteratorActor {
-    pub fn new(name: String, properties: Vec<PropertyPreview>) -> Self {
-        Self { name, properties }
+    pub fn register(registry: &ActorRegistry, properties: Vec<PropertyPreview>) -> String {
+        let name = registry.new_name::<Self>();
+        let actor = Self {
+            name: name.clone(),
+            properties,
+        };
+        registry.register::<Self>(actor);
+        name
     }
 
     pub fn count(&self) -> u32 {
