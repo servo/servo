@@ -20,12 +20,13 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::{
     AuthenticationRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel,
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint, EmbedderControl,
-    EmbedderControlId, GenericSender, ImeEvent, InputEvent, InputEventId, InputEventResult,
-    InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey,
-    OffscreenRenderingContext, PermissionRequest, RenderingContext, ScreenGeometry, Theme,
-    TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView, WebViewId, WheelDelta,
-    WheelEvent, WheelMode, WindowRenderingContext, convert_rect_to_css_pixel,
+    EmbedderControlId, GenericSender, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
+    InputEventResult, InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers,
+    MouseButton as ServoMouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
+    MouseMoveEvent, NamedKey, OffscreenRenderingContext, PermissionRequest, RenderingContext,
+    ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId, WebRenderDebugOption, WebView,
+    WebViewId, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
+    convert_rect_to_css_pixel,
 };
 use url::Url;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
@@ -242,7 +243,8 @@ impl HeadedWindow {
             xr_window_pose.handle_xr_translation(&keyboard_event);
         }
 
-        let id = webview.notify_input_event(InputEvent::Keyboard(keyboard_event.clone()));
+        let InputEventOutcome { id, .. } =
+            webview.notify_input_event(InputEvent::Keyboard(keyboard_event.clone()));
         self.pending_keyboard_events
             .borrow_mut()
             .insert(id, keyboard_event);

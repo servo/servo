@@ -13,7 +13,7 @@ use constellation_traits::{EmbedderToConstellationMessage, TraversalDirection};
 use dpi::PhysicalSize;
 use embedder_traits::{
     ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
-    InputEvent, InputEventAndId, InputEventId, InputEventResult, JSValue,
+    InputEvent, InputEventAndId, InputEventOutcome, InputEventResult, JSValue,
     JavaScriptEvaluationError, LoadStatus, MediaSessionActionType, NewWebViewDetails,
     ScreenGeometry, ScreenshotCaptureError, Scroll, Theme, TraversalId, ViewportDetails,
     WebViewPoint, WebViewRect,
@@ -500,7 +500,7 @@ impl WebView {
             .notify_scroll_event(self.id(), scroll, point);
     }
 
-    pub fn notify_input_event(&self, event: InputEvent) -> InputEventId {
+    pub fn notify_input_event(&self, event: InputEvent) -> InputEventOutcome {
         let event: InputEventAndId = event.into();
         let event_id = event.id;
         // Events with a `point` first go to `Paint` for hit testing.
@@ -511,11 +511,10 @@ impl WebView {
                 .paint()
                 .notify_input_event(self.id(), event)
             {
-                self.delegate().notify_input_event_handled(
-                    self.clone(),
-                    event_id,
-                    InputEventResult::default(),
-                );
+                return InputEventOutcome {
+                    id: event_id,
+                    result: InputEventResult::HitTestFailed,
+                };
             }
         } else {
             self.inner().servo.constellation_proxy().send(
@@ -527,7 +526,10 @@ impl WebView {
             );
         }
 
-        event_id
+        InputEventOutcome {
+            id: event_id,
+            result: InputEventResult::default(),
+        }
     }
 
     pub fn notify_media_session_action_event(&self, event: MediaSessionActionType) {
