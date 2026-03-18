@@ -2000,14 +2000,15 @@ impl VirtualMethods for HTMLImageElement {
         self.update_the_image_data(cx);
     }
 
-    #[expect(unsafe_code)]
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, _can_gc: CanGc) {
-        // TODO: https://github.com/servo/servo/issues/42812
-        let mut cx = unsafe { temp_cx() };
-        let cx = &mut cx;
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, CanGc::from_cx(cx));
+            .attribute_mutated(cx, attr, mutation);
         match attr.local_name() {
             &local_name!("src") |
             &local_name!("srcset") |

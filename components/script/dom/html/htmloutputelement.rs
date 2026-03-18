@@ -159,12 +159,17 @@ impl VirtualMethods for HTMLOutputElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         if attr.local_name() == &local_name!("form") {
-            self.form_attribute_mutated(mutation, can_gc);
+            self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
         }
     }
 }

@@ -2006,14 +2006,19 @@ impl Element {
     }
 
     /// <https://dom.spec.whatwg.org/#handle-attribute-changes>
+    #[expect(unsafe_code)]
     fn handle_attribute_changes(
         &self,
         attr: &Attr,
         old_value: Option<&AttrValue>,
         new_value: Option<DOMString>,
         reason: AttributeMutationReason,
-        can_gc: CanGc,
+        _can_gc: CanGc,
     ) {
+        // TODO: https://github.com/servo/servo/issues/42812
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         let old_value_string = old_value.map(|old_value| DOMString::from(&**old_value));
         // Step 1. Queue a mutation record of "attributes" for element with attribute’s local name,
         // attribute’s namespace, oldValue, « », « », null, and null.
@@ -2048,7 +2053,7 @@ impl Element {
             } else {
                 AttributeMutation::Removed
             };
-            vtable_for(self.upcast()).attribute_mutated(attr, attribute_mutation, can_gc);
+            vtable_for(self.upcast()).attribute_mutated(cx, attr, attribute_mutation);
         }
     }
 
@@ -4561,10 +4566,15 @@ impl VirtualMethods for Element {
             .attribute_affects_presentational_hints(attr)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         let node = self.upcast::<Node>();
         let doc = node.owner_doc();
         match *attr.local_name() {
@@ -4590,25 +4600,37 @@ impl VirtualMethods for Element {
                             if let Some(old_value) = old_value {
                                 let old_value = old_value.as_atom().clone();
                                 if let Some(ref shadow_root) = containing_shadow_root {
-                                    shadow_root.unregister_element_id(self, old_value, can_gc);
+                                    shadow_root.unregister_element_id(
+                                        self,
+                                        old_value,
+                                        CanGc::from_cx(cx),
+                                    );
                                 } else {
-                                    doc.unregister_element_id(self, old_value, can_gc);
+                                    doc.unregister_element_id(self, old_value, CanGc::from_cx(cx));
                                 }
                             }
                             if value != atom!("") {
                                 if let Some(ref shadow_root) = containing_shadow_root {
-                                    shadow_root.register_element_id(self, value, can_gc);
+                                    shadow_root.register_element_id(
+                                        self,
+                                        value,
+                                        CanGc::from_cx(cx),
+                                    );
                                 } else {
-                                    doc.register_element_id(self, value, can_gc);
+                                    doc.register_element_id(self, value, CanGc::from_cx(cx));
                                 }
                             }
                         },
                         AttributeMutation::Removed => {
                             if value != atom!("") {
                                 if let Some(ref shadow_root) = containing_shadow_root {
-                                    shadow_root.unregister_element_id(self, value, can_gc);
+                                    shadow_root.unregister_element_id(
+                                        self,
+                                        value,
+                                        CanGc::from_cx(cx),
+                                    );
                                 } else {
-                                    doc.unregister_element_id(self, value, can_gc);
+                                    doc.unregister_element_id(self, value, CanGc::from_cx(cx));
                                 }
                             }
                         },

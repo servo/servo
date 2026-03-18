@@ -80,9 +80,14 @@ pub(crate) trait VirtualMethods {
     /// Called when attributes of a node are mutated.
     /// <https://dom.spec.whatwg.org/#attribute-is-set>
     /// <https://dom.spec.whatwg.org/#attribute-is-removed>
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         if let Some(s) = self.super_type() {
-            s.attribute_mutated(attr, mutation, can_gc);
+            s.attribute_mutated(cx, attr, mutation);
         }
     }
 

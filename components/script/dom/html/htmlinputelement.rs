@@ -3054,17 +3054,17 @@ impl VirtualMethods for HTMLInputElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    #[expect(unsafe_code)]
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, _can_gc: CanGc) {
-        // TODO: https://github.com/servo/servo/issues/42812
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         let could_have_had_embedder_control = self.may_have_embedder_control();
 
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, CanGc::from_cx(cx));
+            .attribute_mutated(cx, attr, mutation);
 
         match *attr.local_name() {
             local_name!("disabled") => {

@@ -244,10 +244,15 @@ impl VirtualMethods for HTMLLinkElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         let local_name = attr.local_name();
         let is_removal = mutation.is_removal();
@@ -291,7 +296,7 @@ impl VirtualMethods for HTMLLinkElement {
                 }
 
                 if self.relations.get().contains(LinkRelations::MODULE_PRELOAD) {
-                    self.fetch_and_process_modulepreload(can_gc);
+                    self.fetch_and_process_modulepreload(CanGc::from_cx(cx));
                 }
             },
             local_name!("href") => {
@@ -330,7 +335,7 @@ impl VirtualMethods for HTMLLinkElement {
 
                 // https://html.spec.whatwg.org/multipage/#link-type-modulepreload
                 if self.relations.get().contains(LinkRelations::MODULE_PRELOAD) {
-                    self.fetch_and_process_modulepreload(can_gc);
+                    self.fetch_and_process_modulepreload(CanGc::from_cx(cx));
                 }
             },
             local_name!("sizes") if self.relations.get().contains(LinkRelations::ICON) => {
