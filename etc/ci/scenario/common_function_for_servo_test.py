@@ -338,7 +338,7 @@ def run_test(
     test_fn,
     test_name: str,
     use_mitmproxy: MitmProxyRunType = MitmProxyRunType.NOPROXY,
-    minimal_history_mode: bool = False,
+    session_history_max_length: int | None = None,
 ):
     if os.environ.get("CI") and use_mitmproxy == MitmProxyRunType.NOPROXY:
         # if we are in CI and nobody overrode our mitmproxy type we want to replay.
@@ -361,13 +361,12 @@ def run_test(
             cmd_str = f"aa start -a EntryAbility -b org.servo.servo -U {ABOUT_BLANK} --psn=--webdriver"
             if use_mitmproxy.should_servo_proxy():
                 cmd_str += f" --psn=--pref=network_https_proxy_uri=http://127.0.0.1:{str(MITMPROXY_PORT)} --psn=--pref=network_http_proxy_uri=http://127.0.0.1:{MITMPROXY_PORT} --psn=--ignore-certificate-errors"
-            if minimal_history_mode:
-                cmd_str += " --psn=--pref=session_history_max_length=0 "
+                if session_history_max_length is not None:
+                    cmd_str += f" --psn=--pref=session_history_max_length={str(session_history_max_length)} "
             hdc.cmd(
                 cmd_str,
                 timeout=10,
             )
-            print(f">>> cmd str : [{cmd_str}]")
             with HarmonyDevicePerfMode():
                 close_usb_popup(hdc)
                 test_fn()

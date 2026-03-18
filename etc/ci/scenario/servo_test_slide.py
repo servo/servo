@@ -65,4 +65,4 @@ def operator():
 
 
 if __name__ == "__main__":
-    common_function_for_servo_test.run_test(operator, "mossel_slide", minimal_history_mode=True)
+    common_function_for_servo_test.run_test(operator, "mossel_slide", session_history_max_length=0)

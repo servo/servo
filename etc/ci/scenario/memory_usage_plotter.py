@@ -21,6 +21,7 @@ import datetime as dt
 from pathlib import Path
 from selenium import webdriver
 import sys
+from hdc_py.hdc import HarmonyDeviceConnector
 
 PACKAGE_NAME = "org.servo.servo"
 
@@ -131,21 +132,9 @@ def raise_if_input_invalid(file_path: str) -> None:
         raise InvalidInputFile("Invalid CSV header")
 
 
-def run_hdc(cmd: List[str]) -> Optional[str]:
-    try:
-        result = subprocess.run(
-            ["hdc", "shell"] + cmd,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError:
-        return None
-
-
-def pidof(package_name: str) -> List[int]:
-    output = run_hdc(["pidof", package_name])
+def pidof(package_name: str, hdc: HarmonyDeviceConnector) -> List[int]:
+    completed_process = hdc.cmd("pidof " + package_name, capture_output=True, encoding="utf-8")
+    output = str(completed_process.stdout)
     if not output:
         return []
 
@@ -203,7 +192,6 @@ class NonBlockingMemoryLogging:
     def from_dump(self):
         self.log = load_memory_log(self.options.from_dump)
         self.plot_memory_log()
-        # print(len(log.samples))
 
     def __init__(self, options: MemoryLoggingOptions = None):
         # Defaults:
@@ -234,10 +222,16 @@ class NonBlockingMemoryLogging:
             daemon=True,
         )
 
+    def __exit__(self, exc_type, exc, tb):
+        if self.csv_file:
+            self.csv_file.close
+        return False
+
     def start(self):
         if self.options.pid is None:
             try:
-                self.options.pid = get_servo_pid(PACKAGE_NAME)
+                self.hdc = HarmonyDeviceConnector()
+                self.options.pid = get_servo_pid(PACKAGE_NAME, self.hdc)
             except (MoreThanOneInstanceOfServo, ProcessLookupError) as e:
                 print(f"Failed to get servo PID: {e}")
             else:
@@ -345,7 +339,6 @@ class NonBlockingMemoryLogging:
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
-        # plt.show()
         plt.savefig(self.options.file_name, dpi=150)
 
 
@@ -353,8 +346,8 @@ class MoreThanOneInstanceOfServo(Exception):
     pass
 
 
-def get_servo_pid(package_name: str) -> int | None:
-    pids = pidof(package_name)
+def get_servo_pid(package_name: str, hdc: HarmonyDeviceConnector) -> int | None:
+    pids = pidof(package_name, hdc)
     if not pids:
         raise ProcessLookupError(f"No running instances of {package_name}")
     if len(pids) > 1:
@@ -442,4 +435,5 @@ if __name__ == "__main__":
     time.sleep(2)
 
     worker.stop()
-    print(">>> exiting")
+
+    print("Exiting memory_usage_plotter.py")
