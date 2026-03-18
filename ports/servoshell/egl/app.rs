@@ -536,7 +536,7 @@ impl App {
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_start(&self, factor: f32, x: f32, y: f32) {
         if let Some(webview) = self.active_or_newest_webview() {
-            webview.pinch_zoom(factor, DevicePoint::new(x, y));
+            webview.adjust_pinch_zoom(factor, DevicePoint::new(x, y));
             self.spin_event_loop();
         }
     }
@@ -545,7 +545,7 @@ impl App {
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom(&self, factor: f32, x: f32, y: f32) {
         if let Some(webview) = self.active_or_newest_webview() {
-            webview.pinch_zoom(factor, DevicePoint::new(x, y));
+            webview.adjust_pinch_zoom(factor, DevicePoint::new(x, y));
             self.spin_event_loop();
         }
     }
@@ -554,7 +554,7 @@ impl App {
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_end(&self, factor: f32, x: f32, y: f32) {
         if let Some(webview) = self.active_or_newest_webview() {
-            webview.pinch_zoom(factor, DevicePoint::new(x, y));
+            webview.adjust_pinch_zoom(factor, DevicePoint::new(x, y));
             self.spin_event_loop();
         }
     }
