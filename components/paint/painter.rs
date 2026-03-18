@@ -1305,7 +1305,11 @@ impl Painter {
             .unwrap_or(1.)
     }
 
-    pub(crate) fn notify_input_event(&mut self, webview_id: WebViewId, event: InputEventAndId) {
+    pub(crate) fn notify_input_event(
+        &mut self,
+        webview_id: WebViewId,
+        event: InputEventAndId,
+    ) -> bool {
         if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
             match &event.event {
                 InputEvent::MouseMove(event) => {
@@ -1326,7 +1330,9 @@ impl Painter {
                 },
             }
 
-            webview_renderer.notify_input_event(&self.webrender_api, &self.needs_repaint, event);
+            webview_renderer.notify_input_event(&self.webrender_api, &self.needs_repaint, event)
+        } else {
+            false
         }
     }
 

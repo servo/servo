@@ -786,12 +786,14 @@ impl Paint {
             .save_capture(capture_path, CaptureBits::all());
     }
 
-    pub fn notify_input_event(&self, webview_id: WebViewId, event: InputEventAndId) {
+    /// Returning `false` means this is not going to reach constellation/script,
+    /// and we need to directly notify Embedder that input event is handled.
+    pub fn notify_input_event(&self, webview_id: WebViewId, event: InputEventAndId) -> bool {
         if self.shutdown_state() != ShutdownState::NotShuttingDown {
-            return;
+            return false;
         }
         self.painter_mut(webview_id.into())
-            .notify_input_event(webview_id, event);
+            .notify_input_event(webview_id, event)
     }
 
     pub fn notify_scroll_event(&self, webview_id: WebViewId, scroll: Scroll, point: WebViewPoint) {
