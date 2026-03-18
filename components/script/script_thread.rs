@@ -3296,14 +3296,16 @@ impl ScriptThread {
     }
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
-    fn handle_web_font_loaded(&self, pipeline_id: PipelineId, _success: bool) {
+    fn handle_web_font_loaded(&self, pipeline_id: PipelineId, success: bool) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Web font loaded in closed pipeline {}.", pipeline_id);
             return;
         };
 
         // TODO: This should only dirty nodes that are waiting for a web font to finish loading!
-        document.dirty_all_nodes();
+        if success {
+            document.dirty_all_nodes();
+        }
     }
 
     /// Handles a worklet being loaded by triggering a relayout of the page. Does nothing if the
