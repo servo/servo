@@ -10767,7 +10767,7 @@
    },
    "input-events": {
     "input-events.js": [
-     "8f961a6662927c257032d0b48f02748d49781a87",
+     "d5c471f80064d5d848283d833c49cfe36f2475e2",
      []
     ]
    },
@@ -13231,7 +13231,7 @@
       }
      ]
     ],
-    "mousedown-edit-point-input-text.html": [
+    "mousedown-edit-point-input-text-001.html": [
      "57f707ea292adeefd8a6b94ecd55b96530921b5e",
      [
       null,
@@ -13240,8 +13240,8 @@
       }
      ]
     ],
-    "mousedown-edit-point-input-tranformed.html": [
-     "b3ee8b0eb234ac05128009c2eed18bea066d994d",
+    "mousedown-edit-point-input-text-002.html": [
+     "5d14f812d5cf7740d7514b0bf00ed417ea5e3281",
      [
       null,
       {
@@ -13249,8 +13249,26 @@
       }
      ]
     ],
-    "mousedown-edit-point-textarea.html": [
+    "mousedown-edit-point-input-tranformed.html": [
+     "dffcfcf706a646a99002c8e71ef444cd12929dfe",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "mousedown-edit-point-textarea-001.html": [
      "b5929d533fbcc35532ea820b17aaff965f97efc5",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "mousedown-edit-point-textarea-002.html": [
+     "ec0884f513cc5cbada9fc0b936c1e7abe76ef941",
      [
       null,
       {

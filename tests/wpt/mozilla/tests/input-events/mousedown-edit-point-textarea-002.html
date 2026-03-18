@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<title>Clicking in the padding of a &lt;textara&gt; should move the edit point properly</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="input-events.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<!--
+This is a textarea with padding around the edge. We will try to click in the various
+parts of the padding and past the end of lines to verify the correct behavior when
+setting the edit point.
+-->
+<textarea id="target" style="height: 300px; width: 300px; padding: 100px; font: 50px/1 Ahem;">
+12345
+
+12345
+</textarea>
+
+<script>
+promise_test(async test => {
+    let targetRect = getTextEntryContentRect(target);
+    let horizontalCenterOfLine = targetRect.left + (targetRect.width / 2.0);
+    let inTopPadding = targetRect.top - 30;
+    let inBottomPadding = targetRect.bottom + 30;
+    let inLeftPadding = targetRect.left - 30;
+    let inRightPadding = targetRect.right + 30;
+
+    // Clicking anywhere in the top padding should move the edit point to the start of the field.
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left + 1, inTopPadding)
+      .pointerDown().pointerUp()
+      .send();
+    assert_equals(target.selectionStart, 0);
+    assert_equals(target.selectionEnd, 0);
+
+    await new test_driver.Actions()
+      .pointerMove(horizontalCenterOfLine, inTopPadding)
+      .pointerDown().pointerUp()
+      .send();
+    assert_equals(target.selectionStart, 0);
+    assert_equals(target.selectionEnd, 0);
+
+    await new test_driver.Actions()
+      .pointerMove(targetRect.right - 1, inTopPadding)
+      .pointerDown().pointerUp()
+      .send();
+    assert_equals(target.selectionStart, 0);
+    assert_equals(target.selectionEnd, 0);
+
+    // Clicking anywhere in the bottom padding should move the edit point to the end of the field.
+    await new test_driver.Actions()
+      .pointerMove(targetRect.left + 1, inBottomPadding)
+      .pointerDown().pointerUp()
+      .send();
+    assert_equals(target.selectionStart, 13);
+    assert_equals(target.selectionEnd, 13);
+
+    await new test_driver.Actions()
+      .pointerMove(horizontalCenterOfLine, inBottomPadding)
+      .pointerDown().pointerUp()
+      .send();
+    assert_equals(target.selectionStart, 13);
+    assert_equals(target.selectionEnd, 13);
+
+    await new test_driver.Actions()
+      .pointerMove(targetRect.right - 1, inBottomPadding)
+      .pointerDown().pointerUp()
+      .send();
+    assert_equals(target.selectionStart, 13);
+    assert_equals(target.selectionEnd, 13);
+
+    // Clicking far to the right or left (in the padding) of an empty line should select the
+    // first index on that line.
+    let inSecondLine = targetRect.top + 75
+    await new test_driver.Actions()
+      .pointerMove(inLeftPadding, inSecondLine)
+      .pointerDown().pointerUp()
+      .send();
+    assert_equals(target.selectionStart, 6);
+    assert_equals(target.selectionEnd, 6);
+
+    await new test_driver.Actions()
+      .pointerMove(inLeftPadding, inSecondLine)
+      .pointerDown().pointerUp()
+      .send();
+    assert_equals(target.selectionStart, 6);
+    assert_equals(target.selectionEnd, 6);
+});
+</script>
