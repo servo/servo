@@ -116,6 +116,8 @@ impl CspReporting for Option<CspList> {
         };
         let mut request = Request {
             url: load_data.url.clone().into_url(),
+            // TODO: Figure out how to propagate redirect data from LoadData into here
+            current_url: load_data.url.clone().into_url(),
             origin: match &load_data.load_origin {
                 LoadOrigin::Script(origin) => origin.immutable().clone().into_url_origin(),
                 _ => Origin::new_opaque(),
