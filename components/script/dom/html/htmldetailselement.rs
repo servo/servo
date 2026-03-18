@@ -399,15 +399,15 @@ impl VirtualMethods for HTMLDetailsElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-details-element:concept-element-attributes-change-ext>
-    #[expect(unsafe_code)]
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, _can_gc: CanGc) {
-        // TODO: https://github.com/servo/servo/issues/42812
-        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-        let cx = &mut cx;
-
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, CanGc::from_cx(cx));
+            .attribute_mutated(cx, attr, mutation);
 
         // Step 1. If namespace is not null, then return.
         if *attr.namespace() != ns!() {
