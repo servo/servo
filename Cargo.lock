@@ -8617,6 +8617,7 @@ dependencies = [
 name = "servo-storage-traits"
 version = "0.0.6"
 dependencies = [
+ "chrono",
  "malloc_size_of_derive",
  "serde",
  "servo-base",
@@ -9114,51 +9115,6 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
-
-[[package]]
-name = "storage"
-version = "0.0.1"
-dependencies = [
- "base",
- "bincode",
- "libc",
- "log",
- "malloc_size_of_derive",
- "net_traits",
- "profile",
- "profile_traits",
- "rusqlite",
- "rustc-hash 2.1.1",
- "sea-query",
- "sea-query-rusqlite",
- "serde",
- "serde_json",
- "servo_config",
- "servo_malloc_size_of",
- "servo_url",
- "storage_traits",
- "tempfile",
- "tokio",
- "tokio-rustls",
- "tokio-stream",
- "tokio-util",
- "url",
- "uuid",
-]
-
-[[package]]
-name = "storage_traits"
-version = "0.0.1"
-dependencies = [
- "base",
- "chrono",
- "malloc_size_of_derive",
- "profile_traits",
- "serde",
- "servo_malloc_size_of",
- "servo_url",
- "uuid",
-]
 
 [[package]]
 name = "strck"

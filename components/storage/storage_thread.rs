@@ -18,7 +18,7 @@ fn new_storage_thread_group(
     config_dir: Option<PathBuf>,
     label: &str,
 ) -> StorageThreads {
-    let client_storage: GenericSender<ClientStorageThreadMessage> =
+    let client_storage: ClientStorageThreadHandle =
         ClientStorageThreadFactory::new(config_dir.clone());
     let idb: GenericSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(
         config_dir.clone(),
@@ -31,32 +31,16 @@ fn new_storage_thread_group(
         format!("storage-reporter-{label}"),
     );
 
-    StorageThreads::new(client_storage, idb, web_storage)
+    StorageThreads::new(client_storage.into(), idb, web_storage)
 }
 
 pub fn new_storage_threads(
     mem_profiler_chan: MemProfilerChan,
     config_dir: Option<PathBuf>,
 ) -> (StorageThreads, StorageThreads) {
-<<<<<<< HEAD
     let private_storage_threads =
         new_storage_thread_group(mem_profiler_chan.clone(), config_dir.clone(), "private");
     let public_storage_threads = new_storage_thread_group(mem_profiler_chan, config_dir, "public");
 
     (private_storage_threads, public_storage_threads)
-=======
-    let client_storage: ClientStorageThreadHandle =
-        ClientStorageThreadFactory::new(config_dir.clone());
-    let idb: GenericSender<IndexedDBThreadMsg> = IndexedDBThreadFactory::new(config_dir.clone());
-    let web_storage: GenericSender<WebStorageThreadMsg> =
-        WebStorageThreadFactory::new(config_dir, mem_profiler_chan);
-    (
-        StorageThreads::new(
-            client_storage.clone().into(),
-            idb.clone(),
-            web_storage.clone(),
-        ),
-        StorageThreads::new(client_storage.into(), idb, web_storage),
-    )
->>>>>>> 0020ff962fe (Implement client storage registry in coordination thread)
 }
