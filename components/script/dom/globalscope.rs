@@ -127,7 +127,6 @@ use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestream::CrossRealmTransformWritable;
-use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::{AbortSignal, CookieStore, DebuggerGlobalScope, MessageEvent};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
@@ -3377,16 +3376,6 @@ impl GlobalScope {
         self.notification_permission_request_callback_map
             .borrow_mut()
             .remove(&callback_id)
-    }
-
-    pub(crate) fn trusted_types(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.TrustedTypes(can_gc);
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.TrustedTypes(can_gc);
-        }
-        unreachable!();
     }
 
     pub(crate) fn append_deferred_fetch(

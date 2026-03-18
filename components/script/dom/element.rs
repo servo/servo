@@ -2601,13 +2601,13 @@ impl Element {
         // get Trusted Types-compliant attribute value with attr’s local name,
         // attr’s namespace, element, and attr’s value. [TRUSTED-TYPES]
         let verified_value = TrustedTypePolicyFactory::get_trusted_types_compliant_attribute_value(
+            cx,
             self.namespace(),
             self.local_name(),
             attr.local_name(),
             Some(attr.namespace()),
             TrustedTypeOrString::String(attr.Value()),
             &self.owner_global(),
-            CanGc::from_cx(cx),
         )?;
 
         // Step 2. If attr’s element is neither null nor element,
@@ -3207,13 +3207,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Trusted Types-compliant attribute value with qualifiedName, null,
         // this, and value. [TRUSTED-TYPES]
         let value = TrustedTypePolicyFactory::get_trusted_types_compliant_attribute_value(
+            cx,
             self.namespace(),
             self.local_name(),
             &name,
             None,
             value,
             &self.owner_global(),
-            CanGc::from_cx(cx),
         )?;
 
         // Step 4. Let attribute be the first attribute in this’s attribute list whose qualified name is qualifiedName, and null otherwise.
@@ -3247,13 +3247,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 2. Let verifiedValue be the result of calling get
         // Trusted Types-compliant attribute value with localName, namespace, element, and value. [TRUSTED-TYPES]
         let value = TrustedTypePolicyFactory::get_trusted_types_compliant_attribute_value(
+            cx,
             self.namespace(),
             self.local_name(),
             &local_name,
             Some(&namespace),
             value,
             &self.owner_global(),
-            CanGc::from_cx(cx),
         )?;
         // Step 3. Set an attribute value for this using localName, verifiedValue, and also prefix and namespace.
         let value = self.parse_attribute(&namespace, &local_name, value);

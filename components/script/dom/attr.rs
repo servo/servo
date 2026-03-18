@@ -9,6 +9,7 @@ use std::sync::LazyLock;
 use devtools_traits::AttrInfo;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix, local_name, ns};
+use js::context::JSContext;
 use style::attr::{AttrIdentifier, AttrValue};
 use style::values::GenericAtomIdent;
 
@@ -109,7 +110,7 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
     }
 
     /// <https://dom.spec.whatwg.org/#set-an-existing-attribute-value>
-    fn SetValue(&self, value: DOMString, can_gc: CanGc) -> Fallible<()> {
+    fn SetValue(&self, cx: &mut JSContext, value: DOMString) -> Fallible<()> {
         // Step 2. Otherwise:
         if let Some(owner) = self.owner() {
             // Step 2.1. Let element be attribute’s element.
@@ -117,18 +118,18 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
             // get trusted type compliant attribute value with attribute’s local name,
             // attribute’s namespace, element, and value. [TRUSTED-TYPES]
             let value = TrustedTypePolicyFactory::get_trusted_types_compliant_attribute_value(
+                cx,
                 owner.namespace(),
                 owner.local_name(),
                 self.local_name(),
                 Some(self.namespace()),
                 TrustedTypeOrString::String(value),
                 &owner.owner_global(),
-                can_gc,
             )?;
             if let Some(owner) = self.owner() {
                 // Step 2.4. Change attribute to verifiedValue.
                 let value = owner.parse_attribute(self.namespace(), self.local_name(), value);
-                owner.change_attribute(self, value, can_gc);
+                owner.change_attribute(self, value, CanGc::from_cx(cx));
             } else {
                 // Step 2.3. If attribute’s element is null, then set attribute’s value to verifiedValue, and return.
                 self.set_value(value);

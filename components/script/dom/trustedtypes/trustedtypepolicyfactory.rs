@@ -13,10 +13,13 @@ use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyFactoryBinding::{
     TrustedTypePolicyFactoryMethods, TrustedTypePolicyOptions,
 };
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString as TrustedTypeOrString;
 use crate::dom::bindings::conversions::root_from_handlevalue;
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;
@@ -26,6 +29,8 @@ use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::trustedtypes::trustedtypepolicy::{TrustedType, TrustedTypePolicy};
+use crate::dom::types::WorkerGlobalScope;
+use crate::dom::window::Window;
 use crate::script_runtime::{CanGc, JSContext};
 
 #[dom_struct]
@@ -62,8 +67,8 @@ impl TrustedTypePolicyFactory {
         }
     }
 
-    pub(crate) fn new(global: &GlobalScope, can_gc: CanGc) -> DomRoot<Self> {
-        reflect_dom_object(Box::new(Self::new_inherited()), global, can_gc)
+    pub(crate) fn new(cx: &mut js::context::JSContext, global: &GlobalScope) -> DomRoot<Self> {
+        reflect_dom_object_with_cx(Box::new(Self::new_inherited()), global, cx)
     }
 
     /// <https://www.w3.org/TR/trusted-types/#create-trusted-type-policy-algorithm>
@@ -184,13 +189,13 @@ impl TrustedTypePolicyFactory {
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#validate-attribute-mutation>
     pub(crate) fn get_trusted_types_compliant_attribute_value(
+        cx: &mut js::context::JSContext,
         element_namespace: &Namespace,
         element_name: &LocalName,
         attribute: &str,
         attribute_namespace: Option<&Namespace>,
         new_value: TrustedTypeOrString,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> Fallible<DOMString> {
         // Step 1. If attributeNs is the empty string, set attributeNs to null.
         let attribute_namespace =
@@ -227,47 +232,48 @@ impl TrustedTypePolicyFactory {
         // Step 6. Return the result of executing Get Trusted Type compliant string with the following arguments:
         // If the algorithm threw an error, rethrow the error.
         Self::get_trusted_type_compliant_string(
+            cx,
             expected_type,
             global,
             new_value,
             &sink,
             DEFAULT_SCRIPT_SINK_GROUP,
-            can_gc,
         )
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#process-value-with-a-default-policy-algorithm>
     pub(crate) fn process_value_with_default_policy(
+        cx: &mut js::context::JSContext,
         expected_type: TrustedType,
         global: &GlobalScope,
         input: DOMString,
         sink: &str,
-        can_gc: CanGc,
     ) -> Fallible<Option<DOMString>> {
         // Step 1: Let defaultPolicy be the value of global’s trusted type policy factory's default policy.
-        let global_policy_factory = global.trusted_types(can_gc);
+        let global_policy_factory = global.trusted_types(cx);
         let default_policy = match global_policy_factory.default_policy.get() {
             None => return Ok(None),
             Some(default_policy) => default_policy,
         };
-        let cx = GlobalScope::get_cx();
         // Step 2: Let policyValue be the result of executing Get Trusted Type policy value,
         // with the following arguments:
-        rooted!(in(*cx) let mut trusted_type_name_value = NullValue());
-        expected_type
-            .as_ref()
-            .safe_to_jsval(cx, trusted_type_name_value.handle_mut(), can_gc);
+        rooted!(&in(cx) let mut trusted_type_name_value = NullValue());
+        expected_type.as_ref().safe_to_jsval(
+            cx.into(),
+            trusted_type_name_value.handle_mut(),
+            CanGc::from_cx(cx),
+        );
 
-        rooted!(in(*cx) let mut sink_value = NullValue());
-        sink.safe_to_jsval(cx, sink_value.handle_mut(), can_gc);
+        rooted!(&in(cx) let mut sink_value = NullValue());
+        sink.safe_to_jsval(cx.into(), sink_value.handle_mut(), CanGc::from_cx(cx));
 
         let arguments = vec![trusted_type_name_value.handle(), sink_value.handle()];
         let policy_value = default_policy.get_trusted_type_policy_value(
+            cx,
             expected_type,
             input,
             arguments,
             false,
-            can_gc,
         );
         let data_string = match policy_value {
             // Step 3: If the algorithm threw an error, rethrow the error and abort the following steps.
@@ -284,12 +290,12 @@ impl TrustedTypePolicyFactory {
     /// Step 1 is implemented by the caller
     /// <https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-string-algorithm>
     pub(crate) fn get_trusted_type_compliant_string(
+        cx: &mut js::context::JSContext,
         expected_type: TrustedType,
         global: &GlobalScope,
         input: DOMString,
         sink: &str,
         sink_group: &str,
-        can_gc: CanGc,
     ) -> Fallible<DOMString> {
         // Step 2: Let requireTrustedTypes be the result of executing Does sink type require trusted types?
         // algorithm, passing global, sinkGroup, and true.
@@ -303,11 +309,11 @@ impl TrustedTypePolicyFactory {
         // Step 4: Let convertedInput be the result of executing Process value with a default policy
         // with the same arguments as this algorithm.
         let converted_input = TrustedTypePolicyFactory::process_value_with_default_policy(
+            cx,
             expected_type,
             global,
             input.clone(),
             sink,
-            can_gc,
         );
         // Step 5: If the algorithm threw an error, rethrow the error and abort the following steps.
         match converted_input? {
@@ -476,5 +482,17 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-defaultpolicy>
     fn GetDefaultPolicy(&self) -> Option<DomRoot<TrustedTypePolicy>> {
         self.default_policy.get()
+    }
+}
+
+impl GlobalScope {
+    fn trusted_types(&self, cx: &mut js::context::JSContext) -> DomRoot<TrustedTypePolicyFactory> {
+        if let Some(window) = self.downcast::<Window>() {
+            return window.TrustedTypes(cx);
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return worker.TrustedTypes(cx);
+        }
+        unreachable!();
     }
 }
