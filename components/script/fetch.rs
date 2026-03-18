@@ -10,6 +10,7 @@ use base::id::WebViewId;
 use ipc_channel::ipc;
 use js::jsapi::{ExceptionStackBehavior, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;
+use js::realm::CurrentRealm;
 use js::rust::HandleValue;
 use js::rust::wrappers::JS_SetPendingException;
 use net_traits::request::{
@@ -37,7 +38,6 @@ use crate::dom::bindings::codegen::Bindings::ResponseBinding::Response_Binding::
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::{DeferredRequestInit, WindowMethods};
 use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::import::module::SafeJSContext;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -57,7 +57,7 @@ use crate::dom::window::Window;
 use crate::network_listener::{
     self, FetchResponseListener, NetworkListener, ResourceTimingListener, submit_timing_data,
 };
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 
 /// Fetch canceller object. By default initialized to having a
@@ -179,15 +179,14 @@ fn abort_fetch_call(
     response_object: Option<&Response>,
     abort_reason: HandleValue,
     global: &GlobalScope,
-    cx: SafeJSContext,
-    can_gc: CanGc,
+    cx: &mut js::context::JSContext,
 ) {
     // Step 1. Reject promise with error.
-    promise.reject(cx, abort_reason, can_gc);
+    promise.reject(cx.into(), abort_reason, CanGc::from_cx(cx));
     // Step 2. If request’s body is non-null and is readable, then cancel request’s body with error.
     if let Some(body) = request.body() {
         if body.is_readable() {
-            body.cancel(cx, global, abort_reason, can_gc);
+            body.cancel(cx, global, abort_reason);
         }
     }
     // Step 3. If responseObject is null, then return.
@@ -198,7 +197,7 @@ fn abort_fetch_call(
     // Step 5. If response’s body is non-null and is readable, then error response’s body with error.
     if let Some(body) = response.body() {
         if body.is_readable() {
-            body.error(abort_reason, can_gc);
+            body.error(abort_reason, CanGc::from_cx(cx));
         }
     }
 }
@@ -209,24 +208,24 @@ pub(crate) fn Fetch(
     global: &GlobalScope,
     input: RequestInfo,
     init: RootedTraceableBox<RequestInit>,
-    comp: InRealm,
-    can_gc: CanGc,
+    cx: &mut CurrentRealm,
 ) -> Rc<Promise> {
     // Step 1. Let p be a new promise.
-    let promise = Promise::new_in_current_realm(comp, can_gc);
-    let cx = GlobalScope::get_cx();
+    let promise = Promise::new_in_realm(cx);
 
     // Step 7. Let responseObject be null.
     // NOTE: We do initialize the object earlier earlier so we can use it to track errors
-    let response = Response::new(global, can_gc);
-    response.Headers(can_gc).set_guard(Guard::Immutable);
+    let response = Response::new(global, CanGc::from_cx(cx));
+    response
+        .Headers(CanGc::from_cx(cx))
+        .set_guard(Guard::Immutable);
 
     // Step 2. Let requestObject be the result of invoking the initial value of Request as constructor
     //         with input and init as arguments. If this throws an exception, reject p with it and return p.
-    let request_object = match Request::Constructor(global, None, can_gc, input, init) {
+    let request_object = match Request::Constructor(global, None, CanGc::from_cx(cx), input, init) {
         Err(e) => {
-            response.error_stream(e.clone(), can_gc);
-            promise.reject_error(e, can_gc);
+            response.error_stream(e.clone(), CanGc::from_cx(cx));
+            promise.reject_error(e, CanGc::from_cx(cx));
             return promise;
         },
         Ok(r) => r,
@@ -239,8 +238,8 @@ pub(crate) fn Fetch(
     let signal = request_object.Signal();
     if signal.aborted() {
         // Step 4.1. Abort the fetch() call with p, request, null, and requestObject’s signal’s abort reason.
-        rooted!(in(*cx) let mut abort_reason = UndefinedValue());
-        signal.Reason(cx, abort_reason.handle_mut());
+        rooted!(&in(cx) let mut abort_reason = UndefinedValue());
+        signal.Reason(cx.into(), abort_reason.handle_mut());
         abort_fetch_call(
             promise.clone(),
             &request_object,
@@ -248,7 +247,6 @@ pub(crate) fn Fetch(
             abort_reason.handle(),
             global,
             cx,
-            can_gc,
         );
         // Step 4.2. Return p.
         return promise;
@@ -498,8 +496,7 @@ impl FetchContext {
     pub(crate) fn abort_fetch(
         &mut self,
         abort_reason: HandleValue,
-        cx: SafeJSContext,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) {
         // Step 11.1. Set locallyAborted to true.
         self.locally_aborted = true;
@@ -524,7 +521,6 @@ impl FetchContext {
             abort_reason,
             &self.global.root(),
             cx,
-            can_gc,
         );
     }
 }

@@ -569,10 +569,9 @@ impl ReadableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#rs-default-controller-private-cancel>
     pub(crate) fn perform_cancel_steps(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Perform ! ResetQueue(this).
         self.queue.reset();
@@ -583,18 +582,18 @@ impl ReadableStreamDefaultController {
             .expect("Controller should have a source when the cancel steps are called into.");
         // Let result be the result of performing this.[[cancelAlgorithm]], passing reason.
         let result = underlying_source
-            .call_cancel_algorithm(cx, global, reason, can_gc)
+            .call_cancel_algorithm(cx, global, reason)
             .unwrap_or_else(|| {
-                let promise = Promise::new(global, can_gc);
-                promise.resolve_native(&(), can_gc);
+                let promise = Promise::new2(cx, global);
+                promise.resolve_native(&(), CanGc::from_cx(cx));
                 Ok(promise)
             });
         let promise = result.unwrap_or_else(|error| {
-            rooted!(in(*cx) let mut rval = UndefinedValue());
+            rooted!(&in(cx) let mut rval = UndefinedValue());
 
-            error.to_jsval(cx, global, rval.handle_mut(), can_gc);
-            let promise = Promise::new(global, can_gc);
-            promise.reject_native(&rval.handle(), can_gc);
+            error.to_jsval(cx.into(), global, rval.handle_mut(), CanGc::from_cx(cx));
+            let promise = Promise::new2(cx, global);
+            promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
             promise
         });
 

@@ -199,7 +199,7 @@ impl AbortSignal {
                 rooted!(&in(cx) let mut reason = UndefinedValue());
                 reason.set(self.abort_reason.get());
                 if let Some(fetch_context) = &mut *fetch_context.lock().unwrap() {
-                    fetch_context.abort_fetch(reason.handle(), cx.into(), CanGc::from_cx(cx));
+                    fetch_context.abort_fetch(reason.handle(), cx);
                 }
             },
             AbortAlgorithm::FetchLater(deferred_fetch_record_id) => {

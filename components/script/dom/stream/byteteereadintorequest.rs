@@ -159,12 +159,9 @@ impl ByteTeeReadIntoRequest {
                 other_branch_controller.error(error_value.handle(), CanGc::from_cx(cx));
 
                 // Resolve cancelPromise with ! ReadableStreamCancel(stream, cloneResult.[[Value]]).
-                let cancel_result = self.stream.cancel(
-                    cx.into(),
-                    &self.stream.global(),
-                    error_value.handle(),
-                    CanGc::from_cx(cx),
-                );
+                let cancel_result =
+                    self.stream
+                        .cancel(cx, &self.stream.global(), error_value.handle());
                 self.cancel_promise
                     .resolve_native(&cancel_result, CanGc::from_cx(cx));
 
