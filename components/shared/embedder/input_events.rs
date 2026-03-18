@@ -33,8 +33,8 @@ bitflags! {
         /// behavior (such as keybindings) when the WebView has already consumed the event for its
         /// own purpose.
         const Consumed = 1 << 1;
-        /// Whether or not the HitTest Failed.
-        const HitTestFailed = 1 << 2;
+        /// Whether or not the input event failed to dispatch.
+        const DispatchFailed = 1 << 2;
     }
 }
 

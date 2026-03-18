@@ -558,7 +558,7 @@ impl RunningAppState {
                     .borrow_mut()
                     .insert(event_id, response_sender);
             }
-            if result.intersects(InputEventResult::HitTestFailed) {
+            if result.intersects(InputEventResult::DispatchFailed) {
                 self.notify_input_event_handled(webview, event_id, result);
             }
         } else {

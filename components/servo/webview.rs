@@ -513,7 +513,7 @@ impl WebView {
             {
                 return InputEventOutcome {
                     id: event_id,
-                    result: InputEventResult::HitTestFailed,
+                    result: InputEventResult::DispatchFailed,
                 };
             }
         } else {
