@@ -27,7 +27,7 @@ euclid = { workspace = true }
 fonts = { workspace = true }
 fonts_traits = { workspace = true }
 html5ever = { workspace = true }
-icu_locid = { workspace = true }
+icu_locid.workspace = true
 icu_segmenter = { workspace = true }
 itertools = { workspace = true }
 kurbo = { workspace = true }
