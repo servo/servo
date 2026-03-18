@@ -226,6 +226,26 @@ impl BlockContainer {
         }
 
         contents.traverse(context, info, &mut builder);
+
+        // This serves two purposes:
+        // 1. Single line text inputs have a default preferred size, which means they are as tall as
+        //    the default text no matter if they are empty. Adding a newline here forces the creation
+        //    of an internal inline formatting context for these fields, meaning that they will have
+        //    at least one line as tall as the font line gap.
+        //    See <https://drafts.csswg.org/css-forms-1/#element-with-default-preferred-size>
+        // 2. When `<textarea>` elements end with a forced newline (not this one), then no final
+        //    line / content is added, as with other inline formatting contexts. Adding one more forced
+        //    newline here flushes the final newline and adds a strut for rendering a caret on the last
+        //    empty line.
+        //
+        // TODO: This may have some negative sizing effects when we implement the `field-sizing`
+        // property, so likely we need to do a bit more work then to force the creation an an empty
+        // inline formatting context and properly handle a final empty line. For now this is just a
+        // workaround.
+        if info.node.is_single_line_text_input_or_textarea() {
+            builder.handle_text(info, Cow::Borrowed("\n"));
+        }
+
         builder.finish()
     }
 }

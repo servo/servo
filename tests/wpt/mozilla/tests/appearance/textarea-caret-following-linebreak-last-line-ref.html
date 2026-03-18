@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+    textarea {
+        caret-animation: manual;
+    }
+    </style>
+</head>
+<body>
+    <textarea id="target" cols=50 rows="5">ABC&#13;&#13;</textarea>
+    <script>
+        target.focus();
+        target.setSelectionRange(4, 4);
+    </script>
+</body>

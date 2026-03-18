@@ -2131,13 +2131,10 @@ pub(crate) trait LayoutNodeHelpers<'dom> {
     /// attempting to read or modify the opaque layout data of this node.
     unsafe fn clear_style_and_layout_data(self);
 
-    /// Whether this element serve as a container of editable text for a text input
-    /// that is implemented as an UA widget.
-    fn is_single_line_text_inner_editor(&self) -> bool;
-
     /// Whether this element serve as a container of any text inside a text input
     /// that is implemented as an UA widget.
-    fn is_text_container_of_single_line_input(&self) -> bool;
+    fn is_text_field_for_single_line_text_input(&self) -> bool;
+
     fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<SharedSelection>;
     fn image_url(self) -> Option<ServoUrl>;
@@ -2318,28 +2315,11 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
         }
     }
 
-    fn is_single_line_text_inner_editor(&self) -> bool {
+    fn is_text_field_for_single_line_text_input(&self) -> bool {
         matches!(
             self.implemented_pseudo_element(),
-            Some(PseudoElement::ServoTextControlInnerEditor)
+            Some(PseudoElement::Placeholder | PseudoElement::ServoTextControlInnerEditor)
         )
-    }
-
-    fn is_text_container_of_single_line_input(&self) -> bool {
-        let is_single_line_text_inner_placeholder = matches!(
-            self.implemented_pseudo_element(),
-            Some(PseudoElement::Placeholder)
-        );
-        // Currently `::placeholder` is only implemented for single line text input element.
-        debug_assert!(
-            !is_single_line_text_inner_placeholder ||
-                self.containing_shadow_root_for_layout()
-                    .map(|root| root.get_host_for_layout())
-                    .map(|host| host.downcast::<HTMLInputElement>())
-                    .is_some()
-        );
-
-        self.is_single_line_text_inner_editor() || is_single_line_text_inner_placeholder
     }
 
     fn text_content(self) -> Cow<'dom, str> {

@@ -303,17 +303,22 @@ impl<'dom> ServoThreadSafeLayoutNode<'dom> {
             .map(Self::new)
     }
 
-    /// Whether this is a container for the text within a single-line text input. This
-    /// is used to solve the special case of line height for a text entry widget.
-    /// <https://html.spec.whatwg.org/multipage/#the-input-element-as-a-text-entry-widget>
-    // TODO(stevennovaryo): Remove the addition of HTMLInputElement here once all of the
-    //                      input element is implemented with UA shadow DOM. This is temporary
-    //                      workaround for past version of input element where we are
-    //                      rendering it as a bare html element.
+    /// Whether this is a container for the text within a single-line textual `<input>` element.
     pub fn is_single_line_text_input(&self) -> bool {
-        self.type_id() == Some(LayoutNodeType::Element(LayoutElementType::HTMLInputElement)) ||
-            (self.pseudo_element_chain.is_empty() &&
-                self.node.node.is_text_container_of_single_line_input())
+        self.pseudo_element_chain.is_empty() &&
+            self.node.node.is_text_field_for_single_line_text_input()
+    }
+
+    /// Whether this is a container for the text within a single-line textual `<input>` or a
+    /// `<textarea>` element.
+    pub fn is_single_line_text_input_or_textarea(&self) -> bool {
+        self.is_single_line_text_input() ||
+            matches!(
+                self.type_id(),
+                Some(LayoutNodeType::Element(
+                    LayoutElementType::HTMLTextAreaElement
+                ))
+            )
     }
 
     pub fn selected_style(&self, context: &SharedStyleContext) -> Arc<ComputedValues> {

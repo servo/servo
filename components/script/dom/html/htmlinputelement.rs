@@ -251,25 +251,16 @@ impl TextInputWidgetShadowTree {
     // TODO(stevennovaryo): The rest of textual input shadow dom structure should act
     // like an exstension to this one.
     fn update(&self, input_element: &HTMLInputElement) {
-        // The addition of zero-width space here forces the text input to have an inline formatting
-        // context that might otherwise be trimmed if there's no text. This is important to ensure
-        // that the input element is at least as tall as the line gap of the caret:
-        // <https://drafts.csswg.org/css-ui/#element-with-default-preferred-size>.
-        //
-        // This is also used to ensure that the caret will still be rendered when the input is empty.
-        // TODO: Could append `<br>` element to prevent collapses and avoid this hack, but we would
-        //       need to fix the rendering of caret beforehand.
         let value = input_element.Value();
-        let value_text = match (value.is_empty(), input_element.input_type()) {
+        let value_text = match input_element.input_type() {
             // For a password input, we replace all of the character with its replacement char.
-            (false, InputType::Password) => value
+            InputType::Password => value
                 .str()
                 .chars()
                 .map(|_| PASSWORD_REPLACEMENT_CHAR)
                 .collect::<String>()
                 .into(),
-            (false, _) => value,
-            (true, _) => "\u{200B}".into(),
+            _ => value,
         };
 
         if let Some(character_data) = self.value_character_data() {
