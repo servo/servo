@@ -37,6 +37,7 @@ use selectors::sink::Push;
 use servo_arc::Arc;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use style::computed_values::visibility::T as Visibility;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::longhands::{
@@ -1805,6 +1806,15 @@ impl Element {
         // Do not allow unrendered, disconnected, or disabled nodes to be focusable areas ever.
         let node: &Node = self.upcast();
         if !node.is_connected() || !self.has_css_layout_box() || self.is_actually_disabled() {
+            return Default::default();
+        }
+
+        // <https://www.w3.org/TR/css-display-4/#visibility>
+        // Invisible elements are removed from navigation.
+        if self
+            .style()
+            .is_some_and(|style| style.get_inherited_box().visibility != Visibility::Visible)
+        {
             return Default::default();
         }
 
