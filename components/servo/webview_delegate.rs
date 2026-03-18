@@ -870,8 +870,7 @@ pub trait WebViewDelegate {
 
     /// An input event passed to this [`WebView`] via [`WebView::notify_input_event`] has been handled
     /// by Servo. This allows post-procesing of input events, such as chaining up unhandled events
-    /// to parent UI elements, unblocking WebDriver server
-    /// which may be synchronously waiting for response.
+    /// to parent UI elements.
     fn notify_input_event_handled(&self, _webview: WebView, _: InputEventId, _: InputEventResult) {}
     /// A pipeline in the webview panicked. First string is the reason, second one is the backtrace.
     fn notify_crashed(&self, _webview: WebView, _reason: String, _backtrace: Option<String>) {}

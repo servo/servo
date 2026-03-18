@@ -513,7 +513,7 @@ impl WebViewRenderer {
                 self.pending_scroll_zoom_events.push(action);
             }
         }
-        let mut reached_constellation = true;
+        let mut reached_constellation = false;
         // When the event is touchmove, if the script thread is processing the touch
         // move event, we skip sending the event to the script thread.
         // This prevents the script thread from stacking up for a large amount of time.

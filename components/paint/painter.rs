@@ -1310,30 +1310,30 @@ impl Painter {
         webview_id: WebViewId,
         event: InputEventAndId,
     ) -> bool {
-        if let Some(webview_renderer) = self.webview_renderers.get_mut(&webview_id) {
-            match &event.event {
-                InputEvent::MouseMove(event) => {
-                    // We only track the last mouse move position for non-touch events.
-                    if !event.is_compatibility_event_for_touch {
-                        let event_point = event
-                            .point
-                            .as_device_point(webview_renderer.device_pixels_per_page_pixel());
-                        self.last_mouse_move_position = Some(event_point);
-                    }
-                },
-                InputEvent::MouseLeftViewport(_) => {
-                    self.last_mouse_move_position = None;
-                },
-                _ => {
-                    // Disable LCP calculation on any other input event except mouse moves.
-                    self.lcp_calculator.disable_for_webview(webview_id);
-                },
-            }
+        self.webview_renderers
+            .get_mut(&webview_id)
+            .is_some_and(|webview_renderer| {
+                match &event.event {
+                    InputEvent::MouseMove(event) => {
+                        // We only track the last mouse move position for non-touch events.
+                        if !event.is_compatibility_event_for_touch {
+                            let event_point = event
+                                .point
+                                .as_device_point(webview_renderer.device_pixels_per_page_pixel());
+                            self.last_mouse_move_position = Some(event_point);
+                        }
+                    },
+                    InputEvent::MouseLeftViewport(_) => {
+                        self.last_mouse_move_position = None;
+                    },
+                    _ => {
+                        // Disable LCP calculation on any other input event except mouse moves.
+                        self.lcp_calculator.disable_for_webview(webview_id);
+                    },
+                }
 
-            webview_renderer.notify_input_event(&self.webrender_api, &self.needs_repaint, event)
-        } else {
-            false
-        }
+                webview_renderer.notify_input_event(&self.webrender_api, &self.needs_repaint, event)
+            })
     }
 
     pub(crate) fn notify_scroll_event(
