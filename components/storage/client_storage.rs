@@ -394,8 +394,12 @@ impl RegistryEngine for SqliteEngine {
         tx.commit()?;
 
         // Step 7: Let bottle be bucket’s bottle map[identifier].
+        // Note: done with `bucket_id`.
+
         // Step 8: Let proxyMap be a new storage proxy map whose backing map is bottle’s map.
         // Step 9: Append proxyMap to bottle’s proxy map reference set.
+        // Note: not doing the reference set part for now, not sure what it is useful for.
+
         // Step 10: Return proxyMap.
         Ok(StorageProxyMap {
             bottle_id,
