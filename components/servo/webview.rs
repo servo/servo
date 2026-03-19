@@ -772,12 +772,18 @@ impl WebView {
     /// Activate or deactivate accessibility features for this [`WebView`], returning the
     /// AccessKit subtree id if accessibility is now active.
     ///
-    /// After accessibility is activated, you must [graft] the returned [`accesskit::TreeId`] into
-    /// your application’s main AccessKit tree as soon as possible, before processing any further
-    /// tree updates from the webview’s [`WebViewDelegate::notify_accessibility_tree_update()`].
-    /// Otherwise you may violate AccessKit’s subtree invariants and **panic**.
+    /// After accessibility is activated, you must [graft] (with [`set_tree_id()`]) the returned
+    /// [`accesskit::TreeId`] into your application’s main AccessKit tree as soon as possible,
+    /// *before* sending any tree updates from the webview to your AccessKit adapter. Otherwise you
+    /// may violate AccessKit’s subtree invariants and **panic**.
+    ///
+    /// This method may call [`WebViewDelegate::notify_accessibility_tree_update()`] synchronously
+    /// with an initial tree update, so if your impl for that method can’t create the graft node
+    /// (and send *that* update to AccessKit) before sending this update to AccessKit, then it must
+    /// queue the update for later.
     ///
     /// [graft]: https://docs.rs/accesskit/0.24.0/accesskit/struct.Node.html#method.tree_id
+    /// [`set_tree_id()`]: https://docs.rs/accesskit/0.24.0/accesskit/struct.Node.html#method.set_tree_id
     pub fn set_accessibility_active(&self, active: bool) -> Option<accesskit::TreeId> {
         if !pref!(accessibility_enabled) {
             return None;

@@ -997,7 +997,12 @@ pub trait WebViewDelegate {
     /// <https://developer.mozilla.org/en-US/docs/Web/API/Console_API>
     fn show_console_message(&self, _webview: WebView, _level: ConsoleLogLevel, _message: String) {}
 
-    /// There are new accessibility tree updates from this [`WebView`].
+    /// There is a new accessibility tree update from this [`WebView`].
+    ///
+    /// Generally the impl should send this update to an AccessKit adapter, but it may need to queue
+    /// the update for later, if the [graft node] for this [`WebView`] has not yet been created
+    /// *and* your impl is unable to create it (and send that update to AccessKit) before sending
+    /// this update to AccessKit. For more details, see [`WebView::set_accessibility_active`].
     fn notify_accessibility_tree_update(
         &self,
         _webview: WebView,
