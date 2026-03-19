@@ -565,13 +565,22 @@ def check_toml(file_name: str, lines: list[bytes]) -> Iterator[tuple[int, str]]:
 
 
 def path_dependency_names(cargo_toml: dict[str, Any]) -> list[str]:
-    """Scan a Cargo.toml dict for any dependencies using `path =`."""
+    """Scan a Cargo.toml dict for any dependencies using `path =`.
+
+    Entries that reference the own manifest are ignored.
+    """
     path_dependencies = []
+    manifest_package_name = cargo_toml.get("package", {}).get("name")
     for dependency_table in dependency_tables(cargo_toml):
         # dependency_value is everything in `{}` of `dependency_name = { ... }`
         for dependency_name, dependency_value in dependency_table.items():
             if "path" in dependency_value:
-                path_dependencies.append(dependency_name)
+                # When self-referencing the own package from within a packages manifest,
+                # we must use `path`, otherwise cargo will try to resolve from crates.io.
+                # This pattern is commonly used to enable extra code (features) in a library for integration tests.
+                dep_package_name = dependency_value.get("package", "")
+                if manifest_package_name != dependency_name and manifest_package_name != dep_package_name:
+                    path_dependencies.append(dependency_name)
     return path_dependencies
 
 

@@ -162,6 +162,12 @@ class CheckTidiness(unittest.TestCase):
         )
         self.assertNoMoreErrors(errors)
 
+    def test_toml_path_dependencies_self_reference(self):
+        errors = tidy.collect_errors_for_files(
+            iterFile("path_dependency/self-reference.Cargo.toml"), [], [tidy.check_toml], print_text=False
+        )
+        self.assertNoMoreErrors(errors)
+
     def test_modeline(self):
         errors = tidy.collect_errors_for_files(iterFile("modeline.txt"), [], [tidy.check_modeline], print_text=False)
         self.assertEqual("vi modeline present", next(errors)[2])
