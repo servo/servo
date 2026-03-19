@@ -1637,7 +1637,21 @@ version = "0.36.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dae61cf9c0abb83bd659dab65b7e4e38d8236824c85f0f804f173567bda257d2"
 dependencies = [
- "cssparser-macros",
+ "cssparser-macros 0.6.1",
+ "dtoa-short",
+ "itoa",
+ "phf",
+ "serde",
+ "smallvec",
+]
+
+[[package]]
+name = "cssparser"
+version = "0.37.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8c9cdaae01d5ed7882b04d795e7f752f46ff52d2fa3b50a20d28c464510bba98"
+dependencies = [
+ "cssparser-macros 0.7.0",
  "dtoa-short",
  "itoa",
  "phf",
@@ -1650,6 +1664,16 @@ name = "cssparser-macros"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13b588ba4ac1a99f7f2964d24b3d896ddc6bf847ee3855dbd4366f058cfcd331"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "cssparser-macros"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10a2a99df6e410a8ff4245aa2006499ea662245f967cc7c0a38c83ef8eb44dbf"
 dependencies = [
  "quote",
  "syn",
@@ -7169,7 +7193,7 @@ version = "0.36.0"
 source = "git+https://github.com/servo/stylo?rev=dca3934667dae76c49bb579b268c5eb142d09c6a#dca3934667dae76c49bb579b268c5eb142d09c6a"
 dependencies = [
  "bitflags 2.11.0",
- "cssparser",
+ "cssparser 0.36.0",
  "derive_more",
  "log",
  "new_debug_unreachable",
@@ -8398,7 +8422,7 @@ dependencies = [
  "content-security-policy",
  "cookie 0.18.1",
  "crossbeam-channel",
- "cssparser",
+ "cssparser 0.37.0",
  "ctr",
  "data-url",
  "der",
@@ -9189,7 +9213,7 @@ name = "style_tests"
 version = "0.0.6"
 dependencies = [
  "app_units",
- "cssparser",
+ "cssparser 0.37.0",
  "euclid",
  "html5ever",
  "rayon",
@@ -9212,7 +9236,7 @@ dependencies = [
  "atomic_refcell",
  "bitflags 2.11.0",
  "byteorder",
- "cssparser",
+ "cssparser 0.36.0",
  "derive_more",
  "encoding_rs",
  "euclid",
@@ -9294,7 +9318,7 @@ version = "0.13.0"
 source = "git+https://github.com/servo/stylo?rev=dca3934667dae76c49bb579b268c5eb142d09c6a#dca3934667dae76c49bb579b268c5eb142d09c6a"
 dependencies = [
  "app_units",
- "cssparser",
+ "cssparser 0.36.0",
  "euclid",
  "selectors",
  "servo_arc",
@@ -9317,7 +9341,7 @@ source = "git+https://github.com/servo/stylo?rev=dca3934667dae76c49bb579b268c5eb
 dependencies = [
  "app_units",
  "bitflags 2.11.0",
- "cssparser",
+ "cssparser 0.36.0",
  "euclid",
  "malloc_size_of_derive",
  "selectors",
@@ -9737,7 +9761,7 @@ name = "to_shmem"
 version = "0.3.0"
 source = "git+https://github.com/servo/stylo?rev=dca3934667dae76c49bb579b268c5eb142d09c6a#dca3934667dae76c49bb579b268c5eb142d09c6a"
 dependencies = [
- "cssparser",
+ "cssparser 0.36.0",
  "servo_arc",
  "smallbitvec",
  "smallvec",
