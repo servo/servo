@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<title>Arrow keys should move the selection in an input field</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+    .text {
+        width: 100px;
+    }
+</style>
+
+<input class="text" id="input" value="word word">
+<textarea class="text" id="textarea">
+word word
+abc
+word word
+</textarea>
+
+<script>
+const arrowLeftKey = "\uE012";
+const arrowUpKey = "\uE013";
+const arrowRightKey = "\uE014";
+const arrowDownKey = "\uE015";
+const controlKey = "\uE009";
+const altKey = "\uE00A";
+const isMacOSX = navigator.userAgent.indexOf("Mac") != -1;
+const wordMoveKey = isMacOSX ? altKey : controlKey;
+
+async function pressKeyWithWordMoveModifier(key) {
+     await new test_driver.Actions()
+        .keyDown(wordMoveKey)
+        .keyDown(key)
+        .keyUp(key)
+        .keyUp(wordMoveKey)
+        .send();
+}
+
+promise_test(async test => {
+    input.focus();
+    assert_equals(input.selectionStart, 0);
+    assert_equals(input.selectionEnd, 0);
+
+    await test_driver.send_keys(input, arrowRightKey);
+    assert_equals(input.selectionStart, 1);
+    assert_equals(input.selectionEnd, 1);
+
+    await test_driver.send_keys(input, arrowRightKey);
+    assert_equals(input.selectionStart, 2);
+    assert_equals(input.selectionEnd, 2);
+
+    await pressKeyWithWordMoveModifier(arrowRightKey);
+    assert_equals(input.selectionStart, 4);
+    assert_equals(input.selectionEnd, 4);
+
+    await pressKeyWithWordMoveModifier(arrowRightKey);
+    assert_equals(input.selectionStart, 9);
+    assert_equals(input.selectionEnd, 9);
+
+    await pressKeyWithWordMoveModifier(arrowRightKey);
+    assert_equals(input.selectionStart, 9);
+    assert_equals(input.selectionEnd, 9);
+
+    await pressKeyWithWordMoveModifier(arrowLeftKey);
+    assert_equals(input.selectionStart, 5);
+    assert_equals(input.selectionEnd, 5);
+
+    await pressKeyWithWordMoveModifier(arrowLeftKey);
+    assert_equals(input.selectionStart, 0);
+    assert_equals(input.selectionEnd, 0);
+
+    await pressKeyWithWordMoveModifier(arrowLeftKey);
+    assert_equals(input.selectionStart, 0);
+    assert_equals(input.selectionEnd, 0);
+}, 'Arrows keys move the selection in an input field');
+
+promise_test(async test => {
+    textarea.focus();
+    assert_equals(textarea.selectionStart, 0);
+    assert_equals(textarea.selectionEnd, 0);
+
+    await test_driver.send_keys(textarea, arrowRightKey);
+    assert_equals(textarea.selectionStart, 1);
+    assert_equals(textarea.selectionEnd, 1);
+
+    await test_driver.send_keys(textarea, arrowRightKey);
+    assert_equals(textarea.selectionStart, 2);
+    assert_equals(textarea.selectionEnd, 2);
+
+    await pressKeyWithWordMoveModifier(arrowRightKey);
+    assert_equals(textarea.selectionStart, 4);
+    assert_equals(textarea.selectionEnd, 4);
+
+    await pressKeyWithWordMoveModifier(arrowRightKey);
+    assert_equals(textarea.selectionStart, 9);
+    assert_equals(textarea.selectionEnd, 9);
+
+    await test_driver.send_keys(textarea, arrowDownKey);
+    assert_equals(textarea.selectionStart, 13);
+    assert_equals(textarea.selectionEnd, 13);
+
+    await test_driver.send_keys(textarea, arrowUpKey);
+    assert_equals(textarea.selectionStart, 3);
+    assert_equals(textarea.selectionEnd, 3);
+
+    await pressKeyWithWordMoveModifier(arrowRightKey);
+    assert_equals(textarea.selectionStart, 4);
+    assert_equals(textarea.selectionEnd, 4);
+
+    await pressKeyWithWordMoveModifier(arrowRightKey);
+    assert_equals(textarea.selectionStart, 9);
+    assert_equals(textarea.selectionEnd, 9);
+
+    await pressKeyWithWordMoveModifier(arrowLeftKey);
+    assert_equals(textarea.selectionStart, 5);
+    assert_equals(textarea.selectionEnd, 5);
+
+    await pressKeyWithWordMoveModifier(arrowLeftKey);
+    assert_equals(textarea.selectionStart, 0);
+    assert_equals(textarea.selectionEnd, 0);
+
+    pressKeyWithWordMoveModifier(arrowLeftKey);
+    assert_equals(textarea.selectionStart, 0);
+    assert_equals(textarea.selectionEnd, 0);
+}, 'Arrow keys move the selection in an textarea');
+</script>
