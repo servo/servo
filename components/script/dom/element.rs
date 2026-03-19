@@ -41,7 +41,7 @@ use style::computed_values::visibility::T as Visibility;
 use style::context::QuirksMode;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::properties::longhands::{
-    self, background_image, border_spacing, font_family, font_size,
+    self, background_image, border_spacing, color, font_family, font_size,
 };
 use style::properties::{
     ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock,
@@ -1100,6 +1100,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     where
         V: Push<ApplicableDeclarationBlock>,
     {
+        let document = self.upcast::<Node>().owner_doc_for_layout();
         let mut property_declaration_block = None;
         let mut push = |declaration| {
             property_declaration_block
@@ -1190,16 +1191,6 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             push(PropertyDeclaration::FontSize(
                 font_size::SpecifiedValue::from_html_size(font_size as u8),
             ));
-        }
-
-        let cellspacing = self
-            .downcast::<HTMLTableElement>()
-            .and_then(HTMLTableElementLayoutHelpers::get_cellspacing);
-        if let Some(cellspacing) = cellspacing {
-            let width_value = specified::Length::from_px(cellspacing as f32);
-            push(PropertyDeclaration::BorderSpacing(Box::new(
-                border_spacing::SpecifiedValue::new(width_value.clone().into(), width_value.into()),
-            )));
         }
 
         // Textual input, specifically text entry and domain specific input has
@@ -1366,15 +1357,29 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             }
         }
 
-        let border = self
-            .downcast::<HTMLTableElement>()
-            .and_then(|table| table.get_border());
-        if let Some(border) = border {
-            let width_value = specified::BorderSideWidth::from_px(border as f32);
-            push(PropertyDeclaration::BorderTopWidth(width_value.clone()));
-            push(PropertyDeclaration::BorderLeftWidth(width_value.clone()));
-            push(PropertyDeclaration::BorderBottomWidth(width_value.clone()));
-            push(PropertyDeclaration::BorderRightWidth(width_value));
+        if let Some(table) = self.downcast::<HTMLTableElement>() {
+            if let Some(cellspacing) = table.get_cellspacing() {
+                let width_value = specified::Length::from_px(cellspacing as f32);
+                push(PropertyDeclaration::BorderSpacing(Box::new(
+                    border_spacing::SpecifiedValue::new(
+                        width_value.clone().into(),
+                        width_value.into(),
+                    ),
+                )));
+            }
+            if let Some(border) = table.get_border() {
+                let width_value = specified::BorderSideWidth::from_px(border as f32);
+                push(PropertyDeclaration::BorderTopWidth(width_value.clone()));
+                push(PropertyDeclaration::BorderLeftWidth(width_value.clone()));
+                push(PropertyDeclaration::BorderBottomWidth(width_value.clone()));
+                push(PropertyDeclaration::BorderRightWidth(width_value));
+            }
+            if document.quirks_mode() == QuirksMode::Quirks {
+                // <https://quirks.spec.whatwg.org/#the-tables-inherit-color-from-body-quirk>
+                push(PropertyDeclaration::Color(color::SpecifiedValue(
+                    specified::Color::InheritFromBodyQuirk,
+                )));
+            }
         }
 
         if let Some(cellpadding) = self
@@ -1418,7 +1423,6 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             return;
         };
 
-        let document = self.upcast::<Node>().owner_doc_for_layout();
         let shared_lock = document.style_shared_lock();
         hints.push(ApplicableDeclarationBlock::from_declarations(
             Arc::new(shared_lock.wrap(property_declaration_block)),
