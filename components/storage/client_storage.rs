@@ -1,53 +1,41 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use std::ops::{Deref, DerefMut};
+use std::fmt::Debug;
 use std::path::PathBuf;
 use std::thread;
 
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use servo_base::id::{BrowsingContextId, WebViewId};
 use rusqlite::{Connection, OptionalExtension, Transaction};
+use serde::{Deserialize, Serialize};
 use servo_url::ImmutableOrigin;
 use storage_traits::client_storage::{
-    Bottle, BottleIdent, Bucket, BucketIdent, ClientStorageThreadMessage, CreateBottleError,
-    CreateBucketError, StorageIdentifier, StorageProxyMap, StorageType,
+    ClientStorageThreadHandle, ClientStorageThreadMessage, CreateBottleError, CreateBucketError,
+    StorageIdentifier, StorageProxyMap, StorageType,
 };
 use uuid::Uuid;
 
 trait RegistryEngine {
-    type Error: std::fmt::Debug;
+    type Error: Debug;
     fn create_database(
         &mut self,
         bottle_id: i64,
         name: String,
     ) -> Result<PathBuf, CreateBottleError<Self::Error>>;
+    fn delete_database(
+        &mut self,
+        bottle_id: i64,
+        name: String,
+    ) -> Result<(), CreateBottleError<Self::Error>>;
     fn obtain_a_storage_bottle_map(
         &mut self,
         storage_type: StorageType,
         webview: WebViewId,
         storage_identifier: StorageIdentifier,
         origin: ImmutableOrigin,
+        sender: &GenericSender<ClientStorageThreadMessage>,
     ) -> Result<StorageProxyMap, CreateBottleError<Self::Error>>;
-    fn open_bottle(
-        &mut self,
-        shelf: ImmutableOrigin,
-        bucket: BucketIdent,
-        bottle: BottleIdent,
-    ) -> Result<PathBuf, Self::Error>;
-    fn delete_shelf(&mut self, shelf: ImmutableOrigin) -> Result<(), Self::Error>;
-    fn delete_bucket(
-        &mut self,
-        shelf: ImmutableOrigin,
-        bucket: BucketIdent,
-    ) -> Result<(), Self::Error>;
-    fn delete_bottle(
-        &mut self,
-        shelf: ImmutableOrigin,
-        bucket: BucketIdent,
-        bottle: BottleIdent,
-    ) -> Result<(), Self::Error>;
-    fn delete_all(&mut self) -> Result<(), Self::Error>;
 }
 
 struct SqliteEngine {
@@ -71,7 +59,7 @@ impl SqliteEngine {
         connection.execute(
             r#"CREATE TABLE IF NOT EXISTS sheds (
                     id INTEGER PRIMARY KEY,
-                    storage_type TEXT NOT NULL UNIQUE,
+                    storage_type TEXT NOT NULL,
                     browsing_context TEXT
                 );"#,
             [],
@@ -79,7 +67,7 @@ impl SqliteEngine {
         connection.execute(
             r#"CREATE TABLE IF NOT EXISTS shelves (
                     id INTEGER PRIMARY KEY,
-                    origin TEXT NOT NULL UNIQUE,
+                    origin TEXT NOT NULL,
                     shed_id INTEGER NOT NULL,
                 );"#,
             [],
@@ -88,7 +76,7 @@ impl SqliteEngine {
             r#"CREATE TABLE IF NOT EXISTS buckets (
                     id INTEGER PRIMARY KEY,
                     shelf_id INTEGER NOT NULL,
-                    name TEXT NOT NULL,
+                    storage_type TEXT NOT NULL,
                     persisted BOOLEAN DEFAULT 0,
                     quota INTEGER,
                     expires DATETIME,
@@ -133,6 +121,63 @@ impl SqliteEngine {
     }
 }
 
+/// <https://storage.spec.whatwg.org/#create-a-storage-bucket>
+fn create_a_storage_bucket(
+    shelf_id: i64,
+    storage_type: StorageType,
+    tx: &Transaction,
+) -> rusqlite::Result<i64> {
+    // Step 1: Let bucket be null.
+    // Step 2: If type is "local", then set bucket to a new local storage bucket.
+    // Step 3: Otherwise:
+    // Step 3.1: Assert: type is "session".
+    // Step 3.2: Set bucket to a new session storage bucket.
+    // Note: done with `StorageType`.
+    tx.execute(
+        "INSERT OR IGNORE INTO buckets (storage_type, shelf_id) VALUES (?1, ?2);",
+        [storage_type.as_str(), &shelf_id.to_string()],
+    )?;
+
+    let bucket_id: i64 = tx.query_row(
+        "SELECT id FROM buckets WHERE storage_type = ?1 AND shelf_id = ?2;",
+        [storage_type.as_str(), &shelf_id.to_string()],
+        |row| row.get(0),
+    )?;
+
+    // Step 4: For each endpoint of registered storage endpoints whose types contain type,
+    // set bucket’s bottle map[endpoint’s identifier] to
+    // a new storage bottle whose quota is endpoint’s quota.
+
+    let registered_endpoints = match storage_type {
+        StorageType::Local => vec![
+            "caches",
+            "indexedDB",
+            "localStorage",
+            "serviceWorkerRegistrations",
+        ],
+        StorageType::Session => vec!["sessionStorage"],
+    };
+
+    for identifier in registered_endpoints {
+        let exists: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM bottles WHERE bucket_id = ?1 AND identifier = ?2);",
+            (bucket_id, identifier),
+            |row| row.get(0),
+        )?;
+
+        // TODO: quota.
+        if !exists {
+            tx.execute(
+                "INSERT INTO bottles (bucket_id, identifier) VALUES (?1, ?2);",
+                (bucket_id, identifier),
+            )?;
+        }
+    }
+
+    // Step 5: Return bucket.
+    Ok(bucket_id)
+}
+
 /// <https://storage.spec.whatwg.org/#create-a-storage-shelf>
 fn create_a_storage_shelf(
     shed: i64,
@@ -152,12 +197,8 @@ fn create_a_storage_shelf(
     )?;
 
     // Step 2: Set shelf’s bucket map["default"] to the result of running create a storage bucket with type.
-    tx.execute(
-        "INSERT OR IGNORE INTO buckets (shelf_id, name, persisted) VALUES (?1, 'default', 1);",
-        [shelf_id],
-    )?;
-
-    Ok(shelf_id)
+    // Note: returning `shelf’s bucket map["default"]`, which is the `bucket_id`.
+    create_a_storage_bucket(shelf_id.clone(), storage_type, tx)
 }
 
 /// <https://storage.spec.whatwg.org/#obtain-a-storage-shelf>
@@ -175,10 +216,11 @@ fn obtain_a_storage_shelf(
     // Step 3: If shed[key] does not exist,
     // then set shed[key] to the result of running create a storage shelf with type.
     // Note: method internally conditions on shed[key] not existing.
-    let shelf_id = create_a_storage_shelf(shed, origin, storage_type, tx)?;
+    let bucket_id = create_a_storage_shelf(shed, origin, storage_type, tx)?;
 
     // Step 4: Return shed[key].
-    Ok(shelf_id)
+    // Note: returning `shed[key]["default"]`, which is `bucket_id`.
+    Ok(bucket_id)
 }
 
 impl RegistryEngine for SqliteEngine {
@@ -232,10 +274,62 @@ impl RegistryEngine for SqliteEngine {
             (database_id, path_str),
         )?;
 
-        tx.commit()?;
         // Create the directory on disk
         std::fs::create_dir_all(&path).map_err(|_| CreateBottleError::DirectoryCreationFailed)?;
+
+        tx.commit()?;
+
         Ok(path)
+    }
+
+    /// Delete a database for the indexedDB endpoint.
+    fn delete_database(
+        &mut self,
+        bottle_id: i64,
+        name: String,
+    ) -> Result<(), CreateBottleError<Self::Error>> {
+        let tx = self.connection.transaction()?;
+
+        // Ensure no duplicate database
+        let exists: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM databases WHERE bottle_id = ?1 AND name = ?2);",
+            (bottle_id, name.clone()),
+            |row| row.get(0),
+        )?;
+
+        if !exists {
+            return Err(CreateBottleError::DatabaseDoesNotExist);
+        }
+
+        let database_id: i64 = tx.query_row(
+            "SELECT id FROM databases WHERE bottle_id = ?1 AND name = ?2;",
+            (bottle_id, name.clone()),
+            |row| row.get(0),
+        )?;
+
+        let path: String = tx.query_row(
+            "SELECT path FROM databases WHERE bottle_id = ?1 AND name = ?2;",
+            (bottle_id, name.clone()),
+            |row| row.get(1),
+        )?;
+
+        tx.execute(
+            "DELETE FROM databases (bottle_id, name) VALUES (?1, ?2);",
+            (bottle_id, name),
+        )?;
+
+        let path_str = path.to_string();
+        tx.execute(
+            "DELETE FROM directories (database_id, path) VALUES (?1, ?2);",
+            (database_id, path_str),
+        )?;
+
+        // Delete the directory on disk
+        std::fs::create_dir_all(&path).map_err(|_| CreateBottleError::DirectoryCreationFailed)?;
+
+        tx.commit()?;
+
+        Ok(())
     }
 
     /// <https://storage.spec.whatwg.org/#obtain-a-storage-bottle-map>
@@ -245,67 +339,52 @@ impl RegistryEngine for SqliteEngine {
         webview: WebViewId,
         storage_identifier: StorageIdentifier,
         origin: ImmutableOrigin,
+        sender: &GenericSender<ClientStorageThreadMessage>,
     ) -> Result<StorageProxyMap, CreateBottleError<Self::Error>> {
         let tx = self.connection.transaction()?;
 
         // Step 1: Let shed be null.
-        // Step 2: If type is "local", then set shed to the user agent’s storage shed.
-        // Step 3: Otherwise:
-        // Step 3.1: Assert: type is "session".
-        // Step 3.2: Set shed to environment’s global object’s associated Document’s
-        // node navigable’s traversable navigable’s storage shed.
-        // Note: using the browsing context of the webview as the traversable navigable.
-        tx.execute(
-            "INSERT OR IGNORE INTO sheds (storage_type, browsing_context) VALUES (?1, ?2);",
-            [
-                storage_type.as_str(),
-                &Into::<BrowsingContextId>::into(webview).to_string(),
-            ],
-        )?;
-        let shed_id: i64 = tx.query_row(
-            "SELECT id FROM shed WHERE browsing_context = ?1;",
-            [&Into::<BrowsingContextId>::into(webview).to_string()],
-            |row| row.get(0),
-        )?;
+        let shed_id: i64 = match storage_type {
+            StorageType::Local => {
+                // Step 2: If type is "local", then set shed to the user agent’s storage shed.
+                tx.execute(
+                    "INSERT OR IGNORE INTO sheds (storage_type) VALUES (?1);",
+                    [storage_type.as_str()],
+                )?;
+                tx.query_row(
+                    "SELECT id FROM sheds WHERE storage_type = ?1;",
+                    ["local"],
+                    |row| row.get(0),
+                )?
+            },
+            StorageType::Session => {
+                // Step 3: Otherwise:
+                // Step 3.1: Assert: type is "session".
+                // Step 3.2: Set shed to environment’s global object’s associated Document’s
+                // node navigable’s traversable navigable’s storage shed.
+                // Note: using the browsing context of the webview as the traversable navigable.
+                tx.execute(
+                    "INSERT OR IGNORE INTO sheds (storage_type, browsing_context) VALUES (?1, ?2);",
+                    [
+                        storage_type.as_str(),
+                        &Into::<BrowsingContextId>::into(webview).to_string(),
+                    ],
+                )?;
+                tx.query_row(
+                    "SELECT id FROM sheds WHERE browsing_context = ?1;",
+                    [&Into::<BrowsingContextId>::into(webview).to_string()],
+                    |row| row.get(0),
+                )?
+            },
+        };
 
         // Step 4: Let shelf be the result of running obtain a storage shelf,
         // with shed, environment, and type.
         // Step 5: If shelf is failure, then return failure.
-        let shelf_id = obtain_a_storage_shelf(shed_id, &origin, storage_type, &tx)?;
-
-        // Step 7: Let bottle be bucket’s bottle map[identifier].
-        // Step 8: Let proxyMap be a new storage proxy map whose backing map is bottle’s map.
-        // Step 9: Append proxyMap to bottle’s proxy map reference set.
-        // Step 10: Return proxyMap.
+        let bucket_id = obtain_a_storage_shelf(shed_id, &origin, storage_type, &tx)?;
 
         // Step 6: Let bucket be shelf’s bucket map["default"].
-        let bucket_id: i64 = match tx
-            .query_row(
-                "SELECT id FROM buckets WHERE shelf_id = ?1 AND name = ?2;",
-                (shelf_id, "default"),
-                |row| row.get(0),
-            )
-            .optional()
-        {
-            Ok(Some(id)) => id,
-            Ok(None) => return Err(CreateBottleError::BucketDoesNotExist),
-            Err(e) => return Err(CreateBottleError::Internal(e)),
-        };
-
-        // Ensure no duplicate bottle
-        let exists: bool = tx.query_row(
-            "SELECT EXISTS(SELECT 1 FROM bottles WHERE bucket_id = ?1 AND identifier = ?2);",
-            (bucket_id, storage_identifier.as_str()),
-            |row| row.get(0),
-        )?;
-
-        // TODO: quota.
-        if !exists {
-            tx.execute(
-                "INSERT INTO bottles (bucket_id, identifier) VALUES (?1, ?2);",
-                (bucket_id, storage_identifier.as_str()),
-            )?;
-        }
+        // Done above with `bucket_id`.
 
         let bottle_id: i64 = tx.query_row(
             "SELECT id FROM bottles WHERE bucket_id = ?1 AND identifier = ?2;",
@@ -315,94 +394,14 @@ impl RegistryEngine for SqliteEngine {
 
         tx.commit()?;
 
-        Ok(StorageProxyMap { bottle_id })
-    }
-
-    fn open_bottle(
-        &mut self,
-        shelf: ImmutableOrigin,
-        bucket: BucketIdent,
-        bottle: BottleIdent,
-    ) -> Result<PathBuf, Self::Error> {
-        let shelf_id: i64 = self.connection.query_row(
-            "SELECT id FROM shelves WHERE origin = ?1;",
-            (&shelf.ascii_serialization(),),
-            |row| row.get(0),
-        )?;
-        let bucket_id: i64 = self.connection.query_row(
-            "SELECT id FROM buckets WHERE shelf_id = ?1 AND name = ?2;",
-            (shelf_id, bucket.as_str()),
-            |row| row.get(0),
-        )?;
-        let bottle_id: i64 = self.connection.query_row(
-            "SELECT id FROM bottles WHERE bucket_id = ?1 AND identifier = ?2;",
-            (bucket_id, bottle.type_str()),
-            |row| row.get(0),
-        )?;
-        let database_id: i64 = self.connection.query_row(
-            "SELECT id FROM databases WHERE bottle_id = ?1 AND name = ?2;",
-            (bottle_id, bottle.database_name()),
-            |row| row.get(0),
-        )?;
-        let path_str: String = self.connection.query_row(
-            "SELECT path FROM directories WHERE database_id = ?1;",
-            (database_id,),
-            |row| row.get(0),
-        )?;
-        Ok(PathBuf::from(path_str))
-    }
-
-    fn delete_shelf(&mut self, shelf: ImmutableOrigin) -> Result<(), Self::Error> {
-        self.connection.execute(
-            "DELETE FROM shelves WHERE origin = ?1;",
-            [&shelf.ascii_serialization()],
-        )?;
-        Ok(())
-    }
-
-    fn delete_bucket(
-        &mut self,
-        shelf: ImmutableOrigin,
-        bucket: BucketIdent,
-    ) -> Result<(), Self::Error> {
-        let shelf_id: i64 = self.connection.query_row(
-            "SELECT id FROM shelves WHERE origin = ?1;",
-            (&shelf.ascii_serialization(),),
-            |row| row.get(0),
-        )?;
-        self.connection.execute(
-            "DELETE FROM buckets WHERE shelf_id = ?1 AND name = ?2;",
-            (shelf_id, bucket.as_str()),
-        )?;
-        Ok(())
-    }
-
-    fn delete_bottle(
-        &mut self,
-        shelf: ImmutableOrigin,
-        bucket: BucketIdent,
-        bottle: BottleIdent,
-    ) -> Result<(), Self::Error> {
-        let shelf_id: i64 = self.connection.query_row(
-            "SELECT id FROM shelves WHERE origin = ?1;",
-            (&shelf.ascii_serialization(),),
-            |row| row.get(0),
-        )?;
-        let bucket_id: i64 = self.connection.query_row(
-            "SELECT id FROM buckets WHERE shelf_id = ?1 AND name = ?2;",
-            (shelf_id, bucket.as_str()),
-            |row| row.get(0),
-        )?;
-        self.connection.execute(
-            "DELETE FROM bottles WHERE bucket_id = ?1 AND identifier = ?2;",
-            (bucket_id, bottle.type_str()),
-        )?;
-        Ok(())
-    }
-
-    fn delete_all(&mut self) -> Result<(), Self::Error> {
-        self.connection.execute("DELETE FROM shelves;", [])?;
-        Ok(())
+        // Step 7: Let bottle be bucket’s bottle map[identifier].
+        // Step 8: Let proxyMap be a new storage proxy map whose backing map is bottle’s map.
+        // Step 9: Append proxyMap to bottle’s proxy map reference set.
+        // Step 10: Return proxyMap.
+        Ok(StorageProxyMap {
+            bottle_id,
+            handle: ClientStorageThreadHandle::new(sender.clone()),
+        })
     }
 }
 
@@ -420,12 +419,13 @@ impl ClientStorageThreadFactory for ClientStorageThreadHandle {
         std::fs::create_dir_all(&storage_dir)
             .expect("Failed to create ClientStorage storage directory");
         let clone_dir = storage_dir.clone();
+        let sender_clone = generic_sender.clone();
         thread::Builder::new()
             .name("ClientStorageThread".to_owned())
             .spawn(move || {
                 let engine = SqliteEngine::new(clone_dir)
                     .expect("Failed to initialize ClientStorage registry engine");
-                ClientStorageThread::new(generic_receiver, engine).start();
+                ClientStorageThread::new(sender_clone, generic_receiver, engine).start();
             })
             .expect("Thread spawning failed");
 
@@ -435,6 +435,7 @@ impl ClientStorageThreadFactory for ClientStorageThreadHandle {
 
 struct ClientStorageThread<E: RegistryEngine> {
     receiver: GenericReceiver<ClientStorageThreadMessage>,
+    sender: GenericSender<ClientStorageThreadMessage>,
     engine: E,
 }
 
@@ -443,20 +444,20 @@ where
     E: RegistryEngine,
 {
     pub fn new(
+        sender: GenericSender<ClientStorageThreadMessage>,
         receiver: GenericReceiver<ClientStorageThreadMessage>,
         engine: E,
     ) -> ClientStorageThread<E> {
-        ClientStorageThread { receiver, engine }
+        ClientStorageThread {
+            sender,
+            receiver,
+            engine,
+        }
     }
 
     pub fn start(&mut self) {
         while let Ok(message) = self.receiver.recv() {
             match message {
-                ClientStorageThreadMessage::CreateBucket {
-                    shelf,
-                    bucket,
-                    sender,
-                } => {},
                 ClientStorageThreadMessage::ObtainBottleMap {
                     storage_type,
                     storage_identifier,
@@ -469,57 +470,24 @@ where
                         webview,
                         storage_identifier,
                         origin,
+                        &self.sender,
                     );
-                    let _ = sender.send(result.map_err(|e| match e {
-                        CreateBottleError::BottleAlreadyExists => {
-                            CreateBottleError::BottleAlreadyExists
-                        },
-                        CreateBottleError::BucketDoesNotExist => {
-                            CreateBottleError::BucketDoesNotExist
-                        },
-                        CreateBottleError::DatabaseAlreadyExists => {
-                            CreateBottleError::DatabaseAlreadyExists
-                        },
-                        CreateBottleError::DirectoryCreationFailed => {
-                            CreateBottleError::DirectoryCreationFailed
-                        },
-                        CreateBottleError::Internal(err) => {
-                            CreateBottleError::Internal(format!("{:?}", err))
-                        },
-                    }));
+                    let _ = sender.send(result.map_err(|e| format!("{:?}", e)));
                 },
-                ClientStorageThreadMessage::OpenBottle {
-                    shelf,
-                    bucket,
-                    bottle,
+                ClientStorageThreadMessage::CreateDatabase {
+                    bottle_id,
+                    name,
                     sender,
                 } => {
-                    let result = self.engine.open_bottle(shelf, bucket, bottle);
+                    let result = self.engine.create_database(bottle_id, name);
                     let _ = sender.send(result.map_err(|e| format!("{:?}", e)));
                 },
-                ClientStorageThreadMessage::DeleteShelf { shelf, sender } => {
-                    let result = self.engine.delete_shelf(shelf);
-                    let _ = sender.send(result.map_err(|e| format!("{:?}", e)));
-                },
-                ClientStorageThreadMessage::DeleteBucket {
-                    shelf,
-                    bucket,
+                ClientStorageThreadMessage::DeleteDatabase {
+                    bottle_id,
+                    name,
                     sender,
                 } => {
-                    let result = self.engine.delete_bucket(shelf, bucket);
-                    let _ = sender.send(result.map_err(|e| format!("{:?}", e)));
-                },
-                ClientStorageThreadMessage::DeleteBottle {
-                    shelf,
-                    bucket,
-                    bottle,
-                    sender,
-                } => {
-                    let result = self.engine.delete_bottle(shelf, bucket, bottle);
-                    let _ = sender.send(result.map_err(|e| format!("{:?}", e)));
-                },
-                ClientStorageThreadMessage::DeleteAll { sender } => {
-                    let result = self.engine.delete_all();
+                    let result = self.engine.delete_database(bottle_id, name);
                     let _ = sender.send(result.map_err(|e| format!("{:?}", e)));
                 },
                 ClientStorageThreadMessage::Exit(sender) => {
@@ -528,79 +496,5 @@ where
                 },
             }
         }
-    }
-}
-
-#[derive(Clone)]
-pub struct ClientStorageThreadHandle {
-    sender: GenericSender<ClientStorageThreadMessage>,
-}
-
-impl ClientStorageThreadHandle {
-    pub fn new(sender: GenericSender<ClientStorageThreadMessage>) -> Self {
-        ClientStorageThreadHandle { sender }
-    }
-
-    pub fn obtain_a_storage_bottle_map(
-        &self,
-        storage_type: StorageType,
-        webview: WebViewId,
-        storage_identifier: StorageIdentifier,
-        origin: ImmutableOrigin,
-    ) -> GenericReceiver<Result<StorageProxyMap, CreateBottleError<String>>> {
-        let (sender, receiver) = generic_channel::channel().unwrap();
-        let message = ClientStorageThreadMessage::ObtainBottleMap {
-            storage_type,
-            webview,
-            storage_identifier,
-            origin,
-            sender,
-        };
-        self.sender.send(message).unwrap();
-        receiver
-    }
-
-    pub fn open_bottle(
-        &self,
-        shelf: ImmutableOrigin,
-        bucket: BucketIdent,
-        bottle: BottleIdent,
-    ) -> GenericReceiver<Result<PathBuf, String>> {
-        let (sender, receiver) = generic_channel::channel().unwrap();
-        let message = ClientStorageThreadMessage::OpenBottle {
-            shelf,
-            bucket,
-            bottle,
-            sender,
-        };
-        self.sender.send(message).unwrap();
-        receiver
-    }
-
-    pub fn delete_all(&self) -> GenericReceiver<Result<(), String>> {
-        let (sender, receiver) = generic_channel::channel().unwrap();
-        let message = ClientStorageThreadMessage::DeleteAll { sender };
-        self.sender.send(message).unwrap();
-        receiver
-    }
-}
-
-impl From<ClientStorageThreadHandle> for GenericSender<ClientStorageThreadMessage> {
-    fn from(handle: ClientStorageThreadHandle) -> Self {
-        handle.sender
-    }
-}
-
-impl Deref for ClientStorageThreadHandle {
-    type Target = GenericSender<ClientStorageThreadMessage>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.sender
-    }
-}
-
-impl DerefMut for ClientStorageThreadHandle {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.sender
     }
 }
