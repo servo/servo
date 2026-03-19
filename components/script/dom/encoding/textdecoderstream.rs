@@ -27,16 +27,15 @@ use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 /// <https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk>
 #[expect(unsafe_code)]
 pub(crate) fn decode_and_enqueue_a_chunk(
-    cx: SafeJSContext,
+    cx: &mut js::context::JSContext,
     global: &GlobalScope,
     chunk: SafeHandleValue,
     decoder: &TextDecoderCommon,
     controller: &TransformStreamDefaultController,
-    can_gc: CanGc,
 ) -> Fallible<()> {
     // Step 1. Let bufferSource be the result of converting chunk to an AllowSharedBufferSource.
     let conversion_result = unsafe {
-        ArrayBufferViewOrArrayBuffer::from_jsval(*cx, chunk, ()).map_err(|_| {
+        ArrayBufferViewOrArrayBuffer::from_jsval(cx.raw_cx(), chunk, ()).map_err(|_| {
             Error::Type(c"Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_owned())
         })?
     };
@@ -61,19 +60,18 @@ pub(crate) fn decode_and_enqueue_a_chunk(
     if output_chunk.is_empty() {
         return Ok(());
     }
-    rooted!(in(*cx) let mut rval = UndefinedValue());
-    unsafe { output_chunk.to_jsval(*cx, rval.handle_mut()) };
-    controller.enqueue(cx, global, rval.handle(), can_gc)
+    rooted!(&in(cx) let mut rval = UndefinedValue());
+    unsafe { output_chunk.to_jsval(cx.raw_cx(), rval.handle_mut()) };
+    controller.enqueue(cx, global, rval.handle())
 }
 
 /// <https://encoding.spec.whatwg.org/#flush-and-enqueue>
 #[expect(unsafe_code)]
 pub(crate) fn flush_and_enqueue(
-    cx: SafeJSContext,
+    cx: &mut js::context::JSContext,
     global: &GlobalScope,
     decoder: &TextDecoderCommon,
     controller: &TransformStreamDefaultController,
-    can_gc: CanGc,
 ) -> Fallible<()> {
     // Step 1. Let output be the I/O queue of scalar values « end-of-queue ».
     // Step 2. While true:
@@ -92,9 +90,9 @@ pub(crate) fn flush_and_enqueue(
     if output_chunk.is_empty() {
         return Ok(());
     }
-    rooted!(in(*cx) let mut rval = UndefinedValue());
-    unsafe { output_chunk.to_jsval(*cx, rval.handle_mut()) };
-    controller.enqueue(cx, global, rval.handle(), can_gc)
+    rooted!(&in(cx) let mut rval = UndefinedValue());
+    unsafe { output_chunk.to_jsval(cx.raw_cx(), rval.handle_mut()) };
+    controller.enqueue(cx, global, rval.handle())
 }
 
 /// <https://encoding.spec.whatwg.org/#textdecoderstream>

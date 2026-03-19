@@ -212,28 +212,33 @@ fn code_point_type(value: u16) -> CodePointType {
 /// <https://encoding.spec.whatwg.org/#encode-and-enqueue-a-chunk>
 #[expect(unsafe_code)]
 pub(crate) fn encode_and_enqueue_a_chunk(
-    cx: SafeJSContext,
+    cx: &mut js::context::JSContext,
     global: &GlobalScope,
     chunk: SafeHandleValue,
     encoder: &Encoder,
     controller: &TransformStreamDefaultController,
-    can_gc: CanGc,
 ) -> Fallible<()> {
     // Step 1. Let input be the result of converting chunk to a DOMString.
     // Step 2. Convert input to an I/O queue of code units.
-    rooted!(in(*cx) let mut rval = UndefinedValue());
-    jsval_to_primitive(cx, global, chunk, rval.handle_mut(), can_gc)?;
+    rooted!(&in(cx) let mut rval = UndefinedValue());
+    jsval_to_primitive(
+        cx.into(),
+        global,
+        chunk,
+        rval.handle_mut(),
+        CanGc::from_cx(cx),
+    )?;
 
     assert!(!rval.is_object());
-    rooted!(in(*cx) let jsstr = unsafe { ToString(*cx, rval.handle()) });
+    rooted!(&in(cx) let jsstr = unsafe { ToString(cx.raw_cx(), rval.handle()) });
     if jsstr.is_null() {
         unsafe {
-            if !JS_IsExceptionPending(*cx) {
+            if !JS_IsExceptionPending(cx.raw_cx()) {
                 throw_dom_exception(
-                    cx,
+                    cx.into(),
                     global,
                     Error::Type(c"Cannot convert JS primitive to string".to_owned()),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             }
         }
@@ -244,10 +249,11 @@ pub(crate) fn encode_and_enqueue_a_chunk(
     let input = unsafe {
         if JS_DeprecatedStringHasLatin1Chars(*jsstr) {
             let s = NonNull::new(*jsstr).expect("jsstr cannot be null");
-            ConvertedInput::String(latin1_to_string(*cx, s))
+            ConvertedInput::String(latin1_to_string(cx.raw_cx(), s))
         } else {
             let mut len = 0;
-            let data = JS_GetTwoByteStringCharsAndLength(*cx, std::ptr::null(), *jsstr, &mut len);
+            let data =
+                JS_GetTwoByteStringCharsAndLength(cx.raw_cx(), std::ptr::null(), *jsstr, &mut len);
             let maybe_ill_formed_code_units = std::slice::from_raw_parts(data, len);
             ConvertedInput::CodeUnits(maybe_ill_formed_code_units)
         }
@@ -273,40 +279,44 @@ pub(crate) fn encode_and_enqueue_a_chunk(
 
     // Step 4.2.2.1 Let chunk be the result of creating a Uint8Array object
     //      given output and encoder’s relevant realm.
-    rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
-    let chunk = create_buffer_source::<Uint8>(cx, output, js_object.handle_mut(), can_gc)
-        .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
-    rooted!(in(*cx) let mut rval = UndefinedValue());
-    chunk.safe_to_jsval(cx, rval.handle_mut(), can_gc);
+    rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
+    let chunk = create_buffer_source::<Uint8>(
+        cx.into(),
+        output,
+        js_object.handle_mut(),
+        CanGc::from_cx(cx),
+    )
+    .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
+    rooted!(&in(cx) let mut rval = UndefinedValue());
+    chunk.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
     // Step 4.2.2.2 Enqueue chunk into encoder’s transform.
-    controller.enqueue(cx, global, rval.handle(), can_gc)?;
+    controller.enqueue(cx, global, rval.handle())?;
     Ok(())
 }
 
 /// <https://encoding.spec.whatwg.org/#encode-and-flush>
 pub(crate) fn encode_and_flush(
-    cx: SafeJSContext,
+    cx: &mut js::context::JSContext,
     global: &GlobalScope,
     encoder: &Encoder,
     controller: &TransformStreamDefaultController,
-    can_gc: CanGc,
 ) -> Fallible<()> {
     // Step 1. If encoder’s leading surrogate is non-null:
     if encoder.leading_surrogate.get().is_some() {
         // Step 1.1 Let chunk be the result of creating a Uint8Array object
         //      given « 0xEF, 0xBF, 0xBD » and encoder’s relevant realm.
-        rooted!(in(*cx) let mut js_object = ptr::null_mut::<JSObject>());
+        rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
         let chunk = create_buffer_source::<Uint8>(
-            cx,
+            cx.into(),
             &[0xEF_u8, 0xBF, 0xBD],
             js_object.handle_mut(),
-            can_gc,
+            CanGc::from_cx(cx),
         )
         .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
-        rooted!(in(*cx) let mut rval = UndefinedValue());
-        chunk.safe_to_jsval(cx, rval.handle_mut(), can_gc);
+        rooted!(&in(cx) let mut rval = UndefinedValue());
+        chunk.safe_to_jsval(cx.into(), rval.handle_mut(), CanGc::from_cx(cx));
         // Step 1.2 Enqueue chunk into encoder’s transform.
-        return controller.enqueue(cx, global, rval.handle(), can_gc);
+        return controller.enqueue(cx, global, rval.handle());
     }
 
     Ok(())
