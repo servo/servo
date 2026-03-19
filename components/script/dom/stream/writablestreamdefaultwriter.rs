@@ -518,7 +518,6 @@ impl WritableStreamDefaultWriterMethods<crate::DomTypeHolder> for WritableStream
         // If this.[[stream]] is undefined,
         if self.stream.get().is_none() {
             // return a promise rejected with a TypeError exception.
-            let global = GlobalScope::from_current_realm(cx);
             let promise = Promise::new2(cx, &global);
             promise.reject_error(
                 Error::Type(c"Stream is undefined".to_owned()),
