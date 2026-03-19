@@ -7166,7 +7166,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.36.1"
-source = "git+https://github.com/servo/stylo?rev=f9d940629a7fd0389cc4ecb58c12927b09286478#f9d940629a7fd0389cc4ecb58c12927b09286478"
+source = "git+https://github.com/servo/stylo?rev=a4f1d69e3d239b73687ee5d6eca59d8e4056da41#a4f1d69e3d239b73687ee5d6eca59d8e4056da41"
 dependencies = [
  "bitflags 2.11.0",
  "cssparser",
@@ -8785,7 +8785,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.3"
-source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
+source = "git+https://github.com/servo/stylo?rev=a4f1d69e3d239b73687ee5d6eca59d8e4056da41#a4f1d69e3d239b73687ee5d6eca59d8e4056da41"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -9205,7 +9205,7 @@ dependencies = [
 [[package]]
 name = "stylo"
 version = "0.14.0"
-source = "git+https://github.com/servo/stylo?rev=f9d940629a7fd0389cc4ecb58c12927b09286478#f9d940629a7fd0389cc4ecb58c12927b09286478"
+source = "git+https://github.com/servo/stylo?rev=a4f1d69e3d239b73687ee5d6eca59d8e4056da41#a4f1d69e3d239b73687ee5d6eca59d8e4056da41"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -9261,7 +9261,7 @@ dependencies = [
 [[package]]
 name = "stylo_atoms"
 version = "0.14.0"
-source = "git+https://github.com/servo/stylo?rev=f9d940629a7fd0389cc4ecb58c12927b09286478#f9d940629a7fd0389cc4ecb58c12927b09286478"
+source = "git+https://github.com/servo/stylo?rev=a4f1d69e3d239b73687ee5d6eca59d8e4056da41#a4f1d69e3d239b73687ee5d6eca59d8e4056da41"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -9270,7 +9270,7 @@ dependencies = [
 [[package]]
 name = "stylo_derive"
 version = "0.14.0"
-source = "git+https://github.com/servo/stylo?rev=f9d940629a7fd0389cc4ecb58c12927b09286478#f9d940629a7fd0389cc4ecb58c12927b09286478"
+source = "git+https://github.com/servo/stylo?rev=a4f1d69e3d239b73687ee5d6eca59d8e4056da41#a4f1d69e3d239b73687ee5d6eca59d8e4056da41"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -9282,7 +9282,7 @@ dependencies = [
 [[package]]
 name = "stylo_dom"
 version = "0.14.0"
-source = "git+https://github.com/servo/stylo?rev=f9d940629a7fd0389cc4ecb58c12927b09286478#f9d940629a7fd0389cc4ecb58c12927b09286478"
+source = "git+https://github.com/servo/stylo?rev=a4f1d69e3d239b73687ee5d6eca59d8e4056da41#a4f1d69e3d239b73687ee5d6eca59d8e4056da41"
 dependencies = [
  "bitflags 2.11.0",
  "stylo_malloc_size_of",
@@ -9291,7 +9291,7 @@ dependencies = [
 [[package]]
 name = "stylo_malloc_size_of"
 version = "0.14.0"
-source = "git+https://github.com/servo/stylo?rev=f9d940629a7fd0389cc4ecb58c12927b09286478#f9d940629a7fd0389cc4ecb58c12927b09286478"
+source = "git+https://github.com/servo/stylo?rev=a4f1d69e3d239b73687ee5d6eca59d8e4056da41#a4f1d69e3d239b73687ee5d6eca59d8e4056da41"
 dependencies = [
  "app_units",
  "cssparser",
@@ -9308,12 +9308,12 @@ dependencies = [
 [[package]]
 name = "stylo_static_prefs"
 version = "0.14.0"
-source = "git+https://github.com/servo/stylo?rev=f9d940629a7fd0389cc4ecb58c12927b09286478#f9d940629a7fd0389cc4ecb58c12927b09286478"
+source = "git+https://github.com/servo/stylo?rev=a4f1d69e3d239b73687ee5d6eca59d8e4056da41#a4f1d69e3d239b73687ee5d6eca59d8e4056da41"
 
 [[package]]
 name = "stylo_traits"
 version = "0.14.0"
-source = "git+https://github.com/servo/stylo?rev=f9d940629a7fd0389cc4ecb58c12927b09286478#f9d940629a7fd0389cc4ecb58c12927b09286478"
+source = "git+https://github.com/servo/stylo?rev=a4f1d69e3d239b73687ee5d6eca59d8e4056da41#a4f1d69e3d239b73687ee5d6eca59d8e4056da41"
 dependencies = [
  "app_units",
  "bitflags 2.11.0",
@@ -9735,7 +9735,7 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 [[package]]
 name = "to_shmem"
 version = "0.3.0"
-source = "git+https://github.com/servo/stylo?rev=f9d940629a7fd0389cc4ecb58c12927b09286478#f9d940629a7fd0389cc4ecb58c12927b09286478"
+source = "git+https://github.com/servo/stylo?rev=a4f1d69e3d239b73687ee5d6eca59d8e4056da41#a4f1d69e3d239b73687ee5d6eca59d8e4056da41"
 dependencies = [
  "cssparser",
  "servo_arc",
@@ -9748,7 +9748,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/stylo?rev=f9d940629a7fd0389cc4ecb58c12927b09286478#f9d940629a7fd0389cc4ecb58c12927b09286478"
+source = "git+https://github.com/servo/stylo?rev=a4f1d69e3d239b73687ee5d6eca59d8e4056da41#a4f1d69e3d239b73687ee5d6eca59d8e4056da41"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -12159,38 +12159,3 @@ dependencies = [
  "syn",
  "winnow",
 ]
-
-[[patch.unused]]
-name = "selectors"
-version = "0.36.0"
-source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
-
-[[patch.unused]]
-name = "stylo"
-version = "0.13.0"
-source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
-
-[[patch.unused]]
-name = "stylo_atoms"
-version = "0.13.0"
-source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
-
-[[patch.unused]]
-name = "stylo_dom"
-version = "0.13.0"
-source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
-
-[[patch.unused]]
-name = "stylo_malloc_size_of"
-version = "0.13.0"
-source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
-
-[[patch.unused]]
-name = "stylo_static_prefs"
-version = "0.13.0"
-source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
-
-[[patch.unused]]
-name = "stylo_traits"
-version = "0.13.0"
-source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
