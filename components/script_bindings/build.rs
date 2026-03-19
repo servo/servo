@@ -31,6 +31,7 @@ fn main() {
         .arg("codegen/run.py")
         .arg(&css_properties_json)
         .arg(&out_dir)
+        .env("PYTHONDONTWRITEBYTECODE", "1")
         .status()
         .unwrap();
     if !status.success() {
