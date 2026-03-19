@@ -933,7 +933,7 @@ impl WebViewRenderer {
 
         self.send_scroll_positions_to_layout_for_pipeline(root_pipeline_id, external_scroll_id);
 
-        if pinch_zoom_result == PinchZoomResult::DidNotPinchZoom {
+        if pinch_zoom_result == PinchZoomResult::DidPinchZoom {
             self.send_pinch_zoom_infos_to_script();
         }
 
