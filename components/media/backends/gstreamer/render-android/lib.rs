@@ -13,10 +13,10 @@ use std::sync::{Arc, Mutex};
 
 use gstreamer::prelude::*;
 use gstreamer_gl::prelude::*;
-use sm_gst_render::Render;
-use sm_player::PlayerError;
-use sm_player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
-use sm_player::video::{Buffer, VideoFrame, VideoFrameData};
+use servo_media_gstreamer_render::Render;
+use servo_media_player::PlayerError;
+use servo_media_player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
+use servo_media_player::video::{Buffer, VideoFrame, VideoFrameData};
 
 struct GStreamerBuffer {
     is_external_oes: bool,

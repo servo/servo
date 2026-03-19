@@ -11,6 +11,7 @@ use style::properties::longhands::list_style_position::computed_value::T as List
 use style::selector_parser::PseudoElement;
 use style::str::char_is_whitespace;
 use style::values::specified::box_::DisplayOutside as StyloDisplayOutside;
+use unicode_categories::UnicodeCategories;
 
 use super::OutsideMarker;
 use super::inline::construct::InlineFormattingContextBuilder;
@@ -25,7 +26,9 @@ use crate::dom_traversal::{
 };
 use crate::flow::float::FloatBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
-use crate::formatting_contexts::IndependentFormattingContext;
+use crate::formatting_contexts::{
+    IndependentFormattingContext, IndependentFormattingContextContents,
+};
 use crate::fragment_tree::FragmentFlags;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::AbsolutelyPositionedBox;
@@ -65,7 +68,7 @@ struct BlockLevelJob<'dom> {
     kind: BlockLevelCreator,
 }
 
-enum BlockLevelCreator {
+pub(crate) enum BlockLevelCreator {
     SameFormattingContextBlock(IntermediateBlockContainer),
     Independent {
         display_inside: DisplayInside,
@@ -88,6 +91,45 @@ enum BlockLevelCreator {
     },
 }
 
+impl BlockLevelCreator {
+    pub(crate) fn new_for_inflow_block_level_element<'dom>(
+        info: &NodeAndStyleInfo<'dom>,
+        display_inside: DisplayInside,
+        contents: Contents,
+        propagated_data: PropagatedBoxTreeData,
+    ) -> Self {
+        match contents {
+            Contents::NonReplaced(contents) => match display_inside {
+                DisplayInside::Flow { is_list_item }
+                    // Fragment flags are just used to indicate whether the element is replaced or a widget,
+                    // and whether it's a body or root propagating its `overflow` to the viewport. We have
+                    // already checked that the former is not the case.
+                    // TODO(#39932): empty flags are wrong when propagating `overflow` to the viewport.
+                    if !info.style.establishes_block_formatting_context(
+                        FragmentFlags::empty()
+                    ) =>
+                {
+                    Self::SameFormattingContextBlock(
+                        IntermediateBlockContainer::Deferred {
+                            contents,
+                            propagated_data,
+                            is_list_item,
+                        },
+                    )
+                },
+                _ => Self::Independent {
+                    display_inside,
+                    contents: Contents::NonReplaced(contents),
+                },
+            },
+            Contents::Replaced(_) | Contents::Widget(_) => Self::Independent {
+                display_inside,
+                contents,
+            },
+        }
+    }
+}
+
 /// A block container that may still have to be constructed.
 ///
 /// Represents either the inline formatting context of an anonymous block
@@ -95,7 +137,7 @@ enum BlockLevelCreator {
 /// of a given element.
 ///
 /// Deferring allows using rayon’s `into_par_iter`.
-enum IntermediateBlockContainer {
+pub(crate) enum IntermediateBlockContainer {
     InlineFormattingContext(BlockContainer),
     Deferred {
         contents: NonReplacedContents,
@@ -216,7 +258,7 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
     fn ensure_inline_formatting_context_builder(&mut self) -> &mut InlineFormattingContextBuilder {
         self.inline_formatting_context_builder
             .get_or_insert_with(|| {
-                let mut builder = InlineFormattingContextBuilder::new(self.info);
+                let mut builder = InlineFormattingContextBuilder::new(self.info, self.context);
                 for shared_inline_styles in self.display_contents_shared_styles.iter() {
                     builder.enter_display_contents(shared_inline_styles.clone());
                 }
@@ -323,6 +365,89 @@ impl<'dom, 'style> BlockContainerBuilder<'dom, 'style> {
     }
 }
 
+/// Computes the range of the first letter.
+///
+/// The range includes any preceding punctuation, and any spaces interleaved
+/// within the preceding punctuation or between the preceding punctuation
+/// and the first letter/number/symbol.
+/// Succeeding punctuation are included in the range, but any space
+/// following the letter/number/symbol ends the range. Intervening
+/// succeeding spaces are not supported yet.
+///
+/// <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
+fn first_letter_range(text: &str) -> std::ops::Range<usize> {
+    use unicode_categories::UnicodeCategories;
+
+    enum State {
+        Start,
+        PrecedingPunc,
+        /// Unicode general category L: letter, N: number and S: symbol
+        Lns,
+        SucceedingPunc,
+    }
+
+    let mut start = 0;
+    let mut end = None;
+    let mut state = State::Start;
+
+    for (i, c) in text.char_indices() {
+        match &mut state {
+            State::Start => {
+                if c.is_punctuation() {
+                    start = i;
+                    state = State::PrecedingPunc;
+                } else if c.is_letter() || c.is_number() || c.is_symbol() {
+                    start = i;
+                    state = State::Lns;
+                } else if c.is_separator_space() {
+                    continue;
+                } else {
+                    // Found invalid character
+                    return 0..0;
+                }
+            },
+            State::PrecedingPunc => {
+                if c.is_letter() || c.is_number() || c.is_symbol() {
+                    state = State::Lns;
+                } else if c.is_punctuation() || (c.is_separator_space() && c != '\u{3000}') {
+                    continue;
+                } else {
+                    // Found invalid character
+                    return 0..0;
+                }
+            },
+            State::Lns => {
+                // TODO: Implement support for intervening spaces
+                // <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
+                if c.is_punctuation() && !c.is_punctuation_open() && !c.is_punctuation_dash() {
+                    state = State::SucceedingPunc;
+                } else {
+                    end = Some(i);
+                    break;
+                }
+            },
+            State::SucceedingPunc => {
+                // TODO: Implement support for intervening spaces
+                // <https://drafts.csswg.org/css-pseudo/#first-letter-pattern>
+                if c.is_punctuation() && !c.is_punctuation_open() && !c.is_punctuation_dash() {
+                    continue;
+                } else {
+                    end = Some(i);
+                    break;
+                }
+            },
+        }
+    }
+
+    match state {
+        State::Start | State::PrecedingPunc => 0..0,
+        State::Lns | State::SucceedingPunc => {
+            let end = end.unwrap_or(text.len());
+            start..end
+        },
+    }
+}
+
 impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
     fn handle_element(
         &mut self,
@@ -383,8 +508,42 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
             self.finish_anonymous_table_if_needed();
         }
 
-        self.ensure_inline_formatting_context_builder()
-            .push_text(text, info);
+        let container_info = self.info;
+        let context = self.context;
+        let builder = self.ensure_inline_formatting_context_builder();
+
+        // ::first-letter is an eager pseudo element and should not be nested
+        if let Some(pseudo_info) = (container_info.pseudo_element_chain().is_empty())
+            .then(|| container_info.with_pseudo_element(context, PseudoElement::FirstLetter))
+            .flatten()
+            .filter(|_| {
+                builder
+                    .text_segments
+                    .iter()
+                    .flat_map(|seg| seg.chars())
+                    .all(|c| c.is_separator_space())
+            })
+        {
+            let first_letter_range = first_letter_range(&text[..]);
+
+            // The first letter range may be some value larger than zero when
+            // there are preceding spaces.
+            if first_letter_range.start != 0 {
+                builder.push_text(Cow::Borrowed(&text[0..first_letter_range.start]), info);
+            }
+
+            builder.start_inline_box(
+                || ArcRefCell::new(InlineBox::new(&pseudo_info, context)),
+                None,
+            );
+            let first_letter_text = Cow::Borrowed(&text[first_letter_range.clone()]);
+            builder.push_text(first_letter_text, &pseudo_info);
+            builder.end_inline_box();
+
+            builder.push_text(Cow::Borrowed(&text[first_letter_range.end..]), info);
+        } else {
+            builder.push_text(text, info);
+        }
     }
 
     fn enter_display_contents(&mut self, styles: SharedInlineStyles) {
@@ -444,6 +603,7 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
+        let context = self.context;
         let old_layout_box = box_slot.take_layout_box();
         let (is_list_item, non_replaced_contents) = match (display_inside, contents) {
             (
@@ -452,7 +612,6 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             ) => (is_list_item, non_replaced_contents),
             (_, contents) => {
                 // If this inline element is an atomic, handle it and return.
-                let context = self.context;
                 let propagated_data = self.propagated_data;
 
                 let construction_callback = || {
@@ -476,7 +635,10 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         // Otherwise, this is just a normal inline box. Whatever happened before, all we need to do
         // before recurring is to remember this ongoing inline level box.
         let inline_builder = self.ensure_inline_formatting_context_builder();
-        inline_builder.start_inline_box(|| ArcRefCell::new(InlineBox::new(info)), old_layout_box);
+        inline_builder.start_inline_box(
+            || ArcRefCell::new(InlineBox::new(info, context)),
+            old_layout_box,
+        );
         box_slot.set(LayoutBox::InlineLevel(
             inline_builder.inline_items.last().unwrap().clone(),
         ));
@@ -511,33 +673,12 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         box_slot: BoxSlot<'dom>,
     ) {
         let propagated_data = self.propagated_data;
-        let kind = match contents {
-            Contents::NonReplaced(contents) => match display_inside {
-                DisplayInside::Flow { is_list_item }
-                    // Fragment flags are just used to indicate that the element is not replaced, so empty
-                    // flags are okay here.
-                    if !info.style.establishes_block_formatting_context(
-                        FragmentFlags::empty()
-                    ) =>
-                {
-                    BlockLevelCreator::SameFormattingContextBlock(
-                        IntermediateBlockContainer::Deferred {
-                            contents,
-                            propagated_data,
-                            is_list_item,
-                        },
-                    )
-                },
-                _ => BlockLevelCreator::Independent {
-                    display_inside,
-                    contents: Contents::NonReplaced(contents),
-                },
-            },
-            Contents::Replaced(_) | Contents::Widget(_) => BlockLevelCreator::Independent {
-                display_inside,
-                contents,
-            },
-        };
+        let kind = BlockLevelCreator::new_for_inflow_block_level_element(
+            info,
+            display_inside,
+            contents,
+            propagated_data,
+        );
         let job = BlockLevelJob {
             info: info.clone(),
             box_slot,
@@ -751,8 +892,11 @@ impl BlockLevelJob<'_> {
                     contains_floats: false,
                 };
                 ArcRefCell::new(BlockLevelBox::OutsideMarker(OutsideMarker {
-                    base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                    block_formatting_context,
+                    context: IndependentFormattingContext::new(
+                        LayoutBoxBase::new(info.into(), info.style.clone()),
+                        IndependentFormattingContextContents::Flow(block_formatting_context),
+                        self.propagated_data,
+                    ),
                     list_item_style,
                 }))
             },
@@ -774,5 +918,78 @@ impl IntermediateBlockContainer {
             } => BlockContainer::construct(context, info, contents, propagated_data, is_list_item),
             IntermediateBlockContainer::InlineFormattingContext(block_container) => block_container,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_first_letter_eq(text: &str, expected: &str) {
+        let range = first_letter_range(text);
+        assert_eq!(&text[range], expected);
+    }
+
+    #[test]
+    fn test_first_letter_range() {
+        // All spaces
+        assert_first_letter_eq("", "");
+        assert_first_letter_eq("  ", "");
+
+        // Spaces and punctuation only
+        assert_first_letter_eq("(", "");
+        assert_first_letter_eq(" (", "");
+        assert_first_letter_eq("( ", "");
+        assert_first_letter_eq("()", "");
+
+        // Invalid chars
+        assert_first_letter_eq("\u{0903}", "");
+
+        // First letter only
+        assert_first_letter_eq("A", "A");
+        assert_first_letter_eq(" A", "A");
+        assert_first_letter_eq("A ", "A");
+        assert_first_letter_eq(" A ", "A");
+
+        // Word
+        assert_first_letter_eq("App", "A");
+        assert_first_letter_eq(" App", "A");
+        assert_first_letter_eq("App ", "A");
+
+        // Preceding punctuation(s), intervening spaces and first letter
+        assert_first_letter_eq(r#""A"#, r#""A"#);
+        assert_first_letter_eq(r#" "A"#, r#""A"#);
+        assert_first_letter_eq(r#""A "#, r#""A"#);
+        assert_first_letter_eq(r#"" A"#, r#"" A"#);
+        assert_first_letter_eq(r#" "A "#, r#""A"#);
+        assert_first_letter_eq(r#"("A"#, r#"("A"#);
+        assert_first_letter_eq(r#" ("A"#, r#"("A"#);
+        assert_first_letter_eq(r#"( "A"#, r#"( "A"#);
+        assert_first_letter_eq(r#"[ ( "A"#, r#"[ ( "A"#);
+
+        // First letter and succeeding punctuation(s)
+        // TODO: modify test cases when intervening spaces in succeeding puntuations is supported
+        assert_first_letter_eq(r#"A""#, r#"A""#);
+        assert_first_letter_eq(r#"A" "#, r#"A""#);
+        assert_first_letter_eq(r#"A)]"#, r#"A)]"#);
+        assert_first_letter_eq(r#"A" )]"#, r#"A""#);
+        assert_first_letter_eq(r#"A)] >"#, r#"A)]"#);
+
+        // All
+        assert_first_letter_eq(r#" ("A" )]"#, r#"("A""#);
+        assert_first_letter_eq(r#" ("A")] >"#, r#"("A")]"#);
+
+        // Non ASCII chars
+        assert_first_letter_eq("一", "一");
+        assert_first_letter_eq(" 一 ", "一");
+        assert_first_letter_eq("一二三", "一");
+        assert_first_letter_eq(" 一二三 ", "一");
+        assert_first_letter_eq("（一二三）", "（一");
+        assert_first_letter_eq(" （一二三） ", "（一");
+        assert_first_letter_eq("（（一", "（（一");
+        assert_first_letter_eq(" （ （一", "（ （一");
+        assert_first_letter_eq("一）", "一）");
+        assert_first_letter_eq("一））", "一））");
+        assert_first_letter_eq("一） ）", "一）");
     }
 }

@@ -305,7 +305,6 @@ async def test_params_user_contexts_entry_invalid_value(bidi_session, value):
         ),
 
 
-@pytest.mark.asyncio
 async def test_params_user_context_and_contexts(bidi_session, top_context):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.script.add_preload_script(

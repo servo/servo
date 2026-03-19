@@ -13,7 +13,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use atomic_refcell::AtomicRefCell;
 use base::generic_channel::{self, GenericSender};
 use base::id::TEST_PIPELINE_ID;
-use devtools_traits::EvaluateJSReply::{
+use devtools_traits::EvaluateJSReplyValue::{
     ActorValue, BooleanValue, NullValue, NumberValue, StringValue, VoidValue,
 };
 use devtools_traits::{
@@ -27,7 +27,7 @@ use uuid::Uuid;
 
 use crate::actor::{Actor, ActorError, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
-use crate::actors::object::ObjectActor;
+use crate::actors::object::{ObjectActor, PropertyDescriptor};
 use crate::actors::worker::WorkerActor;
 use crate::protocol::{ClientRequest, JsonPacketStream};
 use crate::resource::{ResourceArrayType, ResourceAvailable};
@@ -73,15 +73,7 @@ fn console_argument_to_value(argument: ConsoleArgument, registry: &ActorRegistry
             // Create a new actor for the object.
             // These are currently never cleaned up, and we make no attempt at re-using the same actor
             // if the same object is logged repeatedly.
-            let actor = ObjectActor::register(registry, None);
-
-            #[derive(Serialize)]
-            struct PropertyDescriptor {
-                configurable: bool,
-                enumerable: bool,
-                writable: bool,
-                value: Value,
-            }
+            let actor = ObjectActor::register(registry, None, object.class.clone());
 
             #[derive(Serialize)]
             #[serde(rename_all = "camelCase")]
@@ -227,6 +219,7 @@ struct EvaluateJSReply {
     timestamp: u64,
     exception: Value,
     exception_message: Value,
+    has_exception: bool,
     helper_result: Value,
 }
 
@@ -243,6 +236,7 @@ struct EvaluateJSEvent {
     result_id: String,
     exception: Value,
     exception_message: Value,
+    has_exception: bool,
     helper_result: Value,
 }
 
@@ -292,8 +286,7 @@ impl ConsoleActor {
         match &self.root {
             Root::BrowsingContext(browsing_context) => registry
                 .find::<BrowsingContextActor>(browsing_context)
-                .script_chan
-                .clone(),
+                .script_chan(),
             Root::DedicatedWorker(worker) => {
                 registry.find::<WorkerActor>(worker).script_chan.clone()
             },
@@ -319,6 +312,10 @@ impl ConsoleActor {
         msg: &Map<String, Value>,
     ) -> Result<EvaluateJSReply, ()> {
         let input = msg.get("text").unwrap().as_str().unwrap().to_owned();
+        let frame_actor_id = msg
+            .get("frameActor")
+            .and_then(|v| v.as_str())
+            .map(String::from);
         let (chan, port) = generic_channel::channel().unwrap();
         // FIXME: Redesign messages so we don't have to fake pipeline ids when
         //        communicating with workers.
@@ -327,11 +324,19 @@ impl ConsoleActor {
             UniqueId::Worker(_) => TEST_PIPELINE_ID,
         };
         self.script_chan(registry)
-            .send(DevtoolScriptControlMsg::Eval(input.clone(), pipeline, chan))
+            .send(DevtoolScriptControlMsg::Eval(
+                input.clone(),
+                pipeline,
+                frame_actor_id,
+                chan,
+            ))
             .unwrap();
 
         // TODO: Extract conversion into protocol module or some other useful place
-        let result = match port.recv().map_err(|_| ())? {
+        let eval_result = port.recv().map_err(|_| ())?;
+        let has_exception = eval_result.has_exception;
+
+        let result = match eval_result.value {
             VoidValue => {
                 let mut m = Map::new();
                 m.insert("type".to_owned(), Value::String("undefined".to_owned()));
@@ -365,10 +370,26 @@ impl ConsoleActor {
                 }
             },
             StringValue(s) => Value::String(s),
-            ActorValue { class, uuid } => {
-                // TODO: Make initial ActorValue message include these properties?
+            ActorValue {
+                class,
+                uuid,
+                name,
+                display_name,
+                parameter_names,
+                is_async,
+                is_generator,
+                own_properties,
+                own_properties_length,
+            } => {
+                let properties = own_properties.clone().unwrap_or_default();
+                // TODO: Replace this with a struct to avoid having the Map.
                 let mut m = Map::new();
-                let actor = ObjectActor::register(registry, Some(uuid));
+                let actor = ObjectActor::register_with_properties(
+                    registry,
+                    Some(uuid),
+                    class.clone(),
+                    properties,
+                );
 
                 m.insert("type".to_owned(), Value::String("object".to_owned()));
                 m.insert("class".to_owned(), Value::String(class));
@@ -376,12 +397,56 @@ impl ConsoleActor {
                 m.insert("extensible".to_owned(), Value::Bool(true));
                 m.insert("frozen".to_owned(), Value::Bool(false));
                 m.insert("sealed".to_owned(), Value::Bool(false));
+                if let Some(name) = name {
+                    m.insert("name".to_owned(), Value::String(name));
+                }
+
+                // Function-specific metadata
+                if let Some(display_name) = display_name {
+                    m.insert("displayName".to_owned(), Value::String(display_name));
+                }
+                if let Some(param_names) = parameter_names {
+                    m.insert(
+                        "parameterNames".to_owned(),
+                        Value::Array(param_names.into_iter().map(Value::String).collect()),
+                    );
+                }
+                if let Some(is_async) = is_async {
+                    m.insert("isAsync".to_owned(), Value::Bool(is_async));
+                }
+                if let Some(is_generator) = is_generator {
+                    m.insert("isGenerator".to_owned(), Value::Bool(is_generator));
+                }
+
+                // Build preview with ownProperties
+                // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#849>
+                let mut preview = Map::new();
+                preview.insert("kind".to_owned(), Value::String("Object".to_owned()));
+
+                if let Some(ref props) = own_properties {
+                    let mut own_props_map = Map::new();
+                    for prop in props {
+                        let descriptor =
+                            serde_json::to_value(PropertyDescriptor::from(prop)).unwrap();
+                        own_props_map.insert(prop.name.clone(), descriptor);
+                    }
+                    preview.insert("ownProperties".to_owned(), Value::Object(own_props_map));
+                }
+
+                if let Some(length) = own_properties_length {
+                    preview.insert(
+                        "ownPropertiesLength".to_owned(),
+                        Value::Number(length.into()),
+                    );
+                    m.insert("ownPropertyLength".to_owned(), Value::Number(length.into()));
+                }
+
+                m.insert("preview".to_owned(), Value::Object(preview));
+
                 Value::Object(m)
             },
         };
 
-        // TODO: Catch and return exception values from JS evaluation
-        // TODO: This should have a has_exception field
         let reply = EvaluateJSReply {
             from: self.name(),
             input,
@@ -389,9 +454,10 @@ impl ConsoleActor {
             timestamp: get_time_stamp(),
             exception: Value::Null,
             exception_message: Value::Null,
+            has_exception,
             helper_result: Value::Null,
         };
-        std::result::Result::Ok(reply)
+        Ok(reply)
     }
 
     pub(crate) fn handle_console_resource(
@@ -532,6 +598,7 @@ impl Actor for ConsoleActor {
                     result_id,
                     exception: reply.exception,
                     exception_message: reply.exception_message,
+                    has_exception: reply.has_exception,
                     helper_result: reply.helper_result,
                 };
                 // Send the data from evaluateJS along with a resultID

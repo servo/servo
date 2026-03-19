@@ -18,17 +18,34 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::script_runtime::CanGc;
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPUSampler {
+    #[no_trace]
+    channel: WebGPU,
+    #[no_trace]
+    sampler: WebGPUSampler,
+}
+
+impl Drop for DroppableGPUSampler {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropSampler(self.sampler.0))
+        {
+            warn!("Failed to send DropSampler ({:?}) ({})", self.sampler.0, e);
+        }
+    }
+}
+
 #[dom_struct]
 pub(crate) struct GPUSampler {
     reflector_: Reflector,
-    #[no_trace]
-    channel: WebGPU,
     label: DomRefCell<USVString>,
     #[no_trace]
     device: WebGPUDevice,
     compare_enable: bool,
-    #[no_trace]
-    sampler: WebGPUSampler,
+    dropppable: DroppableGPUSampler,
 }
 
 impl GPUSampler {
@@ -41,11 +58,10 @@ impl GPUSampler {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            channel,
             label: DomRefCell::new(label),
             device,
-            sampler,
             compare_enable,
+            dropppable: DroppableGPUSampler { channel, sampler },
         }
     }
 
@@ -74,7 +90,7 @@ impl GPUSampler {
 
 impl GPUSampler {
     pub(crate) fn id(&self) -> WebGPUSampler {
-        self.sampler
+        self.dropppable.sampler
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler>
@@ -116,7 +132,7 @@ impl GPUSampler {
 
         GPUSampler::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             device.id(),
             compare_enable,
             sampler,
@@ -135,17 +151,5 @@ impl GPUSamplerMethods<crate::DomTypeHolder> for GPUSampler {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
-    }
-}
-
-impl Drop for GPUSampler {
-    fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropSampler(self.sampler.0))
-        {
-            warn!("Failed to send DropSampler ({:?}) ({})", self.sampler.0, e);
-        }
     }
 }

@@ -5,16 +5,17 @@
 use std::cmp::Ordering;
 use std::ops::Range;
 use std::ptr::NonNull;
+use std::sync::Arc;
 use std::{fmt, ptr};
 
 /// Implementation of Quartz (CoreGraphics) fonts.
 use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
 use euclid::default::{Point2D, Rect, Size2D};
-use fonts_traits::{FontIdentifier, LocalFontIdentifier};
+use fonts_traits::{FontIdentifier, FontTemplateRef, LocalFontIdentifier};
 use log::debug;
 use objc2_core_foundation::{
-    CFData, CFDictionary, CFIndex, CFNumber, CFRetained, CFString, CFType,
+    CFData, CFDictionary, CFIndex, CFNumber, CFRange, CFRetained, CFString, CFType,
 };
 use objc2_core_graphics::CGGlyph;
 use objc2_core_text::{
@@ -26,9 +27,11 @@ use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
 use webrender_api::{FontInstanceFlags, FontVariation};
 
 use super::core_text_font_cache::CoreTextFontCache;
+use crate::platform::font_list::font_template_for_local_font_descriptor;
 use crate::{
-    CBDT, COLR, FontData, FontMetrics, FontTableMethods, FontTemplateDescriptor, FractionalPixel,
-    GlyphId, KERN, PlatformFontMethods, SBIX, map_platform_values_to_style_values,
+    CBDT, COLR, FallbackFontSelectionOptions, Font, FontData, FontMetrics, FontRef,
+    FontTableMethods, FontTemplateDescriptor, FractionalPixel, GlyphId, KERN, PlatformFontMethods,
+    SBIX, map_platform_values_to_style_values,
 };
 
 const KERN_PAIR_LEN: usize = 6;
@@ -457,6 +460,37 @@ impl PlatformFontMethods for PlatformFont {
 
     fn variations(&self) -> &[FontVariation] {
         &self.variations
+    }
+}
+
+impl Font {
+    pub(crate) fn find_fallback_using_system_font_api(
+        &self,
+        options: &FallbackFontSelectionOptions,
+    ) -> Option<FontRef> {
+        // TODO: The CoreText API is taking a UTS #35 string for the language value, and
+        // the value stored in the HTML lang attribute is a BCP 47 language tag. These two
+        // formats are generally compatible, but we may need to make refinements here in
+        // the future.
+        let language = CFString::from_str(&options.lang.0);
+        let string = CFString::from_str(&options.character.to_string());
+        let font = unsafe {
+            self.handle.ctfont.for_string_with_language(
+                &string,
+                CFRange::new(0, string.length()),
+                if !options.lang.0.is_empty() {
+                    Some(&*language)
+                } else {
+                    None
+                },
+            )
+        };
+
+        let template = unsafe { font_template_for_local_font_descriptor(font.font_descriptor())? };
+        let template = FontTemplateRef::new(template);
+        Some(FontRef(Arc::new(
+            Font::new(template, self.descriptor.clone(), None, None).ok()?,
+        )))
     }
 }
 

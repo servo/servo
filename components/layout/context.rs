@@ -194,7 +194,7 @@ impl ImageResolver {
             LayoutImageCacheResult::DataAvailable(img_or_meta) => match img_or_meta {
                 ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
                     if let Some(image) = image.as_raster_image() {
-                        self.handle_animated_image(node, image.clone());
+                        self.handle_animated_image(node, image);
                     }
 
                     let mut resolved_images_cache = self.resolved_images_cache.write();

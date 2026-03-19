@@ -128,7 +128,7 @@ impl From<USVString> for String {
 
 impl From<USVString> for DOMString {
     fn from(value: USVString) -> Self {
-        DOMString::from_string(value.0)
+        value.0.into()
     }
 }
 

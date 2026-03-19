@@ -31,7 +31,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
@@ -148,7 +148,7 @@ impl HTMLVideoElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    fn update_poster_frame(&self, poster_url: Option<&str>, can_gc: CanGc) {
+    fn update_poster_frame(&self, poster_url: Option<&str>, cx: &mut js::context::JSContext) {
         // Step 1. If there is an existing instance of this algorithm running
         // for this video element, abort that instance of this algorithm without
         // changing the poster frame.
@@ -189,16 +189,16 @@ impl HTMLVideoElement {
                 url,
                 ..
             }) => {
-                self.process_image_response(ImageResponse::Loaded(image, url), can_gc);
+                self.process_image_response(ImageResponse::Loaded(image, url), cx);
                 return;
             },
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(_, id)) => id,
             ImageCacheResult::ReadyForRequest(id) => {
-                self.do_fetch_poster_frame(poster_url, id, can_gc);
+                self.do_fetch_poster_frame(poster_url, id, cx);
                 id
             },
             ImageCacheResult::FailedToLoadOrDecode => {
-                self.process_image_response(ImageResponse::FailedToLoadOrDecode, can_gc);
+                self.process_image_response(ImageResponse::FailedToLoadOrDecode, cx);
                 return;
             },
             ImageCacheResult::Pending(id) => id,
@@ -206,21 +206,26 @@ impl HTMLVideoElement {
 
         let trusted_node = Trusted::new(self);
         let generation = self.generation_id();
-        let callback = window.register_image_cache_listener(id, move |response| {
+        let callback = window.register_image_cache_listener(id, move |response, cx| {
             let element = trusted_node.root();
 
             // Ignore any image response for a previous request that has been discarded.
             if generation != element.generation_id() {
                 return;
             }
-            element.process_image_response(response.response, CanGc::note());
+            element.process_image_response(response.response, cx);
         });
 
         image_cache.add_listener(ImageLoadListener::new(callback, window.pipeline_id(), id));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    fn do_fetch_poster_frame(&self, poster_url: ServoUrl, id: PendingImageId, can_gc: CanGc) {
+    fn do_fetch_poster_frame(
+        &self,
+        poster_url: ServoUrl,
+        id: PendingImageId,
+        cx: &mut js::context::JSContext,
+    ) {
         // Step 5. Let request be a new request whose URL is url, client is the element's node
         // document's relevant settings object, destination is "image", initiator type is "video",
         // credentials mode is "include", and whose use-URL-credentials flag is set.
@@ -243,7 +248,7 @@ impl HTMLVideoElement {
         // (which triggers no media load algorithm unless a explicit call to .load() is done)
         // will block the document's load event forever.
         let blocker = &self.load_blocker;
-        LoadBlocker::terminate(blocker, can_gc);
+        LoadBlocker::terminate(blocker, cx);
         *blocker.borrow_mut() = Some(LoadBlocker::new(
             &self.owner_document(),
             LoadType::Image(poster_url.clone()),
@@ -264,7 +269,7 @@ impl HTMLVideoElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#poster-frame>
-    fn process_image_response(&self, response: ImageResponse, can_gc: CanGc) {
+    fn process_image_response(&self, response: ImageResponse, cx: &mut js::context::JSContext) {
         // Step 7. If an image is thus obtained, the poster frame is that image.
         // Otherwise, there is no poster frame.
         match response {
@@ -274,14 +279,14 @@ impl HTMLVideoElement {
                     Some(image) => self.htmlmediaelement.set_poster_frame(Some(image)),
                     None => warn!("Vector images are not yet supported in video poster"),
                 }
-                LoadBlocker::terminate(&self.load_blocker, can_gc);
+                LoadBlocker::terminate(&self.load_blocker, cx);
             },
             ImageResponse::MetadataLoaded(..) => {},
             // The image cache may have loaded a placeholder for an invalid poster url
             ImageResponse::FailedToLoadOrDecode => {
                 self.htmlmediaelement.set_poster_frame(None);
                 // A failed load should unblock the document load.
-                LoadBlocker::terminate(&self.load_blocker, can_gc);
+                LoadBlocker::terminate(&self.load_blocker, cx);
             },
         }
     }
@@ -333,10 +338,10 @@ impl HTMLVideoElementMethods<crate::DomTypeHolder> for HTMLVideoElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-video-poster
-    make_getter!(Poster, "poster");
+    make_url_getter!(Poster, "poster");
 
     // https://html.spec.whatwg.org/multipage/#dom-video-poster
-    make_setter!(SetPoster, "poster");
+    make_url_setter!(SetPoster, "poster");
 
     // For testing purposes only. This is not an event from
     // https://html.spec.whatwg.org/multipage/#dom-video-poster
@@ -348,16 +353,21 @@ impl VirtualMethods for HTMLVideoElement {
         Some(self.upcast::<HTMLMediaElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         if attr.local_name() == &local_name!("poster") {
             if let Some(new_value) = mutation.new_value(attr) {
-                self.update_poster_frame(Some(&new_value), CanGc::note())
+                self.update_poster_frame(Some(&new_value), cx)
             } else {
-                self.update_poster_frame(None, CanGc::note())
+                self.update_poster_frame(None, cx)
             }
         };
     }
@@ -409,6 +419,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {

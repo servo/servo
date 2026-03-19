@@ -198,13 +198,11 @@ impl SharedInlineStyles {
     pub(crate) fn ptr_eq(&self, other: &Self) -> bool {
         self.style.ptr_eq(&other.style) && self.selected.ptr_eq(&other.selected)
     }
-}
 
-impl From<&NodeAndStyleInfo<'_>> for SharedInlineStyles {
-    fn from(info: &NodeAndStyleInfo) -> Self {
+    pub(crate) fn from_info_and_context(info: &NodeAndStyleInfo, context: &LayoutContext) -> Self {
         Self {
             style: SharedStyle::new(info.style.clone()),
-            selected: SharedStyle::new(info.node.selected_style()),
+            selected: SharedStyle::new(info.node.selected_style(&context.style_context)),
         }
     }
 }
@@ -305,7 +303,9 @@ impl InlineItem {
     ) {
         match self {
             InlineItem::StartInlineBox(inline_box) => {
-                inline_box.borrow_mut().repair_style(node, new_style);
+                inline_box
+                    .borrow_mut()
+                    .repair_style(context, node, new_style);
             },
             InlineItem::EndInlineBox => {},
             // TextRun holds a handle the `InlineSharedStyles` which is updated when repairing inline box
@@ -325,7 +325,7 @@ impl InlineItem {
             InlineItem::AnonymousBlock(block_box) => {
                 let mut block_box = block_box.borrow_mut();
                 block_box.base.repair_style(new_style);
-                block_box.contents.repair_style(node, new_style);
+                block_box.contents.repair_style(context, node, new_style);
             },
         }
     }
@@ -554,6 +554,13 @@ impl LineUnderConstruction {
             })
             .sum()
     }
+
+    /// Whether this is a phantom line box.
+    /// <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
+    fn is_phantom(&self) -> bool {
+        // Keep this logic in sync with `UnbreakableSegmentUnderConstruction::is_phantom()`.
+        !self.has_content && !self.has_inline_pbm
+    }
 }
 
 /// A block size relative to a line's final baseline. This is to track the size
@@ -771,6 +778,13 @@ impl UnbreakableSegmentUnderConstruction {
             }
         }
         self.inline_size -= whitespace_trimmed;
+    }
+
+    /// Whether this is segment is phantom. If false, its line box won't be phantom.
+    /// <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
+    fn is_phantom(&self) -> bool {
+        // Keep this logic in sync with `LineUnderConstruction::is_phantom()`.
+        !self.has_content && !self.has_inline_pbm
     }
 }
 
@@ -1087,7 +1101,7 @@ impl InlineFormattingContextLayout<'_> {
         // > positions of any descendant content (such as absolutely positioned boxes), and both the
         // > line box and its in-flow content must be treated as not existing for any other layout or
         // > rendering purpose.
-        let is_phantom_line = !self.current_line.has_content && !self.current_line.has_inline_pbm;
+        let is_phantom_line = self.current_line.is_phantom();
         if !is_phantom_line {
             self.current_line.start_position.block += self.placement_state.current_margin.solve();
             self.placement_state.current_margin = CollapsedMargin::zero();
@@ -1566,53 +1580,59 @@ impl InlineFormattingContextLayout<'_> {
             SegmentContentFlags::empty()
         };
 
-        // If the metrics of this font don't match the default font, we are likely using a fallback
-        // font and need to adjust the line size to account for a potentially different font.
-        // If somehow the metrics match, the line size won't change.
         let font_metrics = &font.metrics;
         let font_key = font.key(
             self.layout_context.painter_id,
             &self.layout_context.font_context,
         );
-        let using_fallback_font = !Arc::ptr_eq(
-            &self.current_inline_container_state().font_metrics,
-            font_metrics,
-        );
 
+        let mut block_contribution = LineBlockSizes::zero();
         let quirks_mode = self.layout_context.style_context.quirks_mode() != QuirksMode::NoQuirks;
-        let strut_size = if using_fallback_font {
+        if quirks_mode && !flags.is_collapsible_whitespace() {
+            // Normally, the strut is incorporated into the nested block size. In quirks mode though
+            // if we find any text that isn't collapsed whitespace, we need to incorporate the strut.
+            // TODO(mrobinson): This isn't quite right for situations where collapsible white space
+            // ultimately does not collapse because it is between two other pieces of content.
+            block_contribution.max_assign(&self.current_inline_container_state().strut_block_sizes);
+        }
+
+        // If the metrics of this font don't match the default font, we are likely using another
+        // font from the font list or a fallback and should incorporate its block size into the block
+        // size of the container.
+        if self
+            .current_inline_container_state()
+            .font_metrics
+            .block_metrics_meaningfully_differ(&font.metrics)
+        {
             // TODO(mrobinson): This value should probably be cached somewhere.
             let container_state = self.current_inline_container_state();
             let baseline_shift = effective_baseline_shift(
                 &container_state.style,
                 self.inline_box_state_stack.last().map(|c| &c.base),
             );
-            let mut block_size = container_state.get_block_size_contribution(
+            let mut font_block_conribution = container_state.get_block_size_contribution(
                 baseline_shift,
                 font_metrics,
                 &container_state.font_metrics,
             );
-            block_size.adjust_for_baseline_offset(container_state.baseline_offset);
-            block_size
-        } else if quirks_mode && !flags.is_collapsible_whitespace() {
-            // Normally, the strut is incorporated into the nested block size. In quirks mode though
-            // if we find any text that isn't collapsed whitespace, we need to incorporate the strut.
-            // TODO(mrobinson): This isn't quite right for situations where collapsible white space
-            // ultimately does not collapse because it is between two other pieces of content.
-            self.current_inline_container_state()
-                .strut_block_sizes
-                .clone()
-        } else {
-            LineBlockSizes::zero()
-        };
-        self.update_unbreakable_segment_for_new_content(&strut_size, inline_advance, flags);
+            font_block_conribution.adjust_for_baseline_offset(container_state.baseline_offset);
+            block_contribution.max_assign(&font_block_conribution);
+        }
+
+        self.update_unbreakable_segment_for_new_content(&block_contribution, inline_advance, flags);
 
         let current_inline_box_identifier = self.current_inline_box_identifier();
         if let Some(LineItem::TextRun(inline_box_identifier, line_item)) =
             self.current_line_segment.line_items.last_mut()
         {
             if *inline_box_identifier == current_inline_box_identifier &&
-                line_item.merge_if_possible(font_key, bidi_level, &glyph_store, &offsets)
+                line_item.merge_if_possible(
+                    font_key,
+                    bidi_level,
+                    &glyph_store,
+                    &offsets,
+                    &text_run.inline_styles,
+                )
             {
                 return;
             }
@@ -1628,8 +1648,45 @@ impl InlineFormattingContextLayout<'_> {
                 font_key,
                 bidi_level,
                 offsets: offsets.map(Box::new),
+                is_empty_for_text_cursor: false,
             },
         ));
+    }
+
+    /// If the current unbreakable line segment is empty and this [`InlineFormattingContext`] has a
+    /// selection, push [`LineItem::TextRun`]. This is used as a placeholder for rendering cursors
+    /// on empty lines.
+    fn possibly_push_empty_text_run_to_unbreakable_segment(
+        &mut self,
+        text_run: &TextRun,
+        font: &FontRef,
+        bidi_level: Level,
+        offsets: Option<TextRunOffsets>,
+    ) {
+        if offsets.is_none() || self.current_line_segment.has_content {
+            return;
+        }
+
+        let font_metrics = &font.metrics;
+        let font_key = font.key(
+            self.layout_context.painter_id,
+            &self.layout_context.font_context,
+        );
+
+        self.push_line_item_to_unbreakable_segment(LineItem::TextRun(
+            self.current_inline_box_identifier(),
+            TextRunLineItem {
+                text: Default::default(),
+                base_fragment_info: text_run.base_fragment_info,
+                inline_styles: text_run.inline_styles.clone(),
+                font_metrics: font_metrics.clone(),
+                font_key,
+                bidi_level,
+                offsets: offsets.map(Box::new),
+                is_empty_for_text_cursor: true,
+            },
+        ));
+        self.current_line_segment.has_content = true;
     }
 
     fn update_unbreakable_segment_for_new_content(
@@ -1889,11 +1946,12 @@ impl InlineFormattingContext {
 
     pub(crate) fn repair_style(
         &self,
+        context: &SharedStyleContext,
         node: &ServoThreadSafeLayoutNode,
         new_style: &ServoArc<ComputedValues>,
     ) {
         *self.shared_inline_styles.style.borrow_mut() = new_style.clone();
-        *self.shared_inline_styles.selected.borrow_mut() = node.selected_style();
+        *self.shared_inline_styles.selected.borrow_mut() = node.selected_style(context);
     }
 
     fn inline_start_for_first_line(&self, containing_block: IndefiniteContainingBlock) -> Au {
@@ -1993,6 +2051,10 @@ impl InlineFormattingContext {
                         layout.current_inline_box_identifier(),
                         AbsolutelyPositionedLineItem {
                             absolutely_positioned_box: positioned_box.clone(),
+                            preceding_line_content_would_produce_phantom_line: layout
+                                .current_line
+                                .is_phantom() &&
+                                layout.current_line_segment.is_phantom(),
                         },
                     ));
                 },
@@ -2297,6 +2359,13 @@ impl InlineContainerState {
                 AlignmentBaseline::TextBottom => {
                     self.font_metrics.descent -
                         child_block_size.size_for_baseline_positioning.descent
+                },
+                AlignmentBaseline::Alphabetic |
+                AlignmentBaseline::Ideographic |
+                AlignmentBaseline::Central |
+                AlignmentBaseline::Mathematical |
+                AlignmentBaseline::Hanging => {
+                    unreachable!("Got alignment-baseline value that should be disabled in Stylo")
                 },
             } +
             match child_baseline_shift {

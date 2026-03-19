@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<title>Single-axis sticky constraints: Dynamic updates</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#sticky-pos">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #outer { overflow-y: scroll; overflow-x: visible; width: 100px; height: 100px; }
+  #inner { overflow-x: scroll; overflow-y: visible; width: 100px; height: 200px; }
+
+  /* Only 'top' is set initially. */
+  #sticky { position: sticky; top: 10px; width: 10px; height: 10px; background: green; }
+  .spacer { width: 400px; height: 400px; }
+</style>
+
+<div id="outer">
+  <div id="inner">
+    <div id="sticky"></div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<script>
+test(() => {
+  let outer = document.getElementById("outer");
+  let inner = document.getElementById("inner");
+  let sticky = document.getElementById("sticky");
+
+  // Scroll the X axis. Without a 'left' constraint, the element scrolls with the content.
+  inner.scrollLeft = 50;
+
+  let rOuter = outer.getBoundingClientRect();
+  let rSticky = sticky.getBoundingClientRect();
+  assert_equals(rSticky.left - rOuter.left, -50, "Content scrolled left naturally (no constraint yet)");
+
+  // Scroll the Y axis. The 'top' constraint is active, so the element sticks.
+  outer.scrollTop = 60;
+
+  rOuter = outer.getBoundingClientRect();
+  rSticky = sticky.getBoundingClientRect();
+  assert_equals(rSticky.top - rOuter.top, 10, "Sticky top is applied after Y scroll");
+
+  // Dynamically add a 'left' constraint. This merges the new X constraint with the existing Y constraint.
+  sticky.style.left = "20px";
+
+  rOuter = outer.getBoundingClientRect();
+  rSticky = sticky.getBoundingClientRect();
+
+  assert_equals(rSticky.left - rOuter.left, 20, "Sticky left is merged and applied");
+  assert_equals(rSticky.top - rOuter.top, 10, "Sticky top is preserved after merge");
+
+  // Dynamically remove the 'top' constraint. This forces a layout and verifies
+  // that the stale Y-axis constraint is not leaked/merged into the new fragment.
+  sticky.style.top = "auto";
+
+  rOuter = outer.getBoundingClientRect();
+  rSticky = sticky.getBoundingClientRect();
+
+  assert_equals(rSticky.left - rOuter.left, 20, "Sticky left remains applied after Y is removed");
+  assert_equals(rSticky.top - rOuter.top, -60, "Sticky top is removed and element scrolls naturally");
+}, "Sequential scrolling and dynamic constraint updates merge and remove correctly");
+</script>

@@ -5,8 +5,8 @@ version = "0.0.1"
 requires-python = ">=3.11"
 dynamic = ["dependencies"]
 
-[tool.setuptools.dynamic]
-dependencies = { file = ["python/requirements.txt", "tests/wpt/tests/tools/requirements_tests.txt", "tests/wpt/tests/tools/wptrunner/requirements.txt"] }
+[tool.setuptools.dynamic.dependencies]
+file = ["python/requirements.txt", "tests/wpt/tests/tools/requirements_tests.txt", "tests/wpt/tests/tools/wptrunner/requirements.txt", "tests/wpt/tests/tools/requirements_flake8.txt"]
 
 [tool.setuptools.packages.find]
 exclude = ["config*"]
@@ -23,6 +23,7 @@ extend-exclude = [
     "python/mach/**",
     "components/net/**",
     "components/shared/**",
+    "components/script_bindings/third_party/**",
     "tests/**",
 ]
 
@@ -58,7 +59,7 @@ search-path = [
     "tests/wpt/tests/tools/wptserve",
     "python/mach",
     "python/wpt",
-    "third_party/WebIDL",
+    "components/script_bindings/third_party/WebIDL",
     "components/script_bindings/codegen",
 ]
 project-includes = [
@@ -74,6 +75,7 @@ project-excludes = [
     "**/*_tests.py",
     "**/tests/**",
     "python/mach/**/*.py",
+    "components/script_bindings/third_party/**",
 ]
 
 [tool.uv]

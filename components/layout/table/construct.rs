@@ -223,7 +223,7 @@ impl TableBuilder {
             ComputedValues::initial_values_with_font_override(Font::initial_values());
         Self::new(
             testing_style.clone(),
-            testing_style.clone(),
+            testing_style,
             BaseFragmentInfo::anonymous(),
             true, /* percentage_columns_allowed_for_inline_content_sizes */
         )
@@ -984,8 +984,13 @@ impl<'style, 'builder, 'dom, 'a> TableRowBuilder<'style, 'builder, 'dom, 'a> {
 
         let block_container = builder.finish();
         let new_table_cell = ArcRefCell::new(TableSlotCell {
-            base: LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
-            contents: BlockFormattingContext::from_block_container(block_container),
+            context: IndependentFormattingContext::new(
+                LayoutBoxBase::new(BaseFragmentInfo::anonymous(), anonymous_info.style),
+                IndependentFormattingContextContents::Flow(
+                    BlockFormattingContext::from_block_container(block_container),
+                ),
+                propagated_data,
+            ),
             colspan: 1,
             rowspan: 1,
         });
@@ -1060,8 +1065,11 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                         );
 
                         ArcRefCell::new(TableSlotCell {
-                            base: LayoutBoxBase::new(info.into(), info.style.clone()),
-                            contents,
+                            context: IndependentFormattingContext::new(
+                                LayoutBoxBase::new(info.into(), info.style.clone()),
+                                IndependentFormattingContextContents::Flow(contents),
+                                propagated_data,
+                            ),
                             colspan,
                             rowspan,
                         })

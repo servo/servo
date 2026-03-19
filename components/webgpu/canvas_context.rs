@@ -586,7 +586,7 @@ impl crate::WGPU {
 
             let epoch = context_data.next_epoch();
             let wgpu_image_map = self.wgpu_image_map.clone();
-            let sender = sender.clone();
+            let sender = sender;
             drop(webgpu_contexts);
             self.texture_download(
                 texture_id,

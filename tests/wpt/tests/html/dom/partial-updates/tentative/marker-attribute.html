@@ -12,38 +12,21 @@
     <script>
       "use strict";
       test(function () {
-        const markers = s_no_marker.marker;
-        assert_equals(markers.length, 0);
-        assert_equals(markers.value, "");
-      }, "Access to .marker returns an empty DOMTokenList.");
+        assert_equals(s_no_marker.marker, "");
+      }, "Access to .marker returns an empty string");
       test(function () {
-        const markers = s_2_markers.marker;
-        assert_equals(markers.length, 2);
-        assert_equals(markers[0], "marker1");
-        assert_equals(markers[1], "marker2");
-        assert_equals(markers.value, "marker1 marker2");
-      }, "Multiple names give a DOMTokenList with multiple entries.");
+        assert_equals(s_2_markers.marker, "marker1 marker2");
+      }, "Multiple names stay a single string");
       test(function () {
-        const markers = s_no_marker.marker;
-        assert_equals(markers.length, 0);
-        assert_equals(markers.value, "");
-        markers.add("marker1");
-        assert_equals(markers.length, 1);
-        assert_equals(markers.value, "marker1");
-      }, "DOMTokenList created by access is persisted.");
+        assert_equals(s_no_marker.marker, "");
+        s_no_marker.marker = "marker1";
+        assert_equals(s_no_marker.marker, "marker1");
+      }, "Setting .marker updates the attribute.");
       test(function () {
-        const markers = s_marker.marker;
-        assert_equals(markers.length, 1);
-        assert_equals(markers.value, "marker1");
-        markers.add("marker2");
-        assert_equals(markers.length, 2);
-        assert_equals(markers.value, "marker1 marker2");
-        assert_equals(s_marker.getAttribute("marker"), markers.value);
-        markers.remove("marker1");
-        assert_equals(markers.length, 1);
-        assert_equals(markers.value, "marker2");
-        assert_equals(s_marker.getAttribute("marker"), markers.value);
-      }, "Changes in DOMTokenList are refected in attribute.");
+        const element = document.createElement("div");
+        element.setAttribute("marker", "  marker1 ");
+        assert_equals(element.marker, "  marker1 ");
+      }, "marker retains whitespace");
     </script>
   </body>
 </html>

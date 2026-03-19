@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Menuitem exclusive checkedness dismissal</title>
+<link rel=author href=mailto:dom@chromium.org>
+<link rel=help href=https://open-ui.org/components/menu.explainer>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<menulist id="menulist">
+  <fieldset checkable="single">
+    <menuitem id="item1">Item 1</menuitem>
+    <menuitem id="item2">Item 2</menuitem>
+  </fieldset>
+</menulist>
+
+<script>
+promise_test(async (t) => {
+  const menulist = document.getElementById('menulist');
+  const item1 = document.getElementById('item1');
+
+  // 1. Open the menu.
+  menulist.showPopover();
+  assert_true(menulist.matches(':popover-open'), "Menu should be open initially");
+
+  // 2. Click item1 to check it. The toggle should dismiss the popover.
+  await test_driver.click(item1);
+  assert_true(item1.checked, "item1 should be checked after click");
+  assert_false(menulist.matches(':popover-open'), "Menu should dismiss after checking an item");
+
+  // 3. Open the menu again.
+  menulist.showPopover();
+  assert_true(menulist.matches(':popover-open'), "Menu should be open again");
+  assert_true(item1.checked, "item1 should still be checked");
+
+  // 4. Click item1 again to uncheck it. The toggle should dismiss the popover.
+  await test_driver.click(item1);
+  assert_false(item1.checked, "item1 should be unchecked after second click");
+  assert_false(menulist.matches(':popover-open'), "Menu should dismiss after unchecking an exclusive item");
+}, "Unchecking an exclusive menuitem should dismiss the menulist");
+
+promise_test(async (t) => {
+  const menulist = document.getElementById('menulist');
+  const item1 = document.getElementById('item1');
+  const item2 = document.getElementById('item2');
+
+  // Reset state: item1 is checked.
+  item1.checked = true;
+
+  // 1. Open the menu.
+  menulist.showPopover();
+  assert_true(item1.checked, "item1 should be checked after manual state update");
+  assert_true(menulist.matches(':popover-open'), "Menu should be open");
+
+  // 2. Click item2. item2 becomes checked, item1 becomes unchecked.
+  await test_driver.click(item2);
+  assert_true(item2.checked, "item2 should be checked");
+  assert_false(item1.checked, "item1 should be unchecked");
+  assert_false(menulist.matches(':popover-open'), "Menu should dismiss after exclusive checkedness swap");
+}, "Swapping exclusive checkedness should dismiss the menulist");
+</script>

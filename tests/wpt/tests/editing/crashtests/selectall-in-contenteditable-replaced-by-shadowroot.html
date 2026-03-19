@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  document.querySelector("[contenteditable] > mn").appendChild(
+    document.querySelector("span")
+  );
+  getSelection().collapse(
+    document.querySelector("[contenteditable] > mn > span"),
+    0
+  );
+  document.execCommand("selectAll");
+}, {once: true});
+</script>
+</head>
+<body>
+<span>a</span>
+<div contenteditable="plaintext-only">
+<mn>Y</mn>
+<template shadowrootmode="open">
+</template>
+</div>
+<template shadowrootmode="closed">
+</template>
+</body>
+</html>

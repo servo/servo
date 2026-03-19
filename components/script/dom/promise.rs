@@ -34,16 +34,17 @@ use js::rust::wrappers::{
 };
 use js::rust::{HandleObject, HandleValue, MutableHandleObject, Runtime};
 use script_bindings::conversions::SafeToJSValConvertible;
+use script_bindings::settings_stack::run_a_script;
 
+use crate::DomTypeHolder;
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, ErrorToJsval};
 use crate::dom::bindings::reflector::{DomGlobal, DomObject, MutDomObject, Reflector};
 use crate::dom::bindings::root::{AsHandleValue, DomRoot};
-use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::microtask::{Microtask, MicrotaskRunnable};
-use crate::realms::{AlreadyInRealm, InRealm, enter_realm};
+use crate::realms::{AlreadyInRealm, InRealm, enter_auto_realm, enter_realm};
 use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
 use crate::script_thread::ScriptThread;
 
@@ -289,29 +290,30 @@ impl Promise {
         realm: InRealm,
         can_gc: CanGc,
     ) {
-        let _ais = AutoEntryScript::new(&handler.global_(realm));
-        let cx = GlobalScope::get_cx();
-        rooted!(in(*cx) let resolve_func =
+        run_a_script::<DomTypeHolder, _>(&handler.global_(realm), || {
+            let cx = GlobalScope::get_cx();
+            rooted!(in(*cx) let resolve_func =
                 create_native_handler_function(*cx,
                                                handler.reflector().get_jsobject(),
                                                NativeHandlerTask::Resolve,
                                                can_gc));
 
-        rooted!(in(*cx) let reject_func =
+            rooted!(in(*cx) let reject_func =
                 create_native_handler_function(*cx,
                                                handler.reflector().get_jsobject(),
                                                NativeHandlerTask::Reject,
                                                can_gc));
 
-        unsafe {
-            let ok = AddPromiseReactions(
-                *cx,
-                self.promise_obj(),
-                resolve_func.handle(),
-                reject_func.handle(),
-            );
-            assert!(ok);
-        }
+            unsafe {
+                let ok = AddPromiseReactions(
+                    *cx,
+                    self.promise_obj(),
+                    resolve_func.handle(),
+                    reject_func.handle(),
+                );
+                assert!(ok);
+            }
+        })
     }
 
     #[expect(unsafe_code)]
@@ -525,12 +527,12 @@ pub(crate) struct WaitForAllSuccessStepsMicrotask {
 }
 
 impl MicrotaskRunnable for WaitForAllSuccessStepsMicrotask {
-    fn handler(&self, _can_gc: CanGc) {
+    fn handler(&self, _cx: &mut JSContext) {
         (self.success_steps)(vec![]);
     }
 
-    fn enter_realm(&self) -> JSAutoRealm {
-        enter_realm(&*self.global)
+    fn enter_realm<'cx>(&self, cx: &'cx mut JSContext) -> AutoRealm<'cx> {
+        enter_auto_realm(cx, &*self.global)
     }
 }
 

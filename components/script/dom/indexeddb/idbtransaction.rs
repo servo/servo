@@ -48,16 +48,19 @@ pub struct IDBTransaction {
     error: MutNullableDom<DOMException>,
 
     store_handles: DomRefCell<HashMap<String, Dom<IDBObjectStore>>>,
-    // https://www.w3.org/TR/IndexedDB-2/#transaction-request-list
+    // https://www.w3.org/TR/IndexedDB-3/#transaction-request-list
     requests: DomRefCell<Vec<Dom<IDBRequest>>>,
-    // https://www.w3.org/TR/IndexedDB-2/#transaction-active-flag
+    // https://www.w3.org/TR/IndexedDB-3/#transaction-active-flag
     active: Cell<bool>,
-    // https://www.w3.org/TR/IndexedDB-2/#transaction-finish
+    // https://www.w3.org/TR/IndexedDB-3/#transaction-finish
     finished: Cell<bool>,
     abort_initiated: Cell<bool>,
     abort_requested: Cell<bool>,
     committing: Cell<bool>,
     version_change_old_version: Cell<Option<u64>>,
+    // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
+    // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
+    version_change_old_object_store_names: DomRefCell<Option<Vec<DOMString>>>,
     // https://w3c.github.io/IndexedDB/#transaction-concept
     // “A transaction optionally has a cleanup event loop which is an event loop.”
     #[no_trace]
@@ -100,6 +103,10 @@ impl IDBTransaction {
             abort_requested: Cell::new(false),
             committing: Cell::new(false),
             version_change_old_version: Cell::new(None),
+            version_change_old_object_store_names: DomRefCell::new(
+                (mode == IDBTransactionMode::Versionchange)
+                    .then(|| connection.object_store_names_snapshot()),
+            ),
             cleanup_event_loop: Cell::new(None),
             registered_in_global: Cell::new(false),
             pending_request_count: Cell::new(0),
@@ -404,6 +411,19 @@ impl IDBTransaction {
         if self.finished.get() || self.abort_initiated.get() {
             return;
         }
+        if self.mode == IDBTransactionMode::Versionchange {
+            // https://w3c.github.io/IndexedDB/#abort-upgrade-transaction
+            // Step 4. Set connection’s object store set to the set of object stores in database if database previously existed,
+            // or the empty set if database was newly created.
+            if let Some(names) = self
+                .version_change_old_object_store_names
+                .borrow()
+                .as_ref()
+                .cloned()
+            {
+                self.db.restore_object_store_names(names);
+            }
+        }
         self.abort_initiated.set(true);
         // https://w3c.github.io/IndexedDB/#transaction-concept
         // A transaction has a error which is set if the transaction is aborted.
@@ -512,6 +532,7 @@ impl IDBTransaction {
                 // Step 6: When a transaction is committed or aborted, its state is set to finished.
                 this.finished.set(true);
                 this.version_change_old_version.set(None);
+                this.version_change_old_object_store_names.borrow_mut().take();
                 this.notify_backend_transaction_finished();
                 if this.registered_in_global.get() {
                     this.global().get_indexeddb().unregister_indexeddb_transaction(&this);
@@ -525,6 +546,9 @@ impl IDBTransaction {
         }
         self.committing.set(false);
         self.version_change_old_version.set(None);
+        self.version_change_old_object_store_names
+            .borrow_mut()
+            .take();
         // https://w3c.github.io/IndexedDB/#transaction-lifetime
         // Step 6: When a transaction is committed or aborted, its state is set to finished.
         self.finished.set(true);
@@ -584,7 +608,7 @@ impl IDBTransaction {
     fn object_store_parameters(
         &self,
         object_store_name: &DOMString,
-    ) -> Option<(IDBObjectStoreParameters, Vec<IndexedDBIndex>)> {
+    ) -> Option<(IDBObjectStoreParameters, Vec<IndexedDBIndex>, Option<i32>)> {
         let global = self.global();
         let idb_sender = global.storage_threads().sender();
         let (sender, receiver) =
@@ -594,12 +618,7 @@ impl IDBTransaction {
         let db_name = self.db.get_name().to_string();
         let object_store_name = object_store_name.to_string();
 
-        let operation = SyncOperation::GetObjectStore(
-            sender,
-            origin.clone(),
-            db_name.clone(),
-            object_store_name.clone(),
-        );
+        let operation = SyncOperation::GetObjectStore(sender, origin, db_name, object_store_name);
 
         let _ = idb_sender.send(IndexedDBThreadMsg::Sync(operation));
 
@@ -610,10 +629,10 @@ impl IDBTransaction {
         // First unwrap for ipc
         // Second unwrap will never happen unless this db gets manually deleted somehow
         let key_path = object_store.key_path.map(|key_path| match key_path {
-            KeyPath::String(s) => StringOrStringSequence::String(DOMString::from_string(s)),
-            KeyPath::Sequence(seq) => StringOrStringSequence::StringSequence(
-                seq.into_iter().map(DOMString::from_string).collect(),
-            ),
+            KeyPath::String(string) => StringOrStringSequence::String(string.into()),
+            KeyPath::Sequence(seq) => {
+                StringOrStringSequence::StringSequence(seq.into_iter().map(Into::into).collect())
+            },
         });
         Some((
             IDBObjectStoreParameters {
@@ -621,17 +640,18 @@ impl IDBTransaction {
                 keyPath: key_path,
             },
             object_store.indexes,
+            object_store.key_generator_current_number,
         ))
     }
 }
 
 impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-db>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-db>
     fn Db(&self) -> DomRoot<IDBDatabase> {
         DomRoot::from_ref(&*self.db)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstore>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-objectstore>
     fn ObjectStore(&self, name: DOMString, can_gc: CanGc) -> Fallible<DomRoot<IDBObjectStore>> {
         // Step 1: If transaction has finished, throw an "InvalidStateError" DOMException.
         if self.finished.get() || self.abort_initiated.get() {
@@ -662,14 +682,17 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
             &self.global(),
             self.db.get_name(),
             name.clone(),
-            parameters.as_ref().map(|(params, _)| params),
+            parameters.as_ref().map(|(params, _, _)| params),
+            parameters
+                .as_ref()
+                .and_then(|(_, _, key_generator_current_number)| *key_generator_current_number),
             can_gc,
             self,
         );
-        if let Some(indexes) = parameters.map(|(_, indexes)| indexes) {
+        if let Some(indexes) = parameters.map(|(_, indexes, _)| indexes) {
             for index in indexes {
                 store.add_index(
-                    DOMString::from_string(index.name),
+                    index.name.into(),
                     &IDBIndexParameters {
                         multiEntry: index.multi_entry,
                         unique: index.unique,
@@ -685,7 +708,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         Ok(store)
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#commit-transaction>
+    /// <https://www.w3.org/TR/IndexedDB-3/#commit-transaction>
     fn Commit(&self) -> Fallible<()> {
         // Step 1
         if self.finished.get() {
@@ -705,7 +728,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         Ok(())
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-abort>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-abort>
     fn Abort(&self) -> Fallible<()> {
         if self.finished.get() || self.committing.get() {
             return Err(Error::InvalidState(None));
@@ -717,7 +740,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         Ok(())
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-objectstorenames>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-objectstorenames>
     fn ObjectStoreNames(&self) -> DomRoot<DOMStringList> {
         if self.mode == IDBTransactionMode::Versionchange {
             self.db.object_stores()
@@ -726,28 +749,28 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
         }
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-mode>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-mode>
     fn Mode(&self) -> IDBTransactionMode {
         self.mode
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-mode
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-mode
     // fn Durability(&self) -> IDBTransactionDurability {
     //     // FIXME:(arihant2math) Durability is not implemented at all
     //     unimplemented!();
     // }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-error>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-error>
     fn GetError(&self) -> Option<DomRoot<DOMException>> {
         self.error.get()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-onabort
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-onabort
     event_handler!(abort, GetOnabort, SetOnabort);
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-oncomplete
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-oncomplete
     event_handler!(complete, GetOncomplete, SetOncomplete);
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbtransaction-onerror
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbtransaction-onerror
     event_handler!(error, GetOnerror, SetOnerror);
 }

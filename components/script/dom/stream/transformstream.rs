@@ -68,15 +68,14 @@ struct TransformBackPressureChangePromiseFulfillment {
 impl Callback for TransformBackPressureChangePromiseFulfillment {
     /// Reacting to backpressureChangePromise with the following fulfillment steps:
     fn callback(&self, cx: &mut CurrentRealm, _v: SafeHandleValue) {
-        let can_gc = CanGc::from_cx(cx);
-        let cx: SafeJSContext = cx.into();
         // Let writable be stream.[[writable]].
         // Let state be writable.[[state]].
         // If state is "erroring", throw writable.[[storedError]].
         if self.writable.is_erroring() {
-            rooted!(in(*cx) let mut error = UndefinedValue());
+            rooted!(&in(cx) let mut error = UndefinedValue());
             self.writable.get_stored_error(error.handle_mut());
-            self.result_promise.reject(cx, error.handle(), can_gc);
+            self.result_promise
+                .reject(cx.into(), error.handle(), CanGc::from_cx(cx));
             return;
         }
 
@@ -84,7 +83,7 @@ impl Callback for TransformBackPressureChangePromiseFulfillment {
         assert!(self.writable.is_writable());
 
         // Return ! TransformStreamDefaultControllerPerformTransform(controller, chunk).
-        rooted!(in(*cx) let mut chunk = UndefinedValue());
+        rooted!(&in(cx) let mut chunk = UndefinedValue());
         chunk.set(self.chunk.get());
         let transform_result = self
             .controller
@@ -92,7 +91,6 @@ impl Callback for TransformBackPressureChangePromiseFulfillment {
                 cx,
                 &self.writable.global(),
                 chunk.handle(),
-                can_gc,
             )
             .expect("perform transform failed");
 
@@ -106,12 +104,14 @@ impl Callback for TransformBackPressureChangePromiseFulfillment {
             Some(Box::new(PerformTransformRejection {
                 result_promise: self.result_promise.clone(),
             })),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
-        let realm = enter_realm(&*self.writable.global());
-        let comp = InRealm::Entered(&realm);
-        transform_result.append_native_handler(&handler, comp, can_gc);
+        let mut realm = enter_auto_realm(cx, &*self.writable.global());
+        let realm = &mut realm.current_realm();
+        let in_realm_proof = realm.into();
+        let comp = InRealm::Already(&in_realm_proof);
+        transform_result.append_native_handler(&handler, comp, CanGc::from_cx(realm));
     }
 }
 
@@ -489,7 +489,7 @@ impl TransformStream {
         self.initialize(
             cx,
             global,
-            start_promise.clone(),
+            start_promise,
             writable_high_water_mark,
             writable_size_algorithm,
             readable_high_water_mark,
@@ -571,7 +571,7 @@ impl TransformStream {
 
         let readable = create_readable_stream(
             global,
-            UnderlyingSourceType::Transform(Dom::from_ref(self), start_promise.clone()),
+            UnderlyingSourceType::Transform(Dom::from_ref(self), start_promise),
             Some(readable_size_algorithm),
             Some(readable_high_water_mark),
             can_gc,
@@ -675,10 +675,9 @@ impl TransformStream {
     /// <https://streams.spec.whatwg.org/#transform-stream-default-sink-write-algorithm>
     pub(crate) fn transform_stream_default_sink_write_algorithm(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
-        can_gc: CanGc,
     ) -> Fallible<Rc<Promise>> {
         // Assert: stream.[[writable]].[[state]] is "writable".
         assert!(self.writable.get().is_some());
@@ -695,8 +694,8 @@ impl TransformStream {
             assert!(backpressure_change_promise.is_some());
 
             // Return the result of reacting to backpressureChangePromise with the following fulfillment steps:
-            let result_promise = Promise::new(global, can_gc);
-            rooted!(in(*cx) let mut fulfillment_handler = Some(TransformBackPressureChangePromiseFulfillment {
+            let result_promise = Promise::new2(cx, global);
+            rooted!(&in(cx) let mut fulfillment_handler = Some(TransformBackPressureChangePromiseFulfillment {
                 controller: Dom::from_ref(&controller),
                 writable: Dom::from_ref(&self.writable.get().expect("writable stream")),
                 chunk: Heap::boxed(chunk.get()),
@@ -709,20 +708,22 @@ impl TransformStream {
                 Some(Box::new(BackpressureChangeRejection {
                     result_promise: result_promise.clone(),
                 })),
-                can_gc,
+                CanGc::from_cx(cx),
             );
-            let realm = enter_realm(global);
-            let comp = InRealm::Entered(&realm);
+            let mut realm = enter_auto_realm(cx, global);
+            let realm = &mut realm.current_realm();
+            let in_realm_proof = realm.into();
+            let comp = InRealm::Already(&in_realm_proof);
             backpressure_change_promise
                 .as_ref()
                 .expect("Promise must be some by now.")
-                .append_native_handler(&handler, comp, can_gc);
+                .append_native_handler(&handler, comp, CanGc::from_cx(realm));
 
             return Ok(result_promise);
         }
 
         // Return ! TransformStreamDefaultControllerPerformTransform(controller, chunk).
-        controller.transform_stream_default_controller_perform_transform(cx, global, chunk, can_gc)
+        controller.transform_stream_default_controller_perform_transform(cx, global, chunk)
     }
 
     /// <https://streams.spec.whatwg.org/#transform-stream-default-sink-abort-algorithm>
@@ -781,9 +782,8 @@ impl TransformStream {
     /// <https://streams.spec.whatwg.org/#transform-stream-default-sink-close-algorithm>
     pub(crate) fn transform_stream_default_sink_close_algorithm(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> Fallible<Rc<Promise>> {
         // Let controller be stream.[[controller]].
         let controller = self
@@ -803,10 +803,10 @@ impl TransformStream {
             .ok_or(Error::Type(c"readable stream is not set".to_owned()))?;
 
         // Let controller.[[finishPromise]] be a new promise.
-        controller.set_finish_promise(Promise::new(global, can_gc));
+        controller.set_finish_promise(Promise::new2(cx, global));
 
         // Let flushPromise be the result of performing controller.[[flushAlgorithm]].
-        let flush_promise = controller.perform_flush(cx, global, can_gc)?;
+        let flush_promise = controller.perform_flush(cx, global)?;
 
         // Perform ! TransformStreamDefaultControllerClearAlgorithms(controller).
         controller.clear_algorithms();
@@ -822,12 +822,14 @@ impl TransformStream {
                 readable: Dom::from_ref(&readable),
                 controller: Dom::from_ref(&controller),
             })),
-            can_gc,
+            CanGc::from_cx(cx),
         );
 
-        let realm = enter_realm(global);
-        let comp = InRealm::Entered(&realm);
-        flush_promise.append_native_handler(&handler, comp, can_gc);
+        let mut realm = enter_auto_realm(cx, global);
+        let realm = &mut realm.current_realm();
+        let in_realm_proof = realm.into();
+        let comp = InRealm::Already(&in_realm_proof);
+        flush_promise.append_native_handler(&handler, comp, CanGc::from_cx(realm));
         // Return controller.[[finishPromise]].
         let finish_promise = controller
             .get_finish_promise()
@@ -950,18 +952,17 @@ impl TransformStream {
     /// <https://streams.spec.whatwg.org/#transform-stream-error>
     pub(crate) fn error(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         error: SafeHandleValue,
-        can_gc: CanGc,
     ) {
         // Perform ! ReadableStreamDefaultControllerError(stream.[[readable]].[[controller]], e).
         self.get_readable()
             .get_default_controller()
-            .error(error, can_gc);
+            .error(error, CanGc::from_cx(cx));
 
         // Perform ! TransformStreamErrorWritableAndUnblockWrite(stream, e).
-        self.error_writable_and_unblock_write(cx, global, error, can_gc);
+        self.error_writable_and_unblock_write(cx.into(), global, error, CanGc::from_cx(cx));
     }
 }
 

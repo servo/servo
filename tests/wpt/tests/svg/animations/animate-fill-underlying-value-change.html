@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>SVG Test: Invalidation test for fill color from underlying value</title>
+<link rel="help" href="https://svgwg.org/specs/animations/#AnimateElement">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<script src="/common/reftest-wait.js"></script>
+<p>Test passes if there is a filled green square.</p>
+<svg width="100" height="100">
+  <rect x="0" y="0" width="100" height="100" fill="red">
+    <animate
+      attributeName="fill"
+      to="green"
+      dur="1000s"
+      repeatcount="indefinite" />
+  </rect>
+</svg>
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    document.querySelector("rect").setAttribute("fill", "green");
+    takeScreenshot();
+  }));
+</script>

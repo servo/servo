@@ -44,9 +44,83 @@ class Source:
     url: str
 
 
+# Attach to the thread actor and return it.
+def attach_thread(devtools):
+    thread_actor = devtools.targets[0]["threadActor"]
+    devtools.client.send_receive({"to": thread_actor, "type": "attach"})
+    return thread_actor
+
+
+# Wait for a source matching url_pattern and return its actor
+def wait_for_source(devtools, url_pattern, timeout=2):
+    source_future = Future()
+
+    def on_source(data):
+        for [resource_type, sources] in data.get("array", []):
+            if resource_type == "source":
+                for source in sources:
+                    if url_pattern in source.get("url", ""):
+                        source_future.set_result(source["actor"])
+
+    devtools.client.add_event_listener(
+        devtools.targets[0]["actor"],
+        Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
+        on_source,
+    )
+    devtools.watcher.watch_resources([Resources.SOURCE])
+    return source_future.result(timeout)
+
+
+def set_breakpoint(devtools, source_url, line, column):
+    breakpoint_list = devtools.watcher.get_breakpoint_list_actor()
+    devtools.client.send_receive(
+        {
+            "to": breakpoint_list["breakpointList"]["actor"],
+            "type": "setBreakpoint",
+            "location": {"sourceUrl": source_url, "line": line, "column": column},
+        }
+    )
+
+
+# Wait for the debugger to pause and return the data of that paused location
+def wait_for_pause(client, thread_actor, timeout=3):
+    future = Future()
+
+    def on_paused(data):
+        future.set_result(data)
+
+    client.add_event_listener(thread_actor, "paused", on_paused)
+    return future.result(timeout)
+
+
+# Execute a step and wait for pause.
+def step(client, thread_actor, step_type, timeout=3):
+    future = Future()
+
+    def on_paused(data):
+        future.set_result(data)
+
+    client.add_event_listener(thread_actor, "paused", on_paused)
+    client.send_receive({"to": thread_actor, "type": "resume", "resumeLimit": {"type": step_type}})
+    return future.result(timeout)
+
+
+# Resume execution and wait for next pause (e.g: breakpoint)
+def resume_and_wait(client, thread_actor, timeout=3):
+    future = Future()
+
+    def on_paused(data):
+        future.set_result(data)
+
+    client.add_event_listener(thread_actor, "paused", on_paused)
+    client.send_receive({"to": thread_actor, "type": "resume"})
+    return future.result(timeout)
+
+
 @dataclass
 class Devtools:
     client: RDPClient
+    tab: TabActor
     watcher: WatcherActor
     targets: list
     exited: bool = False
@@ -90,7 +164,7 @@ class Devtools:
         if result:
             raise result
 
-        return Devtools(client, watcher, targets)
+        return Devtools(client, tab, watcher, targets)
 
     def __getattribute__(self, name: str) -> Any:
         """
@@ -161,28 +235,10 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(response1["breakpointList"]["actor"], response2["breakpointList"]["actor"])
 
     def test_breakpoint_pause(self):
-        self.run_servoshell(url=f"{self.base_urls[0]}/breakpoint/breakpoint_hit.html")
+        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
         with Devtools.connect() as devtools:
-            thread_actor = devtools.targets[0]["threadActor"]
-            devtools.client.send_receive({"to": thread_actor, "type": "attach"})
-
-            # Wait for source
-            source_future = Future()
-
-            def on_source(data):
-                for [resource_type, sources] in data.get("array", []):
-                    if resource_type == "source":
-                        for source in sources:
-                            if "breakpoint/breakpoint_hit.html" in source.get("url", ""):
-                                source_future.set_result(source["actor"])
-
-            devtools.client.add_event_listener(
-                devtools.targets[0]["actor"],
-                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-                on_source,
-            )
-            devtools.watcher.watch_resources([Resources.SOURCE])
-            source_actor = source_future.result(2)
+            thread_actor = attach_thread(devtools)
+            source_actor = wait_for_source(devtools, "debugger/loop.html")
 
             # Get valid breakpoint position
             positions = devtools.client.send_receive(
@@ -191,36 +247,137 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
             line_str = min(positions.keys(), key=int)
             line, column = int(line_str), positions[line_str][0]
 
-            # Set breakpoint
-            breakpoint_list = devtools.watcher.get_breakpoint_list_actor()
+            set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/loop.html", line, column)
+
+            paused_data = wait_for_pause(devtools.client, thread_actor)
+            self.assertEqual(paused_data.get("type"), "paused")
+            self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
+
+    def test_frame_scoped_eval(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/frame_scoped.html")
+        with Devtools.connect() as devtools:
+            thread_actor = attach_thread(devtools)
+            console_actor = devtools.targets[0]["consoleActor"]
+
+            devtools.client.send_receive({"to": thread_actor, "type": "interrupt", "when": "onNext"})
+
+            paused_data = wait_for_pause(devtools.client, thread_actor)
+            frame_actor = paused_data.get("frame", {}).get("actor")
+            self.assertIsNotNone(frame_actor)
+
+            eval_future = Future()
+
+            def on_eval_result(data):
+                eval_future.set_result(data)
+
+            devtools.client.add_event_listener(console_actor, Events.WebConsole.EVALUATION_RESULT, on_eval_result)
             devtools.client.send_receive(
+                {
+                    "to": console_actor,
+                    "type": "evaluateJSAsync",
+                    "text": "i",
+                    "frameActor": frame_actor,
+                }
+            )
+
+            eval_result = eval_future.result(2)
+            self.assertFalse(eval_result.get("hasException", True))
+            self.assertEqual(eval_result.get("result"), 42)
+
+    def test_breakpoint_at_invalid_entry_point_does_not_crash(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
+        with Devtools.connect() as devtools:
+            breakpoint_list = devtools.watcher.get_breakpoint_list_actor()
+            response = devtools.client.send_receive(
                 {
                     "to": breakpoint_list["breakpointList"]["actor"],
                     "type": "setBreakpoint",
                     "location": {
-                        "sourceUrl": f"{self.base_urls[0]}/breakpoint/breakpoint_hit.html",
-                        "line": line,
-                        "column": column,
+                        "sourceUrl": f"{self.base_urls[0]}/debugger/loop.html",
+                        "line": 1,
+                        "column": 0,
                     },
                 }
             )
+            self.assertIn("from", response)
 
-            # Listen for paused event
-            paused_future = Future()
+    def test_manual_pause(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/loop.html")
+        with Devtools.connect() as devtools:
+            thread_actor = attach_thread(devtools)
 
-            def on_paused(data):
-                paused_future.set_result(data)
+            devtools.client.send_receive({"to": thread_actor, "type": "interrupt", "when": "onNext"})
 
-            devtools.client.add_event_listener(thread_actor, "paused", on_paused)
+            paused_data = wait_for_pause(devtools.client, thread_actor)
+            self.assertEqual(paused_data.get("type"), "paused")
+            why = paused_data.get("why", {})
+            self.assertEqual(why.get("type"), "interrupted")
+            self.assertEqual(why.get("onNext"), True)
 
-            # Trigger breakpoint
-            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
-            console.evaluate_js_async("testBreakpointHit()")
+    def test_stepping_hooks(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/debugger/stepping.html")
+        with Devtools.connect() as devtools:
+            thread_actor = attach_thread(devtools)
+            source_actor = wait_for_source(devtools, "debugger/stepping.html")
 
-            # Verify pause
-            paused_data = paused_future.result(3)
+            # Get the breakpoint positions and find the line with `end()` call(should be line 10)
+            positions = devtools.client.send_receive(
+                {"to": source_actor, "type": "getBreakpointPositionsCompressed"}
+            ).get("positions", {})
+
+            # Line 10 - should be the `end()` call
+            self.assertIn("10", positions)
+            line, column = 10, positions["10"][0]
+
+            # Set breakpoint at the end() call
+            set_breakpoint(devtools, f"{self.base_urls[0]}/debugger/stepping.html", line, column)
+
+            # Pause and breakpoint hit, this is necessary for stepping hooks
+            paused_data = wait_for_pause(devtools.client, thread_actor)
             self.assertEqual(paused_data.get("type"), "paused")
             self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
+
+            # Did we pause at line 10?
+            self.assertEqual(paused_data.get("frame", {}).get("where", {}).get("line"), 10)
+
+            # Step over! This should execute end() and pause at line 11
+            step_data = step(devtools.client, thread_actor, "next")
+            self.assertEqual(step_data.get("type"), "paused")
+            self.assertEqual(step_data.get("why", {}).get("type"), "resumeLimit")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 11)
+
+            # Step over
+            step_data = step(devtools.client, thread_actor, "next")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 12)
+
+            # Step over to line 13
+            step_data = step(devtools.client, thread_actor, "next")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 13)
+
+            # We should let the loop continue and hit breakpoint again at line 10
+            paused_data = resume_and_wait(devtools.client, thread_actor)
+            self.assertEqual(paused_data.get("why", {}).get("type"), "breakpoint")
+            self.assertEqual(paused_data.get("frame", {}).get("where", {}).get("line"), 10)
+
+            # STEP IN to end() function
+            step_data = step(devtools.client, thread_actor, "step")
+            self.assertEqual(step_data.get("why", {}).get("type"), "resumeLimit")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 4)
+            self.assertEqual(step_data.get("frame", {}).get("displayName"), "end")
+
+            # Step over inside end() to line 5
+            step_data = step(devtools.client, thread_actor, "next")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 5)
+
+            # Step over inside end() to line 6
+            step_data = step(devtools.client, thread_actor, "next")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 6)
+
+            # Step out of end() back to loop() at line 11
+            step_data = step(devtools.client, thread_actor, "finish")
+            self.assertEqual(step_data.get("why", {}).get("type"), "resumeLimit")
+            self.assertEqual(step_data.get("frame", {}).get("where", {}).get("line"), 11)
+            self.assertEqual(step_data.get("frame", {}).get("displayName"), "loop")
 
     # Sources list
     # Classic script vs module script:
@@ -922,6 +1079,112 @@ class DevtoolsTests(unittest.IsolatedAsyncioTestCase):
         # We don't run any assertions on the result because we don't implement these circular references
         # properly yet. The important part is that we didn't crash and didn't time out waiting for
         # a console notification (meaning we got *something*).
+
+    def test_console_actor_log_window_object(self):
+        self.run_servoshell(url="data:text/html,")
+
+        self.evaluate_and_capture_console_log_output("console.log(window);")
+
+        # We don't run any assertions on the result because we don't implement previews for the window object
+        # yet. The important part is that we didn't crash and didn't time out waiting for
+        # a console notification (meaning we got *something*).
+
+    def test_inspector_doesnt_crash_when_attribute_on_element_it_doesnt_know_about_is_mutated(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/inspector/demo_dom.html")
+        with Devtools.connect() as devtools:
+            inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
+            walker = WalkerActor(devtools.client, inspector.get_walker()["actor"])
+            console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+
+            did_see_new_mutations = False
+            evaluation_result = Future()
+
+            async def on_new_mutations(data):
+                global did_see_new_mutations
+                did_see_new_mutations = True
+
+            async def on_evaluation_result(data: dict):
+                evaluation_result.set_result(data)
+
+            devtools.client.add_event_listener(
+                inspector.get_walker()["actor"], Events.Walker.NEW_MUTATIONS, on_new_mutations
+            )
+            devtools.client.add_event_listener(
+                console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation_result
+            )
+
+            # Modify the nodes attribute
+            console.evaluate_js_async("document.body.firstElementChild.setAttribute('foo', 'baz');")
+            evaluation_result.result(1)
+
+            # Wait for a bit for unwanted notifications to arrive - we should not get any.
+            time.sleep(1)
+            self.assertFalse(did_see_new_mutations)
+            self.assertEquals(walker.get_mutations(False), [])
+
+    def test_walker_observes_new_dom_after_nav(self):
+        # This tests that the walker actor can correctly recognize a new DOM across distinct
+        # pipelines and script threads. It does not exercise the full exchange of messages required
+        # for the Firefox toolbox to successfully refresh its inspector panel.
+
+        self.run_servoshell(url=f"{self.base_urls[0]}/tab/page1.html")
+        with Devtools.connect() as devtools:
+            nav_done = Future()
+
+            def on_tab_navigated(data):
+                if data.get("state") == "stop" and data.get("url").endswith("/tab/page2.html"):
+                    nav_done.set_result(None)
+                    return
+
+            devtools.client.add_event_listener(
+                devtools.targets[0]["actor"],
+                "tabNavigated",
+                on_tab_navigated,
+            )
+            devtools.client.send_receive(
+                {
+                    "to": devtools.tab.actor_id,
+                    "type": "navigateTo",
+                    # Use a different base URL to test walker across script threads.
+                    "url": f"{self.base_urls[1]}/tab/page2.html",
+                },
+            )
+            # Wait for navigation to complete.
+            nav_done.result(1)
+
+            inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
+            walker_info = inspector.get_walker()
+            walker = WalkerActor(devtools.client, walker_info["actor"])
+            root_node = walker_info["root"]["actor"]
+
+            title_node = walker.query_selector(root_node, "title")
+            self.assertIsNotNone(title_node.get("node"))
+            self.assertIsNotNone(title_node["node"].get("inlineTextChild"))
+            self.assertEquals(title_node["node"]["inlineTextChild"].get("nodeValue"), "Page 2")
+
+    def test_navigation(self):
+        self.run_servoshell(url=f"{self.base_urls[0]}/tab/page1.html")
+        with Devtools.connect() as devtools:
+            for message_data, target_path in [
+                ({"type": "navigateTo", "url": f"{self.base_urls[0]}/tab/page2.html"}, "/tab/page2.html"),
+                ({"type": "goBack"}, "/tab/page1.html"),
+                ({"type": "goForward"}, "/tab/page2.html"),
+            ]:
+                done = Future()
+
+                def on_tab_navigated(data):
+                    if data.get("state") == "stop" and data.get("url").endswith(target_path):
+                        done.set_result(None)
+                        return
+
+                devtools.client.add_event_listener(
+                    devtools.targets[0]["actor"],
+                    "tabNavigated",
+                    on_tab_navigated,
+                )
+                devtools.client.send_receive({"to": devtools.tab.actor_id, **message_data})
+
+                done.result(1)
 
     # Sets `base_url` and `web_server` and `web_server_thread`.
     @classmethod

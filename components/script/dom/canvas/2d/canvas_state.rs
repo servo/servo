@@ -1492,7 +1492,7 @@ impl CanvasState {
         };
 
         let font_style = self.font_style();
-        let font_group = font_context.font_group(font_style.clone());
+        let font_group = font_context.font_group(font_style);
         let font = font_group.first(font_context).expect("couldn't find font");
         let ascent = font.metrics.ascent.to_f64_px();
         let descent = font.metrics.descent.to_f64_px();
@@ -2497,7 +2497,9 @@ impl UnshapedTextRun<'_> {
         let identifier = font.identifier();
         let font_data = match &identifier {
             FontIdentifier::Local(_) => None,
-            FontIdentifier::Web(_) => Some(font.font_data_and_index().ok()?),
+            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => {
+                Some(font.font_data_and_index().ok()?)
+            },
         }
         .cloned();
         let canvas_font = CanvasFont {

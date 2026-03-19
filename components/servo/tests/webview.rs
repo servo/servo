@@ -15,18 +15,17 @@ use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use net::test_util::{make_body, make_server, replace_host_table};
-use servo::user_contents::UserStyleSheet;
 use servo::{
     ContextMenuAction, ContextMenuElementInformation, ContextMenuElementInformationFlags,
     ContextMenuItem, CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType,
     JSValue, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent,
-    MouseMoveEvent, RenderingContext, Servo, SimpleDialog, Theme, UserContentManager, UserScript,
-    WebView, WebViewBuilder, WebViewDelegate,
+    MouseMoveEvent, RenderingContext, Scroll, SimpleDialog, Theme, WebView, WebViewBuilder,
+    WebViewDelegate, WebViewPoint, WebViewVector,
 };
 use servo_config::prefs::Preferences;
 use servo_url::ServoUrl;
 use url::Url;
-use webrender_api::units::{DeviceIntSize, DevicePoint};
+use webrender_api::units::{DeviceIntSize, DevicePoint, DeviceVector2D};
 
 use crate::common::{
     ServoTest, WebViewDelegateImpl, click_at_point, evaluate_javascript,
@@ -490,7 +489,7 @@ fn test_show_and_hide_ime() {
         .build();
 
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-    click_at_point(&webview, Point2D::new(100., 100.));
+    click_at_point(&webview, Point2D::new(150., 150.));
 
     // The form control should be shown.
     let captured_delegate = delegate.clone();
@@ -833,257 +832,6 @@ fn test_can_go_forward_and_can_go_back() {
 }
 
 #[test]
-fn test_user_content_manager_empty() {
-    let servo_test = ServoTest::new();
-    let user_content_manager = UserContentManager::new(servo_test.servo());
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .user_content_manager(Rc::new(user_content_manager))
-        .url(Url::parse("data:text/html,Hello World").unwrap())
-        .build();
-
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-    let result = evaluate_javascript(&servo_test, webview.clone(), "window.fromUserContentScript");
-    assert_eq!(result, Ok(JSValue::Undefined));
-}
-
-#[test]
-fn test_user_content_manager_user_script() {
-    let servo_test = ServoTest::new();
-
-    // Use a http server instead of a data url to allow the `webview.reload()` call below to reuse
-    // the exisitng script thread. This is necessary to test that mutations on a `UserContentManager`
-    // take effect on script threads created before the mutation.
-    let (_, url) = make_server(move |_, response| {
-        *response.body_mut() = make_body(b"<!DOCTYPE html>\nHello".to_vec());
-    });
-
-    let user_content_manager = Rc::new(UserContentManager::new(servo_test.servo()));
-    user_content_manager.add_script(Rc::new("window.fromUserContentScript = 42;".into()));
-
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .user_content_manager(user_content_manager.clone())
-        .url(url.into_url())
-        .build();
-
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-    let result = evaluate_javascript(&servo_test, webview.clone(), "window.fromUserContentScript");
-    assert_eq!(result, Ok(JSValue::Number(42.0)));
-
-    // Add a second user script to the `UserContentManager`.
-    let second_user_script = Rc::new(UserScript::from("window.fromSecondUserContentScript = 32;"));
-    user_content_manager.add_script(second_user_script.clone());
-
-    // The second user script must immediately take effect in any new WebViews.
-    let new_webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .user_content_manager(user_content_manager.clone())
-        .url(Url::parse("data:text/html,<!DOCTYPE html>").unwrap())
-        .build();
-    let load_webview = new_webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-    let result = evaluate_javascript(
-        &servo_test,
-        new_webview,
-        "window.fromSecondUserContentScript",
-    );
-    assert_eq!(result, Ok(JSValue::Number(32.0)));
-
-    // The existing page in the first webview must not be affected since we haven't reloaded yet.
-    let result = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "window.fromSecondUserContentScript",
-    );
-    assert_eq!(result, Ok(JSValue::Undefined));
-
-    // Now trigger a reload and ensure the second user script has effect on the page.
-    webview.reload();
-
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-    let result = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "window.fromSecondUserContentScript",
-    );
-
-    assert_eq!(result, Ok(JSValue::Number(32.0)));
-
-    // Test that removing the user script works. Trigger a reload and ensure the second user script
-    // no longer has effect on the page.
-    user_content_manager.remove_script(second_user_script);
-    webview.reload();
-
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-    let result = evaluate_javascript(&servo_test, webview, "window.fromSecondUserContentScript");
-
-    assert_eq!(result, Ok(JSValue::Undefined));
-}
-
-#[test]
-fn test_user_content_manager_for_auxiliary_webviews() {
-    let servo_test = ServoTest::new();
-    struct WebViewAuxiliaryTestDelegate {
-        servo: Servo,
-        rendering_context: Rc<dyn RenderingContext>,
-        auxiliary_webview: RefCell<Option<WebView>>,
-    }
-
-    impl WebViewDelegate for WebViewAuxiliaryTestDelegate {
-        fn request_create_new(&self, _parent_webview: WebView, request: CreateNewWebViewRequest) {
-            let user_content_manager_for_auxiliary_webview = UserContentManager::new(&self.servo);
-            // Add a different user script to the `UserContentManager` of auxiliary webview.
-            user_content_manager_for_auxiliary_webview.add_script(Rc::new(
-                "window.fromAuxiliaryUserContentScript = 32;".into(),
-            ));
-            let auxiliary_webview = request
-                .builder(self.rendering_context.clone())
-                .user_content_manager(Rc::new(user_content_manager_for_auxiliary_webview))
-                .build();
-            self.auxiliary_webview
-                .borrow_mut()
-                .replace(auxiliary_webview.clone());
-        }
-    }
-
-    let delegate = Rc::new(WebViewAuxiliaryTestDelegate {
-        servo: servo_test.servo.clone(),
-        rendering_context: servo_test.rendering_context.clone(),
-        auxiliary_webview: RefCell::new(None),
-    });
-
-    let user_content_manager = UserContentManager::new(servo_test.servo());
-    user_content_manager.add_script(Rc::new("window.fromUserContentScript = 42;".into()));
-
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .delegate(delegate.clone())
-        .user_content_manager(Rc::new(user_content_manager))
-        .url(
-            Url::parse(
-                "data:text/html,<!DOCTYPE html>\
-                <script>\
-                    onload = () => window.open('data:text/html,<title>Auxiliary WebView</title>')\
-                </script>",
-            )
-            .unwrap(),
-        )
-        .build();
-
-    let load_webview = webview.clone();
-    let delegate_clone = delegate.clone();
-    let _ = servo_test.spin(move || {
-        load_webview.load_status() != LoadStatus::Complete ||
-            delegate_clone
-                .auxiliary_webview
-                .borrow()
-                .as_ref()
-                .is_none_or(|auxiliary_webview| {
-                    auxiliary_webview.page_title() != Some("Auxiliary WebView".into())
-                })
-    });
-
-    let result = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "[ window.fromUserContentScript, window.fromAuxiliaryUserContentScript ]",
-    );
-    assert_eq!(
-        result,
-        Ok(JSValue::Array(vec![
-            JSValue::Number(42.0),
-            JSValue::Undefined
-        ]))
-    );
-
-    let auxiliary_webview = delegate
-        .auxiliary_webview
-        .borrow_mut()
-        .take()
-        .expect("Gauranteed by spin");
-
-    let result = evaluate_javascript(
-        &servo_test,
-        auxiliary_webview.clone(),
-        "[ window.fromUserContentScript, window.fromAuxiliaryUserContentScript ]",
-    );
-
-    assert_eq!(
-        result,
-        Ok(JSValue::Array(vec![
-            JSValue::Undefined,
-            JSValue::Number(32.0),
-        ]))
-    );
-}
-
-#[test]
-fn test_user_content_manager_for_user_stylesheets() {
-    let servo_test = ServoTest::new();
-
-    let user_content_manager = Rc::new(UserContentManager::new(servo_test.servo()));
-
-    #[cfg(not(target_os = "windows"))]
-    let url = Url::from_file_path("/test/test.css").unwrap();
-    #[cfg(target_os = "windows")]
-    let url = Url::from_file_path("C:\\test\\test.css").unwrap();
-
-    let user_stylesheet = Rc::new(UserStyleSheet::new(
-        "div { width: 100px; height: 50px }\
-        p { width: 200px; height: 200px }"
-            .into(),
-        url,
-    ));
-    user_content_manager.add_stylesheet(user_stylesheet.clone());
-
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .user_content_manager(user_content_manager.clone())
-        .url(
-            Url::parse(
-                "data:text/html,<!DOCTYPE html>\
-                        <style>p { width: 300px; height: 300px }</style>\
-                        <div id='div1'></div><p id='p1'>test paragraph</p>",
-            )
-            .unwrap(),
-        )
-        .build();
-
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-
-    let result = evaluate_javascript(
-        &servo_test,
-        webview.clone(),
-        "[ div1.offsetWidth, div1.offsetHeight, p1.offsetWidth, p1.offsetHeight ]",
-    );
-    assert_eq!(
-        result,
-        Ok(JSValue::Array(vec![
-            // `div` elements uses the rules from the user stylesheet since the author stylesheet doesn't
-            // have any rules that match `div`s.
-            JSValue::Number(100.0),
-            JSValue::Number(50.0),
-            // `p` element uses the rules from author stylesheet as they have precendece over user
-            // rules from user stylesheets.
-            JSValue::Number(300.0),
-            JSValue::Number(300.0),
-        ]))
-    );
-
-    // Test that removing the stylesheet works.
-    user_content_manager.remove_stylesheet(user_stylesheet);
-    webview.reload();
-
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
-
-    let result = evaluate_javascript(&servo_test, webview.clone(), "div1.offsetHeight");
-
-    assert_eq!(result, Ok(JSValue::Number(0.0)));
-}
-
-#[test]
 fn test_pinch_zoom_update_dom_visual_viewport() {
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut preferences = Preferences::default();
@@ -1098,28 +846,43 @@ fn test_pinch_zoom_update_dom_visual_viewport() {
         .build();
 
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-    let eval_visual_viewport = |attr: &str| {
-        evaluate_javascript(
-            &servo_test,
-            webview.clone(),
-            format!("window.visualViewport.{}", attr),
-        )
+    let eval_visual_viewport = |attribute: &str| match evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        format!("window.visualViewport.{}", attribute),
+    ) {
+        Ok(JSValue::Number(number)) => Some(number),
+        _ => None,
     };
 
     // Default value of the DOM visual viewport is initialized correctly.
-    assert_eq!(eval_visual_viewport("scale"), Ok(JSValue::Number(1.)));
-    assert_eq!(eval_visual_viewport("width"), Ok(JSValue::Number(500.)));
-    assert_eq!(eval_visual_viewport("height"), Ok(JSValue::Number(500.)));
-    assert_eq!(eval_visual_viewport("offsetLeft"), Ok(JSValue::Number(0.)));
-    assert_eq!(eval_visual_viewport("offsetTop"), Ok(JSValue::Number(0.)));
+    assert_eq!(eval_visual_viewport("scale"), Some(1.));
+    assert_eq!(eval_visual_viewport("width"), Some(500.));
+    assert_eq!(eval_visual_viewport("height"), Some(500.));
+    assert_eq!(eval_visual_viewport("offsetLeft"), Some(0.));
+    assert_eq!(eval_visual_viewport("offsetTop"), Some(0.));
 
-    webview.pinch_zoom(5., DevicePoint::new(100., 100.));
+    webview.adjust_pinch_zoom(5., DevicePoint::new(100., 100.));
     wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
 
-    // The visual viewport dimension is correct after a pinch zoom.
-    assert_eq!(eval_visual_viewport("scale"), Ok(JSValue::Number(5.)));
-    assert_eq!(eval_visual_viewport("width"), Ok(JSValue::Number(100.)));
-    assert_eq!(eval_visual_viewport("height"), Ok(JSValue::Number(100.)));
-    assert_eq!(eval_visual_viewport("offsetLeft"), Ok(JSValue::Number(80.)));
-    assert_eq!(eval_visual_viewport("offsetTop"), Ok(JSValue::Number(80.)));
+    // The visual viewport size and offset is correct after a pinch zoom.
+    assert_eq!(eval_visual_viewport("scale"), Some(5.));
+    assert_eq!(eval_visual_viewport("width"), Some(100.));
+    assert_eq!(eval_visual_viewport("height"), Some(100.));
+    assert_eq!(eval_visual_viewport("offsetLeft"), Some(80.));
+    assert_eq!(eval_visual_viewport("offsetTop"), Some(80.));
+
+    // Note that the scroll vector will be affected by the pinch zoom scale.
+    webview.notify_scroll_event(
+        Scroll::Delta(WebViewVector::Device(DeviceVector2D::new(100., 100.))),
+        WebViewPoint::Device(DevicePoint::zero()),
+    );
+    wait_for_webview_scene_to_be_up_to_date(&servo_test, &webview);
+
+    // The visual viewport size and offset is correct after the scroll event.
+    assert_eq!(eval_visual_viewport("scale"), Some(5.));
+    assert_eq!(eval_visual_viewport("width"), Some(100.));
+    assert_eq!(eval_visual_viewport("height"), Some(100.));
+    assert_eq!(eval_visual_viewport("offsetLeft"), Some(100.));
+    assert_eq!(eval_visual_viewport("offsetTop"), Some(100.));
 }

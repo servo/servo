@@ -19,7 +19,7 @@ promise_test(async(t) => {
   fencedframe.element.allow = "attribution-reporting 'none'";
 
   await fencedframe.execute(async () => {
-    assert_true(document.featurePolicy.allowsFeature('attribution-reporting'),
+    assert_true(document.permissionsPolicy.allowsFeature('attribution-reporting'),
         "Changing the allow attribute should do nothing for this navigation.");
   }, []);
 }, 'Changing the allow attribute is a no-op for the current navigation');
@@ -39,7 +39,7 @@ promise_test(async(t) => {
   }, []);
 
   await fencedframe.execute(async () => {
-    assert_true(document.featurePolicy.allowsFeature('attribution-reporting'),
+    assert_true(document.permissionsPolicy.allowsFeature('attribution-reporting'),
           "Changing the allow attribute should do nothing on frame refresh.");
   }, []);
 

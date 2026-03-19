@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>RTCRtpEncodingParameters codec property</title>
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
@@ -8,7 +10,10 @@
 <script src="third_party/sdp/sdp.js"></script>
 <script src="simulcast/simulcast.js"></script>
 <script>
-  'use strict';
+'use strict';
+
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
   function arrayEquals(a, b) {
     return Array.isArray(a) && Array.isArray(b) &&
@@ -81,6 +86,8 @@
     });
   }
 
+if (rest) {
+
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
@@ -104,6 +111,10 @@
 
     assert_equals(encoding.codec, undefined);
   }, `Codec should be undefined by default on video encodings`);
+
+}
+
+if (interop2026) {
 
   promise_test(async t => {
     const pc = new RTCPeerConnection();
@@ -519,6 +530,10 @@
     assert_array_equals(codecs, [vp8.mimeType]);
   }, `Stats output-rtp should match the selected codec in non-simulcast usecase on a video sender`);
 
+}
+
+if (rest) {
+
   promise_test(async (t) => {
     const pc1 = new RTCPeerConnection();
     const pc2 = new RTCPeerConnection();
@@ -610,5 +625,7 @@
     assert_equals(codecs[1], vp8.mimeType);
     assert_not_equals(codecs[2], vp8.mimeType);
   }, `Stats output-rtp should match the selected mixed codecs in simulcast usecase on a video sender`);
+
+}
 
 </script>

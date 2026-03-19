@@ -39,7 +39,16 @@ jobs:
           fetch-depth: '1'
       - name: Setup Python
         uses: ./.github/actions/setup-python
-      - uses: actions/download-artifact@v7
+      - name: Validate artifact IDs
+        run: |
+          if [[ -z "${{ inputs.artifact_ids }}" ]]; then
+            echo "Error: No artifact IDs provided."
+            echo "Help: Check the calling workflow's output.artifact_ids parameter, usually created by a build workflow."
+            echo "If you recently renamed the build job for the artifacts, without updating the `outputs.artifact_ids` "
+            echo "parameter then this might be the cause of the error."
+            exit 1
+          fi
+      - uses: actions/download-artifact@v8
         with:
           artifact-ids: ${{ inputs.artifact_ids }}
           merge-multiple: true

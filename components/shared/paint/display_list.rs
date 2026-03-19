@@ -20,8 +20,8 @@ use servo_geometry::FastLayoutTransform;
 use style::values::specified::Overflow;
 use webrender_api::units::{LayoutPixel, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D};
 use webrender_api::{
-    ExternalScrollId, PipelineId, ReferenceFrameKind, ScrollLocation, SpatialId,
-    StickyOffsetBounds, TransformStyle,
+    ColorF, ExternalScrollId, PipelineId, PropertyBindingKey, ReferenceFrameKind, ScrollLocation,
+    SpatialId, StickyOffsetBounds, TransformStyle,
 };
 
 /// A scroll type, describing whether what kind of action originated this scroll request.
@@ -850,6 +850,10 @@ pub struct PaintDisplayListInfo {
     /// Whether the first layout or a subsequent (incremental) layout triggered this
     /// display list creation.
     pub first_reflow: bool,
+
+    /// If this display list contains a blinking caret, this value will be filled with its animation
+    /// key and original color value so that the painter can animate the caret.
+    pub caret_property_binding: Option<(PropertyBindingKey<ColorF>, ColorF)>,
 }
 
 impl PaintDisplayListInfo {
@@ -899,6 +903,7 @@ impl PaintDisplayListInfo {
             root_scroll_node_id,
             is_contentful: false,
             first_reflow,
+            caret_property_binding: Default::default(),
         }
     }
 

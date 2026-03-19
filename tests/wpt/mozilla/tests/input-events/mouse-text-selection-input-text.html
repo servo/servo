@@ -5,13 +5,14 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="input-events.js"></script>
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 
 <input id="target" style="font: 50px/1 Ahem;" value="123456">
 
 <script>
 promise_test(async test => {
-    let targetRect = target.getBoundingClientRect();
+    let targetRect = getTextEntryContentRect(target);
     let verticalCenterOfLine = targetRect.top + (targetRect.height / 2);
 
     // Click somewhere else to avoid double-clicking.
@@ -52,7 +53,7 @@ promise_test(async test => {
 });
 
 promise_test(async test => {
-    let targetRect = target.getBoundingClientRect();
+    let targetRect = getTextEntryContentRect(target);
     let verticalCenterOfLine = targetRect.top + (targetRect.height / 2);
 
     // Click somewhere else to avoid double-clicking.

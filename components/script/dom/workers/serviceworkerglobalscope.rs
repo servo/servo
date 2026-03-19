@@ -27,7 +27,6 @@ use servo_config::pref;
 use servo_url::ServoUrl;
 use style::thread_state::{self, ThreadState};
 
-use crate::devtools;
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerGlobalScopeBinding;
@@ -458,11 +457,9 @@ impl ServiceWorkerGlobalScope {
     fn handle_mixed_message(&self, msg: MixedMessage, cx: &mut js::context::JSContext) -> bool {
         match msg {
             MixedMessage::Devtools(msg) => match msg {
-                DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
-                    devtools::handle_evaluate_js(self.upcast(), string, sender, cx)
-                },
-                DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
-                    devtools::handle_wants_live_notifications(self.upcast(), bool_val)
+                DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, wants_updates) => {
+                    self.upcast::<GlobalScope>()
+                        .set_devtools_wants_updates(wants_updates);
                 },
                 _ => debug!("got an unusable devtools control message inside the worker!"),
             },

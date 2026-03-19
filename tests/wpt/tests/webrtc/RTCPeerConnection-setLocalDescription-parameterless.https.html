@@ -1,14 +1,19 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title></title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src="RTCPeerConnection-helper.js"></script>
 <script>
 "use strict";
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
 const kSmallTimeoutMs = 100;
 
+if (rest) {
 promise_test(async t => {
   const offerer = new RTCPeerConnection();
   t.add_cleanup(() => offerer.close());
@@ -82,7 +87,6 @@ promise_test(async t => {
   assert_equals(transceiver.currentDirection, 'recvonly');
 }, "Parameterless SLD() in 'have-remote-offer' sets " +
    "transceiver.currentDirection");
-
 promise_test(async t => {
   const offerer = new RTCPeerConnection();
   t.add_cleanup(() => offerer.close());
@@ -156,7 +160,9 @@ promise_test(async t => {
     assert_equals(e.name, "TypeError");
   }
 }, "Parameterless SRD() rejects with TypeError.");
+} // rest
 
+if (interop2026) {
 promise_test(async t => {
   const offerer = new RTCPeerConnection();
   const {sdp} = await offerer.createOffer();
@@ -168,5 +174,6 @@ promise_test(async t => {
     assert_equals(e.name, "TypeError");
   }
 }, "RTCSessionDescription constructed without type throws TypeError");
+} // interop2026
 
 </script>

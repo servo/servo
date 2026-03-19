@@ -17,7 +17,7 @@
   .grid-container {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    grid-template-rows: 20px 10px 20px 10px 20px 20px 10px 20px 10px;
+    grid-template-rows: 20px 10px 20px 10px 20px 10px 10px 10px 10px 10px 10px;
     background: lightgray;
     column-gap: 10px;
   }
@@ -27,7 +27,7 @@
     grid-template-rows: subgrid;
     background: teal;
     grid-column: 2 / -2;
-    grid-row: 3 / -3;
+    grid-row: 3 / 8;
   }
   .item {
     background: purple;
@@ -69,13 +69,13 @@
     <div class="item" style="grid-row:3;"></div>
     <div class="item" style="grid-row:5;"></div>
     <div class="item" style="grid-row:5;"></div>
-    <div class="item" style="grid-row:6;"></div>
-    <div class="item" style="grid-row:6;"></div>
-    <div class="item" style="grid-row:8;"></div>
-    <div class="item" style="grid-row:8;"></div>
-    <div class="item" style="grid-row:8;"></div>
-    <div class="item" style="grid-row:8;"></div>
-    <div class="item" style="grid-row:8;"></div>
+    <div class="item" style="grid-row:6/9;"></div>
+    <div class="item" style="grid-row:6/9;"></div>
+    <div class="item" style="grid-row:10/12;"></div>
+    <div class="item" style="grid-row:10/12;"></div>
+    <div class="item" style="grid-row:10/12;"></div>
+    <div class="item" style="grid-row:10/12;"></div>
+    <div class="item" style="grid-row:10/12;"></div>
     <div class="subgrid">
       <div class="item" style="grid-row:1;"></div>
       <div class="item" style="grid-row:1;"></div>
@@ -83,9 +83,9 @@
       <div class="item" style="grid-row:3;"></div>
       <div class="item" style="grid-row:3;"></div>
       <div class="item" style="grid-row:3;"></div>
-      <div class="item" style="grid-row:4;"></div>
-      <div class="item" style="grid-row:4;"></div>
-      <div class="item" style="grid-row:4;"></div>
+      <div class="item" style="grid-row:4/6;"></div>
+      <div class="item" style="grid-row:4/6;"></div>
+      <div class="item" style="grid-row:4/6;"></div>
     </div>
   </div>
 
@@ -101,7 +101,7 @@
     <div class="col-gap" style="background: white;"></div>
   </div>
 
-  <div class="col-gap-group" style="left: 160px; height: 50px;">
+  <div class="col-gap-group" style="left: 160px; height: 60px;">
     <div class="col-gap"></div>
     <div class="col-gap"></div>
     <div class="col-gap"></div>
@@ -122,7 +122,7 @@
     <div class="row-gap" style="background: blue;"> </div>
   </div>
 
-  <div class="row-gap-group" style="flex-direction: row; width: 140px;  left:140px;">
+<div class="row-gap-group" style="flex-direction: row; width: 140px; top: 30px;  left:140px;">
     <div class="row-gap" style="width: 30px;"> </div>
     <div class="row-gap" style="width: 80px;"> </div>
     <div class="row-gap" style="width: 30px;"> </div>

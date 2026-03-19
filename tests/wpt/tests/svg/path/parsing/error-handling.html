@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVG Path Data: Error handling - invalid commands and parameters</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathDataErrorHandling">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<svg id="svg" width="400" height="400">
+  <!-- Test 1: Invalid command letter -->
+  <path id="test1" d="M 10,10 L 50,50 X 100,100" fill="none" stroke="black" stroke-width="2"/>
+  <path id="ref1" d="M 10,10 L 50,50" fill="none" stroke="red" stroke-width="1" stroke-dasharray="2,2"/>
+
+  <!-- Test 2: Incomplete coordinate pair -->
+  <path id="test2" d="M 10,60 L 50,60 L 100" fill="none" stroke="black" stroke-width="2"/>
+  <path id="ref2" d="M 10,60 L 50,60" fill="none" stroke="red" stroke-width="1" stroke-dasharray="2,2"/>
+</svg>
+
+<script>
+test(function() {
+  const testPath = document.getElementById('test1');
+  const refPath = document.getElementById('ref1');
+
+  assert_approx_equals(testPath.getTotalLength(), refPath.getTotalLength(), 0.5,
+    "Path with invalid command renders up to error");
+}, "Error: Invalid command letter 'X' stops rendering");
+
+test(function() {
+  const testPath = document.getElementById('test2');
+  const refPath = document.getElementById('ref2');
+
+  assert_approx_equals(testPath.getTotalLength(), refPath.getTotalLength(), 0.5,
+    "Path with incomplete coordinate pair renders up to error");
+}, "Error: Incomplete coordinate pair stops rendering");
+
+test(function() {
+  // Odd number of coordinates for L command
+  const svg = document.getElementById('svg');
+  const testPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  testPath.setAttribute('d', 'M 10,110 L 50,110 60,110 70');
+  svg.appendChild(testPath);
+
+  const refPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  refPath.setAttribute('d', 'M 10,110 L 50,110 60,110');
+  svg.appendChild(refPath);
+
+  // Should render up to last complete coordinate pair
+  assert_approx_equals(testPath.getTotalLength(), refPath.getTotalLength(), 0.5,
+    "Renders last complete coordinate pair before error");
+}, "Error: Odd number of coordinates renders last complete pair");
+
+test(function() {
+  // Incomplete curveto (needs 6 parameters)
+  const svg = document.getElementById('svg');
+  const testPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  testPath.setAttribute('d', 'M 10,160 L 50,160 C 60,150 70,170');
+  svg.appendChild(testPath);
+
+  const refPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  refPath.setAttribute('d', 'M 10,160 L 50,160');
+  svg.appendChild(refPath);
+
+  // Should render up to L command, not the incomplete C
+  assert_approx_equals(testPath.getTotalLength(), refPath.getTotalLength(), 0.5,
+    "Incomplete curveto is not rendered");
+}, "Error: Incomplete curveto (missing coordinates)");
+
+test(function() {
+  // Invalid arc flag (must be 0 or 1)
+  const svg = document.getElementById('svg');
+  const testPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  testPath.setAttribute('d', 'M 10,210 L 50,210 A 25,25 0 2,1 100,210');
+  svg.appendChild(testPath);
+
+  const refPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  refPath.setAttribute('d', 'M 10,210 L 50,210');
+  svg.appendChild(refPath);
+
+  // Should render up to L command, not the arc with invalid flag
+  assert_approx_equals(testPath.getTotalLength(), refPath.getTotalLength(), 0.5,
+    "Invalid arc flag stops rendering");
+}, "Error: Invalid arc flag (must be 0 or 1)");
+
+test(function() {
+  // Missing moveto at start
+  const svg = document.getElementById('svg');
+  const testPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  testPath.setAttribute('d', 'L 100,260');
+  svg.appendChild(testPath);
+
+  // Path without initial moveto should render (treats as moveto)
+  const length = testPath.getTotalLength();
+  assert_equals(length, 0, "Path without initial moveto may not render or treats L as M");
+}, "Edge case: Path without initial moveto");
+
+test(function() {
+  // Empty path data
+  const svg = document.getElementById('svg');
+  const testPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  testPath.setAttribute('d', '');
+  svg.appendChild(testPath);
+
+  const length = testPath.getTotalLength();
+  assert_equals(length, 0, "Empty path has zero length");
+}, "Empty path data string");
+
+test(function() {
+  // Path data = "none"
+  const svg = document.getElementById('svg');
+  const testPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  testPath.setAttribute('d', 'none');
+  svg.appendChild(testPath);
+
+  const length = testPath.getTotalLength();
+  assert_equals(length, 0, "Path with d='none' has zero length");
+}, "Path data value 'none' disables rendering");
+
+test(function() {
+  // Multiple errors - stops at first
+  const svg = document.getElementById('svg');
+  const testPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  testPath.setAttribute('d', 'M 10,310 L 50,310 X 60,310 Y 70,310');
+  svg.appendChild(testPath);
+
+  const refPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  refPath.setAttribute('d', 'M 10,310 L 50,310');
+  svg.appendChild(refPath);
+
+  // Should stop at first error (X)
+  assert_approx_equals(testPath.getTotalLength(), refPath.getTotalLength(), 0.5,
+    "Stops at first error, not subsequent errors");
+}, "Error: Multiple errors - stops at first one");
+
+test(function() {
+  // Partial C command (4 params instead of 6)
+  const svg = document.getElementById('svg');
+  const testPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  testPath.setAttribute('d', 'M 0,0 L 50,50 C 60,40 70,60 80,50 C 90,40 100,60');
+  svg.appendChild(testPath);
+
+  const refPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  refPath.setAttribute('d', 'M 0,0 L 50,50 C 60,40 70,60 80,50');
+  svg.appendChild(refPath);
+
+  // Should render first complete C, not second incomplete C
+  assert_approx_equals(testPath.getTotalLength(), refPath.getTotalLength(), 0.5,
+    "Renders up to last complete curveto");
+}, "Error: Incomplete second curveto");
+
+test(function() {
+  // Valid commands after error should not render
+  const svg = document.getElementById('svg');
+  const testPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  testPath.setAttribute('d', 'M 10,360 L 50,360 L 60 L 100,360');
+  svg.appendChild(testPath);
+
+  const refPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  refPath.setAttribute('d', 'M 10,360 L 50,360');
+  svg.appendChild(refPath);
+
+  // Should not render L 100,360 even though it's valid
+  assert_approx_equals(testPath.getTotalLength(), refPath.getTotalLength(), 0.5,
+    "Commands after error are not rendered");
+}, "Error: Valid commands after error are ignored");
+
+test(function() {
+  // Letter case errors (lowercase where uppercase expected, etc.)
+  const svg = document.getElementById('svg');
+  const testPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  // Using 'x' which is not a valid command
+  testPath.setAttribute('d', 'M 100,10 x 150,10');
+  svg.appendChild(testPath);
+
+  const refPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  refPath.setAttribute('d', 'M 100,10');
+  svg.appendChild(refPath);
+
+  assert_approx_equals(testPath.getTotalLength(), refPath.getTotalLength(), 0.5,
+    "Invalid lowercase command stops rendering");
+}, "Error: Invalid command letter (case-sensitive)");
+</script>
+</body>
+</html>

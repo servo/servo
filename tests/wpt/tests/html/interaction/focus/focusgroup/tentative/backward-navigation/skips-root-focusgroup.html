@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <title>HTML Test: focusgroup - Focus moves to previous item, skipping over a subtree that is a root focusgroup (unrelated to the one we're in).</title>
 <link rel="author" title="Microsoft" href="http://www.microsoft.com/">
-<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/Focusgroup/explainer.md">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -11,10 +11,10 @@
 <script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
 <script src="../resources/focusgroup-utils.js"></script>
 
-<div focusgroup="toolbar wrap">
+<div focusgroup="toolbar inline block wrap">
   <span id=item1 tabindex=0>item1</span>
   <div>
-    <div focusgroup="toolbar">
+    <div focusgroup="toolbar inline block">
       <span id=item2 tabindex=0>item2</span>
       <span id=item3 tabindex=0>item3</span>
     </div>

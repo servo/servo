@@ -54,4 +54,13 @@ animation_test({
   expected: "rgb(250, 250, 250)"
 }, 'Animating a custom property of type <color> with iterationComposite');
 
+animation_test({
+  syntax: "<color>",
+  inherits: false,
+  initialValue: "contrast-color(white)"
+}, {
+  keyframes: "white",
+  expected: "rgb(128, 128, 128)"
+}, 'Animating a custom property of type <color> with single keyframe and initialValue contrast-color()');
+
 </script>

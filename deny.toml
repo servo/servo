@@ -35,9 +35,9 @@ ignore = [
     # The attack complexity of this vulnerability is high,
     # and no exploit is known yet.
     "RUSTSEC-2025-0144",
-    # The crate `time` has vulnerability.
-    # Need to upgrade to 0.3.47 above.
-    # Cannot right now due to MSRV.
+    # The crate `time` has DOS stack exhaustion vulnerability, which is fixed in version 0.3.47.
+    # We can't upgrade yet due to MSRV. However, we do not use the vulnerable API at all.
+    # As per <https://github.com/advisories/GHSA-r6v5-fh4h-64xc> this can be verified with clippy.
     "RUSTSEC-2026-0009",
 ]
 
@@ -212,6 +212,8 @@ skip = [
     # this.
     "hybrid-array",
 
+    # duplicated by zbus-xml and wayland-scanner
+    "quick-xml",
 
     # The following 5 duplicates were introduced when Servo's CI was failing to
     # detect duplicates introduced in automatic dependabot PRs (#38945). They

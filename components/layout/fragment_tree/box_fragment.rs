@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use app_units::{Au, MAX_AU, MIN_AU};
-use atomic_refcell::AtomicRefCell;
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use base::id::ScrollTreeNodeId;
 use base::print_tree::PrintTree;
 use euclid::Rect;
@@ -16,7 +16,6 @@ use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::specified::box_::DisplayOutside;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, FragmentFlags};
 use crate::SharedStyle;
@@ -70,8 +69,13 @@ pub(crate) struct BlockLevelLayoutInfo {
     pub block_margins_collapsed_with_children: CollapsedBlockMargins,
 }
 
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 pub(crate) struct BoxFragmentRareData {
+    /// The resolved box insets if this box is `position: sticky`. These are calculated
+    /// during `StackingContextTree` construction because they rely on the size of the
+    /// scroll container.
+    pub(crate) resolved_sticky_insets: Option<Box<PhysicalSides<AuOrAuto>>>,
+
     /// Information that is specific to a layout system (e.g., grid, table, etc.).
     pub specific_layout_info: Option<SpecificLayoutInfo>,
 }
@@ -79,12 +83,15 @@ pub(crate) struct BoxFragmentRareData {
 impl BoxFragmentRareData {
     /// Create a new rare data based on information given to the fragment. Ideally, We should
     /// avoid creating rare data as much as possible to reduce the memory cost.
-    fn try_boxed_from(specific_layout_info: Option<SpecificLayoutInfo>) -> Option<Box<Self>> {
-        specific_layout_info.map(|info| {
+    fn try_boxed_from(
+        specific_layout_info: Option<SpecificLayoutInfo>,
+    ) -> AtomicRefCell<Option<Box<Self>>> {
+        AtomicRefCell::new(specific_layout_info.map(|info| {
             Box::new(BoxFragmentRareData {
+                resolved_sticky_insets: None,
                 specific_layout_info: Some(info),
             })
-        })
+        }))
     }
 }
 
@@ -113,15 +120,10 @@ pub(crate) struct BoxFragment {
     /// This is handled when calling [`Self::scrollable_overflow_for_parent`].
     scrollable_overflow: Option<PhysicalRect<Au>>,
 
-    /// The resolved box insets if this box is `position: sticky`. These are calculated
-    /// during `StackingContextTree` construction because they rely on the size of the
-    /// scroll container.
-    pub(crate) resolved_sticky_insets: AtomicRefCell<Option<PhysicalSides<AuOrAuto>>>,
-
     pub background_mode: BackgroundMode,
 
     /// Rare data that not all kinds of [`BoxFragment`] would have.
-    pub rare_data: Option<Box<BoxFragmentRareData>>,
+    pub rare_data: AtomicRefCell<Option<Box<BoxFragmentRareData>>>,
 
     /// Additional information for block-level boxes.
     pub block_level_layout_info: Option<Box<BlockLevelLayoutInfo>>,
@@ -156,7 +158,6 @@ impl BoxFragment {
             margin,
             baselines: Baselines::default(),
             scrollable_overflow: None,
-            resolved_sticky_insets: AtomicRefCell::default(),
             background_mode: BackgroundMode::Normal,
             rare_data,
             block_level_layout_info: None,
@@ -217,8 +218,33 @@ impl BoxFragment {
         self.background_mode = BackgroundMode::None;
     }
 
-    pub fn specific_layout_info(&self) -> Option<&SpecificLayoutInfo> {
-        self.rare_data.as_ref()?.specific_layout_info.as_ref()
+    pub fn ensure_rare_data(&self) -> AtomicRefMut<'_, Box<BoxFragmentRareData>> {
+        let mut rare_data = self.rare_data.borrow_mut();
+        if rare_data.is_none() {
+            *rare_data = Some(Default::default());
+        }
+
+        AtomicRefMut::map(rare_data, |rare_data| {
+            rare_data
+                .as_mut()
+                .expect("This data should have just been set")
+        })
+    }
+
+    pub fn specific_layout_info(&self) -> Option<AtomicRef<'_, SpecificLayoutInfo>> {
+        let rare_data = self.rare_data.borrow();
+
+        AtomicRef::filter_map(rare_data, |rare_data| {
+            rare_data.as_ref()?.specific_layout_info.as_ref()
+        })
+    }
+
+    pub fn resolved_sticky_insets(&self) -> Option<AtomicRef<'_, Box<PhysicalSides<AuOrAuto>>>> {
+        let rare_data = self.rare_data.borrow();
+
+        AtomicRef::filter_map(rare_data, |rare_data| {
+            rare_data.as_ref()?.resolved_sticky_insets.as_ref()
+        })
     }
 
     pub fn with_block_level_layout_info(
@@ -471,8 +497,8 @@ impl BoxFragment {
             "Should not call this method on statically positioned box."
         );
 
-        if let Some(resolved_sticky_insets) = *self.resolved_sticky_insets.borrow() {
-            return resolved_sticky_insets;
+        if let Some(resolved_sticky_insets) = self.resolved_sticky_insets() {
+            return **resolved_sticky_insets;
         }
 
         let convert_to_au_or_auto = |sides: PhysicalSides<Au>| {
@@ -548,20 +574,20 @@ impl BoxFragment {
     /// Whether this is an atomic inline-level box.
     /// <https://drafts.csswg.org/css-display-3/#atomic-inline>
     pub(crate) fn is_atomic_inline_level(&self) -> bool {
-        self.style().get_box().display.outside() == DisplayOutside::Inline && !self.is_inline_box()
+        self.style().is_atomic_inline_level(self.base.flags)
     }
 
     /// Whether this is a table wrapper box.
     /// <https://www.w3.org/TR/css-tables-3/#table-wrapper-box>
     pub(crate) fn is_table_wrapper(&self) -> bool {
         matches!(
-            self.specific_layout_info(),
+            self.specific_layout_info().as_deref(),
             Some(SpecificLayoutInfo::TableWrapper)
         )
     }
 
     pub(crate) fn has_collapsed_borders(&self) -> bool {
-        match self.specific_layout_info() {
+        match self.specific_layout_info().as_deref() {
             Some(SpecificLayoutInfo::TableCellWithCollapsedBorders) => true,
             Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_)) => true,
             Some(SpecificLayoutInfo::TableWrapper) => {

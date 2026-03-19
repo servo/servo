@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVG Path Data: Moveto command - relative (m)</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathDataBNF">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<svg id="svg" width="400" height="400">
+  <!-- Initial m is treated as absolute -->
+  <path id="test1" d="m 100,100 L 150,150" fill="none" stroke="black" stroke-width="2"/>
+
+  <!-- Reference with M -->
+  <path id="ref1" d="M 100,100 L 150,150" fill="none" stroke="red" stroke-width="1" stroke-dasharray="2,2"/>
+</svg>
+
+<script>
+test(function() {
+  const testPath = document.getElementById('test1');
+  const refPath = document.getElementById('ref1');
+
+  const testPoint = testPath.getPointAtLength(0);
+  const refPoint = refPath.getPointAtLength(0);
+
+  assert_approx_equals(testPoint.x, refPoint.x, 0.1, "Initial 'm' treated as absolute");
+  assert_approx_equals(testPoint.y, refPoint.y, 0.1, "Initial 'm' treated as absolute");
+}, "Initial moveto: 'm 100,100' is treated as absolute 'M 100,100'");
+
+test(function() {
+  // Subsequent m is relative
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50,50 L 100,50 m 0,50 L 150,150');
+  svg.appendChild(path);
+
+  // After "m 0,50" from position (100,50), we should be at (100,100)
+  const point = path.getPointAtLength(path.getTotalLength());
+  assert_approx_equals(point.x, 150, 0.1, "Path ends at specified point");
+  assert_approx_equals(point.y, 150, 0.1, "Path ends at specified point");
+}, "Subsequent moveto is relative: M 50,50 L 100,50 m 0,50");
+
+test(function() {
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,0 L 50,0 m 10,10 L 100,50');
+  svg.appendChild(path);
+
+  // After L 50,0, we're at (50,0)
+  // After m 10,10, we should be at (60,10)
+  // The L 100,50 creates a line from (60,10) to (100,50)
+
+  // Get point at start of second subpath
+  const firstLength = Math.sqrt(50*50); // First line length
+  const pointAfterM = path.getPointAtLength(firstLength + 0.1);
+
+  assert_approx_equals(pointAfterM.x, 60, 1, "After 'm 10,10' from (50,0), x should be 60");
+  assert_approx_equals(pointAfterM.y, 10, 1, "After 'm 10,10' from (50,0), y should be 10");
+}, "Relative moveto adds to current position: m 10,10 from (50,0) = (60,10)");
+
+test(function() {
+  // Multiple coordinate pairs after initial m
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'm 10,10 20,20 30,30');
+  svg.appendChild(path);
+
+  const startPoint = path.getPointAtLength(0);
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+
+  // First m 10,10 is absolute, so starts at (10,10)
+  assert_approx_equals(startPoint.x, 10, 0.1, "Starts at 10,10");
+  assert_approx_equals(startPoint.y, 10, 0.1, "Starts at 10,10");
+
+  // Subsequent pairs are relative lineto: (10,10) + (20,20) = (30,30), then + (30,30) = (60,60)
+  assert_approx_equals(endPoint.x, 60, 0.1, "Ends at 60,60");
+  assert_approx_equals(endPoint.y, 60, 0.1, "Ends at 60,60");
+}, "Multiple coordinate pairs after initial 'm': m 10,10 20,20 30,30");
+
+test(function() {
+  // Negative relative movements
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 100,100 m -50,-50 L 100,100');
+  svg.appendChild(path);
+
+  const firstLength = 0; // M command has no length
+  const pointAfterM = path.getPointAtLength(0.1);
+
+  // From (100,100), m -50,-50 should move to (50,50)
+  assert_approx_equals(pointAfterM.x, 50, 1, "Negative relative move: x");
+  assert_approx_equals(pointAfterM.y, 50, 1, "Negative relative move: y");
+}, "Negative relative moveto: M 100,100 m -50,-50");
+
+test(function() {
+  // Zero relative movement
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 50,50 m 0,0 L 100,100');
+  svg.appendChild(path);
+
+  const pointAfterM = path.getPointAtLength(0.1);
+
+  // m 0,0 doesn't change position, should still be at (50,50)
+  assert_approx_equals(pointAfterM.x, 50, 1, "Zero relative move maintains position");
+  assert_approx_equals(pointAfterM.y, 50, 1, "Zero relative move maintains position");
+}, "Zero relative moveto: m 0,0");
+
+test(function() {
+  // Chained relative moveto commands
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 0,0 L 10,10 m 5,5 m 5,5 L 30,30');
+  svg.appendChild(path);
+
+  // Start at (0,0), line to (10,10)
+  // m 5,5 moves to (15,15)
+  // m 5,5 moves to (20,20)
+  // Line from (20,20) to (30,30)
+
+  const totalLength = path.getTotalLength();
+  const firstLineLength = Math.sqrt(200); // (0,0) to (10,10)
+  const secondLineLength = Math.sqrt(200); // (20,20) to (30,30)
+
+  assert_approx_equals(totalLength, firstLineLength + secondLineLength, 0.5,
+    "Total length is sum of two lines (moveto commands have no length)");
+}, "Chained relative moveto: m 5,5 m 5,5");
+</script>
+</body>
+</html>

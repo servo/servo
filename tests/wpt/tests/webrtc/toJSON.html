@@ -1,14 +1,21 @@
 <!doctype html>
+<meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <title>WebRTC objects toJSON() methods</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
 'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 // The tests for
 // * RTCSessionDescription.toJSON()
 // * RTCIceCandidate.toJSON()
 // are kept in a single file since they are similar and typically
 // would need to be changed together.
+
+if (rest) {
 test(t => {
   const desc = new RTCSessionDescription({
     type: 'offer',
@@ -24,7 +31,9 @@ test(t => {
   assert_equals(Object.keys(json).length, 2);
 
 }, 'RTCSessionDescription.toJSON serializes only specific attributes');
+}
 
+if (interop2026) {
 test(t => {
   const candidate = new RTCIceCandidate({
     sdpMLineIndex: 0,
@@ -44,5 +53,6 @@ test(t => {
   assert_equals(Object.keys(json).length, 4);
 
 }, 'RTCIceCandidate.toJSON serializes only specific attributes');
+}
 
 </script>

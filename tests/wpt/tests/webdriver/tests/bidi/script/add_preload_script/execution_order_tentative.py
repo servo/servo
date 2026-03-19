@@ -6,8 +6,9 @@ from webdriver.bidi.modules.script import ContextTarget
 CONTEXT_CREATED_EVENT = "browsingContext.contextCreated"
 CONTEXT_LOAD_EVENT = "browsingContext.load"
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize("access_type", [
     "current_context_with_url",
     "current_context_with_non_blank_url",

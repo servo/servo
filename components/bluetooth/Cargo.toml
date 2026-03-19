@@ -1,11 +1,13 @@
 [package]
-name = "bluetooth"
+name = "servo-bluetooth"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "bluetooth"
@@ -19,7 +21,7 @@ blurmock = { version = "0.1.2", optional = true }
 embedder_traits = { workspace = true }
 log = { workspace = true }
 rand = { workspace = true }
-servo_config = { path = "../config" }
+servo_config = { workspace = true }
 uuid = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
@@ -29,7 +31,7 @@ blurz = { version = "0.3", optional = true }
 blurdroid = { version = "0.1.2", optional = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-blurmac = { path = "../../third_party/blurmac", optional = true }
+blurmac = { workspace = true, optional = true }
 
 [features]
 default = ["bluetooth-test"]

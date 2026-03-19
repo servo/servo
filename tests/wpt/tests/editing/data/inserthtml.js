@@ -610,4 +610,68 @@ var browserTests = [
      "<p><b><span contenteditable=\"false\">abc</span></b><i>Zdef</i></p>"],
     [true],
     {}],
+
+
+// Some apps may refer the invisible preformatted linefeed for the further
+// processing after inserting Text. Therefore, the following preformatted
+// linefeed shouldn't be deleted even if it's unnecessary.
+["<div style=white-space:pre>abc[]\n</div>",
+    [["inserthtml","X"]],
+    "<div style=\"white-space:pre\">abcX\n</div>",
+    [true],
+    {}],
+["<div style=white-space:pre>abc[]\n</div>",
+    [["inserthtml","X"],["inserthtml","Y"]],
+    "<div style=\"white-space:pre\">abcXY\n</div>",
+    [true,true],
+    {}],
+["<div style=white-space:pre-line>abc[]\n</div>",
+    [["inserthtml","X"]],
+    "<div style=\"white-space:pre-line\">abcX\n</div>",
+    [true],
+    {}],
+["<div style=white-space:pre-line>abc[]\n</div>",
+    [["inserthtml","X"],["inserthtml","Y"]],
+    "<div style=\"white-space:pre-line\">abcXY\n</div>",
+    [true,true],
+    {}],
+["<div style=white-space:pre>abc []\n</div>",
+    [["inserthtml","X"]],
+    "<div style=\"white-space:pre\">abc X\n</div>",
+    [true],
+    {}],
+["<div style=white-space:pre>abc []\n</div>",
+    [["inserthtml","X"],["inserthtml","Y"]],
+    "<div style=\"white-space:pre\">abc XY\n</div>",
+    [true,true],
+    {}],
+// I'm not sure whether the following expectations are right or consistent with
+// the other results. In theory, if selection is collapsed in invisible
+// white-spaces at block boundary, the invisible white-spaces should be deleted
+// or at least the selection should be adjusted before the invisible
+// white-spaces before inserting new content. However, insertHTML command may be
+// a raw command to touch the DOM with an undo transaction. Therefore, not
+// handling invisible white-spaces might be expected by the web developer.
+["<div style=white-space:pre-line>abc []\n</div>",
+    [["inserthtml","X"]],
+    ["<div style=\"white-space:pre-line\">abcX\n</div>",
+     "<div style=\"white-space:pre-line\">abcX \n</div>"],
+    [true],
+    {}],
+["<div style=white-space:pre-line>abc []\n</div>",
+    [["inserthtml","X"],["inserthtml","Y"]],
+    ["<div style=\"white-space:pre-line\">abcXY\n</div>",
+     "<div style=\"white-space:pre-line\">abcXY \n</div>"],
+    [true,true],
+    {}],
+["<div style=white-space:pre>[]\n</div>",
+    [["inserthtml","X"]],
+    "<div style=\"white-space:pre\">X</div>",
+    [true],
+    {}],
+["<div style=white-space:pre-line>[]\n</div>",
+    [["inserthtml","X"]],
+    "<div style=\"white-space:pre-line\">X</div>",
+    [true],
+    {}],
 ]

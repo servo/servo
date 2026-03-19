@@ -11,15 +11,16 @@ use style::custom_properties::{
     ComputedCustomProperties, CustomPropertiesBuilder, DeferFontRelativeCustomPropertyResolution,
     Name, SpecifiedValue,
 };
+use style::device::Device;
+use style::device::servo::FontMetricsProvider;
 use style::dom::AttributeTracker;
 use style::font_metrics::FontMetrics;
-use style::media_queries::{Device, MediaType};
+use style::media_queries::MediaType;
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, CustomDeclaration, CustomDeclarationValue, StyleBuilder};
 use style::queries::values::PrefersColorScheme;
 use style::rule_cache::RuleCacheConditions;
 use style::rule_tree::CascadeLevel;
-use style::servo::media_queries::FontMetricsProvider;
 use style::stylesheets::UrlExtraData;
 use style::stylesheets::container_rule::ContainerSizeQuery;
 use style::stylesheets::layer_rule::LayerOrder;
@@ -60,7 +61,7 @@ fn cascade(
             let mut parser = Parser::new(&mut input);
             let name = Name::from(name);
             let value = CustomDeclarationValue::Unparsed(Arc::new(
-                SpecifiedValue::parse(&mut parser, &dummy_url_data).unwrap(),
+                SpecifiedValue::parse(&mut parser, None, &dummy_url_data).unwrap(),
             ));
             CustomDeclaration { name, value }
         })

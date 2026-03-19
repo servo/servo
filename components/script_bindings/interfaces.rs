@@ -61,7 +61,7 @@ pub trait DomHelpers<D: DomTypes> {
         T: DomObject + DomObjectWrap<D>,
         U: DerivedFrom<D::GlobalScope>;
 
-    fn report_pending_exception(cx: JSContext, dispatch_event: bool, realm: InRealm, can_gc: CanGc);
+    fn report_pending_exception(cx: JSContext, realm: InRealm, can_gc: CanGc);
 }
 
 /// Operations that must be invoked from the generated bindings.
@@ -81,7 +81,7 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
 
     fn incumbent() -> Option<DomRoot<D::GlobalScope>>;
 
-    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc);
+    fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext);
 
     fn get_url(&self) -> ServoUrl;
 

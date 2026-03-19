@@ -66,10 +66,10 @@ use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::Promise;
-use crate::dom::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
-use crate::dom::reportingobserver::ReportingObserver;
-use crate::dom::trustedscripturl::TrustedScriptURL;
-use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
+use crate::dom::reporting::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
+use crate::dom::reporting::reportingobserver::ReportingObserver;
+use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
+use crate::dom::trustedtypes::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::ImageBitmap;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
@@ -81,7 +81,7 @@ use crate::fetch::{CspViolationsProcessor, Fetch, RequestWithGlobalScope, load_w
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::realms::{InRealm, enter_auto_realm};
+use crate::realms::enter_auto_realm;
 use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{CanGc, IntroductionType, JSContext, JSContextHelper, Runtime};
 use crate::task::TaskCanceller;
@@ -143,6 +143,7 @@ impl FetchResponseListener for ScriptFetchContext {
 
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         _request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -212,7 +213,7 @@ impl FetchResponseListener for ScriptFetchContext {
         // response's URL's scheme is an HTTP(S) scheme;
         let is_http_scheme = matches!(metadata.final_url.scheme(), "http" | "https");
         // and the result of extracting a MIME type from response's header list is not a JavaScript MIME type,
-        let not_a_javascript_mime_type = !metadata.content_type.clone().is_some_and(|ct| {
+        let not_a_javascript_mime_type = !metadata.content_type.is_some_and(|ct| {
             let mime: Mime = ct.into_inner().into();
             SCRIPT_JS_MIMES.contains(&mime.essence_str())
         });
@@ -399,14 +400,13 @@ impl WorkerGlobalScope {
     }
 
     /// Perform a microtask checkpoint.
-    pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
+    pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {
         // Only perform the checkpoint if we're not shutting down.
         if !self.is_closing() {
             self.microtask_queue.checkpoint(
-                GlobalScope::get_cx(),
+                cx,
                 |_| Some(DomRoot::from_ref(&self.globalscope)),
                 vec![DomRoot::from_ref(&self.globalscope)],
-                can_gc,
             );
         }
     }
@@ -596,7 +596,7 @@ impl WorkerGlobalScope {
             _ => {
                 // Step 1.1 Queue a global task on the DOM manipulation task source given
                 // worker's relevant global object to fire an event named error at worker.
-                dedicated_worker_scope.forward_simple_error_at_worker(worker.clone());
+                dedicated_worker_scope.forward_simple_error_at_worker(worker);
 
                 // TODO Step 1.2. Run the environment discarding steps for inside settings.
                 // Step 1.3 Abort these steps.
@@ -667,12 +667,11 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             // Step 3: Append the result of invoking the Get Trusted Type compliant string algorithm
             // with TrustedScriptURL, this's relevant global object, url, "WorkerGlobalScope importScripts",
             // and "script" to urlStrings.
-            let url = TrustedScriptURL::get_trusted_script_url_compliant_string(
+            let url = TrustedScriptURL::get_trusted_type_compliant_string(
+                cx,
                 self.upcast::<GlobalScope>(),
                 url,
-                "WorkerGlobalScope",
-                "importScripts",
-                CanGc::from_cx(cx),
+                "WorkerGlobalScope importScripts",
             )?;
             let url = self.worker_url.borrow().join(&url.str());
             match url {
@@ -821,11 +820,10 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-windowtimers-settimeout>
     fn SetTimeout(
         &self,
-        _cx: JSContext,
+        cx: &mut js::context::JSContext,
         callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
-        can_gc: CanGc,
     ) -> Fallible<i32> {
         let callback = match callback {
             TrustedScriptOrStringOrFunction::String(i) => {
@@ -837,11 +835,11 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             TrustedScriptOrStringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
         };
         self.upcast::<GlobalScope>().set_timeout_or_interval(
+            cx,
             callback,
             args,
             Duration::from_millis(timeout.max(0) as u64),
             IsInterval::NonInterval,
-            can_gc,
         )
     }
 
@@ -854,11 +852,10 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-windowtimers-setinterval>
     fn SetInterval(
         &self,
-        _cx: JSContext,
+        cx: &mut js::context::JSContext,
         callback: TrustedScriptOrStringOrFunction,
         timeout: i32,
         args: Vec<HandleValue>,
-        can_gc: CanGc,
     ) -> Fallible<i32> {
         let callback = match callback {
             TrustedScriptOrStringOrFunction::String(i) => {
@@ -870,11 +867,11 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             TrustedScriptOrStringOrFunction::Function(i) => TimerCallback::FunctionTimerCallback(i),
         };
         self.upcast::<GlobalScope>().set_timeout_or_interval(
+            cx,
             callback,
             args,
             Duration::from_millis(timeout.max(0) as u64),
             IsInterval::Interval,
-            can_gc,
         )
     }
 
@@ -927,12 +924,11 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
     fn Fetch(
         &self,
+        realm: &mut CurrentRealm,
         input: RequestOrUSVString,
         init: RootedTraceableBox<RequestInit>,
-        comp: InRealm,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
-        Fetch(self.upcast(), input, init, comp, can_gc)
+        Fetch(self.upcast(), input, init, realm)
     }
 
     /// <https://w3c.github.io/hr-time/#the-performance-attribute>
@@ -972,10 +968,10 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
     }
 
     /// <https://www.w3.org/TR/trusted-types/#dom-windoworworkerglobalscope-trustedtypes>
-    fn TrustedTypes(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
+    fn TrustedTypes(&self, cx: &mut js::context::JSContext) -> DomRoot<TrustedTypePolicyFactory> {
         self.trusted_types.or_init(|| {
             let global_scope = self.upcast::<GlobalScope>();
-            TrustedTypePolicyFactory::new(global_scope, can_gc)
+            TrustedTypePolicyFactory::new(cx, global_scope)
         })
     }
 }

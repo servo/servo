@@ -4,6 +4,8 @@ import pytest
 
 from .. import assert_before_request_sent_event, BEFORE_REQUEST_SENT_EVENT
 
+pytestmark = pytest.mark.asyncio
+
 
 @pytest.fixture
 def substitute_host(server_config):
@@ -22,7 +24,6 @@ def substitute_host(server_config):
     return substitute_host
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "patterns, url_template",
     [
@@ -86,7 +87,6 @@ async def test_pattern_patterns_matching(
     )
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "pattern, url_template",
     [
@@ -132,7 +132,6 @@ async def test_pattern_patterns_not_matching(
     assert_before_request_sent_event(event, expected_event={"isBlocked": False})
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "pattern, url_template",
     [
@@ -182,7 +181,6 @@ async def test_string_patterns_matching(
     )
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "pattern, url_template",
     [

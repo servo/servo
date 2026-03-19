@@ -107,6 +107,7 @@ impl MixedMessage {
                 ScriptThreadMessage::AccessibilityTreeUpdate(..) => None,
                 ScriptThreadMessage::UpdatePinchZoomInfos(id, _) => Some(*id),
                 ScriptThreadMessage::SetAccessibilityActive(..) => None,
+                ScriptThreadMessage::TriggerGarbageCollection => None,
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {
@@ -358,7 +359,7 @@ pub(crate) struct ScriptThreadSenders {
     #[cfg(feature = "bluetooth")]
     pub(crate) bluetooth_sender: GenericSender<BluetoothRequest>,
 
-    /// A [`Sender`] that sends messages to the `Constellation`.
+    /// A [`Sender`] that sends messages to the `ScriptThread`.
     #[no_trace]
     pub(crate) constellation_sender: GenericSender<ScriptThreadMessage>,
 

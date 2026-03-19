@@ -4,8 +4,9 @@ from webdriver.bidi.modules.script import ContextTarget
 
 from ... import any_string, recursive_compare
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_this(bidi_session, top_context):
     result = await bidi_session.script.call_function(
         function_declaration="function(){return this.some_property}",
@@ -26,7 +27,6 @@ async def test_this(bidi_session, top_context):
     }
 
 
-@pytest.mark.asyncio
 async def test_default_this(bidi_session, top_context):
     result = await bidi_session.script.call_function(
         function_declaration="function(){return this}",
@@ -38,7 +38,6 @@ async def test_default_this(bidi_session, top_context):
     }, result)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "value_fn, function_declaration",
     [
@@ -86,7 +85,6 @@ async def test_remote_value_deserialization(
     )
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "channel, expected_data",
     [

@@ -12,13 +12,11 @@ use std::rc::Rc;
 use base::id::WebViewId;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
-use html5ever::{LocalName, Prefix, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use js::context::JSContext;
 use js::rust::{HandleObject, Stencil};
 use net_traits::http_status::HttpStatus;
-use net_traits::request::{
-    CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder, RequestId,
-};
+use net_traits::request::{CorsSettings, Destination, ParserMetadata, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -29,6 +27,7 @@ use uuid::Uuid;
 use crate::document_loader::LoadType;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::DOMTokenListBinding::DOMTokenListMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLScriptElementBinding::HTMLScriptElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -43,19 +42,20 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, InlineCheckType, Violation};
 use crate::dom::document::Document;
+use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
     AttributeMutation, Element, ElementCreator, cors_setting_for_element,
-    referrer_policy_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute,
-    set_cross_origin_attribute,
+    cors_settings_attribute_credential_mode, referrer_policy_for_element,
+    reflect_cross_origin_attribute, reflect_referrer_policy_attribute, set_cross_origin_attribute,
 };
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::global_scope_script_execution::{ClassicScript, ErrorReporting, RethrowErrors};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits};
+use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::dom::trustedscript::TrustedScript;
-use crate::dom::trustedscripturl::TrustedScriptURL;
+use crate::dom::trustedtypes::trustedscript::TrustedScript;
+use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::window::Window;
 use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
@@ -110,6 +110,13 @@ pub(crate) struct HTMLScriptElement {
     /// `srcScript` or `inlineScript` that this script would normally use.
     #[no_trace]
     introduction_type_override: Cell<Option<&'static CStr>>,
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-script-blocking>
+    blocking: MutNullableDom<DOMTokenList>,
+
+    /// Used to keep track whether we consider this script element render blocking during
+    /// `prepare`
+    marked_as_render_blocking: Cell<bool>,
 }
 
 impl HTMLScriptElement {
@@ -131,6 +138,8 @@ impl HTMLScriptElement {
             script_text: DomRefCell::new(DOMString::new()),
             from_an_external_file: Cell::new(false),
             introduction_type_override: Cell::new(None),
+            blocking: Default::default(),
+            marked_as_render_blocking: Default::default(),
         }
     }
 
@@ -263,7 +272,7 @@ fn finish_fetching_a_classic_script(
     script_kind: ExternalScriptKind,
     url: ServoUrl,
     load: ScriptResult,
-    can_gc: CanGc,
+    cx: &mut js::context::JSContext,
 ) {
     // Step 33. The "steps to run when the result is ready" for each type of script in 33.2-33.5.
     // of https://html.spec.whatwg.org/multipage/#prepare-the-script-element
@@ -272,23 +281,23 @@ fn finish_fetching_a_classic_script(
     match script_kind {
         ExternalScriptKind::Asap => {
             document = elem.preparation_time_document.get().unwrap();
-            document.asap_script_loaded(elem, load, can_gc)
+            document.asap_script_loaded(elem, load, CanGc::from_cx(cx))
         },
         ExternalScriptKind::AsapInOrder => {
             document = elem.preparation_time_document.get().unwrap();
-            document.asap_in_order_script_loaded(elem, load, can_gc)
+            document.asap_in_order_script_loaded(elem, load, CanGc::from_cx(cx))
         },
         ExternalScriptKind::Deferred => {
             document = elem.parser_document.as_rooted();
-            document.deferred_script_loaded(elem, load, can_gc);
+            document.deferred_script_loaded(elem, load, CanGc::from_cx(cx));
         },
         ExternalScriptKind::ParsingBlocking => {
             document = elem.parser_document.as_rooted();
-            document.pending_parsing_blocking_script_loaded(elem, load, can_gc);
+            document.pending_parsing_blocking_script_loaded(elem, load, cx);
         },
     }
 
-    document.finish_load(LoadType::Script(url), can_gc);
+    document.finish_load(LoadType::Script(url), cx);
 }
 
 pub(crate) type ScriptResult = Result<Script, ()>;
@@ -332,7 +341,12 @@ impl FetchResponseListener for ClassicContext {
     // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
     fn process_request_eof(&mut self, _: RequestId) {}
 
-    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
         self.metadata = metadata.ok().map(|meta| {
             self.response_was_cors_cross_origin = meta.is_cors_cross_origin();
             match meta {
@@ -387,7 +401,7 @@ impl FetchResponseListener for ClassicContext {
                     self.kind,
                     self.url.clone(),
                     Err(()),
-                    CanGc::from_cx(cx),
+                    cx,
                 );
 
                 // Resource timing is expected to be available before "error" or "load" events are fired.
@@ -424,7 +438,7 @@ impl FetchResponseListener for ClassicContext {
         // sourceText, settingsObject, response's URL, options, mutedErrors, and url.
         let script = global.create_a_classic_script(
             source_text,
-            final_url.clone(),
+            final_url,
             self.fetch_options.clone(),
             ErrorReporting::from(muted_errors),
             Some(IntroductionType::SRC_SCRIPT),
@@ -463,13 +477,7 @@ impl FetchResponseListener for ClassicContext {
             }
         } else {*/
         let load = Script::Classic(script);
-        finish_fetching_a_classic_script(
-            &elem,
-            self.kind,
-            self.url.clone(),
-            Ok(load),
-            CanGc::from_cx(cx),
-        );
+        finish_fetching_a_classic_script(&elem, self.kind, self.url.clone(), Ok(load), cx);
         // }
 
         network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
@@ -478,10 +486,7 @@ impl FetchResponseListener for ClassicContext {
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
         let global = &self.resource_timing_global();
         let elem = self.elem.root();
-        let source_position = elem
-            .upcast::<Element>()
-            .compute_source_position(elem.line_number as u32);
-        global.report_csp_violations(violations, Some(elem.upcast()), Some(source_position));
+        global.report_csp_violations(violations, Some(elem.upcast()), None);
     }
 }
 
@@ -566,24 +571,53 @@ impl HTMLScriptElement {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-prepare-the-script-text>
-    fn prepare_the_script_text(&self, can_gc: CanGc) -> Fallible<()> {
+    fn prepare_the_script_text(&self, cx: &mut JSContext) -> Fallible<()> {
         // Step 1. If script’s script text value is not equal to its child text content,
         // set script’s script text to the result of executing
         // Get Trusted Type compliant string, with the following arguments:
         if self.script_text.borrow().clone() != self.text() {
-            *self.script_text.borrow_mut() = TrustedScript::get_trusted_script_compliant_string(
+            *self.script_text.borrow_mut() = TrustedScript::get_trusted_type_compliant_string(
+                cx,
                 &self.owner_global(),
                 self.Text(),
                 "HTMLScriptElement text",
-                can_gc,
             )?;
         }
 
         Ok(())
     }
 
+    fn has_render_blocking_attribute(&self) -> bool {
+        self.blocking
+            .get()
+            .is_some_and(|list| list.Contains("render".into()))
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#potentially-render-blocking>
+    fn potentially_render_blocking(&self) -> bool {
+        // An element is potentially render-blocking if its blocking tokens set contains "render",
+        // or if it is implicitly potentially render-blocking, which will be defined at the individual elements.
+        // By default, an element is not implicitly potentially render-blocking.
+        if self.has_render_blocking_attribute() {
+            return true;
+        }
+        let element = self.upcast::<Element>();
+        // https://html.spec.whatwg.org/multipage/#script-processing-model:implicitly-potentially-render-blocking
+        // > A script element el is implicitly potentially render-blocking if el's type is "classic",
+        // > el is parser-inserted, and el does not have an async or defer attribute.
+        self.get_script_type()
+            .is_some_and(|script_type| script_type == ScriptType::Classic) &&
+            self.parser_inserted.get() &&
+            !element.has_attribute(&local_name!("async")) &&
+            !element.has_attribute(&local_name!("defer"))
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#prepare-the-script-element>
-    pub(crate) fn prepare(&self, introduction_type_override: Option<&'static CStr>, can_gc: CanGc) {
+    pub(crate) fn prepare(
+        &self,
+        cx: &mut JSContext,
+        introduction_type_override: Option<&'static CStr>,
+    ) {
         self.introduction_type_override
             .set(introduction_type_override);
 
@@ -610,7 +644,7 @@ impl HTMLScriptElement {
 
         // Step 5. Execute the Prepare the script text algorithm on el.
         // If that algorithm threw an error, then return.
-        if self.prepare_the_script_text(can_gc).is_err() {
+        if self.prepare_the_script_text(cx).is_err() {
             return;
         }
         // Step 5a. Let source text be el’s script text value.
@@ -685,8 +719,8 @@ impl HTMLScriptElement {
 
         // Step 20. If el has an event attribute and a for attribute, and el's type is "classic", then:
         if script_type == ScriptType::Classic {
-            let for_attribute = element.get_attribute(&ns!(), &local_name!("for"));
-            let event_attribute = element.get_attribute(&ns!(), &local_name!("event"));
+            let for_attribute = element.get_attribute(&local_name!("for"));
+            let event_attribute = element.get_attribute(&local_name!("event"));
             if let (Some(ref for_attribute), Some(ref event_attribute)) =
                 (for_attribute, event_attribute)
             {
@@ -709,33 +743,30 @@ impl HTMLScriptElement {
         // If el does not have a charset attribute, or if getting an encoding failed,
         // then let encoding be el's node document's the encoding.
         let encoding = element
-            .get_attribute(&ns!(), &local_name!("charset"))
+            .get_attribute(&local_name!("charset"))
             .and_then(|charset| Encoding::for_label(charset.value().as_bytes()))
             .unwrap_or_else(|| doc.encoding());
 
         // Step 22. CORS setting.
         let cors_setting = cors_setting_for_element(element);
 
-        // Step 23. Module script credentials mode.
-        let module_credentials_mode = match script_type {
-            ScriptType::Classic => CredentialsMode::CredentialsSameOrigin,
-            ScriptType::Module | ScriptType::ImportMap => reflect_cross_origin_attribute(element)
-                .map_or(
-                    CredentialsMode::CredentialsSameOrigin,
-                    |attr| match &*attr.str() {
-                        "use-credentials" => CredentialsMode::Include,
-                        "anonymous" => CredentialsMode::CredentialsSameOrigin,
-                        _ => CredentialsMode::CredentialsSameOrigin,
-                    },
-                ),
-        };
+        // Step 23. Let module script credentials mode be the CORS settings attribute credentials mode for el's crossorigin content attribute.
+        let module_credentials_mode = cors_settings_attribute_credential_mode(element);
 
         // Step 24. Let cryptographic nonce be el's [[CryptographicNonce]] internal slot's value.
-        let cryptographic_nonce = self.upcast::<Element>().nonce_value();
+        // If the element has a nonce content attribute but is not nonceable strip the nonce to prevent injection attacks.
+        // Elements without a nonce content attribute (e.g. JS-created with .nonce = "abc")
+        // use the internal slot directly — the nonceable check only applies to parser-created elements.
+        let el = self.upcast::<Element>();
+        let cryptographic_nonce = if el.is_nonceable() || !el.has_attribute(&local_name!("nonce")) {
+            el.nonce_value().trim().to_owned()
+        } else {
+            String::new()
+        };
 
         // Step 25. If el has an integrity attribute, then let integrity metadata be that attribute's value.
         // Otherwise, let integrity metadata be the empty string.
-        let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
+        let im_attribute = element.get_attribute(&local_name!("integrity"));
         let integrity_val = im_attribute.as_ref().map(|a| a.value());
         let integrity_metadata = match integrity_val {
             Some(ref value) => &***value,
@@ -770,7 +801,7 @@ impl HTMLScriptElement {
         // What we actually need is global's import map eventually.
 
         let base_url = doc.base_url();
-        if let Some(src) = element.get_attribute(&ns!(), &local_name!("src")) {
+        if let Some(src) = element.get_attribute(&local_name!("src")) {
             // Step 31. If el has a src content attribute, then:
 
             // Step 31.1. If el's type is "importmap".
@@ -803,8 +834,13 @@ impl HTMLScriptElement {
                 },
             };
 
-            // TODO:
             // Step 31.7. If el is potentially render-blocking, then block rendering on el.
+            if self.potentially_render_blocking() && doc.allows_adding_render_blocking_elements() {
+                self.marked_as_render_blocking.set(true);
+                doc.increment_render_blocking_element_count();
+            }
+
+            // TODO:
             // Step 31.8. Set el's delaying the load event to true.
             // Step 31.9. If el is currently render-blocking, then set options's render-blocking to true.
 
@@ -852,10 +888,10 @@ impl HTMLScriptElement {
 
                     // Step 31.11. Fetch an external module script graph.
                     fetch_an_external_module_script(
-                        url.clone(),
+                        url,
                         ModuleOwner::Window(Trusted::new(self)),
                         options,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
 
                     if !asynch && was_parser_inserted {
@@ -903,7 +939,7 @@ impl HTMLScriptElement {
                         doc.set_pending_parsing_blocking_script(self, Some(result));
                     } else {
                         // Step 34.3: otherwise.
-                        self.execute(result, can_gc);
+                        self.execute(result, CanGc::from_cx(cx));
                     }
                 },
                 ScriptType::Module => {
@@ -921,10 +957,10 @@ impl HTMLScriptElement {
                     fetch_inline_module_script(
                         ModuleOwner::Window(Trusted::new(self)),
                         text_rc,
-                        base_url.clone(),
+                        base_url,
                         options,
                         self.line_number as u32,
-                        can_gc,
+                        CanGc::from_cx(cx),
                     );
                 },
                 ScriptType::ImportMap => {
@@ -934,7 +970,6 @@ impl HTMLScriptElement {
                         ModuleOwner::Window(Trusted::new(self)),
                         Rc::clone(&text_rc),
                         base_url.clone(),
-                        can_gc,
                     );
                     let script = Script::ImportMap(ScriptOrigin::internal(
                         text_rc,
@@ -946,7 +981,7 @@ impl HTMLScriptElement {
                     ));
 
                     // Step 34.3
-                    self.execute(Ok(script), can_gc);
+                    self.execute(Ok(script), CanGc::from_cx(cx));
                 },
             }
         }
@@ -962,11 +997,20 @@ impl HTMLScriptElement {
             return;
         }
 
-        // TODO: Step 3. Unblock rendering on el.
+        // Step 3. Unblock rendering on el.
+        if self.marked_as_render_blocking.replace(false) {
+            doc.decrement_render_blocking_element_count();
+        }
+
         let script = match result {
             // Step 4. If el's result is null, then fire an event named error at el, and return.
             Err(_) => {
-                self.dispatch_error_event(can_gc);
+                self.dispatch_event(
+                    atom!("error"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                    can_gc,
+                );
                 return;
             },
 
@@ -1035,7 +1079,12 @@ impl HTMLScriptElement {
 
         // Step 8. If el's from an external file is true, then fire an event named load at el.
         if self.from_an_external_file.get() {
-            self.dispatch_load_event(can_gc);
+            self.dispatch_event(
+                atom!("load"),
+                EventBubbles::DoesNotBubble,
+                EventCancelable::NotCancelable,
+                can_gc,
+            );
         }
     }
 
@@ -1046,30 +1095,12 @@ impl HTMLScriptElement {
             .queue_simple_event(self.upcast(), atom!("error"));
     }
 
-    pub(crate) fn dispatch_load_event(&self, can_gc: CanGc) {
-        self.dispatch_event(
-            atom!("load"),
-            EventBubbles::DoesNotBubble,
-            EventCancelable::NotCancelable,
-            can_gc,
-        );
-    }
-
-    pub(crate) fn dispatch_error_event(&self, can_gc: CanGc) {
-        self.dispatch_event(
-            atom!("error"),
-            EventBubbles::DoesNotBubble,
-            EventCancelable::NotCancelable,
-            can_gc,
-        );
-    }
-
     // https://html.spec.whatwg.org/multipage/#prepare-a-script Step 7.
     pub(crate) fn get_script_type(&self) -> Option<ScriptType> {
         let element = self.upcast::<Element>();
 
-        let type_attr = element.get_attribute(&ns!(), &local_name!("type"));
-        let language_attr = element.get_attribute(&ns!(), &local_name!("language"));
+        let type_attr = element.get_attribute(&local_name!("type"));
+        let language_attr = element.get_attribute(&local_name!("language"));
 
         match (
             type_attr.as_ref().map(|t| t.value()),
@@ -1162,23 +1193,34 @@ impl VirtualMethods for HTMLScriptElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         if *attr.local_name() == local_name!("src") {
             if let AttributeMutation::Set(..) = mutation {
                 if !self.parser_inserted.get() && self.upcast::<Node>().is_connected() {
-                    self.prepare(Some(IntroductionType::INJECTED_SCRIPT), can_gc);
+                    self.prepare(cx, Some(IntroductionType::INJECTED_SCRIPT));
                 }
             }
+        } else if *attr.local_name() == local_name!("blocking") &&
+            !self.has_render_blocking_attribute() &&
+            self.marked_as_render_blocking.replace(false)
+        {
+            let document = self.owner_document();
+            document.decrement_render_blocking_element_count();
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#script-processing-model:the-script-element-26>
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation, can_gc);
+            s.children_changed(cx, mutation);
         }
 
         if self.upcast::<Node>().is_connected() && !self.parser_inserted.get() {
@@ -1187,8 +1229,8 @@ impl VirtualMethods for HTMLScriptElement {
             // as DOM mutations have not yet settled. We use a delayed task to avoid
             // running any scripts until the DOM tree is safe for interactions.
             self.owner_document().add_delayed_task(
-                task!(ScriptPrepare: |script: DomRoot<HTMLScriptElement>| {
-                    script.prepare(Some(IntroductionType::INJECTED_SCRIPT), CanGc::note());
+                task!(ScriptPrepare: |cx, script: DomRoot<HTMLScriptElement>| {
+                    script.prepare(cx, Some(IntroductionType::INJECTED_SCRIPT));
                 }),
             );
         }
@@ -1201,19 +1243,19 @@ impl VirtualMethods for HTMLScriptElement {
         }
 
         if self.upcast::<Node>().is_connected() && !self.parser_inserted.get() {
-            self.prepare(Some(IntroductionType::INJECTED_SCRIPT), CanGc::from_cx(cx));
+            self.prepare(cx, Some(IntroductionType::INJECTED_SCRIPT));
         }
     }
 
     fn cloning_steps(
         &self,
+        cx: &mut JSContext,
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
-        can_gc: CanGc,
     ) {
         if let Some(s) = self.super_type() {
-            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
+            s.cloning_steps(cx, copy, maybe_doc, clone_children);
         }
 
         // https://html.spec.whatwg.org/multipage/#already-started
@@ -1221,6 +1263,13 @@ impl VirtualMethods for HTMLScriptElement {
             copy.downcast::<HTMLScriptElement>()
                 .unwrap()
                 .set_already_started(true);
+        }
+    }
+
+    fn unbind_from_tree(&self, _context: &UnbindContext, _can_gc: CanGc) {
+        if self.marked_as_render_blocking.replace(false) {
+            let document = self.owner_document();
+            document.decrement_render_blocking_element_count();
         }
     }
 }
@@ -1233,20 +1282,19 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#the-src-idl-attribute>
-    fn SetSrc(&self, value: TrustedScriptURLOrUSVString, can_gc: CanGc) -> Fallible<()> {
+    fn SetSrc(&self, cx: &mut JSContext, value: TrustedScriptURLOrUSVString) -> Fallible<()> {
         let element = self.upcast::<Element>();
         let local_name = &local_name!("src");
-        let value = TrustedScriptURL::get_trusted_script_url_compliant_string(
+        let value = TrustedScriptURL::get_trusted_type_compliant_string(
+            cx,
             &element.owner_global(),
             value,
-            "HTMLScriptElement",
-            local_name,
-            can_gc,
+            &format!("HTMLScriptElement {}", local_name),
         )?;
         element.set_attribute(
             local_name,
             AttrValue::String(value.str().to_owned()),
-            can_gc,
+            CanGc::from_cx(cx),
         );
         Ok(())
     }
@@ -1280,6 +1328,18 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-defer
     make_bool_setter!(SetDefer, "defer");
 
+    /// <https://html.spec.whatwg.org/multipage/#attr-script-blocking>
+    fn Blocking(&self, cx: &mut JSContext) -> DomRoot<DOMTokenList> {
+        self.blocking.or_init(|| {
+            DOMTokenList::new(
+                self.upcast(),
+                &local_name!("blocking"),
+                Some(vec![Atom::from("render")]),
+                CanGc::from_cx(cx),
+            )
+        })
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-script-nomodule
     make_bool_getter!(NoModule, "nomodule");
     // https://html.spec.whatwg.org/multipage/#dom-script-nomodule
@@ -1306,8 +1366,8 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-crossorigin>
-    fn SetCrossOrigin(&self, value: Option<DOMString>, can_gc: CanGc) {
-        set_cross_origin_attribute(self.upcast::<Element>(), value, can_gc);
+    fn SetCrossOrigin(&self, cx: &mut JSContext, value: Option<DOMString>) {
+        set_cross_origin_attribute(cx, self.upcast::<Element>(), value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-referrerpolicy>
@@ -1325,18 +1385,18 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#the-innerText-idl-attribute>
-    fn SetInnerText(&self, input: TrustedScriptOrString, can_gc: CanGc) -> Fallible<()> {
+    fn SetInnerText(&self, cx: &mut JSContext, input: TrustedScriptOrString) -> Fallible<()> {
         // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
         // this's relevant global object, the given value, HTMLScriptElement innerText, and script.
-        let value = TrustedScript::get_trusted_script_compliant_string(
+        let value = TrustedScript::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             input,
             "HTMLScriptElement innerText",
-            can_gc,
         )?;
         *self.script_text.borrow_mut() = value.clone();
         // Step 3: Run set the inner text steps with this and value.
-        self.upcast::<HTMLElement>().set_inner_text(value, can_gc);
+        self.upcast::<HTMLElement>().set_inner_text(cx, value);
         Ok(())
     }
 
@@ -1346,19 +1406,19 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#the-text-idl-attribute>
-    fn SetText(&self, value: TrustedScriptOrString, can_gc: CanGc) -> Fallible<()> {
+    fn SetText(&self, cx: &mut JSContext, value: TrustedScriptOrString) -> Fallible<()> {
         // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
         // this's relevant global object, the given value, HTMLScriptElement text, and script.
-        let value = TrustedScript::get_trusted_script_compliant_string(
+        let value = TrustedScript::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             value,
             "HTMLScriptElement text",
-            can_gc,
         )?;
         // Step 2: Set this's script text value to the given value.
         *self.script_text.borrow_mut() = value.clone();
         // Step 3: String replace all with the given value within this.
-        Node::string_replace_all(value, self.upcast::<Node>(), can_gc);
+        Node::string_replace_all(cx, value, self.upcast::<Node>());
         Ok(())
     }
 
@@ -1371,20 +1431,24 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#the-textContent-idl-attribute>
-    fn SetTextContent(&self, value: Option<TrustedScriptOrString>, can_gc: CanGc) -> Fallible<()> {
+    fn SetTextContent(
+        &self,
+        cx: &mut JSContext,
+        value: Option<TrustedScriptOrString>,
+    ) -> Fallible<()> {
         // Step 1: Let value be the result of calling Get Trusted Type compliant string with TrustedScript,
         // this's relevant global object, the given value, HTMLScriptElement textContent, and script.
-        let value = TrustedScript::get_trusted_script_compliant_string(
+        let value = TrustedScript::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             value.unwrap_or(TrustedScriptOrString::String(DOMString::from(""))),
             "HTMLScriptElement textContent",
-            can_gc,
         )?;
         // Step 2: Set this's script text value to value.
         *self.script_text.borrow_mut() = value.clone();
         // Step 3: Run set text content with this and value.
         self.upcast::<Node>()
-            .set_text_content_for_element(Some(value), can_gc);
+            .set_text_content_for_element(cx, Some(value));
         Ok(())
     }
 

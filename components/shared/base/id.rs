@@ -13,6 +13,7 @@ use std::num::NonZeroU32;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, LazyLock};
 
+use accesskit::{TreeId, Uuid};
 use malloc_size_of::MallocSizeOfOps;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
@@ -259,6 +260,44 @@ impl PipelineId {
     pub fn root_scroll_id(&self) -> webrender_api::ExternalScrollId {
         ExternalScrollId(0, self.into())
     }
+}
+
+impl From<PipelineId> for TreeId {
+    /// Return the AccessKit [`TreeId`] for this [`PipelineId`], assuming it represents a document.
+    ///
+    /// This is a pure function of the namespace id and index values, allowing us to graft pipelines
+    /// into `WebView`s (or other pipelines) without IPC, but it also means you can’t have multiple
+    /// instances of [`Servo`] in a single application, because the tree ids would conflict.
+    ///
+    /// [`Servo`]: https://doc.servo.org/servo/struct.Servo.html
+    fn from(pipeline_id: PipelineId) -> TreeId {
+        const PIPELINE_IDS: Uuid = Uuid::from_u128(0x429419c0_3277_47eb_8d31_7573b97621ee);
+        let with_namespace_id =
+            Uuid::new_v5(&PIPELINE_IDS, &pipeline_id.namespace_id.0.to_be_bytes());
+        let with_index = Uuid::new_v5(&with_namespace_id, &pipeline_id.index.0.get().to_be_bytes());
+        TreeId(with_index)
+    }
+}
+
+impl From<PipelineId> for u64 {
+    fn from(pipeline_id: PipelineId) -> Self {
+        ((pipeline_id.namespace_id.0 as u64) << 32) + pipeline_id.index.0.get() as u64
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn test_pipeline_id_to_accesskit_tree_id() {
+    let namespace_id = PipelineNamespaceId(1);
+    let index = Index::new(1).expect("Guaranteed by argument");
+    let pipeline_id = PipelineId {
+        namespace_id,
+        index,
+    };
+    assert_eq!(
+        TreeId::from(pipeline_id),
+        TreeId(Uuid::from_u128(0x879211fb_8799_5492_9a31_95a35c05a192))
+    );
 }
 
 impl From<WebRenderPipelineId> for PipelineId {

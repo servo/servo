@@ -18,7 +18,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::rsa_common::{self, RsaAlgorithm};
 use crate::dom::subtlecrypto::{
-    ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, KeyAlgorithmAndDerivatives,
+    CryptoAlgorithm, ExportedKey, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
     SubtleRsaHashedImportParams, SubtleRsaHashedKeyGenParams, SubtleRsaOaepParams,
 };
 
@@ -62,14 +62,14 @@ pub(crate) fn encrypt(
         )));
     };
     let padding = match algorithm.hash.name() {
-        ALG_SHA1 => Oaep::new_with_label::<Sha1, _>(label),
-        ALG_SHA256 => Oaep::new_with_label::<Sha256, _>(label),
-        ALG_SHA384 => Oaep::new_with_label::<Sha384, _>(label),
-        ALG_SHA512 => Oaep::new_with_label::<Sha512, _>(label),
+        CryptoAlgorithm::Sha1 => Oaep::new_with_label::<Sha1, _>(label),
+        CryptoAlgorithm::Sha256 => Oaep::new_with_label::<Sha256, _>(label),
+        CryptoAlgorithm::Sha384 => Oaep::new_with_label::<Sha384, _>(label),
+        CryptoAlgorithm::Sha512 => Oaep::new_with_label::<Sha512, _>(label),
         _ => {
             return Err(Error::Operation(Some(format!(
                 "Unsupported \"{}\" hash for RSASSA-PKCS1-v1_5",
-                algorithm.hash.name()
+                algorithm.hash.name().as_str()
             ))));
         },
     };
@@ -121,14 +121,14 @@ pub(crate) fn decrypt(
         )));
     };
     let padding = match algorithm.hash.name() {
-        ALG_SHA1 => Oaep::new_with_label::<Sha1, _>(label),
-        ALG_SHA256 => Oaep::new_with_label::<Sha256, _>(label),
-        ALG_SHA384 => Oaep::new_with_label::<Sha384, _>(label),
-        ALG_SHA512 => Oaep::new_with_label::<Sha512, _>(label),
+        CryptoAlgorithm::Sha1 => Oaep::new_with_label::<Sha1, _>(label),
+        CryptoAlgorithm::Sha256 => Oaep::new_with_label::<Sha256, _>(label),
+        CryptoAlgorithm::Sha384 => Oaep::new_with_label::<Sha384, _>(label),
+        CryptoAlgorithm::Sha512 => Oaep::new_with_label::<Sha512, _>(label),
         _ => {
             return Err(Error::Operation(Some(format!(
-                "Unsupported \"{}\" hash for RSA-OAEP",
-                algorithm.hash.name()
+                "Unsupported \"{}\" hash for RSASSA-PKCS1-v1_5",
+                algorithm.hash.name().as_str()
             ))));
         },
     };
@@ -183,4 +183,16 @@ pub(crate) fn import_key(
 /// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-export-key>
 pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     rsa_common::export_key(RsaAlgorithm::RsaOaep, format, key)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+/// Step 9 - 15, for RSA-OAEP
+pub(crate) fn get_public_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    key: &CryptoKey,
+    algorithm: &KeyAlgorithmAndDerivatives,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    rsa_common::get_public_key(RsaAlgorithm::RsaOaep, cx, global, key, algorithm, usages)
 }

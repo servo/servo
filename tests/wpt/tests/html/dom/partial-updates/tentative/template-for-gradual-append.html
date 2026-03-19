@@ -4,7 +4,7 @@
 <link rel=help href="https://github.com/WICG/declarative-partial-updates">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<div id=target marker="results"><?start name="results">Loading...</div>
+<div id=target marker="results"><?start>Loading...</div>
 <script>
     const contents = [];
     const target = document.querySelector("#target");
@@ -15,13 +15,13 @@
     step();
 </script>
 
-<template for="results">A<?start name=results></template>
+<template for="results">A<?start></template>
 <script>step();</script>
-<template for="results">B<?marker name=results></template>
+<template for="results">B<?marker></template>
 <script>step();</script>
-<template for="results"><?start name=results>C<?end name=results></template>
+<template for="results"><?start>C<?end></template>
 <script>step();</script>
-<template for="results"><?marker name=results>D</template>
+<template for="results"><?marker>D</template>
 <script>step();</script>
 <template for="results">C</template>
 <script>step();</script>

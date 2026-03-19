@@ -7,6 +7,10 @@
 interface HTMLButtonElement : HTMLElement {
   [HTMLConstructor] constructor();
 
+  [CEReactions]
+  attribute DOMString command;
+  // [CEReactions]
+  // attribute Element? commandForElement;
   // [CEReactions]
   //         attribute boolean autofocus;
   [CEReactions]

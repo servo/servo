@@ -975,7 +975,7 @@ for (let childList of ["ul", "ol"]) {
   addPromiseTest(
     `<${list}><li>[list-item1</li><${childList}><li>list-item2]</li></${childList}></${list}>`,
     {
-      expectedInnerHTML: `<${list}><${childList}><li><br></li></${childList}></${list}>`,
+      expectedInnerHTML: `<${list}><li><br></li></${list}>`,
       expectedTargetRanges: () => {
         return [
           {

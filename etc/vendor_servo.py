@@ -72,15 +72,15 @@ def vendor():
         tmp_file_path = file + ".tar.gz"
         if args.filename is not None:
             name = pathlib.Path(args.filename)
+            name = name.with_name(name.name + ".tar.gz")
             if name.is_absolute():
                 out_filepath = name
             else:
-                name = name.with_name(name.name + ".tar.gz")
                 out_filepath = servo_root.joinpath(name)
         else:
             out_filepath = servo_root.joinpath("servo.tar.gz")
         print(f"Moving archive to {out_filepath}")
-        shutil.move(tmp_file_path, servo_root)
+        shutil.move(tmp_file_path, out_filepath)
     return
 
 

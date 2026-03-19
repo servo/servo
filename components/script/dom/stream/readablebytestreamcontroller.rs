@@ -451,9 +451,7 @@ impl ReadableByteStreamController {
 
                 // Perform readIntoRequest’s error steps, given bufferResult.[[Value]].
                 rooted!(in(*cx) let mut rval = UndefinedValue());
-                error
-                    .clone()
-                    .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
+                error.to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
                 read_into_request.error_steps(rval.handle(), can_gc);
 
                 // Return.
@@ -986,9 +984,8 @@ impl ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#readable-byte-stream-controller-enqueue>
     pub(crate) fn enqueue(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         chunk: HeapBufferSource<ArrayBufferViewU8>,
-        can_gc: CanGc,
     ) -> Fallible<()> {
         // Let stream be controller.[[stream]].
         let stream = self.stream.get().unwrap();
@@ -999,7 +996,7 @@ impl ReadableByteStreamController {
         }
 
         // Let buffer be chunk.[[ViewedArrayBuffer]].
-        let buffer = chunk.get_array_buffer_view_buffer(cx);
+        let buffer = chunk.get_array_buffer_view_buffer(cx.into());
 
         // Let byteOffset be chunk.[[ByteOffset]].
         let byte_offset = chunk.get_byte_offset();
@@ -1008,12 +1005,12 @@ impl ReadableByteStreamController {
         let byte_length = chunk.byte_length();
 
         // If ! IsDetachedBuffer(buffer) is true, throw a TypeError exception.
-        if buffer.is_detached_buffer(cx) {
+        if buffer.is_detached_buffer(cx.into()) {
             return Err(Error::Type(c"buffer is detached".to_owned()));
         }
 
         // Let transferredBuffer be ? TransferArrayBuffer(buffer).
-        let transferred_buffer = buffer.transfer_array_buffer(cx)?;
+        let transferred_buffer = buffer.transfer_array_buffer(cx.into())?;
 
         // If controller.[[pendingPullIntos]] is not empty,
         {
@@ -1022,7 +1019,7 @@ impl ReadableByteStreamController {
                 // Let firstPendingPullInto be controller.[[pendingPullIntos]][0].
                 let first_descriptor = pending_pull_intos.first_mut().unwrap();
                 // If ! IsDetachedBuffer(firstPendingPullInto’s buffer) is true, throw a TypeError exception.
-                if first_descriptor.buffer.is_detached_buffer(cx) {
+                if first_descriptor.buffer.is_detached_buffer(cx.into()) {
                     return Err(Error::Type(c"buffer is detached".to_owned()));
                 }
 
@@ -1032,7 +1029,7 @@ impl ReadableByteStreamController {
                 // Set firstPendingPullInto’s buffer to ! TransferArrayBuffer(firstPendingPullInto’s buffer).
                 first_descriptor.buffer = first_descriptor
                     .buffer
-                    .transfer_array_buffer(cx)
+                    .transfer_array_buffer(cx.into())
                     .expect("TransferArrayBuffer failed");
 
                 // If firstPendingPullInto’s reader type is "none",
@@ -1042,7 +1039,7 @@ impl ReadableByteStreamController {
 
                     // perform ? ReadableByteStreamControllerEnqueueDetachedPullIntoToQueue(
                     // controller, firstPendingPullInto).
-                    self.enqueue_detached_pull_into_to_queue(cx, can_gc)?;
+                    self.enqueue_detached_pull_into_to_queue(cx.into(), CanGc::from_cx(cx))?;
                 }
             }
         }
@@ -1050,7 +1047,7 @@ impl ReadableByteStreamController {
         // If ! ReadableStreamHasDefaultReader(stream) is true,
         if stream.has_default_reader() {
             // Perform ! ReadableByteStreamControllerProcessReadRequestsUsingQueue(controller).
-            self.process_read_requests_using_queue(cx, can_gc)
+            self.process_read_requests_using_queue(cx)
                 .expect("process_read_requests_using_queue failed");
 
             // If ! ReadableStreamGetNumReadRequests(stream) is 0,
@@ -1086,7 +1083,7 @@ impl ReadableByteStreamController {
 
                 // Let transferredView be ! Construct(%Uint8Array%, « transferredBuffer, byteOffset, byteLength »).
                 let transferred_view = create_buffer_source_with_constructor(
-                    cx,
+                    cx.into(),
                     &Constructor::Name(Type::Uint8),
                     &transferred_buffer,
                     byte_offset,
@@ -1095,9 +1092,9 @@ impl ReadableByteStreamController {
                 .expect("Construct Uint8Array failed");
 
                 // Perform ! ReadableStreamFulfillReadRequest(stream, transferredView, false).
-                rooted!(in(*cx) let mut view_value = UndefinedValue());
-                transferred_view.get_buffer_view_value(cx, view_value.handle_mut());
-                stream.fulfill_read_request(view_value.handle(), false, can_gc);
+                rooted!(&in(cx) let mut view_value = UndefinedValue());
+                transferred_view.get_buffer_view_value(cx.into(), view_value.handle_mut());
+                stream.fulfill_read_request(view_value.handle(), false, CanGc::from_cx(cx));
             }
             // Otherwise, if ! ReadableStreamHasBYOBReader(stream) is true,
         } else if stream.has_byob_reader() {
@@ -1107,12 +1104,12 @@ impl ReadableByteStreamController {
 
             // Let filledPullIntos be the result of performing !
             // ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller).
-            let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx);
+            let filled_pull_intos = self.process_pull_into_descriptors_using_queue(cx.into());
 
             // For each filledPullInto of filledPullIntos,
             // Perform ! ReadableByteStreamControllerCommitPullIntoDescriptor(stream, filledPullInto).
             for filled_pull_into in filled_pull_intos {
-                self.commit_pull_into_descriptor(cx, &filled_pull_into, can_gc)
+                self.commit_pull_into_descriptor(cx.into(), &filled_pull_into, CanGc::from_cx(cx))
                     .expect("commit_pull_into_descriptor failed");
             }
         } else {
@@ -1125,7 +1122,7 @@ impl ReadableByteStreamController {
         }
 
         // Perform ! ReadableByteStreamControllerCallPullIfNeeded(controller).
-        self.call_pull_if_needed(can_gc);
+        self.call_pull_if_needed(CanGc::from_cx(cx));
 
         Ok(())
     }
@@ -1517,15 +1514,14 @@ impl ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerprocessreadrequestsusingqueue>
     pub(crate) fn process_read_requests_using_queue(
         &self,
-        cx: SafeJSContext,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> Fallible<()> {
         // Let reader be controller.[[stream]].[[reader]].
         // Assert: reader implements ReadableStreamDefaultReader.
         let reader = self.stream.get().unwrap().get_default_reader();
 
         // Step 3
-        reader.process_read_requests(cx, DomRoot::from_ref(self), can_gc)
+        reader.process_read_requests(cx, DomRoot::from_ref(self))
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamcontrollerfillreadrequestfromqueue>
@@ -1645,9 +1641,7 @@ impl ReadableByteStreamController {
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut rval = UndefinedValue());
                 // TODO: check if `self.global()` is the right globalscope.
-                error
-                    .clone()
-                    .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
+                error.to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
                 let promise = Promise::new(&global, can_gc);
                 promise.reject_native(&rval.handle(), can_gc);
                 promise
@@ -1804,10 +1798,9 @@ impl ReadableByteStreamController {
     /// <https://streams.spec.whatwg.org/#rbs-controller-private-cancel>
     pub(crate) fn perform_cancel_steps(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Perform ! ReadableByteStreamControllerClearPendingPullIntos(this).
         self.clear_pending_pull_intos();
@@ -1822,21 +1815,18 @@ impl ReadableByteStreamController {
 
         // Let result be the result of performing this.[[cancelAlgorithm]], passing in reason.
         let result = underlying_source
-            .call_cancel_algorithm(cx, global, reason, can_gc)
+            .call_cancel_algorithm(cx, global, reason)
             .unwrap_or_else(|| {
-                let promise = Promise::new(global, can_gc);
-                promise.resolve_native(&(), can_gc);
+                let promise = Promise::new2(cx, global);
+                promise.resolve_native(&(), CanGc::from_cx(cx));
                 Ok(promise)
             });
 
         let promise = result.unwrap_or_else(|error| {
-            let cx = GlobalScope::get_cx();
-            rooted!(in(*cx) let mut rval = UndefinedValue());
-            error
-                .clone()
-                .to_jsval(cx, global, rval.handle_mut(), can_gc);
-            let promise = Promise::new(global, can_gc);
-            promise.reject_native(&rval.handle(), can_gc);
+            rooted!(&in(cx) let mut rval = UndefinedValue());
+            error.to_jsval(cx.into(), global, rval.handle_mut(), CanGc::from_cx(cx));
+            let promise = Promise::new2(cx, global);
+            promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
             promise
         });
 
@@ -1913,9 +1903,7 @@ impl ReadableByteStreamController {
                     // Perform readRequest’s error steps, given buffer.[[Value]].
 
                     rooted!(in(*cx) let mut rval = UndefinedValue());
-                    error
-                        .clone()
-                        .to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
+                    error.to_jsval(cx, &self.global(), rval.handle_mut(), can_gc);
                     read_request.error_steps(rval.handle(), can_gc);
 
                     // Return.
@@ -1991,11 +1979,9 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
     /// <https://streams.spec.whatwg.org/#rbs-controller-enqueue>
     fn Enqueue(
         &self,
+        cx: &mut js::context::JSContext,
         chunk: js::gc::CustomAutoRooterGuard<js::typedarray::ArrayBufferView>,
-        can_gc: CanGc,
     ) -> Fallible<()> {
-        let cx = GlobalScope::get_cx();
-
         let chunk = HeapBufferSource::<ArrayBufferViewU8>::from_view(chunk);
 
         // If chunk.[[ByteLength]] is 0, throw a TypeError exception.
@@ -2004,7 +1990,7 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
         }
 
         // If chunk.[[ViewedArrayBuffer]].[[ByteLength]] is 0, throw a TypeError exception.
-        if chunk.viewed_buffer_array_byte_length(cx) == 0 {
+        if chunk.viewed_buffer_array_byte_length(cx.into()) == 0 {
             return Err(Error::Type(
                 c"chunk.ViewedArrayBuffer.ByteLength is 0".to_owned(),
             ));
@@ -2021,13 +2007,13 @@ impl ReadableByteStreamControllerMethods<crate::DomTypeHolder> for ReadableByteS
         }
 
         // Return ? ReadableByteStreamControllerEnqueue(this, chunk).
-        self.enqueue(cx, chunk, can_gc)
+        self.enqueue(cx, chunk)
     }
 
     /// <https://streams.spec.whatwg.org/#rbs-controller-error>
-    fn Error(&self, _cx: SafeJSContext, e: SafeHandleValue, can_gc: CanGc) -> Fallible<()> {
+    fn Error(&self, cx: &mut js::context::JSContext, e: SafeHandleValue) -> Fallible<()> {
         // Perform ! ReadableByteStreamControllerError(this, e).
-        self.error(e, can_gc);
+        self.error(e, CanGc::from_cx(cx));
         Ok(())
     }
 }

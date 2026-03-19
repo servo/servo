@@ -86,7 +86,7 @@ impl From<Vec<Vec<u8>>> for IdbResult {
 impl From<PutItemResult> for IdbResult {
     fn from(value: PutItemResult) -> Self {
         match value {
-            PutItemResult::Success => Self::None,
+            PutItemResult::Key(key) => Self::Key(key),
             PutItemResult::CannotOverwrite => Self::Error(Error::Constraint(None)),
         }
     }
@@ -147,7 +147,7 @@ impl RequestListener {
         transaction.maybe_commit();
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#async-execute-request
+    // https://www.w3.org/TR/IndexedDB-3/#async-execute-request
     // Implements Step 5.4
     fn handle_async_request_finished(&self, cx: &mut JSContext, result: BackendResult<IdbResult>) {
         let request = self.request.root();
@@ -309,7 +309,7 @@ impl RequestListener {
         }
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#async-execute-request
+    // https://www.w3.org/TR/IndexedDB-3/#async-execute-request
     // Implements Step 5.4.2
     fn handle_async_request_error(
         global: &GlobalScope,
@@ -358,7 +358,7 @@ impl RequestListener {
         // An explicit call to abort() will initiate an abort. An abort will also be initiated following a failed request that is not handled by script.
         // When a transaction is aborted the implementation must undo (roll back) any changes that were made to the database during that transaction. This includes both changes to the contents of object stores as well as additions and removals of object stores and indexes.
         if default_not_prevented {
-            transaction.initiate_abort(error.clone(), CanGc::from_cx(cx));
+            transaction.initiate_abort(error, CanGc::from_cx(cx));
             transaction.request_backend_abort();
         }
         // Notify the transaction that this request has finished.
@@ -429,7 +429,7 @@ impl IDBRequest {
         self.transaction.get()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#asynchronously-execute-a-request
+    // https://www.w3.org/TR/IndexedDB-3/#asynchronously-execute-a-request
     pub fn execute_async<T, F>(
         source: &IDBObjectStore,
         operation_fn: F,
@@ -535,34 +535,34 @@ impl IDBRequest {
 }
 
 impl IDBRequestMethods<crate::DomTypeHolder> for IDBRequest {
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-result>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbrequest-result>
     fn Result(&self, _cx: SafeJSContext, mut val: js::rust::MutableHandle<'_, js::jsapi::Value>) {
         val.set(self.result.get());
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-error>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbrequest-error>
     fn GetError(&self) -> Option<DomRoot<DOMException>> {
         self.error.get()
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-source>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbrequest-source>
     fn GetSource(&self) -> Option<DomRoot<IDBObjectStore>> {
         self.source.get()
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-transaction>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbrequest-transaction>
     fn GetTransaction(&self) -> Option<DomRoot<IDBTransaction>> {
         self.transaction.get()
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-readystate>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbrequest-readystate>
     fn ReadyState(&self) -> IDBRequestReadyState {
         self.ready_state.get()
     }
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-onsuccess
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbrequest-onsuccess
     event_handler!(success, GetOnsuccess, SetOnsuccess);
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbrequest-onerror
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbrequest-onerror
     event_handler!(error, GetOnerror, SetOnerror);
 }

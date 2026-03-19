@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use rustc_hash::FxBuildHasher;
 use stylo_atoms::Atom;
@@ -142,18 +143,23 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-prepend>
-    fn Prepend(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().prepend(nodes, can_gc)
+    fn Prepend(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().prepend(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-append>
-    fn Append(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().append(nodes, can_gc)
+    fn Append(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().append(cx, nodes)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-replacechildren>
-    fn ReplaceChildren(&self, nodes: Vec<NodeOrString>, can_gc: CanGc) -> ErrorResult {
-        self.upcast::<Node>().replace_children(nodes, can_gc)
+    fn ReplaceChildren(&self, cx: &mut JSContext, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().replace_children(cx, nodes)
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-parentnode-movebefore>
+    fn MoveBefore(&self, cx: &mut JSContext, node: &Node, child: Option<&Node>) -> ErrorResult {
+        self.upcast::<Node>().move_before(cx, node, child)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-queryselector>

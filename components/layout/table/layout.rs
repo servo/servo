@@ -45,7 +45,8 @@ use crate::geom::{
 use crate::layout_box_base::CacheableLayoutResult;
 use crate::positioned::{PositioningContext, PositioningContextLength, relative_adjustement};
 use crate::sizing::{
-    ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, Size, SizeConstraint,
+    ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, Size,
+    SizeConstraint,
 };
 use crate::style_ext::{
     BorderStyleColor, Clamp, ComputedValuesExt, LayoutStyle, PaddingBorderMargin,
@@ -289,7 +290,7 @@ impl<'a> TableLayout<'a> {
                 }
                 .borrow();
 
-                let layout_style = cell.layout_style();
+                let layout_style = cell.context.layout_style();
                 let padding = layout_style
                     .padding(writing_mode)
                     .percentages_relative_to(Au::zero());
@@ -313,7 +314,7 @@ impl<'a> TableLayout<'a> {
                     max: max_size,
                     percentage: percentage_size,
                 } = CellOrColumnOuterSizes::new(
-                    &cell.base.style,
+                    &cell.context.base.style,
                     writing_mode,
                     &padding_border_sums,
                     self.is_in_fixed_mode,
@@ -333,7 +334,15 @@ impl<'a> TableLayout<'a> {
                         }
                     }
                 } else {
-                    let inline_content_sizes = cell.inline_content_sizes(layout_context) +
+                    let constraint_space = ConstraintSpace::new(
+                        SizeConstraint::default(),
+                        &cell.context.base.style,
+                        cell.context.preferred_aspect_ratio(&padding_border_sums),
+                    );
+                    let inline_content_sizes = cell
+                        .context
+                        .inline_content_sizes(layout_context, &constraint_space)
+                        .sizes +
                         padding_border_sums.inline.into();
                     assert!(
                         inline_content_sizes.max_content >= inline_content_sizes.min_content,
@@ -436,9 +445,12 @@ impl<'a> TableLayout<'a> {
             for row_index in 0..self.table.size.height {
                 let coords = TableSlotCoordinates::new(column_index, row_index);
                 let cell_constrained = match self.table.resolve_first_cell(coords) {
-                    Some(cell) if cell.colspan == 1 => {
-                        cell.base.style.box_size(writing_mode).map(is_length)
-                    },
+                    Some(cell) if cell.colspan == 1 => cell
+                        .context
+                        .base
+                        .style
+                        .box_size(writing_mode)
+                        .map(is_length),
                     _ => LogicalVec2::default(),
                 };
 
@@ -608,10 +620,8 @@ impl<'a> TableLayout<'a> {
         let colspan_cell_min_size = (colspan_cell_constraints.content_sizes.min_content -
             total_border_spacing)
             .max(Au::zero());
-        let distributed_minimum = Self::distribute_width_to_columns(
-            colspan_cell_min_size,
-            &self.columns[column_range.clone()],
-        );
+        let distributed_minimum =
+            Self::distribute_width_to_columns(colspan_cell_min_size, &self.columns[column_range]);
         {
             let column_span = &mut self.columns[colspan_cell_constraints.range()];
             for (column, minimum_size) in column_span.iter_mut().zip(distributed_minimum) {
@@ -1044,7 +1054,7 @@ impl<'a> TableLayout<'a> {
         // > Otherwise, if there is any such column, the distributed widths of all columns that have
         // > originating cells are increased by equal amounts so the total increase adds to the excess
         // > width.
-        let has_originating_cells_columns = all_columns.clone().filter(has_originating_cells);
+        let has_originating_cells_columns = all_columns.filter(has_originating_cells);
         let total_has_originating_cells = has_originating_cells_columns.clone().count();
         if total_has_originating_cells > 0 {
             let extra_space_per_column =
@@ -1082,7 +1092,7 @@ impl<'a> TableLayout<'a> {
                 block_start: coordinate.y,
                 block_end: coordinate.y + cell.rowspan,
             };
-            let layout_style = cell.layout_style();
+            let layout_style = cell.context.layout_style();
             let border = self
                 .get_collapsed_border_widths_for_area(area)
                 .unwrap_or_else(|| {
@@ -1091,30 +1101,37 @@ impl<'a> TableLayout<'a> {
             let padding: LogicalSides<Au> = layout_style
                 .padding(containing_block_for_table.style.writing_mode)
                 .percentages_relative_to(self.basis_for_cell_padding_percentage);
-            let inline_border_padding_sum = border.inline_sum() + padding.inline_sum();
+            let padding_border_sums = LogicalVec2 {
+                inline: padding.inline_sum() + border.inline_sum(),
+                block: padding.block_sum() + border.block_sum(),
+            };
             let border_spacing_spanned =
                 self.table.border_spacing().inline * (cell.colspan - 1) as i32;
 
             let mut total_cell_width = (coordinate.x..coordinate.x + cell.colspan)
                 .map(|column_index| self.distributed_column_widths[column_index])
                 .sum::<Au>() -
-                inline_border_padding_sum +
+                padding_border_sums.inline +
                 border_spacing_spanned;
             total_cell_width = total_cell_width.max(Au::zero());
 
+            let preferred_aspect_ratio = cell.context.preferred_aspect_ratio(&padding_border_sums);
             let containing_block_for_children = ContainingBlock {
                 size: ContainingBlockSize {
                     inline: total_cell_width,
                     block: SizeConstraint::default(),
                 },
-                style: &cell.base.style,
+                style: &cell.context.base.style,
             };
 
             let mut positioning_context = PositioningContext::default();
-            let layout = cell.contents.layout(
+            let layout = cell.context.layout(
                 layout_context,
                 &mut positioning_context,
                 &containing_block_for_children,
+                containing_block_for_table,
+                preferred_aspect_ratio,
+                &LazySize::intrinsic(),
             );
 
             Some(CellLayout {
@@ -2076,7 +2093,7 @@ impl<'a> TableLayout<'a> {
         }
 
         let fragment = Fragment::Box(ArcRefCell::new(fragment));
-        cell.base.set_fragment(fragment.clone());
+        cell.context.base.set_fragment(fragment.clone());
         row_fragment_layout.fragments.push(fragment);
     }
 
@@ -2175,7 +2192,7 @@ impl<'a> TableLayout<'a> {
                 hide_inner_borders(&mut collapsed_borders, &block_range, &inline_range);
                 apply_border(
                     &mut collapsed_borders,
-                    &cell.layout_style(),
+                    &cell.context.layout_style(),
                     &block_range,
                     &inline_range,
                 );
@@ -2717,7 +2734,11 @@ impl Table {
             ));
             for column_index in 0..self.size.width {
                 if let TableSlot::Cell(ref cell) = self.slots[row_index][column_index] {
-                    cell.borrow_mut().base.parent_box.replace(row.clone());
+                    cell.borrow_mut()
+                        .context
+                        .base
+                        .parent_box
+                        .replace(row.clone());
                 }
             }
         }
@@ -2823,16 +2844,11 @@ impl TableLayoutStyle<'_> {
 }
 
 impl TableSlotCell {
-    #[inline]
-    fn layout_style(&self) -> LayoutStyle<'_> {
-        self.contents.layout_style(&self.base)
-    }
-
     fn content_alignment(&self) -> CellContentAlignment {
         // The spec still assumes that `vertical-align` is a longhand, so it's not very clear
         // if this logic is completely correct, but it seems to match Firefox.
         // <https://github.com/w3c/csswg-drafts/issues/13458>
-        let style_box = self.base.style.get_box();
+        let style_box = self.context.base.style.get_box();
         match style_box.baseline_shift {
             BaselineShift::Keyword(BaselineShiftKeyword::Top) => CellContentAlignment::Top,
             BaselineShift::Keyword(BaselineShiftKeyword::Bottom) => CellContentAlignment::Bottom,
@@ -2841,16 +2857,6 @@ impl TableSlotCell {
                 _ => CellContentAlignment::Baseline,
             },
         }
-    }
-
-    fn inline_content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
-        let constraint_space = ConstraintSpace::new_for_style_and_ratio(
-            &self.base.style,
-            None, /* TODO: support preferred aspect ratios on non-replaced boxes */
-        );
-        self.base
-            .inline_content_sizes(layout_context, &constraint_space, &self.contents.contents)
-            .sizes
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -2881,8 +2887,8 @@ impl TableSlotCell {
             },
         };
 
-        let mut base_fragment_info = self.base.base_fragment_info;
-        if self.base.style.get_inherited_table().empty_cells == EmptyCells::Hide &&
+        let mut base_fragment_info = self.context.base.base_fragment_info;
+        if self.context.base.style.get_inherited_table().empty_cells == EmptyCells::Hide &&
             table_style.get_inherited_table().border_collapse != BorderCollapse::Collapse &&
             layout.is_empty_for_empty_cells()
         {
@@ -2900,7 +2906,7 @@ impl TableSlotCell {
             block: vertical_align_offset,
         };
         let vertical_align_fragment = PositioningFragment::new_anonymous(
-            self.base.style.clone(),
+            self.context.base.style.clone(),
             vertical_align_fragment_rect.as_physical(None),
             layout.layout.fragments,
         );
@@ -2927,7 +2933,7 @@ impl TableSlotCell {
 
         BoxFragment::new(
             base_fragment_info,
-            self.base.style.clone(),
+            self.context.base.style.clone(),
             vec![Fragment::Positioning(vertical_align_fragment)],
             physical_cell_rect,
             layout.padding.to_physical(table_style.writing_mode),

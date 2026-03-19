@@ -8,6 +8,7 @@ use std::cell::Cell;
 use base::generic_channel;
 use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult, webgl_channel};
 use dom_struct::dom_struct;
+use script_bindings::reflector::DomObject;
 use script_bindings::weakref::WeakRef;
 
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
@@ -106,7 +107,7 @@ impl Drop for DroppableWebGLBuffer {
     }
 }
 
-#[dom_struct]
+#[dom_struct(associated_memory)]
 pub(crate) struct WebGLBuffer {
     webgl_object: WebGLObject,
     /// The target to which this buffer was bound the first time
@@ -178,6 +179,8 @@ impl WebGLBuffer {
         }
 
         self.capacity.set(data.len());
+        self.reflector()
+            .update_memory_size(self, self.capacity.get());
         self.usage.set(usage);
         let (sender, receiver) = generic_channel::channel().unwrap();
         self.upcast()

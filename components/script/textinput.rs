@@ -594,6 +594,13 @@ impl<T: ClipboardProvider> TextInput<T> {
         } else {
             Selection::NotSelected
         };
+
+        let alt_or_control = if macos {
+            Modifiers::ALT
+        } else {
+            Modifiers::CONTROL
+        };
+
         mods.remove(Modifiers::SHIFT);
         ShortcutMatcher::new(KeyState::Down, key.clone(), mods)
             .shortcut(Modifiers::CONTROL | Modifiers::ALT, 'B', || {
@@ -728,11 +735,11 @@ impl<T: ClipboardProvider> TextInput<T> {
                     KeyReaction::RedrawSelection
                 },
             )
-            .shortcut(Modifiers::ALT, Key::Named(NamedKey::ArrowLeft), || {
+            .shortcut(alt_or_control, Key::Named(NamedKey::ArrowLeft), || {
                 self.modify_selection_or_edit_point(-1, RopeMovement::Word, maybe_select);
                 KeyReaction::RedrawSelection
             })
-            .shortcut(Modifiers::ALT, Key::Named(NamedKey::ArrowRight), || {
+            .shortcut(alt_or_control, Key::Named(NamedKey::ArrowRight), || {
                 self.modify_selection_or_edit_point(1, RopeMovement::Word, maybe_select);
                 KeyReaction::RedrawSelection
             })
@@ -1125,7 +1132,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 let event = InputEvent::new(
                     window,
                     None,
-                    DOMString::from("input"),
+                    atom!("input"),
                     true,
                     false,
                     Some(window),

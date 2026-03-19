@@ -22,17 +22,19 @@ promise_test(async () => {
     'Setting the selectedcontentelement attribute via setAttribute should synchronously assign the contents of <selectedcontent>.');
 
   select.removeAttribute('selectedcontentelement');
-  assert_equals(selectedcontent.innerHTML, '',
-    'Removing the selectedcontentelement attribute via removeAttribute should synchronously clear the contents of the <selectedcontent>.');
-
-  select.selectedContentElement = selectedcontent;
   assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    'Removing the selectedcontentelement attribute via removeAttribute should not clear the contents of the <selectedcontent>.');
+
+  select.value = 'two';
+  select.selectedContentElement = selectedcontent;
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
     'Setting the selectedcontentelement attribute via IDL should synchronously assign the contents of <selectedcontent>.');
 
   select.selectedContentElement = null;
-  assert_equals(selectedcontent.innerHTML, '',
-    'Removing the selectedcontentelement attribute via IDL should synchronously clear the contents of the <selectedcontent>.');
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
+    'Removing the selectedcontentelement attribute via IDL should not clear the contents of the <selectedcontent>.');
 
+  select.value = 'one';
   select.selectedContentElement = selectedcontent;
   assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
     'Re-setting the selectedcontentelement attribute via IDL should synchronously assign the contents of <selectedcontent>.');

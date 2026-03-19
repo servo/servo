@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVG Path Data: Moveto command - absolute (M)</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathDataBNF">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<svg id="svg" width="400" height="400">
+  <!-- Single moveto -->
+  <path id="test1" d="M 100,100" fill="red" stroke="none"/>
+
+  <!-- Moveto with subsequent lineto (implicit) -->
+  <path id="test2" d="M 50,50 150,50 150,150 50,150 Z" fill="none" stroke="black" stroke-width="2"/>
+</svg>
+
+<script>
+test(function() {
+  const path = document.getElementById('test1');
+  const point = path.getPointAtLength(0);
+
+  assert_approx_equals(point.x, 100, 0.1, "Moveto x coordinate");
+  assert_approx_equals(point.y, 100, 0.1, "Moveto y coordinate");
+}, "Single moveto: M 100,100");
+
+test(function() {
+  const path = document.getElementById('test1');
+  const length = path.getTotalLength();
+
+  // A single moveto has no length
+  assert_approx_equals(length, 0, 0.1, "Single moveto has zero length");
+}, "Single moveto has no path length");
+
+test(function() {
+  const path = document.getElementById('test2');
+  const startPoint = path.getPointAtLength(0);
+
+  assert_approx_equals(startPoint.x, 50, 0.1, "Path starts at x=50");
+  assert_approx_equals(startPoint.y, 50, 0.1, "Path starts at y=50");
+}, "Moveto followed by implicit lineto: M 50,50 150,50");
+
+test(function() {
+  const path = document.getElementById('test2');
+  const length = path.getTotalLength();
+
+  // Square: 100+100+100+100 = 400
+  assert_approx_equals(length, 400, 0.5, "Closed square has perimeter of 400");
+}, "Moveto with multiple coordinate pairs creates implicit lineto commands");
+
+test(function() {
+  // Multiple coordinate pairs after M
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 10,10 20,20 30,30');
+  svg.appendChild(path);
+
+  const startPoint = path.getPointAtLength(0);
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+
+  assert_approx_equals(startPoint.x, 10, 0.1, "Starts at 10,10");
+  assert_approx_equals(startPoint.y, 10, 0.1, "Starts at 10,10");
+  assert_approx_equals(endPoint.x, 30, 0.1, "Ends at 30,30");
+  assert_approx_equals(endPoint.y, 30, 0.1, "Ends at 30,30");
+}, "Multiple coordinate pairs after M become implicit lineto");
+
+test(function() {
+  // Whitespace variations
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M100,100');
+  svg.appendChild(path);
+
+  const point = path.getPointAtLength(0);
+  assert_approx_equals(point.x, 100, 0.1, "M without whitespace");
+  assert_approx_equals(point.y, 100, 0.1, "M without whitespace");
+}, "Moveto without whitespace: M100,100");
+
+test(function() {
+  // Multiple moveto commands (creates subpaths)
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 10,10 L 20,20 M 30,30 L 40,40');
+  svg.appendChild(path);
+
+  // Should have two separate subpaths
+  const startPoint = path.getPointAtLength(0);
+  assert_approx_equals(startPoint.x, 10, 0.1, "First subpath starts at 10,10");
+  assert_approx_equals(startPoint.y, 10, 0.1, "First subpath starts at 10,10");
+
+  // Total length should be sum of both subpaths
+  const length = path.getTotalLength();
+  const expectedLength = Math.sqrt(200) * 2; // Two diagonal lines of equal length
+  assert_approx_equals(length, expectedLength, 0.5, "Two subpaths contribute to total length");
+}, "Multiple moveto commands create separate subpaths");
+
+test(function() {
+  // Moveto with comma in coordinate pair
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 100 , 200');
+  svg.appendChild(path);
+
+  const point = path.getPointAtLength(0);
+  assert_approx_equals(point.x, 100, 0.1, "Comma with spaces");
+  assert_approx_equals(point.y, 200, 0.1, "Comma with spaces");
+}, "Moveto with comma and spaces: M 100 , 200");
+
+test(function() {
+  // Moveto without comma
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 100 200');
+  svg.appendChild(path);
+
+  const point = path.getPointAtLength(0);
+  assert_approx_equals(point.x, 100, 0.1, "Space separator");
+  assert_approx_equals(point.y, 200, 0.1, "Space separator");
+}, "Moveto without comma: M 100 200");
+</script>
+</body>
+</html>

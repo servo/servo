@@ -19,7 +19,6 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use app_units::Au;
-use atomic_refcell::AtomicRefCell;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use base::Epoch;
 use base::generic_channel::GenericSender;
@@ -47,15 +46,17 @@ use style::Atom;
 use style::animation::DocumentAnimationSet;
 use style::attr::{AttrValue, parse_integer, parse_unsigned_integer};
 use style::context::QuirksMode;
-use style::data::ElementData;
+use style::data::ElementDataWrapper;
+use style::device::Device;
 use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
-use style::media_queries::Device;
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
 use style::selector_parser::{PseudoElement, RestyleDamage, Snapshot};
 use style::str::char_is_whitespace;
-use style::stylesheets::{DocumentStyleSheet, Stylesheet, UrlExtraData};
+use style::stylesheets::{DocumentStyleSheet, Stylesheet};
+use style::stylist::Stylist;
+use style::thread_state::{self, ThreadState};
 use style::values::computed::Overflow;
 use style_traits::CSSPixel;
 use webrender_api::units::{DeviceIntSize, LayoutPoint, LayoutVector2D};
@@ -67,25 +68,16 @@ pub trait GenericLayoutDataTrait: Any + MallocSizeOfTrait {
 
 pub type GenericLayoutData = dyn GenericLayoutDataTrait + Send + Sync;
 
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 pub struct StyleData {
     /// Data that the style system associates with a node. When the
     /// style system is being used standalone, this is all that hangs
     /// off the node. This must be first to permit the various
     /// transmutations between ElementData and PersistentLayoutData.
-    pub element_data: AtomicRefCell<ElementData>,
+    pub element_data: ElementDataWrapper,
 
     /// Information needed during parallel traversals.
     pub parallel: DomParallelInfo,
-}
-
-impl Default for StyleData {
-    fn default() -> Self {
-        Self {
-            element_data: AtomicRefCell::new(ElementData::default()),
-            parallel: DomParallelInfo::default(),
-        }
-    }
 }
 
 /// Information that we need stored in each DOM node.
@@ -238,25 +230,6 @@ pub struct LayoutConfig {
     pub viewport_details: ViewportDetails,
     pub user_stylesheets: Rc<Vec<DocumentStyleSheet>>,
     pub theme: Theme,
-    pub accessibility_active: bool,
-}
-
-pub struct PropertyRegistration {
-    pub name: String,
-    pub syntax: String,
-    pub initial_value: Option<String>,
-    pub inherits: bool,
-    pub url_data: UrlExtraData,
-}
-
-#[derive(Debug)]
-pub enum RegisterPropertyError {
-    InvalidName,
-    AlreadyRegistered,
-    InvalidSyntax,
-    InvalidInitialValue,
-    InitialValueNotComputationallyIndependent,
-    NoInitialValue,
 }
 
 pub trait LayoutFactory: Send + Sync {
@@ -389,10 +362,8 @@ pub trait Layout {
         point: LayoutPoint,
         flags: ElementsFromPointFlags,
     ) -> Vec<ElementsFromPointResult>;
-    fn register_custom_property(
-        &mut self,
-        property_registration: PropertyRegistration,
-    ) -> Result<(), RegisterPropertyError>;
+    fn query_effective_overflow(&self, node: TrustedNodeAddress) -> Option<AxesOverflow>;
+    fn stylist_mut(&mut self) -> &mut Stylist;
 
     fn set_accessibility_active(&self, active: bool);
 }
@@ -476,6 +447,13 @@ impl AxesOverflow {
             y: self.y.to_scrollable(),
         }
     }
+
+    /// Whether or not the `overflow` value establishes a scroll container.
+    pub fn establishes_scroll_container(&self) -> bool {
+        // Checking one axis suffices, because the computed value ensures that
+        // either both axes are scrollable, or none is scrollable.
+        self.x.is_scrollable()
+    }
 }
 
 #[derive(Clone)]
@@ -490,6 +468,7 @@ pub enum QueryMsg {
     BoxAreas,
     ClientRectQuery,
     CurrentCSSZoomQuery,
+    EffectiveOverflow,
     ElementInnerOuterTextQuery,
     ElementsFromPoint,
     InnerWindowDimensionsQuery,
@@ -562,6 +541,7 @@ impl RestyleReason {
 pub struct ReflowResult {
     /// The phases that were run during this reflow.
     pub reflow_phases_run: ReflowPhasesRun,
+    pub reflow_statistics: ReflowStatistics,
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
     /// The list of vector images that were encountered that still need to be rasterized.
@@ -600,6 +580,12 @@ impl ReflowPhasesRun {
             Self::BuiltDisplayList | Self::UpdatedScrollNodeOffset | Self::UpdatedImageData,
         )
     }
+}
+
+#[derive(Debug, Default)]
+pub struct ReflowStatistics {
+    pub rebuilt_fragment_count: u32,
+    pub restyle_fragment_count: u32,
 }
 
 /// Information needed for a script-initiated reflow that requires a restyle
@@ -862,6 +848,39 @@ impl AnimatingImages {
     pub fn is_empty(&self) -> bool {
         self.node_to_state_map.is_empty()
     }
+}
+
+struct ThreadStateRestorer;
+
+impl ThreadStateRestorer {
+    fn new() -> Self {
+        #[cfg(debug_assertions)]
+        {
+            thread_state::exit(ThreadState::SCRIPT);
+            thread_state::enter(ThreadState::LAYOUT);
+        }
+        Self
+    }
+}
+
+impl Drop for ThreadStateRestorer {
+    fn drop(&mut self) {
+        #[cfg(debug_assertions)]
+        {
+            thread_state::exit(ThreadState::LAYOUT);
+            thread_state::enter(ThreadState::SCRIPT);
+        }
+    }
+}
+
+/// Set up the thread-local state to reflect that layout code is about to run,
+/// then call the provided function.
+/// This must be used when running code that will interact with the DOM tree
+/// through types like `ServoLayoutNode`, `ServoLayoutElement`, and `LayoutDom`,
+/// which have rules about how they must be used from layout worker threads.
+pub fn with_layout_state<R>(f: impl FnOnce() -> R) -> R {
+    let _guard = ThreadStateRestorer::new();
+    f()
 }
 
 #[cfg(test)]

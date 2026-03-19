@@ -4,10 +4,12 @@ from webdriver.bidi.modules.script import ContextTarget
 
 from ... import recursive_compare
 
+pytestmark = pytest.mark.asyncio
+
+
 PAGE_ABOUT_BLANK = "about:blank"
 
 
-@pytest.mark.asyncio
 # Should be extended when more types are supported
 @pytest.mark.parametrize("type", ["window"])
 async def test_type(bidi_session, top_context, type):

@@ -1,11 +1,13 @@
 [package]
-name = "canvas_traits"
+name = "servo-canvas-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "canvas_traits"
@@ -23,9 +25,8 @@ glow = { workspace = true }
 kurbo = { workspace = true, features = ["serde"] }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
-pixels = { path = "../../pixels" }
+pixels = { workspace = true }
 serde = { workspace = true }
-servo_config = { path = "../../config" }
 strum = { workspace = true }
 stylo = { workspace = true }
 webrender_api = { workspace = true }

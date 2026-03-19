@@ -1,18 +1,12 @@
 import pytest
 
-from webdriver.error import InvalidArgumentException, MoveTargetOutOfBoundsException, NoSuchWindowException
+from webdriver.error import MoveTargetOutOfBoundsException, NoSuchWindowException
 
 
 def test_null_response_value(session, wheel_chain):
     value = wheel_chain.scroll(0, 0, 0, 10).perform()
     assert value is None
 
-@pytest.mark.parametrize("missing", ["x", "y", "deltaX", "deltaY"])
-def test_missing_params(session, wheel_chain, missing):
-    actions = wheel_chain.scroll(0, 0, 0, 10)
-    del actions._actions[-1][missing]
-    with pytest.raises(InvalidArgumentException):
-        actions.perform()
 
 def test_no_top_browsing_context(session, closed_window, wheel_chain):
     with pytest.raises(NoSuchWindowException):

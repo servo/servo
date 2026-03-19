@@ -14,7 +14,7 @@
 <!-- Basic focusgroup for entry/exit testing -->
 <div id=before tabindex=0>Before focusgroup</div>
 
-<div id=focusgroup1 focusgroup="toolbar no-memory">
+<div id=focusgroup1 focusgroup="toolbar nomemory">
   <span id=item1 tabindex=0>Item 1</span>
   <span id=item2 tabindex=0>Item 2</span>
   <span id=item3 tabindex=0>Item 3</span>
@@ -29,10 +29,10 @@
     var after = document.getElementById("after");
 
     await focusAndWait(before);
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, item1, "Tab should enter focusgroup at first item in tree order");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, after, "Tab should exit focusgroup to next focusable element");
   }, "Tab enters focusgroup at first item in tree order and exits normally");
 

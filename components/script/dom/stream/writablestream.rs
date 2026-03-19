@@ -740,18 +740,17 @@ impl WritableStream {
     /// <https://streams.spec.whatwg.org/#writable-stream-close>
     pub(crate) fn close(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Let state be stream.[[state]].
         // If state is "closed" or "errored",
         if self.is_closed() || self.is_errored() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(global, can_gc);
+            let promise = Promise::new2(cx, global);
             promise.reject_error(
                 Error::Type(c"Stream is closed or errored.".to_owned()),
-                can_gc,
+                CanGc::from_cx(cx),
             );
             return promise;
         }
@@ -763,7 +762,7 @@ impl WritableStream {
         assert!(!self.close_queued_or_in_flight());
 
         // Let promise be a new promise.
-        let promise = Promise::new(global, can_gc);
+        let promise = Promise::new2(cx, global);
 
         // Set stream.[[closeRequest]] to promise.
         *self.close_request.borrow_mut() = Some(promise.clone());
@@ -775,7 +774,7 @@ impl WritableStream {
             // and state is "writable",
             if self.get_backpressure() && self.is_writable() {
                 // resolve writer.[[readyPromise]] with undefined.
-                writer.resolve_ready_promise_with_undefined(can_gc);
+                writer.resolve_ready_promise_with_undefined(CanGc::from_cx(cx));
             }
         }
 
@@ -783,7 +782,7 @@ impl WritableStream {
         let Some(controller) = self.controller.get() else {
             unreachable!("Stream must have a controller.");
         };
-        controller.close(cx, global, can_gc);
+        controller.close(cx, global);
 
         // Return promise.
         promise
@@ -905,7 +904,7 @@ impl WritableStream {
         // Add a handler for port’s messageerror event with the following steps:
         rooted!(in(*cx) let cross_realm_transform_writable = CrossRealmTransformWritable {
             controller: Dom::from_ref(&controller),
-            backpressure_promise: backpressure_promise.clone(),
+            backpressure_promise,
         });
         global.note_cross_realm_transform_writable(&cross_realm_transform_writable, port_id);
 
@@ -1097,31 +1096,33 @@ impl WritableStreamMethods<crate::DomTypeHolder> for WritableStream {
     }
 
     /// <https://streams.spec.whatwg.org/#ws-close>
-    fn Close(&self, realm: InRealm, can_gc: CanGc) -> Rc<Promise> {
-        let cx = GlobalScope::get_cx();
-        let global = GlobalScope::from_safe_context(cx, realm);
+    fn Close(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+        let global = GlobalScope::from_current_realm(cx);
 
         // If ! IsWritableStreamLocked(this) is true,
         if self.is_locked() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(&global, can_gc);
-            promise.reject_error(Error::Type(c"Stream is locked.".to_owned()), can_gc);
+            let promise = Promise::new2(cx, &global);
+            promise.reject_error(
+                Error::Type(c"Stream is locked.".to_owned()),
+                CanGc::from_cx(cx),
+            );
             return promise;
         }
 
         // If ! WritableStreamCloseQueuedOrInFlight(this) is true
         if self.close_queued_or_in_flight() {
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(&global, can_gc);
+            let promise = Promise::new2(cx, &global);
             promise.reject_error(
                 Error::Type(c"Stream has closed queued or in-flight".to_owned()),
-                can_gc,
+                CanGc::from_cx(cx),
             );
             return promise;
         }
 
         // Return ! WritableStreamClose(this).
-        self.close(cx, &global, can_gc)
+        self.close(cx, &global)
     }
 
     /// <https://streams.spec.whatwg.org/#ws-get-writer>

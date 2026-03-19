@@ -453,6 +453,20 @@ wheels = [
 ]
 
 [[package]]
+name = "flake8"
+version = "6.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "mccabe" },
+    { name = "pycodestyle" },
+    { name = "pyflakes" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cf/f8/bbe24f43695c0c480181e39ce910c2650c794831886ec46ddd7c40520e6a/flake8-6.1.0.tar.gz", hash = "sha256:d5b3857f07c030bdb5bf41c7f53799571d75c4491748a3adcd47de929e34cd23", size = 48767, upload-time = "2023-07-29T19:05:05.665Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b0/24/bbf7175ffc47cb3d3e1eb523ddb23272968359dfcf2e1294707a2bf12fc4/flake8-6.1.0-py2.py3-none-any.whl", hash = "sha256:ffdfce58ea94c6580c77888a86506937f9a1a227dfcd15f245d694ae20a6b6e5", size = 58260, upload-time = "2023-07-29T19:05:02.783Z" },
+]
+
+[[package]]
 name = "flask"
 version = "3.1.2"
 source = { registry = "https://pypi.org/simple" }
@@ -848,6 +862,15 @@ wheels = [
 ]
 
 [[package]]
+name = "mccabe"
+version = "0.7.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e7/ff/0ffefdcac38932a54d2b5eed4e0ba8a408f215002cd178ad1df0f2806ff8/mccabe-0.7.0.tar.gz", hash = "sha256:348e0240c33b60bbdf4e523192ef919f28cb2c3d7d5c7794f74009290f236325", size = 9658, upload-time = "2022-01-24T01:14:51.113Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/1a/1f68f9ba0c207934b35b86a8ca3aad8395a3d6dd7921c0686e23853ff5a9/mccabe-0.7.0-py2.py3-none-any.whl", hash = "sha256:6c2d30ab6be0e4a46919781807b4f0d834ebdd6c6e3dca0bda5a15f863427b6e", size = 7350, upload-time = "2022-01-24T01:14:49.62Z" },
+]
+
+[[package]]
 name = "mohawk"
 version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1069,6 +1092,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pep8-naming"
+version = "0.13.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "flake8" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/5b/c0/0db8b2867395a9a137e86af8bdf5a566e41d9c6453e509cd3042419ae29e/pep8-naming-0.13.3.tar.gz", hash = "sha256:1705f046dfcd851378aac3be1cd1551c7c1e5ff363bacad707d43007877fa971", size = 16129, upload-time = "2022-12-19T20:45:27.158Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4f/48/9533518e0394fb858ac2b4b55fe18f24aa33c87c943f691336ec842d9728/pep8_naming-0.13.3-py3-none-any.whl", hash = "sha256:1a86b8c71a03337c97181917e2b472f0f5e4ccb06844a0d6f0a33522549e7a80", size = 8490, upload-time = "2022-12-19T20:45:25.132Z" },
+]
+
+[[package]]
 name = "pillow"
 version = "12.1.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1277,11 +1312,11 @@ wheels = [
 
 [[package]]
 name = "pyasn1"
-version = "0.6.2"
+version = "0.6.3"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fe/b6/6e630dff89739fcd427e3f72b3d905ce0acb85a45d4ec3e2678718a3487f/pyasn1-0.6.2.tar.gz", hash = "sha256:9b59a2b25ba7e4f8197db7686c09fb33e658b98339fadb826e9512629017833b", size = 146586, upload-time = "2026-01-16T18:04:18.534Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5c/5f/6583902b6f79b399c9c40674ac384fd9cd77805f9e6205075f828ef11fb2/pyasn1-0.6.3.tar.gz", hash = "sha256:697a8ecd6d98891189184ca1fa05d1bb00e2f84b5977c481452050549c8a72cf", size = 148685, upload-time = "2026-03-17T01:06:53.382Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/44/b5/a96872e5184f354da9c84ae119971a0a4c221fe9b27a4d94bd43f2596727/pyasn1-0.6.2-py3-none-any.whl", hash = "sha256:1eb26d860996a18e9b6ed05e7aae0e9fc21619fcee6af91cca9bad4fbea224bf", size = 83371, upload-time = "2026-01-16T18:04:17.174Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/a0/7d793dce3fa811fe047d6ae2431c672364b462850c6235ae306c0efd025f/pyasn1-0.6.3-py3-none-any.whl", hash = "sha256:a80184d120f0864a52a073acc6fc642847d0be408e7c7252f31390c0f4eadcde", size = 83997, upload-time = "2026-03-17T01:06:52.036Z" },
 ]
 
 [[package]]
@@ -1297,12 +1332,30 @@ wheels = [
 ]
 
 [[package]]
+name = "pycodestyle"
+version = "2.11.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/8f/fa09ae2acc737b9507b5734a9aec9a2b35fa73409982f57db1b42f8c3c65/pycodestyle-2.11.1.tar.gz", hash = "sha256:41ba0e7afc9752dfb53ced5489e89f8186be00e599e712660695b7a75ff2663f", size = 38974, upload-time = "2023-10-12T23:39:39.762Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b1/90/a998c550d0ddd07e38605bb5c455d00fcc177a800ff9cc3dafdcb3dd7b56/pycodestyle-2.11.1-py2.py3-none-any.whl", hash = "sha256:44fe31000b2d866f2e41841b18528a505fbd7fef9017b04eff4e2648a0fadc67", size = 31132, upload-time = "2023-10-12T23:39:38.242Z" },
+]
+
+[[package]]
 name = "pycparser"
 version = "3.0"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/1b/7d/92392ff7815c21062bea51aa7b87d45576f649f16458d78b7cf94b9ab2e6/pycparser-3.0.tar.gz", hash = "sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29", size = 103492, upload-time = "2026-01-21T14:26:51.89Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0c/c3/44f3fbbfa403ea2a7c779186dc20772604442dde72947e7d01069cbe98e3/pycparser-3.0-py3-none-any.whl", hash = "sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992", size = 48172, upload-time = "2026-01-21T14:26:50.693Z" },
+]
+
+[[package]]
+name = "pyflakes"
+version = "3.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/8b/fb/7251eaec19a055ec6aafb3d1395db7622348130d1b9b763f78567b2aab32/pyflakes-3.1.0.tar.gz", hash = "sha256:a0aae034c444db0071aa077972ba4768d40c830d9539fd45bf4cd3f8f6992efc", size = 63636, upload-time = "2023-07-29T17:00:41.482Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/e9/1e1fd7fae559bfd07704991e9a59dd1349b72423c904256c073ce88a9940/pyflakes-3.1.0-py2.py3-none-any.whl", hash = "sha256:4132f6d49cb4dae6819e5379898f2b8cce3c5f23994194c24b77d5da2e36f774", size = 62616, upload-time = "2023-07-29T17:00:40.344Z" },
 ]
 
 [[package]]
@@ -1326,15 +1379,15 @@ wheels = [
 
 [[package]]
 name = "pyopenssl"
-version = "25.3.0"
+version = "26.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/80/be/97b83a464498a79103036bc74d1038df4a7ef0e402cfaf4d5e113fb14759/pyopenssl-25.3.0.tar.gz", hash = "sha256:c981cb0a3fd84e8602d7afc209522773b94c1c2446a3c710a75b06fe1beae329", size = 184073, upload-time = "2025-09-17T00:32:21.037Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8e/11/a62e1d33b373da2b2c2cd9eb508147871c80f12b1cacde3c5d314922afdd/pyopenssl-26.0.0.tar.gz", hash = "sha256:f293934e52936f2e3413b89c6ce36df66a0b34ae1ea3a053b8c5020ff2f513fc", size = 185534, upload-time = "2026-03-15T14:28:26.353Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d1/81/ef2b1dfd1862567d573a4fdbc9f969067621764fbb74338496840a1d2977/pyopenssl-25.3.0-py3-none-any.whl", hash = "sha256:1fda6fc034d5e3d179d39e59c1895c9faeaf40a79de5fc4cbbfbe0d36f4a77b6", size = 57268, upload-time = "2025-09-17T00:32:19.474Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/7d/d4f7d908fa8415571771b30669251d57c3cf313b36a856e6d7548ae01619/pyopenssl-26.0.0-py3-none-any.whl", hash = "sha256:df94d28498848b98cc1c0ffb8ef1e71e40210d3b0a8064c9d29571ed2904bf81", size = 57969, upload-time = "2026-03-15T14:28:24.864Z" },
 ]
 
 [[package]]
@@ -1574,6 +1627,7 @@ dependencies = [
     { name = "blessed" },
     { name = "colorama" },
     { name = "distro" },
+    { name = "flake8" },
     { name = "flask" },
     { name = "geckordp" },
     { name = "html5lib" },
@@ -1588,8 +1642,11 @@ dependencies = [
     { name = "mozshellutil" },
     { name = "mozterm" },
     { name = "packaging" },
+    { name = "pep8-naming" },
     { name = "pillow" },
     { name = "ply" },
+    { name = "pycodestyle" },
+    { name = "pyflakes" },
     { name = "pyrefly" },
     { name = "pyyaml" },
     { name = "requests" },
@@ -1609,6 +1666,8 @@ requires-dist = [
     { name = "blessed", specifier = "==1.20.0" },
     { name = "colorama", specifier = "==0.3.7" },
     { name = "distro", specifier = "==1.4" },
+    { name = "flake8", marker = "python_full_version < '3.9'", specifier = "==5.0.4" },
+    { name = "flake8", marker = "python_full_version >= '3.9'", specifier = "==6.1.0" },
     { name = "flask" },
     { name = "geckordp", specifier = "==1.0.3" },
     { name = "html5lib", specifier = "==1.1" },
@@ -1624,9 +1683,12 @@ requires-dist = [
     { name = "mozshellutil", specifier = "==1.0.0" },
     { name = "mozterm", specifier = "==1.0.0" },
     { name = "packaging", specifier = "==25.0" },
+    { name = "pep8-naming", specifier = "==0.13.3" },
     { name = "pillow", marker = "python_full_version == '3.9.*'", specifier = "==11.3.0" },
     { name = "pillow", marker = "python_full_version >= '3.10'", specifier = "==12.1.1" },
     { name = "ply", specifier = "==3.8" },
+    { name = "pycodestyle", marker = "python_full_version >= '3.9'", specifier = "==2.11.1" },
+    { name = "pyflakes", marker = "python_full_version >= '3.9'", specifier = "==3.1.0" },
     { name = "pyrefly", specifier = "==0.23.1" },
     { name = "pyyaml", specifier = "==6.0.1" },
     { name = "requests" },
@@ -1634,7 +1696,7 @@ requires-dist = [
     { name = "ruff", specifier = "==0.11.10" },
     { name = "setuptools", specifier = "==78.1.1" },
     { name = "six", specifier = "==1.16" },
-    { name = "taskcluster", specifier = "==96.3.1" },
+    { name = "taskcluster", specifier = "==97.0.1" },
     { name = "toml", specifier = "==0.9.2" },
     { name = "types-pyyaml", specifier = "==6.0.12.20241230" },
     { name = "types-requests" },
@@ -1680,7 +1742,7 @@ wheels = [
 
 [[package]]
 name = "taskcluster"
-version = "96.3.1"
+version = "97.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -1691,9 +1753,9 @@ dependencies = [
     { name = "slugid" },
     { name = "taskcluster-urls" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2d/a5/87a5e6243988b683f456f73986f1d4214de9ccbf8cfd1a4b46fe53d66c38/taskcluster-96.3.1.tar.gz", hash = "sha256:528f3c56b9617a5c325fa339ff15ccffa06edb4bec2e5dbbf0b0f81730550977", size = 253783, upload-time = "2026-02-10T15:41:23.581Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/66/89/72777bcf59f76424e9ba551e1a03bd6df1692da8834a42eed0ded2a4aad0/taskcluster-97.0.1.tar.gz", hash = "sha256:9718850b3afeabd2ca8777f5fe67515919a325167445d7563e16eaa7caf2197a", size = 254462, upload-time = "2026-03-03T14:34:11.1Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/65/e5/d5ed930579eb12c834cdc45488227096fa5d5eaeb518c75a641dd2ebd2f2/taskcluster-96.3.1-py3-none-any.whl", hash = "sha256:54c98f0902ff42839f11fb4f3ef41efee29a0a5cbfab15c81cd2201d839b3412", size = 148277, upload-time = "2026-02-10T15:41:25.029Z" },
+    { url = "https://files.pythonhosted.org/packages/32/b1/31e9f5a6b3283852a14c0895af539c88192072c6022e421101c809bb3caf/taskcluster-97.0.1-py3-none-any.whl", hash = "sha256:149ebc55b0516f35884aecc47038cbe853a9bb8b3d94a7396f649672a02de30b", size = 150771, upload-time = "2026-03-03T14:34:09.782Z" },
 ]
 
 [[package]]

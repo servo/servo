@@ -12,6 +12,7 @@ use euclid::{Point2D, Rect, Size2D};
 use fonts::{FontMetrics, GlyphStore};
 use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
+use servo_url::ServoUrl;
 use style::Zero;
 use style_traits::CSSPixel;
 use webrender_api::{FontInstanceKey, ImageKey};
@@ -76,6 +77,9 @@ pub(crate) struct TextFragment {
     /// When necessary, this field store the [`TextRunOffsets`] for a particular
     /// [`TextRunLineItem`]. This is currently only used inside of text inputs.
     pub offsets: Option<Box<TextRunOffsets>>,
+    /// Whether or not this [`TextFragment`] is an empty fragment added for the
+    /// benefit of placing a text cursor on an otherwise empty editable line.
+    pub is_empty_for_text_cursor: bool,
 }
 
 #[derive(MallocSizeOf)]
@@ -84,6 +88,7 @@ pub(crate) struct ImageFragment {
     pub clip: PhysicalRect<Au>,
     pub image_key: Option<ImageKey>,
     pub showing_broken_image_icon: bool,
+    pub url: Option<ServoUrl>,
 }
 
 #[derive(MallocSizeOf)]
@@ -364,32 +369,61 @@ impl TextFragment {
         ));
     }
 
+    /// Whether or not the given point is within the vertical boundaries of this
+    /// [`TextFragment`].
+    pub(crate) fn point_is_within_vertical_boundaries(
+        &self,
+        point_in_fragment: Point2D<Au, CSSPixel>,
+    ) -> bool {
+        let rect = &self.base.rect;
+        rect.min_y() <= point_in_fragment.y && rect.max_y() >= point_in_fragment.y
+    }
+
     /// Find the distance between for point relative to a [`TextFragment`] for the
     /// purposes of finding a glyph offset. This is used to identify the most relevant
     /// fragment for glyph offset queries during click handling.
     pub(crate) fn distance_to_point_for_glyph_offset(
         &self,
         point_in_fragment: Point2D<Au, CSSPixel>,
-    ) -> Option<Au> {
-        // Accept any `TextFragment` that is within the vertical range of the point, as one
-        // can click past the end of a line to move the cursor to its end.
+    ) -> Au {
+        // This is the distance between the closest point on the edge of the rectangle and
+        // the point. From <https://stackoverflow.com/a/18157551>.
         let rect = &self.base.rect;
-        if point_in_fragment.y < Au::zero() || point_in_fragment.y > rect.height() {
-            return None;
-        }
-        // Only consider clicks that are to the right of the fragment's origin.
-        if point_in_fragment.x < Au::zero() {
-            return None;
-        }
-        Some(point_in_fragment.x - rect.width().max(Au::zero()))
+        let dx = (rect.min_x() - point_in_fragment.x)
+            .max(Au::zero())
+            .max(point_in_fragment.x - rect.max_x());
+        let dy = (rect.min_y() - point_in_fragment.y)
+            .max(Au::zero())
+            .max(point_in_fragment.y - rect.max_y());
+        Au::from_f64_px((dx.to_f64_px().powi(2) + dy.to_f64_px().powi(2)).sqrt())
     }
 
-    /// Given a point relative to this [`TextFragment`], find the most appropriate character
-    /// offset. Note that the given point may be outside the [`TextFragment`]'s content rect.
-    pub(crate) fn character_offset(&self, point_in_fragment: Point2D<Au, CSSPixel>) -> usize {
-        let Some(offsets) = self.offsets.as_ref() else {
-            return 0;
-        };
+    /// Given a point relative to this [`TextFragment`], find the most appropriate
+    /// character offset.
+    ///
+    /// Note that the given point may be outside the [`TextFragment`]'s content rect:
+    ///
+    ///  - If the point is vertically above the [`TextFragment`] the first offset will be returned.
+    ///  - If the point is vertically below the [`TextFragment`], `None` will be returned.
+    pub(crate) fn character_offset(
+        &self,
+        point_in_fragment: Point2D<Au, CSSPixel>,
+    ) -> Option<usize> {
+        // If the click was far enough above the top of the fragment, then pick the first index.
+        let offsets = self.offsets.as_ref()?;
+        let max_vertical_offset = self.base.rect.height().scale_by(0.25);
+        if point_in_fragment.y < -max_vertical_offset {
+            return Some(offsets.character_range.start);
+        }
+
+        // If the click was below the fragment, return `None`, which will cause the
+        // caller to move the cursor to the end.
+        //
+        // TODO: It would be nice to just return the last offset here, but <textarea>
+        // does not currently make a fragment for all selection indices.
+        if point_in_fragment.y > self.base.rect.max_y() + max_vertical_offset {
+            return None;
+        }
 
         let mut current_character = offsets.character_range.start;
         let mut current_offset = Au::zero();
@@ -400,14 +434,14 @@ impl TextFragment {
                     advance += self.justification_adjustment;
                 }
                 if current_offset + advance.scale_by(0.5) >= point_in_fragment.x {
-                    return current_character;
+                    return Some(current_character);
                 }
                 current_offset += advance;
                 current_character += glyph.character_count();
             }
         }
 
-        current_character
+        Some(current_character)
     }
 }
 

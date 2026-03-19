@@ -30,7 +30,7 @@ impl CanvasPaintThread {
         CanvasPaintThread {
             canvases: FxHashMap::default(),
             next_canvas_id: CanvasId(0),
-            paint_api: paint_api.clone(),
+            paint_api,
         }
     }
 

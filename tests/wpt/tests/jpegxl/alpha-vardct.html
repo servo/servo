@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>JPEG XL: alpha with VarDCT-oriented fixture</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<meta name="assert" content="Decodes alpha-bearing fixture and verifies transparency exists.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<script>
+
+promise_test(async () => {
+  const img = await loadImage('resources/conformance_alpha_nonpremultiplied.jxl');
+  const px = samplePixel(img, 10, 10);
+  assert_less_than(px[3], 255, 'fixture should include transparent pixels');
+}, 'Alpha channel is preserved for high bit-depth fixture.');
+
+</script>

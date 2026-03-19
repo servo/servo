@@ -8,7 +8,6 @@ use bitflags::bitflags;
 use keyboard_types::{Code, CompositionEvent, Key, KeyState, Location, Modifiers};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
-use webrender_api::ExternalScrollId;
 
 use crate::WebViewPoint;
 
@@ -37,6 +36,12 @@ bitflags! {
     }
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct InputEventOutcome {
+    pub id: InputEventId,
+    pub result: InputEventResult,
+}
+
 /// An input event that is sent from the embedder to Servo.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum InputEvent {
@@ -48,7 +53,6 @@ pub enum InputEvent {
     MouseButton(MouseButtonEvent),
     MouseLeftViewport(MouseLeftViewportEvent),
     MouseMove(MouseMoveEvent),
-    Scroll(ScrollEvent),
     Touch(TouchEvent),
     Wheel(WheelEvent),
 }
@@ -89,7 +93,6 @@ impl InputEvent {
             InputEvent::MouseLeftViewport(_) => None,
             InputEvent::Touch(event) => Some(event.point),
             InputEvent::Wheel(event) => Some(event.point),
-            InputEvent::Scroll(..) => None,
         }
     }
 }
@@ -241,7 +244,7 @@ pub enum TouchEventType {
 /// An opaque identifier for a touch point.
 ///
 /// <http://w3c.github.io/touch-events/#widl-Touch-identifier>
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct TouchId(pub i32);
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
@@ -288,9 +291,11 @@ pub enum WheelMode {
 /// The Wheel event deltas in every direction
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
 pub struct WheelDelta {
-    /// Delta in the left/right direction
+    /// Delta in the left/right direction. A positive value means that the view scrolls left,
+    /// revealing more content to the left of the current viewport.
     pub x: f64,
-    /// Delta in the up/down direction
+    /// Delta in the up/down direction. A positive value means that the view scrolls up, revealing
+    /// more content above the current viewport.
     pub y: f64,
     /// Delta in the direction going into/out of the screen
     pub z: f64,
@@ -308,11 +313,6 @@ impl WheelEvent {
     pub fn new(delta: WheelDelta, point: WebViewPoint) -> Self {
         WheelEvent { delta, point }
     }
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
-pub struct ScrollEvent {
-    pub external_id: ExternalScrollId,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

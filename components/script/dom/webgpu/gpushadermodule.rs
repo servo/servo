@@ -23,16 +23,36 @@ use crate::realms::InRealm;
 use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 use crate::script_runtime::CanGc;
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPUShaderModule {
+    #[no_trace]
+    channel: WebGPU,
+    #[no_trace]
+    shader_module: WebGPUShaderModule,
+}
+
+impl Drop for DroppableGPUShaderModule {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropShaderModule(self.shader_module.0))
+        {
+            warn!(
+                "Failed to send DropShaderModule ({:?}) ({})",
+                self.shader_module.0, e
+            );
+        }
+    }
+}
+
 #[dom_struct]
 pub(crate) struct GPUShaderModule {
     reflector_: Reflector,
-    #[no_trace]
-    channel: WebGPU,
     label: DomRefCell<USVString>,
-    #[no_trace]
-    shader_module: WebGPUShaderModule,
     #[ignore_malloc_size_of = "promise"]
     compilation_info_promise: Rc<Promise>,
+    droppable: DroppableGPUShaderModule,
 }
 
 impl GPUShaderModule {
@@ -44,10 +64,12 @@ impl GPUShaderModule {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            channel,
             label: DomRefCell::new(label),
-            shader_module,
             compilation_info_promise: promise,
+            droppable: DroppableGPUShaderModule {
+                channel,
+                shader_module,
+            },
         }
     }
 
@@ -74,7 +96,7 @@ impl GPUShaderModule {
 
 impl GPUShaderModule {
     pub(crate) fn id(&self) -> WebGPUShaderModule {
-        self.shader_module
+        self.droppable.shader_module
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule>
@@ -88,7 +110,7 @@ impl GPUShaderModule {
         let promise = Promise::new_in_current_realm(comp, can_gc);
         let shader_module = GPUShaderModule::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             WebGPUShaderModule(program_id),
             descriptor.parent.label.clone(),
             promise.clone(),
@@ -143,20 +165,5 @@ impl RoutedPromiseListener<Option<ShaderCompilationInfo>> for GPUShaderModule {
     ) {
         let info = GPUCompilationInfo::from(&self.global(), response, can_gc);
         promise.resolve_native(&info, can_gc);
-    }
-}
-
-impl Drop for GPUShaderModule {
-    fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropShaderModule(self.shader_module.0))
-        {
-            warn!(
-                "Failed to send DropShaderModule ({:?}) ({})",
-                self.shader_module.0, e
-            );
-        }
     }
 }

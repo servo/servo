@@ -17,6 +17,8 @@
 //! pipeline, and handle the produced buffers.
 //!
 
+use servo_media_player::{PlayerError, video};
+
 pub trait Render {
     /// Returns `True` if the render implementation uses any version
     /// or flavor of OpenGL
@@ -32,7 +34,7 @@ pub trait Render {
     /// # Arguments
     ///
     /// * `sample` -  the GStreamer sample with the buffer to map
-    fn build_frame(&self, sample: gstreamer::Sample) -> Option<sm_player::video::VideoFrame>;
+    fn build_frame(&self, sample: gstreamer::Sample) -> Option<video::VideoFrame>;
 
     /// Sets the proper *video-sink* to GStreamer's `pipeline`, this
     /// video sink is simply a decorator of the passed `appsink`.
@@ -45,5 +47,5 @@ pub trait Render {
         &self,
         appsink: &gstreamer::Element,
         pipeline: &gstreamer::Element,
-    ) -> Result<(), sm_player::PlayerError>;
+    ) -> Result<(), PlayerError>;
 }

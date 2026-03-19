@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Cancelling pointerdown should not suppress dblclick</title>
+  <link rel="help" href="https://w3c.github.io/pointerevents/#mapping-for-devices-that-support-hover">
+  <meta name="assert" content="Calling preventDefault() on pointerdown should not suppress the dblclick event fired after a double-tap or double-click.">
+  <meta name="variant" content="?mouse">
+  <meta name="variant" content="?touch">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="../pointerevent_support.js"></script>
+  <style>
+    #target {
+      background-color: green;
+      width: 200px;
+      height: 200px;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <p>Double-click or double-tap on the green box.</p>
+  <div id="target"></div>
+  <script>
+    'use strict';
+
+    assert_true(location.search.length > 0,
+        "Test URL should contain pointer_type");
+    const pointer_type = location.search.substring(1);
+    assert_true(["mouse", "touch"].includes(pointer_type),
+        "pointer_type should be mouse or touch");
+
+    promise_test(async (t) => {
+      const target = document.getElementById("target");
+
+      target.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+      });
+
+      let dblclick_promise = getEvent("dblclick", target, t);
+
+      let actions = new test_driver.Actions()
+        .addPointer("testPointer", pointer_type)
+        .pointerMove(0, 0, { origin: target })
+        .pointerDown()
+        .pointerUp()
+        .pause(pointer_type == "touch" ? 50 : 0)
+        .pointerDown()
+        .pointerUp();
+
+      await actions.send();
+      const event = await dblclick_promise;
+      assert_equals(event.type, "dblclick",
+          "dblclick should fire even when pointerdown is cancelled");
+      assert_equals(event.detail, 2,
+          "dblclick detail should be 2");
+    }, "dblclick fires after cancelled pointerdown (" + pointer_type + ")");
+  </script>
+</body>
+</html>

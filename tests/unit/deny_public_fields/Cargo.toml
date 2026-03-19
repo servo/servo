@@ -4,12 +4,12 @@ version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
-publish.workspace = true
 rust-version.workspace = true
+publish = false
 
 [lib]
 path = "lib.rs"
 test = false
 
 [dependencies]
-deny_public_fields = {path = "../../../components/deny_public_fields"}
+deny_public_fields = { workspace = true }

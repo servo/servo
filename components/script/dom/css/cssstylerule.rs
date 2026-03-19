@@ -123,13 +123,12 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
     /// <https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext>
     fn SelectorText(&self) -> DOMString {
         let guard = self.css_grouping_rule.shared_lock().read();
-        DOMString::from_string(
-            self.style_rule
-                .borrow()
-                .read_with(&guard)
-                .selectors
-                .to_css_string(),
-        )
+        self.style_rule
+            .borrow()
+            .read_with(&guard)
+            .selectors
+            .to_css_string()
+            .into()
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext>

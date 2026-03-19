@@ -22,7 +22,7 @@ use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLPipeline;
 use constellation_traits::{
     KeyboardScroll, LoadData, NavigationHistoryBehavior, ScriptToConstellationSender,
-    StructuredSerializedData, WindowSizeType,
+    ScrollStateUpdate, StructuredSerializedData, WindowSizeType,
 };
 use crossbeam_channel::RecvTimeoutError;
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -52,8 +52,8 @@ use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::WebGPUMsg;
-use webrender_api::units::{DevicePixel, LayoutVector2D};
-use webrender_api::{ExternalScrollId, ImageKey};
+use webrender_api::ImageKey;
+use webrender_api::units::DevicePixel;
 
 /// The initial data required to create a new `Pipeline` attached to an existing `ScriptThread`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -106,7 +106,7 @@ pub enum DocumentActivity {
 }
 
 /// Type of recorded progressive web metric
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ProgressiveWebMetricType {
     /// Time to first Paint
     FirstPaint,
@@ -116,6 +116,8 @@ pub enum ProgressiveWebMetricType {
     LargestContentfulPaint {
         /// The pixel area of the largest contentful element.
         area: usize,
+        /// The URL of the largest contentful element, if any.
+        url: Option<ServoUrl>,
     },
     /// Time to interactive
     TimeToInteractive,
@@ -273,7 +275,7 @@ pub enum ScriptThreadMessage {
     SetWebGPUPort(GenericReceiver<WebGPUMsg>),
     /// `Paint` scrolled and is updating the scroll states of the nodes in the given
     /// pipeline via the Constellation.
-    SetScrollStates(PipelineId, FxHashMap<ExternalScrollId, LayoutVector2D>),
+    SetScrollStates(PipelineId, ScrollStateUpdate),
     /// Evaluate the given JavaScript and return a result via a corresponding message
     /// to the Constellation.
     EvaluateJavaScript(WebViewId, PipelineId, JavaScriptEvaluationId, String),
@@ -306,8 +308,17 @@ pub enum ScriptThreadMessage {
     /// Update the pinch zoom details of a pipeline. Each `Window` stores a `VisualViewport` DOM
     /// instance that gets updated according to the changes from the `Compositor``.
     UpdatePinchZoomInfos(PipelineId, PinchZoomInfos),
-    /// Activate or deactivate accessibility features.
-    SetAccessibilityActive(bool),
+    /// Activate or deactivate accessibility features for the given pipeline, assuming it represents
+    /// a document.
+    ///
+    /// Why only one pipeline? In the Servo API, accessibility is activated on a per-webview basis,
+    /// and webviews have a simple one-to-many mapping to pipelines that represent documents. But
+    /// those pipelines run in script threads, which complicates things: the pipelines in a webview
+    /// may be split across multiple script threads, and the pipelines in a script thread may belong
+    /// to multiple webviews. So the simplest approach is to activate it for one pipeline at a time.
+    SetAccessibilityActive(PipelineId, bool),
+    /// Force a garbage collection in this script thread.
+    TriggerGarbageCollection,
 }
 
 impl fmt::Debug for ScriptThreadMessage {
@@ -389,8 +400,6 @@ pub struct InitialScriptState {
     pub privileged_urls: Vec<ServoUrl>,
     /// A copy of constellation's `UserContentManagerId` to `UserContents` map.
     pub user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
-    /// Whether this script should be initialized with accessibility already active.
-    pub accessibility_active: bool,
 }
 
 /// Errors from executing a paint worklet

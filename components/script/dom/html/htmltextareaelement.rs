@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, InputMethodType};
 use fonts::{ByteIndex, TextByteRange};
 use html5ever::{LocalName, Prefix, local_name, ns};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::wrapper_traits::{ScriptSelection, SharedSelection};
 use script_bindings::codegen::GenericBindings::CharacterDataBinding::CharacterDataMethods;
@@ -187,6 +188,8 @@ impl HTMLTextAreaElement {
                         text: self.Value().to_string(),
                         insertion_point: self.GetSelectionEnd(),
                         multiline: false,
+                        // We follow chromium's heuristic to show the virtual keyboard only if user had interacted before.
+                        allow_virtual_keyboard: self.owner_window().has_sticky_activation(),
                     }),
                     None,
                 );
@@ -198,9 +201,14 @@ impl HTMLTextAreaElement {
         self.maybe_update_shared_selection();
     }
 
-    fn handle_text_content_changed(&self, can_gc: CanGc) {
-        self.validity_state(can_gc)
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+    #[expect(unsafe_code)]
+    fn handle_text_content_changed(&self, _can_gc: CanGc) {
+        // TODO https://github.com/servo/servo/issues/43255
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
+        self.validity_state(CanGc::from_cx(cx))
+            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
 
         let textinput_content = self.textinput.borrow().get_content();
         let element = self.upcast::<Element>();
@@ -210,10 +218,14 @@ impl HTMLTextAreaElement {
 
         let shadow_root = element
             .shadow_root()
-            .unwrap_or_else(|| element.attach_ua_shadow_root(true, can_gc));
+            .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
         if self.shadow_node.borrow().is_none() {
-            let shadow_node = Text::new(Default::default(), &shadow_root.owner_document(), can_gc);
-            Node::replace_all(Some(shadow_node.upcast()), shadow_root.upcast(), can_gc);
+            let shadow_node = Text::new(
+                Default::default(),
+                &shadow_root.owner_document(),
+                CanGc::from_cx(cx),
+            );
+            Node::replace_all(cx, Some(shadow_node.upcast()), shadow_root.upcast());
             self.shadow_node
                 .borrow_mut()
                 .replace(shadow_node.as_traced());
@@ -399,14 +411,14 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue>
-    fn SetDefaultValue(&self, value: DOMString, can_gc: CanGc) {
+    fn SetDefaultValue(&self, cx: &mut JSContext, value: DOMString) {
         self.upcast::<Node>()
-            .set_text_content_for_element(Some(value), can_gc);
+            .set_text_content_for_element(cx, Some(value));
 
         // if the element's dirty value flag is false, then the element's
         // raw value must be set to the value of the element's textContent IDL attribute
         if !self.value_dirty.get() {
-            self.reset(can_gc);
+            self.reset(CanGc::from_cx(cx));
         }
     }
 
@@ -523,13 +535,13 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
-    fn CheckValidity(&self, can_gc: CanGc) -> bool {
-        self.check_validity(can_gc)
+    fn CheckValidity(&self, cx: &mut JSContext) -> bool {
+        self.check_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
-    fn ReportValidity(&self, can_gc: CanGc) -> bool {
-        self.report_validity(can_gc)
+    fn ReportValidity(&self, cx: &mut JSContext) -> bool {
+        self.report_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
@@ -593,10 +605,15 @@ impl VirtualMethods for HTMLTextAreaElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         match *attr.local_name() {
             local_name!("disabled") => {
                 let el = self.upcast::<Element>();
@@ -617,7 +634,6 @@ impl VirtualMethods for HTMLTextAreaElement {
                         }
                     },
                 }
-                el.update_sequentially_focusable_status(CanGc::note());
             },
             local_name!("maxlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {
@@ -651,7 +667,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                         placeholder.push_str(attr.value().as_ref());
                     }
                 }
-                self.handle_text_content_changed(can_gc);
+                self.handle_text_content_changed(CanGc::from_cx(cx));
             },
             local_name!("readonly") => {
                 let el = self.upcast::<Element>();
@@ -665,24 +681,24 @@ impl VirtualMethods for HTMLTextAreaElement {
                 }
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, can_gc);
+                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
             },
             _ => {},
         }
 
-        self.validity_state(can_gc)
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        self.validity_state(CanGc::from_cx(cx))
+            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
 
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
 
-        self.handle_text_content_changed(can_gc);
+        self.handle_text_content_changed(CanGc::from_cx(cx));
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
@@ -724,13 +740,13 @@ impl VirtualMethods for HTMLTextAreaElement {
     // and dirty value flag from the node being cloned to the copy.
     fn cloning_steps(
         &self,
+        cx: &mut JSContext,
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
-        can_gc: CanGc,
     ) {
         if let Some(s) = self.super_type() {
-            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
+            s.cloning_steps(cx, copy, maybe_doc, clone_children);
         }
         let el = copy.downcast::<HTMLTextAreaElement>().unwrap();
         el.value_dirty.set(self.value_dirty.get());
@@ -738,38 +754,31 @@ impl VirtualMethods for HTMLTextAreaElement {
             let mut textinput = el.textinput.borrow_mut();
             textinput.set_content(self.textinput.borrow().get_content());
         }
-        el.validity_state(can_gc)
-            .perform_validation_and_update(ValidationFlags::all(), can_gc);
+        el.validity_state(CanGc::from_cx(cx))
+            .perform_validation_and_update(ValidationFlags::all(), CanGc::from_cx(cx));
     }
 
-    fn children_changed(&self, mutation: &ChildrenMutation, can_gc: CanGc) {
+    fn children_changed(&self, cx: &mut JSContext, mutation: &ChildrenMutation) {
         if let Some(s) = self.super_type() {
-            s.children_changed(mutation, can_gc);
+            s.children_changed(cx, mutation);
         }
         if !self.value_dirty.get() {
-            self.reset(can_gc);
+            self.reset(CanGc::from_cx(cx));
         }
     }
 
     // copied and modified from htmlinputelement.rs
     fn handle_event(&self, event: &Event, can_gc: CanGc) {
-        if let Some(s) = self.super_type() {
-            s.handle_event(event, can_gc);
-        }
-
         if let Some(mouse_event) = event.downcast::<MouseEvent>() {
             self.handle_mouse_event(mouse_event);
+            event.mark_as_handled();
         } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
-            if let Some(kevent) = event.downcast::<KeyboardEvent>() {
+            if let Some(keyboard_event) = event.downcast::<KeyboardEvent>() {
                 // This can't be inlined, as holding on to textinput.borrow_mut()
                 // during self.implicit_submission will cause a panic.
-                let action = self.textinput.borrow_mut().handle_keydown(kevent);
+                let action = self.textinput.borrow_mut().handle_keydown(keyboard_event);
                 self.handle_key_reaction(action, event, can_gc);
             }
-        } else if event.type_() == atom!("keypress") && !event.DefaultPrevented() {
-            // keypress should be deprecated and replaced by beforeinput.
-            // keypress was supposed to fire "blur" and "focus" events
-            // but already done in `document.rs`
         } else if event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
             event.type_() == atom!("compositionend")
@@ -816,6 +825,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                 );
             }
             if !flags.is_empty() {
+                event.mark_as_handled();
                 self.handle_text_content_changed(can_gc);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
@@ -824,6 +834,10 @@ impl VirtualMethods for HTMLTextAreaElement {
 
         self.validity_state(can_gc)
             .perform_validation_and_update(ValidationFlags::all(), can_gc);
+
+        if let Some(super_type) = self.super_type() {
+            super_type.handle_event(event, can_gc);
+        }
     }
 
     fn pop(&self) {

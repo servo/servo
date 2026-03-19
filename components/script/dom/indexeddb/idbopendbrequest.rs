@@ -19,7 +19,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{DomGlobal, reflect_dom_object};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
@@ -87,9 +86,7 @@ impl OpenRequestListener {
                 let error = map_backend_error_to_dom_error(err);
                 let cx = GlobalScope::get_cx();
                 rooted!(in(*cx) let mut rval = UndefinedValue());
-                error
-                    .clone()
-                    .to_jsval(cx, &global, rval.handle_mut(), can_gc);
+                error.to_jsval(cx, &global, rval.handle_mut(), can_gc);
                 open_request.set_result(rval.handle());
                 let event = Event::new(
                     &global,
@@ -141,13 +138,7 @@ impl IDBOpenDBRequest {
     ) -> DomRoot<IDBDatabase> {
         self.pending_connection.or_init(|| {
             debug_assert!(!upgraded, "A connection should exist for the upgraded db.");
-            IDBDatabase::new(
-                global,
-                DOMString::from_string(name.clone()),
-                self.get_id(),
-                version,
-                can_gc,
-            )
+            IDBDatabase::new(global, name.into(), self.get_id(), version, can_gc)
         })
     }
 
@@ -319,9 +310,9 @@ impl IDBOpenDBRequest {
 }
 
 impl IDBOpenDBRequestMethods<crate::DomTypeHolder> for IDBOpenDBRequest {
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbopendbrequest-onblocked
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbopendbrequest-onblocked
     event_handler!(blocked, GetOnblocked, SetOnblocked);
 
-    // https://www.w3.org/TR/IndexedDB-2/#dom-idbopendbrequest-onupgradeneeded
+    // https://www.w3.org/TR/IndexedDB-3/#dom-idbopendbrequest-onupgradeneeded
     event_handler!(upgradeneeded, GetOnupgradeneeded, SetOnupgradeneeded);
 }

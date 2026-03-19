@@ -7,7 +7,6 @@ from ... import create_console_api_message, recursive_compare
 # is covered by tests for each event in the dedicated folders.
 
 
-@pytest.mark.asyncio
 async def test_subscribe_to_one_context(
     bidi_session, subscribe_events, top_context, new_tab, wait_for_event, wait_for_future_safe
 ):
@@ -43,7 +42,6 @@ async def test_subscribe_to_one_context(
     remove_listener()
 
 
-@pytest.mark.asyncio
 async def test_subscribe_to_one_context_twice(
     bidi_session, subscribe_events, top_context, wait_for_event, wait_for_future_safe
 ):
@@ -77,7 +75,6 @@ async def test_subscribe_to_one_context_twice(
     remove_listener()
 
 
-@pytest.mark.asyncio
 async def test_subscribe_to_one_context_and_then_to_all(
     bidi_session, subscribe_events, top_context, new_tab, wait_for_event, wait_for_future_safe
 ):
@@ -152,7 +149,6 @@ async def test_subscribe_to_one_context_and_then_to_all(
     remove_listener()
 
 
-@pytest.mark.asyncio
 async def test_subscribe_to_all_context_and_then_to_one_again(
     bidi_session, subscribe_events, top_context, new_tab, wait_for_event, wait_for_future_safe
 ):
@@ -180,7 +176,6 @@ async def test_subscribe_to_all_context_and_then_to_one_again(
     remove_listener()
 
 
-@pytest.mark.asyncio
 async def test_subscribe_to_top_context_with_iframes(
     bidi_session,
     subscribe_events,
@@ -228,7 +223,6 @@ async def test_subscribe_to_top_context_with_iframes(
     remove_listener()
 
 
-@pytest.mark.asyncio
 async def test_subscribe_to_child_context(
     bidi_session,
     subscribe_events,

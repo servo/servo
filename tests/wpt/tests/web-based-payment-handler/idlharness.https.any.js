@@ -9,7 +9,7 @@
 // https://w3c.github.io/web-based-payment-handler/
 
 idl_test(
-  ['payment-handler'],
+  ['web-based-payment-handler'],
   ['service-workers', 'html', 'dom'],
   async (idl_array, t) => {
     const isWindow = self.GLOBAL.isWindow();

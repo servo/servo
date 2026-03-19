@@ -20,16 +20,36 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::webgpu::gpudevice::GPUDevice;
 use crate::script_runtime::CanGc;
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct DroppableGPUPipelineLayout {
+    #[no_trace]
+    channel: WebGPU,
+    #[no_trace]
+    pipeline_layout: WebGPUPipelineLayout,
+}
+
+impl Drop for DroppableGPUPipelineLayout {
+    fn drop(&mut self) {
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::DropPipelineLayout(self.pipeline_layout.0))
+        {
+            warn!(
+                "Failed to send DropPipelineLayout ({:?}) ({})",
+                self.pipeline_layout.0, e
+            );
+        }
+    }
+}
+
 #[dom_struct]
 pub(crate) struct GPUPipelineLayout {
     reflector_: Reflector,
-    #[no_trace]
-    channel: WebGPU,
     label: DomRefCell<USVString>,
     #[no_trace]
-    pipeline_layout: WebGPUPipelineLayout,
-    #[no_trace]
     bind_group_layouts: Vec<WebGPUBindGroupLayout>,
+    droppable: DroppableGPUPipelineLayout,
 }
 
 impl GPUPipelineLayout {
@@ -41,10 +61,12 @@ impl GPUPipelineLayout {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            channel,
             label: DomRefCell::new(label),
-            pipeline_layout,
             bind_group_layouts: bgls,
+            droppable: DroppableGPUPipelineLayout {
+                channel,
+                pipeline_layout,
+            },
         }
     }
 
@@ -71,7 +93,7 @@ impl GPUPipelineLayout {
 
 impl GPUPipelineLayout {
     pub(crate) fn id(&self) -> WebGPUPipelineLayout {
-        self.pipeline_layout
+        self.droppable.pipeline_layout
     }
 
     pub(crate) fn bind_group_layouts(&self) -> Vec<WebGPUBindGroupLayout> {
@@ -110,7 +132,7 @@ impl GPUPipelineLayout {
         let pipeline_layout = WebGPUPipelineLayout(pipeline_layout_id);
         GPUPipelineLayout::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             pipeline_layout,
             descriptor.parent.label.clone(),
             bgls,
@@ -128,20 +150,5 @@ impl GPUPipelineLayoutMethods<crate::DomTypeHolder> for GPUPipelineLayout {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
     fn SetLabel(&self, value: USVString) {
         *self.label.borrow_mut() = value;
-    }
-}
-
-impl Drop for GPUPipelineLayout {
-    fn drop(&mut self) {
-        if let Err(e) = self
-            .channel
-            .0
-            .send(WebGPURequest::DropPipelineLayout(self.pipeline_layout.0))
-        {
-            warn!(
-                "Failed to send DropPipelineLayout ({:?}) ({})",
-                self.pipeline_layout.0, e
-            );
-        }
     }
 }

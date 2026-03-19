@@ -18,7 +18,7 @@ interface Sanitizer {
   // Query configuration:
   SanitizerConfig get();
 
-  // Modify a Sanitizer’s lists and fields:
+  // Modify a Sanitizer's lists and fields:
   boolean allowElement(SanitizerElementWithAttributes element);
   boolean removeElement(SanitizerElement element);
   boolean replaceElementWithChildren(SanitizerElement element);

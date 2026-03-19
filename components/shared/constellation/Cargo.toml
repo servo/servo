@@ -1,11 +1,13 @@
 [package]
-name = "constellation_traits"
+name = "servo-constellation-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "constellation_traits"
@@ -32,15 +34,14 @@ malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
 paint_api = { workspace = true }
-pixels = { path = "../../pixels" }
+pixels = { workspace = true }
 profile_traits = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
-servo_config = { path = "../../config" }
-servo_url = { path = "../../url" }
+servo_config = { workspace = true }
+servo-url = { workspace = true }
 storage_traits = { workspace = true }
 strum = { workspace = true }
-stylo_traits = { workspace = true }
 uuid = { workspace = true }
 webgpu_traits = { workspace = true }
 webrender_api = { workspace = true }

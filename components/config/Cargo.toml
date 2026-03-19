@@ -1,11 +1,13 @@
 [package]
-name = "servo_config"
+name = "servo-config"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "servo_config"
@@ -14,6 +16,5 @@ path = "lib.rs"
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-servo_config_macro = { path = "macro" }
-servo_url = { path = "../url" }
+servo_config_macro = { workspace = true }
 stylo_static_prefs = { workspace = true }

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://crbug.com/486467574">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <video>
+    <a>
+      <div id="container"></div>
+    </a>
+  </video>
+  <script>
+    test(() => {
+      const container = document.getElementById('container');
+      const obj = document.createElement('div');
+      container.appendChild(obj);
+      const computedStyle = getComputedStyle(obj, '::selection');
+      const computedColor = computedStyle.getPropertyValue('color');
+      // If `<video>` uses a shadow tree, it shouldn't return a value as per
+      // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle step 5.
+      // However I guess https://html.spec.whatwg.org/#video doesn't
+      // technically require `<video>` to use a shadow tree...
+      assert_in_array(computedColor, ['', 'rgb(0, 0, 0)']);
+    }, 'computed ::selection color should follow the configured rule');
+  </script>
+</body>

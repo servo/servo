@@ -215,8 +215,14 @@ impl Actor for WatcherActor {
     ///   returns the associated `BrowsingContextActor`. Every target sent creates a
     ///   `target-available-form` event.
     ///
+    /// - `unwatchTargets`: Stop watching a set of targets.
+    ///   This is currently a no-op because `watchTargets` only returns a point-in-time snapshot.
+    ///
     /// - `watchResources`: Start watching certain resource types. This sends
     ///   `resources-available-array` events.
+    ///
+    /// - `unwatchResources`: Stop watching a set of resources.
+    ///   This is currently a no-op because `watchResources` only returns a point-in-time snapshot.
     ///
     /// - `getNetworkParentActor`: Returns the network parent actor. It doesn't seem to do much at
     ///   the moment.
@@ -273,6 +279,10 @@ impl Actor for WatcherActor {
                 // and processed the message so that it can continue
                 let msg = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&msg)?
+            },
+            "unwatchTargets" => {
+                // "unwatchTargets" messages are one-way and expect no reply.
+                request.mark_handled();
             },
             "watchResources" => {
                 let Some(resource_types) = msg.get("resourceTypes") else {
@@ -356,6 +366,10 @@ impl Actor for WatcherActor {
                 }
                 let msg = EmptyReplyMsg { from: self.name() };
                 request.reply_final(&msg)?
+            },
+            "unwatchResources" => {
+                // "unwatchResources" messages are one-way and expect no reply.
+                request.mark_handled();
             },
             "getParentBrowsingContextID" => {
                 let msg = GetParentBrowsingContextIDReply {

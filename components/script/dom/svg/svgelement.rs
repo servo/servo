@@ -74,10 +74,15 @@ impl VirtualMethods for SVGElement {
         Some(self.as_element() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
         let element = self.as_element();
         if let (&local_name!("nonce"), mutation) = (attr.local_name(), mutation) {
             match mutation {
@@ -138,11 +143,22 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         let document = self.element.owner_document();
         document.request_focus_with_options(
             Some(&self.element),
-            FocusInitiator::Local,
+            FocusInitiator::Script,
             FocusOptions {
                 preventScroll: options.preventScroll,
             },
             CanGc::note(),
         );
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
+    fn TabIndex(&self) -> i32 {
+        self.element.tab_index()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>
+    fn SetTabIndex(&self, tab_index: i32, can_gc: CanGc) {
+        self.element
+            .set_int_attribute(&local_name!("tabindex"), tab_index, can_gc);
     }
 }

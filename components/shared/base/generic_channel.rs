@@ -7,6 +7,7 @@
 use std::fmt;
 use std::fmt::Display;
 use std::marker::PhantomData;
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use crossbeam_channel::RecvTimeoutError;
@@ -20,13 +21,24 @@ use servo_config::opts;
 
 mod callback;
 pub use callback::GenericCallback;
+mod lazy_callback;
+pub use lazy_callback::{CallbackSetter, LazyCallback, lazy_callback};
 mod oneshot;
-/// We want to discourage anybody from using the ipc_channel crate in servo and use 'GenericChannels' instead.
-/// 'GenericSharedMemory' is, however, still useful so we reexport it under a different name for future optimization.
-pub use ipc_channel::ipc::IpcSharedMemory as GenericSharedMemory;
+mod shared_memory;
 pub use oneshot::{GenericOneshotReceiver, GenericOneshotSender, oneshot};
+pub use shared_memory::GenericSharedMemory;
 mod generic_channelset;
 pub use generic_channelset::{GenericReceiverSet, GenericSelectionResult};
+
+/// Cache for being in Ipc Mode
+static USE_IPC: OnceLock<bool> = OnceLock::new();
+
+/// Return if we should be in IPC Mode
+fn use_ipc() -> bool {
+    *USE_IPC.get_or_init(|| {
+        servo_config::opts::get().multiprocess || servo_config::opts::get().force_ipc
+    })
+}
 
 /// Abstraction of the ability to send a particular type of message cross-process.
 /// This can be used to ease the use of GenericSender sub-fields.
@@ -413,7 +425,7 @@ where
         match self.0 {
             GenericReceiverVariants::Ipc(ipc_receiver) => {
                 let (crossbeam_sender, crossbeam_receiver) = crossbeam_channel::unbounded();
-                let crossbeam_sender_clone = crossbeam_sender.clone();
+                let crossbeam_sender_clone = crossbeam_sender;
                 ROUTER.add_typed_route(
                     ipc_receiver,
                     Box::new(move |message| {
@@ -481,7 +493,7 @@ where
                 .newtype_variant::<ipc_channel::ipc::IpcReceiver<T>>()
                 .map(|receiver| GenericReceiver(GenericReceiverVariants::Ipc(receiver))),
             GenericReceiverVariantNames::Crossbeam => {
-                if opts::get().multiprocess {
+                if use_ipc() {
                     return Err(serde::de::Error::custom(
                         "Crossbeam channel found in multiprocess mode!",
                     ));
@@ -551,7 +563,7 @@ pub fn channel<T>() -> Option<(GenericSender<T>, GenericReceiver<T>)>
 where
     T: for<'de> Deserialize<'de> + Serialize,
 {
-    if servo_config::opts::get().multiprocess || servo_config::opts::get().force_ipc {
+    if use_ipc() {
         new_generic_channel_ipc().ok()
     } else {
         Some(new_generic_channel_crossbeam())

@@ -434,10 +434,13 @@ impl IntersectionObserver {
             // Handle if root is an element.
             Some(ElementOrDocument::Element(element)) => {
                 // TODO: recheck scrollbar approach and clip-path clipping from Chromium implementation.
-                if element.style().is_some_and(|style| {
-                    style.clone_overflow_x() != Overflow::Visible ||
-                        style.clone_overflow_y() != Overflow::Visible
-                }) {
+                if element
+                    .upcast::<Node>()
+                    .effective_overflow_without_reflow()
+                    .is_some_and(|overflow_axes| {
+                        overflow_axes.x != Overflow::Visible || overflow_axes.y != Overflow::Visible
+                    })
+                {
                     // > Otherwise, if the intersection root has a content clip, it’s the element’s padding area.
                     window.box_area_query_without_reflow(
                         &DomRoot::upcast::<Node>(element.clone()),
@@ -714,7 +717,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-rootmargin>
     fn RootMargin(&self) -> DOMString {
-        DOMString::from_string(self.root_margin.borrow().to_css_string())
+        self.root_margin.borrow().to_css_string().into()
     }
 
     /// > Offsets are applied to scrollports on the path from intersection root to target,
@@ -722,7 +725,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-scrollmargin>
     fn ScrollMargin(&self) -> DOMString {
-        DOMString::from_string(self.scroll_margin.borrow().to_css_string())
+        self.scroll_margin.borrow().to_css_string().into()
     }
 
     /// > A list of thresholds, sorted in increasing numeric order, where each threshold

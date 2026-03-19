@@ -21,6 +21,7 @@ use style::values::specified::Quotes;
 use crate::context::LayoutContext;
 use crate::dom::{BoxSlot, LayoutBox, NodeExt};
 use crate::flow::inline::SharedInlineStyles;
+use crate::lists::generate_counter_representation;
 use crate::quotes::quotes_for_lang;
 use crate::replaced::ReplacedContents;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
@@ -151,7 +152,8 @@ fn traverse_element<'dom>(
                 // <https://drafts.csswg.org/css-display-3/#valdef-display-contents>
                 element.unset_all_boxes()
             } else {
-                let shared_inline_styles: SharedInlineStyles = (&info).into();
+                let shared_inline_styles =
+                    SharedInlineStyles::from_info_and_context(&info, context);
                 element
                     .box_slot()
                     .set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
@@ -193,7 +195,8 @@ fn traverse_eager_pseudo_element<'dom>(
         Display::Contents => {
             let items = generate_pseudo_element_content(&pseudo_element_info, context);
             let box_slot = pseudo_element_info.node.box_slot();
-            let shared_inline_styles: SharedInlineStyles = (&pseudo_element_info).into();
+            let shared_inline_styles =
+                SharedInlineStyles::from_info_and_context(&pseudo_element_info, context);
             box_slot.set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
 
             handler.enter_display_contents(shared_inline_styles);
@@ -390,12 +393,13 @@ fn generate_pseudo_element_content(
                             vec.push(PseudoElementContentItem::Text(quote));
                         }
                     },
-                    ContentItem::Counter(_, _) |
-                    ContentItem::Counters(_, _, _) |
-                    ContentItem::NoOpenQuote |
-                    ContentItem::NoCloseQuote => {
-                        // TODO: Add support for counters and quotes.
+                    ContentItem::Counter(_, style) | ContentItem::Counters(_, _, style) => {
+                        // TODO: Add support for counters, this assumes a value of 0.
+                        vec.push(PseudoElementContentItem::Text(
+                            generate_counter_representation(style).to_string(),
+                        ));
                     },
+                    ContentItem::NoOpenQuote | ContentItem::NoCloseQuote => {},
                 }
             }
             vec

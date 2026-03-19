@@ -16,7 +16,7 @@ use crate::dom::promise::Promise;
 use crate::dom::stream::readablestreambyobreader::ReadableStreamBYOBReader;
 use crate::dom::stream::readablestreamdefaultreader::ReadableStreamDefaultReader;
 use crate::dom::types::ReadableStream;
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 
 /// <https://streams.spec.whatwg.org/#readablestreamgenericreader>
 pub(crate) trait ReadableStreamGenericReader {
@@ -63,10 +63,9 @@ pub(crate) trait ReadableStreamGenericReader {
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-cancel>
     fn reader_generic_cancel(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         // Let stream be reader.[[stream]].
         let stream = self.get_stream();
@@ -76,7 +75,7 @@ pub(crate) trait ReadableStreamGenericReader {
             stream.expect("Reader should have a stream when generic cancel is called into.");
 
         // Return ! ReadableStreamCancel(stream, reason).
-        stream.cancel(cx, global, reason, can_gc)
+        stream.cancel(cx, global, reason)
     }
 
     /// <https://streams.spec.whatwg.org/#readable-stream-reader-generic-release>
@@ -142,20 +141,22 @@ pub(crate) trait ReadableStreamGenericReader {
     // <https://streams.spec.whatwg.org/#generic-reader-cancel>
     fn generic_cancel(
         &self,
-        cx: SafeJSContext,
+        cx: &mut js::context::JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-        can_gc: CanGc,
     ) -> Rc<Promise> {
         if self.get_stream().is_none() {
             // If this.[[stream]] is undefined,
             // return a promise rejected with a TypeError exception.
-            let promise = Promise::new(global, can_gc);
-            promise.reject_error(Error::Type(c"stream is undefined".to_owned()), can_gc);
+            let promise = Promise::new2(cx, global);
+            promise.reject_error(
+                Error::Type(c"stream is undefined".to_owned()),
+                CanGc::from_cx(cx),
+            );
             promise
         } else {
             // Return ! ReadableStreamReaderGenericCancel(this, reason).
-            self.reader_generic_cancel(cx, global, reason, can_gc)
+            self.reader_generic_cancel(cx, global, reason)
         }
     }
 

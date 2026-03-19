@@ -21,6 +21,7 @@ use encoding_rs::Encoding;
 use fonts::{ByteIndex, TextByteRange};
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use itertools::Itertools;
+use js::context::JSContext;
 use js::jsapi::{
     ClippedTime, DateGetMsecSinceEpoch, Handle, JS_ClearPendingException, JSObject, NewDateObject,
     NewUCRegExpObject, ObjectIsDate, RegExpFlag_UnicodeSets, RegExpFlags,
@@ -100,6 +101,7 @@ const DEFAULT_SUBMIT_VALUE: &str = "Submit";
 const DEFAULT_RESET_VALUE: &str = "Reset";
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
+const DEFAULT_FILE_INPUT_MULTIPLE_VALUE: &str = "No files chosen";
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -108,9 +110,13 @@ struct TextValueShadowTree {
 }
 
 impl TextValueShadowTree {
-    fn new(shadow_root: &Node, can_gc: CanGc) -> Self {
-        let value = Text::new(Default::default(), &shadow_root.owner_document(), can_gc);
-        Node::replace_all(Some(value.upcast()), shadow_root, can_gc);
+    fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
+        let value = Text::new(
+            Default::default(),
+            &shadow_root.owner_document(),
+            CanGc::from_cx(cx),
+        );
+        Node::replace_all(cx, Some(value.upcast()), shadow_root);
         Self {
             value: value.as_traced(),
         }
@@ -153,29 +159,29 @@ struct TextInputWidgetShadowTree {
 }
 
 impl TextInputWidgetShadowTree {
-    fn new(shadow_root: &Node, can_gc: CanGc) -> Self {
+    fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
         let document = shadow_root.owner_document();
         let inner_container = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("div")),
             None,
             &document,
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
         );
 
-        Node::replace_all(Some(inner_container.upcast()), shadow_root.upcast(), can_gc);
+        Node::replace_all(cx, Some(inner_container.upcast()), shadow_root.upcast());
         inner_container
             .upcast::<Node>()
             .set_implemented_pseudo_element(PseudoElement::ServoTextControlInnerContainer);
 
         let text_container = create_ua_widget_div_with_text_node(
+            cx,
             &document,
             inner_container.upcast(),
             PseudoElement::ServoTextControlInnerEditor,
             false,
-            can_gc,
         );
 
         Self {
@@ -189,8 +195,8 @@ impl TextInputWidgetShadowTree {
     /// element with shadow dom that is quite bulky.
     fn init_placeholder_container_if_necessary(
         &self,
+        cx: &mut JSContext,
         host: &HTMLInputElement,
-        can_gc: CanGc,
     ) -> Option<DomRoot<Element>> {
         if let Some(placeholder_container) = &*self.placeholder_container.borrow() {
             return Some(placeholder_container.root_element());
@@ -202,11 +208,11 @@ impl TextInputWidgetShadowTree {
         }
 
         let placeholder_container = create_ua_widget_div_with_text_node(
+            cx,
             &host.owner_document(),
             self.inner_container.upcast::<Node>(),
             PseudoElement::Placeholder,
             true,
-            can_gc,
         );
         *self.placeholder_container.borrow_mut() = Some(placeholder_container.as_traced());
         Some(placeholder_container)
@@ -214,21 +220,21 @@ impl TextInputWidgetShadowTree {
 
     fn placeholder_character_data(
         &self,
+        cx: &mut JSContext,
         input_element: &HTMLInputElement,
-        can_gc: CanGc,
     ) -> Option<DomRoot<CharacterData>> {
-        self.init_placeholder_container_if_necessary(input_element, can_gc)
+        self.init_placeholder_container_if_necessary(cx, input_element)
             .and_then(|placeholder_container| {
                 let first_child = placeholder_container.upcast::<Node>().GetFirstChild()?;
                 Some(DomRoot::from_ref(first_child.downcast::<CharacterData>()?))
             })
     }
 
-    fn update_placeholder(&self, input_element: &HTMLInputElement, can_gc: CanGc) {
-        if let Some(character_data) = self.placeholder_character_data(input_element, can_gc) {
+    fn update_placeholder(&self, cx: &mut JSContext, input_element: &HTMLInputElement) {
+        if let Some(character_data) = self.placeholder_character_data(cx, input_element) {
             let placeholder_value = input_element.placeholder.borrow().clone();
             if character_data.Data() != placeholder_value {
-                character_data.SetData(placeholder_value.clone());
+                character_data.SetData(placeholder_value);
             }
         }
     }
@@ -285,18 +291,18 @@ struct ColorInputShadowTree {
 }
 
 impl ColorInputShadowTree {
-    fn new(shadow_root: &Node, can_gc: CanGc) -> Self {
+    fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
         let color_value = Element::create(
+            cx,
             QualName::new(None, ns!(html), local_name!("div")),
             None,
             &shadow_root.owner_document(),
             ElementCreator::ScriptCreated,
             CustomElementCreationMode::Asynchronous,
             None,
-            can_gc,
         );
 
-        Node::replace_all(Some(color_value.upcast()), shadow_root.upcast(), can_gc);
+        Node::replace_all(cx, Some(color_value.upcast()), shadow_root.upcast());
         color_value
             .upcast::<Node>()
             .set_implemented_pseudo_element(PseudoElement::ColorSwatch);
@@ -325,20 +331,25 @@ enum InputElementShadowTree {
 }
 
 impl InputElementShadowTree {
-    fn new(input_element: &HTMLInputElement, can_gc: CanGc) -> Self {
+    #[expect(unsafe_code)]
+    fn new(input_element: &HTMLInputElement, _can_gc: CanGc) -> Self {
+        // TODO https://github.com/servo/servo/issues/43253
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         let element = input_element.upcast::<Element>();
         let shadow_root = element
             .shadow_root()
-            .unwrap_or_else(|| element.attach_ua_shadow_root(true, can_gc));
+            .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
         let shadow_root = shadow_root.upcast();
 
         if input_element.input_type() == InputType::Color {
-            return Self::ColorInput(ColorInputShadowTree::new(shadow_root, can_gc));
+            return Self::ColorInput(ColorInputShadowTree::new(cx, shadow_root));
         }
         if input_element.renders_as_text_input_widget() {
-            return Self::TextInput(TextInputWidgetShadowTree::new(shadow_root, can_gc));
+            return Self::TextInput(TextInputWidgetShadowTree::new(cx, shadow_root));
         }
-        Self::TextValue(TextValueShadowTree::new(shadow_root, can_gc))
+        Self::TextValue(TextValueShadowTree::new(cx, shadow_root))
     }
 
     fn is_valid_for_element(&self, input_element: &HTMLInputElement) -> bool {
@@ -351,9 +362,9 @@ impl InputElementShadowTree {
         matches!(self, InputElementShadowTree::TextValue(_))
     }
 
-    fn update_placeholder_contents(&self, input_element: &HTMLInputElement, can_gc: CanGc) {
+    fn update_placeholder_contents(&self, cx: &mut JSContext, input_element: &HTMLInputElement) {
         if let InputElementShadowTree::TextInput(shadow_tree) = self {
-            shadow_tree.update_placeholder(input_element, can_gc);
+            shadow_tree.update_placeholder(cx, input_element);
         }
     }
 
@@ -371,40 +382,40 @@ impl InputElementShadowTree {
 /// Create a div element with a text node within an UA Widget and either append or prepend it to
 /// the designated parent. This is used to create the text container for input elements.
 fn create_ua_widget_div_with_text_node(
+    cx: &mut JSContext,
     document: &Document,
     parent: &Node,
     implemented_pseudo: PseudoElement,
     as_first_child: bool,
-    can_gc: CanGc,
 ) -> DomRoot<Element> {
     let el = Element::create(
+        cx,
         QualName::new(None, ns!(html), local_name!("div")),
         None,
         document,
         ElementCreator::ScriptCreated,
         CustomElementCreationMode::Asynchronous,
         None,
-        can_gc,
     );
 
     parent
         .upcast::<Node>()
-        .AppendChild(el.upcast::<Node>(), can_gc)
+        .AppendChild(cx, el.upcast::<Node>())
         .unwrap();
     el.upcast::<Node>()
         .set_implemented_pseudo_element(implemented_pseudo);
-    let text_node = document.CreateTextNode("".into(), can_gc);
+    let text_node = document.CreateTextNode("".into(), CanGc::from_cx(cx));
 
     if !as_first_child {
         el.upcast::<Node>()
-            .AppendChild(text_node.upcast::<Node>(), can_gc)
+            .AppendChild(cx, text_node.upcast::<Node>())
             .unwrap();
     } else {
         el.upcast::<Node>()
             .InsertBefore(
+                cx,
                 text_node.upcast::<Node>(),
                 el.upcast::<Node>().GetFirstChild().as_deref(),
-                can_gc,
             )
             .unwrap();
     }
@@ -869,10 +880,7 @@ impl HTMLInputElement {
 
         // Step 2. Otherwise, if the attribute is absent, then the allowed value step
         // is the default step multiplied by the step scale factor.
-        let Some(attribute) = self
-            .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("step"))
-        else {
+        let Some(attribute) = self.upcast::<Element>().get_attribute(&local_name!("step")) else {
             return Some(default_step * self.step_scale_factor());
         };
 
@@ -900,7 +908,7 @@ impl HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage#concept-input-min>
     fn minimum(&self) -> Option<f64> {
         self.upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("min"))
+            .get_attribute(&local_name!("min"))
             .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
             .or_else(|| self.default_minimum())
     }
@@ -908,7 +916,7 @@ impl HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage#concept-input-max>
     fn maximum(&self) -> Option<f64> {
         self.upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("max"))
+            .get_attribute(&local_name!("max"))
             .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
             .or_else(|| self.default_maximum())
     }
@@ -1005,7 +1013,7 @@ impl HTMLInputElement {
         // is not an error, then return that result.
         if let Some(minimum) = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("min"))
+            .get_attribute(&local_name!("min"))
             .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
         {
             return minimum;
@@ -1016,7 +1024,7 @@ impl HTMLInputElement {
         // is not an error, then return that result.
         if let Some(value) = self
             .upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("value"))
+            .get_attribute(&local_name!("value"))
             .and_then(|attribute| self.convert_string_to_number(&attribute.value()))
         {
             return value;
@@ -1439,6 +1447,7 @@ impl HTMLInputElement {
         match action {
             KeyReaction::TriggerDefaultAction => {
                 self.implicit_submission(can_gc);
+                event.mark_as_handled();
             },
             KeyReaction::DispatchInput(text, is_composing, input_type) => {
                 if event.IsTrusted() {
@@ -1473,6 +1482,9 @@ impl HTMLInputElement {
             InputType::Range => "".into(),
             InputType::File => {
                 let Some(filelist) = self.filelist.get() else {
+                    if self.Multiple() {
+                        return DEFAULT_FILE_INPUT_MULTIPLE_VALUE.into();
+                    }
                     return DEFAULT_FILE_INPUT_VALUE.into();
                 };
                 let length = filelist.Length();
@@ -1481,6 +1493,9 @@ impl HTMLInputElement {
                 }
 
                 let Some(first_item) = filelist.Item(0) else {
+                    if self.Multiple() {
+                        return DEFAULT_FILE_INPUT_MULTIPLE_VALUE.into();
+                    }
                     return DEFAULT_FILE_INPUT_VALUE.into();
                 };
                 first_item.name().to_string().into()
@@ -1488,7 +1503,7 @@ impl HTMLInputElement {
             _ => {
                 if let Some(attribute_value) = self
                     .upcast::<Element>()
-                    .get_attribute(&ns!(), &local_name!("value"))
+                    .get_attribute(&local_name!("value"))
                     .map(|attribute| attribute.Value())
                 {
                     return attribute_value;
@@ -1692,13 +1707,13 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             ValueMode::Value => self.textinput.borrow().get_content(),
             ValueMode::Default => self
                 .upcast::<Element>()
-                .get_attribute(&ns!(), &local_name!("value"))
+                .get_attribute(&local_name!("value"))
                 .map_or(DOMString::from(""), |a| {
                     DOMString::from(a.summarize().value)
                 }),
             ValueMode::DefaultOn => self
                 .upcast::<Element>()
-                .get_attribute(&ns!(), &local_name!("value"))
+                .get_attribute(&local_name!("value"))
                 .map_or(DOMString::from("on"), |a| {
                     DOMString::from(a.summarize().value)
                 }),
@@ -2094,13 +2109,13 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-checkvalidity>
-    fn CheckValidity(&self, can_gc: CanGc) -> bool {
-        self.check_validity(can_gc)
+    fn CheckValidity(&self, cx: &mut JSContext) -> bool {
+        self.check_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-reportvalidity>
-    fn ReportValidity(&self, can_gc: CanGc) -> bool {
-        self.report_validity(can_gc)
+    fn ReportValidity(&self, cx: &mut JSContext) -> bool {
+        self.report_validity(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
@@ -2240,8 +2255,8 @@ impl HTMLInputElement {
                         datums.push(FormDatum {
                             // XXX(izgzhen): Spec says 'application/octet-stream' as the type,
                             // but this is _type_ of element rather than content right?
-                            ty: ty.clone(),
-                            name: name.clone(),
+                            ty,
+                            name,
                             value: FormDatumValue::String(DOMString::from("")),
                         })
                     },
@@ -2256,7 +2271,7 @@ impl HTMLInputElement {
             InputType::Hidden => {
                 if name.to_ascii_lowercase() == "_charset_" {
                     return vec![FormDatum {
-                        ty: ty.clone(),
+                        ty,
                         name,
                         value: FormDatumValue::String(match encoding {
                             None => DOMString::from("UTF-8"),
@@ -2276,7 +2291,7 @@ impl HTMLInputElement {
 
         // Step 5.12
         vec![FormDatum {
-            ty: ty.clone(),
+            ty,
             name,
             value: FormDatumValue::String(self.Value()),
         }]
@@ -2471,7 +2486,7 @@ impl HTMLInputElement {
                     .parse_local_date_time_string()
                     .map(|date_time| date_time.to_local_date_time_string());
                 match time {
-                    Some(normalized_string) => *value = DOMString::from_string(normalized_string),
+                    Some(normalized_string) => *value = normalized_string.into(),
                     None => value.clear(),
                 }
             },
@@ -2673,7 +2688,7 @@ impl HTMLInputElement {
         .into();
     }
 
-    // https://html.spec.whatwg.org/multipage/#implicit-submission
+    /// <https://html.spec.whatwg.org/multipage/#implicit-submission>
     fn implicit_submission(&self, can_gc: CanGc) {
         let doc = self.owner_document();
         let node = doc.upcast::<Node>();
@@ -2687,9 +2702,9 @@ impl HTMLInputElement {
             return;
         }
         let submit_button = node
-            .query_selector_iter(DOMString::from("input[type=submit]"))
-            .unwrap()
+            .traverse_preorder(ShadowIncluding::No)
             .filter_map(DomRoot::downcast::<HTMLInputElement>)
+            .filter(|input| input.input_type() == InputType::Submit)
             .find(|r| r.form_owner() == owner);
         match submit_button {
             Some(ref button) => {
@@ -2698,13 +2713,12 @@ impl HTMLInputElement {
                     // but we can get here from synthetic keydown events
                     button
                         .upcast::<Node>()
-                        .fire_synthetic_pointer_event_not_trusted(DOMString::from("click"), can_gc);
+                        .fire_synthetic_pointer_event_not_trusted(atom!("click"), can_gc);
                 }
             },
             None => {
                 let mut inputs = node
-                    .query_selector_iter(DOMString::from("input"))
-                    .unwrap()
+                    .traverse_preorder(ShadowIncluding::No)
                     .filter_map(DomRoot::downcast::<HTMLInputElement>)
                     .filter(|input| {
                         input.form_owner() == owner &&
@@ -2850,7 +2864,7 @@ impl HTMLInputElement {
     /// This does the safe Rust part of conversion; the unsafe JS Date part
     /// is in SetValueAsDate
     fn convert_datetime_to_dom_string(&self, value: OffsetDateTime) -> DOMString {
-        DOMString::from_string(match self.input_type() {
+        match self.input_type() {
             InputType::Date => value.to_date_string(),
             InputType::Month => value.to_month_string(),
             InputType::Week => value.to_week_string(),
@@ -2859,7 +2873,8 @@ impl HTMLInputElement {
             _ => {
                 unreachable!("Should not have called convert_datetime_to_string for non-Date types")
             },
-        })
+        }
+        .into()
     }
 
     fn update_related_validity_states(&self, can_gc: CanGc) {
@@ -3003,6 +3018,8 @@ impl HTMLInputElement {
                         text: self.Value().to_string(),
                         insertion_point: self.GetSelectionEnd(),
                         multiline: false,
+                        // We follow chromium's heuristic to show the virtual keyboard only if user had interacted before.
+                        allow_virtual_keyboard: self.owner_window().has_sticky_activation(),
                     }),
                     None,
                 );
@@ -3037,12 +3054,17 @@ impl VirtualMethods for HTMLInputElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         let could_have_had_embedder_control = self.may_have_embedder_control();
 
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         match *attr.local_name() {
             local_name!("disabled") => {
@@ -3063,8 +3085,6 @@ impl VirtualMethods for HTMLInputElement {
                     let read_write = !(self.ReadOnly() || el.disabled_state());
                     el.set_read_write_state(read_write);
                 }
-
-                el.update_sequentially_focusable_status(can_gc);
             },
             local_name!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
@@ -3075,7 +3095,7 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     AttributeMutation::Removed => false,
                 };
-                self.update_checked_state(checked_state, false, can_gc);
+                self.update_checked_state(checked_state, false, CanGc::from_cx(cx));
             },
             local_name!("size") => {
                 let size = mutation.new_value(attr).map(|value| value.as_uint());
@@ -3102,7 +3122,7 @@ impl VirtualMethods for HTMLInputElement {
 
                         if new_type == InputType::File {
                             let window = self.owner_window();
-                            let filelist = FileList::new(&window, vec![], can_gc);
+                            let filelist = FileList::new(&window, vec![], CanGc::from_cx(cx));
                             self.filelist.set(Some(&filelist));
                         }
 
@@ -3111,7 +3131,7 @@ impl VirtualMethods for HTMLInputElement {
                             // Step 1
                             (&ValueMode::Value, false, ValueMode::Default) |
                             (&ValueMode::Value, false, ValueMode::DefaultOn) => {
-                                self.SetValue(old_idl_value, can_gc)
+                                self.SetValue(old_idl_value, CanGc::from_cx(cx))
                                     .expect("Failed to set input value on type change to a default ValueMode.");
                             },
 
@@ -3119,11 +3139,11 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Value) if old_value_mode != ValueMode::Value => {
                                 self.SetValue(
                                     self.upcast::<Element>()
-                                        .get_attribute(&ns!(), &local_name!("value"))
+                                        .get_attribute(&local_name!("value"))
                                         .map_or(DOMString::from(""), |a| {
                                             DOMString::from(a.summarize().value)
                                         }),
-                                    can_gc,
+                                    CanGc::from_cx(cx),
                                 )
                                 .expect(
                                     "Failed to set input value on type change to ValueMode::Value.",
@@ -3135,7 +3155,7 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Filename)
                                 if old_value_mode != ValueMode::Filename =>
                             {
-                                self.SetValue(DOMString::from(""), can_gc)
+                                self.SetValue(DOMString::from(""), CanGc::from_cx(cx))
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             },
                             _ => {},
@@ -3143,7 +3163,10 @@ impl VirtualMethods for HTMLInputElement {
 
                         // Step 5
                         if new_type == InputType::Radio {
-                            self.radio_group_updated(self.radio_group_name().as_ref(), can_gc);
+                            self.radio_group_updated(
+                                self.radio_group_name().as_ref(),
+                                CanGc::from_cx(cx),
+                            );
                         }
 
                         // Step 6
@@ -3160,7 +3183,11 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     AttributeMutation::Removed => {
                         if self.input_type() == InputType::Radio {
-                            broadcast_radio_checked(self, self.radio_group_name().as_ref(), can_gc);
+                            broadcast_radio_checked(
+                                self,
+                                self.radio_group_name().as_ref(),
+                                CanGc::from_cx(cx),
+                            );
                         }
                         self.input_type.set(InputType::default());
                         let el = self.upcast::<Element>();
@@ -3171,8 +3198,8 @@ impl VirtualMethods for HTMLInputElement {
                 }
 
                 self.update_placeholder_shown_state();
-                self.get_or_create_shadow_tree(can_gc)
-                    .update_placeholder_contents(self, can_gc);
+                self.get_or_create_shadow_tree(CanGc::from_cx(cx))
+                    .update_placeholder_contents(cx, self);
             },
             local_name!("value") if !self.value_dirty.get() => {
                 // This is only run when the `value` or `defaultValue` attribute is set. It
@@ -3188,7 +3215,7 @@ impl VirtualMethods for HTMLInputElement {
             local_name!("name") if self.input_type() == InputType::Radio => {
                 self.radio_group_updated(
                     mutation.new_value(attr).as_ref().map(|name| name.as_atom()),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             },
             local_name!("maxlength") => match *attr.value() {
@@ -3225,8 +3252,8 @@ impl VirtualMethods for HTMLInputElement {
                     }
                 }
                 self.update_placeholder_shown_state();
-                self.get_or_create_shadow_tree(can_gc)
-                    .update_placeholder_contents(self, can_gc);
+                self.get_or_create_shadow_tree(CanGc::from_cx(cx))
+                    .update_placeholder_contents(cx, self);
             },
             local_name!("readonly") => {
                 if self.input_type().is_textual() {
@@ -3242,7 +3269,7 @@ impl VirtualMethods for HTMLInputElement {
                 }
             },
             local_name!("form") => {
-                self.form_attribute_mutated(mutation, can_gc);
+                self.form_attribute_mutated(mutation, CanGc::from_cx(cx));
             },
             local_name!("alpha") | local_name!("colorspace") => {
                 // https://html.spec.whatwg.org/multipage/#attr-input-colorspace
@@ -3256,7 +3283,7 @@ impl VirtualMethods for HTMLInputElement {
             _ => {},
         }
 
-        self.value_changed(can_gc);
+        self.value_changed(CanGc::from_cx(cx));
 
         if could_have_had_embedder_control && !self.may_have_embedder_control() {
             self.owner_document()
@@ -3283,18 +3310,18 @@ impl VirtualMethods for HTMLInputElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
         self.upcast::<Element>()
             .check_ancestors_disabled_state_for_form_control();
 
         if self.input_type() == InputType::Radio {
-            self.radio_group_updated(self.radio_group_name().as_ref(), can_gc);
+            self.radio_group_updated(self.radio_group_name().as_ref(), CanGc::from_cx(cx));
         }
 
-        self.value_changed(can_gc);
+        self.value_changed(CanGc::from_cx(cx));
     }
 
     fn unbind_from_tree(&self, context: &UnbindContext, can_gc: CanGc) {
@@ -3342,12 +3369,9 @@ impl VirtualMethods for HTMLInputElement {
     // https://w3c.github.io/uievents/#default-action
     /// <https://dom.spec.whatwg.org/#action-versus-occurance>
     fn handle_event(&self, event: &Event, can_gc: CanGc) {
-        if let Some(s) = self.super_type() {
-            s.handle_event(event, can_gc);
-        }
-
         if let Some(mouse_event) = event.downcast::<MouseEvent>() {
             self.handle_mouse_event(mouse_event);
+            event.mark_as_handled();
         } else if event.type_() == atom!("keydown") &&
             !event.DefaultPrevented() &&
             self.input_type().is_textual_or_password()
@@ -3358,13 +3382,6 @@ impl VirtualMethods for HTMLInputElement {
                 let action = self.textinput.borrow_mut().handle_keydown(keyevent);
                 self.handle_key_reaction(action, event, can_gc);
             }
-        } else if event.type_() == atom!("keypress") &&
-            !event.DefaultPrevented() &&
-            self.input_type().is_textual_or_password()
-        {
-            // keypress should be deprecated and replaced by beforeinput.
-            // keypress was supposed to fire "blur" and "focus" events
-            // but already done in `document.rs`
         } else if (event.type_() == atom!("compositionstart") ||
             event.type_() == atom!("compositionupdate") ||
             event.type_() == atom!("compositionend")) &&
@@ -3415,6 +3432,7 @@ impl VirtualMethods for HTMLInputElement {
                 );
             }
             if !flags.is_empty() {
+                event.mark_as_handled();
                 self.upcast::<Node>().dirty(NodeDamage::ContentOrHeritage);
             }
         } else if let Some(event) = event.downcast::<FocusEvent>() {
@@ -3422,18 +3440,22 @@ impl VirtualMethods for HTMLInputElement {
         }
 
         self.value_changed(can_gc);
+
+        if let Some(super_type) = self.super_type() {
+            super_type.handle_event(event, can_gc);
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-input-element%3Aconcept-node-clone-ext>
     fn cloning_steps(
         &self,
+        cx: &mut JSContext,
         copy: &Node,
         maybe_doc: Option<&Document>,
         clone_children: CloneChildrenFlag,
-        can_gc: CanGc,
     ) {
         if let Some(s) = self.super_type() {
-            s.cloning_steps(copy, maybe_doc, clone_children, can_gc);
+            s.cloning_steps(cx, copy, maybe_doc, clone_children);
         }
         let elem = copy.downcast::<HTMLInputElement>().unwrap();
         elem.value_dirty.set(self.value_dirty.get());
@@ -3443,7 +3465,7 @@ impl VirtualMethods for HTMLInputElement {
         elem.textinput
             .borrow_mut()
             .set_content(self.textinput.borrow().get_content());
-        self.value_changed(can_gc);
+        self.value_changed(CanGc::from_cx(cx));
     }
 }
 

@@ -146,7 +146,7 @@ impl CoreTextFontCache {
                     );
                 unsafe { descriptor.copy_with_attributes(attributes.as_opaque()) }
             },
-            FontIdentifier::Web(_) => {
+            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => {
                 let data = data
                     .expect("Should always have FontData for web fonts")
                     .clone();

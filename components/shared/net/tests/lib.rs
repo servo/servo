@@ -2,8 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::str::FromStr;
+
 use base::cross_process_instant::CrossProcessInstant;
+use net_traits::blob_url_store::parse_blob_url;
 use net_traits::{ResourceAttribute, ResourceFetchTiming, ResourceTimeValue, ResourceTimingType};
+use servo_url::ServoUrl;
+use uuid::Uuid;
 
 #[test]
 fn test_set_start_time_to_fetch_start_if_nonzero_tao() {
@@ -231,4 +236,14 @@ fn test_reset_start_time() {
         resource_timing.start_time.is_none(),
         "failed to reset `start_time`"
     );
+}
+
+#[test]
+fn parse_blob_url_with_opaque_origin() {
+    let input = ServoUrl::parse("blob:null/93947d57-a49f-4b00-bdcc-fbf1ed8b60ab").unwrap();
+    let expected_uuid = Uuid::from_str("93947d57-a49f-4b00-bdcc-fbf1ed8b60ab").unwrap();
+    let (uuid, origin) = parse_blob_url(&input).unwrap();
+
+    assert_eq!(uuid, expected_uuid);
+    assert!(!origin.is_tuple(), "Origin is not opaque");
 }

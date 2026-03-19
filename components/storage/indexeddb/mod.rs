@@ -36,13 +36,18 @@ use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteE
 use crate::shared::is_sqlite_disk_full_error;
 
 pub trait IndexedDBThreadFactory {
-    fn new(config_dir: Option<PathBuf>, mem_profiler_chan: MemProfilerChan) -> Self;
+    fn new(
+        config_dir: Option<PathBuf>,
+        mem_profiler_chan: MemProfilerChan,
+        reporter_name: String,
+    ) -> Self;
 }
 
 impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
     fn new(
         config_dir: Option<PathBuf>,
         mem_profiler_chan: MemProfilerChan,
+        reporter_name: String,
     ) -> GenericSender<IndexedDBThreadMsg> {
         let (chan, port) = generic_channel::channel().unwrap();
         let chan2 = chan.clone();
@@ -60,7 +65,7 @@ impl IndexedDBThreadFactory for GenericSender<IndexedDBThreadMsg> {
             .spawn(move || {
                 mem_profiler_chan.run_with_memory_reporting(
                     || IndexedDBManager::new(port, manager_sender, idb_base_dir).start(),
-                    String::from("indexedDB-reporter"),
+                    reporter_name,
                     chan2,
                     IndexedDBThreadMsg::CollectMemoryReport,
                 );
@@ -520,8 +525,8 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
         self.pending_commit_callbacks.remove(&txn);
     }
 
-    fn has_key_generator(&self, store_name: &str) -> bool {
-        self.engine.has_key_generator(store_name)
+    fn key_generator_current_number(&self, store_name: &str) -> Option<i32> {
+        self.engine.key_generator_current_number(store_name)
     }
 
     fn key_path(&self, store_name: &str) -> Option<KeyPath> {
@@ -571,8 +576,20 @@ impl<E: KvsEngine> IndexedDBEnvironment<E> {
     }
 
     fn delete_object_store(&mut self, store_name: &str) -> DbResult<()> {
-        let result = self.engine.delete_store(store_name);
-        result.map_err(|err| format!("{err:?}"))
+        // IndexedDB §5.5: "For upgrade transactions this includes changes to the set of object stores and indexes".
+        // Delete index metadata first, then remove the store metadata row.
+        let indexes = self
+            .engine
+            .indexes(store_name)
+            .map_err(|err| format!("{err:?}"))?;
+        for index in indexes {
+            self.engine
+                .delete_index(store_name, index.name)
+                .map_err(|err| format!("{err:?}"))?;
+        }
+        self.engine
+            .delete_store(store_name)
+            .map_err(|err| format!("{err:?}"))
     }
 
     fn delete_database(self) -> BackendResult<()> {
@@ -617,8 +634,10 @@ enum OpenRequest {
         /// Note: when the open algorithm starts, this will be mutated and set to something as per the algo.
         version: Option<u64>,
 
-        /// Optionnaly, a version pending upgrade.
-        /// Used as <https://w3c.github.io/IndexedDB/#request-processed-flag>
+        /// <https://w3c.github.io/IndexedDB/#request-processed-flag>
+        processed: bool,
+
+        /// Optionally, a version pending upgrade.
         pending_upgrade: Option<VersionUpgrade>,
 
         /// This request is pending on these connections to close.
@@ -659,6 +678,7 @@ impl OpenRequest {
                 sender: _,
                 db_name: _,
                 version: _,
+                processed: _,
                 pending_upgrade: _,
                 pending_close: _,
                 pending_versionchange: _,
@@ -681,6 +701,7 @@ impl OpenRequest {
                 sender: _,
                 db_name: _,
                 version: _,
+                processed: _,
                 pending_upgrade: _,
                 pending_close: _,
                 pending_versionchange: _,
@@ -696,20 +717,22 @@ impl OpenRequest {
         }
     }
 
-    /// An open request can be pending either an upgrade,
-    /// or the closing of other connections.
+    /// An open request remains pending until it has been processed,
+    /// and while waiting on upgrade completion or other connections.
     fn is_pending(&self) -> bool {
         match self {
             OpenRequest::Open {
                 sender: _,
                 db_name: _,
                 version: _,
+                processed,
                 pending_upgrade,
                 pending_close,
                 pending_versionchange,
                 id: _,
             } => {
-                pending_upgrade.is_some() ||
+                !processed ||
+                    pending_upgrade.is_some() ||
                     !pending_close.is_empty() ||
                     !pending_versionchange.is_empty()
             },
@@ -731,6 +754,7 @@ impl OpenRequest {
                 sender,
                 db_name,
                 version: _,
+                processed: _,
                 pending_close: _,
                 pending_versionchange: _,
                 pending_upgrade,
@@ -1009,6 +1033,7 @@ impl IndexedDBManager {
                 sender,
                 db_name,
                 version: _,
+                processed: _,
                 pending_upgrade: Some(pending_upgrade),
                 pending_close: _,
                 pending_versionchange: _,
@@ -1018,12 +1043,18 @@ impl IndexedDBManager {
                 return;
             };
             let VersionUpgrade { new, .. } = pending_upgrade;
+            let object_store_names = self
+                .databases
+                .get(&key)
+                .and_then(|db| db.object_store_names().ok())
+                .unwrap_or_default();
             if sender
                 .send(ConnectionMsg::Connection {
                     id,
                     name: db_name,
                     version: new,
                     upgraded: true,
+                    object_store_names,
                 })
                 .is_err()
             {
@@ -1130,10 +1161,7 @@ impl IndexedDBManager {
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
     /// Note: this only reverts the version at this point.
     fn abort_pending_upgrade(&mut self, name: String, id: Uuid, origin: ImmutableOrigin) {
-        let key = IndexedDBDescription {
-            name,
-            origin: origin.clone(),
-        };
+        let key = IndexedDBDescription { name, origin };
         let old = {
             let Some(queue) = self.connection_queues.get_mut(&key) else {
                 return debug_assert!(
@@ -1249,12 +1277,13 @@ impl IndexedDBManager {
     ) {
         let key = IndexedDBDescription {
             name: db_name.clone(),
-            origin: origin.clone(),
+            origin,
         };
         let open_request = OpenRequest::Open {
             sender,
             db_name,
             version,
+            processed: false,
             pending_close: Default::default(),
             pending_versionchange: Default::default(),
             pending_upgrade: None,
@@ -1316,6 +1345,7 @@ impl IndexedDBManager {
             sender,
             db_name,
             version: _,
+            processed,
             id,
             pending_close: _,
             pending_versionchange: _,
@@ -1342,7 +1372,7 @@ impl IndexedDBManager {
 
         // Step 4: Set db’s upgrade transaction to transaction.
         // Backend tracks the active upgrade transaction in `pending_upgrade` below.
-        db.register_transaction(transaction, IndexedDBTxnMode::Versionchange, scope);
+        db.register_transaction(transaction, IndexedDBTxnMode::Versionchange, scope.clone());
 
         // Step 5: Set transaction’s state to inactive.
         // Step 6: Start transaction.
@@ -1358,6 +1388,7 @@ impl IndexedDBManager {
             .expect("Setting the version should not fail");
 
         // Step 9: Set request’s processed flag to true.
+        *processed = true;
         let _ = pending_upgrade.insert(VersionUpgrade {
             old: old_version,
             new: new_version,
@@ -1372,6 +1403,7 @@ impl IndexedDBManager {
                 version: new_version,
                 old_version,
                 transaction,
+                object_store_names: scope,
             })
             .is_err()
         {
@@ -1392,7 +1424,7 @@ impl IndexedDBManager {
     ) {
         let key = IndexedDBDescription {
             name: name.clone(),
-            origin: origin.clone(),
+            origin,
         };
         let (can_upgrade, version) = {
             let Some(queue) = self.connection_queues.get_mut(&key) else {
@@ -1407,6 +1439,7 @@ impl IndexedDBManager {
                 version,
                 id,
                 pending_upgrade: _,
+                processed: _,
                 pending_versionchange,
                 pending_close,
             } = open_request
@@ -1481,6 +1514,7 @@ impl IndexedDBManager {
             db_name,
             version,
             id,
+            processed,
             pending_upgrade: _pending_upgrade,
             pending_close,
             pending_versionchange,
@@ -1517,6 +1551,7 @@ impl IndexedDBManager {
                         }) {
                             debug!("Script exit during indexeddb database open {:?}", e);
                         }
+                        *processed = true;
                         return;
                     },
                 };
@@ -1533,6 +1568,7 @@ impl IndexedDBManager {
                         }) {
                             debug!("Script exit during indexeddb database open {:?}", e);
                         }
+                        *processed = true;
                         return;
                     },
                 };
@@ -1558,6 +1594,7 @@ impl IndexedDBManager {
                         }) {
                             debug!("Script exit during indexeddb database open {:?}", e);
                         }
+                        *processed = true;
                         return;
                     },
                 };
@@ -1587,6 +1624,7 @@ impl IndexedDBManager {
             {
                 debug!("Script exit during indexeddb database open");
             }
+            *processed = true;
             return;
         }
 
@@ -1636,12 +1674,19 @@ impl IndexedDBManager {
         }
 
         // Step 11:
+        let object_store_names = self
+            .databases
+            .get(&key)
+            .and_then(|db| db.object_store_names().ok())
+            .unwrap_or_default();
+        *processed = true;
         if sender
             .send(ConnectionMsg::Connection {
                 name: db_name.clone(),
                 id: *id,
                 version: db_version,
                 upgraded: false,
+                object_store_names,
             })
             .is_err()
         {
@@ -1719,6 +1764,7 @@ impl IndexedDBManager {
             // Step 10: Let version be db’s version.
             let res = db.version();
             let Ok(version) = res else {
+                *processed = true;
                 if sender
                     .send(BackendResult::Err(BackendError::DbErr(
                         res.unwrap_err().to_string(),
@@ -1734,6 +1780,7 @@ impl IndexedDBManager {
             // If this fails for any reason,
             // return an appropriate error (e.g. a QuotaExceededError, or an "UnknownError" DOMException).
             if let Err(err) = db.delete_database() {
+                *processed = true;
                 if sender
                     .send(BackendResult::Err(BackendError::DbErr(err.to_string())))
                     .is_err()
@@ -1789,6 +1836,7 @@ impl IndexedDBManager {
                 db_name: _,
                 version,
                 id: _,
+                processed: _,
                 pending_upgrade,
                 pending_versionchange,
                 pending_close,
@@ -1905,14 +1953,16 @@ impl IndexedDBManager {
             },
             SyncOperation::GetObjectStore(sender, origin, db_name, store_name) => {
                 // FIXME:(arihant2math) Should we error out more aggressively here?
-                let result = self
-                    .get_database(origin, db_name)
-                    .map(|db| IndexedDBObjectStore {
+                let result = self.get_database(origin, db_name).map(|db| {
+                    let key_generator_current_number = db.key_generator_current_number(&store_name);
+                    IndexedDBObjectStore {
                         key_path: db.key_path(&store_name),
-                        has_key_generator: db.has_key_generator(&store_name),
+                        has_key_generator: key_generator_current_number.is_some(),
+                        key_generator_current_number,
                         indexes: db.indexes(&store_name).unwrap_or_default(),
                         name: store_name,
-                    });
+                    }
+                });
                 let _ = sender.send(result.ok_or(BackendError::DbNotFound));
             },
             SyncOperation::CreateIndex(
@@ -1956,10 +2006,10 @@ impl IndexedDBManager {
                     } else {
                         db.queue_pending_commit_callback(txn, callback);
                     }
-                    db.schedule_transactions(origin.clone(), &db_name);
+                    db.schedule_transactions(origin, &db_name);
                 } else if callback
                     .send(TxnCompleteMsg {
-                        origin: origin.clone(),
+                        origin,
                         db_name: db_name.clone(),
                         txn,
                         // If the database entry has already been removed, treat commit as a
@@ -2007,7 +2057,7 @@ impl IndexedDBManager {
                 }
                 if abort_callback
                     .send(storage_traits::indexeddb::TxnCompleteMsg {
-                        origin: origin.clone(),
+                        origin,
                         db_name: db_name.clone(),
                         txn,
                         result: Err(BackendError::Abort),

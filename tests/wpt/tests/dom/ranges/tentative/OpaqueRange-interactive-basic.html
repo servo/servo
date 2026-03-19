@@ -43,7 +43,7 @@ controls.forEach(control => {
   ].forEach(({ name, init, exp }) => {
     promise_test(async t => {
       const element = setup(control, init.value);
-      const range = element.getValueRange(init.s, init.e);
+      const range = element.createValueRange(init.s, init.e);
       element.setSelectionRange(init.caret, init.caret);
       await typeKeys(element, init.ins);
       assert_equals(range.startOffset, exp.s, 'startOffset');
@@ -59,7 +59,7 @@ controls.forEach(control => {
   ].forEach(({ name, init, exp }) => {
     promise_test(async t => {
       const element = setup(control, init.value);
-      const range = element.getValueRange(init.s, init.e);
+      const range = element.createValueRange(init.s, init.e);
       element.setSelectionRange(init.a, init.b);
       await typeKeys(element, init.text);
       assert_equals(range.startOffset, exp.s);
@@ -83,7 +83,7 @@ controls.forEach(control => {
   ].forEach(({ name, init, exp }) => {
     promise_test(async t => {
       const element = setup(control, init.value);
-      const range = element.getValueRange(init.s, init.e);
+      const range = element.createValueRange(init.s, init.e);
       element.setSelectionRange(init.caret, init.caret);
       await typeKeys(element, init.key);
       assert_equals(element.value, exp.value);

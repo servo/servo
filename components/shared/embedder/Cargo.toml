@@ -1,11 +1,13 @@
 [package]
-name = "embedder_traits"
+name = "servo-embedder-traits"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "embedder_traits"
@@ -31,15 +33,14 @@ keyboard-types = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
-pixels = { path = "../../pixels" }
+pixels = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
-servo_geometry = { path = "../../geometry" }
-servo_url = { path = "../../url" }
+servo_geometry = { workspace = true }
+servo-url = { workspace = true }
 strum = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
-tokio = { workspace = true, features = ["sync"] }
 url = { workspace = true }
 uuid = { workspace = true }
 webdriver = { workspace = true }

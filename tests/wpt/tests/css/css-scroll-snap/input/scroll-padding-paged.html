@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-padding" />
+<title>Page scroll with scroll padding</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<meta name="flags" content="should">
+<meta name="assert" content="Test passes if the scrolling with page down takes into account the scroll padding">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="../support/common.js"></script>
+
+<style>
+  html,
+  body {
+    margin: 0;
+  }
+
+  .scroller {
+    height: 100vh;
+    overflow: auto;
+    position: relative;
+    counter-reset: --page;
+  }
+
+  .page {
+    counter-increment: --page;
+    height: 90vh;
+    padding: 8px;
+    position: relative;
+    --page: counter(--page);
+  }
+
+  .page>div::before {
+    content: "Page " counter(--page);
+    font-size: 1.5em;
+  }
+
+  .page>div {
+    box-sizing: border-box;
+    border: 3px solid black;
+    border-radius: 5px;
+    overflow: clip;
+    /* Make sure font size doesn't cause pages to be larger than expected. */
+    padding: 8px;
+    height: 100%;
+  }
+</style>
+<div class="scroller">
+  <div class="page">
+    <div>
+      <p>This tests what happens when you perform a paging scroll (e.g. space bar or page down key) with a
+        scroll padding.</p>
+    </div>
+  </div>
+  <div class="page">
+    <div>
+      <p>Just a page</p>
+    </div>
+  </div>
+  <div class="page">
+    <div>
+      <p>Just another page</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const scroller = document.querySelector(".scroller");
+
+  async function pageDown() {
+    const scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+    await keyPress(scroller, "Space");
+    await scrollEndPromise;
+  }
+
+  async function pageUp() {
+    const scrollEndPromise = waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+    scroller.scrollTop = 0;
+    await scrollEndPromise;
+  }
+
+  function enablePadding() {
+    scroller.style.scrollPaddingTop = "200px";
+  }
+
+  function getScrollTop() {
+    return scroller.scrollTop;
+  }
+
+  promise_test(async t => {
+    // page down without scrolling padding enabled
+    let startScrolledPosition = getScrollTop();
+    await pageDown();
+    const deltaWithoutScrollPadding = getScrollTop() - startScrolledPosition;
+
+    // reset to top page
+    await pageUp();
+
+    // page down with padding enabled
+    enablePadding();
+    startScrolledPosition = getScrollTop();
+    await pageDown();
+    const deltaWithScrollPadding = getScrollTop() - startScrolledPosition;
+    assert_equals(deltaWithoutScrollPadding - deltaWithScrollPadding, 200);
+
+  }, `After page down, the scroll padding is also taken into account`);
+</script>

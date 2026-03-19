@@ -1122,6 +1122,7 @@ malloc_size_of_is_0!(app_units::Au);
 malloc_size_of_is_0!(content_security_policy::Destination);
 malloc_size_of_is_0!(content_security_policy::sandboxing_directive::SandboxingFlagSet);
 malloc_size_of_is_0!(http::StatusCode);
+malloc_size_of_is_0!(keyboard_types::Code);
 malloc_size_of_is_0!(keyboard_types::Modifiers);
 malloc_size_of_is_0!(mime::Mime);
 malloc_size_of_is_0!(resvg::usvg::fontdb::ID);
@@ -1140,7 +1141,7 @@ malloc_size_of_is_0!(std::sync::atomic::AtomicU32);
 malloc_size_of_is_0!(std::time::Duration);
 malloc_size_of_is_0!(std::time::Instant);
 malloc_size_of_is_0!(std::time::SystemTime);
-malloc_size_of_is_0!(style::data::ElementData);
+malloc_size_of_is_0!(style::data::ElementDataWrapper);
 malloc_size_of_is_0!(style::font_face::SourceList);
 malloc_size_of_is_0!(style::properties::ComputedValues);
 malloc_size_of_is_0!(style::properties::declaration_block::PropertyDeclarationBlock);
@@ -1182,6 +1183,7 @@ macro_rules! malloc_size_of_is_webrender_malloc_size_of(
     );
 );
 
+malloc_size_of_is_webrender_malloc_size_of!(webrender::FastTransform<webrender_api::units::LayoutPixel, webrender_api::units::LayoutPixel>);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BorderRadius);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BorderStyle);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::BoxShadowClipMode);
@@ -1189,9 +1191,10 @@ malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ColorF);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::Epoch);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ExtendMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ExternalScrollId);
-malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontKey);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontInstanceFlags);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontInstanceKey);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontKey);
+malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontVariation);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::GlyphInstance);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::GradientStop);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ImageKey);
@@ -1200,13 +1203,14 @@ malloc_size_of_is_webrender_malloc_size_of!(webrender_api::LineStyle);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::MixBlendMode);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::NormalBorder);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::PipelineId);
+malloc_size_of_is_webrender_malloc_size_of!(
+    webrender_api::PropertyBindingKey<webrender_api::ColorF>
+);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::ReferenceFrameKind);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::RepeatMode);
-malloc_size_of_is_webrender_malloc_size_of!(webrender_api::FontVariation);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::SpatialId);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::StickyOffsetBounds);
 malloc_size_of_is_webrender_malloc_size_of!(webrender_api::TransformStyle);
-malloc_size_of_is_webrender_malloc_size_of!(webrender::FastTransform<webrender_api::units::LayoutPixel,webrender_api::units::LayoutPixel>);
 
 macro_rules! malloc_size_of_is_stylo_malloc_size_of(
     ($($ty:ty),+) => (

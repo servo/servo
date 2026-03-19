@@ -6,6 +6,8 @@ license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "servo_media_dummy"
@@ -13,9 +15,9 @@ path = "lib.rs"
 
 [dependencies]
 ipc-channel = { workspace = true }
-servo-media = { path = "../../servo-media" }
-servo-media-audio = { path = "../../audio" }
-servo-media-player = { path = "../../player" }
-servo-media-streams = { path = "../../streams" }
-servo-media-traits = { path = "../../traits" }
-servo-media-webrtc = { path = "../../webrtc" }
+servo-media = { workspace = true }
+servo-media-audio = { workspace = true }
+servo-media-player = { workspace = true }
+servo-media-streams = { workspace = true }
+servo-media-traits = { workspace = true }
+servo-media-webrtc = { workspace = true }

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS ::highlight() pseudo-element on select::picker(select)</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-forms/#the-picker-pseudo-element">
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/#custom-highlight-pseudo">
+<link rel="match" href="select-picker-pseudo-highlight-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+
+select::picker(select)::highlight(example) {
+  background-color: green;
+  color: white;
+}
+</style>
+
+<select>
+  Hello World
+</select>
+
+<script>
+(async () => {
+  await test_driver.bless();
+  document.querySelector("select").showPicker();
+
+  const select = document.querySelector("select");
+  const textNode = [...select.childNodes].find(n => n.nodeType === Node.TEXT_NODE && n.nodeValue.includes("Hello"));
+  const start = textNode.nodeValue.indexOf("Hello");
+  const range = new Range();
+  range.setStart(textNode, start);
+  range.setEnd(textNode, start + 5); // "Hello"
+  const highlight = new Highlight(range);
+  CSS.highlights.set("example", highlight);
+
+  document.documentElement.classList.remove("reftest-wait");
+})();
+</script>

@@ -9,11 +9,11 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 
-<p>Pressing TAB twice should focus/highlight end checkbox</p>
+<p>Pressing TAB twice should focus end text box</p>
 
 <input type="checkbox" id="start">start</a>
 <object type='text/html' data='data:text/html,' width='16' height='16'></object>
-<input type="checkbox" id="end" >end</a>
+<input id="end">end</a>
 
 <script>
 
@@ -24,20 +24,15 @@ let object = document.querySelector("object");
 let end = document.querySelector("#end");
 let tab = "\uE004";
 
-t.step( _ => {
-  document.querySelector("#start").focus();
+addEventListener("load", t.step_func(_ => {
+  start.focus();
   assert_equals(document.activeElement, start, "start got focus");
-  test_driver.send_keys(document.activeElement, tab).then( _ => {
-    t.step( _ => {
-      assert_equals(document.activeElement, object, "object got focus");
-      test_driver.send_keys(document.activeElement, tab).then( _ => {
-        t.step( _ => {
-          assert_equals(document.activeElement, end, "end got focus");
-          t.done();
-        });
-      });
-    });
-  });
-});
+  test_driver.send_keys(document.activeElement, tab).then(t.step_func(_ => {
+    assert_equals(document.activeElement, object, "object got focus");
+    test_driver.send_keys(document.activeElement, tab).then(t.step_func_done(_ => {
+      assert_equals(document.activeElement, end, "end got focus");
+    }));
+  }));
+}));
 
 </script>

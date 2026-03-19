@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://open-ui.org/components/combobox.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<input list=datalist style="appearance:base">
+<datalist id=datalist style="appearance:base">
+  <option class=one>one</option>
+  <option class=two>two</option>
+  <option class=three>three</option>
+</datalist>
+
+<script>
+const input = document.querySelector('input');
+const optionOne = document.querySelector('.one');
+const optionTwo = document.querySelector('.two');
+const optionThree = document.querySelector('.three');
+
+function checkOptions(includedOptions, message) {
+  for (const option of document.querySelectorAll('option')) {
+    if (includedOptions.includes(option)) {
+      assert_false(
+        option.matches(':filtered'),
+        `${message}: option ${option.className} should not match :filtered.`);
+      assert_not_equals(
+        getComputedStyle(option).display,
+        'none',
+        `${message}: option ${option.className} should not be display:none.`);
+    } else {
+      assert_true(
+        option.matches(':filtered'),
+        `${message}: option ${option.className} should match :filtered.`);
+      assert_equals(
+        getComputedStyle(option).display,
+        'none',
+        `${message}: option ${option.className} should be display:none.`);
+    }
+  }
+}
+
+function pressKey(keyCode) {
+  return (new test_driver.Actions()
+    .keyDown(keyCode)
+    .keyUp(keyCode))
+    .send();
+}
+
+promise_test(async () => {
+  checkOptions([optionOne, optionTwo, optionThree],
+    'No options should be filtered out at the start of the test');
+
+  input.focus();
+  await pressKey('t');
+  checkOptions([optionTwo, optionThree],
+    'First option should be filtered out after typing "t"');
+
+  await pressKey('w');
+  checkOptions([optionTwo],
+    'Third option should be filtered out after typing "tw"');
+
+  await pressKey('z');
+  checkOptions([],
+    'All options should be filtered out after typing "twz"');
+
+  const backspace = '\uE003';
+  await pressKey(backspace);
+  checkOptions([optionTwo],
+    'Second option should become unfiltered after pressing backspace.');
+
+  input.value = '';
+  checkOptions([optionOne, optionTwo, optionThree],
+    'No options should be filtered out after setting input.value to the empty string.');
+
+  input.value = 'tw';
+  checkOptions([optionTwo],
+    'Only option two should match when setting input.value to "tw".');
+}, 'Customizable combobox option:filtered behavior');
+
+promise_test(async () => {
+  input.value = '';
+  optionTwo.remove();
+  optionThree.remove();
+  checkOptions([optionOne],
+    'options should not be filtered out at the start of the test.');
+
+  function testCombination(one, two) {
+    if (typeof one === 'number') {
+      one = String.fromCodePoint(one);
+    }
+    if (typeof two === 'number') {
+      two = String.fromCodePoint(two);
+    }
+
+    optionOne.textContent = 'foo';
+    input.value = 'bar';
+    checkOptions([], `'bar' should not find 'foo'.`);
+
+    optionOne.textContent = two;
+    input.value = one;
+    checkOptions([optionOne], `'${one}' should find '${two}'`);
+
+    optionOne.textContent = one;
+    input.value = two;
+    checkOptions([optionOne], `'${two}' should find '${one}'`);
+  }
+
+  // u_strFoldCase from ICU is used to do case folding.
+  testCombination('a', 'A');
+  testCombination(0xe7, 0xc7); // ç Ç
+  testCombination(0xff, 0x178); // ÿ Ÿ
+  testCombination(0x188, 0x187); // ƈ Ƈ
+  testCombination(0xa727, 0xa726); // ꜧ Ꜧ
+  testCombination(0x10428, 0x10400); // 𐐨 𐐀
+}, 'Case folding');
+</script>

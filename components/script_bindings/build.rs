@@ -24,8 +24,8 @@ fn main() {
     println!("cargo::rerun-if-changed=webidls");
     println!("cargo::rerun-if-changed=codegen");
     println!("cargo::rerun-if-changed={}", css_properties_json.display());
-    println!("cargo::rerun-if-changed=../../third_party/WebIDL/WebIDL.py");
-    // NB: We aren't handling changes in `third_party/ply` here.
+    println!("cargo::rerun-if-changed=third_party/WebIDL/WebIDL.py");
+    println!("cargo::rerun-if-changed=third_party/ply");
 
     let status = find_python()
         .arg("codegen/run.py")
@@ -110,8 +110,6 @@ fn try_python_command(program: &str, args: &[&str]) -> Result<(), String> {
 ///
 /// To be accommodating to different environments, which may manage python differently, we fallback
 /// to `python3` and `python` in that order.
-///
-/// Note: This function should be kept in sync with the version in `components/servo/build.rs`
 fn find_python() -> Command {
     // Test uv first - if it works, create a FRESH command to return
     let uv_result = try_python_command("uv", &["run", "--frozen", "python"])

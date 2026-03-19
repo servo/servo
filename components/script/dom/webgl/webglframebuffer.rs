@@ -143,7 +143,7 @@ impl Drop for DroppableWebGLFramebuffer {
     }
 }
 
-#[dom_struct]
+#[dom_struct(associated_memory)] // actual memory usage is reported in WebGLFramebufferAttachment
 pub(crate) struct WebGLFramebuffer {
     webgl_object: WebGLObject,
     #[no_trace]

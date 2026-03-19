@@ -1,12 +1,14 @@
 [package]
-name = "script_bindings"
+name = "servo-script-bindings"
 build = "build.rs"
 version.workspace = true
 authors.workspace = true
-license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+# BSD-3-Clause comes from third_party/ply, which doesn't end up in any produced build-artifact,
+# but is used during the build via build.rs.
+license = "MPL-2.0 AND BSD-3-Clause"
 
 # https://github.com/rust-lang/cargo/issues/3544
 links = "script_bindings_crate"
@@ -19,13 +21,13 @@ path = "lib.rs"
 base = { workspace = true }
 bitflags = { workspace = true }
 crossbeam-channel = { workspace = true }
-deny_public_fields = { path = "../deny_public_fields" }
-dom_struct = { path = "../dom_struct" }
+deny_public_fields = { workspace = true }
+dom_struct = { workspace = true }
 encoding_rs = { workspace = true }
 html5ever = { workspace = true }
 indexmap = { workspace = true }
 js = { workspace = true }
-jstraceable_derive = { path = "../jstraceable_derive" }
+jstraceable_derive = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
@@ -34,10 +36,11 @@ malloc_size_of_derive = { workspace = true }
 num-traits = { workspace = true }
 parking_lot = { workspace = true }
 phf = "0.13"
+profile_traits = { workspace = true }
 regex = { workspace = true }
 servo_arc = { workspace = true }
-servo_config = { path = "../config" }
-servo_url = { path = "../url" }
+servo_config = { workspace = true }
+servo-url = { workspace = true }
 smallvec = { workspace = true }
 stylo = { workspace = true }
 stylo_atoms = { workspace = true }

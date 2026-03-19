@@ -7,13 +7,13 @@ use std::default::Default;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
+use js::context::JSContext;
 use js::rust::HandleObject;
 use num_traits::ToPrimitive;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
 use stylo_atoms::Atom;
 use stylo_dom::ElementState;
-use xml5ever::ns;
 
 use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
@@ -83,7 +83,7 @@ impl HTMLAnchorElement {
     /// the URL could not be joined with the `Document` URL.
     pub(crate) fn full_href_url_for_user_interface(&self) -> Option<ServoUrl> {
         self.upcast::<Element>()
-            .get_attribute(&ns!(), &local_name!("href"))?;
+            .get_attribute(&local_name!("href"))?;
         self.owner_document().base_url().join(&self.Href()).ok()
     }
 }
@@ -109,10 +109,15 @@ impl VirtualMethods for HTMLAnchorElement {
         }
     }
 
-    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation, can_gc: CanGc) {
+    fn attribute_mutated(
+        &self,
+        cx: &mut js::context::JSContext,
+        attr: &Attr,
+        mutation: AttributeMutation,
+    ) {
         self.super_type()
             .unwrap()
-            .attribute_mutated(attr, mutation, can_gc);
+            .attribute_mutated(cx, attr, mutation);
 
         match *attr.local_name() {
             local_name!("href") => self
@@ -126,9 +131,9 @@ impl VirtualMethods for HTMLAnchorElement {
         }
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
 
         self.relations
@@ -143,9 +148,9 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-text>
-    fn SetText(&self, value: DOMString, can_gc: CanGc) {
+    fn SetText(&self, cx: &mut JSContext, value: DOMString) {
         self.upcast::<Node>()
-            .set_text_content_for_element(Some(value), can_gc)
+            .set_text_content_for_element(cx, Some(value))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rel

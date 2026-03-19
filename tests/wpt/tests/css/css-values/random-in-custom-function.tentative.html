@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<title>CSS Values and Units Test: random() in @function</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#random">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../support/computed-testcommon.js"></script>
+<div id=container>
+  <div id=target></div>
+<div>
+<style>
+    @property --number {
+        syntax: "<number>";
+        inherits: true;
+        initial-value: 0;
+    }
+    @property --numbers {
+        syntax: "<number>+";
+        inherits: true;
+        initial-value: 0;
+    }
+    @function --f() {
+        result: random(element-shared, 1, 1e6);
+    }
+    @function --g() {
+        result: random(element-shared, 1, 1e6);
+    }
+    @function --locals() {
+        --x: random(element-shared, 1, 1e6);
+        --y: random(element-shared, 1, 1e6);
+        result: var(--x) var(--y);
+    }
+    @function --locals-position-registered() returns <number>+ {
+        --x: random(element-shared, 1, 1e6);
+        result: var(--x) var(--x);
+    }
+    @function --f-locals() {
+        --x: random(element-shared, 1, 1e6);
+        result: var(--x);
+    }
+    @function --g-locals() {
+        --x: random(element-shared, 1, 1e6);
+        result: var(--x);
+    }
+    @function --f-arguments(--x <number>) {
+        result: var(--x);
+    }
+    @function --g-arguments(--x <number>) {
+        result: var(--x);
+    }
+    @function --f-default-arguments(--x <number>: random(element-shared, 1, 1e6)) {
+        result: var(--x);
+    }
+    @function --g-default-arguments(--x <number>: random(element-shared, 1, 1e6)) {
+        result: var(--x);
+    }
+    @function --f-locals-arguments(--x <number>) {
+        --x: random(element-shared, 1, 1e6);
+        result: var(--x);
+    }
+    @function --g-locals-arguments(--x <number>) {
+        --x: random(element-shared, 1, 1e6);
+        result: var(--x);
+    }
+    @function --f-number() returns <number> {
+        result: random(element-shared, 1, 1e6);
+    }
+    @function --g-number() returns <number> {
+        result: random(element-shared, 1, 1e6);
+    }
+</style>
+<script>
+// Since actual and expected values are generated randomly, `assert_equals()`
+// does not generate deterministic test failure output. Chrome relies on test
+// failure output to be deterministic and stable for failing test expectations.
+function test_random_equals(actual, expected, message = "Random values should be equal") {
+  assert_true(actual == expected, message);
+}
+function test_random_not_equals(actual, expected, message = "Random values should not be equal") {
+  assert_false(actual == expected, message);
+}
+function test_value_in_range(value, min=1, max=1e6) {
+  assert_true(value >= min);
+  assert_true(value <= max);
+}
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    const el1 = document.createElement('div');
+    el1.style.setProperty('--number', '--f()');
+    holder.appendChild(el1);
+
+    const el2 = document.createElement('div');
+    el2.style.setProperty('--number', '--g()');
+    holder.appendChild(el2);
+
+    const el1ComputedValue = getComputedStyle(el1).getPropertyValue('--number');
+    const el2ComputedValue = getComputedStyle(el2).getPropertyValue('--number');
+
+    test_value_in_range(el1ComputedValue);
+    test_value_in_range(el2ComputedValue);
+
+    test_random_equals(el1ComputedValue, el2ComputedValue);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() in function result`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    const el1 = document.createElement('div');
+    el1.style.setProperty('--number', '--f-number()');
+    holder.appendChild(el1);
+
+    const el2 = document.createElement('div');
+    el2.style.setProperty('--number', '--g-number()');
+    holder.appendChild(el2);
+
+    const el1ComputedValue = getComputedStyle(el1).getPropertyValue('--number');
+    const el2ComputedValue = getComputedStyle(el2).getPropertyValue('--number');
+
+    test_value_in_range(el1ComputedValue);
+    test_value_in_range(el2ComputedValue);
+
+    test_random_not_equals(el1ComputedValue, el2ComputedValue);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() in function typed result`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    const el1 = document.createElement('div');
+    el1.style.setProperty('--number', '--f-locals()');
+    holder.appendChild(el1);
+
+    const el2 = document.createElement('div');
+    el2.style.setProperty('--number', '--g-locals()');
+    holder.appendChild(el2);
+
+    const el1ComputedValue = getComputedStyle(el1).getPropertyValue('--number');
+    const el2ComputedValue = getComputedStyle(el2).getPropertyValue('--number');
+
+    test_value_in_range(el1ComputedValue);
+    test_value_in_range(el2ComputedValue);
+
+    test_random_equals(el1ComputedValue, el2ComputedValue);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() in different function same local name`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    const el = document.createElement('div');
+    el.style.setProperty('--numbers', '--locals()');
+    holder.appendChild(el);
+
+    const [elComputedValue1, elComputedValue2] = getComputedStyle(el).getPropertyValue('--numbers').split(' ');
+
+    test_value_in_range(elComputedValue1);
+    test_value_in_range(elComputedValue2);
+
+    test_random_not_equals(elComputedValue1, elComputedValue2);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() in same function different locals`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+  try {
+    const el = document.createElement('div');
+    el.style.setProperty('--numbers', '--locals-position-registered()');
+    holder.appendChild(el);
+
+    const [elComputedValue1, elComputedValue2] = getComputedStyle(el).getPropertyValue('--numbers').split(' ');
+
+    test_value_in_range(elComputedValue1);
+    test_value_in_range(elComputedValue2);
+
+    test_random_not_equals(elComputedValue1, elComputedValue2);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() in same registered function same locals different positions`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el1 = document.createElement('div');
+    el1.style.setProperty('--number', '--f-default-arguments()');
+    holder.appendChild(el1);
+
+    const el2 = document.createElement('div');
+    el2.style.setProperty('--number', '--g-default-arguments()');
+    holder.appendChild(el2);
+
+    const el1ComputedValue = getComputedStyle(el1).getPropertyValue('--number');
+    const el2ComputedValue = getComputedStyle(el2).getPropertyValue('--number');
+
+    test_value_in_range(el1ComputedValue);
+    test_value_in_range(el2ComputedValue);
+
+    test_random_not_equals(el1ComputedValue, el2ComputedValue);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() in different function same default locals`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el1 = document.createElement('div');
+    el1.style.setProperty('--number', '--f-locals-arguments(0)');
+    holder.appendChild(el1);
+
+    const el2 = document.createElement('div');
+    el2.style.setProperty('--number', '--g-locals-arguments(0)');
+    holder.appendChild(el2);
+
+    const el1ComputedValue = getComputedStyle(el1).getPropertyValue('--number');
+    const el2ComputedValue = getComputedStyle(el2).getPropertyValue('--number');
+
+    test_value_in_range(el1ComputedValue);
+    test_value_in_range(el2ComputedValue);
+
+    test_random_not_equals(el1ComputedValue, el2ComputedValue);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() in function in local overrides argument`);
+
+test(() => {
+  const holder = document.createElement('div');
+  document.body.appendChild(holder);
+
+  try {
+    const el1 = document.createElement('div');
+    el1.style.setProperty('--number', '--f-arguments(random(element-shared, 1, 1e6))');
+    holder.appendChild(el1);
+
+    const el2 = document.createElement('div');
+    el2.style.setProperty('--number', '--g-arguments(random(element-shared, 1, 1e6))');
+    holder.appendChild(el2);
+
+    const el1ComputedValue = getComputedStyle(el1).getPropertyValue('--number');
+    const el2ComputedValue = getComputedStyle(el2).getPropertyValue('--number');
+
+    test_value_in_range(el1ComputedValue);
+    test_value_in_range(el2ComputedValue);
+
+    test_random_equals(el1ComputedValue, el2ComputedValue);
+  } finally {
+    document.body.removeChild(holder);
+  }
+}, `random() in function argument`);
+</script>

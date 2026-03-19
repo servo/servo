@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::PauseFrameResult;
+use atomic_refcell::AtomicRefCell;
+use base::generic_channel::channel;
+use devtools_traits::{DevtoolScriptControlMsg, FrameInfo};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{Map, Value};
@@ -11,7 +13,8 @@ use crate::StreamId;
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry};
 use crate::actors::environment::{EnvironmentActor, EnvironmentActorMsg};
 use crate::actors::object::{ObjectActor, ObjectActorMsg};
-use crate::protocol::ClientRequest;
+use crate::actors::source::SourceActor;
+use crate::protocol::{ClientRequest, JsonPacketStream};
 
 #[derive(Serialize)]
 struct FrameEnvironmentReply {
@@ -58,7 +61,8 @@ pub(crate) struct FrameActor {
     name: String,
     object_actor: String,
     source_actor: String,
-    frame_result: PauseFrameResult,
+    frame_result: FrameInfo,
+    current_offset: AtomicRefCell<(u32, u32)>,
 }
 
 impl Actor for FrameActor {
@@ -69,7 +73,7 @@ impl Actor for FrameActor {
     // https://searchfox.org/firefox-main/source/devtools/shared/specs/frame.js
     fn handle_message(
         &self,
-        request: ClientRequest,
+        mut request: ClientRequest,
         registry: &ActorRegistry,
         msg_type: &str,
         _msg: &Map<String, Value>,
@@ -77,18 +81,24 @@ impl Actor for FrameActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "getEnvironment" => {
-                let environment = EnvironmentActor {
-                    name: registry.new_name::<EnvironmentActor>(),
-                    parent: None,
+                let Some((tx, rx)) = channel() else {
+                    return Err(ActorError::Internal);
                 };
+                let source = registry.find::<SourceActor>(&self.source_actor);
+                source
+                    .script_sender
+                    .send(DevtoolScriptControlMsg::GetEnvironment(self.name(), tx))
+                    .map_err(|_| ActorError::Internal)?;
+                let environment = rx.recv().map_err(|_| ActorError::Internal)?;
+
                 let msg = FrameEnvironmentReply {
                     from: self.name(),
-                    environment: environment.encode(registry),
+                    environment: registry.encode::<EnvironmentActor, _>(&environment),
                 };
-                registry.register(environment);
                 // This reply has a `type` field but it doesn't need a followup,
                 // unlike most messages. We need to skip the validity check.
-                request.reply_unchecked(&msg)?;
+                request.write_json_packet(&msg)?;
+                request.mark_handled();
             },
             _ => return Err(ActorError::UnrecognizedPacketType),
         };
@@ -100,9 +110,9 @@ impl FrameActor {
     pub fn register(
         registry: &ActorRegistry,
         source_actor: String,
-        frame_result: PauseFrameResult,
+        frame_result: FrameInfo,
     ) -> String {
-        let object_actor = ObjectActor::register(registry, None);
+        let object_actor = ObjectActor::register(registry, None, "Object".to_owned());
 
         let name = registry.new_name::<Self>();
         let actor = Self {
@@ -110,9 +120,14 @@ impl FrameActor {
             object_actor,
             source_actor,
             frame_result,
+            current_offset: Default::default(),
         };
         registry.register::<Self>(actor);
         name
+    }
+
+    pub(crate) fn set_offset(&self, column: u32, line: u32) {
+        *self.current_offset.borrow_mut() = (column, line);
     }
 }
 
@@ -125,6 +140,7 @@ impl ActorEncode<FrameActorMsg> for FrameActor {
         } else {
             Some("await".into())
         };
+        let (column, line) = *self.current_offset.borrow();
         // <https://searchfox.org/firefox-main/source/devtools/docs/user/debugger-api/debugger.frame/index.rst>
         FrameActorMsg {
             actor: self.name(),
@@ -138,8 +154,8 @@ impl ActorEncode<FrameActorMsg> for FrameActor {
             state,
             where_: FrameWhere {
                 actor: self.source_actor.clone(),
-                line: self.frame_result.line,
-                column: self.frame_result.column,
+                line,
+                column,
             },
         }
     }

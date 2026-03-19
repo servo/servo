@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#the-commandevent-interface
-[Exposed=Window, Pref="dom_command_invokers_enabled"]
+[Exposed=Window]
 interface CommandEvent : Event {
   [Throws] constructor(DOMString type, optional CommandEventInit eventInitDict = {});
   readonly attribute Element? source;

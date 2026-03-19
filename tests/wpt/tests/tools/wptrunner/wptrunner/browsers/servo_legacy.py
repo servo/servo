@@ -95,7 +95,7 @@ class ServoLegacyBrowser(NullBrowser):
 
 class ServoLegacyWdspecBrowser(WebDriverBrowser):
     # TODO: could share an implemenation with servodriver.py, perhaps
-    def __init__(self, logger, binary="servo", webdriver_binary="servo",
+    def __init__(self, logger, binary="servoshell", webdriver_binary="servoshell",
                  binary_args=None, webdriver_args=None, env=None, port=None,
                  headless=None,
                  **kwargs):

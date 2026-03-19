@@ -170,7 +170,7 @@ impl GPUBuffer {
 
         Ok(GPUBuffer::new(
             &device.global(),
-            device.channel().clone(),
+            device.channel(),
             buffer,
             device,
             descriptor.size,
@@ -414,7 +414,7 @@ impl GPUBuffer {
         match mapping {
             Err(error) => {
                 *self.pending_map.borrow_mut() = None;
-                p.reject_error(error.clone(), can_gc);
+                p.reject_error(error, can_gc);
             },
             Ok(mut mapping) => {
                 // Step 5

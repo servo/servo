@@ -12,6 +12,7 @@ use canvas_traits::webgl::{
     WebGLError, WebGLResult, WebGLTextureId, WebGLVersion, webgl_channel,
 };
 use dom_struct::dom_struct;
+use script_bindings::reflector::DomObject as _;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
@@ -48,7 +49,7 @@ enum WebGLTextureOwner {
 const MAX_LEVEL_COUNT: usize = 31;
 const MAX_FACE_COUNT: usize = 6;
 
-#[dom_struct]
+#[dom_struct(associated_memory)]
 pub(crate) struct WebGLTexture {
     webgl_object: WebGLObject,
     #[no_trace]
@@ -197,6 +198,8 @@ impl WebGLTexture {
         if let Some(fb) = self.attached_framebuffer.get() {
             fb.update_status();
         }
+
+        self.update_size();
 
         Ok(())
     }
@@ -450,6 +453,8 @@ impl WebGLTexture {
 
             self.set_image_infos_at_level(level, image_info);
         }
+
+        self.update_size();
         Ok(())
     }
 
@@ -520,6 +525,17 @@ impl WebGLTexture {
         self.image_info_array.borrow_mut()[pos as usize] = Some(image_info);
     }
 
+    fn update_size(&self) {
+        let size = self
+            .image_info_array
+            .borrow()
+            .iter()
+            .filter_map(|info| *info)
+            .map(|info| info.physical_size())
+            .sum();
+        self.reflector().update_memory_size(self, size);
+    }
+
     fn base_image_info(&self) -> Option<ImageInfo> {
         assert!((self.base_mipmap_level as usize) < MAX_LEVEL_COUNT);
 
@@ -583,6 +599,8 @@ impl WebGLTexture {
             fb.update_status();
         }
 
+        self.update_size();
+
         Ok(())
     }
 }
@@ -638,6 +656,14 @@ impl ImageInfo {
 
     fn is_compressed_format(&self) -> bool {
         self.internal_format.is_compressed()
+    }
+
+    /// Returns approximate physical size
+    pub(crate) fn physical_size(&self) -> usize {
+        self.width as usize *
+            self.height as usize *
+            self.depth as usize *
+            self.internal_format.components() as usize
     }
 }
 

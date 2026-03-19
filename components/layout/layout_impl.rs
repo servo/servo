@@ -15,17 +15,16 @@ use app_units::Au;
 use base::generic_channel::GenericSender;
 use base::id::{PipelineId, WebViewId};
 use bitflags::bitflags;
-use cssparser::ParserInput;
 use embedder_traits::{Theme, ViewportDetails};
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods, WebFontDocumentContext};
 use fonts_traits::StylesheetWebFontLoadFinishedCallback;
 use layout_api::wrapper_traits::LayoutNode;
 use layout_api::{
-    BoxAreaType, CSSPixelRectIterator, IFrameSizes, Layout, LayoutConfig, LayoutFactory,
-    OffsetParentResponse, PhysicalSides, PropertyRegistration, QueryMsg, ReflowGoal,
-    ReflowPhasesRun, ReflowRequest, ReflowRequestRestyle, ReflowResult, RegisterPropertyError,
-    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
+    AxesOverflow, BoxAreaType, CSSPixelRectIterator, IFrameSizes, Layout, LayoutConfig,
+    LayoutFactory, OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun,
+    ReflowRequest, ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
+    ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
 };
 use log::{debug, error, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -49,23 +48,18 @@ use style::animation::DocumentAnimationSet;
 use style::context::{
     QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters, SharedStyleContext,
 };
-use style::custom_properties::{SpecifiedValue, parse_name};
+use style::device::Device;
+use style::device::servo::FontMetricsProvider;
 use style::dom::{OpaqueNode, ShowSubtreeDataAndPrimaryValues, TElement, TNode};
 use style::font_metrics::FontMetrics;
 use style::global_style_data::GLOBAL_STYLE_DATA;
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::invalidation::stylesheets::StylesheetInvalidationSet;
-use style::media_queries::{Device, MediaList, MediaType};
+use style::media_queries::{MediaList, MediaType};
 use style::properties::style_structs::Font;
 use style::properties::{ComputedValues, PropertyId};
-use style::properties_and_values::registry::{
-    PropertyRegistration as StyloPropertyRegistration, PropertyRegistrationData,
-};
-use style::properties_and_values::rule::{Inherits, PropertyRegistrationError, PropertyRuleName};
-use style::properties_and_values::syntax::Descriptor;
 use style::queries::values::PrefersColorScheme;
 use style::selector_parser::{PseudoElement, RestyleDamage, SnapshotMap};
-use style::servo::media_queries::FontMetricsProvider;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
     CustomMediaMap, DocumentStyleSheet, Origin, Stylesheet, StylesheetInDocument,
@@ -76,7 +70,6 @@ use style::traversal_flags::TraversalFlags;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{CSSPixelLength, FontSize, Length, NonNegativeLength, XLang};
 use style::values::specified::font::{KeywordInfo, QueryFontMetricsFlags};
-use style::values::{Parser, SourceLocation};
 use style::{Zero, driver};
 use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
@@ -89,9 +82,9 @@ use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, Stack
 use crate::query::{
     find_character_offset_in_fragment_descendants, get_the_text_steps, process_box_area_request,
     process_box_areas_request, process_client_rect_request, process_current_css_zoom_query,
-    process_node_scroll_area_request, process_offset_parent_query, process_padding_request,
-    process_resolved_font_style_query, process_resolved_style_request,
-    process_scroll_container_query,
+    process_effective_overflow_query, process_node_scroll_area_request,
+    process_offset_parent_query, process_padding_request, process_resolved_font_style_query,
+    process_resolved_style_request, process_scroll_container_query,
 };
 use crate::traversal::{RecalcStyle, compute_damage_and_rebuild_box_tree};
 use crate::{BoxTree, FragmentTree};
@@ -316,14 +309,16 @@ impl Layout for LayoutThread {
     /// Return the resolved values of this node's padding rect.
     #[servo_tracing::instrument(skip_all)]
     fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides> {
-        // If we have not built a fragment tree yet, there is no way we have layout information for
-        // this query, which can be run without forcing a layout (for IntersectionObserver).
-        if self.fragment_tree.borrow().is_none() {
-            return None;
-        }
+        with_layout_state(|| {
+            // If we have not built a fragment tree yet, there is no way we have layout information for
+            // this query, which can be run without forcing a layout (for IntersectionObserver).
+            if self.fragment_tree.borrow().is_none() {
+                return None;
+            }
 
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        process_padding_request(node.to_threadsafe())
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            process_padding_request(node.to_threadsafe())
+        })
     }
 
     /// Return the union of this node's areas in the coordinate space of the Document. This is used
@@ -338,23 +333,25 @@ impl Layout for LayoutThread {
         area: BoxAreaType,
         exclude_transform_and_inline: bool,
     ) -> Option<Rect<Au, CSSPixel>> {
-        // If we have not built a fragment tree yet, there is no way we have layout information for
-        // this query, which can be run without forcing a layout (for IntersectionObserver).
-        if self.fragment_tree.borrow().is_none() {
-            return None;
-        }
+        with_layout_state(|| {
+            // If we have not built a fragment tree yet, there is no way we have layout information for
+            // this query, which can be run without forcing a layout (for IntersectionObserver).
+            if self.fragment_tree.borrow().is_none() {
+                return None;
+            }
 
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        let stacking_context_tree = self.stacking_context_tree.borrow();
-        let stacking_context_tree = stacking_context_tree
-            .as_ref()
-            .expect("Should always have a StackingContextTree for box area queries");
-        process_box_area_request(
-            stacking_context_tree,
-            node.to_threadsafe(),
-            area,
-            exclude_transform_and_inline,
-        )
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            let stacking_context_tree = self.stacking_context_tree.borrow();
+            let stacking_context_tree = stacking_context_tree
+                .as_ref()
+                .expect("Should always have a StackingContextTree for box area queries");
+            process_box_area_request(
+                stacking_context_tree,
+                node.to_threadsafe(),
+                area,
+                exclude_transform_and_inline,
+            )
+        })
     }
 
     /// Get a `Vec` of bounding boxes of this node's `Fragment`s specific area in the coordinate space of
@@ -363,46 +360,56 @@ impl Layout for LayoutThread {
     /// See <https://drafts.csswg.org/cssom-view/#dom-element-getclientrects>.
     #[servo_tracing::instrument(skip_all)]
     fn query_box_areas(&self, node: TrustedNodeAddress, area: BoxAreaType) -> CSSPixelRectIterator {
-        // If we have not built a fragment tree yet, there is no way we have layout information for
-        // this query, which can be run without forcing a layout (for IntersectionObserver).
-        if self.fragment_tree.borrow().is_none() {
-            return Box::new(std::iter::empty());
-        }
+        with_layout_state(|| {
+            // If we have not built a fragment tree yet, there is no way we have layout information for
+            // this query, which can be run without forcing a layout (for IntersectionObserver).
+            if self.fragment_tree.borrow().is_none() {
+                return Box::new(std::iter::empty()) as CSSPixelRectIterator;
+            }
 
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        let stacking_context_tree = self.stacking_context_tree.borrow();
-        let stacking_context_tree = stacking_context_tree
-            .as_ref()
-            .expect("Should always have a StackingContextTree for box area queries");
-        process_box_areas_request(stacking_context_tree, node.to_threadsafe(), area)
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            let stacking_context_tree = self.stacking_context_tree.borrow();
+            let stacking_context_tree = stacking_context_tree
+                .as_ref()
+                .expect("Should always have a StackingContextTree for box area queries");
+            process_box_areas_request(stacking_context_tree, node.to_threadsafe(), area)
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
     fn query_client_rect(&self, node: TrustedNodeAddress) -> Rect<i32, CSSPixel> {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        process_client_rect_request(node.to_threadsafe())
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            process_client_rect_request(node.to_threadsafe())
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
     fn query_current_css_zoom(&self, node: TrustedNodeAddress) -> f32 {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        process_current_css_zoom_query(node)
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            process_current_css_zoom_query(node)
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
     fn query_element_inner_outer_text(&self, node: layout_api::TrustedNodeAddress) -> String {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        get_the_text_steps(node)
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            get_the_text_steps(node)
+        })
     }
     #[servo_tracing::instrument(skip_all)]
     fn query_offset_parent(&self, node: TrustedNodeAddress) -> OffsetParentResponse {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        let stacking_context_tree = self.stacking_context_tree.borrow();
-        let stacking_context_tree = stacking_context_tree
-            .as_ref()
-            .expect("Should always have a StackingContextTree for offset parent queries");
-        process_offset_parent_query(&stacking_context_tree.paint_info.scroll_tree, node)
-            .unwrap_or_default()
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            let stacking_context_tree = self.stacking_context_tree.borrow();
+            let stacking_context_tree = stacking_context_tree
+                .as_ref()
+                .expect("Should always have a StackingContextTree for offset parent queries");
+            process_offset_parent_query(&stacking_context_tree.paint_info.scroll_tree, node)
+                .unwrap_or_default()
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -411,14 +418,16 @@ impl Layout for LayoutThread {
         node: Option<TrustedNodeAddress>,
         flags: ScrollContainerQueryFlags,
     ) -> Option<ScrollContainerResponse> {
-        let node = unsafe { node.as_ref().map(|node| ServoLayoutNode::new(node)) };
-        let viewport_overflow = self
-            .box_tree
-            .borrow()
-            .as_ref()
-            .expect("Should have a BoxTree for all scroll container queries.")
-            .viewport_overflow;
-        process_scroll_container_query(node, flags, viewport_overflow)
+        with_layout_state(|| {
+            let node = unsafe { node.as_ref().map(|node| ServoLayoutNode::new(node)) };
+            let viewport_overflow = self
+                .box_tree
+                .borrow()
+                .as_ref()
+                .expect("Should have a BoxTree for all scroll container queries.")
+                .viewport_overflow;
+            process_scroll_container_query(node, flags, viewport_overflow)
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -430,24 +439,26 @@ impl Layout for LayoutThread {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> String {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        let document = node.owner_doc();
-        let document_shared_lock = document.style_shared_lock();
-        let guards = StylesheetGuards {
-            author: &document_shared_lock.read(),
-            ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
-        };
-        let snapshot_map = SnapshotMap::new();
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            let document = node.owner_doc();
+            let document_shared_lock = document.style_shared_lock();
+            let guards = StylesheetGuards {
+                author: &document_shared_lock.read(),
+                ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
+            };
+            let snapshot_map = SnapshotMap::new();
 
-        let shared_style_context = self.build_shared_style_context(
-            guards,
-            &snapshot_map,
-            animation_timeline_value,
-            &animations,
-            TraversalFlags::empty(),
-        );
+            let shared_style_context = self.build_shared_style_context(
+                guards,
+                &snapshot_map,
+                animation_timeline_value,
+                &animations,
+                TraversalFlags::empty(),
+            );
 
-        process_resolved_style_request(&shared_style_context, node, &pseudo, &property_id)
+            process_resolved_style_request(&shared_style_context, node, &pseudo, &property_id)
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -458,35 +469,39 @@ impl Layout for LayoutThread {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> Option<ServoArc<Font>> {
-        let node = unsafe { ServoLayoutNode::new(&node) };
-        let document = node.owner_doc();
-        let document_shared_lock = document.style_shared_lock();
-        let guards = StylesheetGuards {
-            author: &document_shared_lock.read(),
-            ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
-        };
-        let snapshot_map = SnapshotMap::new();
-        let shared_style_context = self.build_shared_style_context(
-            guards,
-            &snapshot_map,
-            animation_timeline_value,
-            &animations,
-            TraversalFlags::empty(),
-        );
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            let document = node.owner_doc();
+            let document_shared_lock = document.style_shared_lock();
+            let guards = StylesheetGuards {
+                author: &document_shared_lock.read(),
+                ua_or_user: &GLOBAL_STYLE_DATA.shared_lock.read(),
+            };
+            let snapshot_map = SnapshotMap::new();
+            let shared_style_context = self.build_shared_style_context(
+                guards,
+                &snapshot_map,
+                animation_timeline_value,
+                &animations,
+                TraversalFlags::empty(),
+            );
 
-        process_resolved_font_style_query(
-            &shared_style_context,
-            node,
-            value,
-            self.url.clone(),
-            document_shared_lock,
-        )
+            process_resolved_font_style_query(
+                &shared_style_context,
+                node,
+                value,
+                self.url.clone(),
+                document_shared_lock,
+            )
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
     fn query_scrolling_area(&self, node: Option<TrustedNodeAddress>) -> Rect<i32, CSSPixel> {
-        let node = node.map(|node| unsafe { ServoLayoutNode::new(&node).to_threadsafe() });
-        process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
+        with_layout_state(|| {
+            let node = node.map(|node| unsafe { ServoLayoutNode::new(&node).to_threadsafe() });
+            process_node_scroll_area_request(node, self.fragment_tree.borrow().clone())
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -495,10 +510,16 @@ impl Layout for LayoutThread {
         node: TrustedNodeAddress,
         point_in_node: Point2D<Au, CSSPixel>,
     ) -> Option<usize> {
-        let node = unsafe { ServoLayoutNode::new(&node).to_threadsafe() };
-        let stacking_context_tree = self.stacking_context_tree.borrow_mut();
-        let stacking_context_tree = stacking_context_tree.as_ref()?;
-        find_character_offset_in_fragment_descendants(&node, stacking_context_tree, point_in_node)
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node).to_threadsafe() };
+            let stacking_context_tree = self.stacking_context_tree.borrow_mut();
+            let stacking_context_tree = stacking_context_tree.as_ref()?;
+            find_character_offset_in_fragment_descendants(
+                &node,
+                stacking_context_tree,
+                point_in_node,
+            )
+        })
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -507,11 +528,21 @@ impl Layout for LayoutThread {
         point: webrender_api::units::LayoutPoint,
         flags: layout_api::ElementsFromPointFlags,
     ) -> Vec<layout_api::ElementsFromPointResult> {
-        self.stacking_context_tree
-            .borrow_mut()
-            .as_mut()
-            .map(|tree| HitTest::run(tree, point, flags))
-            .unwrap_or_default()
+        with_layout_state(|| {
+            self.stacking_context_tree
+                .borrow_mut()
+                .as_mut()
+                .map(|tree| HitTest::run(tree, point, flags))
+                .unwrap_or_default()
+        })
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn query_effective_overflow(&self, node: TrustedNodeAddress) -> Option<AxesOverflow> {
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node).to_threadsafe() };
+            process_effective_overflow_query(node)
+        })
     }
 
     fn exit_now(&mut self) {}
@@ -576,17 +607,19 @@ impl Layout for LayoutThread {
             profile_time::ProfilerCategory::Layout,
             self.profiler_metadata(),
             self.time_profiler_chan.clone(),
-            || self.handle_reflow(reflow_request),
+            || with_layout_state(|| self.handle_reflow(reflow_request)),
         )
     }
 
     fn ensure_stacking_context_tree(&self, viewport_details: ViewportDetails) {
-        if self.stacking_context_tree.borrow().is_some() &&
-            !self.need_new_stacking_context_tree.get()
-        {
-            return;
-        }
-        self.build_stacking_context_tree(viewport_details);
+        with_layout_state(|| {
+            if self.stacking_context_tree.borrow().is_some() &&
+                !self.need_new_stacking_context_tree.get()
+            {
+                return;
+            }
+            self.build_stacking_context_tree(viewport_details);
+        })
     }
 
     fn register_paint_worklet_modules(
@@ -629,89 +662,8 @@ impl Layout for LayoutThread {
     }
 
     /// <https://drafts.css-houdini.org/css-properties-values-api-1/#the-registerproperty-function>
-    fn register_custom_property(
-        &mut self,
-        property_registration: PropertyRegistration,
-    ) -> Result<(), RegisterPropertyError> {
-        // Step 2. If name is not a custom property name string, throw a SyntaxError and exit this algorithm.
-        // If property set already contains an entry with name as its property name
-        // (compared codepoint-wise), throw an InvalidModificationError and exit this algorithm.
-        let Ok(name) = parse_name(&property_registration.name) else {
-            return Err(RegisterPropertyError::InvalidName);
-        };
-        let name = Atom::from(name);
-
-        if self
-            .stylist
-            .custom_property_script_registry()
-            .get(&name)
-            .is_some()
-        {
-            return Err(RegisterPropertyError::AlreadyRegistered);
-        }
-
-        // Step 3. Attempt to consume a syntax definition from syntax. If it returns failure,
-        // throw a SyntaxError. Otherwise, let syntax definition be the returned syntax definition.
-        let syntax = Descriptor::from_str(&property_registration.syntax, false)
-            .map_err(|_| RegisterPropertyError::InvalidSyntax)?;
-
-        // Step 4 - Parse and validate initial value
-        let initial_value = match property_registration.initial_value {
-            Some(value) => {
-                let mut input = ParserInput::new(&value);
-                let parsed = Parser::new(&mut input)
-                    .parse_entirely(|input| {
-                        input.skip_whitespace();
-                        SpecifiedValue::parse(input, &property_registration.url_data)
-                            .map(servo_arc::Arc::new)
-                    })
-                    .ok();
-                if parsed.is_none() {
-                    return Err(RegisterPropertyError::InvalidInitialValue);
-                }
-                parsed
-            },
-            None => None,
-        };
-
-        StyloPropertyRegistration::validate_initial_value(&syntax, initial_value.as_deref())
-            .map_err(|error| match error {
-                PropertyRegistrationError::InitialValueNotComputationallyIndependent => {
-                    RegisterPropertyError::InitialValueNotComputationallyIndependent
-                },
-                PropertyRegistrationError::InvalidInitialValue => {
-                    RegisterPropertyError::InvalidInitialValue
-                },
-                PropertyRegistrationError::NoInitialValue => RegisterPropertyError::NoInitialValue,
-            })?;
-
-        // Step 5. Set inherit flag to the value of inherits.
-        let inherits = if property_registration.inherits {
-            Inherits::True
-        } else {
-            Inherits::False
-        };
-
-        // Step 6. Let registered property be a struct with a property name of name, a syntax of
-        // syntax definition, an initial value of parsed initial value, and an inherit flag of inherit flag.
-        // Append registered property to property set.
-        let property_registration = StyloPropertyRegistration {
-            name: PropertyRuleName(name),
-            data: PropertyRegistrationData {
-                syntax,
-                initial_value,
-                inherits,
-            },
-            url_data: property_registration.url_data,
-            source_location: SourceLocation { line: 0, column: 0 },
-        };
-
-        self.stylist
-            .custom_property_script_registry_mut()
-            .register(property_registration);
-        self.stylist.rebuild_initial_values_for_custom_properties();
-
-        Ok(())
+    fn stylist_mut(&mut self) -> &mut Stylist {
+        &mut self.stylist
     }
 
     fn set_accessibility_active(&self, active: bool) {
@@ -776,7 +728,7 @@ impl LayoutThread {
             previously_highlighted_dom_node: Cell::new(None),
             paint_timing_handler: Default::default(),
             user_stylesheets: config.user_stylesheets,
-            accessibility_active: Cell::new(config.accessibility_active),
+            accessibility_active: Cell::new(false),
         }
     }
 
@@ -926,6 +878,7 @@ impl LayoutThread {
             animating_images: reflow_request.animating_images.clone(),
             animation_timeline_value: reflow_request.animation_timeline_value,
         });
+        let mut reflow_statistics = Default::default();
 
         let (mut reflow_phases_run, iframe_sizes) = self.restyle_and_build_trees(
             &mut reflow_request,
@@ -939,7 +892,7 @@ impl LayoutThread {
         if self.build_stacking_context_tree_for_reflow(&reflow_request) {
             reflow_phases_run.insert(ReflowPhasesRun::BuiltStackingContextTree);
         }
-        if self.build_display_list(&reflow_request, &image_resolver) {
+        if self.build_display_list(&reflow_request, &image_resolver, &mut reflow_statistics) {
             reflow_phases_run.insert(ReflowPhasesRun::BuiltDisplayList);
         }
         if self.handle_update_scroll_node_request(&reflow_request) {
@@ -958,6 +911,7 @@ impl LayoutThread {
             pending_rasterization_images,
             pending_svg_elements_for_serialization,
             iframe_sizes: Some(iframe_sizes),
+            reflow_statistics,
         })
     }
 
@@ -1282,6 +1236,7 @@ impl LayoutThread {
         &self,
         reflow_request: &ReflowRequest,
         image_resolver: &Arc<ImageResolver>,
+        reflow_statistics: &mut ReflowStatistics,
     ) -> bool {
         if !ReflowPhases::necessary(&reflow_request.reflow_goal)
             .contains(ReflowPhases::DisplayListConstruction)
@@ -1330,6 +1285,7 @@ impl LayoutThread {
             reflow_request.highlighted_dom_node,
             &self.debug,
             paint_timing_handler,
+            reflow_statistics,
         );
         self.paint_api.send_display_list(
             self.webview_id,
@@ -1674,6 +1630,7 @@ impl ReflowPhases {
                 QueryMsg::TextIndexQuery => Self::StackingContextTreeConstruction,
                 QueryMsg::ClientRectQuery |
                 QueryMsg::CurrentCSSZoomQuery |
+                QueryMsg::EffectiveOverflow |
                 QueryMsg::ElementInnerOuterTextQuery |
                 QueryMsg::InnerWindowDimensionsQuery |
                 QueryMsg::PaddingQuery |

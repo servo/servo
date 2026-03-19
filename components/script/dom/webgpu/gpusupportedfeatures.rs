@@ -156,7 +156,7 @@ impl Setlike for GPUSupportedFeatures {
     fn get_index(&self, index: u32) -> Option<Self::Key> {
         self.internal
             .get_index(index)
-            .map(|k| DOMString::from_string(k.as_str().to_owned()))
+            .map(|key| key.as_str().into())
     }
     #[inline(always)]
     fn size(&self) -> u32 {

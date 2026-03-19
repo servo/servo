@@ -9,9 +9,9 @@ use gilrs::ff::{BaseEffect, BaseEffectType, Effect, EffectBuilder, Repeat, Repla
 use gilrs::{EventType, Gilrs};
 use log::{debug, warn};
 use servo::{
-    GamepadEvent, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
-    GamepadHapticEffectType, GamepadIndex, GamepadInputBounds, GamepadProvider,
-    GamepadSupportedHapticEffects, GamepadUpdateType, InputEvent, WebView,
+    GamepadDelegate, GamepadEvent, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
+    GamepadHapticEffectType, GamepadIndex, GamepadInputBounds, GamepadSupportedHapticEffects,
+    GamepadUpdateType, InputEvent, WebView,
 };
 
 pub struct HapticEffect {
@@ -19,12 +19,12 @@ pub struct HapticEffect {
     pub request: GamepadHapticEffectRequest,
 }
 
-pub(crate) struct ServoshellGamepadProvider {
+pub(crate) struct ServoshellGamepadDelegate {
     handle: RefCell<Gilrs>,
     haptic_effects: RefCell<HashMap<usize, HapticEffect>>,
 }
 
-impl ServoshellGamepadProvider {
+impl ServoshellGamepadDelegate {
     pub(crate) fn maybe_new() -> Option<Self> {
         let handle = match Gilrs::new() {
             Ok(handle) => handle,
@@ -242,7 +242,7 @@ impl ServoshellGamepadProvider {
     }
 }
 
-impl GamepadProvider for ServoshellGamepadProvider {
+impl GamepadDelegate for ServoshellGamepadDelegate {
     fn handle_haptic_effect_request(&self, request: GamepadHapticEffectRequest) {
         match request.request_type() {
             GamepadHapticEffectRequestType::Play(effect_type) => {

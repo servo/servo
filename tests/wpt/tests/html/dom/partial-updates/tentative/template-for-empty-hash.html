@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - trailing hash in for attribute</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="placeholder" marker="ph"><?start name=a><?end><?marker></div>
+<template for="ph#a">a</template>
+<template for="ph#">b</template>
+<script>
+  test(() => {
+    assert_equals(document.getElementById("placeholder").textContent, "ab");
+  }, "empty hash matches marker without name attribute");
+</script>

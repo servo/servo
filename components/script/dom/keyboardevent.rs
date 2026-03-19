@@ -3,10 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::str::FromStr;
 
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
-use keyboard_types::{Key, Modifiers, NamedKey};
+use keyboard_types::{Code, Key, Modifiers, NamedKey};
+use style::Atom;
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::KeyboardEventBinding;
@@ -29,6 +31,8 @@ pub(crate) struct KeyboardEvent {
     #[no_trace]
     typed_key: DomRefCell<Key>,
     code: DomRefCell<DOMString>,
+    #[no_trace]
+    original_code: DomRefCell<Option<Code>>,
     location: Cell<u32>,
     #[no_trace]
     modifiers: Cell<Modifiers>,
@@ -39,18 +43,19 @@ pub(crate) struct KeyboardEvent {
 }
 
 impl KeyboardEvent {
-    fn new_inherited() -> KeyboardEvent {
-        KeyboardEvent {
+    fn new_inherited() -> Self {
+        Self {
             uievent: UIEvent::new_inherited(),
-            key: DomRefCell::new(DOMString::new()),
-            typed_key: DomRefCell::new(Key::Named(NamedKey::Unidentified)),
-            code: DomRefCell::new(DOMString::new()),
-            location: Cell::new(0),
-            modifiers: Cell::new(Modifiers::empty()),
-            repeat: Cell::new(false),
-            is_composing: Cell::new(false),
-            char_code: Cell::new(0),
-            key_code: Cell::new(0),
+            key: Default::default(),
+            typed_key: Default::default(),
+            code: Default::default(),
+            original_code: Default::default(),
+            location: Default::default(),
+            modifiers: Default::default(),
+            repeat: Default::default(),
+            is_composing: Default::default(),
+            char_code: Default::default(),
+            key_code: Default::default(),
         }
     }
 
@@ -71,40 +76,29 @@ impl KeyboardEvent {
         )
     }
 
-    #[expect(clippy::too_many_arguments)]
-    pub(crate) fn new(
+    pub(crate) fn new_with_platform_keyboard_event(
         window: &Window,
-        type_: DOMString,
-        can_bubble: bool,
-        cancelable: bool,
-        view: Option<&Window>,
-        detail: i32,
-        key: Key,
-        code: DOMString,
-        location: u32,
-        repeat: bool,
-        is_composing: bool,
-        modifiers: Modifiers,
-        char_code: u32,
-        key_code: u32,
+        event_type: Atom,
+        keyboard_event: &keyboard_types::KeyboardEvent,
         can_gc: CanGc,
     ) -> DomRoot<KeyboardEvent> {
         Self::new_with_proto(
             window,
             None,
-            type_,
-            can_bubble,
-            cancelable,
-            view,
-            detail,
-            key,
-            code,
-            location,
-            repeat,
-            is_composing,
-            modifiers,
-            char_code,
-            key_code,
+            event_type,
+            true,         /* can_bubble */
+            true,         /* cancelable */
+            Some(window), /* view */
+            0,            /* detail */
+            keyboard_event.key.clone(),
+            DOMString::from(keyboard_event.code.to_string()),
+            Some(keyboard_event.code),
+            keyboard_event.location as u32,
+            keyboard_event.repeat,
+            keyboard_event.is_composing,
+            keyboard_event.modifiers,
+            0, /* char_code */
+            keyboard_event.key.legacy_keycode(),
             can_gc,
         )
     }
@@ -113,13 +107,14 @@ impl KeyboardEvent {
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: bool,
         cancelable: bool,
         view: Option<&Window>,
         _detail: i32,
         key: Key,
         code: DOMString,
+        original_code: Option<Code>,
         location: u32,
         repeat: bool,
         is_composing: bool,
@@ -128,34 +123,65 @@ impl KeyboardEvent {
         key_code: u32,
         can_gc: CanGc,
     ) -> DomRoot<KeyboardEvent> {
-        let ev = KeyboardEvent::new_uninitialized_with_proto(window, proto, can_gc);
-        ev.InitKeyboardEvent(
-            type_,
+        let event = KeyboardEvent::new_uninitialized_with_proto(window, proto, can_gc);
+        event.init_event(
+            event_type,
             can_bubble,
             cancelable,
             view,
             DOMString::from(key.to_string()),
             location,
-            DOMString::new(),
             repeat,
-            DOMString::new(),
         );
-        *ev.typed_key.borrow_mut() = key;
-        *ev.code.borrow_mut() = code;
-        ev.modifiers.set(modifiers);
-        ev.is_composing.set(is_composing);
-        ev.char_code.set(char_code);
-        ev.key_code.set(key_code);
-        ev.uievent.set_which(key_code);
-        ev
+        *event.typed_key.borrow_mut() = key;
+        *event.code.borrow_mut() = code;
+        *event.original_code.borrow_mut() = original_code;
+        event.modifiers.set(modifiers);
+        event.is_composing.set(is_composing);
+        event.char_code.set(char_code);
+        event.key_code.set(key_code);
+        event.uievent.set_which(key_code);
+        event
     }
 
     pub(crate) fn key(&self) -> Key {
         self.typed_key.borrow().clone()
     }
 
+    pub(crate) fn original_code(&self) -> Option<Code> {
+        *self.original_code.borrow()
+    }
+
     pub(crate) fn modifiers(&self) -> Modifiers {
         self.modifiers.get()
+    }
+
+    /// <https://w3c.github.io/uievents/#widl-KeyboardEvent-initKeyboardEvent>
+    #[expect(clippy::too_many_arguments)]
+    pub(crate) fn init_event(
+        &self,
+        event_type: Atom,
+        can_bubble_arg: bool,
+        cancelable_arg: bool,
+        view_arg: Option<&Window>,
+        key_arg: DOMString,
+        location_arg: u32,
+        repeat: bool,
+    ) {
+        if self.upcast::<Event>().dispatching() {
+            return;
+        }
+
+        self.upcast::<UIEvent>().init_event(
+            event_type,
+            can_bubble_arg,
+            cancelable_arg,
+            view_arg,
+            0,
+        );
+        *self.key.borrow_mut() = key_arg;
+        self.location.set(location_arg);
+        self.repeat.set(repeat);
     }
 }
 
@@ -165,7 +191,7 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        type_: DOMString,
+        event_type: DOMString,
         init: &KeyboardEventBinding::KeyboardEventInit,
     ) -> Fallible<DomRoot<KeyboardEvent>> {
         let mut modifiers = Modifiers::empty();
@@ -176,13 +202,14 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
         let event = KeyboardEvent::new_with_proto(
             window,
             proto,
-            type_,
+            event_type.into(),
             init.parent.parent.parent.bubbles,
             init.parent.parent.parent.cancelable,
             init.parent.parent.view.as_deref(),
             init.parent.parent.detail,
             Key::Named(NamedKey::Unidentified),
             init.code.clone(),
+            Code::from_str(&init.code.str()).ok(),
             init.location,
             init.repeat,
             init.isComposing,
@@ -198,7 +225,7 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
     /// <https://w3c.github.io/uievents/#widl-KeyboardEvent-initKeyboardEvent>
     fn InitKeyboardEvent(
         &self,
-        type_arg: DOMString,
+        event_type: DOMString,
         can_bubble_arg: bool,
         cancelable_arg: bool,
         view_arg: Option<&Window>,
@@ -208,15 +235,15 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
         repeat: bool,
         _locale: DOMString,
     ) {
-        if self.upcast::<Event>().dispatching() {
-            return;
-        }
-
-        self.upcast::<UIEvent>()
-            .InitUIEvent(type_arg, can_bubble_arg, cancelable_arg, view_arg, 0);
-        *self.key.borrow_mut() = key_arg;
-        self.location.set(location_arg);
-        self.repeat.set(repeat);
+        self.init_event(
+            event_type.into(),
+            can_bubble_arg,
+            cancelable_arg,
+            view_arg,
+            key_arg,
+            location_arg,
+            repeat,
+        );
     }
 
     /// <https://w3c.github.io/uievents/#dom-keyboardevent-initkeyboardevent>

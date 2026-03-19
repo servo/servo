@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>SVG Path Data: Number parsing - scientific notation with exponents</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/paths.html#PathDataBNF">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<svg id="svg" width="400" height="400">
+  <!-- Test various exponent formats -->
+  <path id="test1" d="M 1e2,1e2 L 2E2,1.5e2" fill="none" stroke="black" stroke-width="2"/>
+
+  <!-- Reference: explicit decimal values -->
+  <path id="ref1" d="M 100,100 L 200,150" fill="none" stroke="red" stroke-width="1"/>
+</svg>
+
+<script>
+test(function() {
+  const testPath = document.getElementById('test1');
+  const refPath = document.getElementById('ref1');
+
+  const testLength = testPath.getTotalLength();
+  const refLength = refPath.getTotalLength();
+
+  assert_approx_equals(testLength, refLength, 0.1,
+    "Path with exponents should match explicit decimal version");
+}, "Number parsing: 1e2 equals 100, 2E2 equals 200, 1.5e2 equals 150");
+
+test(function() {
+  const path = document.getElementById('test1');
+  const startPoint = path.getPointAtLength(0);
+
+  assert_approx_equals(startPoint.x, 100, 0.1, "1e2 should equal 100");
+  assert_approx_equals(startPoint.y, 100, 0.1, "1e2 should equal 100");
+}, "Number parsing: 1e2 = 100");
+
+test(function() {
+  const path = document.getElementById('test1');
+  const endPoint = path.getPointAtLength(path.getTotalLength());
+
+  assert_approx_equals(endPoint.x, 200, 0.1, "2E2 should equal 200");
+  assert_approx_equals(endPoint.y, 150, 0.1, "1.5e2 should equal 150");
+}, "Number parsing: 2E2 = 200, 1.5e2 = 150");
+
+test(function() {
+  // Test positive exponent
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 1e+2,2e+1');
+  svg.appendChild(path);
+
+  const point = path.getPointAtLength(0);
+  assert_approx_equals(point.x, 100, 0.1, "1e+2 should equal 100");
+  assert_approx_equals(point.y, 20, 0.1, "2e+1 should equal 20");
+}, "Number parsing: Positive exponent (e+2)");
+
+test(function() {
+  // Test negative exponent
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 1e-1,5e-2');
+  svg.appendChild(path);
+
+  const point = path.getPointAtLength(0);
+  assert_approx_equals(point.x, 0.1, 0.001, "1e-1 should equal 0.1");
+  assert_approx_equals(point.y, 0.05, 0.001, "5e-2 should equal 0.05");
+}, "Number parsing: Negative exponent (e-1)");
+
+test(function() {
+  // Test case insensitivity
+  const svg = document.getElementById('svg');
+  const path1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path1.setAttribute('d', 'M 1e2,1e2');
+  svg.appendChild(path1);
+
+  const path2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path2.setAttribute('d', 'M 1E2,1E2');
+  svg.appendChild(path2);
+
+  const point1 = path1.getPointAtLength(0);
+  const point2 = path2.getPointAtLength(0);
+
+  assert_approx_equals(point1.x, point2.x, 0.001, "'e' and 'E' should be equivalent");
+  assert_approx_equals(point1.y, point2.y, 0.001, "'e' and 'E' should be equivalent");
+}, "Number parsing: 'e' and 'E' are case-insensitive");
+
+test(function() {
+  // Test fractional base with exponent
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 1.5e2,2.5e1');
+  svg.appendChild(path);
+
+  const point = path.getPointAtLength(0);
+  assert_approx_equals(point.x, 150, 0.1, "1.5e2 should equal 150");
+  assert_approx_equals(point.y, 25, 0.1, "2.5e1 should equal 25");
+}, "Number parsing: Fractional base with exponent (1.5e2)");
+
+test(function() {
+  // Test zero exponent
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 5e0,10e0');
+  svg.appendChild(path);
+
+  const point = path.getPointAtLength(0);
+  assert_approx_equals(point.x, 5, 0.001, "5e0 should equal 5");
+  assert_approx_equals(point.y, 10, 0.001, "10e0 should equal 10");
+}, "Number parsing: Zero exponent (5e0 = 5)");
+
+test(function() {
+  // Test consecutive exponent numbers
+  const svg = document.getElementById('svg');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M 1e2-1e2');
+  svg.appendChild(path);
+
+  const point = path.getPointAtLength(0);
+  assert_approx_equals(point.x, 100, 0.1, "1e2 should equal 100");
+  assert_approx_equals(point.y, -100, 0.1, "-1e2 should equal -100");
+}, "Number parsing: Consecutive exponent numbers (1e2-1e2 = 100,-100)");
+</script>
+</body>
+</html>

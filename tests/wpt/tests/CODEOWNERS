@@ -52,7 +52,7 @@ scroll-animations/scroll-timelines/scroll-timeline-in-removed-iframe-crash.html 
 scroll-animations/view-timelines/subject-br-crash.html @web-platform-tests/interop
 webtransport/bidirectional-cancel-crash.https.html @web-platform-tests/interop
 css/css-anchor-position/anchor-center-002.html @web-platform-tests/interop
-css/css-anchor-position/anchor-center-scroll.html @web-platform-tests/interop
+css/css-anchor-position/anchor-center-scroll-001.html @web-platform-tests/interop
 css/css-anchor-position/anchor-in-css-min-max-function.html @web-platform-tests/interop
 css/css-anchor-position/anchor-name-005.html @web-platform-tests/interop
 css/css-anchor-position/anchor-name-multicol-003.html @web-platform-tests/interop
@@ -705,7 +705,6 @@ css/css-scroll-snap/resnap-on-snap-alignment-change.html @web-platform-tests/int
 css/css-scroll-snap/scroll-margin-editable.html @web-platform-tests/interop
 css/css-scroll-snap/scroll-snap-stop-002.html @web-platform-tests/interop
 css/css-scroll-snap/smooth-anchor-scroll-in-snap-container.html @web-platform-tests/interop
-css/css-scroll-snap/snap-after-initial-layout/initial-snap-matches-scroll.html @web-platform-tests/interop
 css/css-scroll-snap/snap-after-relayout/changing-scroll-snap-type-on-root-element.html @web-platform-tests/interop
 css/css-scroll-snap/snap-after-relayout/focus-element-no-snap.html @web-platform-tests/interop
 css/css-scroll-snap/snap-after-relayout/layout-follows-focused-targeted-block.html @web-platform-tests/interop
@@ -770,7 +769,6 @@ css/css-values/attr-invalidation.html @web-platform-tests/interop
 css/css-values/attr-length-specified.html @web-platform-tests/interop
 css/css-values/attr-null-namespace.xhtml @web-platform-tests/interop
 css/css-values/attr-pseudo-elem-invalidation.html @web-platform-tests/interop
-css/css-values/attr-revert-rule.tentative.html @web-platform-tests/interop
 css/css-values/attr-security.html @web-platform-tests/interop
 css/css-values/attr-universal-selector.html @web-platform-tests/interop
 css/css-view-transitions/document-active-view-transition.html @web-platform-tests/interop
@@ -882,7 +880,7 @@ css/css-viewport/zoom/scroll-top-test-with-zoom.html @web-platform-tests/interop
 css/css-viewport/zoom/widget.html @web-platform-tests/interop
 css/selectors/invalidation/open-pseudo-class-in-has.html @web-platform-tests/interop
 css/selectors/media/media-loading-state-timing.sub.html @web-platform-tests/interop
-css/selectors/media/media-loading-state.html @web-platform-tests/interop
+css/selectors/media/media-loading-state.sub.html @web-platform-tests/interop
 css/selectors/media/media-playback-state-timing.html @web-platform-tests/interop
 css/selectors/media/media-playback-state.html @web-platform-tests/interop
 css/selectors/media/sound-state.html @web-platform-tests/interop
@@ -1456,7 +1454,6 @@ scroll-animations/css/scroll-timeline-root-dirty.html @web-platform-tests/intero
 scroll-animations/css/scroll-timeline-sampling.html @web-platform-tests/interop
 scroll-animations/css/scroll-timeline-shorthand.html @web-platform-tests/interop
 scroll-animations/css/siblings-with-anonymous-timelines.html @web-platform-tests/interop
-scroll-animations/css/timeline-names-ident-function.html @web-platform-tests/interop
 scroll-animations/css/timeline-offset-keyframes-hidden-subject.html @web-platform-tests/interop
 scroll-animations/css/timeline-offset-keyframes-with-document-timeline.html @web-platform-tests/interop
 scroll-animations/css/timeline-scope-all.html @web-platform-tests/interop

@@ -2,6 +2,8 @@
 <html>
 <head>
 <meta charset=utf-8>
+<meta name="variant" content="?interop-2026">
+<meta name="variant" content="?rest">
 <meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -11,6 +13,8 @@
 <body>
 <script>
 'use strict';
+const rest = !new URLSearchParams(location.search).has("interop-2026");
+const interop2026 = !new URLSearchParams(location.search).has("rest");
 
 // Check that RTCDataChannel is not collected by GC while observing remote pc close
 
@@ -36,15 +40,16 @@ async function didRemotePcClose(t, closeRemotePc) {
   return closed;
 }
 
+if (rest) {
 promise_test(async t => {
   assert_true(await didRemotePcClose(t, true));
 }, "Control: detected remote PC being closed using a data channel");
-
+}
+if (interop2026) {
 promise_test(async t => {
   assert_false(await didRemotePcClose(t, false));
 }, "While remote PC remains open, its datachannel should not be collected");
-
+}
 </script>
 </body>
 </html>
-

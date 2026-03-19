@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:bal="http://schemas.microsoft.com/wix/BalExtension">
+  <Bundle Name="ServoShell"
+          Version="1.0"
+          UpgradeCode="91b09c7e-6c0d-4166-b806-1dc724acf728">
+
+    <Variable Name="InstallFolder" 
+          Type="string" 
+          Value="[ProgramFiles64Folder]Servo\Servo Tech Demo" 
+          bal:Overridable="yes" />
+
+    <BootstrapperApplicationRef Id="WixStandardBootstrapperApplication.HyperlinkLicense">
+      <bal:WixStandardBootstrapperApplication
+        LicenseUrl="https://www.mozilla.org/en-US/MPL/2.0/"
+        />
+    </BootstrapperApplicationRef>
+    <Chain>
+      <MsiPackage
+          SourceFile="Installer.msi"
+          Compressed="yes"
+          DisplayName="ServoShell"
+          ForcePerMachine="yes">
+          <MsiProperty Name="INSTALLDIR" Value="[InstallFolder]" />
+      </MsiPackage>
+    </Chain>
+  </Bundle>
+</Wix>

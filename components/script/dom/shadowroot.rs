@@ -50,7 +50,7 @@ use crate::dom::node::{
     BindContext, IsShadowTree, Node, NodeDamage, NodeFlags, NodeTraits, ShadowIncluding,
     UnbindContext, VecPreOrderInsertionHelper,
 };
-use crate::dom::trustedhtml::TrustedHTML;
+use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::types::EventTarget;
 use crate::dom::virtualmethods::{VirtualMethods, vtable_for};
 use crate::dom::window::Window;
@@ -494,11 +494,11 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     ) -> ErrorResult {
         // Step 1. Let compliantString be the result of invoking the Get Trusted Type compliant string algorithm
         // with TrustedHTML, this's relevant global object, the given value, "ShadowRoot innerHTML", and "script".
-        let value = TrustedHTML::get_trusted_script_compliant_string(
+        let value = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             value.convert(),
             "ShadowRoot innerHTML",
-            CanGc::from_cx(cx),
         )?;
 
         // Step 2. Let context be this's host.
@@ -509,10 +509,10 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         //
         // NOTE: The spec doesn't strictly tell us to bail out here, but
         // we can't continue if parsing failed
-        let frag = context.parse_fragment(value, CanGc::from_cx(cx))?;
+        let frag = context.parse_fragment(value, cx)?;
 
         // Step 4. Replace all with fragment within this.
-        Node::replace_all(Some(frag.upcast()), self.upcast(), CanGc::from_cx(cx));
+        Node::replace_all(cx, Some(frag.upcast()), self.upcast());
         Ok(())
     }
 
@@ -530,17 +530,17 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         // Step 1. Let compliantHTML be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, html, "ShadowRoot setHTMLUnsafe", and "script".
-        let value = TrustedHTML::get_trusted_script_compliant_string(
+        let value = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             &self.owner_global(),
             value,
             "ShadowRoot setHTMLUnsafe",
-            CanGc::from_cx(cx),
         )?;
         // Step 2. Unsafely set HTMl given this, this's shadow host, and complaintHTML
         let target = self.upcast::<Node>();
         let context_element = self.Host();
 
-        Node::unsafely_set_html(target, &context_element, value, CanGc::from_cx(cx));
+        Node::unsafely_set_html(target, &context_element, value, cx);
         Ok(())
     }
 
@@ -601,9 +601,9 @@ impl VirtualMethods for ShadowRoot {
         Some(self.upcast::<DocumentFragment>() as &dyn VirtualMethods)
     }
 
-    fn bind_to_tree(&self, context: &BindContext, can_gc: CanGc) {
+    fn bind_to_tree(&self, cx: &mut js::context::JSContext, context: &BindContext) {
         if let Some(s) = self.super_type() {
-            s.bind_to_tree(context, can_gc);
+            s.bind_to_tree(cx, context);
         }
 
         // TODO(stevennovaryo): Handle adoptedStylesheet to deal with different
@@ -625,7 +625,7 @@ impl VirtualMethods for ShadowRoot {
 
             // Out-of-document elements never have the descendants flag set
             debug_assert!(!node.get_flag(NodeFlags::HAS_DIRTY_DESCENDANTS));
-            vtable_for(&node).bind_to_tree(&context, can_gc);
+            vtable_for(&node).bind_to_tree(cx, &context);
         }
     }
 

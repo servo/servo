@@ -82,7 +82,7 @@ def start_servo(webdriver_port: int, servo_path: str) -> webdriver.Remote | None
 
 
 def kill_servo():
-    subprocess.Popen(["killall", "servo"])
+    subprocess.Popen(["killall", "servoshell"])
 
 
 REGEX_RESULTS_LOG_ELEMENT = re.compile(

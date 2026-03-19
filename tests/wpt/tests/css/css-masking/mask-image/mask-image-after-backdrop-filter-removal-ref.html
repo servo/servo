@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference for mask-image persists after removing backdrop-filter</title>
+<style>
+  .element {
+    width: 200px;
+    height: 100px;
+    background-color: rgba(0, 187, 255, 0.5);
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0) 0, #000 100%);
+  }
+
+  .element > div {
+    width: 100px;
+    height: 100px;
+    backdrop-filter: invert(1);
+  }
+</style>
+  <div class="element">
+    <div></div>
+  </div>

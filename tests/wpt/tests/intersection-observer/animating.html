@@ -18,8 +18,8 @@ pre, #log {
 }
 @keyframes slideup {
   0% { transform: translateY(0) }
-  30% { transform: translateY(0) }
-  31% { transform: translateY(-2000px) }
+  50% { transform: translateY(0) }
+  51% { transform: translateY(-2000px) }
   100% { transform: translateY(-2000px) }
 }
 </style>
@@ -40,10 +40,10 @@ promise_test(t => {
         }
       });
     });
-    target.style.animation = "3s linear slideup";
+    target.style.animation = "4s linear slideup";
     setTimeout(() => {
-      reject("Did not get a not-intersecting notification within 2 seconds.");
-    }, 2000);
+      reject("Did not get a not-intersecting notification within 3 seconds.");
+    }, 3000);
     target.addEventListener("animationend", evt => {
       reject("animationend event fired before not-intersecting notification.");
     });

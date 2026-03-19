@@ -4,11 +4,13 @@
 
 use std::iter::Filter;
 use std::str::Split;
+use std::sync::LazyLock;
 
 use base64::Engine;
 use generic_array::ArrayLength;
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use parking_lot::MutexGuard;
+use regex::Regex;
 use sha2::{Digest, Sha256, Sha384, Sha512};
 
 const SUPPORTED_ALGORITHM: &[&str] = &["sha256", "sha384", "sha512"];
@@ -40,32 +42,48 @@ impl SriEntry {
 
 /// <https://w3c.github.io/webappsec-subresource-integrity/#parse-metadata>
 pub fn parsed_metadata(integrity_metadata: &str) -> Vec<SriEntry> {
-    // Step 1
+    // https://w3c.github.io/webappsec-csp/#grammardef-base64-value
+    static BASE64_GRAMMAR: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"^[A-Za-z0-9+/_-]+={0,2}$").unwrap());
+
+    // Step 1. Let result be the empty set.
     let mut result = vec![];
 
-    // Step 3
+    // Step 2. For each item returned by splitting metadata on spaces:
     let tokens = split_html_space_chars(integrity_metadata);
     for token in tokens {
-        let parsed_data: Vec<&str> = token.split('-').collect();
+        // Step 2.1. Let expression-and-options be the result of splitting item on U+003F (?).
+        let expression_and_option: Vec<&str> = token.split('?').collect();
 
-        if parsed_data.len() > 1 {
-            let alg = parsed_data[0];
+        // Step 2.2. Let algorithm-expression be expression-and-options[0].
+        let algorithm_expression = expression_and_option[0];
 
-            if !SUPPORTED_ALGORITHM.contains(&alg) {
-                continue;
-            }
+        // Step 2.4. Let algorithm-and-value be the result of splitting algorithm-expression on U+002D (-).
+        let algorithm_and_value: Vec<&str> = algorithm_expression.split('-').collect();
 
-            let data: Vec<&str> = parsed_data[1].split('?').collect();
-            let digest = data[0];
+        // Step 2.5. Let algorithm be algorithm-and-value[0].
+        let algorithm = algorithm_and_value[0];
 
-            let opt = if data.len() > 1 {
-                Some(data[1].to_owned())
-            } else {
-                None
-            };
-
-            result.push(SriEntry::new(alg, digest, opt));
+        // Step 2.6. If algorithm is not a valid SRI hash algorithm token, then continue.
+        if !SUPPORTED_ALGORITHM.contains(&algorithm) {
+            continue;
         }
+
+        // Step 2.3. Let base64-value be the empty string.
+        // Step 2.7. If algorithm-and-value[1] exists, set base64-value to algorithm-and-value[1].
+        let Some(digest) = algorithm_and_value
+            .get(1)
+            // check if digest follows the base64 grammar defined by CSP spec
+            .filter(|value| BASE64_GRAMMAR.is_match(value))
+        else {
+            continue;
+        };
+
+        let opt = expression_and_option.get(1).map(|opt| (*opt).to_owned());
+
+        // Step 2.8. Let metadata be the ordered map «["alg" → algorithm, "val" → base64-value]».
+        // Step 2.9. Append metadata to result.
+        result.push(SriEntry::new(algorithm, digest, opt));
     }
 
     result

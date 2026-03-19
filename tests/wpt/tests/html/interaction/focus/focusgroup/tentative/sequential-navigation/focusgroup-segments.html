@@ -14,7 +14,7 @@
 <!-- Opted-out elements create multiple focusgroup entry points -->
 <div id=before tabindex=0>Before toolbar</div>
 
-<div id=toolbar focusgroup="toolbar wrap" aria-label="Text formatting">
+<div id=toolbar focusgroup="toolbar inline block wrap" aria-label="Text formatting">
   <button id=bold type="button" focusgroupstart>Bold (priority)</button>
   <button id=italic type="button">Italic</button>
   <span id=help-group focusgroup="none" aria-label="Help group">
@@ -29,7 +29,7 @@
 <!-- Test complex nested opt-out -->
 <div id=before2 tabindex=0>Before complex</div>
 
-<div id=complex-focusgroup focusgroup="toolbar no-memory">
+<div id=complex-focusgroup focusgroup="toolbar nomemory">
   <button id=item1 focusgroupstart>Item 1 (priority)</button>
   <div id=nested-opt-out focusgroup="none">
     <button id=opted-out-1>Opted out 1</button>
@@ -54,19 +54,19 @@
     var after = document.getElementById("after");
 
     await focusAndWait(before);
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, bold, "Tab from before should focus Bold (first focusgroup item)");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, help, "Tab from Bold should focus Help (first opted-out element)");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, shortcuts, "Tab from Help should focus Shortcuts (next in opted-out subtree)");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, underline, "Tab from Shortcuts should focus Underline (re-enter focusgroup)");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, after, "Tab from Underline should exit focusgroup");
   }, "Tab navigation through focusgroup segments - forward direction");
 
@@ -113,22 +113,22 @@
     var after2 = document.getElementById("after2");
 
     await focusAndWait(before2);
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, item1, "Tab should enter at Item 1");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, optedOut1, "Tab should move to first opted-out element");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, deeplyOptedOut, "Tab should move to deeply nested opted-out element");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, optedOut2, "Tab should move to second opted-out element");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, item2, "Tab should re-enter focusgroup at Item 2");
 
-    await navigateFocusForward();
+    await sendTabForward();
     assert_equals(document.activeElement, after2, "Tab should exit focusgroup");
   }, "Complex nested opt-out creates proper focusgroup segments");
 

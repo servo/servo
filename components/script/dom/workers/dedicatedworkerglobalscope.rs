@@ -26,7 +26,6 @@ use net_traits::request::{
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 
-use crate::devtools;
 use crate::dom::abstractworker::{MessageData, SimpleWorkerErrorHandler, WorkerScriptMsg};
 use crate::dom::abstractworkerglobalscope::{WorkerEventLoopMethods, run_worker_event_loop};
 use crate::dom::bindings::cell::DomRefCell;
@@ -38,7 +37,7 @@ use crate::dom::bindings::error::{ErrorInfo, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
@@ -212,6 +211,7 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     control_receiver: Receiver<DedicatedWorkerControlMsg>,
     #[no_trace]
     queued_worker_tasks: DomRefCell<Vec<MessageData>>,
+    debugger_global: Dom<DebuggerGlobalScope>,
 }
 
 impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
@@ -276,6 +276,7 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Option<Arc<FontContext>>,
+        debugger_global: &DebuggerGlobalScope,
     ) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -300,6 +301,7 @@ impl DedicatedWorkerGlobalScope {
             browsing_context,
             control_receiver,
             queued_worker_tasks: Default::default(),
+            debugger_global: Dom::from_ref(debugger_global),
         }
     }
 
@@ -322,6 +324,7 @@ impl DedicatedWorkerGlobalScope {
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
         insecure_requests_policy: InsecureRequestsPolicy,
         font_context: Option<Arc<FontContext>>,
+        debugger_global: &DebuggerGlobalScope,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
@@ -343,6 +346,7 @@ impl DedicatedWorkerGlobalScope {
             control_receiver,
             insecure_requests_policy,
             font_context,
+            debugger_global,
         ));
         DedicatedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, scope)
     }
@@ -477,7 +481,7 @@ impl DedicatedWorkerGlobalScope {
                 let global = DedicatedWorkerGlobalScope::new(
                     init,
                     webview_id,
-                    DOMString::from_string(worker_name),
+                    worker_name.into(),
                     worker_type,
                     worker_url,
                     devtools_mpsc_port,
@@ -493,6 +497,7 @@ impl DedicatedWorkerGlobalScope {
                     control_receiver,
                     insecure_requests_policy,
                     font_context,
+                    &debugger_global,
                     cx,
                 );
                 debugger_global.fire_add_debuggee(
@@ -511,7 +516,7 @@ impl DedicatedWorkerGlobalScope {
                     sender: event_loop_sender.clone(),
                     pipeline_id,
                     name: TaskSourceName::Networking,
-                    canceller: Default::default(),
+                    canceller: scope.shared_task_canceller(),
                 };
                 let context = ScriptFetchContext::new(
                     Trusted::new(scope),
@@ -648,11 +653,19 @@ impl DedicatedWorkerGlobalScope {
         // FIXME(#26324): `self.worker` is None in devtools messages.
         match msg {
             MixedMessage::Devtools(msg) => match msg {
-                DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
-                    devtools::handle_evaluate_js(self.upcast(), string, sender, cx)
-                },
                 DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
-                    devtools::handle_wants_live_notifications(self.upcast(), bool_val)
+                    self.upcast::<GlobalScope>()
+                        .set_devtools_wants_updates(bool_val);
+                },
+                DevtoolScriptControlMsg::Eval(code, id, frame_actor_id, reply) => {
+                    self.debugger_global.fire_eval(
+                        CanGc::from_cx(cx),
+                        code.into(),
+                        id,
+                        Some(self.upcast::<WorkerGlobalScope>().worker_id()),
+                        frame_actor_id,
+                        reply,
+                    );
                 },
                 _ => debug!("got an unusable devtools control message inside the worker!"),
             },

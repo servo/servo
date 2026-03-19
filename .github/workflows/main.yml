@@ -36,7 +36,7 @@ jobs:
         run: |
           {
             echo 'result<<EOF'
-            python ./python/servo/try_parser.py ${{ github.event_name == 'pull_request' && 'linux-unit-tests lint' || github.event_name == 'push' && 'full macos bencher production-bencher coverage' || 'fail-fast full macos-arm-unit-tests' }}
+            python ./python/servo/try_parser.py ${{ github.event_name == 'pull_request' && 'linux-unit-tests lint' || github.event_name == 'push' && 'full macos bencher production-bencher coverage' || 'fail-fast full' }}
             echo EOF
            } >> $GITHUB_OUTPUT
 
@@ -71,7 +71,7 @@ jobs:
       - build
     steps:
       - name: Merge build timings
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: cargo-timings
           pattern: cargo-timings-*

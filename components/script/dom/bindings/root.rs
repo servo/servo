@@ -27,8 +27,10 @@
 use std::cell::{OnceCell, UnsafeCell};
 use std::default::Default;
 use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 use std::{mem, ptr};
 
+use js::context::NoGC;
 use js::jsapi::{Heap, JSObject, JSTracer, Value};
 use js::rust::HandleValue;
 use layout_api::TrustedNodeAddress;
@@ -100,6 +102,15 @@ where
     {
         assert_in_layout();
         self.value.is::<U>()
+    }
+
+    /// Get a reference to the internal value.
+    ///
+    /// ## SAFETY
+    /// This function effectively circumvents all the safety provided by `LayoutDom` as it allows
+    /// performing arbitrary (potentially mutating) operations on the value. Use with caution!
+    pub(crate) unsafe fn as_ref(self) -> &'dom T {
+        self.value
     }
 }
 
@@ -209,6 +220,33 @@ pub(crate) fn assert_in_layout() {
     debug_assert!(thread_state::get().is_layout());
 }
 
+/// A struct to make Unrooted Dom objects work. By taking a no_gc as reference, we ensure that the lifetime of this object
+/// is bounded by the lifetime of NoGC which enforces no gc happening.
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+pub(crate) struct UnrootedDom<'a, T: DomObject> {
+    inner: Dom<T>,
+    _no_gc: &'a NoGC,
+}
+
+impl<'a, T: DomObject> UnrootedDom<'a, T> {
+    /// Construct an `UnrootedDom` with the lifetime of `NoGC`. This is safe, as `NoGC` implies no garbage collection will happen
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    pub(crate) fn from_dom(object: Dom<T>, no_gc: &'a NoGC) -> UnrootedDom<'a, T> {
+        UnrootedDom {
+            inner: object,
+            _no_gc: no_gc,
+        }
+    }
+}
+
+impl<'a, T: DomObject> Deref for UnrootedDom<'a, T> {
+    type Target = Dom<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
 /// A holder that provides interior mutability for GC-managed values such as
 /// `Dom<T>`, with nullability represented by an enclosing Option wrapper.
 /// Essentially a `Cell<Option<Dom<T>>>`, but safer.
@@ -260,6 +298,19 @@ impl<T: DomObject> MutNullableDom<T> {
         unsafe { ptr::read(self.ptr.get()).map(|o| DomRoot::from_ref(&*o)) }
     }
 
+    /// Get the `DomObject` without rooting it. Constructing an UnrootedDom. This is safe
+    /// as we take a reference to NoGC and bound the lifetime by NoGC bound. This implies that
+    /// while the `UnrootedDom` is alive we do not have a GC run.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    pub(crate) fn get_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, T>> {
+        assert_in_script();
+        let ptr = unsafe { ptr::read(self.ptr.get()) };
+        ptr.map(|o| Dom::from_ref(&*o)).map(|dom| UnrootedDom {
+            inner: dom,
+            _no_gc: no_gc,
+        })
+    }
+
     /// Set this `MutNullableDom` to the given value.
     pub(crate) fn set(&self, val: Option<&T>) {
         assert_in_script();
@@ -273,6 +324,11 @@ impl<T: DomObject> MutNullableDom<T> {
         let value = self.get();
         self.set(None);
         value
+    }
+
+    /// Sets the current value of this [`MutNullableDom`] to `None`.
+    pub(crate) fn clear(&self) {
+        self.set(None)
     }
 
     /// Runs the given callback on the object if it's not null.

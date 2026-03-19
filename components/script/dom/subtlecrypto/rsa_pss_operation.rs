@@ -19,7 +19,7 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::rsa_common::{self, RsaAlgorithm};
 use crate::dom::subtlecrypto::{
-    ALG_SHA1, ALG_SHA256, ALG_SHA384, ALG_SHA512, ExportedKey, KeyAlgorithmAndDerivatives,
+    CryptoAlgorithm, ExportedKey, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
     SubtleRsaHashedImportParams, SubtleRsaHashedKeyGenParams, SubtleRsaPssParams,
 };
 
@@ -57,28 +57,28 @@ pub(crate) fn sign(
     };
     let mut rng = OsRng;
     let signature = match algorithm.hash.name() {
-        ALG_SHA1 => {
+        CryptoAlgorithm::Sha1 => {
             let signing_key = SigningKey::<Sha1>::new_with_salt_len(
                 private_key.clone(),
                 normalized_algorithm.salt_length as usize,
             );
             signing_key.try_sign_with_rng(&mut rng, message)
         },
-        ALG_SHA256 => {
+        CryptoAlgorithm::Sha256 => {
             let signing_key = SigningKey::<Sha256>::new_with_salt_len(
                 private_key.clone(),
                 normalized_algorithm.salt_length as usize,
             );
             signing_key.try_sign_with_rng(&mut rng, message)
         },
-        ALG_SHA384 => {
+        CryptoAlgorithm::Sha384 => {
             let signing_key = SigningKey::<Sha384>::new_with_salt_len(
                 private_key.clone(),
                 normalized_algorithm.salt_length as usize,
             );
             signing_key.try_sign_with_rng(&mut rng, message)
         },
-        ALG_SHA512 => {
+        CryptoAlgorithm::Sha512 => {
             let signing_key = SigningKey::<Sha512>::new_with_salt_len(
                 private_key.clone(),
                 normalized_algorithm.salt_length as usize,
@@ -88,7 +88,7 @@ pub(crate) fn sign(
         _ => {
             return Err(Error::Operation(Some(format!(
                 "Unsupported \"{}\" hash for RSA-PSS",
-                algorithm.hash.name()
+                algorithm.hash.name().as_str()
             ))));
         },
     }
@@ -134,28 +134,28 @@ pub(crate) fn verify(
     let signature = Signature::try_from(signature)
         .map_err(|_| Error::Operation(Some("Failed to parse RSA signature".to_string())))?;
     let result = match algorithm.hash.name() {
-        ALG_SHA1 => {
+        CryptoAlgorithm::Sha1 => {
             let verifying_key = VerifyingKey::<Sha1>::new_with_salt_len(
                 public_key.clone(),
                 normalized_algorithm.salt_length as usize,
             );
             verifying_key.verify(message, &signature)
         },
-        ALG_SHA256 => {
+        CryptoAlgorithm::Sha256 => {
             let verifying_key = VerifyingKey::<Sha256>::new_with_salt_len(
                 public_key.clone(),
                 normalized_algorithm.salt_length as usize,
             );
             verifying_key.verify(message, &signature)
         },
-        ALG_SHA384 => {
+        CryptoAlgorithm::Sha384 => {
             let verifying_key = VerifyingKey::<Sha384>::new_with_salt_len(
                 public_key.clone(),
                 normalized_algorithm.salt_length as usize,
             );
             verifying_key.verify(message, &signature)
         },
-        ALG_SHA512 => {
+        CryptoAlgorithm::Sha512 => {
             let verifying_key = VerifyingKey::<Sha512>::new_with_salt_len(
                 public_key.clone(),
                 normalized_algorithm.salt_length as usize,
@@ -165,7 +165,7 @@ pub(crate) fn verify(
         _ => {
             return Err(Error::Operation(Some(format!(
                 "Unsupported \"{}\" hash for RSASSA-PKCS1-v1_5",
-                algorithm.hash.name()
+                algorithm.hash.name().as_str()
             ))));
         },
     }
@@ -218,4 +218,16 @@ pub(crate) fn import_key(
 /// <https://w3c.github.io/webcrypto/#rsa-pss-operations-export-key>
 pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
     rsa_common::export_key(RsaAlgorithm::RsaPss, format, key)
+}
+
+/// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
+/// Step 9 - 15, for RSA-PSS
+pub(crate) fn get_public_key(
+    cx: &mut JSContext,
+    global: &GlobalScope,
+    key: &CryptoKey,
+    algorithm: &KeyAlgorithmAndDerivatives,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey>, Error> {
+    rsa_common::get_public_key(RsaAlgorithm::RsaPss, cx, global, key, algorithm, usages)
 }

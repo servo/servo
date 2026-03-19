@@ -64,7 +64,7 @@ pub enum KeyPath {
     Sequence(Vec<String>),
 }
 
-// https://www.w3.org/TR/IndexedDB-2/#enumdef-idbtransactionmode
+// https://www.w3.org/TR/IndexedDB-3/#enumdef-idbtransactionmode
 #[derive(Clone, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum IndexedDBTxnMode {
     Readonly,
@@ -72,7 +72,7 @@ pub enum IndexedDBTxnMode {
     Versionchange,
 }
 
-/// <https://www.w3.org/TR/IndexedDB-2/#key-type>
+/// <https://www.w3.org/TR/IndexedDB-3/#key-type>
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum IndexedDBKeyType {
     Number(f64),
@@ -83,7 +83,7 @@ pub enum IndexedDBKeyType {
     // FIXME:(arihant2math) implment ArrayBuffer
 }
 
-/// <https://www.w3.org/TR/IndexedDB-2/#compare-two-keys>
+/// <https://www.w3.org/TR/IndexedDB-3/#compare-two-keys>
 impl PartialOrd for IndexedDBKeyType {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         // 1. Let ta be the type of a.
@@ -163,7 +163,7 @@ impl PartialEq for IndexedDBKeyType {
     }
 }
 
-// <https://www.w3.org/TR/IndexedDB-2/#key-range>
+// <https://www.w3.org/TR/IndexedDB-3/#key-range>
 #[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct IndexedDBKeyRange {
     pub lower: Option<IndexedDBKeyType>,
@@ -219,7 +219,7 @@ impl IndexedDBKeyRange {
         }
     }
 
-    // <https://www.w3.org/TR/IndexedDB-2/#in>
+    // <https://www.w3.org/TR/IndexedDB-3/#in>
     pub fn contains(&self, key: &IndexedDBKeyType) -> bool {
         // A key is in a key range if both of the following conditions are fulfilled:
         // The lower bound is null, or it is less than key,
@@ -270,12 +270,13 @@ pub struct IndexedDBObjectStore {
     pub name: String,
     pub key_path: Option<KeyPath>,
     pub has_key_generator: bool,
+    pub key_generator_current_number: Option<i32>,
     pub indexes: Vec<IndexedDBIndex>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum PutItemResult {
-    Success,
+    Key(IndexedDBKeyType),
     CannotOverwrite,
 }
 
@@ -333,6 +334,8 @@ pub enum AsyncReadWriteOperation {
         key: Option<IndexedDBKeyType>,
         value: Vec<u8>,
         should_overwrite: bool,
+        /// New object store key generator current number to persist if the put succeeds.
+        key_generator_current_number: Option<i32>,
     },
 
     /// Removes the key/value pair for the given key in the associated idb data
@@ -391,6 +394,9 @@ pub enum ConnectionMsg {
         id: Uuid,
         version: u64,
         upgraded: bool,
+        // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
+        // Step 3. Set transaction’s scope to connection’s object store set.
+        object_store_names: Vec<String>,
     },
     /// An upgrade transaction for a version started.
     Upgrade {
@@ -399,6 +405,9 @@ pub enum ConnectionMsg {
         version: u64,
         old_version: u64,
         transaction: u64,
+        // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
+        // Step 3. Set transaction’s scope to connection’s object store set.
+        object_store_names: Vec<String>,
     },
     /// A `versionchange` event should be fired for a connection.
     VersionChange {
@@ -463,7 +472,6 @@ pub enum SyncOperation {
         String, // Database
         String, // Store
     ),
-
     /// Commits changes of a transaction to the database
     Commit(
         GenericCallback<TxnCompleteMsg>,

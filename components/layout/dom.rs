@@ -5,7 +5,6 @@
 use std::marker::PhantomData;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
-use base::id::{BrowsingContextId, PipelineId};
 use html5ever::{local_name, ns};
 use layout_api::wrapper_traits::{LayoutDataTrait, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 use layout_api::{
@@ -13,24 +12,27 @@ use layout_api::{
     SVGElementData,
 };
 use malloc_size_of_derive::MallocSizeOf;
-use net_traits::image_cache::Image;
 use script::layout_dom::ServoThreadSafeLayoutNode;
 use servo_arc::Arc as ServoArc;
 use smallvec::SmallVec;
 use style::context::SharedStyleContext;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
+use style::values::specified::box_::DisplayOutside as StyloDisplayOutside;
 
 use crate::cell::{ArcRefCell, WeakRefCell};
 use crate::context::LayoutContext;
-use crate::dom_traversal::NodeAndStyleInfo;
+use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::flexbox::FlexLevelBox;
-use crate::flow::BlockLevelBox;
 use crate::flow::inline::{InlineItem, SharedInlineStyles, WeakInlineItem};
-use crate::fragment_tree::Fragment;
+use crate::flow::{BlockLevelBox, BlockLevelCreator};
+use crate::fragment_tree::{Fragment, FragmentFlags};
 use crate::geom::PhysicalSize;
 use crate::layout_box_base::LayoutBoxBase;
-use crate::replaced::CanvasInfo;
+use crate::replaced::{CanvasInfo, IFrameInfo, ImageInfo, VideoInfo};
+use crate::style_ext::{
+    ComputedValuesExt, Display, DisplayGeneratingBox, DisplayLayoutInternal, DisplayOutside,
+};
 use crate::table::{TableLevelBox, WeakTableLevelBox};
 use crate::taffy::TaffyItemBox;
 
@@ -165,7 +167,7 @@ impl LayoutBox {
         match self {
             LayoutBox::DisplayContents(inline_shared_styles) => {
                 *inline_shared_styles.style.borrow_mut() = new_style.clone();
-                *inline_shared_styles.selected.borrow_mut() = node.selected_style();
+                *inline_shared_styles.selected.borrow_mut() = node.selected_style(context);
             },
             LayoutBox::BlockLevel(block_level_box) => {
                 block_level_box
@@ -303,12 +305,11 @@ impl Drop for BoxSlot<'_> {
 }
 
 pub(crate) trait NodeExt<'dom> {
-    /// Returns the image if it’s loaded, and its size in image pixels
-    /// adjusted for `image_density`.
-    fn as_image(&self) -> Option<(Option<Image>, PhysicalSize<f64>)>;
+    /// Returns the relevant data wrapping into respective struct and its size in pixels.
+    fn as_image(&self) -> Option<(ImageInfo, PhysicalSize<f64>)>;
     fn as_canvas(&self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
-    fn as_iframe(&self) -> Option<(PipelineId, BrowsingContextId)>;
-    fn as_video(&self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)>;
+    fn as_iframe(&self) -> Option<IFrameInfo>;
+    fn as_video(&self) -> Option<(VideoInfo, Option<PhysicalSize<f64>>)>;
     fn as_svg(&self) -> Option<SVGElementData<'dom>>;
     fn as_typeless_object_with_data_attribute(&self) -> Option<String>;
 
@@ -350,23 +351,31 @@ pub(crate) trait NodeExt<'dom> {
 }
 
 impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
-    fn as_image(&self) -> Option<(Option<Image>, PhysicalSize<f64>)> {
+    fn as_image(&self) -> Option<(ImageInfo, PhysicalSize<f64>)> {
         let (resource, metadata) = self.image_data()?;
         let width = metadata.map(|metadata| metadata.width).unwrap_or_default();
         let height = metadata.map(|metadata| metadata.height).unwrap_or_default();
         let (mut width, mut height) = (width as f64, height as f64);
+        // Take `image_density` into account for calculating the size in pixels for images.
         if let Some(density) = self.image_density().filter(|density| *density != 1.) {
             width /= density;
             height /= density;
         }
-        Some((resource, PhysicalSize::new(width, height)))
+        Some((
+            ImageInfo {
+                image: resource,
+                showing_broken_image_icon: self.showing_broken_image_icon(),
+                url: self.image_url(),
+            },
+            PhysicalSize::new(width, height),
+        ))
     }
 
     fn as_svg(&self) -> Option<SVGElementData<'dom>> {
         self.svg_data()
     }
 
-    fn as_video(&self) -> Option<(Option<webrender_api::ImageKey>, Option<PhysicalSize<f64>>)> {
+    fn as_video(&self) -> Option<(VideoInfo, Option<PhysicalSize<f64>>)> {
         let data = self.media_data()?;
         let natural_size = if let Some(frame) = data.current_frame {
             Some(PhysicalSize::new(frame.width.into(), frame.height.into()))
@@ -375,7 +384,9 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                 .map(|meta| PhysicalSize::new(meta.width.into(), meta.height.into()))
         };
         Some((
-            data.current_frame.map(|frame| frame.image_key),
+            VideoInfo {
+                image_key: data.current_frame.map(|frame| frame.image_key),
+            },
             natural_size,
         ))
     }
@@ -389,11 +400,12 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         ))
     }
 
-    fn as_iframe(&self) -> Option<(PipelineId, BrowsingContextId)> {
+    fn as_iframe(&self) -> Option<IFrameInfo> {
         match (self.iframe_pipeline_id(), self.iframe_browsing_context_id()) {
-            (Some(pipeline_id), Some(browsing_context_id)) => {
-                Some((pipeline_id, browsing_context_id))
-            },
+            (Some(pipeline_id), Some(browsing_context_id)) => Some(IFrameInfo {
+                pipeline_id,
+                browsing_context_id,
+            }),
             _ => None,
         }
     }
@@ -517,6 +529,15 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
     }
 
     fn isolates_damage_for_damage_propagation(&self) -> bool {
+        // Do not run incremental box and fragment tree layout at the `<body>` or root element as
+        // there is some special processing that must happen for these elements and it currently
+        // only happens when doing a full box tree construction traversal.
+        if self.as_element().is_some_and(|element| {
+            element.is_body_element_of_html_element_root() || element.is_root()
+        }) {
+            return false;
+        }
+
         let Some(inner_layout_data) = self.inner_layout_data() else {
             return false;
         };
@@ -530,6 +551,7 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
             LayoutBox::BlockLevel(block_level) => matches!(
                 &*block_level.borrow(),
                 BlockLevelBox::Independent(..) |
+                    BlockLevelBox::OutOfFlowFloatBox(..) |
                     BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(..)
             ),
             LayoutBox::InlineLevel(inline_level) => matches!(
@@ -537,7 +559,10 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(..) | InlineItem::Atomic(..)
             ),
             LayoutBox::FlexLevel(..) => true,
-            LayoutBox::TableLevelBox(..) => false,
+            LayoutBox::TableLevelBox(table_level_box) => matches!(
+                table_level_box,
+                TableLevelBox::Cell(..) | TableLevelBox::Caption(..),
+            ),
             LayoutBox::TaffyItemBox(..) => true,
         }
     }
@@ -569,16 +594,61 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
         };
 
         let info = NodeAndStyleInfo::new(*self, self.style(&layout_context.style_context));
+        let box_style = info.style.get_box();
+        let Display::GeneratingBox(display) = box_style.display.into() else {
+            return false;
+        };
+        let contents = || {
+            assert!(
+                self.pseudo_element_chain().is_empty(),
+                "Shouldn't try to rebuild box tree from a pseudo-element"
+            );
+            Contents::for_element(info.node, layout_context)
+        };
         match layout_box {
             LayoutBox::DisplayContents(..) => false,
             LayoutBox::BlockLevel(block_level) => {
                 let mut block_level = block_level.borrow_mut();
                 match &mut *block_level {
                     BlockLevelBox::Independent(independent_formatting_context) => {
+                        let DisplayGeneratingBox::OutsideInside {
+                            outside: DisplayOutside::Block,
+                            inside: display_inside,
+                        } = display
+                        else {
+                            return false;
+                        };
+                        if !matches!(
+                            BlockLevelCreator::new_for_inflow_block_level_element(
+                                &info,
+                                display_inside,
+                                contents(),
+                                independent_formatting_context.propagated_data,
+                            ),
+                            BlockLevelCreator::Independent { .. }
+                        ) {
+                            return false;
+                        }
                         independent_formatting_context.rebuild(layout_context, &info);
                         true
                     },
+                    BlockLevelBox::OutOfFlowFloatBox(float_box) => {
+                        if !info.style.clone_float().is_floating() {
+                            return false;
+                        }
+                        float_box.contents.rebuild(layout_context, &info);
+                        true
+                    },
                     BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                        // Even if absolute positioning blockifies the outer display type, if the
+                        // original display was inline-level, then the box needs to be handled as
+                        // an inline-level in order to compute the static position correctly.
+                        // See `BlockContainerBuilder::handle_absolutely_positioned_element()`.
+                        if !info.style.clone_position().is_absolutely_positioned() ||
+                            box_style.original_display.outside() != StyloDisplayOutside::Block
+                        {
+                            return false;
+                        }
                         positioned_box
                             .borrow_mut()
                             .context
@@ -590,6 +660,9 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
             },
             LayoutBox::InlineLevel(inline_level) => match inline_level {
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(positioned_box, ..) => {
+                    if !info.style.clone_position().is_absolutely_positioned() {
+                        return false;
+                    }
                     positioned_box
                         .borrow_mut()
                         .context
@@ -597,6 +670,14 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                     true
                 },
                 InlineItem::Atomic(atomic_box, _, _) => {
+                    let flags = match contents() {
+                        Contents::NonReplaced(_) => FragmentFlags::empty(),
+                        Contents::Replaced(_) => FragmentFlags::IS_REPLACED,
+                        Contents::Widget(_) => FragmentFlags::IS_WIDGET,
+                    };
+                    if !info.style.is_atomic_inline_level(flags) {
+                        return false;
+                    }
                     atomic_box.borrow_mut().rebuild(layout_context, &info);
                     true
                 },
@@ -605,10 +686,20 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
             LayoutBox::FlexLevel(flex_level_box) => {
                 let mut flex_level_box = flex_level_box.borrow_mut();
                 match &mut *flex_level_box {
-                    FlexLevelBox::FlexItem(flex_item_box) => flex_item_box
-                        .independent_formatting_context
-                        .rebuild(layout_context, &info),
+                    FlexLevelBox::FlexItem(flex_item_box) => {
+                        if info.style.clone_position().is_absolutely_positioned() ||
+                            flex_item_box.style().clone_order() != info.style.clone_order()
+                        {
+                            return false;
+                        }
+                        flex_item_box
+                            .independent_formatting_context
+                            .rebuild(layout_context, &info)
+                    },
                     FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(positioned_box) => {
+                        if !info.style.clone_position().is_absolutely_positioned() {
+                            return false;
+                        }
                         positioned_box
                             .borrow_mut()
                             .context
@@ -617,7 +708,30 @@ impl<'dom> NodeExt<'dom> for ServoThreadSafeLayoutNode<'dom> {
                 }
                 true
             },
-            LayoutBox::TableLevelBox(..) => false,
+            LayoutBox::TableLevelBox(table_level_box) => match table_level_box {
+                TableLevelBox::Caption(caption) => {
+                    if display !=
+                        DisplayGeneratingBox::LayoutInternal(DisplayLayoutInternal::TableCaption)
+                    {
+                        return false;
+                    }
+                    caption.borrow_mut().context.rebuild(layout_context, &info);
+                    true
+                },
+                TableLevelBox::Cell(table_cell) => {
+                    if display !=
+                        DisplayGeneratingBox::LayoutInternal(DisplayLayoutInternal::TableCell)
+                    {
+                        return false;
+                    }
+                    table_cell
+                        .borrow_mut()
+                        .context
+                        .rebuild(layout_context, &info);
+                    true
+                },
+                _ => false,
+            },
             LayoutBox::TaffyItemBox(..) => false,
         }
     }

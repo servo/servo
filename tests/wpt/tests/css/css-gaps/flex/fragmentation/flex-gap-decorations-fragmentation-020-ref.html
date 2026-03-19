@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+  .multicol {
+    column-count: 5;
+    width: 600px;
+    column-gap: 1px;
+    height: 101px;
+  }
+  #flex {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    height: 500px;
+    border: 1px solid black;
+    column-gap: 3px;
+    row-gap: 3px;
+  }
+
+  #flex > div {
+    background: lightblue;
+  }
+
+  .row-decoration {
+    background: gold;
+    position: absolute;
+  }
+
+  .column-decoration {
+    background: green;
+    position: absolute;
+  }
+</style>
+
+<div class="column-decoration" style="height: 98.5px; width: 3px; top: 1px; left: 58px;"></div>
+<div class="column-decoration" style="height: 99.5px; width: 3px; top: 0px; left: 178px;"></div>
+<div class="column-decoration" style="height: 99.5px; width: 3px; top: 0px; left: 298.5px;"></div>
+<div class="column-decoration" style="height: 99.5px; width: 3px; top: 0px; left: 418.5px;"></div>
+<div class="column-decoration" style="height: 98.5px; width: 3px; top: 0px; left: 539px;"></div>
+
+<div class="row-decoration" style="width: 57px; height: 3px; top: 0.5px; left: 121px;"></div>
+<div class="row-decoration" style="width: 57px; height: 3px; top: 53.5px; left: 121px;"></div>
+<div class="row-decoration" style="width: 58px; height: 3px; top: 6px; left: 241px;"></div>
+
+<div class="multicol">
+  <div id="flex" style="">
+    <div style="height: 100px;"></div>
+    <div style="height: 50px;"></div>
+    <div style="height: 50px;"></div>
+    <div style="height: 250px;"></div>
+    <div style="height: 400px;"></div>
+  </div>
+</div>

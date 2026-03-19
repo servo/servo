@@ -143,9 +143,10 @@
           });
         });
 
-        // Start the pointer outside, then scrub the target, then move outside
-        // again to make sure the boundary events are fired for hoverable
-        // pointers. Non-hoverable pointers fire those events on pointerdown/up.
+        // Start with a click in the same frame but outside the target, then
+        // scrub the target, then move outside again to make sure the boundary
+        // events are fired for hoverable pointers. Non-hoverable pointers fire
+        // those events on pointerdown/up.
         {
           const actions = new test_driver.Actions();
           let buttonArguments = (button == 'right')
@@ -153,10 +154,12 @@
                                 : undefined;
           await actions
             .addPointer('pointer1', pointerType)
-            .pointerMove(0, 0)
-            .pointerMove(-20, -20, { origin: target })
+            .pointerMove(100, 0, { origin: target })
+            .pointerDown()
+            .pointerUp()
+            .pointerMove(-20, 0, { origin: target })
             .pointerDown(buttonArguments)
-            .pointerMove(20, 20, { origin: target })
+            .pointerMove(20, 0, { origin: target })
             .pointerUp(buttonArguments)
             .pointerMove(0, 0)
             .send();

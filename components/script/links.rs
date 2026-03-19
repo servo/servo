@@ -5,7 +5,7 @@
 //! Defines shared hyperlink behaviour for `<link>`, `<a>`, `<area>` and `<form>` elements.
 
 use constellation_traits::{LoadData, LoadOrigin, NavigationHistoryBehavior};
-use html5ever::{local_name, ns};
+use html5ever::local_name;
 use malloc_size_of::malloc_size_of_is_0;
 use net_traits::request::Referrer;
 use style::str::HTML_SPACE_CHARACTERS;
@@ -182,7 +182,7 @@ impl LinkRelations {
     /// [`<area>`]: https://html.spec.whatwg.org/multipage/#the-area-element
     /// [`<form>`]: https://html.spec.whatwg.org/multipage/#the-form-element
     pub(crate) fn for_element(element: &Element) -> Self {
-        let rel = element.get_attribute(&ns!(), &local_name!("rel")).map(|e| {
+        let rel = element.get_attribute(&local_name!("rel")).map(|e| {
             let value = e.value();
             (**value).to_owned()
         });
@@ -198,7 +198,7 @@ impl LinkRelations {
 
         // For historical reasons, "rev=made" is treated as if the "author" relation was specified
         let has_legacy_author_relation = element
-            .get_attribute(&ns!(), &local_name!("rev"))
+            .get_attribute(&local_name!("rev"))
             .is_some_and(|rev| &**rev.value() == "made");
         if has_legacy_author_relation {
             relations |= Self::AUTHOR;
@@ -456,7 +456,7 @@ pub(crate) fn follow_hyperlink(
         // Step 9: Let urlString be the result of applying the URL serializer to urlRecord.
         // TODO: Implement this.
 
-        let attribute = subject.get_attribute(&ns!(), &local_name!("href")).unwrap();
+        let attribute = subject.get_attribute(&local_name!("href")).unwrap();
         let mut href = attribute.Value();
 
         // Step 10: If hyperlinkSuffix is non-null, then append it to urlString.

@@ -9,6 +9,7 @@ interface DebuggerEvalEvent : Event {
     readonly attribute DOMString code;
     readonly attribute PipelineId pipelineId;
     readonly attribute DOMString? workerId;
+    readonly attribute DOMString? frameActorId;
 };
 
 partial interface DebuggerGlobalScope {
@@ -36,4 +37,32 @@ dictionary EvalResultValue {
     // A string naming the ECMAScript [[Class]] of the referent.
     // <https://firefox-source-docs.mozilla.org/js/Debugger/Debugger.Object.html#accessor-properties-of-the-debugger-object-prototype>
     DOMString? objectClass;
+    DOMString? name;
+    boolean? hasException;
+
+    // Function-specific metadata
+    // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js>
+    DOMString? displayName;
+    sequence<DOMString>? parameterNames;
+    boolean? isAsync;
+    boolean? isGenerator;
+
+    // Object preview properties
+    sequence<PropertyPreview>? ownProperties;
+    unsigned long? ownPropertiesLength;
+};
+
+// TODO: Maybe merge some parts of this with the EvalResultValue
+dictionary PropertyPreview {
+    required DOMString name;
+    required boolean configurable;
+    required boolean enumerable;
+    required boolean writable;
+    required boolean isAccessor;
+    required DOMString valueType;
+    boolean? booleanValue;
+    double? numberValue;
+    DOMString? stringValue;
+    DOMString? objectClass;
+    DOMString? valueName;
 };

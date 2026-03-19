@@ -8,6 +8,7 @@ repository = "https://github.com/akosthekiss/blurmac"
 authors = ["Akos Kiss <akiss@inf.u-szeged.hu>"]
 license = "BSD-3-Clause"
 edition = "2024"
+publish = false
 
 [lib]
 name = "blurmac"

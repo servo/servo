@@ -123,10 +123,11 @@ impl Actor for StyleRuleActor {
                 // Query the rule modification
                 let node = registry.find::<NodeActor>(&self.node);
                 let walker = registry.find::<WalkerActor>(&node.walker);
-                walker
-                    .script_chan
+                let browsing_context = walker.browsing_context(registry);
+                browsing_context
+                    .script_chan()
                     .send(ModifyRule(
-                        walker.pipeline,
+                        browsing_context.pipeline_id(),
                         registry.actor_to_script(self.node.clone()),
                         modifications,
                     ))
@@ -152,11 +153,15 @@ impl StyleRuleActor {
     pub fn applied(&self, registry: &ActorRegistry) -> Option<AppliedRule> {
         let node = registry.find::<NodeActor>(&self.node);
         let walker = registry.find::<WalkerActor>(&node.walker);
+        let browsing_context = walker.browsing_context(registry);
 
         let (document_sender, document_receiver) = generic_channel::channel()?;
-        walker
-            .script_chan
-            .send(GetDocumentElement(walker.pipeline, document_sender))
+        browsing_context
+            .script_chan()
+            .send(GetDocumentElement(
+                browsing_context.pipeline_id(),
+                document_sender,
+            ))
             .ok()?;
         let node = document_receiver.recv().ok()??;
 
@@ -167,7 +172,7 @@ impl StyleRuleActor {
             Some(selector) => {
                 let (selector, stylesheet) = selector.clone();
                 GetStylesheetStyle(
-                    walker.pipeline,
+                    browsing_context.pipeline_id(),
                     registry.actor_to_script(self.node.clone()),
                     selector,
                     stylesheet,
@@ -175,12 +180,12 @@ impl StyleRuleActor {
                 )
             },
             None => GetAttributeStyle(
-                walker.pipeline,
+                browsing_context.pipeline_id(),
                 registry.actor_to_script(self.node.clone()),
                 style_sender,
             ),
         };
-        walker.script_chan.send(req).ok()?;
+        browsing_context.script_chan().send(req).ok()?;
         let style = style_receiver.recv().ok()??;
 
         Some(AppliedRule {
@@ -204,7 +209,7 @@ impl StyleRuleActor {
                     }
                 })
                 .collect(),
-            href: node.base_uri.clone(),
+            href: node.base_uri,
             selectors: self.selector.iter().map(|(s, _)| s).cloned().collect(),
             selectors_specificity: self.selector.iter().map(|_| 1).collect(),
             type_: ELEMENT_STYLE_TYPE,
@@ -220,12 +225,13 @@ impl StyleRuleActor {
     ) -> Option<HashMap<String, ComputedDeclaration>> {
         let node = registry.find::<NodeActor>(&self.node);
         let walker = registry.find::<WalkerActor>(&node.walker);
+        let browsing_context = walker.browsing_context(registry);
 
         let (style_sender, style_receiver) = generic_channel::channel()?;
-        walker
-            .script_chan
+        browsing_context
+            .script_chan()
             .send(GetComputedStyle(
-                walker.pipeline,
+                browsing_context.pipeline_id(),
                 registry.actor_to_script(self.node.clone()),
                 style_sender,
             ))

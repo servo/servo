@@ -6,6 +6,7 @@ use std::cmp::Ordering;
 
 use dom_struct::dom_struct;
 use html5ever::{QualName, local_name, ns};
+use js::context::JSContext;
 
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
@@ -56,22 +57,22 @@ impl HTMLOptionsCollection {
         )
     }
 
-    fn add_new_elements(&self, count: u32, can_gc: CanGc) -> ErrorResult {
+    fn add_new_elements(&self, cx: &mut JSContext, count: u32) -> ErrorResult {
         let root = self.upcast().root_node();
         let document = root.owner_document();
 
         for _ in 0..count {
             let element = Element::create(
+                cx,
                 QualName::new(None, ns!(html), local_name!("option")),
                 None,
                 &document,
                 ElementCreator::ScriptCreated,
                 CustomElementCreationMode::Asynchronous,
                 None,
-                can_gc,
             );
             let node = element.upcast::<Node>();
-            root.AppendChild(node, can_gc)?;
+            root.AppendChild(cx, node)?;
         }
         Ok(())
     }
@@ -104,9 +105,9 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-setter>
     fn IndexedSetter(
         &self,
+        cx: &mut JSContext,
         index: u32,
         value: Option<&HTMLOptionElement>,
-        can_gc: CanGc,
     ) -> ErrorResult {
         if let Some(value) = value {
             // Step 2
@@ -117,23 +118,23 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
 
             // Step 4
             if n > 0 {
-                self.add_new_elements(n as u32, can_gc)?;
+                self.add_new_elements(cx, n as u32)?;
             }
 
             // Step 5
             let node = value.upcast::<Node>();
             let root = self.upcast().root_node();
             if n >= 0 {
-                Node::pre_insert(node, &root, None, can_gc).map(|_| ())
+                Node::pre_insert(cx, node, &root, None).map(|_| ())
             } else {
                 let child = self.upcast().IndexedGetter(index).unwrap();
                 let child_node = child.upcast::<Node>();
 
-                root.ReplaceChild(node, child_node, can_gc).map(|_| ())
+                root.ReplaceChild(cx, node, child_node).map(|_| ())
             }
         } else {
             // Step 1
-            self.Remove(index as i32);
+            self.Remove(cx, index as i32);
             Ok(())
         }
     }
@@ -144,7 +145,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-length>
-    fn SetLength(&self, length: u32, can_gc: CanGc) {
+    fn SetLength(&self, cx: &mut JSContext, length: u32) {
         // Step 1. Let current be the number of nodes represented by the collection.
         let current = self.upcast().Length();
 
@@ -161,14 +162,14 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
 
                 // Step 2.3 Append n new option elements with no attributes and no child
                 // nodes to the select element on which this is rooted.
-                self.add_new_elements(n, can_gc).unwrap();
+                self.add_new_elements(cx, n).unwrap();
             },
             // Step 3. If the given value is less than current, then:
             Ordering::Less => {
                 // Step 3.1. Let n be current − value.
                 // Step 3.2 Remove the last n nodes in the collection from their parent nodes.
                 for index in (length..current).rev() {
-                    self.Remove(index as i32)
+                    self.Remove(cx, index as i32)
                 }
             },
             _ => {},
@@ -178,6 +179,7 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-add>
     fn Add(
         &self,
+        cx: &mut JSContext,
         element: HTMLOptionElementOrHTMLOptGroupElement,
         before: Option<HTMLElementOrLong>,
     ) -> ErrorResult {
@@ -235,13 +237,13 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
         };
 
         // Step 6: Pre-insert element into parent node before reference.
-        Node::pre_insert(node, &parent, reference_node.as_deref(), CanGc::note()).map(|_| ())
+        Node::pre_insert(cx, node, &parent, reference_node.as_deref()).map(|_| ())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-remove>
-    fn Remove(&self, index: i32) {
+    fn Remove(&self, cx: &mut JSContext, index: i32) {
         if let Some(element) = self.upcast().IndexedGetter(index as u32) {
-            element.Remove(CanGc::note());
+            element.Remove(cx);
         }
     }
 
@@ -255,11 +257,11 @@ impl HTMLOptionsCollectionMethods<crate::DomTypeHolder> for HTMLOptionsCollectio
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmloptionscollection-selectedindex>
-    fn SetSelectedIndex(&self, index: i32, can_gc: CanGc) {
+    fn SetSelectedIndex(&self, cx: &mut JSContext, index: i32) {
         self.upcast()
             .root_node()
             .downcast::<HTMLSelectElement>()
             .expect("HTMLOptionsCollection not rooted on a HTMLSelectElement")
-            .SetSelectedIndex(index, can_gc)
+            .SetSelectedIndex(cx, index)
     }
 }

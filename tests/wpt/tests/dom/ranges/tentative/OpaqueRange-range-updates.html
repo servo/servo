@@ -7,14 +7,14 @@ test(() => {
   document.body.innerHTML = '<textarea>Hello World</textarea>';
   const textarea = document.body.firstElementChild;
 
-  const range1 = textarea.getValueRange(0, 5);
+  const range1 = textarea.createValueRange(0, 5);
   assert_equals(range1.startOffset, 0);
   assert_equals(range1.endOffset, 5);
 
-  const range2 = textarea.getValueRange(6, 11);
+  const range2 = textarea.createValueRange(6, 11);
   assert_equals(range2.startOffset, 6);
   assert_equals(range2.endOffset, 11);
-}, "getValueRange creates independent ranges on same element.");
+}, "createValueRange creates independent ranges on same element.");
 
 test(() => {
   document.body.innerHTML = '<input type="text" value="Test"><textarea>Other</textarea>';
@@ -22,7 +22,7 @@ test(() => {
   const textarea = document.body.children[1];
 
   // Get range on <input>.
-  const inputRange = input.getValueRange(0, 4);
+  const inputRange = input.createValueRange(0, 4);
   // Opaque range: containers are null.
   assert_equals(inputRange.startContainer, null);
   assert_equals(inputRange.endContainer, null);
@@ -30,12 +30,12 @@ test(() => {
   assert_equals(inputRange.endOffset, 4);
 
   // Get range on <textarea>.
-  const textareaRange = textarea.getValueRange(0, 5);
+  const textareaRange = textarea.createValueRange(0, 5);
   assert_equals(textareaRange.startContainer, null);
   assert_equals(textareaRange.endContainer, null);
   assert_equals(textareaRange.startOffset, 0);
   assert_equals(textareaRange.endOffset, 5);
-}, "getValueRange works on different form controls.");
+}, "createValueRange works on different form controls.");
 
 test(() => {
   // Create disconnected form controls (not in document).
@@ -45,29 +45,29 @@ test(() => {
   const textarea = container.children[1];
 
   // Verify disconnected <input>.
-  const inputRange = input.getValueRange(0, 12);
+  const inputRange = input.createValueRange(0, 12);
   assert_equals(inputRange.startContainer, null);
   assert_equals(inputRange.endContainer, null);
   assert_equals(inputRange.startOffset, 0);
   assert_equals(inputRange.endOffset, 12);
 
   // Verify disconnected <textarea>.
-  const textareaRange = textarea.getValueRange(3, 12);
+  const textareaRange = textarea.createValueRange(3, 12);
   assert_equals(textareaRange.startOffset, 3);
   assert_equals(textareaRange.endOffset, 12);
 
   // Connect to document.
   document.body.appendChild(container);
 
-  const connectedInputRange = input.getValueRange(0, 4);
+  const connectedInputRange = input.createValueRange(0, 4);
   assert_equals(connectedInputRange.startOffset, 0);
   assert_equals(connectedInputRange.endOffset, 4);
-}, "getValueRange works with disconnected form controls.");
+}, "createValueRange works with disconnected form controls.");
 
 test(() => {
   document.body.innerHTML = '<textarea>Original</textarea>';
   const textarea = document.body.firstElementChild;
-  const range = textarea.getValueRange(1, 5);
+  const range = textarea.createValueRange(1, 5);
 
   assert_equals(range.startOffset, 1);
   assert_equals(range.endOffset, 5);

@@ -192,8 +192,8 @@ impl ScreenshotTaker {
                     let y = 0.max(
                         (viewport_size.height as f32 - rect.min.y - rect.size().height) as i32,
                     );
-                    let w = rect.size().width as i32;
-                    let h = rect.size().height as i32;
+                    let w = (rect.size().width as i32).min(viewport_size.width - x);
+                    let h = (rect.size().height as i32).min(viewport_size.height - y);
 
                     DeviceIntRect::from_origin_and_size(Point2D::new(x, y), Size2D::new(w, h))
                 });

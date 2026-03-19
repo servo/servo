@@ -6,18 +6,19 @@ use std::cell::{OnceCell, RefCell};
 use std::sync::Arc;
 
 use app_units::{AU_PER_PX, Au};
-use base::id::ScrollTreeNodeId;
+use base::id::{PipelineId, ScrollTreeNodeId};
 use clip::{Clip, ClipId};
 use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Vector2D};
 use fonts::GlyphStore;
 use gradient::WebRenderGradient;
+use layout_api::ReflowStatistics;
 use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
-use paint_api::largest_contentful_paint_candidate::LCPCandidateID;
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DiagnosticsLogging;
-use servo_config::pref;
+use servo_config::{pref, prefs};
 use servo_geometry::MaxRect;
+use servo_url::ServoUrl;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::border_image_outset::T as BorderImageOutset;
@@ -44,7 +45,7 @@ use webrender_api::{
     self as wr, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, BuiltDisplayList,
     ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, GlyphInstance,
     NinePatchBorder, NinePatchBorderSource, NormalBorder, PrimitiveFlags, PropertyBinding,
-    SpatialId, SpatialTreeItemKey, units,
+    PropertyBindingKey, SpatialId, SpatialTreeItemKey, units,
 };
 use wr::units::LayoutVector2D;
 
@@ -53,8 +54,8 @@ use crate::context::{ImageResolver, ResolvedImage};
 pub(crate) use crate::display_list::conversions::ToWebRender;
 use crate::display_list::stacking_context::StackingContextSection;
 use crate::fragment_tree::{
-    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo, Tag,
-    TextFragment,
+    BackgroundMode, BoxFragment, Fragment, FragmentFlags, FragmentStatus, FragmentTree,
+    SpecificLayoutInfo, Tag, TextFragment,
 };
 use crate::geom::{
     LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
@@ -124,6 +125,9 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// Handler for all Paint Timings
     paint_timing_handler: &'a mut PaintTimingHandler,
+
+    /// Statistics collected about the reflow, in order to write tests for incremental layout.
+    reflow_statistics: &'a mut ReflowStatistics,
 }
 
 struct InspectorHighlight {
@@ -165,6 +169,7 @@ impl InspectorHighlight {
 }
 
 impl DisplayListBuilder<'_> {
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn build(
         stacking_context_tree: &mut StackingContextTree,
         fragment_tree: &FragmentTree,
@@ -173,6 +178,7 @@ impl DisplayListBuilder<'_> {
         highlighted_dom_node: Option<OpaqueNode>,
         debug: &DiagnosticsLogging,
         paint_timing_handler: &mut PaintTimingHandler,
+        reflow_statistics: &mut ReflowStatistics,
     ) -> BuiltDisplayList {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let paint_info = &mut stacking_context_tree.paint_info;
@@ -202,7 +208,11 @@ impl DisplayListBuilder<'_> {
             image_resolver,
             device_pixel_ratio,
             paint_timing_handler,
+            reflow_statistics,
         };
+
+        // Clear any caret color from previous display list constructions.
+        builder.paint_info.caret_property_binding = None;
 
         builder.add_all_spatial_nodes();
 
@@ -521,7 +531,20 @@ impl DisplayListBuilder<'_> {
         }
     }
 
-    fn check_for_contentful_paint(&mut self, bounds: LayoutRect, clip_rect: LayoutRect) {
+    fn check_for_contentful_paint(
+        &mut self,
+        bounds: LayoutRect,
+        clip_rect: LayoutRect,
+        opacity: f32,
+    ) {
+        // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+        // An element el is paintable when all of the following apply:
+        // > el and all of its ancestors' used opacity is greater than zero.
+        if opacity <= 0.0 {
+            return;
+        }
+
+        // > el’s paintable bounding rect intersects with the scrolling area of the document.
         if self
             .paint_timing_handler
             .check_bounding_rect(bounds, clip_rect)
@@ -532,9 +555,10 @@ impl DisplayListBuilder<'_> {
 
     fn check_for_lcp_candidate(
         &mut self,
-        lcp_candidate_id: LCPCandidateID,
         clip_rect: LayoutRect,
         bounds: LayoutRect,
+        tag: Option<Tag>,
+        url: Option<ServoUrl>,
     ) {
         if !pref!(largest_contentful_paint_enabled) {
             return;
@@ -545,12 +569,8 @@ impl DisplayListBuilder<'_> {
             .scroll_tree
             .cumulative_node_to_root_transform(self.current_scroll_node_id);
 
-        self.paint_timing_handler.update_lcp_candidate(
-            lcp_candidate_id,
-            bounds,
-            clip_rect,
-            transform,
-        );
+        self.paint_timing_handler
+            .update_lcp_candidate(tag, bounds, clip_rect, transform, url);
     }
 }
 
@@ -606,6 +626,20 @@ impl Fragment {
         is_collapsed_table_borders: bool,
         text_decorations: &Arc<Vec<FragmentTextDecoration>>,
     ) {
+        if let Some(mut base) = self.base_mut() {
+            match base.status {
+                FragmentStatus::New => {
+                    builder.reflow_statistics.rebuilt_fragment_count += 1;
+                    base.status = FragmentStatus::Clean;
+                },
+                FragmentStatus::StyleChanged => {
+                    builder.reflow_statistics.restyle_fragment_count += 1;
+                    base.status = FragmentStatus::Clean;
+                },
+                FragmentStatus::Clean => {},
+            }
+        }
+
         let spatial_id = builder.spatial_id(builder.current_scroll_node_id);
         let clip_chain_id = builder.clip_chain_id(builder.current_clip_id);
         if let Some(inspector_highlight) = &mut builder.inspector_highlight {
@@ -666,7 +700,21 @@ impl Fragment {
                             // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
                             // An element target is contentful when one or more of the following apply:
                             // > target is a replaced element representing an available image.
-                            builder.check_for_contentful_paint(rect, common.clip_rect);
+                            builder.check_for_contentful_paint(
+                                rect,
+                                common.clip_rect,
+                                style.clone_opacity(),
+                            );
+
+                            // Skip Broken Images for LCP
+                            if !image.showing_broken_image_icon {
+                                builder.check_for_lcp_candidate(
+                                    common.clip_rect,
+                                    rect,
+                                    image.base.tag,
+                                    image.url.clone(),
+                                );
+                            }
                         }
 
                         if image.showing_broken_image_icon {
@@ -676,13 +724,6 @@ impl Fragment {
                                 &common,
                             );
                         }
-
-                        let lcp_candidate_id = image
-                            .base
-                            .tag
-                            .map(|tag| LCPCandidateID(tag.node.id()))
-                            .unwrap_or(LCPCandidateID(0));
-                        builder.check_for_lcp_candidate(lcp_candidate_id, common.clip_rect, rect);
                     },
                     Visibility::Hidden => (),
                     Visibility::Collapse => (),
@@ -759,7 +800,7 @@ impl Fragment {
             include_whitespace,
         );
 
-        if glyphs.is_empty() {
+        if glyphs.is_empty() && !fragment.is_empty_for_text_cursor {
             return;
         }
 
@@ -849,8 +890,11 @@ impl Fragment {
         // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
         // An element target is contentful when one or more of the following apply:
         // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
-        // TODO(shubhamg13): Consider opacity in separate PR
-        builder.check_for_contentful_paint(glyph_bounds, common.clip_rect);
+        builder.check_for_contentful_paint(
+            glyph_bounds,
+            common.clip_rect,
+            parent_style.clone_opacity(),
+        );
 
         for text_decoration in text_decorations.iter() {
             if text_decoration
@@ -974,6 +1018,18 @@ impl Fragment {
             return;
         }
 
+        // When there is an active selection, the line is empty, and there is a forced linebreak,
+        // layout will push an empty fragment in order to trigger painting of the cursor on an empty line.
+        // This code ensure that it is only painted if the cursor is on the starting index of the empty
+        // fragment.
+        if fragment.is_empty_for_text_cursor &&
+            !offsets
+                .character_range
+                .contains(&shared_selection.character_range.start)
+        {
+            return;
+        }
+
         let mut current_character_index = offsets.character_range.start;
         let mut current_advance = Au::zero();
         let mut start_advance = None;
@@ -1051,10 +1107,24 @@ impl Fragment {
             ColorOrAuto::Auto => color,
         };
         let insertion_point_common = builder.common_properties(insertion_point_rect, &parent_style);
-        builder.wr().push_rect(
+
+        let caret_color = rgba(caret_color);
+        let property_binding = if prefs::get().editing_caret_blink_time().is_some() {
+            // It's okay to always use the same property binding key for this pipeline, as
+            // there is currently only a single thing that animates in this way (the caret).
+            // This code should be updated if we ever add more paint-side animations.
+            let pipeline_id: PipelineId = builder.paint_info.pipeline_id.into();
+            let property_binding_key = PropertyBindingKey::new(pipeline_id.into());
+            builder.paint_info.caret_property_binding = Some((property_binding_key, caret_color));
+            PropertyBinding::Binding(property_binding_key, caret_color)
+        } else {
+            PropertyBinding::Value(caret_color)
+        };
+
+        builder.wr().push_rect_with_animation(
             &insertion_point_common,
             insertion_point_rect,
-            rgba(caret_color),
+            property_binding,
         );
     }
 }
@@ -1414,18 +1484,17 @@ impl<'a> BuilderForBoxFragment<'a> {
                         // An element target is contentful when one or more of the following apply:
                         // > target has a background-image which is a contentful image, and its used
                         // > background-size has non-zero width and height values.
-                        builder.check_for_contentful_paint(layer.bounds, layer.common.clip_rect);
+                        builder.check_for_contentful_paint(
+                            layer.bounds,
+                            layer.common.clip_rect,
+                            style.clone_opacity(),
+                        );
 
-                        let lcp_candidate_id = self
-                            .fragment
-                            .base
-                            .tag
-                            .map(|tag| LCPCandidateID(tag.node.id()))
-                            .unwrap_or(LCPCandidateID(0));
                         builder.check_for_lcp_candidate(
-                            lcp_candidate_id,
                             layer.common.clip_rect,
                             layer.bounds,
+                            self.fragment.base.tag,
+                            None,
                         );
                     }
                 },
@@ -1452,8 +1521,9 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_collapsed_table_borders(&mut self, builder: &mut DisplayListBuilder) {
+        let layout_info = self.fragment.specific_layout_info();
         let Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(table_info)) =
-            self.fragment.specific_layout_info()
+            layout_info.as_deref()
         else {
             return;
         };
@@ -1584,11 +1654,24 @@ impl<'a> BuilderForBoxFragment<'a> {
         {
             Err(_) => return false,
             Ok(ResolvedImage::Image { image, size }) => {
-                let Some(image) = image.as_raster_image() else {
-                    return false;
+                let image_key = match image {
+                    CachedImage::Raster(raster_image) => raster_image.id,
+                    CachedImage::Vector(vector_image) => {
+                        let scale = builder.device_pixel_ratio.get();
+                        let size = Size2D::new(size.width * scale, size.height * scale).to_i32();
+                        node.and_then(|node| {
+                            builder.image_resolver.rasterize_vector_image(
+                                vector_image.id,
+                                size,
+                                node,
+                                vector_image.svg_id,
+                            )
+                        })
+                        .and_then(|rasterized_image| rasterized_image.id)
+                    },
                 };
 
-                let Some(key) = image.id else {
+                let Some(key) = image_key else {
                     return false;
                 };
 
@@ -1599,6 +1682,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 builder.check_for_contentful_paint(
                     Box2D::from_size(size.cast_unit()),
                     common.clip_rect,
+                    style.clone_opacity(),
                 );
                 width = size.width;
                 height = size.height;

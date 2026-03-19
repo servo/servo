@@ -6,6 +6,8 @@ license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "servo_media_gstreamer_render_android"
@@ -17,5 +19,5 @@ gstreamer = { workspace = true }
 gstreamer-gl = { workspace = true }
 gstreamer-gl-egl = { workspace = true }
 gstreamer-video = { workspace = true }
-sm-player = { package = "servo-media-player", path = "../../../player" }
-sm-gst-render = { package = "servo-media-gstreamer-render", path = "../render" }
+servo-media-player = { workspace = true }
+servo-media-gstreamer-render = { workspace = true }

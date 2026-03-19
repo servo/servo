@@ -6,6 +6,8 @@ license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "servo_media_audio"
@@ -16,10 +18,10 @@ euclid = "0.22"
 log = "0.4"
 serde_derive = "1.0.66"
 serde = "1.0.66"
-servo-media-derive = { path = "../servo-media-derive" }
-servo-media-player = { path = "../player" }
-servo-media-traits = { path = "../traits" }
-servo-media-streams = { path = "../streams" }
+servo-media-derive = { workspace = true }
+servo-media-player = { workspace = true }
+servo-media-traits = { workspace = true }
+servo-media-streams = { workspace = true }
 smallvec = "1"
 speexdsp-resampler = "0.1.0"
 malloc_size_of = { workspace = true }

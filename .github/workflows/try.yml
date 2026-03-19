@@ -56,7 +56,7 @@ jobs:
            } >> $GITHUB_OUTPUT
       - name: Configuration
         id: configuration
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             // When triggered via a push try the `try` branch, search the last commit for a configuration object.
@@ -128,7 +128,7 @@ jobs:
     steps:
       - name: Merge build timings
         continue-on-error: true
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v7
         with:
           name: cargo-timings
           pattern: cargo-timings-*

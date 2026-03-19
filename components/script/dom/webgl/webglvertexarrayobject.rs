@@ -14,7 +14,7 @@ use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::script_runtime::CanGc;
 
-#[dom_struct]
+#[dom_struct(associated_memory)]
 pub(crate) struct WebGLVertexArrayObject {
     webgl_object_: WebGLObject,
     array_object: VertexArrayObject,

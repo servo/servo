@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <body>
-<title>Accelerometer Feature Policy Test: Disabled</title>
+<title>Accelerometer Permissions Policy Test: Disabled</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/feature-policy/resources/featurepolicy.js"></script>
@@ -8,8 +8,8 @@
 <script>
 "use strict";
 
-run_fp_tests_disabled('Accelerometer');
-run_fp_tests_disabled('LinearAccelerationSensor');
-run_fp_tests_disabled('GravitySensor');
+run_permissions_policy_tests_disabled('Accelerometer');
+run_permissions_policy_tests_disabled('LinearAccelerationSensor');
+run_permissions_policy_tests_disabled('GravitySensor');
 </script>
 </body>

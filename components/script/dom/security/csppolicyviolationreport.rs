@@ -14,17 +14,14 @@ use crate::dom::bindings::codegen::Bindings::SecurityPolicyViolationEventBinding
     SecurityPolicyViolationEventDisposition, SecurityPolicyViolationEventInit,
 };
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::reportingobserver::ReportingObserver;
+use crate::dom::reporting::reportingobserver::ReportingObserver;
 
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone)]
 pub(crate) struct SecurityPolicyViolationReport {
     sample: Option<String>,
-    #[serde(rename = "blockedURL")]
     blocked_url: String,
     referrer: String,
     status_code: u16,
-    #[serde(rename = "documentURL")]
     document_url: String,
     source_file: String,
     violated_directive: String,
@@ -32,7 +29,6 @@ pub(crate) struct SecurityPolicyViolationReport {
     line_number: u32,
     column_number: u32,
     original_policy: String,
-    #[serde(serialize_with = "serialize_disposition")]
     disposition: SecurityPolicyViolationEventDisposition,
 }
 
@@ -82,6 +78,15 @@ impl Convert<SecurityPolicyViolationEventInit> for SecurityPolicyViolationReport
 
 impl Convert<CSPViolationReportBody> for SecurityPolicyViolationReport {
     fn convert(self) -> CSPViolationReportBody {
+        let (source_file, line_number, column_number) = if !self.source_file.is_empty() {
+            (
+                Some(self.source_file.into()),
+                Some(self.line_number),
+                Some(self.column_number),
+            )
+        } else {
+            (None, None, None)
+        };
         CSPViolationReportBody {
             sample: self.sample.map(|s| s.into()),
             blockedURL: Some(self.blocked_url.into()),
@@ -91,10 +96,10 @@ impl Convert<CSPViolationReportBody> for SecurityPolicyViolationReport {
             referrer: Some("".to_owned().into()),
             statusCode: self.status_code,
             documentURL: self.document_url.into(),
-            sourceFile: Some(self.source_file.into()),
+            sourceFile: source_file,
             effectiveDirective: self.effective_directive.into(),
-            lineNumber: Some(self.line_number),
-            columnNumber: Some(self.column_number),
+            lineNumber: line_number,
+            columnNumber: column_number,
             originalPolicy: self.original_policy.into(),
             disposition: self.disposition,
             parent: ReportBody::empty(),

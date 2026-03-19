@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>JPEG XL integration: CSS image uses</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #bg {
+    width: 30px;
+    height: 30px;
+    background-image: url('resources/3x3_srgb_lossless.jxl');
+  }
+
+  #content::before {
+    content: url('resources/3x3_srgb_lossless.jxl');
+  }
+
+  #imageset {
+    width: 30px;
+    height: 30px;
+    background-image: image-set(url('resources/3x3_srgb_lossless.jxl') 1x);
+  }
+
+  #list {
+    list-style-image: url('resources/3x3_srgb_lossless.jxl');
+  }
+</style>
+
+<div id="bg"></div>
+<div id="content"></div>
+<div id="imageset"></div>
+<ul><li id="list">item</li></ul>
+
+<script>
+promise_test(async () => {
+  const bg = getComputedStyle(document.getElementById('bg')).backgroundImage;
+  const before = getComputedStyle(document.getElementById('content'), '::before').content;
+  const set = getComputedStyle(document.getElementById('imageset')).backgroundImage;
+  const list = getComputedStyle(document.getElementById('list')).listStyleImage;
+
+  assert_true(bg.includes('.jxl'));
+  assert_true(before.includes('.jxl'));
+  assert_true(set.includes('.jxl'));
+  assert_true(list.includes('.jxl'));
+}, 'CSS properties accept JPEG XL image URLs');
+</script>

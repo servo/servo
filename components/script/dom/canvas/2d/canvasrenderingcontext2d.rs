@@ -544,7 +544,8 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata>
     fn PutImageData(&self, imagedata: &ImageData, dx: i32, dy: i32) {
         self.canvas_state
-            .put_image_data(self.canvas.size(), imagedata, dx, dy)
+            .put_image_data(self.canvas.size(), imagedata, dx, dy);
+        self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-putimagedata

@@ -70,7 +70,9 @@ use serde::de::VariantAccess;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use servo_config::opts;
 
-use crate::generic_channel::{GenericReceiver, GenericReceiverVariants, SendError, SendResult};
+use crate::generic_channel::{
+    GenericReceiver, GenericReceiverVariants, SendError, SendResult, use_ipc,
+};
 
 /// The callback type of our messages.
 ///
@@ -133,7 +135,7 @@ where
     pub fn new<F: FnMut(Result<T, ipc_channel::IpcError>) + Send + 'static>(
         mut callback: F,
     ) -> Result<Self, ipc_channel::IpcError> {
-        let generic_callback = if opts::get().multiprocess || opts::get().force_ipc {
+        let generic_callback = if use_ipc() {
             let (ipc_sender, ipc_receiver) = ipc_channel::ipc::channel()?;
             let new_callback = move |msg: Result<T, ipc_channel::SerDeError>| {
                 callback(msg.map_err(|error| error.into()))
@@ -149,7 +151,7 @@ where
 
     /// Produces a GenericCallback and a channel. You can block on this channel for the result.
     pub fn new_blocking() -> Result<(Self, GenericReceiver<T>), ipc_channel::IpcError> {
-        if opts::get().multiprocess || opts::get().force_ipc {
+        if use_ipc() {
             let (sender, receiver) = ipc_channel::ipc::channel()?;
             let generic_callback = GenericCallback(GenericCallbackVariants::CrossProcess(sender));
             let receiver = GenericReceiver(GenericReceiverVariants::Ipc(receiver));
@@ -256,7 +258,7 @@ where
                 .newtype_variant::<IpcSender<T>>()
                 .map(|sender| GenericCallback(GenericCallbackVariants::CrossProcess(sender))),
             GenericCallbackVariantNames::InProcess => {
-                if opts::get().multiprocess {
+                if use_ipc() {
                     return Err(serde::de::Error::custom(
                         "InProcess callback found in multiprocess mode",
                     ));

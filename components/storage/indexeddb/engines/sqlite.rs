@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use base::threadpool::ThreadPool;
-use log::{error, info};
+use log::{error, info, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use rusqlite::{Connection, Error, OptionalExtension, params};
 use sea_query::{Condition, Expr, ExprTrait, IntoCondition, SqliteQueryBuilder};
@@ -181,7 +181,6 @@ impl SqliteEngine {
         key_range: IndexedDBKeyRange,
         count: Option<u32>,
     ) -> Result<Vec<object_data_model::Model>, Error> {
-        let query = range_to_query(key_range);
         let mut sql_query = sea_query::Query::select();
         sql_query
             .from(object_data_model::Column::Table)
@@ -190,10 +189,7 @@ impl SqliteEngine {
                 object_data_model::Column::Key,
                 object_data_model::Column::Data,
             ])
-            .and_where(query.and(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id)));
-        if let Some(count) = count {
-            sql_query.limit(count as u64);
-        }
+            .and_where(Expr::col(object_data_model::Column::ObjectStoreId).is(store.id));
         let (sql, values) = sql_query.build_rusqlite(SqliteQueryBuilder);
         let mut stmt = connection.prepare(&sql)?;
         let models = stmt
@@ -201,6 +197,33 @@ impl SqliteEngine {
                 object_data_model::Model::try_from(row)
             })?
             .collect::<Result<Vec<_>, _>>()?;
+
+        let mut models_with_keys = models
+            .into_iter()
+            .map(|model| {
+                let key: IndexedDBKeyType = postcard::from_bytes(&model.key).unwrap();
+                (model, key)
+            })
+            .collect::<Vec<_>>();
+        // https://w3c.github.io/IndexedDB/#create-a-request-to-retrieve-multiple-items
+        // Step 8.2: Set direction to "next".
+        models_with_keys.sort_by(|(_, a_key), (_, b_key)| {
+            a_key
+                .partial_cmp(b_key)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+
+        // https://w3c.github.io/IndexedDB/#retrieve-multiple-items-from-an-object-store
+        // Step 3.1: Let records be the first count records in store's list of records
+        // whose key is in range.
+        let mut models = models_with_keys
+            .into_iter()
+            .filter(|(_, key)| key_range.contains(key))
+            .map(|(model, _)| model)
+            .collect::<Vec<_>>();
+        if let Some(count) = count {
+            models.truncate(count as usize);
+        }
         Ok(models)
     }
 
@@ -237,10 +260,12 @@ impl SqliteEngine {
     fn put_item(
         connection: &Connection,
         store: object_store_model::Model,
-        serialized_key: Vec<u8>,
+        key: IndexedDBKeyType,
         value: Vec<u8>,
         should_overwrite: bool,
+        key_generator_current_number: Option<i32>,
     ) -> Result<PutItemResult, Error> {
+        let serialized_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
         let existing_item = connection
             .prepare("SELECT * FROM object_data WHERE key = ? AND object_store_id = ?")
             .and_then(|mut stmt| {
@@ -254,7 +279,13 @@ impl SqliteEngine {
                 "INSERT INTO object_data (object_store_id, key, data) VALUES (?, ?, ?)",
                 params![store.id, serialized_key, value],
             )?;
-            Ok(PutItemResult::Success)
+            if let Some(next_key_generator_current_number) = key_generator_current_number {
+                connection.execute(
+                    "UPDATE object_store SET auto_increment = ? WHERE id = ?",
+                    params![next_key_generator_current_number, store.id],
+                )?;
+            }
+            Ok(PutItemResult::Key(key))
         } else {
             Ok(PutItemResult::CannotOverwrite)
         }
@@ -297,22 +328,6 @@ impl SqliteEngine {
             .prepare(&sql)?
             .query_row(&*values.as_params(), |row| row.get(0))
             .map(|count: i64| count as usize)
-    }
-
-    fn generate_key(
-        connection: &Connection,
-        store: &object_store_model::Model,
-    ) -> Result<IndexedDBKeyType, Error> {
-        if store.auto_increment == 0 {
-            unreachable!("Should be caught in the script thread");
-        }
-        // TODO: handle overflows, this also needs to be able to handle 2^53 as per spec
-        let new_key = store.auto_increment + 1;
-        connection.execute(
-            "UPDATE object_store SET auto_increment = ? WHERE id = ?",
-            params![new_key, store.id],
-        )?;
-        Ok(IndexedDBKeyType::Number(new_key as f64))
     }
 }
 
@@ -427,25 +442,45 @@ impl KvsEngine for SqliteEngine {
                         key,
                         value,
                         should_overwrite,
+                        key_generator_current_number,
                     }) => {
-                        let key = match key
-                            .map(Ok)
-                            .unwrap_or_else(|| Self::generate_key(&connection, &object_store))
-                        {
-                            Ok(key) => key,
-                            Err(e) => {
-                                let _ = callback.send(Err(BackendError::DbErr(format!("{:?}", e))));
-                                continue;
+                        let (key, key_generator_current_number) = match key {
+                            Some(key) => (key, key_generator_current_number),
+                            None => {
+                                if object_store.auto_increment == 0 {
+                                    if let Err(error) = callback.send(Err(BackendError::DbErr(
+                                        "Missing key for PutItem request".to_string(),
+                                    ))) {
+                                        warn!("Failed to send PutItem missing key error: {error:?}");
+                                    }
+                                    continue;
+                                }
+                                let Some(next_key_generator_current_number) =
+                                    object_store.auto_increment.checked_add(1)
+                                else {
+                                    if let Err(error) = callback.send(Err(BackendError::DbErr(
+                                        "Key generator overflow".to_string(),
+                                    ))) {
+                                        warn!(
+                                            "Failed to send PutItem key generator overflow error: {error:?}"
+                                        );
+                                    }
+                                    continue;
+                                };
+                                (
+                                    IndexedDBKeyType::Number(object_store.auto_increment as f64),
+                                    Some(next_key_generator_current_number),
+                                )
                             },
                         };
-                        let serialized_key: Vec<u8> = postcard::to_stdvec(&key).unwrap();
                         let _ = callback.send(
                             Self::put_item(
                                 &connection,
                                 object_store,
-                                serialized_key,
+                                key,
                                 value,
                                 should_overwrite,
+                                key_generator_current_number,
                             )
                             .map_err(|e| BackendError::DbErr(format!("{:?}", e))),
                         );
@@ -544,8 +579,7 @@ impl KvsEngine for SqliteEngine {
         });
     }
 
-    // TODO: we should be able to error out here, maybe change the trait definition?
-    fn has_key_generator(&self, store_name: &str) -> bool {
+    fn key_generator_current_number(&self, store_name: &str) -> Option<i32> {
         self.connection
             .prepare("SELECT * FROM object_store WHERE name = ?")
             .and_then(|mut stmt| {
@@ -556,9 +590,7 @@ impl KvsEngine for SqliteEngine {
             })
             .optional()
             .unwrap()
-            // TODO: Wrong (change trait definition for this function)
-            .unwrap_or_default() !=
-            0
+            .and_then(|current_number| (current_number != 0).then_some(current_number))
     }
 
     fn key_path(&self, store_name: &str) -> Option<KeyPath> {
@@ -624,7 +656,7 @@ impl KvsEngine for SqliteEngine {
 
         let index_exists: bool = self.connection.query_row(
             "SELECT EXISTS(SELECT * FROM object_store_index WHERE name = ? AND object_store_id = ?)",
-            params![index_name.to_string(), object_store.id],
+            params![index_name, object_store.id],
             |row| row.get(0),
         )?;
         if index_exists {
@@ -636,7 +668,7 @@ impl KvsEngine for SqliteEngine {
             VALUES (?, ?, ?, ?, ?)",
             params![
                 object_store.id,
-                index_name.to_string(),
+                index_name,
                 postcard::to_stdvec(&key_path).unwrap(),
                 unique,
                 multi_entry,
@@ -655,7 +687,7 @@ impl KvsEngine for SqliteEngine {
         // Delete the index if it exists
         let _ = self.connection.execute(
             "DELETE FROM object_store_index WHERE name = ? AND object_store_id = ?",
-            params![index_name.to_string(), object_store.id],
+            params![index_name, object_store.id],
         )?;
         Ok(())
     }
@@ -794,7 +826,7 @@ mod tests {
         let create_result = result.unwrap();
         assert_eq!(create_result, CreateObjectResult::AlreadyExists);
         // Ensure store was not overwritten
-        assert!(db.has_key_generator(store_name));
+        assert!(db.key_generator_current_number(store_name).is_some());
     }
 
     #[test]
@@ -948,6 +980,7 @@ mod tests {
                             key: Some(IndexedDBKeyType::Number(1.0)),
                             value: vec![1, 2, 3],
                             should_overwrite: false,
+                            key_generator_current_number: None,
                         }),
                     },
                     KvsOperation {
@@ -957,6 +990,7 @@ mod tests {
                             key: Some(IndexedDBKeyType::String("2.0".to_string())),
                             value: vec![4, 5, 6],
                             should_overwrite: false,
+                            key_generator_current_number: None,
                         }),
                     },
                     KvsOperation {
@@ -969,6 +1003,7 @@ mod tests {
                             ])),
                             value: vec![7, 8, 9],
                             should_overwrite: false,
+                            key_generator_current_number: None,
                         }),
                     },
                     // Try to put a duplicate key without overwrite
@@ -979,6 +1014,7 @@ mod tests {
                             key: Some(IndexedDBKeyType::Number(1.0)),
                             value: vec![10, 11, 12],
                             should_overwrite: false,
+                            key_generator_current_number: None,
                         }),
                     },
                     KvsOperation {

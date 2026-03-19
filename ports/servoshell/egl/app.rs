@@ -136,10 +136,17 @@ impl PlatformWindow for EmbeddedPlatformWindow {
                         .results
                         .first()
                         .expect("We should have some memory report");
-                    for report in &reports.reports {
-                        let path = String::from("servo_memory_profiling:") + &report.path.join("/");
-                        hitrace::trace_metric_str(&path, report.size as i64);
-                    }
+                    let search_string = String::from("resident-according-to-smaps");
+                    let sum = reports
+                        .reports
+                        .iter()
+                        .filter(|report| report.path.contains(&search_string))
+                        .map(|report| report.size)
+                        .sum::<usize>();
+                    hitrace::trace_metric_str(
+                        "servo_memory_profiling:resident-according-to-smaps/sum",
+                        sum as i64,
+                    );
                 });
             }
         }
@@ -170,8 +177,10 @@ impl PlatformWindow for EmbeddedPlatformWindow {
         let control_id = embedder_control.id();
         match embedder_control {
             EmbedderControl::InputMethod(input_method_control) => {
-                self.visible_input_methods.borrow_mut().push(control_id);
-                self.host.on_ime_show(input_method_control);
+                if input_method_control.allow_virtual_keyboard() {
+                    self.visible_input_methods.borrow_mut().push(control_id);
+                    self.host.on_ime_show(input_method_control);
+                }
             },
             EmbedderControl::SimpleDialog(simple_dialog) => match simple_dialog {
                 SimpleDialog::Alert(alert_dialog) => {
@@ -527,7 +536,7 @@ impl App {
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_start(&self, factor: f32, x: f32, y: f32) {
         if let Some(webview) = self.active_or_newest_webview() {
-            webview.pinch_zoom(factor, DevicePoint::new(x, y));
+            webview.adjust_pinch_zoom(factor, DevicePoint::new(x, y));
             self.spin_event_loop();
         }
     }
@@ -536,7 +545,7 @@ impl App {
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom(&self, factor: f32, x: f32, y: f32) {
         if let Some(webview) = self.active_or_newest_webview() {
-            webview.pinch_zoom(factor, DevicePoint::new(x, y));
+            webview.adjust_pinch_zoom(factor, DevicePoint::new(x, y));
             self.spin_event_loop();
         }
     }
@@ -545,7 +554,7 @@ impl App {
     /// x/y are pinch origin coordinates.
     pub fn pinchzoom_end(&self, factor: f32, x: f32, y: f32) {
         if let Some(webview) = self.active_or_newest_webview() {
-            webview.pinch_zoom(factor, DevicePoint::new(x, y));
+            webview.adjust_pinch_zoom(factor, DevicePoint::new(x, y));
             self.spin_event_loop();
         }
     }

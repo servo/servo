@@ -1,11 +1,13 @@
 [package]
-name = "webdriver_server"
+name = "servo-webdriver-server"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "webdriver_server"
@@ -25,9 +27,9 @@ log = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-servo_config = { path = "../config" }
-servo_geometry = { path = "../geometry" }
-servo_url = { path = "../url" }
+servo_config = { workspace = true }
+servo_geometry = { workspace = true }
+servo-url = { workspace = true }
 stylo_traits = { workspace = true }
 time = { workspace = true }
 uuid = { workspace = true }

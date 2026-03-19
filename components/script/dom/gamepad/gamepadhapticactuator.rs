@@ -271,7 +271,7 @@ impl GamepadHapticActuatorMethods<crate::DomTypeHolder> for GamepadHapticActuato
             );
         }
 
-        *self.playing_effect_promise.borrow_mut() = Some(promise.clone());
+        *self.playing_effect_promise.borrow_mut() = Some(promise);
 
         self.reset_sequence_id.set(self.sequence_id.get());
 

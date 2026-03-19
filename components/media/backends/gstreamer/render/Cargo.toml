@@ -6,6 +6,8 @@ license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 name = "servo_media_gstreamer_render"
@@ -14,7 +16,4 @@ path = "lib.rs"
 [dependencies]
 gstreamer = { workspace = true }
 gstreamer-video = { workspace = true }
-
-[dependencies.sm-player]
-package = "servo-media-player"
-path = "../../../player"
+servo-media-player = { workspace = true }

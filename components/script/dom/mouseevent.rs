@@ -13,6 +13,7 @@ use keyboard_types::Modifiers;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::match_domstring_ascii;
 use script_traits::ConstellationInputEvent;
+use style::Atom;
 use style_traits::CSSPixel;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -109,7 +110,7 @@ impl MouseEvent {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         window: &Window,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         view: Option<&Window>,
@@ -127,7 +128,7 @@ impl MouseEvent {
         Self::new_with_proto(
             window,
             None,
-            type_,
+            event_type,
             can_bubble,
             cancelable,
             view,
@@ -148,7 +149,7 @@ impl MouseEvent {
     fn new_with_proto(
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         view: Option<&Window>,
@@ -165,7 +166,7 @@ impl MouseEvent {
     ) -> DomRoot<MouseEvent> {
         let ev = MouseEvent::new_uninitialized_with_proto(window, proto, can_gc);
         ev.initialize_mouse_event(
-            type_,
+            event_type,
             can_bubble,
             cancelable,
             view,
@@ -186,7 +187,7 @@ impl MouseEvent {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn initialize_mouse_event(
         &self,
-        type_: DOMString,
+        event_type: Atom,
         can_bubble: EventBubbles,
         cancelable: EventCancelable,
         view: Option<&Window>,
@@ -201,7 +202,7 @@ impl MouseEvent {
         point_in_target: Option<Point2D<f32, CSSPixel>>,
     ) {
         self.uievent.initialize_ui_event(
-            type_,
+            event_type,
             view.map(|window| window.upcast::<EventTarget>()),
             can_bubble,
             cancelable,
@@ -243,7 +244,7 @@ impl MouseEvent {
 
         let mouse_event = Self::new(
             window,
-            DOMString::from(event_name.as_str()),
+            Atom::from(event_name.as_str()),
             bubbles,
             cancelable,
             Some(window),
@@ -272,7 +273,7 @@ impl MouseEvent {
     /// <https://w3c.github.io/uievents/#create-a-cancelable-mouseevent-id>
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn for_platform_button_event(
-        event_type_string: &'static str,
+        event_type: Atom,
         event: embedder_traits::MouseButtonEvent,
         pressed_mouse_buttons: u16,
         window: &Window,
@@ -288,7 +289,7 @@ impl MouseEvent {
 
         let mouse_event = Self::new(
             window,
-            event_type_string.into(),
+            event_type,
             EventBubbles::Bubbles,
             EventCancelable::Cancelable,
             Some(window),
@@ -319,19 +320,22 @@ impl MouseEvent {
     /// For mouse, the pointer ID is always -1, and is_primary is always true.
     pub(crate) fn to_pointer_event(
         &self,
-        event_type: &str,
+        event_type: Atom,
         can_gc: CanGc,
     ) -> DomRoot<crate::dom::pointerevent::PointerEvent> {
+        // TODO: This function should almost certainly accept an enumn for the event type.
+        let is_pointer_down = &*event_type == "pointerdown";
+        let is_pointer_move = &*event_type == "pointermove";
+        let is_pointer_up = &*event_type == "pointerup";
+
         // Pressure is 0.5 when button is down, 0.0 when up
-        let pressure = if event_type == "pointerdown" ||
-            (event_type == "pointermove" && self.Buttons() != 0)
-        {
+        let pressure = if is_pointer_down || (is_pointer_move && self.Buttons() != 0) {
             0.5
         } else {
             0.0
         };
 
-        let button = if event_type == "pointerdown" || event_type == "pointerup" {
+        let button = if is_pointer_down || is_pointer_up {
             self.Button()
         } else {
             -1
@@ -342,7 +346,7 @@ impl MouseEvent {
 
         PointerEvent::new(
             window,
-            DOMString::from(event_type),
+            event_type,
             EventBubbles::from(self.upcast::<Event>().Bubbles()),
             EventCancelable::from(self.upcast::<Event>().Cancelable()),
             self.uievent.GetView().as_deref(),
@@ -372,6 +376,68 @@ impl MouseEvent {
             can_gc,
         )
     }
+
+    /// Create a PointerEvent for hover events (pointerover, pointerenter, pointerout, pointerleave).
+    /// <https://w3c.github.io/pointerevents/#the-primary-pointer>
+    /// For mouse, the pointer ID is always -1, and is_primary is always true.
+    pub(crate) fn to_pointer_hover_event(
+        &self,
+        event_type: &str,
+        can_gc: CanGc,
+    ) -> DomRoot<crate::dom::pointerevent::PointerEvent> {
+        // Determine bubbles and cancelable based on event type
+        // pointerover/pointerout bubble and are cancelable
+        // pointerenter/pointerleave do not bubble and are not cancelable
+        let (bubbles, cancelable) = match event_type {
+            "pointerover" | "pointerout" => (EventBubbles::Bubbles, EventCancelable::Cancelable),
+            "pointerenter" | "pointerleave" => {
+                (EventBubbles::DoesNotBubble, EventCancelable::NotCancelable)
+            },
+            _ => (EventBubbles::Bubbles, EventCancelable::Cancelable),
+        };
+
+        let window = self.global();
+        let window = window.as_window();
+
+        let pointer_event = PointerEvent::new(
+            window,
+            event_type.into(),
+            bubbles,
+            cancelable,
+            self.uievent.GetView().as_deref(),
+            self.uievent.Detail(),
+            Point2D::new(self.ScreenX(), self.ScreenY()),
+            Point2D::new(self.ClientX(), self.ClientY()),
+            Point2D::new(self.PageX(), self.PageY()),
+            self.modifiers.get(),
+            -1, // button: -1 for hover events (no button pressed)
+            self.Buttons(),
+            self.GetRelatedTarget().as_deref(),
+            self.point_in_target.get(),
+            PointerId::Mouse as i32, // Mouse pointer ID is always -1
+            1,                       // width
+            1,                       // height
+            0.0,                     // pressure: 0.0 for hover events
+            0.0,                     // tangential_pressure
+            0,                       // tilt_x
+            0,                       // tilt_y
+            0,                       // twist
+            PI / 2.0,                // altitude_angle (perpendicular to surface)
+            0.0,                     // azimuth_angle
+            DOMString::from("mouse"),
+            true,   // is_primary (mouse is always primary)
+            vec![], // coalesced_events
+            vec![], // predicted_events
+            can_gc,
+        );
+
+        // Set trusted to match the source mouse event
+        pointer_event
+            .upcast::<Event>()
+            .set_trusted(self.IsTrusted());
+
+        pointer_event
+    }
 }
 
 impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
@@ -380,7 +446,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         window: &Window,
         proto: Option<HandleObject>,
         can_gc: CanGc,
-        type_: DOMString,
+        event_type: DOMString,
         init: &MouseEventBinding::MouseEventInit,
     ) -> Fallible<DomRoot<MouseEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.bubbles);
@@ -393,7 +459,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         let event = MouseEvent::new_with_proto(
             window,
             proto,
-            type_,
+            event_type.into(),
             bubbles,
             cancelable,
             init.parent.parent.view.as_deref(),

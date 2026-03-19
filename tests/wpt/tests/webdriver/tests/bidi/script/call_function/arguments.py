@@ -4,8 +4,9 @@ from webdriver.bidi.modules.script import ContextTarget
 from ... import recursive_compare
 from .. import PRIMITIVE_VALUES
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 async def test_default_arguments(bidi_session, top_context):
     result = await bidi_session.script.call_function(
         function_declaration="(...args) => args",
@@ -16,7 +17,6 @@ async def test_default_arguments(bidi_session, top_context):
     recursive_compare({"type": "array", "value": []}, result)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("expected, argument", PRIMITIVE_VALUES)
 async def test_primitive_value(bidi_session, top_context, argument, expected):
     result = await bidi_session.script.call_function(
@@ -38,7 +38,6 @@ async def test_primitive_value(bidi_session, top_context, argument, expected):
     recursive_compare(argument, result)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "argument, expected_type",
     [

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Test that name_localized falls back to the non-localized name</title>
+<link rel="help" href="https://w3c.github.io/manifest/#name-member" />
+<link rel="help" href="https://w3c.github.io/manifest/#dfn-localizable-member" />
+<link rel="manifest" href="resources/name_localized-member-no-match-fallback.webmanifest" />
+<script src="resources/name_localized-member-manual.js"></script>
+<h1>Testing non-localized fallback for <code>name_localized</code></h1>
+<p>
+    Set your browser locale to one that is not in the manifest (e.g.,
+    <code>de</code>, <code>zh</code>, or <code>ko</code>). Install this page as
+    a web application. To pass, the browser must fall back to the non-localized
+    <code>name</code> field and the installed app name must be "fallback-name".
+</p>

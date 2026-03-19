@@ -38,7 +38,7 @@ impl DOMStringList {
         )
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#sorted-name-list>
+    /// <https://www.w3.org/TR/IndexedDB-3/#sorted-name-list>
     pub(crate) fn new_sorted<'a>(
         global: &GlobalScope,
         strings: impl IntoIterator<Item = &'a DOMString>,
@@ -49,10 +49,9 @@ impl DOMStringList {
             .map(|dom_string| dom_string.str().encode_utf16().collect::<Vec<u16>>())
             .sorted_unstable()
             .map(|utf16_str| {
-                DOMString::from_string(
-                    String::from_utf16(utf16_str.as_slice())
-                        .expect("can't convert object store name from utf16 back to utf8"),
-                )
+                String::from_utf16(utf16_str.as_slice())
+                    .expect("can't convert object store name from utf16 back to utf8")
+                    .into()
             })
             .collect();
         Self::new(global, sorted, can_gc)

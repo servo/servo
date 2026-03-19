@@ -1,5 +1,5 @@
 [package]
-name = "net"
+name = "servo-net"
 version.workspace = true
 authors.workspace = true
 license.workspace = true
@@ -55,18 +55,19 @@ net_traits = { workspace = true }
 nom = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
-pixels = { path = "../pixels" }
+pixels = { workspace = true }
 profile_traits = { workspace = true }
 quick_cache = { version = "0.6.18", default-features = false, features = ["ahash"] }
+regex = { workspace = true }
 resvg = { workspace = true }
 rustc-hash = { workspace = true }
-rustls = { workspace = true }
+rustls = { workspace = true, features = ["aws-lc-rs"] }
 rustls-pki-types = { workspace = true }
 rustls-platform-verifier = { workspace = true }
 serde = { workspace = true }
 servo_arc = { workspace = true }
-servo_config = { path = "../config" }
-servo_url = { path = "../url" }
+servo_config = { workspace = true }
+servo-url = { workspace = true }
 sha2 = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync"] }
@@ -86,7 +87,7 @@ flate2 = { workspace = true }
 fst = "0.4"
 hyper = { workspace = true, features = ["full"] }
 hyper-util = { workspace = true, features = ["server-graceful"] }
-net = { path = "../net", features = ["test-util"] }
+net = { workspace = true, features = ["test-util"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 
 [[test]]

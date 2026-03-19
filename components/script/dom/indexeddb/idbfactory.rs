@@ -43,7 +43,7 @@ pub(crate) struct DBName(pub(crate) String);
 #[dom_struct]
 pub struct IDBFactory {
     reflector_: Reflector,
-    /// <https://www.w3.org/TR/IndexedDB-2/#connection>
+    /// <https://www.w3.org/TR/IndexedDB-3/#connection>
     /// The connections opened through this factory.
     /// We store the open request, which contains the connection.
     /// TODO: remove when we are sure they are not needed anymore.
@@ -260,6 +260,7 @@ impl IDBFactory {
                 id,
                 version,
                 upgraded,
+                object_store_names,
             } => {
                 let Some(request) = self.get_request(name.clone(), &id) else {
                     return debug_assert!(
@@ -267,6 +268,17 @@ impl IDBFactory {
                         "There should be a request to handle ConnectionMsg::Connection."
                     );
                 };
+
+                // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
+                // Step 3. Set transaction’s scope to connection’s object store set.
+                let connection = request.get_or_init_connection(
+                    &self.global(),
+                    name.clone(),
+                    version,
+                    upgraded,
+                    can_gc,
+                );
+                connection.set_object_store_names_from_backend(object_store_names);
 
                 // Step 2.2: Otherwise,
                 // set request’s result to result,
@@ -280,6 +292,7 @@ impl IDBFactory {
                 version,
                 old_version,
                 transaction,
+                object_store_names,
             } => {
                 let global = self.global();
 
@@ -292,6 +305,9 @@ impl IDBFactory {
 
                 let connection =
                     request.get_or_init_connection(&global, name, version, false, can_gc);
+                // https://w3c.github.io/IndexedDB/#upgrade-transaction-steps
+                // Step 3. Set transaction’s scope to connection’s object store set.
+                connection.set_object_store_names_from_backend(object_store_names);
                 request.upgrade_db_version(&connection, old_version, version, transaction, can_gc);
             },
             ConnectionMsg::VersionError { name, id } => {
@@ -585,7 +601,6 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                         let error = map_backend_error_to_dom_error(err);
                         rooted!(&in(cx) let mut rval = UndefinedValue());
                         error
-                            .clone()
                             .to_jsval(cx.into(), &promise.global(), rval.handle_mut(), CanGc::from_cx(cx));
                         promise.reject_native(&rval.handle(), CanGc::from_cx(cx));
                     },
@@ -618,7 +633,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
         p
     }
 
-    /// <https://www.w3.org/TR/IndexedDB-2/#dom-idbfactory-cmp>
+    /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbfactory-cmp>
     fn Cmp(&self, cx: &mut JSContext, first: HandleValue, second: HandleValue) -> Fallible<i16> {
         let first_key = convert_value_to_key(cx, first, None)?.into_result()?;
         let second_key = convert_value_to_key(cx, second, None)?.into_result()?;

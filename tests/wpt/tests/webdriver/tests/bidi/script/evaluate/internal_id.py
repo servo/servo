@@ -2,8 +2,9 @@ import pytest
 
 from ... import recursive_compare, any_string
 
+pytestmark = pytest.mark.asyncio
 
-@pytest.mark.asyncio
+
 @pytest.mark.parametrize(
     "return_structure, result_type",
     [
@@ -50,7 +51,6 @@ async def test_remote_values_with_internal_id(
     recursive_compare(value, result_value)
 
 
-@pytest.mark.asyncio
 async def test_different_remote_values_have_unique_internal_ids(evaluate):
     result = await evaluate(
         "{const obj1 = [1]; const obj2 = {'foo': 'bar'}; [obj1, obj2, obj1, obj2]}"
@@ -65,7 +65,6 @@ async def test_different_remote_values_have_unique_internal_ids(evaluate):
     assert internalId1 != internalId2
 
 
-@pytest.mark.asyncio
 async def test_nested_remote_values_have_same_internal_ids(evaluate):
     result = await evaluate(
         "{const obj1 = document; const obj2 = {}; ({key1:obj1, key2:obj2, nested:{key3:obj1, key4:obj2}}) }"

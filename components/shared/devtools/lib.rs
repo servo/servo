@@ -132,8 +132,14 @@ pub enum ScriptToDevtoolsControlMsg {
 
     DomMutation(PipelineId, DomMutation),
 
-    /// A breakpoint was hit in script, sending frame information.
-    BreakpointHit(PipelineId, PauseFrameResult),
+    /// The debugger is paused, sending frame information.
+    DebuggerPause(PipelineId, FrameOffset, PauseReason),
+
+    /// Get frame information from script
+    CreateFrameActor(GenericSender<String>, PipelineId, FrameInfo),
+
+    /// Get environment information from script
+    CreateEnvironmentActor(GenericSender<String>, EnvironmentInfo, Option<String>),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -145,16 +151,54 @@ pub enum DomMutation {
     },
 }
 
-/// Serialized JS return values
-/// TODO: generalize this beyond the EvaluateJS message?
+/// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/property-iterator.js#51>
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PropertyPreview {
+    pub name: String,
+    pub configurable: bool,
+    pub enumerable: bool,
+    pub writable: bool,
+    pub is_accessor: bool,
+    pub value_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub boolean_value: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub number_value: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub string_value: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub object_class: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value_name: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
-pub enum EvaluateJSReply {
+pub enum EvaluateJSReplyValue {
     VoidValue,
     NullValue,
     BooleanValue(bool),
     NumberValue(f64),
     StringValue(String),
-    ActorValue { class: String, uuid: String },
+    ActorValue {
+        class: String,
+        uuid: String,
+        name: Option<String>,
+        // Function-specific
+        display_name: Option<String>,
+        parameter_names: Option<Vec<String>>,
+        is_async: Option<bool>,
+        is_generator: Option<bool>,
+        // Object preview
+        own_properties: Option<Vec<PropertyPreview>>,
+        own_properties_length: Option<u32>,
+    },
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct EvaluateJSReply {
+    pub value: EvaluateJSReplyValue,
+    pub has_exception: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -267,8 +311,6 @@ pub struct AutoMargins {
 /// TODO: better error handling, e.g. if pipeline id lookup fails?
 #[derive(Debug, Deserialize, Serialize)]
 pub enum DevtoolScriptControlMsg {
-    /// Evaluate a JS snippet in the context of the global for the given pipeline.
-    EvaluateJS(PipelineId, String, GenericSender<EvaluateJSReply>),
     /// Retrieve the details of the root node (ie. the document) for the given pipeline.
     GetRootNode(PipelineId, GenericSender<Option<NodeInfo>>),
     /// Retrieve the details of the document element for the given pipeline.
@@ -321,6 +363,15 @@ pub enum DevtoolScriptControlMsg {
     /// Request a callback directed at the given actor name from the next animation frame
     /// executed in the given pipeline.
     RequestAnimationFrame(PipelineId, String),
+    /// Direct the WebView containing the given pipeline to load a new URL,
+    /// as if it was typed by the user.
+    NavigateTo(PipelineId, ServoUrl),
+    /// Direct the WebView containing the given pipeline to traverse history backward
+    /// up to one step.
+    GoBack(PipelineId),
+    /// Direct the WebView containing the given pipeline to traverse history forward
+    /// up to one step.
+    GoForward(PipelineId),
     /// Direct the given pipeline to reload the current page.
     Reload(PipelineId),
     /// Gets the list of all allowed CSS rules and possible values.
@@ -330,12 +381,19 @@ pub enum DevtoolScriptControlMsg {
     /// Highlight the given DOM node
     HighlightDomNode(PipelineId, Option<String>),
 
-    Eval(String, PipelineId, GenericSender<EvaluateJSReply>),
+    Eval(
+        String,
+        PipelineId,
+        Option<String>,
+        GenericSender<EvaluateJSReply>,
+    ),
     GetPossibleBreakpoints(u32, GenericSender<Vec<RecommendedBreakpointLocation>>),
     SetBreakpoint(u32, u32, u32),
     ClearBreakpoint(u32, u32, u32),
-    Pause(GenericSender<PauseFrameResult>),
-    Resume,
+    Interrupt,
+    Resume(Option<String>, Option<String>),
+    ListFrames(PipelineId, u32, u32, GenericSender<Vec<String>>),
+    GetEnvironment(String, GenericSender<String>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
@@ -568,21 +626,40 @@ pub struct RecommendedBreakpointLocation {
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PauseFrameResult {
-    pub column: u32,
+pub struct FrameInfo {
     pub display_name: String,
-    pub line: u32,
     pub on_stack: bool,
     pub oldest: bool,
     pub terminated: bool,
-    #[serde(rename = "type")]
     pub type_: String,
     pub url: String,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+pub struct EnvironmentInfo {
+    pub type_: Option<String>,
+    pub scope_kind: Option<String>,
+    pub function_display_name: Option<String>,
+    pub binding_variables: HashMap<String, String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct EventListenerInfo {
     pub event_type: String,
     pub capturing: bool,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PauseReason {
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub on_next: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct FrameOffset {
+    pub actor: String,
+    pub column: u32,
+    pub line: u32,
 }

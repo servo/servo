@@ -62,6 +62,7 @@ use net_traits::{
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::interfaces::GlobalScopeHelpers;
+use script_bindings::settings_stack::run_a_script;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use strum::VariantArray;
@@ -76,6 +77,7 @@ use super::bindings::codegen::Bindings::WebGPUBinding::GPUDeviceLostReason;
 use super::bindings::trace::{HashMapTracedValues, RootedTraceableBox};
 use super::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use super::transformstream::CrossRealmTransform;
+use crate::DomTypeHolder;
 use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSource_Binding::EventSourceMethods;
@@ -84,10 +86,11 @@ use crate::dom::bindings::codegen::Bindings::NotificationBinding::NotificationPe
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::{
     PermissionName, PermissionState,
 };
-use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::Report;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use crate::dom::bindings::conversions::{root_from_object, root_from_object_static};
+#[cfg(feature = "js_backtrace")]
+use crate::dom::bindings::error::LAST_EXCEPTION_BACKTRACE;
 use crate::dom::bindings::error::{
     Error, ErrorInfo, Fallible, report_pending_exception, take_and_report_pending_exception_for_api,
 };
@@ -96,7 +99,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomGlobal, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::settings_stack::{AutoEntryScript, entry_global, incumbent_global};
+use crate::dom::bindings::settings_stack::{entry_global, incumbent_global};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::CustomTraceable;
@@ -112,7 +115,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
-use crate::dom::global_scope_script_execution::{compile_script, evaluate_script};
+use crate::dom::global_scope_script_execution::{ErrorReporting, compile_script, evaluate_script};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -120,12 +123,10 @@ use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceentry::EntryType;
 use crate::dom::promise::Promise;
 use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
-use crate::dom::reportingobserver::ReportingObserver;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::stream::underlyingsourcecontainer::UnderlyingSourceType;
 use crate::dom::stream::writablestream::CrossRealmTransformWritable;
-use crate::dom::trustedtypepolicyfactory::TrustedTypePolicyFactory;
 use crate::dom::types::{AbortSignal, CookieStore, DebuggerGlobalScope, MessageEvent};
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::gpudevice::GPUDevice;
@@ -138,7 +139,7 @@ use crate::fetch::{DeferredFetchRecordId, FetchGroup, QueuedDeferredFetchRecord}
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::microtask::Microtask;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm, enter_realm};
 use crate::script_module::{
     ImportMap, ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
 };
@@ -422,7 +423,8 @@ struct BroadcastListener {
     context: Trusted<GlobalScope>,
 }
 
-type FileListenerCallback = Box<dyn Fn(Rc<Promise>, Fallible<Vec<u8>>) + Send>;
+type FileListenerCallback =
+    Box<dyn Fn(&mut js::context::JSContext, Rc<Promise>, Fallible<Vec<u8>>) + Send>;
 
 /// A wrapper for the handling of file data received by the ipc router
 struct FileListener {
@@ -686,19 +688,17 @@ impl FileListener {
             Ok(ReadFileProgress::EOF) => match self.state.take() {
                 Some(FileListenerState::Receiving(bytes, target)) => match target {
                     FileListenerTarget::Promise(trusted_promise, callback) => {
-                        let task = task!(resolve_promise: move || {
+                        let task = task!(resolve_promise: move |cx| {
                             let promise = trusted_promise.root();
-                            let _ac = enter_realm(&*promise.global());
-                            callback(promise, Ok(bytes));
+                            let mut realm = enter_auto_realm(cx, &*promise.global());
+                            callback(&mut realm, promise, Ok(bytes));
                         });
 
                         self.task_source.queue(task);
                     },
                     FileListenerTarget::Stream(trusted_stream) => {
-                        let trusted = trusted_stream.clone();
-
                         let task = task!(enqueue_stream_chunk: move || {
-                            let stream = trusted.root();
+                            let stream = trusted_stream.root();
                             stream_handle_eof(&stream, CanGc::note());
                         });
 
@@ -716,10 +716,10 @@ impl FileListener {
 
                     match target {
                         FileListenerTarget::Promise(trusted_promise, callback) => {
-                            self.task_source.queue(task!(reject_promise: move || {
+                            self.task_source.queue(task!(reject_promise: move |cx| {
                                 let promise = trusted_promise.root();
-                                let _ac = enter_realm(&*promise.global());
-                                callback(promise, error);
+                                let mut realm = enter_auto_realm(cx, &*promise.global());
+                                callback(&mut realm, promise, error);
                             }));
                         },
                         FileListenerTarget::Stream(trusted_stream) => {
@@ -1313,9 +1313,7 @@ impl GlobalScope {
             }
 
             // - Check for a case-sensitive match for the name of the channel.
-            let channel_name = DOMString::from_string(channel_name);
-
-            if let Some(channels) = channels.get(&channel_name) {
+            if let Some(channels) = channels.get(&channel_name.into()) {
                 channels
                     .iter()
                     .filter(|channel| {
@@ -1483,70 +1481,77 @@ impl GlobalScope {
             // Note: this is necessary, on top of entering the realm above,
             // for the call to `GlobalScope::incumbent`,
             // in `MessagePort::post_message_impl` to succeed.
-            let _aes = AutoEntryScript::new(self);
-
-            // Let deserializeRecord be StructuredDeserializeWithTransfer(serializeWithTransferResult, targetRealm).
-            // Let newPorts be a new frozen array
-            // consisting of all MessagePort objects in deserializeRecord.[[TransferredValues]],
-            // if any, maintaining their relative order.
-            // Note: both done in `structuredclone::read`.
-            if let Ok(ports) = structuredclone::read(self, data, message_clone.handle_mut(), can_gc)
-            {
-                // Note: if this port is used to transfer a stream, we handle the events in Rust.
-                if let Some(transform) = cross_realm_transform.deref().as_ref() {
+            run_a_script::<DomTypeHolder, _>(self, || {
+                // Let deserializeRecord be StructuredDeserializeWithTransfer(serializeWithTransferResult, targetRealm).
+                // Let newPorts be a new frozen array
+                // consisting of all MessagePort objects in deserializeRecord.[[TransferredValues]],
+                // if any, maintaining their relative order.
+                // Note: both done in `structuredclone::read`.
+                if let Ok(ports) =
+                    structuredclone::read(self, data, message_clone.handle_mut(), can_gc)
+                {
+                    // Note: if this port is used to transfer a stream, we handle the events in Rust.
+                    if let Some(transform) = cross_realm_transform.deref().as_ref() {
+                        match transform {
+                            // Add a handler for port’s message event with the following steps:
+                            // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
+                            CrossRealmTransform::Readable(readable) => {
+                                readable.handle_message(
+                                    cx,
+                                    self,
+                                    &dom_port,
+                                    message_clone.handle(),
+                                    comp,
+                                    can_gc,
+                                );
+                            },
+                            // Add a handler for port’s message event with the following steps:
+                            // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
+                            CrossRealmTransform::Writable(writable) => {
+                                writable.handle_message(
+                                    cx,
+                                    self,
+                                    message_clone.handle(),
+                                    comp,
+                                    can_gc,
+                                );
+                            },
+                        }
+                    } else {
+                        // Fire an event named message at messageEventTarget,
+                        // using MessageEvent,
+                        // with the data attribute initialized to messageClone
+                        // and the ports attribute initialized to newPorts.
+                        MessageEvent::dispatch_jsval(
+                            message_event_target,
+                            self,
+                            message_clone.handle(),
+                            Some(&origin.ascii_serialization()),
+                            None,
+                            ports,
+                            can_gc,
+                        );
+                    }
+                } else if let Some(transform) = cross_realm_transform.deref().as_ref() {
                     match transform {
-                        // Add a handler for port’s message event with the following steps:
+                        // Add a handler for port’s messageerror event with the following steps:
                         // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
                         CrossRealmTransform::Readable(readable) => {
-                            readable.handle_message(
-                                cx,
-                                self,
-                                &dom_port,
-                                message_clone.handle(),
-                                comp,
-                                can_gc,
-                            );
+                            readable.handle_error(cx, self, &dom_port, comp, can_gc);
                         },
-                        // Add a handler for port’s message event with the following steps:
+                        // Add a handler for port’s messageerror event with the following steps:
                         // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
                         CrossRealmTransform::Writable(writable) => {
-                            writable.handle_message(cx, self, message_clone.handle(), comp, can_gc);
+                            writable.handle_error(cx, self, &dom_port, comp, can_gc);
                         },
                     }
                 } else {
-                    // Fire an event named message at messageEventTarget,
-                    // using MessageEvent,
-                    // with the data attribute initialized to messageClone
-                    // and the ports attribute initialized to newPorts.
-                    MessageEvent::dispatch_jsval(
-                        message_event_target,
-                        self,
-                        message_clone.handle(),
-                        Some(&origin.ascii_serialization()),
-                        None,
-                        ports,
-                        can_gc,
-                    );
+                    // If this throws an exception, catch it,
+                    // fire an event named messageerror at messageEventTarget,
+                    // using MessageEvent, and then return.
+                    MessageEvent::dispatch_error(message_event_target, self, can_gc);
                 }
-            } else if let Some(transform) = cross_realm_transform.deref().as_ref() {
-                match transform {
-                    // Add a handler for port’s messageerror event with the following steps:
-                    // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformreadable>
-                    CrossRealmTransform::Readable(readable) => {
-                        readable.handle_error(cx, self, &dom_port, comp, can_gc);
-                    },
-                    // Add a handler for port’s messageerror event with the following steps:
-                    // from <https://streams.spec.whatwg.org/#abstract-opdef-setupcrossrealmtransformwritable>
-                    CrossRealmTransform::Writable(writable) => {
-                        writable.handle_error(cx, self, &dom_port, comp, can_gc);
-                    },
-                }
-            } else {
-                // If this throws an exception, catch it,
-                // fire an event named messageerror at messageEventTarget,
-                // using MessageEvent, and then return.
-                MessageEvent::dispatch_error(message_event_target, self, can_gc);
-            }
+            });
         }
     }
 
@@ -1971,7 +1976,7 @@ impl GlobalScope {
     fn get_blob_bytes_non_sliced_or_file_id(&self, blob_id: &BlobId) -> BlobResult {
         match *self.get_blob_data(blob_id) {
             BlobData::File(ref f) => match f.get_cache() {
-                Some(bytes) => BlobResult::Bytes(bytes.clone()),
+                Some(bytes) => BlobResult::Bytes(bytes),
                 None => BlobResult::File(f.get_id(), f.get_size() as usize),
             },
             BlobData::Memory(ref s) => BlobResult::Bytes(s.clone()),
@@ -2177,7 +2182,7 @@ impl GlobalScope {
 
         let recv = self.send_msg(file_id);
 
-        let trusted_stream = Trusted::new(&*stream.clone());
+        let trusted_stream = Trusted::new(&*stream);
         let mut file_listener = FileListener {
             state: Some(FileListenerState::Empty(FileListenerTarget::Stream(
                 trusted_stream,
@@ -2350,6 +2355,7 @@ impl GlobalScope {
     // `Heap` values must stay boxed, as they need semantics like `Pin`
     // (that is, they cannot be moved).
     #[allow(clippy::vec_box)]
+    /// <https://html.spec.whatwg.org/multipage/#about-to-be-notified-rejected-promises-list>
     pub(crate) fn get_uncaught_rejections(&self) -> &DomRefCell<Vec<Box<Heap<*mut JSObject>>>> {
         &self.uncaught_rejections
     }
@@ -2625,9 +2631,7 @@ impl GlobalScope {
             return document.get_referrer_policy();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            let policy_container = worker.policy_container().to_owned();
-
-            return policy_container.get_referrer_policy();
+            return worker.policy_container().get_referrer_policy();
         }
         unreachable!();
     }
@@ -2728,6 +2732,21 @@ impl GlobalScope {
 
     /// Steps 6-7 of <https://html.spec.whatwg.org/multipage/#report-an-exception>
     pub(crate) fn report_an_error(&self, error_info: ErrorInfo, value: HandleValue, can_gc: CanGc) {
+        error!(
+            "Error at {}:{}:{} {}",
+            error_info.filename, error_info.lineno, error_info.column, error_info.message
+        );
+
+        #[cfg(feature = "js_backtrace")]
+        LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
+            if let Some((js_backtrace, rust_backtrace)) = backtrace.borrow_mut().take() {
+                if let Some(stack) = js_backtrace {
+                    error!("JS backtrace:\n{}", stack);
+                }
+                error!("Rust backtrace:\n{}", rust_backtrace);
+            }
+        });
+
         // Step 6. Early return if global is in error reporting mode,
         if self.in_error_reporting_mode.get() {
             return;
@@ -2838,38 +2857,51 @@ impl GlobalScope {
     /// Evaluate JS code on this global scope.
     pub(crate) fn evaluate_js_on_global(
         &self,
+        cx: &mut CurrentRealm,
         code: Cow<'_, str>,
         filename: &str,
         introduction_type: Option<&'static CStr>,
-        rval: MutableHandleValue,
-        can_gc: CanGc,
+        rval: Option<MutableHandleValue>,
     ) -> Result<(), JavaScriptEvaluationError> {
-        let cx = GlobalScope::get_cx();
-        let ar = enter_realm(self);
-        let _aes = AutoEntryScript::new(self);
+        let in_realm_proof = cx.into();
+        let in_realm = InRealm::Already(&in_realm_proof);
 
-        let url = self.api_base_url();
-        let fetch_options = ScriptFetchOptions::default_classic_script(self);
+        run_a_script::<DomTypeHolder, _>(self, || {
+            let url = self.api_base_url();
+            let fetch_options = ScriptFetchOptions::default_classic_script(self);
 
-        rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
-        compiled_script.set(compile_script(cx, &code, filename, 1, introduction_type));
+            let no_script_rval = rval.is_none();
 
-        if compiled_script.is_null() {
-            debug!("error compiling Dom string");
-            report_pending_exception(cx, true, InRealm::Entered(&ar), can_gc);
-            return Err(JavaScriptEvaluationError::CompilationFailure);
-        }
+            rooted!(&in(cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
+            compiled_script.set(compile_script(
+                cx.into(),
+                &code,
+                filename,
+                1,
+                introduction_type,
+                ErrorReporting::Unmuted,
+                no_script_rval,
+            ));
 
-        let script = NonNull::new(*compiled_script).expect("Can't be null");
+            if compiled_script.is_null() {
+                debug!("error compiling Dom string");
+                report_pending_exception(cx.into(), in_realm, CanGc::from_cx(cx));
+                return Err(JavaScriptEvaluationError::CompilationFailure);
+            }
 
-        if !evaluate_script(cx, script, url, fetch_options, rval) {
-            let error_info =
-                take_and_report_pending_exception_for_api(cx, InRealm::Entered(&ar), can_gc);
-            return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
-        }
+            let script = NonNull::new(*compiled_script).expect("Can't be null");
 
-        maybe_resume_unwind();
-        Ok(())
+            rooted!(&in(cx) let mut value = UndefinedValue());
+            let rval = rval.unwrap_or_else(|| value.handle_mut());
+
+            if !evaluate_script(cx.into(), script, url, fetch_options, rval) {
+                let error_info = take_and_report_pending_exception_for_api(cx);
+                return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
+            }
+
+            maybe_resume_unwind();
+            Ok(())
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
@@ -2889,20 +2921,20 @@ impl GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
     pub(crate) fn set_timeout_or_interval(
         &self,
+        cx: &mut js::context::JSContext,
         callback: TimerCallback,
         arguments: Vec<HandleValue>,
         timeout: Duration,
         is_interval: IsInterval,
-        can_gc: CanGc,
     ) -> Fallible<i32> {
         self.timers().set_timeout_or_interval(
+            cx,
             self,
             callback,
             arguments,
             timeout,
             is_interval,
             self.timer_source(),
-            can_gc,
         )
     }
 
@@ -2965,11 +2997,11 @@ impl GlobalScope {
     }
 
     /// Perform a microtask checkpoint.
-    pub(crate) fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
+    pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {
         if let Some(window) = self.downcast::<Window>() {
-            window.perform_a_microtask_checkpoint(can_gc);
+            window.perform_a_microtask_checkpoint(cx);
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            worker.perform_a_microtask_checkpoint(can_gc);
+            worker.perform_a_microtask_checkpoint(cx);
         }
     }
 
@@ -3334,7 +3366,7 @@ impl GlobalScope {
     ) {
         self.notification_permission_request_callback_map
             .borrow_mut()
-            .insert(callback_id, callback.clone());
+            .insert(callback_id, callback);
     }
 
     pub(crate) fn remove_notification_permission_request_callback(
@@ -3344,66 +3376,6 @@ impl GlobalScope {
         self.notification_permission_request_callback_map
             .borrow_mut()
             .remove(&callback_id)
-    }
-
-    pub(crate) fn trusted_types(&self, can_gc: CanGc) -> DomRoot<TrustedTypePolicyFactory> {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.TrustedTypes(can_gc);
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.TrustedTypes(can_gc);
-        }
-        unreachable!();
-    }
-
-    pub(crate) fn append_reporting_observer(&self, reporting_observer: &ReportingObserver) {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.append_reporting_observer(DomRoot::from_ref(reporting_observer));
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.append_reporting_observer(DomRoot::from_ref(reporting_observer));
-        }
-        unreachable!();
-    }
-
-    pub(crate) fn remove_reporting_observer(&self, reporting_observer: &ReportingObserver) {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.remove_reporting_observer(reporting_observer);
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.remove_reporting_observer(reporting_observer);
-        }
-        unreachable!();
-    }
-
-    pub(crate) fn registered_reporting_observers(&self) -> Vec<DomRoot<ReportingObserver>> {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.registered_reporting_observers();
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.registered_reporting_observers();
-        }
-        unreachable!();
-    }
-
-    pub(crate) fn append_report(&self, report: Report) {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.append_report(report);
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.append_report(report);
-        }
-        unreachable!();
-    }
-
-    pub(crate) fn buffered_reports(&self) -> Vec<Report> {
-        if let Some(window) = self.downcast::<Window>() {
-            return window.buffered_reports();
-        }
-        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.buffered_reports();
-        }
-        unreachable!();
     }
 
     pub(crate) fn append_deferred_fetch(
@@ -3588,8 +3560,8 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
         GlobalScope::incumbent()
     }
 
-    fn perform_a_microtask_checkpoint(&self, can_gc: CanGc) {
-        GlobalScope::perform_a_microtask_checkpoint(self, can_gc)
+    fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {
+        GlobalScope::perform_a_microtask_checkpoint(self, cx)
     }
 
     fn get_url(&self) -> ServoUrl {

@@ -21,6 +21,7 @@ use euclid::{Scale, Size2D};
 use image::RgbaImage;
 use paint_api::WebViewTrait;
 use paint_api::rendering_context::RenderingContext;
+use servo_config::pref;
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
 use style_traits::CSSPixel;
@@ -29,7 +30,7 @@ use webrender_api::units::{DeviceIntRect, DevicePixel, DevicePoint, DeviceSize};
 
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 #[cfg(feature = "gamepad")]
-use crate::gamepad_provider::{DefaultGamepadProvider, GamepadProvider};
+use crate::gamepad_delegate::{DefaultGamepadDelegate, GamepadDelegate};
 use crate::responders::IpcResponder;
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
@@ -87,7 +88,13 @@ pub(crate) struct WebViewInner {
     pub(crate) delegate: Rc<dyn WebViewDelegate>,
     pub(crate) clipboard_delegate: Rc<dyn ClipboardDelegate>,
     #[cfg(feature = "gamepad")]
-    pub(crate) gamepad_provider: Rc<dyn GamepadProvider>,
+    pub(crate) gamepad_delegate: Rc<dyn GamepadDelegate>,
+
+    /// AccessKit subtree id for this [`WebView`], if accessibility is active.
+    ///
+    /// Set by [`WebView::set_accessibility_active()`], and forwarded to the constellation via
+    /// [`EmbedderToConstellationMessage::SetAccessibilityActive`].
+    pub(crate) accesskit_tree_id: Option<accesskit::TreeId>,
 
     rendering_context: Rc<dyn RenderingContext>,
     user_content_manager: Option<Rc<UserContentManager>>,
@@ -129,9 +136,14 @@ impl WebView {
             servo: servo.clone(),
             rendering_context: builder.rendering_context,
             delegate: builder.delegate,
-            clipboard_delegate: Rc::new(DefaultClipboardDelegate),
+            clipboard_delegate: builder
+                .clipboard_delegate
+                .unwrap_or_else(|| Rc::new(DefaultClipboardDelegate)),
             #[cfg(feature = "gamepad")]
-            gamepad_provider: Rc::new(DefaultGamepadProvider),
+            gamepad_delegate: builder
+                .gamepad_delegate
+                .unwrap_or_else(|| Rc::new(DefaultGamepadDelegate)),
+            accesskit_tree_id: None,
             hidpi_scale_factor: builder.hidpi_scale_factor,
             load_status: LoadStatus::Started,
             status_text: None,
@@ -239,26 +251,13 @@ impl WebView {
         self.inner().delegate.clone()
     }
 
-    pub fn set_delegate(&self, delegate: Rc<dyn WebViewDelegate>) {
-        self.inner_mut().delegate = delegate;
-    }
-
     pub fn clipboard_delegate(&self) -> Rc<dyn ClipboardDelegate> {
         self.inner().clipboard_delegate.clone()
     }
 
-    pub fn set_clipboard_delegate(&self, delegate: Rc<dyn ClipboardDelegate>) {
-        self.inner_mut().clipboard_delegate = delegate;
-    }
-
     #[cfg(feature = "gamepad")]
-    pub fn gamepad_provider(&self) -> Rc<dyn GamepadProvider> {
-        self.inner().gamepad_provider.clone()
-    }
-
-    #[cfg(feature = "gamepad")]
-    pub fn set_gamepad_provider(&self, provider: Rc<dyn GamepadProvider>) {
-        self.inner_mut().gamepad_provider = provider;
+    pub fn gamepad_delegate(&self) -> Rc<dyn GamepadDelegate> {
+        self.inner().gamepad_delegate.clone()
     }
 
     pub fn id(&self) -> WebViewId {
@@ -562,11 +561,16 @@ impl WebView {
     ///
     /// The final pinch zoom values will be clamped to reasonable defaults (currently to
     /// the inclusive range [1.0, 10.0]).
-    pub fn pinch_zoom(&self, pinch_zoom_delta: f32, center: DevicePoint) {
+    pub fn adjust_pinch_zoom(&self, pinch_zoom_delta: f32, center: DevicePoint) {
         self.inner()
             .servo
             .paint()
-            .pinch_zoom(self.id(), pinch_zoom_delta, center);
+            .adjust_pinch_zoom(self.id(), pinch_zoom_delta, center);
+    }
+
+    /// Get the pinch zoom of the [`WebView`].
+    pub fn pinch_zoom(&self) -> f32 {
+        self.inner().servo.paint().pinch_zoom(self.id())
     }
 
     pub fn device_pixels_per_css_pixel(&self) -> Scale<f32, CSSPixel, DevicePixel> {
@@ -723,6 +727,7 @@ impl WebView {
                     insertion_point: input_method_request.insertion_point,
                     position,
                     multiline: input_method_request.multiline,
+                    allow_virtual_keyboard: input_method_request.allow_virtual_keyboard,
                 })
             },
             EmbedderControlRequest::ContextMenu(mut context_menu_request) => {
@@ -758,6 +763,66 @@ impl WebView {
         self.delegate()
             .show_embedder_control(self.clone(), embedder_control);
     }
+
+    /// AccessKit subtree id for this [`WebView`], if accessibility is active.
+    pub fn accesskit_tree_id(&self) -> Option<accesskit::TreeId> {
+        self.inner().accesskit_tree_id
+    }
+
+    /// Activate or deactivate accessibility features for this [`WebView`], returning the
+    /// AccessKit subtree id if accessibility is now active.
+    ///
+    /// After accessibility is activated, you must [graft] (with [`set_tree_id()`]) the returned
+    /// [`accesskit::TreeId`] into your application’s main AccessKit tree as soon as possible,
+    /// *before* sending any tree updates from the webview to your AccessKit adapter. Otherwise you
+    /// may violate AccessKit’s subtree invariants and **panic**.
+    ///
+    /// This method may call [`WebViewDelegate::notify_accessibility_tree_update()`] synchronously
+    /// with an initial tree update, so if your impl for that method can’t create the graft node
+    /// (and send *that* update to AccessKit) before sending this update to AccessKit, then it must
+    /// queue the update for later.
+    ///
+    /// [graft]: https://docs.rs/accesskit/0.24.0/accesskit/struct.Node.html#method.tree_id
+    /// [`set_tree_id()`]: https://docs.rs/accesskit/0.24.0/accesskit/struct.Node.html#method.set_tree_id
+    pub fn set_accessibility_active(&self, active: bool) -> Option<accesskit::TreeId> {
+        if !pref!(accessibility_enabled) {
+            return None;
+        }
+
+        if active == self.inner().accesskit_tree_id.is_some() {
+            return self.accesskit_tree_id();
+        }
+
+        if active {
+            let accesskit_tree_id = accesskit::TreeId(accesskit::Uuid::new_v4());
+            self.inner_mut().accesskit_tree_id = Some(accesskit_tree_id);
+
+            // Synchronously emit a TreeUpdate containing just a ScrollView, but no graft node yet.
+            let root_node_id = accesskit::NodeId(0);
+            let root_node = accesskit::Node::new(accesskit::Role::ScrollView);
+            self.delegate().notify_accessibility_tree_update(
+                self.clone(),
+                accesskit::TreeUpdate {
+                    nodes: vec![(root_node_id, root_node)],
+                    tree: Some(accesskit::Tree {
+                        root: root_node_id,
+                        toolkit_name: None,
+                        toolkit_version: None,
+                    }),
+                    tree_id: accesskit_tree_id,
+                    focus: root_node_id,
+                },
+            );
+        } else {
+            self.inner_mut().accesskit_tree_id = None;
+        }
+
+        self.inner().servo.constellation_proxy().send(
+            EmbedderToConstellationMessage::SetAccessibilityActive(self.id(), active),
+        );
+
+        self.accesskit_tree_id()
+    }
 }
 
 /// A structure used to expose a view of the [`WebView`] to the Servo
@@ -784,6 +849,7 @@ impl WebViewTrait for ServoRendererWebView {
     }
 }
 
+/// Builder for [`WebView`].
 pub struct WebViewBuilder {
     servo: Servo,
     rendering_context: Rc<dyn RenderingContext>,
@@ -792,6 +858,9 @@ pub struct WebViewBuilder {
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     create_new_webview_responder: Option<IpcResponder<Option<NewWebViewDetails>>>,
     user_content_manager: Option<Rc<UserContentManager>>,
+    clipboard_delegate: Option<Rc<dyn ClipboardDelegate>>,
+    #[cfg(feature = "gamepad")]
+    gamepad_delegate: Option<Rc<dyn GamepadDelegate>>,
 }
 
 impl WebViewBuilder {
@@ -804,6 +873,9 @@ impl WebViewBuilder {
             delegate: Rc::new(DefaultWebViewDelegate),
             create_new_webview_responder: None,
             user_content_manager: None,
+            clipboard_delegate: None,
+            #[cfg(feature = "gamepad")]
+            gamepad_delegate: None,
         }
     }
 
@@ -837,9 +909,24 @@ impl WebViewBuilder {
 
     /// Set the [`UserContentManager`] for the `WebView` being created. The same
     /// `UserContentManager` can be shared among multiple `WebView`s. Any updates
-    /// to the `UserContentManager` will take effect only after the document is reloaded>
+    /// to the `UserContentManager` will take effect only after the document is reloaded.
     pub fn user_content_manager(mut self, user_content_manager: Rc<UserContentManager>) -> Self {
         self.user_content_manager = Some(user_content_manager);
+        self
+    }
+
+    /// Set the [`ClipboardDelegate`] for the `WebView` being created. The same
+    /// [`ClipboardDelegate`] can be shared among multiple `WebView`s.
+    pub fn clipboard_delegate(mut self, clipboard_delegate: Rc<dyn ClipboardDelegate>) -> Self {
+        self.clipboard_delegate = Some(clipboard_delegate);
+        self
+    }
+
+    /// Set the [`GamepadDelegate`] for the `WebView` being created. The same
+    /// [`GamepadDelegate`] can be shared among multiple `WebView`s.
+    #[cfg(feature = "gamepad")]
+    pub fn gamepad_delegate(mut self, gamepad_delegate: Rc<dyn GamepadDelegate>) -> Self {
+        self.gamepad_delegate = Some(gamepad_delegate);
         self
     }
 

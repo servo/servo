@@ -10,9 +10,9 @@
 const [key] = parseKeylist();
 
 const allows_shared_storage =
-    document.featurePolicy.allowsFeature('shared-storage');
+    document.permissionsPolicy.allowsFeature('shared-storage');
 const allows_select_url =
-    document.featurePolicy.allowsFeature('shared-storage-select-url');
+    document.permissionsPolicy.allowsFeature('shared-storage-select-url');
 
 writeValueToServer(key, allows_shared_storage + "," + allows_select_url);
 </script>

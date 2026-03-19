@@ -11,7 +11,7 @@ pytestmark = pytest.mark.asyncio
 FILE_DIALOG_OPENED_EVENT = "input.fileDialogOpened"
 
 
-async def test_unsubscribe(bidi_session, inline, top_context, wait_for_event,
+async def test_unsubscribe(bidi_session, configuration, inline, top_context, wait_for_event,
         wait_for_future_safe):
     await bidi_session.session.subscribe(events=[FILE_DIALOG_OPENED_EVENT])
     await bidi_session.session.unsubscribe(events=[FILE_DIALOG_OPENED_EVENT])
@@ -37,7 +37,7 @@ async def test_unsubscribe(bidi_session, inline, top_context, wait_for_event,
     )
 
     with pytest.raises(TimeoutException):
-        await wait_for_bidi_events(bidi_session, events, 1, timeout=0.5)
+        await wait_for_bidi_events(bidi_session, configuration, events, 1, timeout=0.5)
 
     remove_listener()
 

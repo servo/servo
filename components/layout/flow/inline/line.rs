@@ -535,7 +535,7 @@ impl LineItemLayout<'_, '_> {
     }
 
     fn layout_text_run(&mut self, text_item: TextRunLineItem) {
-        if text_item.text.is_empty() {
+        if text_item.text.is_empty() && !text_item.is_empty_for_text_cursor {
             return;
         }
 
@@ -586,6 +586,7 @@ impl LineItemLayout<'_, '_> {
                 glyphs: text_item.text,
                 justification_adjustment: self.justification_adjustment,
                 offsets: text_item.offsets,
+                is_empty_for_text_cursor: text_item.is_empty_for_text_cursor,
             })),
             content_rect,
         ));
@@ -673,9 +674,15 @@ impl LineItemLayout<'_, '_> {
                 }
             } else {
                 // After the bottom of the line at the start of the inline formatting context.
+                // Note that phantom lines are treated as being zero-height for this purpose.
+                // <https://drafts.csswg.org/css-inline-3/#invisible-line-boxes>
                 LogicalVec2 {
                     inline: -self.current_state.parent_offset.inline,
-                    block: block_position + self.line_metrics.block_size,
+                    block: if absolute.preceding_line_content_would_produce_phantom_line {
+                        block_position
+                    } else {
+                        block_position + self.line_metrics.block_size
+                    },
                 }
             };
 
@@ -792,7 +799,7 @@ impl LineItem {
     }
 }
 
-#[derive(MallocSizeOf)]
+#[derive(Debug, MallocSizeOf)]
 pub(crate) struct TextRunOffsets {
     /// The selection range of the containing inline formatting context.
     #[ignore_malloc_size_of = "This is stored primarily in the DOM"]
@@ -813,6 +820,9 @@ pub(super) struct TextRunLineItem {
     /// When necessary, this field store the [`TextRunOffsets`] for a particular
     /// [`TextRunLineItem`]. This is currently only used inside of text inputs.
     pub offsets: Option<Box<TextRunOffsets>>,
+    /// Whether or not this [`TextFragment`] is an empty fragment added for the
+    /// benefit of placing a text cursor on an otherwise empty editable line.
+    pub is_empty_for_text_cursor: bool,
 }
 
 impl TextRunLineItem {
@@ -880,8 +890,12 @@ impl TextRunLineItem {
         new_bidi_level: Level,
         new_glyph_store: &Arc<GlyphStore>,
         new_offsets: &Option<TextRunOffsets>,
+        new_inline_styles: &SharedInlineStyles,
     ) -> bool {
-        if self.font_key != new_font_key || self.bidi_level != new_bidi_level {
+        if self.font_key != new_font_key ||
+            self.bidi_level != new_bidi_level ||
+            !self.inline_styles.ptr_eq(new_inline_styles)
+        {
             return false;
         }
         self.text.push(new_glyph_store.clone());
@@ -936,6 +950,10 @@ impl AtomicLineItem {
 
 pub(super) struct AbsolutelyPositionedLineItem {
     pub absolutely_positioned_box: ArcRefCell<AbsolutelyPositionedBox>,
+    /// Whether the line would be phantom if it were to end before the abspos.
+    /// This is used when computing the static position (in the block axis) of
+    /// an abspos whose original display had a block outer display type.
+    pub preceding_line_content_would_produce_phantom_line: bool,
 }
 
 pub(super) struct FloatLineItem {

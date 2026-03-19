@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>LNA Fetch tests: HTTPS </title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/support.sub.js"></script>
+<script>
+  "use strict";
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/websocket.html",
+        sourceResolveOptions({ server: Server.HTTPS_PUBLIC }));
+
+    function checkResult(evt) {
+      assert_equals(evt.data, WebsocketTestResult.SUCCESS);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Public to loopback websocket with permission');
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/websocket.html?permission=denied",
+        sourceResolveOptions({ server: Server.HTTPS_PUBLIC }));
+
+    function checkResult(evt) {
+      assert_equals(evt.data, WebsocketTestResult.FAILURE);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Public to loopback websocket without permission');
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/websocket.html",
+        sourceResolveOptions({ server: Server.HTTPS_LOCAL }));
+
+    function checkResult(evt) {
+      assert_equals(evt.data, WebsocketTestResult.SUCCESS);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA local to loopback websocket with permission');
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/websocket.html?permission=denied",
+        sourceResolveOptions({ server: Server.HTTPS_LOCAL }));
+
+    // No permission necessary, so connection should still succeed.
+    function checkResult(evt) {
+      assert_equals(evt.data, WebsocketTestResult.SUCCESS);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA local to loopback websocket without permission');
+
+</script>
+</body>

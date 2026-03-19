@@ -36,7 +36,7 @@ controls.forEach(control => {
   ].forEach(tc => {
     promise_test(async t => {
       const element = setup(control, tc.init.value);
-      const range = element.getValueRange(tc.init.rangeStart, tc.init.rangeEnd);
+      const range = element.createValueRange(tc.init.rangeStart, tc.init.rangeEnd);
       element.setSelectionRange(tc.init.selA, tc.init.selB);
       if (tc.init.key) {
         await typeKeys(element, tc.init.key);
@@ -59,7 +59,7 @@ controls.forEach(control => {
   ].forEach(tc => {
     promise_test(async t => {
       const element = setup(control, tc.init.value);
-      const range = element.getValueRange(tc.init.rangeStart, tc.init.rangeEnd);
+      const range = element.createValueRange(tc.init.rangeStart, tc.init.rangeEnd);
       element.setSelectionRange(tc.init.selA, tc.init.selB);
       await typeKeys(element, tc.init.key);
       assert_equals(element.value, tc.expect.value, 'post-delete value');
@@ -73,7 +73,7 @@ controls.forEach(control => {
 
   promise_test(async t => {
     const element = setup(control, 'ABCDE');
-    const range = element.getValueRange(2, 4);
+    const range = element.createValueRange(2, 4);
     element.setSelectionRange(1, 1);
     await typeKeys(element, KEY_DELETE);
     assert_equals(element.value, 'ACDE');

@@ -272,7 +272,7 @@ impl Serializable for DOMException {
     {
         Ok(Self::new_with_custom_message(
             owner,
-            DOMErrorName::from(&DOMString::from_string(serialized.name)).ok_or(())?,
+            DOMErrorName::from(&DOMString::from(serialized.name)).ok_or(())?,
             serialized.message,
             can_gc,
         ))

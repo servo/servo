@@ -53,12 +53,14 @@
   <script>
 
   function validateEntries(entries) {
-    assert_equals(entries.length, 2, "two pointerdown entries should be received");
+    assert_equals(entries.length, 2, "two pointer entries should be received");
     let entry = entries[0];
     assert_equals(entry.name, 'pointerdown');
-    assert_equals(entry.interactionId, 0);
+    assert_greater_than(entry.interactionId, 0);
     entry = entries[1];
     assert_equals(entry.name, 'pointerup');
+    // The pointerup event is connected with an active autoscroll,
+    // and therefore does not have an interaction id.
     assert_equals(entry.interactionId, 0);
   }
 
@@ -70,9 +72,11 @@
       return;
 
     // Wait for load event so we can interact on the page.
-    await new Promise(resolve => {
-      window.addEventListener('load', resolve);
-    });
+    if (document.readyState !== 'complete') {
+      await new Promise(resolve => {
+        window.addEventListener('load', resolve);
+      });
+    }
 
     let observedEntries = [];
     const observerPromise = new Promise(resolve => {

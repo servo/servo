@@ -20,7 +20,7 @@ use crate::dom::bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::document::{Document, DocumentSource, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::servoparser::ServoParser;
-use crate::dom::trustedhtml::TrustedHTML;
+use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::window::Window;
 use crate::script_runtime::CanGc;
 
@@ -68,11 +68,11 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
         // Step 1. Let compliantString be the result of invoking the
         // Get Trusted Type compliant string algorithm with TrustedHTML,
         // this's relevant global object, string, "DOMParser parseFromString", and "script".
-        let compliant_string = TrustedHTML::get_trusted_script_compliant_string(
+        let compliant_string = TrustedHTML::get_trusted_type_compliant_string(
+            cx,
             self.window.as_global_scope(),
             s,
             "DOMParser parseFromString",
-            CanGc::from_cx(cx),
         )?;
         let url = self.window.get_url();
         let content_type = ty
@@ -116,7 +116,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                     url,
                     None,
                     None,
-                    CanGc::from_cx(cx),
+                    cx,
                 );
                 document
             },
@@ -148,13 +148,7 @@ impl DOMParserMethods<crate::DomTypeHolder> for DOMParser {
                 );
                 // Step switch-1. Create an XML parser parser, associated with document,
                 // and with XML scripting support disabled.
-                ServoParser::parse_xml_document(
-                    &document,
-                    Some(compliant_string),
-                    url,
-                    None,
-                    CanGc::from_cx(cx),
-                );
+                ServoParser::parse_xml_document(&document, Some(compliant_string), url, None, cx);
                 document
             },
         };

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<title>JPEG XL: animation basics via ImageDecoder</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<meta name="assert" content="ImageDecoder reports animation track and decodes multiple frames.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<script>
+
+promise_test(async () => {
+  assert_implements('ImageDecoder' in self, 'ImageDecoder should exist');
+  const supported = await ImageDecoder.isTypeSupported('image/jxl');
+  assert_true(supported, 'image/jxl should be supported');
+
+  const response = await fetch('resources/conformance_animation_spline.jxl');
+  const decoder = new ImageDecoder({data: response.body, type: 'image/jxl'});
+  await decoder.tracks.ready;
+
+  const track = decoder.tracks.selectedTrack;
+  assert_true(track.animated, 'track must be animated');
+  assert_greater_than(track.frameCount, 1, 'must expose multiple frames');
+
+  const f0 = await decoder.decode({frameIndex: 0});
+  const f1 = await decoder.decode({frameIndex: 1});
+  assert_less_than(f0.image.timestamp, f1.image.timestamp,
+      'timestamps should increase');
+  f0.image.close();
+  f1.image.close();
+  decoder.close();
+}, 'Animated JPEG XL reports multiple frames and decodes frame sequence.');
+
+</script>

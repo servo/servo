@@ -586,7 +586,7 @@ impl AsyncBluetoothListener for Bluetooth {
             // Step 11, 13 - 14.
             BluetoothResponse::RequestDevice(device) => {
                 let mut device_instance_map = self.device_instance_map.borrow_mut();
-                if let Some(existing_device) = device_instance_map.get(&device.id.clone()) {
+                if let Some(existing_device) = device_instance_map.get(&device.id) {
                     return promise.resolve_native(&**existing_device, CanGc::from_cx(cx));
                 }
                 let bt_device = BluetoothDevice::new(

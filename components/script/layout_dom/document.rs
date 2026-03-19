@@ -21,11 +21,12 @@ pub struct ServoLayoutDocument<'dom> {
     document: LayoutDom<'dom, Document>,
 }
 
+use style::values::AtomIdent;
 impl<'ld> ::style::dom::TDocument for ServoLayoutDocument<'ld> {
     type ConcreteNode = ServoLayoutNode<'ld>;
 
     fn as_node(&self) -> Self::ConcreteNode {
-        ServoLayoutNode::from_layout_js(self.document.upcast())
+        ServoLayoutNode::from_layout_dom(self.document.upcast())
     }
 
     fn quirks_mode(&self) -> QuirksMode {
@@ -38,6 +39,22 @@ impl<'ld> ::style::dom::TDocument for ServoLayoutDocument<'ld> {
 
     fn shared_lock(&self) -> &StyleSharedRwLock {
         self.document.style_shared_lock()
+    }
+
+    fn elements_with_id<'a>(&self, id: &AtomIdent) -> Result<&'a [ServoLayoutElement<'ld>], ()>
+    where
+        Self: 'a,
+    {
+        let elements_with_id = self.document.elements_with_id(&id.0);
+
+        // SAFETY: ServoLayoutElement is known to have the same layout and alignment as LayoutDom<Element>
+        let result = unsafe {
+            std::slice::from_raw_parts(
+                elements_with_id.as_ptr() as *const ServoLayoutElement<'ld>,
+                elements_with_id.len(),
+            )
+        };
+        Ok(result)
     }
 }
 
@@ -60,7 +77,7 @@ impl<'ld> ServoLayoutDocument<'ld> {
                 .iter()
                 .map(|sr| {
                     debug_assert!(sr.upcast::<Node>().get_flag(NodeFlags::IS_CONNECTED));
-                    ServoShadowRoot::from_layout_js(*sr)
+                    ServoShadowRoot::from_layout_dom(*sr)
                 })
                 .collect()
         }
@@ -82,7 +99,7 @@ impl<'ld> ServoLayoutDocument<'ld> {
         }
     }
 
-    pub(crate) fn from_layout_js(document: LayoutDom<'ld, Document>) -> Self {
+    pub(crate) fn from_layout_dom(document: LayoutDom<'ld, Document>) -> Self {
         ServoLayoutDocument { document }
     }
 }

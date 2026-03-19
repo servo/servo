@@ -34,7 +34,7 @@ pub(crate) enum ShaderCompilationStatus {
     Failed,
 }
 
-#[dom_struct]
+#[dom_struct(associated_memory)]
 pub(crate) struct WebGLShader {
     webgl_object: WebGLObject,
     #[no_trace]

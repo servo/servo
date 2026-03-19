@@ -84,10 +84,11 @@ impl SpecificCSSRule for CSSLayerBlockRule {
 impl CSSLayerBlockRuleMethods<crate::DomTypeHolder> for CSSLayerBlockRule {
     /// <https://drafts.csswg.org/css-cascade-5/#dom-csslayerblockrule-name>
     fn Name(&self) -> DOMString {
-        if let Some(name) = &self.layer_block_rule.borrow().name {
-            DOMString::from_string(name.to_css_string())
-        } else {
-            DOMString::new()
-        }
+        self.layer_block_rule
+            .borrow()
+            .name
+            .as_ref()
+            .map(|name| name.to_css_cssstring().into())
+            .unwrap_or_default()
     }
 }

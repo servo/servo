@@ -408,7 +408,7 @@ impl RasterImage {
         let frame = self
             .frames
             .get(frame_index)
-            .expect("Asked for a frame that did not exist: {frame_index:?}");
+            .unwrap_or_else(|| panic!("Asked for a frame that did not exist: {frame_index:?}"));
 
         let (format, data) = match self.format {
             PixelFormat::BGRA8 => (
