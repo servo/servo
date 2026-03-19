@@ -390,7 +390,12 @@ impl DOMString {
     }
 
     pub fn clear(&mut self) {
-        *self.0.borrow_mut() = DOMStringType::Rust(String::new())
+        let mut inner = self.0.borrow_mut();
+        let DOMStringType::Rust(string) = &mut *inner else {
+            *inner = DOMStringType::Rust(String::new());
+            return;
+        };
+        string.clear();
     }
 
     pub fn is_empty(&self) -> bool {
