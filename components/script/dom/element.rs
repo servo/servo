@@ -973,6 +973,25 @@ impl Element {
             .contenteditable_selection_range
             .or_init(|| Range::new_with_doc(document, None, can_gc))
     }
+
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
+    ///
+    /// > Whenever an element gets scrolled (whether in response to user interaction or
+    /// > by an API), the user agent must run these steps:
+    pub(crate) fn handle_scroll_event(&self) {
+        // Step 1: Let doc be the element’s node document.
+        let document = self.owner_document();
+
+        // Step 2: If the element is a snap container, run the steps to update
+        // scrollsnapchanging targets for the element with the element’s eventual
+        // snap target in the block axis as newBlockTarget and the element’s eventual
+        // snap target in the inline axis as newInlineTarget.
+        //
+        // TODO(#7673): Implement scroll snapping
+
+        // Steps 3 and 4 are shared with other scroll targets.
+        document.finish_handle_scroll_event(self.upcast());
+    }
 }
 
 /// <https://dom.spec.whatwg.org/#valid-shadow-host-name>

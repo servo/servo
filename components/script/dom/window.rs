@@ -2515,16 +2515,8 @@ impl Window {
         // Even though the note mention the scrollend, it is relevant to the scroll as well.
         if reflow_phases_run.contains(ReflowPhasesRun::UpdatedScrollNodeOffset) {
             match element {
-                Some(el) => {
-                    self.Document().handle_element_scroll_event(el);
-                    // Add to pending scrollend events for instant scroll completion
-                    self.Document().handle_element_scrollend_event(el);
-                },
-                None => {
-                    self.Document().handle_viewport_scroll_event();
-                    // Add to pending scrollend events for instant scroll completion
-                    self.Document().handle_viewport_scrollend_event();
-                },
+                Some(element) => element.handle_scroll_event(),
+                None => self.Document().handle_viewport_scroll_event(),
             };
         }
     }
@@ -3310,8 +3302,7 @@ impl Window {
             self.has_changed_visual_viewport_dimension.set(true);
         }
         if changes.intersects(VisualViewportChanges::OffsetChanged) {
-            self.Document()
-                .handle_visual_viewport_scroll_event(&visual_viewport);
+            visual_viewport.handle_scroll_event();
         }
     }
 
