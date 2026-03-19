@@ -35,7 +35,6 @@ use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
 };
 use script_bindings::root::assert_in_script;
-use script_bindings::script_runtime::temp_cx;
 use script_bindings::weakref::WeakRef;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
