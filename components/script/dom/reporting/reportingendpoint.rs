@@ -318,6 +318,7 @@ impl FetchResponseListener for CSPReportEndpointFetchListener {
 
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         _: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {

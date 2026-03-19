@@ -35,7 +35,6 @@ use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, HTMLMediaElementTypeId, NodeTypeId,
 };
 use script_bindings::root::assert_in_script;
-use script_bindings::script_runtime::temp_cx;
 use script_bindings::weakref::WeakRef;
 use servo_config::pref;
 use servo_media::player::audio::AudioRenderer;
@@ -3713,11 +3712,12 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
     fn process_request_eof(&mut self, _: RequestId) {}
 
-    #[expect(unsafe_code)]
-    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
-        // TODO: https://github.com/servo/servo/issues/42840
-        let mut cx = unsafe { temp_cx() };
-        let cx = &mut cx;
+    fn process_response(
+        &mut self,
+        cx: &mut js::context::JSContext,
+        _: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
         let element = self.element.root();
 
         let (metadata, origin_clean) = match metadata {

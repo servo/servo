@@ -104,6 +104,7 @@ pub(crate) trait FetchResponseListener: Send + 'static {
     fn process_request_eof(&mut self, request_id: RequestId);
     fn process_response(
         &mut self,
+        cx: &mut js::context::JSContext,
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     );
@@ -154,7 +155,7 @@ impl<Listener: FetchResponseListener> NetworkListener<Listener> {
                         fetch_listener.process_request_eof(request_id)
                     },
                     FetchResponseMsg::ProcessResponse(request_id, meta) => {
-                        fetch_listener.process_response(request_id, meta)
+                        fetch_listener.process_response(cx, request_id, meta)
                     },
                     FetchResponseMsg::ProcessResponseChunk(request_id, data) => {
                         fetch_listener.process_response_chunk(request_id, data.0)

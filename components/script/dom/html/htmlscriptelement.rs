@@ -341,7 +341,12 @@ impl FetchResponseListener for ClassicContext {
     // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
     fn process_request_eof(&mut self, _: RequestId) {}
 
-    fn process_response(&mut self, _: RequestId, metadata: Result<FetchMetadata, NetworkError>) {
+    fn process_response(
+        &mut self,
+        _: &mut js::context::JSContext,
+        _: RequestId,
+        metadata: Result<FetchMetadata, NetworkError>,
+    ) {
         self.metadata = metadata.ok().map(|meta| {
             self.response_was_cors_cross_origin = meta.is_cors_cross_origin();
             match meta {

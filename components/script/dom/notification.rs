@@ -758,6 +758,7 @@ impl FetchResponseListener for ResourceFetchListener {
 
     fn process_response(
         &mut self,
+        _: &mut js::context::JSContext,
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
