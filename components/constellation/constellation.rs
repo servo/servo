@@ -5670,7 +5670,7 @@ where
         }
     }
 
-    /// Convert a browsing context to a tree of active pipeline ids, for sending to Paint.
+    /// Convert a browsing context to a tree of active pipeline ids, for sending to `Paint`.
     #[servo_tracing::instrument(skip_all)]
     fn browsing_context_to_sendable(
         &self,
