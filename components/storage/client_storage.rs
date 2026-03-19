@@ -147,6 +147,7 @@ fn create_a_storage_bucket(
     // set bucket’s bottle map[endpoint’s identifier] to
     // a new storage bottle whose quota is endpoint’s quota.
 
+    // <https://storage.spec.whatwg.org/#registered-storage-endpoints>
     let registered_endpoints = match storage_type {
         StorageType::Local => vec![
             "caches",
@@ -165,6 +166,7 @@ fn create_a_storage_bucket(
         )?;
 
         // TODO: quota.
+        // <https://storage.spec.whatwg.org/#storage-endpoint-quota>
         if !exists {
             tx.execute(
                 "INSERT INTO bottles (bucket_id, identifier) VALUES (?1, ?2);",
