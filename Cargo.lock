@@ -7289,6 +7289,7 @@ name = "servo"
 version = "0.0.6"
 dependencies = [
  "accesskit",
+ "accesskit_consumer",
  "arboard",
  "bitflags 2.11.0",
  "crossbeam-channel",
