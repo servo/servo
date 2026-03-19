@@ -6,6 +6,8 @@ authors.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 
 [lib]
 path = "lib.rs"
