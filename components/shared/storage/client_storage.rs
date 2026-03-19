@@ -4,6 +4,7 @@
 use std::path::PathBuf;
 
 use servo_base::generic_channel::GenericSender;
+use servo_base::id::WebViewId;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use servo_url::ImmutableOrigin;
@@ -16,6 +17,44 @@ pub type Shelf = ImmutableOrigin;
 pub enum BottleIdent {
     LocalStorage,
     IndexedDB(String),
+}
+
+/// <https://storage.spec.whatwg.org/#storage-type>
+#[derive(Debug, Deserialize, Serialize)]
+pub enum StorageType {
+    Local,
+    Session,
+}
+
+impl StorageType {
+    pub fn as_str(&self) -> &str {
+        match self {
+            StorageType::Local => "local",
+            StorageType::Session => "session",
+        }
+    }
+}
+
+/// <https://storage.spec.whatwg.org/#storage-identifier>
+#[derive(Debug, Deserialize, Serialize)]
+pub enum StorageIdentifier {
+    Caches,
+    IndexedDB,
+    LocalStorage,
+    ServiceWorkerRegistrattions,
+    SessionStorage,
+}
+
+impl StorageIdentifier {
+    pub fn as_str(&self) -> &str {
+        match self {
+            StorageIdentifier::Caches => "caches",
+            StorageIdentifier::IndexedDB => "indexeddb",
+            StorageIdentifier::LocalStorage => "localstorage",
+            StorageIdentifier::ServiceWorkerRegistrattions => "serviceworkerregistration",
+            StorageIdentifier::SessionStorage => "sessionstorage",
+        }
+    }
 }
 
 impl BottleIdent {
@@ -91,6 +130,12 @@ impl<T> From<T> for CreateBottleError<T> {
     }
 }
 
+/// <https://storage.spec.whatwg.org/#storage-proxy-map>
+#[derive(Debug, Deserialize, Serialize)]
+pub struct StorageProxyMap {
+    pub bottle_id: i64,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub enum ClientStorageThreadMessage {
     CreateBucket {
@@ -98,15 +143,12 @@ pub enum ClientStorageThreadMessage {
         bucket: Bucket,
         sender: GenericSender<Result<(), CreateBucketError<String>>>,
     },
-    /// Unlike other actions, creating a bottle assumes
-    /// that you already have started to use the directory.
-    /// If the operation fails for some reason, the directory will eventually be GCed.
-    /// The necessary bucket must already exist, unless it's the default bucket.
-    CreateBottle {
-        shelf: Shelf,
-        bucket: BucketIdent,
-        bottle: Bottle,
-        sender: GenericSender<Result<PathBuf, CreateBottleError<String>>>,
+    ObtainBottleMap {
+        storage_type: StorageType,
+        webview: WebViewId,
+        storage_identifier: StorageIdentifier,
+        origin: ImmutableOrigin,
+        sender: GenericSender<Result<StorageProxyMap, CreateBottleError<String>>>,
     },
     /// Open a bottle for use
     OpenBottle {
