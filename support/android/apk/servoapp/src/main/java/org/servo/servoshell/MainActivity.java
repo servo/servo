@@ -9,17 +9,27 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Rect;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.preference.PreferenceManager;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MenuItem;
+import android.view.PixelCopy;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -142,17 +152,68 @@ public class MainActivity extends Activity implements Servo.Client {
     // and View buttons in tablet layout
     private boolean dispatchAction(int id) {
         if (id == R.id.history_back_menu_item) {
+            // We’re unsetting all the loading UI just in case loading got stuck, and we’re
+            // navigating to a cached page, which doesn’t trigger .onLoadEnded(). The "stop
+            // loading" button is implemented (`cancel_menu_item`), but the underlying
+            // Servo view can’t actually `stop()` yet.
+            this.onLoadEnded();
             mServoView.goBack();
         } else if (id == R.id.history_forward_menu_item) {
+            // See above
+            this.onLoadEnded();
             mServoView.goForward();
         } else if (id == R.id.refresh_menu_item) {
             mServoView.reload();
         } else if (id == R.id.cancel_menu_item) {
+            // stop() isn’t actually implemented yet.
             mServoView.stop();
         } else if (id == R.id.settings_menu_item) {
             Intent myIntent = new Intent(this, SettingsActivity.class);
             startActivity(myIntent);
+        } else if (id == R.id.bookmarks_menu_item) {
+            Intent myIntent = new Intent(this, SettingsActivity.class);
+            startActivity(myIntent);
         }
+        return false;
+    }
+
+    // This is actually only good for screenshotting the servoView
+    private Boolean takeScreenShotOfWebPage() {
+        SurfaceView view = findViewById(R.id.servoview);
+        view.post(() -> {
+            Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+
+            int[] location = new int[2];
+            view.getLocationInWindow(location);
+
+            Rect rect = new Rect(
+                location[0],
+                location[1],
+                location[0] + view.getWidth(),
+                location[1] + view.getHeight()
+            );
+
+            PixelCopy.request(
+                view,
+                rect,
+                bitmap,
+                copyResult -> {
+                    if (copyResult == PixelCopy.SUCCESS) {
+                        // bitmap now contains the screenshot
+                        // Todo: scale proportionally
+                        // Bitmap scaled = Bitmap.createScaledBitmap(bitmap, 400, 400, true);
+                        // Display in an alert for debugging
+//                        ImageView img = new ImageView(this);
+//                        img.setImageBitmap(scaled);
+//                        new AlertDialog.Builder(this)
+//                                .setView(img)
+//                                .show();
+
+                    }
+                },
+                new Handler(Looper.getMainLooper())
+            );
+        });
         return false;
     }
 
@@ -221,6 +282,8 @@ public class MainActivity extends Activity implements Servo.Client {
 
     @Override
     public void onLoadStarted() {
+        // This doesn’t seem to actually happen when navigating back to a page that is
+        // already cached.
         Log.i(TAG, "onLoadStarted: ");
         // Phone view
         if (mBottomNav != null) {
@@ -234,6 +297,7 @@ public class MainActivity extends Activity implements Servo.Client {
         mProgressBar.setVisibility(View.VISIBLE);
     }
 
+    // Hm, this gets called multiple times on each load… odd.
     @Override
     public void onLoadEnded() {
         Log.i(TAG, "onLoadEnded: ");
@@ -273,9 +337,9 @@ public class MainActivity extends Activity implements Servo.Client {
 
     public void onRedrawing(boolean redrawing) {
         if (redrawing) {
-            mIdleText.setText("LOOP");
+            mIdleText.setText(R.string.loop);
         } else {
-            mIdleText.setText("IDLE");
+            mIdleText.setText(R.string.idle);
         }
     }
 

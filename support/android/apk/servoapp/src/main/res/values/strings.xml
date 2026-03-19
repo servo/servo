@@ -17,4 +17,5 @@
   <string name="settings_experimental_summary">Enable experimental web platform features</string>
   <string name="settings_animating_title">Idle/animating indicator</string>
   <string name="settings_animating_summary">Show visual indicator for rendering state</string>
+  <string name="loop">LOOP</string>
 </resources>
