@@ -37,6 +37,36 @@ impl ClientStorageThreadHandle {
         self.sender.send(message).unwrap();
         receiver
     }
+
+    pub fn create_database(
+        &self,
+        bottle_id: i64,
+        name: String,
+    ) -> GenericReceiver<Result<PathBuf, String>> {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let message = ClientStorageThreadMessage::CreateDatabase {
+            bottle_id,
+            name,
+            sender,
+        };
+        self.sender.send(message).unwrap();
+        receiver
+    }
+
+    pub fn delete_database(
+        &self,
+        bottle_id: i64,
+        name: String,
+    ) -> GenericReceiver<Result<(), String>> {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let message = ClientStorageThreadMessage::DeleteDatabase {
+            bottle_id,
+            name,
+            sender,
+        };
+        self.sender.send(message).unwrap();
+        receiver
+    }
 }
 
 impl From<ClientStorageThreadHandle> for GenericSender<ClientStorageThreadMessage> {

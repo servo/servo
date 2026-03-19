@@ -7,11 +7,10 @@ use std::thread;
 
 use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
 use servo_base::id::{BrowsingContextId, WebViewId};
-use rusqlite::{Connection, OptionalExtension, Transaction};
-use serde::{Deserialize, Serialize};
+use rusqlite::{Connection, Transaction};
 use servo_url::ImmutableOrigin;
 use storage_traits::client_storage::{
-    ClientStorageThreadHandle, ClientStorageThreadMessage, CreateBottleError, CreateBucketError,
+    ClientStorageThreadHandle, ClientStorageThreadMessage, CreateBottleError,
     StorageIdentifier, StorageProxyMap, StorageType,
 };
 use uuid::Uuid;

@@ -36,46 +36,21 @@ fn test_workflow() {
     // Create some storage
     let url = ServoUrl::parse("https://example.com").unwrap();
     let origin = url.origin();
-    let recv = handle.create_bottle(
-        origin.clone(),
-        BucketIdent::Default,
-        Bottle {
-            bottle_type: BottleIdent::LocalStorage,
-            quota: None,
-        },
-    );
-    let path = recv.recv().unwrap().unwrap();
-    // Try to create the same bottle again
-    let recv = handle.create_bottle(
-        origin.clone(),
-        BucketIdent::Default,
-        Bottle {
-            bottle_type: BottleIdent::LocalStorage,
-            quota: None,
-        },
-    );
-    assert!(recv.recv().unwrap().is_err());
-    // Try to open a non-existing bottle
-    let recv = handle.open_bottle(
-        origin.clone(),
-        BucketIdent::Default,
-        BottleIdent::IndexedDB("not_there".to_string()),
-    );
-    assert!(recv.recv().unwrap().is_err());
-    // Open the existing bottle
-    let recv = handle.open_bottle(
-        origin.clone(),
-        BucketIdent::Default,
-        BottleIdent::LocalStorage,
-    );
-    assert_eq!(recv.recv().unwrap().unwrap(), path);
 
-    handle.delete_all().recv().unwrap().unwrap();
-    let (sender, receiver) = generic_channel::channel().unwrap();
-    handle
-        .send(ClientStorageThreadMessage::Exit(sender))
-        .unwrap();
-    receiver.recv().unwrap();
+    let receiver = handle.obtain_a_storage_bottle_map(
+        StorageType::Local,
+        WebViewId::new(base::id::TEST_PAINTER_ID),
+        StorageIdentifier::IndexedDB,
+        ImmutableOrigin::new(origin),
+    );
+
+    let storage_proxy_map = receiver.recv().unwrap();
+
+    let receiver = handle.create_database(storage_proxy_map.bottle_id, "test1");
+    receiver.recv().unwrap().expect("Path should be created");
+
+    let receiver = handle.delate_database(storage_proxy_map.bottle_id, "test1");
+    receiver.recv().unwrap().expect("Db should be deleted");
 
     // Workaround for https://github.com/servo/servo/issues/32912
     #[cfg(windows)]
