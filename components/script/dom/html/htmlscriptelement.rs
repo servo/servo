@@ -281,15 +281,15 @@ fn finish_fetching_a_classic_script(
     match script_kind {
         ExternalScriptKind::Asap => {
             document = elem.preparation_time_document.get().unwrap();
-            document.asap_script_loaded(elem, load, CanGc::from_cx(cx))
+            document.asap_script_loaded(cx, elem, load)
         },
         ExternalScriptKind::AsapInOrder => {
             document = elem.preparation_time_document.get().unwrap();
-            document.asap_in_order_script_loaded(elem, load, CanGc::from_cx(cx))
+            document.asap_in_order_script_loaded(cx, elem, load)
         },
         ExternalScriptKind::Deferred => {
             document = elem.parser_document.as_rooted();
-            document.deferred_script_loaded(elem, load, CanGc::from_cx(cx));
+            document.deferred_script_loaded(cx, elem, load);
         },
         ExternalScriptKind::ParsingBlocking => {
             document = elem.parser_document.as_rooted();
@@ -939,7 +939,7 @@ impl HTMLScriptElement {
                         doc.set_pending_parsing_blocking_script(self, Some(result));
                     } else {
                         // Step 34.3: otherwise.
-                        self.execute(result, CanGc::from_cx(cx));
+                        self.execute(cx, result);
                     }
                 },
                 ScriptType::Module => {
@@ -981,14 +981,14 @@ impl HTMLScriptElement {
                     ));
 
                     // Step 34.3
-                    self.execute(Ok(script), CanGc::from_cx(cx));
+                    self.execute(cx, Ok(script));
                 },
             }
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#execute-the-script-element>
-    pub(crate) fn execute(&self, result: ScriptResult, can_gc: CanGc) {
+    pub(crate) fn execute(&self, cx: &mut JSContext, result: ScriptResult) {
         // Step 1. Let document be el's node document.
         let doc = self.owner_document();
 
@@ -1005,12 +1005,7 @@ impl HTMLScriptElement {
         let script = match result {
             // Step 4. If el's result is null, then fire an event named error at el, and return.
             Err(_) => {
-                self.dispatch_event(
-                    atom!("error"),
-                    EventBubbles::DoesNotBubble,
-                    EventCancelable::NotCancelable,
-                    can_gc,
-                );
+                self.dispatch_event(cx, atom!("error"));
                 return;
             },
 
@@ -1048,7 +1043,7 @@ impl HTMLScriptElement {
                 _ = self.owner_window().as_global_scope().run_a_classic_script(
                     script,
                     RethrowErrors::No,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
 
                 // Step 6."classic".4. Set document's currentScript attribute to oldCurrentScript.
@@ -1062,12 +1057,12 @@ impl HTMLScriptElement {
                 self.owner_window().as_global_scope().run_a_module_script(
                     module_tree,
                     false,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             },
             Script::ImportMap(script) => {
                 // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.
-                register_import_map(&self.owner_global(), script.import_map, can_gc);
+                register_import_map(&self.owner_global(), script.import_map, CanGc::from_cx(cx));
             },
         }
 
@@ -1079,12 +1074,7 @@ impl HTMLScriptElement {
 
         // Step 8. If el's from an external file is true, then fire an event named load at el.
         if self.from_an_external_file.get() {
-            self.dispatch_event(
-                atom!("load"),
-                EventBubbles::DoesNotBubble,
-                EventCancelable::NotCancelable,
-                can_gc,
-            );
+            self.dispatch_event(cx, atom!("load"));
         }
     }
 
@@ -1166,16 +1156,16 @@ impl HTMLScriptElement {
         self.non_blocking.get()
     }
 
-    fn dispatch_event(
-        &self,
-        type_: Atom,
-        bubbles: EventBubbles,
-        cancelable: EventCancelable,
-        can_gc: CanGc,
-    ) -> bool {
+    fn dispatch_event(&self, cx: &mut JSContext, type_: Atom) -> bool {
         let window = self.owner_window();
-        let event = Event::new(window.upcast(), type_, bubbles, cancelable, can_gc);
-        event.fire(self.upcast(), can_gc)
+        let event = Event::new(
+            window.upcast(),
+            type_,
+            EventBubbles::DoesNotBubble,
+            EventCancelable::NotCancelable,
+            CanGc::from_cx(cx),
+        );
+        event.fire(self.upcast(), CanGc::from_cx(cx))
     }
 
     fn text(&self) -> DOMString {
