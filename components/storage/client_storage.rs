@@ -10,8 +10,8 @@ use servo_base::id::{BrowsingContextId, WebViewId};
 use rusqlite::{Connection, Transaction};
 use servo_url::ImmutableOrigin;
 use storage_traits::client_storage::{
-    ClientStorageThreadHandle, ClientStorageThreadMessage, CreateBottleError,
-    StorageIdentifier, StorageProxyMap, StorageType,
+    ClientStorageThreadHandle, ClientStorageThreadMessage, CreateBottleError, StorageIdentifier,
+    StorageProxyMap, StorageType,
 };
 use uuid::Uuid;
 
@@ -197,7 +197,7 @@ fn create_a_storage_shelf(
 
     // Step 2: Set shelf’s bucket map["default"] to the result of running create a storage bucket with type.
     // Note: returning `shelf’s bucket map["default"]`, which is the `bucket_id`.
-    create_a_storage_bucket(shelf_id.clone(), storage_type, tx)
+    create_a_storage_bucket(shelf_id, storage_type, tx)
 }
 
 /// <https://storage.spec.whatwg.org/#obtain-a-storage-shelf>
@@ -421,12 +421,11 @@ impl ClientStorageThreadFactory for ClientStorageThreadHandle {
             .join("clientstorage");
         std::fs::create_dir_all(&storage_dir)
             .expect("Failed to create ClientStorage storage directory");
-        let clone_dir = storage_dir.clone();
         let sender_clone = generic_sender.clone();
         thread::Builder::new()
             .name("ClientStorageThread".to_owned())
             .spawn(move || {
-                let engine = SqliteEngine::new(clone_dir)
+                let engine = SqliteEngine::new(storage_dir)
                     .expect("Failed to initialize ClientStorage registry engine");
                 ClientStorageThread::new(sender_clone, generic_receiver, engine).start();
             })
