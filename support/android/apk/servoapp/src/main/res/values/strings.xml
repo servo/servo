@@ -18,4 +18,10 @@
   <string name="settings_animating_title">Idle/animating indicator</string>
   <string name="settings_animating_summary">Show visual indicator for rendering state</string>
   <string name="loop">LOOP</string>
+  
+  <!-- History -->
+  <string name="history_title">History</string>
+  <string name="history_placeholder_title">History</string>
+  <string name="history_placeholder_message">Your browsing history is empty</string>
+  <string name="clear_history">Clear History</string>
 </resources>

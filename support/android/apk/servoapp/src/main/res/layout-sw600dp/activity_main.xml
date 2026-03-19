@@ -117,9 +117,20 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:contentDescription="@string/options"
-                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/history_menu_item"
                 app:layout_constraintTop_toTopOf="parent"
                 app:icon="@drawable/settings"
+                />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/history_menu_item"
+                style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/history_title"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:icon="@drawable/history"
                 />
 
         </androidx.constraintlayout.widget.ConstraintLayout>

@@ -18,4 +18,7 @@
     <item android:id="@+id/settings_menu_item"
         android:icon="@drawable/settings"
         android:title="@string/options" />
+    <item android:id="@+id/history_menu_item"
+        android:icon="@drawable/history"
+        android:title="@string/history_title" />
 </menu>

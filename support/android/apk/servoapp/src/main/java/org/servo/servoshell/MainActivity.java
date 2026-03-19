@@ -9,11 +9,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -21,16 +16,22 @@ import android.preference.PreferenceManager;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
-import android.view.KeyEvent;
-import android.view.MenuItem;
-import android.view.PixelCopy;
-import android.view.SurfaceView;
-import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
+import android.view.KeyEvent;
+import android.view.View;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.TextView;
+
+// Imports for the unused screenshot functionality
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.graphics.Rect;
+import android.view.PixelCopy;
+import android.view.SurfaceView;
+import android.widget.ImageView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
@@ -43,6 +44,9 @@ import java.io.File;
 public class MainActivity extends Activity implements Servo.Client {
 
     private static final String TAG = "MainActivity";
+    // Identify which activity a result came from, if we ever have more
+    // than one
+    private static final int HISTORY_REQUEST_CODE = 1;
 
     ServoView mServoView;
     BottomNavigationView mBottomNav;
@@ -54,6 +58,10 @@ public class MainActivity extends Activity implements Servo.Client {
     TextView mIdleText;
     boolean mCanGoBack;
     MediaSession mMediaSession;
+    HistoryManager mHistoryManager;
+    String mCurrentUrl;
+    String mCurrentTitle;
+    
     class Settings {
         Settings(SharedPreferences preferences) {
             showAnimatingIndicator = preferences.getBoolean("animating_indicator", false);
@@ -89,6 +97,15 @@ public class MainActivity extends Activity implements Servo.Client {
         mProgressBar = findViewById(R.id.progressbar);
         mIdleText = findViewById(R.id.redrawing);
         mCanGoBack = false;
+        
+        // Initialize history manager
+        mHistoryManager = new HistoryManager(this);
+        // Since there doesn't seem to be a way to get the current URL
+        // or title from the Servo view other than through 
+        // the corresponding event handlers (e.g. onTitleChanged),
+        // we need to keep them somewhere.
+        mCurrentUrl = "";
+        mCurrentTitle = "";
 
         updateSettingsIfNecessary(true);
 
@@ -117,6 +134,7 @@ public class MainActivity extends Activity implements Servo.Client {
         bindClick(R.id.refresh_menu_item);
         bindClick(R.id.cancel_menu_item);
         bindClick(R.id.settings_menu_item);
+        bindClick(R.id.history_menu_item);
 
         mServoView.setClient(this);
         mServoView.requestFocus();
@@ -170,14 +188,20 @@ public class MainActivity extends Activity implements Servo.Client {
         } else if (id == R.id.settings_menu_item) {
             Intent myIntent = new Intent(this, SettingsActivity.class);
             startActivity(myIntent);
-        } else if (id == R.id.bookmarks_menu_item) {
-            Intent myIntent = new Intent(this, SettingsActivity.class);
-            startActivity(myIntent);
+        } else if (id == R.id.history_menu_item) {
+            Intent myIntent = new Intent(this, HistoryActivity.class);
+            startActivityForResult(myIntent, HISTORY_REQUEST_CODE);
         }
         return false;
     }
 
-    // This is actually only good for screenshotting the servoView
+    /**
+     * UNUSED - Take screenshot of the servoView
+     * Maybe useful later for a bookmarks page etc.
+     * WIP: doesn’t actually do anything with the screenshot yet.
+     * Uncomment the block in the middle to display the screenshot
+     * for debugging. 
+     */
     private Boolean takeScreenShotOfWebPage() {
         SurfaceView view = findViewById(R.id.servoview);
         view.post(() -> {
@@ -199,16 +223,20 @@ public class MainActivity extends Activity implements Servo.Client {
                 bitmap,
                 copyResult -> {
                     if (copyResult == PixelCopy.SUCCESS) {
-                        // bitmap now contains the screenshot
-                        // Todo: scale proportionally
-                        // Bitmap scaled = Bitmap.createScaledBitmap(bitmap, 400, 400, true);
-                        // Display in an alert for debugging
-//                        ImageView img = new ImageView(this);
-//                        img.setImageBitmap(scaled);
-//                        new AlertDialog.Builder(this)
-//                                .setView(img)
-//                                .show();
+                        // `bitmap` now contains the screenshot.
+                        // Still needs to be scaled proportionally.
 
+                        // Uncomment block below to 
+                        // display in an alert for debugging
+
+                        /*
+                        Bitmap scaled = Bitmap.createScaledBitmap(bitmap, 400, 400, true);
+                        ImageView img = new ImageView(this);
+                        img.setImageBitmap(scaled);
+                        new AlertDialog.Builder(this)
+                            .setView(img)
+                            .show();
+                        */
                     }
                 },
                 new Handler(Looper.getMainLooper())
@@ -237,7 +265,7 @@ public class MainActivity extends Activity implements Servo.Client {
         });
     }
 
-    private void loadUrlFromField() {
+    public void loadUrlFromField() {
         String text = mUrlField.getText().toString();
         text = text.trim();
 
@@ -282,8 +310,8 @@ public class MainActivity extends Activity implements Servo.Client {
 
     @Override
     public void onLoadStarted() {
-        // This doesn’t seem to actually happen when navigating back to a page that is
-        // already cached.
+        // This doesn’t seem to actually happen when navigating
+        // back to a page that is already cached.
         Log.i(TAG, "onLoadStarted: ");
         // Phone view
         if (mBottomNav != null) {
@@ -297,10 +325,17 @@ public class MainActivity extends Activity implements Servo.Client {
         mProgressBar.setVisibility(View.VISIBLE);
     }
 
-    // Hm, this gets called multiple times on each load… odd.
+    // INFO: This currently gets called multiple times on each load.
     @Override
     public void onLoadEnded() {
         Log.i(TAG, "onLoadEnded: ");
+        // Add to history when a page starts loading
+        if (mHistoryManager != null && mCurrentUrl != null && !mCurrentUrl.isEmpty()) {
+            // mHistoryManager has a basic method of preventing clobbering
+            // by the fact that onLoadEnded gets called multiple times
+            // per page. 
+            mHistoryManager.addEntry(mCurrentUrl, mCurrentTitle);
+        }
         // Phone view
         if (mBottomNav != null) {
             mBottomNav.getMenu().findItem(R.id.cancel_menu_item).setVisible(false);
@@ -314,11 +349,13 @@ public class MainActivity extends Activity implements Servo.Client {
 
     @Override
     public void onTitleChanged(String title) {
+        mCurrentTitle = title != null ? title : "";
     }
 
     @Override
     public void onUrlChanged(String url) {
         mUrlField.setText(url);
+        mCurrentUrl = url != null ? url : "";
     }
 
     @Override
@@ -362,6 +399,19 @@ public class MainActivity extends Activity implements Servo.Client {
             mServoView.goBack();
         } else {
             super.onBackPressed();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        
+        if (requestCode == HISTORY_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
+            String url = data.getStringExtra("url");
+            if (url != null && !url.isEmpty()) {
+                mUrlField.setText(url);
+                loadUrlFromField();
+            }
         }
     }
 
