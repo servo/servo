@@ -6,6 +6,8 @@ license.workspace = true
 edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
+repository.workspace = true
+description.workspace = true
 autotests = false # Inhibit lookup for tests/*.rs without [[test]] sections
 
 [lib]
@@ -87,7 +89,9 @@ flate2 = { workspace = true }
 fst = "0.4"
 hyper = { workspace = true, features = ["full"] }
 hyper-util = { workspace = true, features = ["server-graceful"] }
-net = { workspace = true, features = ["test-util"] }
+# This must always be a path dependency, we don't want to add a dependency on a
+# crates.io version of ourselves - we want to enable a feature of ourselves.
+net = { package = "servo-net", path = ".", features = ["test-util"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 
 [[test]]

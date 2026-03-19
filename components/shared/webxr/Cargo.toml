@@ -7,6 +7,7 @@ edition.workspace = true
 publish.workspace = true
 rust-version.workspace = true
 keywords = ["ar", "headset", "openxr", "vr", "webxr"]
+repository.workspace = true
 description = '''A safe Rust API that provides a way to interact with
 virtual reality and augmented reality devices and integration with OpenXR.
 The API is inspired by the WebXR Device API (https://www.w3.org/TR/webxr/)
