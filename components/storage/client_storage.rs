@@ -313,6 +313,8 @@ impl RegistryEngine for SqliteEngine {
             |row| row.get(0),
         )?;
 
+        tx.commit()?;
+
         Ok(StorageProxyMap { bottle_id })
     }
 
