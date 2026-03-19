@@ -1422,7 +1422,7 @@ impl BoxFragment {
         }
 
         if matches!(
-            self.specific_layout_info(),
+            self.specific_layout_info().as_deref(),
             Some(SpecificLayoutInfo::TableGridWithCollapsedBorders(_))
         ) {
             stacking_context
@@ -1619,7 +1619,7 @@ impl BoxFragment {
             offsets.bottom.map(|v| v.to_used_value(scroll_frame_height)),
             offsets.left.map(|v| v.to_used_value(scroll_frame_width)),
         );
-        *self.resolved_sticky_insets.borrow_mut() = Some(offsets);
+        self.ensure_rare_data().resolved_sticky_insets = Some(Box::new(offsets));
 
         if scroll_frame_size.is_none() {
             return None;

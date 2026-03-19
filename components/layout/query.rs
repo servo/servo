@@ -343,7 +343,7 @@ pub fn process_resolved_style_request(
                 let content_rect = box_fragment.base.rect;
                 let margins = box_fragment.margin;
                 let padding = box_fragment.padding;
-                let specific_layout_info = box_fragment.specific_layout_info().cloned();
+                let specific_layout_info = box_fragment.specific_layout_info().as_deref().cloned();
                 (content_rect, margins, padding, specific_layout_info)
             },
             Fragment::Positioning(positioning_fragment) => (
