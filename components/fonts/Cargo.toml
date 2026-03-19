@@ -26,6 +26,7 @@ fonts_traits = { workspace = true }
 fontsan = { version = "0.6.1" }
 # FIXME (#34517): macOS only needs this when building servo without `--features media-gstreamer`
 harfbuzz-sys = { workspace = true, features = ["bundled"] }
+icu_locid = { workspace = true }
 icu_properties = { workspace = true, features = ["compiled_data"] }
 itertools = { workspace = true }
 libc = { workspace = true }
@@ -55,7 +56,6 @@ unicode-script = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 webrender_api = { workspace = true }
-icu_locid.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = { workspace = true }

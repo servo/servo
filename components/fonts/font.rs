@@ -392,7 +392,7 @@ pub struct ShapingOptions {
     pub word_spacing: Au,
     /// The Unicode script property of the characters in this run.
     pub script: Script,
-
+    /// The prefered language, obtained from the _x_lang computed value.
     pub language: Language,
     /// Various flags.
     pub flags: ShapingFlags,

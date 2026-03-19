@@ -411,11 +411,12 @@ impl TextRun {
         } else {
             None
         };
-        let lang = parent_style.get_font()._x_lang.clone();
-        let lang_identifier = match lang.0.parse() {
-            Ok(parsed_language) => parsed_language,
-            Err(_) => Language::UND,
-        };
+        let language = parent_style
+            .get_font()
+            ._x_lang
+            .0
+            .parse()
+            .unwrap_or(Language::UND);
 
         let mut flags = ShapingFlags::empty();
         if inherited_text_style.text_rendering == TextRendering::Optimizespeed {
@@ -465,7 +466,7 @@ impl TextRun {
                     letter_spacing,
                     word_spacing,
                     script: segment.script,
-                    language: lang_identifier,
+                    language,
                     flags,
                 };
 

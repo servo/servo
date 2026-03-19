@@ -35,7 +35,6 @@ use style::color::{AbsoluteColor, ColorFlags, ColorSpace};
 use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font;
 use style::stylesheets::CssRuleType;
-use style::values::computed::XLang;
 use style::values::computed::font::FontStyle;
 use style::values::specified::color::Color;
 use style_traits::values::ToCss;
@@ -2344,9 +2343,9 @@ impl CanvasState {
         font_group: &FontGroup,
     ) -> Vec<UnshapedTextRun<'text>> {
         let mut runs = Vec::new();
-        let language = self.font_style()._x_lang.clone();
-        let mut current_text_run = UnshapedTextRun::default();
-        current_text_run.set_language(language.clone());
+        let x_language = self.font_style()._x_lang.clone();
+        let language = x_language.0.parse().unwrap_or(Language::UND);
+        let mut current_text_run = UnshapedTextRun::new(language);
         let mut current_text_run_start_index = 0;
 
         for (index, character) in text.char_indices() {
@@ -2354,7 +2353,7 @@ impl CanvasState {
             // have support for color glyphs.
             let script = Script::from(character);
             let font =
-                font_group.find_by_codepoint(font_context, character, None, language.clone());
+                font_group.find_by_codepoint(font_context, character, None, x_language.clone());
 
             if !current_text_run.script_and_font_compatible(script, &font) {
                 let previous_text_run = std::mem::replace(
@@ -2362,7 +2361,8 @@ impl CanvasState {
                     UnshapedTextRun {
                         font: font.clone(),
                         script,
-                        ..Default::default()
+                        string: Default::default(),
+                        language,
                     },
                 );
                 current_text_run_start_index = index;
@@ -2438,23 +2438,14 @@ struct UnshapedTextRun<'a> {
     language: Language,
 }
 
-impl std::default::Default for UnshapedTextRun<'_> {
-    fn default() -> Self {
+impl UnshapedTextRun<'_> {
+    fn new(language: Language) -> Self {
         Self {
             font: Default::default(),
             script: Default::default(),
             string: Default::default(),
-            language: Language::UND,
+            language,
         }
-    }
-}
-
-impl UnshapedTextRun<'_> {
-    fn set_language(&mut self, language: XLang) {
-        self.language = match language.0.parse() {
-            Ok(parsed_lang) => parsed_lang,
-            Err(_) => Language::UND,
-        };
     }
 
     fn script_and_font_compatible(&self, script: Script, other_font: &Option<FontRef>) -> bool {
