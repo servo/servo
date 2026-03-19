@@ -8785,7 +8785,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.4.3"
-source = "git+https://github.com/servo/stylo?rev=f9d940629a7fd0389cc4ecb58c12927b09286478#f9d940629a7fd0389cc4ecb58c12927b09286478"
+source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -12159,3 +12159,38 @@ dependencies = [
  "syn",
  "winnow",
 ]
+
+[[patch.unused]]
+name = "selectors"
+version = "0.36.0"
+source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
+
+[[patch.unused]]
+name = "stylo"
+version = "0.13.0"
+source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
+
+[[patch.unused]]
+name = "stylo_atoms"
+version = "0.13.0"
+source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
+
+[[patch.unused]]
+name = "stylo_dom"
+version = "0.13.0"
+source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
+
+[[patch.unused]]
+name = "stylo_malloc_size_of"
+version = "0.13.0"
+source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
+
+[[patch.unused]]
+name = "stylo_static_prefs"
+version = "0.13.0"
+source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
+
+[[patch.unused]]
+name = "stylo_traits"
+version = "0.13.0"
+source = "git+https://github.com/simonwuelker/stylo?branch=animation-empty-steps#fb52b06df215414a5e377f4e14b32edf0d5256b8"
