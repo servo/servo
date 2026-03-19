@@ -58,7 +58,7 @@ pub(crate) struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[no_trace]
     textinput: DomRefCell<TextInput<EmbedderClipboardProvider>>,
-    placeholder: RefCell<String>,
+    placeholder: RefCell<DOMString>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_dirty: Cell<bool>,
     form_owner: MutNullableDom<HTMLFormElement>,
@@ -232,13 +232,7 @@ impl HTMLTextAreaElement {
         }
 
         let content = if placeholder_shown {
-            // FIXME(nox): Would be cool to not allocate a new string if the
-            // placeholder is single line, but that's an unimportant detail.
-            self.placeholder
-                .borrow()
-                .replace("\r\n", "\n")
-                .replace('\r', "\n")
-                .into()
+            self.placeholder.borrow().clone()
         } else if textinput_content.is_empty() {
             // The addition of zero-width space here forces the text input to have an inline formatting
             // context that might otherwise be trimmed if there's no text. This is important to ensure
@@ -662,9 +656,14 @@ impl VirtualMethods for HTMLTextAreaElement {
             local_name!("placeholder") => {
                 {
                     let mut placeholder = self.placeholder.borrow_mut();
-                    placeholder.clear();
-                    if let AttributeMutation::Set(..) = mutation {
-                        placeholder.push_str(attr.value().as_ref());
+                    match mutation {
+                        AttributeMutation::Set(..) => {
+                            let value = attr.value();
+                            let value_str: &str = value.as_ref();
+                            *placeholder =
+                                value_str.replace("\r\n", "\n").replace('\r', "\n").into();
+                        },
+                        AttributeMutation::Removed => placeholder.clear(),
                     }
                 }
                 self.handle_text_content_changed(CanGc::from_cx(cx));
