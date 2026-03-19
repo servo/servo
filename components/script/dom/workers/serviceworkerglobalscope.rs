@@ -411,6 +411,7 @@ impl ServiceWorkerGlobalScope {
                     define_all_exposed_interfaces(&mut realm, global_scope);
 
                     let script = global_scope.create_a_classic_script(
+                        &mut realm,
                         String::from_utf8_lossy(&source),
                         url,
                         ScriptFetchOptions::default_classic_script(global_scope),
@@ -419,11 +420,7 @@ impl ServiceWorkerGlobalScope {
                         1,
                         true,
                     );
-                    _ = global_scope.run_a_classic_script(
-                        script,
-                        RethrowErrors::No,
-                        CanGc::from_cx(&mut realm),
-                    );
+                    _ = global_scope.run_a_classic_script(&mut realm, script, RethrowErrors::No);
                     let in_realm_proof = (&mut realm).into();
                     global.dispatch_activate(
                         CanGc::from_cx(&mut realm),

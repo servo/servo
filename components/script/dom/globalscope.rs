@@ -2874,7 +2874,7 @@ impl GlobalScope {
 
             rooted!(&in(cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
             compiled_script.set(compile_script(
-                cx.into(),
+                cx,
                 &code,
                 filename,
                 1,
@@ -2894,7 +2894,7 @@ impl GlobalScope {
             rooted!(&in(cx) let mut value = UndefinedValue());
             let rval = rval.unwrap_or_else(|| value.handle_mut());
 
-            if !evaluate_script(cx.into(), script, url, fetch_options, rval) {
+            if !evaluate_script(cx, script, url, fetch_options, rval) {
                 let error_info = take_and_report_pending_exception_for_api(cx);
                 return Err(JavaScriptEvaluationError::EvaluationFailure(error_info));
             }

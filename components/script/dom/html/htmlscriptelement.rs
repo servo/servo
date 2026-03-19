@@ -437,6 +437,7 @@ impl FetchResponseListener for ClassicContext {
         // Step 5.7. Let script be the result of creating a classic script given
         // sourceText, settingsObject, response's URL, options, mutedErrors, and url.
         let script = global.create_a_classic_script(
+            cx,
             source_text,
             final_url,
             self.fetch_options.clone(),
@@ -920,6 +921,7 @@ impl HTMLScriptElement {
                     // Step 32.2.1 Let script be the result of creating a classic script
                     // using source text, settings object, base URL, and options.
                     let script = self.global().create_a_classic_script(
+                        cx,
                         std::borrow::Cow::Borrowed(&text.str()),
                         base_url,
                         options,
@@ -1041,9 +1043,9 @@ impl HTMLScriptElement {
 
                 // Step 6."classic".3. Run the classic script given by el's result.
                 _ = self.owner_window().as_global_scope().run_a_classic_script(
+                    cx,
                     script,
                     RethrowErrors::No,
-                    CanGc::from_cx(cx),
                 );
 
                 // Step 6."classic".4. Set document's currentScript attribute to oldCurrentScript.
@@ -1054,11 +1056,9 @@ impl HTMLScriptElement {
                 document.set_current_script(None);
 
                 // Step 6."module".2. Run the module script given by el's result.
-                self.owner_window().as_global_scope().run_a_module_script(
-                    module_tree,
-                    false,
-                    CanGc::from_cx(cx),
-                );
+                self.owner_window()
+                    .as_global_scope()
+                    .run_a_module_script(cx, module_tree, false);
             },
             Script::ImportMap(script) => {
                 // Step 6."importmap".1. Register an import map given el's relevant global object and el's result.

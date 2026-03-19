@@ -809,6 +809,7 @@ impl JsTimerTask {
                 // Step 9.6.8. Let script be the result of creating a classic script given handler,
                 // settings object, base URL, and fetch options.
                 let script = global.create_a_classic_script(
+                    cx,
                     (*code_str.str()).into(),
                     base_url,
                     fetch_options,
@@ -819,7 +820,7 @@ impl JsTimerTask {
                 );
 
                 // Step 9.6.9. Run the classic script script.
-                _ = global.run_a_classic_script(script, RethrowErrors::No, CanGc::from_cx(cx));
+                _ = global.run_a_classic_script(cx, script, RethrowErrors::No);
             },
             // Step 9.5. If handler is a Function, then invoke handler given arguments and
             // "report", and with callback this value set to thisArg.
