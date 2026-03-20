@@ -1293,6 +1293,7 @@ impl LayoutThread {
             built_display_list,
         );
 
+        #[cfg(feature = "largest_contentful_paint")]
         if paint_timing_handler.did_lcp_candidate_update() {
             if let Some(lcp_candidate) = paint_timing_handler.largest_contentful_paint_candidate() {
                 self.paint_api.send_lcp_candidate(

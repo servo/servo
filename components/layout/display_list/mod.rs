@@ -16,8 +16,11 @@ use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use servo_arc::Arc as ServoArc;
 use servo_config::opts::DiagnosticsLogging;
-use servo_config::{pref, prefs};
+#[cfg(feature = "largest_contentful_paint")]
+use servo_config::pref;
+use servo_config::prefs;
 use servo_geometry::MaxRect;
+#[cfg(feature = "largest_contentful_paint")]
 use servo_url::ServoUrl;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
@@ -556,6 +559,7 @@ impl DisplayListBuilder<'_> {
         }
     }
 
+    #[cfg(feature = "largest_contentful_paint")]
     fn check_for_lcp_candidate(
         &mut self,
         clip_rect: LayoutRect,
@@ -713,6 +717,7 @@ impl Fragment {
 
                             // Skip Broken Images for LCP
                             if !image.showing_broken_image_icon {
+                                #[cfg(feature = "largest_contentful_paint")]
                                 builder.check_for_lcp_candidate(
                                     common.clip_rect,
                                     rect,
@@ -1517,6 +1522,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                         // > background-size has non-zero width and height values.
                         builder.mark_is_contentful();
 
+                        #[cfg(feature = "largest_contentful_paint")]
                         builder.check_for_lcp_candidate(
                             layer.common.clip_rect,
                             layer.bounds,

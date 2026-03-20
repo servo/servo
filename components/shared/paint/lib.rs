@@ -47,6 +47,7 @@ use webrender_api::{
     PipelineId as WebRenderPipelineId,
 };
 
+#[cfg(feature = "largest_contentful_paint")]
 use crate::largest_contentful_paint_candidate::LCPCandidate;
 use crate::viewport_description::ViewportDescription;
 
@@ -185,8 +186,10 @@ pub enum PaintMessage {
     /// Let `Paint` know that the given WebView is ready to have a screenshot taken
     /// after the given pipeline's epochs have been rendered.
     ScreenshotReadinessReponse(WebViewId, FxHashMap<PipelineId, Epoch>),
+    #[cfg(feature = "largest_contentful_paint")]
     /// The candidate of largest-contentful-paint
     SendLCPCandidate(LCPCandidate, WebViewId, PipelineId, Epoch),
+    #[cfg(feature = "largest_contentful_paint")]
     /// Enable LCP calculation for the given WebView.
     EnableLCPCalculation(WebViewId),
 }
@@ -372,6 +375,7 @@ impl CrossProcessPaintApi {
         }
     }
 
+    #[cfg(feature = "largest_contentful_paint")]
     /// Send the largest contentful paint candidate to `Paint`.
     pub fn send_lcp_candidate(
         &self,

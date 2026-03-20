@@ -39,6 +39,12 @@ gamepad = [
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 js_jit = ["script/js_jit"]
+largest_contentful_paint = [
+    "constellation/largest_contentful_paint",
+    "layout/largest_contentful_paint",
+    "paint/largest_contentful_paint",
+    "paint_api/largest_contentful_paint",
+]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
 no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "paint_api/no-wgl"]

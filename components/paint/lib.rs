@@ -21,6 +21,7 @@ pub use crate::paint::{Paint, WebRenderDebugOption};
 #[macro_use]
 mod tracing;
 
+#[cfg(feature = "largest_contentful_paint")]
 mod largest_contentful_paint_calculator;
 mod paint;
 mod painter;
