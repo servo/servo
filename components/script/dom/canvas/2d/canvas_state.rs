@@ -2343,6 +2343,8 @@ impl CanvasState {
         font_group: &FontGroup,
     ) -> Vec<UnshapedTextRun<'text>> {
         let mut runs = Vec::new();
+        // TODO: canvas also has experimental `lang` attribute (https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lang),
+        // which Servo doesn't support yet. When this attribute is supported, some changes may be needed here.
         let x_language = self.font_style()._x_lang.clone();
         let language = x_language.0.parse().unwrap_or(Language::UND);
         let mut current_text_run = UnshapedTextRun::new(language);
