@@ -309,7 +309,7 @@ impl RegistryEngine for SqliteEngine {
         )?;
 
         let path: String = tx.query_row(
-            "SELECT path FROM databases WHERE bottle_id = ?1 AND name = ?2;",
+            "SELECT path FROM directories WHERE bottle_id = ?1 AND name = ?2;",
             (bottle_id, name.clone()),
             |row| row.get(1),
         )?;
