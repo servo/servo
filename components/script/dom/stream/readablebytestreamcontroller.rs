@@ -1631,7 +1631,7 @@ impl ReadableByteStreamController {
             let realm = enter_realm(&*global);
             let comp = InRealm::Entered(&realm);
             let result = underlying_source
-                .call_pull_algorithm(controller, &global, can_gc)
+                .call_pull_algorithm(controller, can_gc)
                 .unwrap_or_else(|| {
                     let promise = Promise::new(&global, can_gc);
                     promise.resolve_native(&(), can_gc);

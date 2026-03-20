@@ -186,7 +186,6 @@ impl UnderlyingSourceContainer {
     pub(crate) fn call_pull_algorithm(
         &self,
         controller: Controller,
-        _global: &GlobalScope,
         can_gc: CanGc,
     ) -> Option<Result<Rc<Promise>, Error>> {
         match &self.underlying_source_type {
