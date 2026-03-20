@@ -12,7 +12,6 @@ use style::str::HTML_SPACE_CHARACTERS;
 
 use crate::dom::bindings::codegen::Bindings::AttrBinding::Attr_Binding::AttrMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::referrer_policy_for_element;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
@@ -389,6 +388,7 @@ pub(crate) fn follow_hyperlink(
     subject: &Element,
     relations: LinkRelations,
     hyperlink_suffix: Option<String>,
+    can_gc: CanGc,
 ) {
     // Step 1: If subject cannot navigate, then return.
     if subject.cannot_navigate() {
@@ -495,15 +495,7 @@ pub(crate) fn follow_hyperlink(
             document.has_trustworthy_ancestor_origin(),
             document.creation_sandboxing_flag_set_considering_parent_iframe(),
         );
-        let target = Trusted::new(target_window);
-        let task = task!(navigate_follow_hyperlink: move |cx| {
-            debug!("following hyperlink to {}", load_data.url);
-            target.root().load_url(history_handling, false, load_data, CanGc::from_cx(cx));
-        });
-        target_document
-            .owner_global()
-            .task_manager()
-            .dom_manipulation_task_source()
-            .queue(task);
+        debug!("following hyperlink to {}", load_data.url);
+        target_window.load_url(history_handling, false, load_data, can_gc);
     };
 }

@@ -527,7 +527,7 @@ impl Activatable for HTMLAreaElement {
         self.as_element().has_attribute(&local_name!("href"))
     }
 
-    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, _can_gc: CanGc) {
-        follow_hyperlink(self.as_element(), self.relations.get(), None);
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget, can_gc: CanGc) {
+        follow_hyperlink(self.as_element(), self.relations.get(), None, can_gc);
     }
 }

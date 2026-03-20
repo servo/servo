@@ -332,7 +332,7 @@ impl Activatable for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-a-element:activation-behaviour>
-    fn activation_behavior(&self, event: &Event, target: &EventTarget, _: CanGc) {
+    fn activation_behavior(&self, event: &Event, target: &EventTarget, can_gc: CanGc) {
         let element = self.as_element();
         let mouse_event = event.downcast::<MouseEvent>().unwrap();
         let mut ismap_suffix = None;
@@ -353,6 +353,6 @@ impl Activatable for HTMLAnchorElement {
 
         // Step 2.
         // TODO: Download the link is `download` attribute is set.
-        follow_hyperlink(element, self.relations.get(), ismap_suffix);
+        follow_hyperlink(element, self.relations.get(), ismap_suffix, can_gc);
     }
 }
