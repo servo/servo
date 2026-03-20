@@ -163,7 +163,7 @@ struct ServoInner {
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
     _js_engine_setup: Option<JSEngineSetup>,
-    /// [`InputEventId`]s that have been handled, but for which the embedder has  
+    /// [`InputEventId`]s that have been handled, but for which the embedder has
     /// not been notified yet.
     pending_handled_input_events: RefCell<Vec<PendingHandledInputEvent>>,
     /// An [`EventLoopWaker`] used to wake up the main embedder event loop.
@@ -207,11 +207,12 @@ impl ServoInner {
                 break;
             }
         }
-        let residue_events = std::mem::take(&mut *self.pending_handled_input_events.borrow_mut());
+        let pending_handled_input_events =
+            std::mem::take(&mut *self.pending_handled_input_events.borrow_mut());
         for PendingHandledInputEvent {
             event_id,
             webview_id,
-        } in residue_events
+        } in pending_handled_input_events
         {
             self.paint.borrow_mut().notify_input_event_handled(
                 webview_id,
