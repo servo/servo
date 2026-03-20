@@ -370,7 +370,7 @@ if __name__ == "__main__":
     collect = subparsers.add_parser("collect", help="collect data from phone")
     collect.add_argument(
         "-l",
-        "--log_to_file",
+        "--log-to-file",
         action="store_true",
         help="store log data in csv",
     )
@@ -382,30 +382,30 @@ if __name__ == "__main__":
     )
     collect.add_argument(
         "-r",
-        "--reset_the_tab",
+        "--reset-the-tab",
         action="store_true",
         help="on stop event, reset the tap to `about:blank`",
     )
     collect.add_argument(
         "-m",
-        "--set_reset_to_memory",
+        "--set-reset-to-memory",
         action="store_true",
         help="when doing reset_the_tab, reset the tap to `about:memory` instead of `about:blank`",
     )
 
     collect.add_argument(
-        "--pre_time",
+        "--pre-time",
         type=int,
         default=default_options.pre_time,
         help="time in positive seconds of sampling before starting the test",
     )
     collect.add_argument(
-        "--post_time",
+        "--post-time",
         type=int,
         default=default_options.post_time,
     )
     collect.add_argument(
-        "--file_name",
+        "--file-name",
         type=str,
         default=default_options.file_name,
     )
@@ -418,12 +418,12 @@ if __name__ == "__main__":
 
     plot = subparsers.add_parser("plot", help="plot from csv dump")
     plot.add_argument(
-        "from_dump",
+        "from-dump",
         type=str,
         help="csv file to analyze",
     )
     plot.add_argument(
-        "--file_name",
+        "--file-name",
         type=str,
         default=default_options.file_name,
     )
