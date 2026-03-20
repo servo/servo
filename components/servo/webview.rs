@@ -14,8 +14,8 @@ use dpi::PhysicalSize;
 use embedder_traits::{
     ContextMenuAction, ContextMenuItem, Cursor, EmbedderControlId, EmbedderControlRequest, Image,
     InputEvent, InputEventAndId, InputEventId, JSValue, JavaScriptEvaluationError, LoadStatus,
-    MediaSessionActionType, NewWebViewDetails, ResidueEvent, ScreenGeometry,
-    ScreenshotCaptureError, Scroll, Theme, TraversalId, ViewportDetails, WebViewPoint, WebViewRect,
+    MediaSessionActionType, NewWebViewDetails, ScreenGeometry, ScreenshotCaptureError, Scroll,
+    Theme, TraversalId, ViewportDetails, WebViewPoint, WebViewRect,
 };
 use euclid::{Scale, Size2D};
 use image::RgbaImage;
@@ -32,6 +32,7 @@ use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 #[cfg(feature = "gamepad")]
 use crate::gamepad_delegate::{DefaultGamepadDelegate, GamepadDelegate};
 use crate::responders::IpcResponder;
+use crate::servo::PendingHandledInputEvent;
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
     ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
@@ -511,10 +512,12 @@ impl WebView {
                 .paint()
                 .notify_input_event(self.id(), event)
             {
-                self.inner().servo.add_residue_event(ResidueEvent {
-                    event_id,
-                    webview_id,
-                });
+                self.inner()
+                    .servo
+                    .add_pending_handled_input_event(PendingHandledInputEvent {
+                        event_id,
+                        webview_id,
+                    });
                 self.inner().servo.paint().event_loop_waker.wake();
             }
         } else {

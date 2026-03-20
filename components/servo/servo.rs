@@ -134,6 +134,11 @@ enum Message {
     FromUnknown(EmbedderMsg),
 }
 
+pub struct PendingHandledInputEvent {
+    pub event_id: InputEventId,
+    pub webview_id: WebViewId,
+}
+
 struct ServoInner {
     delegate: RefCell<Rc<dyn ServoDelegate>>,
     paint: Rc<RefCell<Paint>>,
@@ -158,8 +163,9 @@ struct ServoInner {
     /// and deinitialization of the JS Engine. Multiprocess Servo instances have their
     /// own instance that exists in the content process instead.
     _js_engine_setup: Option<JSEngineSetup>,
-    /// [`InputEventId`]s that failed to send.
-    residue_events: RefCell<Vec<ResidueEvent>>,
+    /// [`InputEventId`]s that have been handled, but for which the embedder has  
+    /// not been notified yet.
+    pending_handled_input_events: RefCell<Vec<PendingHandledInputEvent>>,
 }
 
 impl ServoInner {
@@ -199,8 +205,8 @@ impl ServoInner {
                 break;
             }
         }
-        let residue_events = std::mem::take(&mut *self.residue_events.borrow_mut());
-        for ResidueEvent {
+        let residue_events = std::mem::take(&mut *self.pending_handled_input_events.borrow_mut());
+        for PendingHandledInputEvent {
             event_id,
             webview_id,
         } in residue_events
@@ -883,7 +889,7 @@ impl Servo {
             webviews: Default::default(),
             servo_errors: ServoErrorChannel::default(),
             _js_engine_setup: js_engine_setup,
-            residue_events: Default::default(),
+            pending_handled_input_events: Default::default(),
         }))
     }
 
@@ -971,8 +977,11 @@ impl Servo {
         self.0.javascript_evaluator.borrow_mut()
     }
 
-    pub(crate) fn add_residue_event(&self, residue_event: ResidueEvent) {
-        self.0.residue_events.borrow_mut().push(residue_event);
+    pub(crate) fn add_pending_handled_input_event(&self, residue_event: PendingHandledInputEvent) {
+        self.0
+            .pending_handled_input_events
+            .borrow_mut()
+            .push(residue_event);
     }
 }
 

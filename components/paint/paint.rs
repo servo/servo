@@ -786,8 +786,8 @@ impl Paint {
             .save_capture(capture_path, CaptureBits::all());
     }
 
-    /// Returning `false` means this is not going to reach constellation/script,
-    /// and we need to directly notify Embedder that input event is handled.
+    /// Returning `false` means this is not going to reach the Constellation,
+    /// and we need to directly notify the embedder that input event is handled.
     pub fn notify_input_event(&self, webview_id: WebViewId, event: InputEventAndId) -> bool {
         if self.shutdown_state() != ShutdownState::NotShuttingDown {
             return false;

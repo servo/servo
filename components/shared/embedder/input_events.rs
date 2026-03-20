@@ -4,7 +4,6 @@
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use base::id::WebViewId;
 use bitflags::bitflags;
 use keyboard_types::{Code, CompositionEvent, Key, KeyState, Location, Modifiers};
 use malloc_size_of_derive::MallocSizeOf;
@@ -14,11 +13,6 @@ use crate::WebViewPoint;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct InputEventId(usize);
-
-pub struct ResidueEvent {
-    pub event_id: InputEventId,
-    pub webview_id: WebViewId,
-}
 
 static INPUT_EVENT_ID: AtomicUsize = AtomicUsize::new(0);
 
@@ -39,7 +33,9 @@ bitflags! {
         /// behavior (such as keybindings) when the WebView has already consumed the event for its
         /// own purpose.
         const Consumed = 1 << 1;
-        /// Whether or not the input event failed to dispatch.
+        /// Whether or not the input event failed to dispatch. This can happen when an event
+        /// is sent while Servo is shutting down or when it is in an intermediate state.
+        /// Typically these events should be considered to be consumed.
         const DispatchFailed = 1 << 2;
     }
 }
