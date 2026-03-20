@@ -659,14 +659,13 @@ impl ModuleOwner {
                 let asynch = script
                     .upcast::<Element>()
                     .has_attribute(&local_name!("async"));
-                let can_gc = CanGc::from_cx(cx);
 
                 if !asynch && script.get_parser_inserted() {
-                    document.deferred_script_loaded(&script, load, can_gc);
+                    document.deferred_script_loaded(cx, &script, load);
                 } else if !asynch && !script.get_non_blocking() {
-                    document.asap_in_order_script_loaded(&script, load, can_gc);
+                    document.asap_in_order_script_loaded(cx, &script, load);
                 } else {
-                    document.asap_script_loaded(&script, load, can_gc);
+                    document.asap_script_loaded(cx, &script, load);
                 };
             },
         }

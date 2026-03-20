@@ -2283,7 +2283,7 @@ impl Document {
                 self.process_pending_parsing_blocking_script(cx);
 
                 // Step 3.
-                self.process_deferred_scripts(CanGc::from_cx(cx));
+                self.process_deferred_scripts(cx);
             },
             LoadType::PageSource(_) => {
                 // We finished loading the page, so if the `Window` is still waiting for
@@ -2296,7 +2296,7 @@ impl Document {
                 // this is the first opportunity to process them.
 
                 // Step 3.
-                self.process_deferred_scripts(CanGc::from_cx(cx));
+                self.process_deferred_scripts(cx);
             },
             _ => {},
         }
@@ -2691,9 +2691,9 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> step 22.d.
     pub(crate) fn asap_script_loaded(
         &self,
+        cx: &mut js::context::JSContext,
         element: &HTMLScriptElement,
         result: ScriptResult,
-        can_gc: CanGc,
     ) {
         {
             let mut scripts = self.asap_scripts_set.borrow_mut();
@@ -2703,7 +2703,7 @@ impl Document {
                 .unwrap();
             scripts.swap_remove(idx);
         }
-        element.execute(result, can_gc);
+        element.execute(cx, result);
     }
 
     // https://html.spec.whatwg.org/multipage/#list-of-scripts-that-will-execute-in-order-as-soon-as-possible
@@ -2715,16 +2715,16 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> step> 22.c.
     pub(crate) fn asap_in_order_script_loaded(
         &self,
+        cx: &mut js::context::JSContext,
         element: &HTMLScriptElement,
         result: ScriptResult,
-        can_gc: CanGc,
     ) {
         self.asap_in_order_scripts_list.loaded(element, result);
         while let Some((element, result)) = self
             .asap_in_order_scripts_list
             .take_next_ready_to_be_executed()
         {
-            element.execute(result, can_gc);
+            element.execute(cx, result);
         }
     }
 
@@ -2737,16 +2737,16 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#prepare-a-script> step 22.d.
     pub(crate) fn deferred_script_loaded(
         &self,
+        cx: &mut js::context::JSContext,
         element: &HTMLScriptElement,
         result: ScriptResult,
-        can_gc: CanGc,
     ) {
         self.deferred_scripts.loaded(element, result);
-        self.process_deferred_scripts(can_gc);
+        self.process_deferred_scripts(cx);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-end> step 3.
-    fn process_deferred_scripts(&self, can_gc: CanGc) {
+    fn process_deferred_scripts(&self, cx: &mut js::context::JSContext) {
         if self.ready_state.get() != DocumentReadyState::Interactive {
             return;
         }
@@ -2757,7 +2757,7 @@ impl Document {
             }
             if let Some((element, result)) = self.deferred_scripts.take_next_ready_to_be_executed()
             {
-                element.execute(result, can_gc);
+                element.execute(cx, result);
             } else {
                 break;
             }

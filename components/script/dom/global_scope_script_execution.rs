@@ -8,13 +8,13 @@ use std::ptr::NonNull;
 use std::rc::Rc;
 
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
-use js::jsapi::{
-    Compile1, ExceptionStackBehavior, JS_ClearPendingException, JSScript, SetScriptPrivate,
-};
+use js::context::JSContext;
+use js::jsapi::{ExceptionStackBehavior, JSScript, SetScriptPrivate};
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
-use js::rust::wrappers::{
-    JS_ExecuteScript, JS_GetPendingException, JS_GetScriptPrivate, JS_SetPendingException,
+use js::rust::wrappers2::{
+    Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetPendingException,
+    JS_GetScriptPrivate, JS_SetPendingException,
 };
 use js::rust::{CompileOptionsWrapper, MutableHandleValue, transform_str_to_source_text};
 use script_bindings::cformat;
@@ -31,7 +31,7 @@ use crate::dom::window::Window;
 use crate::script_module::{
     ModuleScript, ModuleSource, ModuleTree, RethrowError, ScriptFetchOptions,
 };
-use crate::script_runtime::{CanGc, JSContext as SafeJSContext};
+use crate::script_runtime::CanGc;
 use crate::unminify::unminify_js;
 
 /// <https://html.spec.whatwg.org/multipage/#classic-script>
@@ -77,6 +77,7 @@ impl GlobalScope {
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn create_a_classic_script(
         &self,
+        cx: &mut JSContext,
         source: Cow<'_, str>,
         url: ServoUrl,
         fetch_options: ScriptFetchOptions,
@@ -85,8 +86,6 @@ impl GlobalScope {
         line_number: u32,
         external: bool,
     ) -> ClassicScript {
-        let cx = GlobalScope::get_cx();
-
         let mut script_source = ModuleSource {
             source: Rc::new(DOMString::from(source)),
             unminified_dir: self.unminified_js_dir(),
@@ -95,7 +94,7 @@ impl GlobalScope {
         };
         unminify_js(&mut script_source);
 
-        rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
+        rooted!(&in(cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
 
         // TODO Step 1. If mutedErrors is true, then set baseURL to about:blank.
 
@@ -120,7 +119,7 @@ impl GlobalScope {
         let record = if compiled_script.get().is_null() {
             // Step 11.1. Set script's parse error and its error to rethrow to result[0].
             // Step 11.2. Return script.
-            Err(RethrowError::from_pending_exception(cx))
+            Err(RethrowError::from_pending_exception(cx.into()))
         } else {
             Ok(NonNull::new(*compiled_script).expect("Can't be null"))
         };
@@ -143,11 +142,10 @@ impl GlobalScope {
     #[expect(unsafe_code)]
     pub(crate) fn run_a_classic_script(
         &self,
+        cx: &mut JSContext,
         script: ClassicScript,
         rethrow_errors: RethrowErrors,
-        can_gc: CanGc,
     ) -> ErrorResult {
-        let cx = GlobalScope::get_cx();
         // TODO Step 1. Let settings be the settings object of script.
 
         // Step 2. Check if we can run script with settings. If this returns "do not run", then return NormalCompletion(empty).
@@ -161,21 +159,21 @@ impl GlobalScope {
         // Once dropped this will run "Step 9. Clean up after running script" steps
         run_a_script::<DomTypeHolder, _>(self, || {
             // Step 5. Let evaluationStatus be null.
-            rooted!(in(*cx) let mut evaluation_status = UndefinedValue());
+            rooted!(&in(cx) let mut evaluation_status = UndefinedValue());
             let mut result = false;
 
             match script.record {
                 // Step 6. If script's error to rethrow is not null, then set evaluationStatus to ThrowCompletion(script's error to rethrow).
                 Err(error_to_rethrow) => unsafe {
                     JS_SetPendingException(
-                        *cx,
+                        cx,
                         error_to_rethrow.handle(),
                         ExceptionStackBehavior::Capture,
                     )
                 },
                 // Step 7. Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
                 Ok(compiled_script) => {
-                    rooted!(in(*cx) let mut rval = UndefinedValue());
+                    rooted!(&in(cx) let mut rval = UndefinedValue());
                     result = evaluate_script(
                         cx,
                         compiled_script,
@@ -186,7 +184,7 @@ impl GlobalScope {
                 },
             }
 
-            unsafe { JS_GetPendingException(*cx, evaluation_status.handle_mut()) };
+            unsafe { JS_GetPendingException(cx, evaluation_status.handle_mut()) };
 
             // Step 8. If evaluationStatus is an abrupt completion, then:
             if !evaluation_status.is_undefined() {
@@ -200,15 +198,19 @@ impl GlobalScope {
                     },
                     // Step 8.2. If rethrow errors is true and script's muted errors is true, then:
                     (RethrowErrors::Yes, ErrorReporting::Muted) => {
-                        unsafe { JS_ClearPendingException(*cx) };
+                        unsafe { JS_ClearPendingException(cx) };
                         // Throw a "NetworkError" DOMException.
                         return Err(Error::Network(None));
                     },
                     // Step 8.3. Otherwise, rethrow errors is false. Perform the following steps:
                     _ => {
-                        unsafe { JS_ClearPendingException(*cx) };
+                        unsafe { JS_ClearPendingException(cx) };
                         // Report an exception given by evaluationStatus.[[Value]] for script's settings object's global object.
-                        self.report_an_exception(cx, evaluation_status.handle(), can_gc);
+                        self.report_an_exception(
+                            cx.into(),
+                            evaluation_status.handle(),
+                            CanGc::from_cx(cx),
+                        );
 
                         // Return evaluationStatus.
                         return Err(Error::JSFailed);
@@ -235,9 +237,9 @@ impl GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
     pub(crate) fn run_a_module_script(
         &self,
+        cx: &mut JSContext,
         module_tree: Rc<ModuleTree>,
         _rethrow_errors: bool,
-        can_gc: CanGc,
     ) {
         // Step 1. Let settings be the settings object of script.
         // NOTE(pylbrecht): "settings" is `self` here.
@@ -258,7 +260,7 @@ impl GlobalScope {
             {
                 let module_error = module_tree.get_rethrow_error().borrow();
                 if module_error.is_some() {
-                    module_tree.report_error(self, can_gc);
+                    module_tree.report_error(self, CanGc::from_cx(cx));
                     return;
                 }
             }
@@ -268,15 +270,16 @@ impl GlobalScope {
 
             if let Some(record) = record {
                 // Step 7.2. Set evaluationPromise to record.Evaluate().
-                rooted!(in(*GlobalScope::get_cx()) let mut rval = UndefinedValue());
-                let evaluated = module_tree.execute_module(self, record, rval.handle_mut(), can_gc);
+                rooted!(&in(cx) let mut rval = UndefinedValue());
+                let evaluated =
+                    module_tree.execute_module(self, record, rval.handle_mut(), CanGc::from_cx(cx));
 
                 // Step 8. If preventErrorReporting is false, then upon rejection of evaluationPromise
                 // with reason, report an exception given by reason for script's settings object's
                 // global object.
                 if let Err(exception) = evaluated {
                     module_tree.set_rethrow_error(exception);
-                    module_tree.report_error(self, can_gc);
+                    module_tree.report_error(self, CanGc::from_cx(cx));
                 }
             }
         });
@@ -308,7 +311,7 @@ impl GlobalScope {
 
 #[expect(unsafe_code)]
 pub(crate) fn compile_script(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     text: &str,
     filename: &str,
     line_number: u32,
@@ -324,7 +327,7 @@ pub(crate) fn compile_script(
     // TODO: pass filename as CString to avoid allocation
     // See https://github.com/servo/servo/issues/42126
     let filename = cformat!("{filename}");
-    let mut options = unsafe { CompileOptionsWrapper::new_raw(*cx, filename, line_number) };
+    let mut options = CompileOptionsWrapper::new(cx, filename, line_number);
     if let Some(introduction_type) = introduction_type {
         options.set_introduction_type(introduction_type);
     }
@@ -337,20 +340,20 @@ pub(crate) fn compile_script(
     options.set_no_script_rval(no_script_rval);
 
     debug!("Compiling script");
-    unsafe { Compile1(*cx, options.ptr, &mut transform_str_to_source_text(text)) }
+    unsafe { Compile1(cx, options.ptr, &mut transform_str_to_source_text(text)) }
 }
 
 /// <https://tc39.es/ecma262/#sec-runtime-semantics-scriptevaluation>
 #[expect(unsafe_code)]
 pub(crate) fn evaluate_script(
-    cx: SafeJSContext,
+    cx: &mut JSContext,
     compiled_script: NonNull<JSScript>,
     url: ServoUrl,
     fetch_options: ScriptFetchOptions,
     rval: MutableHandleValue,
 ) -> bool {
-    rooted!(in(*cx) let record = compiled_script.as_ptr());
-    rooted!(in(*cx) let mut script_private = UndefinedValue());
+    rooted!(&in(cx) let record = compiled_script.as_ptr());
+    rooted!(&in(cx) let mut script_private = UndefinedValue());
 
     unsafe { JS_GetScriptPrivate(*record, script_private.handle_mut()) };
 
@@ -375,5 +378,5 @@ pub(crate) fn evaluate_script(
         }
     }
 
-    unsafe { JS_ExecuteScript(*cx, record.handle(), rval) }
+    unsafe { JS_ExecuteScript(cx, record.handle(), rval) }
 }

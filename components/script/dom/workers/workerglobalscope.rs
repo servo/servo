@@ -210,6 +210,7 @@ impl FetchResponseListener for ScriptFetchContext {
         // Step 5 Let script be the result of creating a classic script using
         // sourceText, settingsObject, response's URL, and the default script fetch options.
         let script = global_scope.create_a_classic_script(
+            cx,
             source,
             scope.worker_url.borrow().clone(),
             ScriptFetchOptions::default_classic_script(global_scope),
@@ -595,27 +596,21 @@ impl WorkerGlobalScope {
 
         {
             let mut realm = enter_auto_realm(cx, self);
-            let mut realm = realm.current_realm();
-            define_all_exposed_interfaces(&mut realm, dedicated_worker_scope.upcast());
+            let cx = &mut realm.current_realm();
+            define_all_exposed_interfaces(cx, dedicated_worker_scope.upcast());
             self.execution_ready.store(true, Ordering::Relaxed);
             match script {
                 Script::Classic(script) => {
-                    _ = self.globalscope.run_a_classic_script(
-                        script,
-                        RethrowErrors::No,
-                        CanGc::from_cx(&mut realm),
-                    );
+                    _ = self
+                        .globalscope
+                        .run_a_classic_script(cx, script, RethrowErrors::No);
                 },
                 Script::Module(module_tree) => {
-                    self.globalscope.run_a_module_script(
-                        module_tree,
-                        false,
-                        CanGc::from_cx(&mut realm),
-                    );
+                    self.globalscope.run_a_module_script(cx, module_tree, false);
                 },
                 _ => unreachable!(),
             }
-            dedicated_worker_scope.fire_queued_messages(CanGc::from_cx(&mut realm));
+            dedicated_worker_scope.fire_queued_messages(CanGc::from_cx(cx));
         }
     }
 
@@ -747,6 +742,7 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             // Step 10. Let script be the result of creating a classic script
             // given sourceText, settingsObject, response's URL, the default script fetch options, and mutedErrors.
             let script = self.globalscope.create_a_classic_script(
+                cx,
                 source,
                 url,
                 ScriptFetchOptions::default_classic_script(&self.globalscope),
@@ -757,11 +753,9 @@ impl WorkerGlobalScopeMethods<crate::DomTypeHolder> for WorkerGlobalScope {
             );
 
             // Run the classic script script, with rethrow errors set to true.
-            let result = self.globalscope.run_a_classic_script(
-                script,
-                RethrowErrors::Yes,
-                CanGc::from_cx(cx),
-            );
+            let result = self
+                .globalscope
+                .run_a_classic_script(cx, script, RethrowErrors::Yes);
 
             if let Err(error) = result {
                 if self.is_closing() {
