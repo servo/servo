@@ -13,7 +13,8 @@ use std::sync::{Arc, Weak};
 use std::thread;
 
 use base::generic_channel::{
-    self, CallbackSetter, GenericReceiver, GenericReceiverSet, GenericSelectionResult,
+    self, CallbackSetter, GenericCallback, GenericReceiver, GenericReceiverSet,
+    GenericSelectionResult,
 };
 use base::id::CookieStoreId;
 use cookie::Cookie;
@@ -183,7 +184,7 @@ struct ResourceChannelManager {
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
     cancellation_listeners: FxHashMap<RequestId, Weak<CancellationListener>>,
-    cookie_listeners: FxHashMap<CookieStoreId, IpcSender<CookieAsyncResponse>>,
+    cookie_listeners: FxHashMap<CookieStoreId, GenericCallback<CookieAsyncResponse>>,
 }
 
 /// This returns a tuple HttpState and a private HttpState.
@@ -504,9 +505,9 @@ impl ResourceChannelManager {
                     .collect();
                 self.send_cookie_response(cookie_store_id, CookieData::GetAll(cookies));
             },
-            CoreResourceMsg::NewCookieListener(cookie_store_id, sender, _url) => {
+            CoreResourceMsg::NewCookieListener(cookie_store_id, callback, _url) => {
                 // TODO: Use the URL for setting up the actual monitoring
-                self.cookie_listeners.insert(cookie_store_id, sender);
+                self.cookie_listeners.insert(cookie_store_id, callback);
             },
             CoreResourceMsg::RemoveCookieListener(cookie_store_id) => {
                 self.cookie_listeners.remove(&cookie_store_id);

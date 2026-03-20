@@ -5,10 +5,12 @@
 use std::cmp::{max, min};
 use std::ops::Range;
 
+use base::generic_channel::GenericSender;
 use embedder_traits::{EmbedderControlId, EmbedderControlResponse, FilePickerRequest};
 use ipc_channel::ipc::IpcSender;
 use malloc_size_of_derive::MallocSizeOf;
 use num_traits::ToPrimitive;
+use profile_traits::generic_callback::GenericCallback;
 use serde::{Deserialize, Serialize};
 use servo_url::ImmutableOrigin;
 use uuid::Uuid;
@@ -122,7 +124,7 @@ pub enum FileManagerThreadMsg {
     SelectFiles(
         EmbedderControlId,
         FilePickerRequest,
-        IpcSender<EmbedderControlResponse>,
+        GenericCallback<EmbedderControlResponse>,
     ),
 
     /// Read FileID-indexed file in chunks, optionally check URL validity based on boolean flag
@@ -140,7 +142,7 @@ pub enum FileManagerThreadMsg {
     AddSlicedURLEntry(
         Uuid,
         RelativePos,
-        IpcSender<Result<Uuid, BlobURLStoreError>>,
+        GenericSender<Result<Uuid, BlobURLStoreError>>,
         ImmutableOrigin,
     ),
 
@@ -148,7 +150,7 @@ pub enum FileManagerThreadMsg {
     DecRef(
         Uuid,
         ImmutableOrigin,
-        IpcSender<Result<(), BlobURLStoreError>>,
+        GenericSender<Result<(), BlobURLStoreError>>,
     ),
 
     /// Activate an internal FileID so it becomes valid as part of a Blob URL
@@ -162,7 +164,7 @@ pub enum FileManagerThreadMsg {
     RevokeBlobURL(
         Uuid,
         ImmutableOrigin,
-        IpcSender<Result<(), BlobURLStoreError>>,
+        GenericSender<Result<(), BlobURLStoreError>>,
     ),
 }
 

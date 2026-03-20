@@ -6,7 +6,7 @@ use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::ptr::NonNull;
 
-use base::generic_channel::{GenericOneshotSender, GenericSend, GenericSender};
+use base::generic_channel::{self, GenericOneshotSender, GenericSend, GenericSender};
 use base::id::{BrowsingContextId, PipelineId};
 use cookie::Cookie;
 use embedder_traits::{
@@ -16,7 +16,6 @@ use embedder_traits::{
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use hyper_serde::Serde;
-use ipc_channel::ipc::{self};
 use js::context::JSContext;
 use js::conversions::jsstr_to_string;
 use js::jsapi::{
@@ -1405,7 +1404,7 @@ pub(crate) fn handle_get_cookies(
             match documents.find_document(pipeline) {
                 Some(document) => {
                     let url = document.url();
-                    let (sender, receiver) = ipc::channel().unwrap();
+                    let (sender, receiver) = generic_channel::channel().unwrap();
                     let _ = document
                         .window()
                         .as_global_scope()
@@ -1432,7 +1431,7 @@ pub(crate) fn handle_get_cookie(
             match documents.find_document(pipeline) {
                 Some(document) => {
                     let url = document.url();
-                    let (sender, receiver) = ipc::channel().unwrap();
+                    let (sender, receiver) = generic_channel::channel().unwrap();
                     let _ = document
                         .window()
                         .as_global_scope()

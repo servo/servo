@@ -6,13 +6,11 @@ use std::borrow::Cow;
 use std::collections::VecDeque;
 use std::rc::Rc;
 
-use base::generic_channel::{GenericSend, GenericSender};
+use base::generic_channel::{GenericCallback, GenericSend, GenericSender};
 use base::id::CookieStoreId;
 use cookie::{Cookie, SameSite};
 use dom_struct::dom_struct;
 use hyper_serde::Serde;
-use ipc_channel::ipc;
-use ipc_channel::router::ROUTER;
 use itertools::Itertools;
 use js::jsval::NullValue;
 use net_traits::CookieSource::NonHTTP;
@@ -138,8 +136,6 @@ impl CookieStore {
     }
 
     fn setup_route(&self) {
-        let (cookie_sender, cookie_receiver) = ipc::channel().expect("ipc channel failure");
-
         let context = Trusted::new(self);
         let cs_listener = CookieListener {
             task_source: self
@@ -150,20 +146,18 @@ impl CookieStore {
             context,
         };
 
-        ROUTER.add_typed_route(
-            cookie_receiver,
-            Box::new(move |message| match message {
-                Ok(msg) => cs_listener.handle(msg),
-                Err(err) => warn!("Error receiving a CookieStore message: {:?}", err),
-            }),
-        );
+        let callback = GenericCallback::new(move |message| match message {
+            Ok(msg) => cs_listener.handle(msg),
+            Err(err) => warn!("Error receiving a CookieStore message: {:?}", err),
+        })
+        .expect("Could not create cookie store callback");
 
         let res = self
             .global()
             .resource_threads()
             .send(CoreResourceMsg::NewCookieListener(
                 self.droppable.store_id,
-                cookie_sender,
+                callback,
                 self.global().creation_url(),
             ));
         if res.is_err() {

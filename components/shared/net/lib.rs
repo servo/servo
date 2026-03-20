@@ -10,7 +10,8 @@ use std::thread::{self, JoinHandle};
 
 use base::cross_process_instant::CrossProcessInstant;
 use base::generic_channel::{
-    self, CallbackSetter, GenericOneshotSender, GenericSend, GenericSender, SendResult,
+    self, CallbackSetter, GenericCallback, GenericOneshotSender, GenericSend, GenericSender,
+    SendResult,
 };
 use base::id::{CookieStoreId, HistoryStateId, PipelineId};
 use content_security_policy::{self as csp};
@@ -625,11 +626,11 @@ pub enum CoreResourceMsg {
         CookieSource,
     ),
     /// Retrieve the stored cookies for a given URL
-    GetCookiesForUrl(ServoUrl, IpcSender<Option<String>>, CookieSource),
+    GetCookiesForUrl(ServoUrl, GenericSender<Option<String>>, CookieSource),
     /// Get a cookie by name for a given originating URL
     GetCookiesDataForUrl(
         ServoUrl,
-        IpcSender<Vec<Serde<Cookie<'static>>>>,
+        GenericSender<Vec<Serde<Cookie<'static>>>>,
         CookieSource,
     ),
     GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
@@ -640,11 +641,15 @@ pub enum CoreResourceMsg {
     DeleteCookies(Option<ServoUrl>, Option<IpcSender<()>>),
     DeleteCookie(ServoUrl, String),
     DeleteCookieAsync(CookieStoreId, ServoUrl, String),
-    NewCookieListener(CookieStoreId, IpcSender<CookieAsyncResponse>, ServoUrl),
+    NewCookieListener(
+        CookieStoreId,
+        GenericCallback<CookieAsyncResponse>,
+        ServoUrl,
+    ),
     RemoveCookieListener(CookieStoreId),
     ListCookies(GenericSender<Vec<SiteDescriptor>>),
     /// Get a history state by a given history state id
-    GetHistoryState(HistoryStateId, IpcSender<Option<Vec<u8>>>),
+    GetHistoryState(HistoryStateId, GenericSender<Option<Vec<u8>>>),
     /// Set a history state for a given history state id
     SetHistoryState(HistoryStateId, Vec<u8>),
     /// Removes history states for the given ids

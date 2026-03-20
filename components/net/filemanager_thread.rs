@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 
+use base::generic_channel::GenericSender;
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, FilePickerRequest, GenericEmbedderProxy,
     SelectedFile,
@@ -511,7 +512,7 @@ impl FileManagerStore {
         &self,
         parent_id: Uuid,
         rel_pos: RelativePos,
-        sender: IpcSender<Result<Uuid, BlobURLStoreError>>,
+        sender: GenericSender<Result<Uuid, BlobURLStoreError>>,
         origin_in: ImmutableOrigin,
     ) {
         match self.inc_ref(&parent_id, &origin_in) {

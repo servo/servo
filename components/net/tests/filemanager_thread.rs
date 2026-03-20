@@ -6,8 +6,8 @@ use std::fs::File;
 use std::io::Read;
 use std::path::PathBuf;
 
-use base::Epoch;
 use base::id::{TEST_PIPELINE_ID, TEST_WEBVIEW_ID};
+use base::{Epoch, generic_channel};
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, FilePickerRequest, FilterPattern,
 };
@@ -46,7 +46,14 @@ fn test_filemanager() {
 
     {
         // Try to select a dummy file "components/net/tests/test.jpeg"
-        let (result_sender, result_receiver) = ipc::channel().unwrap();
+        let (result_sender, result_receiver) = crossbeam_channel::unbounded();
+        let callback = profile_traits::generic_callback::GenericCallback::new(
+            profile_traits::time::ProfilerChan(None),
+            move |msg| {
+                result_sender.send(msg.unwrap()).unwrap();
+            },
+        )
+        .unwrap();
         let control_id = EmbedderControlId {
             webview_id: TEST_WEBVIEW_ID,
             pipeline_id: TEST_PIPELINE_ID,
@@ -62,7 +69,7 @@ fn test_filemanager() {
         filemanager.handle(FileManagerThreadMsg::SelectFiles(
             control_id,
             file_picker_request,
-            result_sender,
+            callback,
         ));
 
         loop {
@@ -134,15 +141,14 @@ fn test_filemanager() {
 
         // Delete the id
         {
-            let (tx2, rx2) = ipc::channel().unwrap();
+            let (tx2, rx2) = generic_channel::channel().unwrap();
             filemanager.handle(FileManagerThreadMsg::DecRef(
                 selected.id.clone(),
                 origin.clone(),
                 tx2,
             ));
 
-            let ret = rx2.recv().expect("Broken channel");
-            assert!(ret.is_ok(), "DecRef is not okay");
+            assert!(rx2.recv().is_ok(), "DecRef is not okay");
         }
 
         // Test by reading again, expecting read error because we invalidated the id

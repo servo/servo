@@ -13,8 +13,6 @@ use constellation_traits::ScriptToConstellationMessage;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use html5ever::{LocalName, Prefix, local_name, ns};
-#[cfg(feature = "webgpu")]
-use ipc_channel::ipc::{self as ipcchan};
 use js::error::throw_type_error;
 use js::rust::{HandleObject, HandleValue};
 use layout_api::HTMLCanvasData;
@@ -322,13 +320,15 @@ impl HTMLCanvasElement {
 
     #[cfg(feature = "webgpu")]
     fn get_or_init_webgpu_context(&self, can_gc: CanGc) -> Option<DomRoot<GPUCanvasContext>> {
+        use base::generic_channel;
+
         if let Some(ctx) = self.context() {
             return match *ctx {
                 RenderingContext::WebGPU(ref ctx) => Some(DomRoot::from_ref(ctx)),
                 _ => None,
             };
         }
-        let (sender, receiver) = ipcchan::channel().unwrap();
+        let (sender, receiver) = generic_channel::channel().unwrap();
         let global_scope = self.owner_global();
         let _ = global_scope
             .script_to_constellation_chan()

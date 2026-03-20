@@ -16,7 +16,7 @@ use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::CoreResourceMsg;
-use profile_traits::{generic_channel, ipc};
+use profile_traits::generic_channel;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryMethods;
@@ -109,7 +109,8 @@ impl History {
         self.state_id.set(state_id);
         let serialized_data = match state_id {
             Some(state_id) => {
-                let (tx, rx) = ipc::channel(self.global().time_profiler_chan().clone()).unwrap();
+                let (tx, rx) =
+                    generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
                 let _ = self
                     .window
                     .as_global_scope()
