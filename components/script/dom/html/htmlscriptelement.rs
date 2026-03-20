@@ -888,10 +888,10 @@ impl HTMLScriptElement {
 
                     // Step 31.11. Fetch an external module script graph.
                     fetch_an_external_module_script(
+                        cx,
                         url,
                         ModuleOwner::Window(Trusted::new(self)),
                         options,
-                        CanGc::from_cx(cx),
                     );
 
                     if !asynch && was_parser_inserted {
