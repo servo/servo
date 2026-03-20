@@ -611,7 +611,7 @@ impl ScriptThread {
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#navigate>
     pub(crate) fn navigate(
         webview_id: WebViewId,
-        pipeline_id: PipelineId,
+        target_pipeline_id: PipelineId,
         mut load_data: LoadData,
         history_handling: NavigationHistoryBehavior,
     ) {
@@ -620,29 +620,50 @@ impl ScriptThread {
             // If resource is a request whose url's scheme is "javascript"
             // https://html.spec.whatwg.org/multipage/#navigate-to-a-javascript:-url
             if is_javascript {
-                let Some(window) = script_thread.documents.borrow().find_window(pipeline_id) else {
+                let Some(initiator_pipeline_id) = load_data.creator_pipeline_id else {
+                    warn!("javascript: URL navigations must have a creator pipeline");
                     return;
                 };
-                let global = window.as_global_scope();
-                let trusted_global = Trusted::new(global);
+                let Some(initiator_window) = script_thread
+                    .documents
+                    .borrow()
+                    .find_window(initiator_pipeline_id)
+                else {
+                    warn!("Can't find global for navigation initiator");
+                    return;
+                };
+                let Some(target_window) = script_thread
+                    .documents
+                    .borrow()
+                    .find_window(target_pipeline_id)
+                else {
+                    warn!("Can't find global for navigation target");
+                    return;
+                };
+                let target_global = target_window.as_global_scope();
+                let initiator_global = target_window.as_global_scope();
+                let target_global = Trusted::new(target_global);
+                let initiator_global = Trusted::new(initiator_global);
                 let sender = script_thread
                     .senders
                     .pipeline_to_constellation_sender
                     .clone();
-                load_data.about_base_url = window.Document().about_base_url();
+                load_data.about_base_url = initiator_window.Document().about_base_url();
                 let task = task!(navigate_javascript: move |cx| {
                     // Important re security. See https://github.com/servo/servo/issues/23373
-                    if trusted_global.root().is::<Window>() {
-                        let global = &trusted_global.root();
-                        if Self::navigate_to_javascript_url(cx, global, global, &mut load_data, None) {
+                    let target_global = target_global.root();
+                    if target_global.is::<Window>() {
+                        let initiator_global = initiator_global.root();
+                        if Self::navigate_to_javascript_url(cx, &initiator_global, &target_global, &mut load_data, None) {
                             sender
-                                .send((webview_id, pipeline_id, ScriptToConstellationMessage::LoadUrl(load_data, history_handling)))
+                                .send((webview_id, target_pipeline_id, ScriptToConstellationMessage::LoadUrl(load_data, history_handling)))
                                 .unwrap();
                         }
                     }
                 });
                 // Step 19 of <https://html.spec.whatwg.org/multipage/#navigate>
-                global
+                target_window
+                    .as_global_scope()
                     .task_manager()
                     .dom_manipulation_task_source()
                     .queue(task);
@@ -652,7 +673,7 @@ impl ScriptThread {
                     .pipeline_to_constellation_sender
                     .send((
                         webview_id,
-                        pipeline_id,
+                        target_pipeline_id,
                         ScriptToConstellationMessage::LoadUrl(load_data, history_handling),
                     ))
                     .expect("Sending a LoadUrl message to the constellation failed");
