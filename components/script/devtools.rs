@@ -12,6 +12,7 @@ use devtools_traits::{
     AttrModification, AutoMargins, ComputedNodeLayout, CssDatabaseProperty, EventListenerInfo,
     NodeInfo, NodeStyle, RuleModification, TimelineMarker, TimelineMarkerType,
 };
+use js::context::JSContext;
 use markup5ever::{LocalName, ns};
 use rustc_hash::FxHashMap;
 use script_bindings::root::Dom;
@@ -183,11 +184,11 @@ pub(crate) fn handle_get_event_listener_info(
 }
 
 pub(crate) fn handle_get_root_node(
+    cx: &mut JSContext,
     state: &DevtoolsState,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: GenericSender<Option<NodeInfo>>,
-    can_gc: CanGc,
 ) {
     let info = documents
         .find_document(pipeline)
@@ -198,16 +199,16 @@ pub(crate) fn handle_get_root_node(
                 .unwrap()
                 .register_node(node)
         })
-        .map(|document| document.upcast::<Node>().summarize(can_gc));
+        .map(|document| document.upcast::<Node>().summarize(CanGc::from_cx(cx)));
     reply.send(info).unwrap();
 }
 
 pub(crate) fn handle_get_document_element(
+    cx: &mut JSContext,
     state: &DevtoolsState,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     reply: GenericSender<Option<NodeInfo>>,
-    can_gc: CanGc,
 ) {
     let info = documents
         .find_document(pipeline)
@@ -218,16 +219,16 @@ pub(crate) fn handle_get_document_element(
                 .unwrap()
                 .register_node(element.upcast())
         })
-        .map(|element| element.upcast::<Node>().summarize(can_gc));
+        .map(|element| element.upcast::<Node>().summarize(CanGc::from_cx(cx)));
     reply.send(info).unwrap();
 }
 
 pub(crate) fn handle_get_children(
+    cx: &mut JSContext,
     state: &DevtoolsState,
     pipeline: PipelineId,
     node_id: &str,
     reply: GenericSender<Option<Vec<NodeInfo>>>,
-    can_gc: CanGc,
 ) {
     let Some(parent) = state.find_node_by_unique_id(pipeline, node_id) else {
         reply.send(None).unwrap();
@@ -256,7 +257,7 @@ pub(crate) fn handle_get_children(
     if let Some(shadow_root) = parent.downcast::<Element>().and_then(Element::shadow_root) {
         if !shadow_root.is_user_agent_widget() || pref!(inspector_show_servo_internal_shadow_roots)
         {
-            children.push(shadow_root.upcast::<Node>().summarize(can_gc));
+            children.push(shadow_root.upcast::<Node>().summarize(CanGc::from_cx(cx)));
         }
     }
     let children_iter = parent.children().enumerate().filter_map(|(i, child)| {
@@ -266,7 +267,7 @@ pub(crate) fn handle_get_children(
         let next_inline = i < inline.len() - 1 && inline[i + 1];
         let is_inline_level = prev_inline && next_inline;
 
-        let info = child.summarize(can_gc);
+        let info = child.summarize(CanGc::from_cx(cx));
         if is_whitespace(&info) && !is_inline_level {
             return None;
         }
@@ -280,11 +281,11 @@ pub(crate) fn handle_get_children(
 }
 
 pub(crate) fn handle_get_attribute_style(
+    cx: &mut JSContext,
     state: &DevtoolsState,
     pipeline: PipelineId,
     node_id: &str,
     reply: GenericSender<Option<Vec<NodeStyle>>>,
-    can_gc: CanGc,
 ) {
     let node = match state.find_node_by_unique_id(pipeline, node_id) {
         None => return reply.send(None).unwrap(),
@@ -296,7 +297,7 @@ pub(crate) fn handle_get_attribute_style(
         reply.send(None).unwrap();
         return;
     };
-    let style = elem.Style(can_gc);
+    let style = elem.Style(CanGc::from_cx(cx));
 
     let msg = (0..style.Length())
         .map(|i| {
@@ -315,6 +316,7 @@ pub(crate) fn handle_get_attribute_style(
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn handle_get_stylesheet_style(
+    cx: &mut JSContext,
     state: &DevtoolsState,
     documents: &DocumentCollection,
     pipeline: PipelineId,
@@ -322,7 +324,6 @@ pub(crate) fn handle_get_stylesheet_style(
     selector: String,
     stylesheet: usize,
     reply: GenericSender<Option<Vec<NodeStyle>>>,
-    can_gc: CanGc,
 ) {
     let msg = (|| {
         let node = state.find_node_by_unique_id(pipeline, node_id)?;
@@ -332,16 +333,16 @@ pub(crate) fn handle_get_stylesheet_style(
         let owner = node.stylesheet_list_owner();
 
         let stylesheet = owner.stylesheet_at(stylesheet)?;
-        let list = stylesheet.GetCssRules(can_gc).ok()?;
+        let list = stylesheet.GetCssRules(CanGc::from_cx(cx)).ok()?;
 
         let styles = (0..list.Length())
             .filter_map(move |i| {
-                let rule = list.Item(i, can_gc)?;
+                let rule = list.Item(i, CanGc::from_cx(cx))?;
                 let style = rule.downcast::<CSSStyleRule>()?;
                 if selector != style.SelectorText() {
                     return None;
                 };
-                Some(style.Style(can_gc))
+                Some(style.Style(CanGc::from_cx(cx)))
             })
             .flat_map(|style| {
                 (0..style.Length()).map(move |i| {
@@ -363,12 +364,12 @@ pub(crate) fn handle_get_stylesheet_style(
 
 #[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) fn handle_get_selectors(
+    cx: &mut JSContext,
     state: &DevtoolsState,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: &str,
     reply: GenericSender<Option<Vec<(String, usize)>>>,
-    can_gc: CanGc,
 ) {
     let msg = (|| {
         let node = state.find_node_by_unique_id(pipeline, node_id)?;
@@ -380,9 +381,11 @@ pub(crate) fn handle_get_selectors(
         let rules = (0..owner.stylesheet_count())
             .filter_map(|i| {
                 let stylesheet = owner.stylesheet_at(i)?;
-                let list = stylesheet.GetCssRules(can_gc).ok()?;
+                let list = stylesheet.GetCssRules(CanGc::from_cx(cx)).ok()?;
                 let elem = node.downcast::<Element>()?;
 
+                // TODO(#40600): Figure out how to  move the cx into the `filter_map`
+                let can_gc = CanGc::from_cx(cx);
                 Some((0..list.Length()).filter_map(move |j| {
                     let rule = list.Item(j, can_gc)?;
                     let style = rule.downcast::<CSSStyleRule>()?;
@@ -432,11 +435,11 @@ pub(crate) fn handle_get_computed_style(
 }
 
 pub(crate) fn handle_get_layout(
+    cx: &mut JSContext,
     state: &DevtoolsState,
     pipeline: PipelineId,
     node_id: &str,
     reply: GenericSender<Option<(ComputedNodeLayout, AutoMargins)>>,
-    can_gc: CanGc,
 ) {
     let node = match state.find_node_by_unique_id(pipeline, node_id) {
         None => return reply.send(None).unwrap(),
@@ -447,7 +450,7 @@ pub(crate) fn handle_get_layout(
     let elem = node
         .downcast::<Element>()
         .expect("should be getting layout of element");
-    let rect = elem.GetBoundingClientRect(can_gc);
+    let rect = elem.GetBoundingClientRect(CanGc::from_cx(cx));
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
 
@@ -537,12 +540,12 @@ pub(crate) fn handle_get_xpath(
 }
 
 pub(crate) fn handle_modify_attribute(
+    cx: &mut JSContext,
     state: &DevtoolsState,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: &str,
     modifications: Vec<AttrModification>,
-    can_gc: CanGc,
 ) {
     let Some(document) = documents.find_document(pipeline) else {
         return warn!("document for pipeline id {} is not found", &pipeline);
@@ -569,21 +572,24 @@ pub(crate) fn handle_modify_attribute(
                 elem.set_attribute(
                     &LocalName::from(modification.attribute_name),
                     AttrValue::String(string),
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             },
-            None => elem.RemoveAttribute(DOMString::from(modification.attribute_name), can_gc),
+            None => elem.RemoveAttribute(
+                DOMString::from(modification.attribute_name),
+                CanGc::from_cx(cx),
+            ),
         }
     }
 }
 
 pub(crate) fn handle_modify_rule(
+    cx: &mut JSContext,
     state: &DevtoolsState,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: &str,
     modifications: Vec<RuleModification>,
-    can_gc: CanGc,
 ) {
     let Some(document) = documents.find_document(pipeline) else {
         return warn!("Document for pipeline id {} is not found", &pipeline);
@@ -600,14 +606,14 @@ pub(crate) fn handle_modify_rule(
     let elem = node
         .downcast::<HTMLElement>()
         .expect("This should be an HTMLElement");
-    let style = elem.Style(can_gc);
+    let style = elem.Style(CanGc::from_cx(cx));
 
     for modification in modifications {
         let _ = style.SetProperty(
             modification.name.into(),
             modification.value.into(),
             modification.priority.into(),
-            can_gc,
+            CanGc::from_cx(cx),
         );
     }
 }
