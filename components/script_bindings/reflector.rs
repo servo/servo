@@ -148,7 +148,15 @@ pub trait MutDomObject: DomObject {
     /// # Safety
     ///
     /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
+    /// The provided [`JSObject`] pointer must not be allocated in the nursery.
     unsafe fn init_reflector<D>(&self, obj: *mut JSObject);
+
+    /// Initializes the Reflector without recording any associated memory usage.
+    ///
+    /// # Safety
+    ///
+    /// The provided [`JSObject`] pointer must point to a valid [`JSObject`].
+    unsafe fn init_reflector_without_associated_memory(&self, obj: *mut JSObject);
 }
 
 impl MutDomObject for Reflector<()> {
@@ -159,6 +167,12 @@ impl MutDomObject for Reflector<()> {
                 size_of::<D>() + size_of::<Box<D>>(),
                 MemoryUse::DOMBinding,
             );
+            self.init_reflector_without_associated_memory(obj);
+        }
+    }
+
+    unsafe fn init_reflector_without_associated_memory(&self, obj: *mut JSObject) {
+        unsafe {
             self.set_jsobject(obj);
         }
     }
@@ -172,6 +186,12 @@ impl MutDomObject for Reflector<AssociatedMemory> {
                 size_of::<D>() + size_of::<Box<D>>(),
                 MemoryUse::DOMBinding,
             );
+            self.init_reflector_without_associated_memory(obj);
+        }
+    }
+
+    unsafe fn init_reflector_without_associated_memory(&self, obj: *mut JSObject) {
+        unsafe {
             self.set_jsobject(obj);
         }
     }

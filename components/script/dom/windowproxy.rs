@@ -1391,12 +1391,15 @@ unsafe extern "C" fn finalize(_fop: *mut GCContext, obj: *mut JSObject) {
         // GC during obj creation or after transplanting.
         return;
     }
-    let jsobject = unsafe { (*this).reflector.get_jsobject().get() };
-    debug!(
-        "WindowProxy finalize: {:p}, with reflector {:p} from {:p}.",
-        this, jsobject, obj
-    );
-    let _ = unsafe { Box::from_raw(this) };
+    unsafe {
+        (*this).reflector.drop_memory(&*this);
+        let jsobject = (*this).reflector.get_jsobject().get();
+        debug!(
+            "WindowProxy finalize: {:p}, with reflector {:p} from {:p}.",
+            this, jsobject, obj
+        );
+        let _ = Box::from_raw(this);
+    }
 }
 
 #[expect(unsafe_code)]
