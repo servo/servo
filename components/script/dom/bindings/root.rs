@@ -225,7 +225,7 @@ pub(crate) fn assert_in_layout() {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 pub(crate) struct UnrootedDom<'a, T: DomObject> {
     inner: Dom<T>,
-    _no_gc: &'a NoGC,
+    no_gc: &'a NoGC,
 }
 
 impl<'a, T: DomObject> UnrootedDom<'a, T> {
@@ -234,7 +234,7 @@ impl<'a, T: DomObject> UnrootedDom<'a, T> {
     pub(crate) fn from_dom(object: Dom<T>, no_gc: &'a NoGC) -> UnrootedDom<'a, T> {
         UnrootedDom {
             inner: object,
-            _no_gc: no_gc,
+            no_gc,
         }
     }
 }
@@ -244,6 +244,39 @@ impl<'a, T: DomObject> Deref for UnrootedDom<'a, T> {
 
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+
+/// Safety:
+/// We enforce the same lifetime as the given `UnrootedDom`, so the same
+/// guarantee about no GC happening in this lifetime.
+impl<'a, T: Castable> UnrootedDom<'a, T> {
+    /// Cast a DOM object root upwards to one of the interfaces it derives from.
+    #[expect(dead_code)]
+    pub fn upcast<U>(dom: UnrootedDom<'a, T>) -> UnrootedDom<'a, U>
+    where
+        U: Castable,
+        T: DerivedFrom<U>,
+    {
+        UnrootedDom {
+            inner: unsafe { mem::transmute::<Dom<T>, Dom<U>>(dom.inner) },
+            no_gc: dom.no_gc,
+        }
+    }
+
+    /// Cast a DOM object root downwards to one of the interfaces it might implement.
+    pub fn downcast<U>(dom: UnrootedDom<'a, T>) -> Option<UnrootedDom<'a, U>>
+    where
+        U: DerivedFrom<T>,
+    {
+        if dom.is::<U>() {
+            Some(UnrootedDom {
+                inner: unsafe { mem::transmute::<Dom<T>, Dom<U>>(dom.inner) },
+                no_gc: dom.no_gc,
+            })
+        } else {
+            None
+        }
     }
 }
 
@@ -305,10 +338,8 @@ impl<T: DomObject> MutNullableDom<T> {
     pub(crate) fn get_unrooted<'a>(&self, no_gc: &'a NoGC) -> Option<UnrootedDom<'a, T>> {
         assert_in_script();
         let ptr = unsafe { ptr::read(self.ptr.get()) };
-        ptr.map(|o| Dom::from_ref(&*o)).map(|dom| UnrootedDom {
-            inner: dom,
-            _no_gc: no_gc,
-        })
+        ptr.map(|o| Dom::from_ref(&*o))
+            .map(|dom| UnrootedDom { inner: dom, no_gc })
     }
 
     /// Set this `MutNullableDom` to the given value.
