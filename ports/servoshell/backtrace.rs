@@ -19,7 +19,7 @@ pub(crate) fn print(w: &mut dyn std::io::Write) -> Result<(), std::io::Error> {
         w,
         "{:?}",
         Print {
-            print_fn_address: print as usize,
+            print_fn_address: (print as *const ()).addr(),
         }
     )
 }
@@ -30,12 +30,13 @@ pub(crate) fn print_ohos() {
     log::error!(
         "{:?}",
         Print {
-            print_fn_address: print as usize,
+            print_fn_address: (print as *const ()).addr(),
         }
     )
 }
 
 struct Print {
+    /// Function pointer without provenance - do not cast back and dereference.
     print_fn_address: usize,
 }
 
@@ -48,7 +49,7 @@ impl fmt::Debug for Print {
             let mut print_fn_frame = 0;
             let mut frame_count = 0;
             backtrace::trace_unsynchronized(|frame| {
-                let found = frame.symbol_address() as usize == self.print_fn_address;
+                let found = frame.symbol_address().addr() == self.print_fn_address;
                 if found {
                     print_fn_frame = frame_count;
                 }
