@@ -455,7 +455,7 @@ impl ServiceWorkerManager {
 fn update_serviceworker(
     own_sender: GenericSender<ServiceWorkerMsg>,
     scope_url: ServoUrl,
-    scope_things: ScopeThings,
+    mut scope_things: ScopeThings,
     font_context: Arc<FontContext>,
 ) -> (
     ServiceWorker,
@@ -465,7 +465,8 @@ fn update_serviceworker(
     Arc<AtomicBool>,
 ) {
     let (sender, receiver) = unbounded();
-    let (_devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
+    let (devtools_sender, devtools_receiver) = generic_channel::channel().unwrap();
+    scope_things.init.from_devtools_sender = Some(devtools_sender);
     let worker_id = ServiceWorkerId::new();
 
     let (control_sender, control_receiver) = unbounded();

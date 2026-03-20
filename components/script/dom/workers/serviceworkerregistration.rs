@@ -126,7 +126,7 @@ impl ServiceWorkerRegistration {
 
         let worker_id = WorkerId(Uuid::new_v4());
         let devtools_chan = global.devtools_chan().cloned();
-        let init = prepare_workerscope_init(global, None, None);
+        let init = prepare_workerscope_init(global, None, Some(worker_id));
         ScopeThings {
             script_url,
             init,
