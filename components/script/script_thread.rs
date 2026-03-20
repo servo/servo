@@ -3925,7 +3925,7 @@ impl ScriptThread {
                     // submit_timing will only accept timing that is of type ResourceTimingType::Resource
                     let mut resource_timing = timing.clone();
                     resource_timing.timing_type = ResourceTimingType::Resource;
-                    submit_timing(&iframe_ctx, &eof, &resource_timing, CanGc::from_cx(cx));
+                    submit_timing(cx, &iframe_ctx, &eof, &resource_timing);
                 }
             }
 

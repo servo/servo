@@ -366,7 +366,7 @@ impl FetchResponseListener for StylesheetContext {
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        network_listener::submit_timing(&self, &status, &timing, CanGc::from_cx(cx));
+        network_listener::submit_timing(cx, &self, &status, &timing);
 
         let document = self.document.root();
         let Some(metadata) = self.metadata.as_ref() else {

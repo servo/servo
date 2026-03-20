@@ -985,15 +985,15 @@ struct FontNetworkTimingHandler {
 impl NetworkTimingHandler for FontNetworkTimingHandler {
     fn submit_timing(&self, url: ServoUrl, response: ResourceFetchTiming) {
         let global = self.global.clone();
-        self.task_source.queue(task!(network_timing: move || {
+        self.task_source.queue(task!(network_timing: move |cx| {
             submit_timing(
+                cx,
                 &FontFetchListener {
                     url,
                     global
                 },
                 &Ok(()),
                 &response,
-                CanGc::note(),
             );
         }));
     }
