@@ -16,8 +16,7 @@ use layout_api::{AuxiliaryFragmentType, AxesOverflow};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::display_list::{
-    AxesScrollSensitivity, PaintDisplayListInfo, ReferenceFrameNodeInfo, ScrollableNodeInfo,
-    SpatialTreeNodeInfo, StickyNodeInfo,
+    AxesScrollSensitivity, PaintDisplayListInfo, ReferenceFrameNodeInfo, ScrollType, ScrollableNodeInfo, SpatialTreeNodeInfo, StickyNodeInfo
 };
 use servo_config::opts::DiagnosticsLogging;
 use style::Zero;
@@ -194,6 +193,8 @@ impl StackingContextTree {
             );
         }
         root_stacking_context.sort();
+
+
 
         if debug.stacking_context_tree {
             root_stacking_context.debug_print();
@@ -1039,25 +1040,19 @@ pub(crate) struct ScrollbarDescriptor {
 
 impl ScrollbarDescriptor {
     fn should_render_horizontal_scrollbar(
-        overflow: &AxesOverflow,
+        sensitivity: &AxesScrollSensitivity,
         padding_rect: &PhysicalRect<Au>,
         scrollable_overflow_size: &Size2D<Au, CSSPixel>,
     ) -> bool {
-        matches!(
-            overflow.x,
-            ComputedOverflow::Scroll | ComputedOverflow::Auto
-        ) && scrollable_overflow_size.width > padding_rect.width()
+        sensitivity.x.contains(ScrollType::InputEvents) && scrollable_overflow_size.width > padding_rect.width()
     }
 
     fn should_render_vertical_scrollbar(
-        overflow: &AxesOverflow,
+        sensitivity: &AxesScrollSensitivity,
         padding_rect: &PhysicalRect<Au>,
         scrollable_overflow_size: &Size2D<Au, CSSPixel>,
     ) -> bool {
-        matches!(
-            overflow.y,
-            ComputedOverflow::Scroll | ComputedOverflow::Auto
-        ) && scrollable_overflow_size.height > padding_rect.height()
+        sensitivity.y.contains(ScrollType::InputEvents) && scrollable_overflow_size.height > padding_rect.height()
     }
 
     fn place_horizontal_scrollbar(
@@ -1783,7 +1778,6 @@ impl BoxFragment {
             parent_scroll_node_id,
             scroll_tree_node_id,
             containing_block_rect,
-            &overflow,
             &sensitivity,
         );
 
@@ -1803,19 +1797,18 @@ impl BoxFragment {
         parent_scroll_node_id: ScrollTreeNodeId,
         main_scroll_tree_node_id: ScrollTreeNodeId,
         containing_block_rect: &PhysicalRect<Au>,
-        overflow: &AxesOverflow,
         sensitivity: &AxesScrollSensitivity,
     ) -> Option<Box<ScrollbarDescriptor>> {
         let padding_rect = self.padding_rect();
         let scrollable_overflow_size = self.scrollable_overflow().size;
 
         let render_horizontal_scrollbar = ScrollbarDescriptor::should_render_horizontal_scrollbar(
-            overflow,
+            sensitivity,
             &padding_rect,
             &scrollable_overflow_size,
         );
         let render_vertical_scrollbar = ScrollbarDescriptor::should_render_vertical_scrollbar(
-            overflow,
+            sensitivity,
             &padding_rect,
             &scrollable_overflow_size,
         );
