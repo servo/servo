@@ -289,6 +289,8 @@ pub struct Preferences {
     /// default), then `rustls-platform-verifier` will be used, except on Android where
     /// `rust-webpki` is always used.
     pub network_use_webpki_roots: bool,
+    /// Whether the overlay scrollbar is enabled or not.
+    pub overlay_scrollbar_enabled: bool,
     /// The length of the session history, in navigations, for each `WebView. Back-forward
     /// cache entries that are more than `session_history_max_length` steps in the future or
     /// `session_history_max_length` steps in the past will be discarded. Navigating forward
@@ -470,6 +472,7 @@ impl Preferences {
             network_local_directory_listing_enabled: true,
             network_use_webpki_roots: false,
             session_history_max_length: 20,
+            overlay_scrollbar_enabled: false,
             shell_background_color_rgba: [1.0, 1.0, 1.0, 1.0],
             threadpools_async_runtime_workers_max: 6,
             threadpools_fallback_worker_num: 3,

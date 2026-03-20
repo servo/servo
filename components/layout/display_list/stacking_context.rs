@@ -1795,10 +1795,14 @@ impl BoxFragment {
         &self,
         stacking_context_tree: &mut StackingContextTree,
         parent_scroll_node_id: ScrollTreeNodeId,
-        main_scroll_tree_node_id: ScrollTreeNodeId,
+        scroll_container_scroll_node_id: ScrollTreeNodeId,
         containing_block_rect: &PhysicalRect<Au>,
         sensitivity: &AxesScrollSensitivity,
     ) -> Option<Box<ScrollbarDescriptor>> {
+        if !servo_config::pref!(overlay_scrollbar_enabled) {
+            return None;
+        }
+
         let padding_rect = self.padding_rect();
         let scrollable_overflow_size = self.scrollable_overflow().size;
 
@@ -1884,7 +1888,7 @@ impl BoxFragment {
             .paint_info
             .scroll_tree
             .set_linked_scrollbar_nodes(
-                main_scroll_tree_node_id,
+                scroll_container_scroll_node_id,
                 horizontal_slider
                     .as_ref()
                     .map(|slider| slider.scroll_node_id),
