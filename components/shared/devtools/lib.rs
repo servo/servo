@@ -192,6 +192,9 @@ pub enum EvaluateJSReplyValue {
         // Object preview
         own_properties: Option<Vec<PropertyPreview>>,
         own_properties_length: Option<u32>,
+        // Array-specific
+        kind: Option<String>,
+        array_length: Option<u32>,
     },
 }
 

@@ -79,8 +79,9 @@ const OBJECT_PREVIEW_MAX_ITEMS = 10;
 // <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#80>
 const previewers = {
     Function: [],
+    Array: [],
     Object: [],
-    // TODO: Add Array, Map, FormData etc
+    // TODO: Add Map, FormData etc
 };
 
 // Convert debuggee value to property descriptor value
@@ -173,6 +174,18 @@ previewers.Function.push(function FunctionPreviewer(obj) {
         isGenerator: obj.isGeneratorFunction,
         ownProperties,
         ownPropertiesLength,
+    };
+});
+
+// <https://searchfox.org/mozilla-central/source/devtools/server/actors/object/previewers.js#172>
+// TODO: Add implementation for showing Array items
+previewers.Array.push(function ArrayPreviewer(obj) {
+    const lengthDescriptor = obj.getOwnPropertyDescriptor("length");
+    const length = lengthDescriptor ? lengthDescriptor.value : 0;
+
+    return {
+        kind: "ArrayLike",
+        arrayLength: length,
     };
 });
 

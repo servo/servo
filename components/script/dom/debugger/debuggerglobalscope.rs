@@ -556,6 +556,12 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                     })
                 });
                 let own_properties_length = result.ownPropertiesLength.flatten();
+                let kind = result
+                    .kind
+                    .as_ref()
+                    .and_then(|o| o.as_ref())
+                    .map(|s| s.to_string());
+                let array_length = result.arrayLength.flatten();
 
                 EvaluateJSReplyValue::ActorValue {
                     class,
@@ -567,6 +573,8 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
                     is_generator,
                     own_properties,
                     own_properties_length,
+                    kind,
+                    array_length,
                 }
             },
             _ => unreachable!(),

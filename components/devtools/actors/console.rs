@@ -380,6 +380,8 @@ impl ConsoleActor {
                 is_generator,
                 own_properties,
                 own_properties_length,
+                kind,
+                array_length,
             } => {
                 let properties = own_properties.clone().unwrap_or_default();
                 // TODO: Replace this with a struct to avoid having the Map.
@@ -418,27 +420,34 @@ impl ConsoleActor {
                     m.insert("isGenerator".to_owned(), Value::Bool(is_generator));
                 }
 
-                // Build preview with ownProperties
+                // Build preview
                 // <https://searchfox.org/firefox-main/source/devtools/server/actors/object/previewers.js#849>
                 let mut preview = Map::new();
-                preview.insert("kind".to_owned(), Value::String("Object".to_owned()));
+                let preview_kind = kind.unwrap_or_else(|| "Object".to_owned());
+                preview.insert("kind".to_owned(), Value::String(preview_kind.clone()));
 
-                if let Some(ref props) = own_properties {
-                    let mut own_props_map = Map::new();
-                    for prop in props {
-                        let descriptor =
-                            serde_json::to_value(PropertyDescriptor::from(prop)).unwrap();
-                        own_props_map.insert(prop.name.clone(), descriptor);
+                if preview_kind == "ArrayLike" {
+                    if let Some(length) = array_length {
+                        preview.insert("length".to_owned(), Value::Number(length.into()));
                     }
-                    preview.insert("ownProperties".to_owned(), Value::Object(own_props_map));
-                }
+                } else {
+                    if let Some(ref props) = own_properties {
+                        let mut own_props_map = Map::new();
+                        for prop in props {
+                            let descriptor =
+                                serde_json::to_value(PropertyDescriptor::from(prop)).unwrap();
+                            own_props_map.insert(prop.name.clone(), descriptor);
+                        }
+                        preview.insert("ownProperties".to_owned(), Value::Object(own_props_map));
+                    }
 
-                if let Some(length) = own_properties_length {
-                    preview.insert(
-                        "ownPropertiesLength".to_owned(),
-                        Value::Number(length.into()),
-                    );
-                    m.insert("ownPropertyLength".to_owned(), Value::Number(length.into()));
+                    if let Some(length) = own_properties_length {
+                        preview.insert(
+                            "ownPropertiesLength".to_owned(),
+                            Value::Number(length.into()),
+                        );
+                        m.insert("ownPropertyLength".to_owned(), Value::Number(length.into()));
+                    }
                 }
 
                 m.insert("preview".to_owned(), Value::Object(preview));

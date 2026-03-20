@@ -50,6 +50,10 @@ dictionary EvalResultValue {
     // Object preview properties
     sequence<PropertyPreview>? ownProperties;
     unsigned long? ownPropertiesLength;
+
+    // Array-specific
+    DOMString? kind;
+    unsigned long? arrayLength;
 };
 
 // TODO: Maybe merge some parts of this with the EvalResultValue
