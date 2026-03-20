@@ -20,7 +20,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 use crate::drag_data_store::{DragDataStore, Kind, Mode};
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub(crate) struct DataTransferItem {
@@ -127,7 +126,7 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
                     let maybe_index = this.root().pending_callbacks.borrow().iter().position(|val| val.id == id);
                     if let Some(index) = maybe_index {
                         let callback = this.root().pending_callbacks.borrow_mut().swap_remove(index).callback;
-                        let _ = callback.Call__(DOMString::from(string), ExceptionHandling::Report, CanGc::from_cx(cx));
+                        let _ = callback.Call__(cx, DOMString::from(string), ExceptionHandling::Report);
                     }
                 }));
         }

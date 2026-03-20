@@ -427,7 +427,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
                 // Step 3.2.1: If deprecatedCallback is given,
                 //             then invoke deprecatedCallback with « permissionState » and "report".
                 if let Some(callback) = global.remove_notification_permission_request_callback(uuid_) {
-                    let _ = callback.Call__(notification_permission, ExceptionHandling::Report, CanGc::from_cx(cx));
+                    let _ = callback.Call__(cx, notification_permission, ExceptionHandling::Report);
                 }
 
                 // Step 3.2.2: Resolve promise with permissionState.

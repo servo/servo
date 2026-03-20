@@ -8537,7 +8537,7 @@ class CGCallback(CGClass):
         args = args[2:]
         # Record the names of all the arguments, so we can use them when we call
         # the private method.
-        argnames = [arg.name for arg in args] + ["can_gc"]
+        argnames = [arg.name for arg in args]
         argnamesWithThis = ["cx", "thisValue.handle()"] + argnames
         argnamesWithoutThis = ["cx", "HandleValue::undefined()"] + argnames
         # Now that we've recorded the argnames for our call to our private
@@ -8546,12 +8546,14 @@ class CGCallback(CGClass):
         args.append(Argument("ExceptionHandling", "aExceptionHandling",
                              "ReportExceptions"))
 
-        args.append(Argument("CanGc", "can_gc"))
-        method.args.append(Argument("CanGc", "can_gc"))
-
         # And now insert our template argument.
         argsWithoutThis = list(args)
         args.insert(0, Argument("&T", "thisObj"))
+
+        # And the cx argument
+        method.args[0].argType = "&mut JSContext"
+        args.insert(0, Argument("&mut JSContext", "cx"))
+        argsWithoutThis.insert(0, Argument("&mut JSContext", "cx"))
 
         # And the self argument
         method.args.insert(0, Argument(None, "&self"))
@@ -8559,8 +8561,8 @@ class CGCallback(CGClass):
         argsWithoutThis.insert(0, Argument(None, "&self"))
 
         bodyWithThis = (
-            "call_setup(self, aExceptionHandling, |cx| {\n"
-            "    rooted!(in(*cx) let mut thisValue: JSVal);\n"
+            "call_setup(cx, self, aExceptionHandling, |cx| {\n"
+            "    rooted!(&in(cx) let mut thisValue: JSVal);\n"
             "    let wrap_result = wrap_call_this_value(cx, thisObj, thisValue.handle_mut());\n"
             "    if !wrap_result {\n"
             "        return Err(JSFailed);\n"
@@ -8568,7 +8570,7 @@ class CGCallback(CGClass):
             f"    unsafe {{ self.{method.name}({', '.join(argnamesWithThis)}) }}"
             "})")
         bodyWithoutThis = (
-            "call_setup(self, aExceptionHandling, |cx| {\n"
+            "call_setup(cx, self, aExceptionHandling, |cx| {\n"
             f"    unsafe {{ self.{method.name}({', '.join(argnamesWithoutThis)}) }}"
             "})")
         return [ClassMethod(f'{method.name}_', method.returnType, args,

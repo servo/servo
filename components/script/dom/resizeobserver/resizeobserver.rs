@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use euclid::num::Zero;
 use euclid::{Rect, Size2D};
 use html5ever::ns;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use layout_api::BoxAreaType;
 use style_traits::CSSPixel;
@@ -115,8 +116,8 @@ impl ResizeObserver {
     /// Step 2 of <https://drafts.csswg.org/resize-observer/#broadcast-active-resize-observations>
     pub(crate) fn broadcast_active_resize_observations(
         &self,
+        cx: &mut JSContext,
         shallowest_target_depth: &mut ResizeObservationDepth,
-        can_gc: CanGc,
     ) {
         // Step 2.1 If observer.[[activeTargets]] slot is empty, continue.
         // NOTE: Due to the way we implement the activeTarges internal slot we can't easily
@@ -135,8 +136,12 @@ impl ResizeObserver {
             has_active_observation_targets = true;
 
             let window = target.owner_window();
-            let entry =
-                create_and_populate_a_resizeobserverentry(&window, target, observation, can_gc);
+            let entry = create_and_populate_a_resizeobserverentry(
+                &window,
+                target,
+                observation,
+                CanGc::from_cx(cx),
+            );
             entries.push(entry);
             observation.state = ObservationState::Done;
 
@@ -153,7 +158,7 @@ impl ResizeObserver {
         // Step 2.4 Invoke observer.[[callback]] with entries.
         let _ = self
             .callback
-            .Call_(self, entries, self, ExceptionHandling::Report, can_gc);
+            .Call_(cx, self, entries, self, ExceptionHandling::Report);
 
         // Step 2.5 Clear observer.[[activeTargets]].
         // NOTE: The observation state was modified in Step 2.2

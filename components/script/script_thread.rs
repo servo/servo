@@ -1216,6 +1216,9 @@ impl ScriptThread {
                 document.react_to_environment_changes()
             }
 
+            let mut realm = enter_auto_realm(cx, &*document);
+            let cx = &mut realm.current_realm();
+
             // > 11. For each doc of docs, update animations and send events for doc, passing
             // > in relative high resolution time given frameTimestamp and doc's relevant
             // > global object as the timestamp [WEBANIMATIONS]
@@ -1230,14 +1233,13 @@ impl ScriptThread {
             // > 14. For each doc of docs, run the animation frame callbacks for doc, passing
             // > in the relative high resolution time given frameTimestamp and doc's
             // > relevant global object as the timestamp.
-            document.run_the_animation_frame_callbacks(CanGc::from_cx(cx));
+            document.run_the_animation_frame_callbacks(cx);
 
             // Run the resize observer steps.
-            let _realm = enter_realm(&*document);
             let mut depth = Default::default();
             while document.gather_active_resize_observations_at_depth(&depth) {
                 // Note: this will reflow the doc.
-                depth = document.broadcast_active_resize_observations(CanGc::from_cx(cx));
+                depth = document.broadcast_active_resize_observations(cx);
             }
 
             if document.has_skipped_resize_observations() {

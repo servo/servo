@@ -7,6 +7,7 @@ use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::match_domstring_ascii;
 use script_bindings::str::DOMString;
@@ -108,8 +109,9 @@ impl ReportingObserver {
             // with a copy of global’s registered reporting observer list.
             let observers_global = Trusted::new(&*global);
             global.task_manager().dom_manipulation_task_source().queue(
-                task!(notify_reporting_observers: move || {
+                task!(notify_reporting_observers: move |cx| {
                     Self::invoke_reporting_observers_with_notify_list(
+                        cx,
                         observers_global.root().registered_reporting_observers()
                     );
                 }),
@@ -134,7 +136,10 @@ impl ReportingObserver {
     }
 
     /// <https://w3c.github.io/reporting/#invoke-observers>
-    fn invoke_reporting_observers_with_notify_list(notify_list: Vec<DomRoot<ReportingObserver>>) {
+    fn invoke_reporting_observers_with_notify_list(
+        cx: &mut JSContext,
+        notify_list: Vec<DomRoot<ReportingObserver>>,
+    ) {
         // Step 1. For each ReportingObserver observer in notify list:
         for observer in notify_list.iter() {
             // Step 1.1. If observer’s report queue is empty, then continue.
@@ -147,11 +152,11 @@ impl ReportingObserver {
             // Step 1.4. Invoke observer’s callback with « reports, observer » and "report",
             // and with observer as the callback this value.
             let _ = observer.callback.Call_(
+                cx,
                 &**observer,
                 reports,
                 observer,
                 ExceptionHandling::Report,
-                CanGc::deprecated_note(),
             );
         }
     }

@@ -8,18 +8,16 @@ use std::default::Default;
 use std::ffi::CStr;
 use std::rc::Rc;
 
-use js::jsapi::{
-    AddRawValueRoot, EnterRealm, Heap, IsCallable, JSObject, LeaveRealm, RemoveRawValueRoot,
-};
+use js::jsapi::{AddRawValueRoot, Heap, IsCallable, JSObject, RemoveRawValueRoot};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
-use js::rust::wrappers::{JS_GetProperty, JS_WrapObject};
+use js::rust::wrappers2::{EnterRealm, JS_GetProperty, JS_WrapObject, LeaveRealm};
 use js::rust::{HandleObject, MutableHandleValue, Runtime};
 
 use crate::codegen::GenericBindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::error::{Error, Fallible};
 use crate::inheritance::Castable;
 use crate::interfaces::{DocumentHelpers, DomHelpers, GlobalScopeHelpers};
-use crate::realms::{InRealm, enter_realm};
+use crate::realms::{InRealm, enter_auto_realm};
 use crate::reflector::DomObject;
 use crate::root::Dom;
 use crate::script_runtime::{CanGc, JSContext};
@@ -210,11 +208,15 @@ impl<D: DomTypes> CallbackInterface<D> {
 
     /// Returns the property with the given `name`, if it is a callable object,
     /// or an error otherwise.
-    pub fn get_callable_property(&self, cx: JSContext, name: &CStr) -> Fallible<JSVal> {
-        rooted!(in(*cx) let mut callable = UndefinedValue());
-        rooted!(in(*cx) let obj = self.callback_holder().get());
+    pub fn get_callable_property(
+        &self,
+        cx: &mut js::context::JSContext,
+        name: &CStr,
+    ) -> Fallible<JSVal> {
+        rooted!(&in(cx) let mut callable = UndefinedValue());
+        rooted!(&in(cx) let obj = self.callback_holder().get());
         unsafe {
-            if !JS_GetProperty(*cx, obj.handle(), name.as_ptr(), callable.handle_mut()) {
+            if !JS_GetProperty(cx, obj.handle(), name.as_ptr(), callable.handle_mut()) {
                 return Err(Error::JSFailed);
             }
 
@@ -231,11 +233,11 @@ impl<D: DomTypes> CallbackInterface<D> {
 
 /// Wraps the reflector for `p` into the realm of `cx`.
 pub(crate) fn wrap_call_this_value<T: ThisReflector>(
-    cx: JSContext,
+    cx: &mut js::context::JSContext,
     p: &T,
     mut rval: MutableHandleValue,
 ) -> bool {
-    rooted!(in(*cx) let mut obj = p.jsobject());
+    rooted!(&in(cx) let mut obj = p.jsobject());
 
     if obj.is_null() {
         rval.set(NullValue());
@@ -243,7 +245,7 @@ pub(crate) fn wrap_call_this_value<T: ThisReflector>(
     }
 
     unsafe {
-        if !JS_WrapObject(*cx, obj.handle_mut()) {
+        if !JS_WrapObject(cx, obj.handle_mut()) {
             return false;
         }
     }
@@ -256,9 +258,10 @@ pub(crate) fn wrap_call_this_value<T: ThisReflector>(
 ///
 /// <https://webidl.spec.whatwg.org/#es-invoking-callback-functions>
 pub fn call_setup<D: DomTypes, T: CallbackContainer<D>, R>(
+    cx: &mut js::context::JSContext,
     callback: &T,
     handling: ExceptionHandling,
-    f: impl FnOnce(JSContext) -> R,
+    f: impl FnOnce(&mut js::context::JSContext) -> R,
 ) -> R {
     // The global for reporting exceptions. This is the global object of the
     // (possibly wrapped) callback object.
@@ -266,24 +269,28 @@ pub fn call_setup<D: DomTypes, T: CallbackContainer<D>, R>(
     if let Some(window) = global.downcast::<D::Window>() {
         window.Document().ensure_safe_to_run_script_or_layout();
     }
-    let cx = D::GlobalScope::get_cx();
 
     let global = &global;
 
     // Step 8: Prepare to run script with relevant settings.
     run_a_script::<D, R>(global, move || {
         let actual_callback = || {
-            let old_realm = unsafe { EnterRealm(*cx, callback.callback()) };
+            let old_realm = unsafe { EnterRealm(cx, callback.callback()) };
             let result = f(cx);
             unsafe {
-                LeaveRealm(*cx, old_realm);
+                LeaveRealm(cx, old_realm);
             }
             if handling == ExceptionHandling::Report {
-                let ar = enter_realm::<D>(&**global);
+                let mut realm = enter_auto_realm::<D>(cx, &**global);
+                let cx = &mut realm.current_realm();
+
+                let in_realm_proof = cx.into();
+                let in_realm = InRealm::Already(&in_realm_proof);
+
                 <D as DomHelpers<D>>::report_pending_exception(
-                    cx,
-                    InRealm::Entered(&ar),
-                    CanGc::deprecated_note(),
+                    cx.into(),
+                    in_realm,
+                    CanGc::from_cx(cx),
                 );
             }
             result

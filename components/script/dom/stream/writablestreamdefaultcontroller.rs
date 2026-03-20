@@ -540,11 +540,11 @@ impl WritableStreamDefaultController {
                     rooted!(&in(cx) let mut result: JSVal);
                     rooted!(&in(cx) let this_object = self.underlying_sink_obj.get());
                     start.Call_(
+                        cx,
                         &this_object.handle(),
                         self,
                         result.handle_mut(),
                         ExceptionHandling::Rethrow,
-                        CanGc::from_cx(cx),
                     )?;
                     let is_promise = unsafe {
                         if result.is_object() {
@@ -601,10 +601,10 @@ impl WritableStreamDefaultController {
                 // Let result be the result of performing this.[[abortAlgorithm]], passing reason.
                 let result = if let Some(algo) = algo {
                     algo.Call_(
+                        cx,
                         &this_object.handle(),
                         Some(reason),
                         ExceptionHandling::Rethrow,
-                        CanGc::from_cx(cx),
                     )
                 } else {
                     Ok(Promise::new_resolved(
@@ -674,11 +674,11 @@ impl WritableStreamDefaultController {
                 let algo = write.borrow().clone();
                 let result = if let Some(algo) = algo {
                     algo.Call_(
+                        cx,
                         &this_object.handle(),
                         chunk,
                         self,
                         ExceptionHandling::Rethrow,
-                        CanGc::from_cx(cx),
                     )
                 } else {
                     Ok(Promise::new_resolved(
@@ -755,11 +755,7 @@ impl WritableStreamDefaultController {
                 this_object.set(self.underlying_sink_obj.get());
                 let algo = close.borrow().clone();
                 let result = if let Some(algo) = algo {
-                    algo.Call_(
-                        &this_object.handle(),
-                        ExceptionHandling::Rethrow,
-                        CanGc::from_cx(cx),
-                    )
+                    algo.Call_(cx, &this_object.handle(), ExceptionHandling::Rethrow)
                 } else {
                     Ok(Promise::new_resolved(
                         global,
@@ -976,7 +972,7 @@ impl WritableStreamDefaultController {
 
         // Let returnValue be the result of performing controller.[[strategySizeAlgorithm]],
         // passing in chunk, and interpreting the result as a completion record.
-        let result = strategy_size.Call__(chunk, ExceptionHandling::Rethrow, CanGc::from_cx(cx));
+        let result = strategy_size.Call__(cx, chunk, ExceptionHandling::Rethrow);
 
         match result {
             // Let chunkSize be result.[[Value]].

@@ -260,8 +260,8 @@ impl Performance {
                 self.global()
                     .task_manager()
                     .performance_timeline_task_source()
-                    .queue(task!(notify_performance_observers: move || {
-                        owner.root().notify_observers();
+                    .queue(task!(notify_performance_observers: move |cx| {
+                        owner.root().notify_observers(cx);
                     }));
             }
         }
@@ -345,8 +345,8 @@ impl Performance {
         self.global()
             .task_manager()
             .performance_timeline_task_source()
-            .queue(task!(notify_performance_observers: move || {
-                owner.root().notify_observers();
+            .queue(task!(notify_performance_observers: move |cx| {
+                owner.root().notify_observers(cx);
             }));
 
         Some(entry_last_index)
@@ -356,7 +356,7 @@ impl Performance {
     ///
     /// Algorithm spec (step 7):
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
-    pub(crate) fn notify_observers(&self) {
+    fn notify_observers(&self, cx: &mut JSContext) {
         // Step 7.1.
         self.pending_notification_observers_task.set(false);
 
@@ -374,7 +374,7 @@ impl Performance {
 
         // Step 7.3.
         for o in observers.iter() {
-            o.notify(CanGc::deprecated_note());
+            o.notify(cx);
         }
     }
 

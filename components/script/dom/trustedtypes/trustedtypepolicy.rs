@@ -25,7 +25,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
-use crate::script_runtime::CanGc;
 
 #[dom_struct]
 pub struct TrustedTypePolicy {
@@ -114,12 +113,7 @@ impl TrustedTypePolicy {
                     // Step 4: Let policyValue be the result of invoking function with value as a first argument,
                     // items of arguments as subsequent arguments, and callback **this** value set to undefined,
                     // rethrowing any exceptions.
-                    callback.Call__(
-                        input,
-                        arguments,
-                        ExceptionHandling::Rethrow,
-                        CanGc::from_cx(cx),
-                    )
+                    callback.Call__(cx, input, arguments, ExceptionHandling::Rethrow)
                 },
             },
             TrustedType::TrustedScript => match &self.create_script {
@@ -130,12 +124,7 @@ impl TrustedTypePolicy {
                     // Step 4: Let policyValue be the result of invoking function with value as a first argument,
                     // items of arguments as subsequent arguments, and callback **this** value set to undefined,
                     // rethrowing any exceptions.
-                    callback.Call__(
-                        input,
-                        arguments,
-                        ExceptionHandling::Rethrow,
-                        CanGc::from_cx(cx),
-                    )
+                    callback.Call__(cx, input, arguments, ExceptionHandling::Rethrow)
                 },
             },
             TrustedType::TrustedScriptURL => match &self.create_script_url {
@@ -147,12 +136,7 @@ impl TrustedTypePolicy {
                     // items of arguments as subsequent arguments, and callback **this** value set to undefined,
                     // rethrowing any exceptions.
                     callback
-                        .Call__(
-                            input,
-                            arguments,
-                            ExceptionHandling::Rethrow,
-                            CanGc::from_cx(cx),
-                        )
+                        .Call__(cx, input, arguments, ExceptionHandling::Rethrow)
                         .map(|result| result.map(DOMString::from))
                 },
             },

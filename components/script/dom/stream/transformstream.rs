@@ -1032,11 +1032,11 @@ impl TransformStreamMethods<crate::DomTypeHolder> for TransformStream {
             rooted!(&in(cx) let mut result: JSVal);
             rooted!(&in(cx) let this_object = transformer_obj.get());
             start.Call_(
+                cx,
                 &this_object.handle(),
                 &stream.get_controller(),
                 result.handle_mut(),
                 ExceptionHandling::Rethrow,
-                CanGc::from_cx(cx),
             )?;
             let is_promise = unsafe {
                 if result.is_object() {

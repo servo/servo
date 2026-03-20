@@ -226,11 +226,11 @@ impl TransformStreamDefaultController {
                     rooted!(&in(cx) let this_object = transform_obj.get());
                     transform
                         .Call_(
+                            cx,
                             &this_object.handle(),
                             chunk,
                             self,
                             ExceptionHandling::Rethrow,
-                            CanGc::from_cx(cx),
                         )
                         .unwrap_or_else(|e| {
                             let p = Promise::new2(cx, global);
@@ -383,12 +383,7 @@ impl TransformStreamDefaultController {
                 if let Some(cancel) = algo {
                     rooted!(&in(cx) let this_object = transform_obj.get());
                     cancel
-                        .Call_(
-                            &this_object.handle(),
-                            chunk,
-                            ExceptionHandling::Rethrow,
-                            CanGc::from_cx(cx),
-                        )
+                        .Call_(cx, &this_object.handle(), chunk, ExceptionHandling::Rethrow)
                         .unwrap_or_else(|e| {
                             let p = Promise::new2(cx, global);
                             p.reject_error(e, CanGc::from_cx(cx));
@@ -468,12 +463,7 @@ impl TransformStreamDefaultController {
                 if let Some(flush) = algo {
                     rooted!(&in(cx) let this_object = transform_obj.get());
                     flush
-                        .Call_(
-                            &this_object.handle(),
-                            self,
-                            ExceptionHandling::Rethrow,
-                            CanGc::from_cx(cx),
-                        )
+                        .Call_(cx, &this_object.handle(), self, ExceptionHandling::Rethrow)
                         .unwrap_or_else(|e| {
                             let p = Promise::new2(cx, global);
                             p.reject_error(e, CanGc::from_cx(cx));

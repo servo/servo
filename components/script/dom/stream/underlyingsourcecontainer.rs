@@ -128,10 +128,10 @@ impl UnderlyingSourceContainer {
                 if let Some(algo) = &source.cancel {
                     let result = unsafe {
                         algo.Call_(
+                            cx,
                             &SafeHandle::from_raw(this_obj.handle()),
                             Some(reason),
                             ExceptionHandling::Rethrow,
-                            CanGc::from_cx(cx),
                         )
                     };
                     return Some(result);
@@ -189,10 +189,10 @@ impl UnderlyingSourceContainer {
                 if let Some(algo) = &source.pull {
                     let result = unsafe {
                         algo.Call_(
+                            cx,
                             &SafeHandle::from_raw(this_obj.handle()),
                             controller,
                             ExceptionHandling::Rethrow,
-                            CanGc::from_cx(cx),
                         )
                     };
                     return Some(result);
@@ -252,11 +252,11 @@ impl UnderlyingSourceContainer {
                     rooted!(&in(cx) let mut result: JSVal);
                     unsafe {
                         if let Err(error) = start.Call_(
+                            cx,
                             &SafeHandle::from_raw(this_obj.handle()),
                             controller,
                             result.handle_mut(),
                             ExceptionHandling::Rethrow,
-                            CanGc::from_cx(cx),
                         ) {
                             return Some(Err(error));
                         }

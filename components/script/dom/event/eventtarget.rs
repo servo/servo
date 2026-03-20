@@ -207,26 +207,26 @@ impl CompiledEventListener {
     // https://html.spec.whatwg.org/multipage/#the-event-handler-processing-algorithm
     pub(crate) fn call_or_handle_event(
         &self,
+        cx: &mut JSContext,
         object: &EventTarget,
         event: &Event,
         exception_handle: ExceptionHandling,
-        can_gc: CanGc,
     ) -> Fallible<()> {
         // Step 3
         match *self {
             CompiledEventListener::Listener(ref listener) => {
-                listener.HandleEvent_(object, event, exception_handle, can_gc)
+                listener.HandleEvent_(cx, object, event, exception_handle)
             },
             CompiledEventListener::Handler(ref handler) => {
                 match *handler {
                     CommonEventHandler::ErrorEventHandler(ref handler) => {
                         if let Some(event) = event.downcast::<ErrorEvent>() {
                             if object.is::<Window>() || object.is::<WorkerGlobalScope>() {
-                                let cx = GlobalScope::get_cx();
-                                rooted!(in(*cx) let mut error: JSVal);
-                                event.Error(cx, error.handle_mut());
-                                rooted!(in(*cx) let mut rooted_return_value: JSVal);
+                                rooted!(&in(cx) let mut error: JSVal);
+                                event.Error(cx.into(), error.handle_mut());
+                                rooted!(&in(cx) let mut rooted_return_value: JSVal);
                                 let return_value = handler.Call_(
+                                    cx,
                                     object,
                                     EventOrString::String(event.Message()),
                                     Some(event.Filename()),
@@ -235,7 +235,6 @@ impl CompiledEventListener {
                                     Some(error.handle()),
                                     rooted_return_value.handle_mut(),
                                     exception_handle,
-                                    can_gc,
                                 );
                                 // Step 4
                                 if let Ok(()) = return_value {
@@ -249,8 +248,9 @@ impl CompiledEventListener {
                             }
                         }
 
-                        rooted!(in(*GlobalScope::get_cx()) let mut rooted_return_value: JSVal);
+                        rooted!(&in(cx) let mut rooted_return_value: JSVal);
                         handler.Call_(
+                            cx,
                             object,
                             EventOrString::Event(DomRoot::from_ref(event)),
                             None,
@@ -259,7 +259,6 @@ impl CompiledEventListener {
                             None,
                             rooted_return_value.handle_mut(),
                             exception_handle,
-                            can_gc,
                         )
                     },
 
@@ -267,10 +266,10 @@ impl CompiledEventListener {
                         if let Some(event) = event.downcast::<BeforeUnloadEvent>() {
                             // Step 5
                             match handler.Call_(
+                                cx,
                                 object,
                                 event.upcast::<Event>(),
                                 exception_handle,
-                                can_gc,
                             ) {
                                 Ok(value) => {
                                     let rv = event.ReturnValue();
@@ -287,20 +286,19 @@ impl CompiledEventListener {
                         } else {
                             // Step 5, "Otherwise" clause
                             handler
-                                .Call_(object, event.upcast::<Event>(), exception_handle, can_gc)
+                                .Call_(cx, object, event.upcast::<Event>(), exception_handle)
                                 .map(|_| ())
                         }
                     },
 
                     CommonEventHandler::EventHandler(ref handler) => {
-                        let cx = GlobalScope::get_cx();
-                        rooted!(in(*cx) let mut rooted_return_value: JSVal);
+                        rooted!(&in(cx) let mut rooted_return_value: JSVal);
                         match handler.Call_(
+                            cx,
                             object,
                             event,
                             rooted_return_value.handle_mut(),
                             exception_handle,
-                            can_gc,
                         ) {
                             Ok(()) => {
                                 let value = rooted_return_value.handle();

@@ -1093,11 +1093,11 @@ impl CustomElementReaction {
                 let arguments = arguments.iter().map(|arg| arg.as_handle_value()).collect();
                 rooted!(&in(cx) let mut value: JSVal);
                 let _ = callback.Call_(
+                    cx,
                     element,
                     arguments,
                     value.handle_mut(),
                     ExceptionHandling::Report,
-                    CanGc::from_cx(cx),
                 );
             },
         }

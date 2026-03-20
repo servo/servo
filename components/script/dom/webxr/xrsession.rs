@@ -213,8 +213,8 @@ impl XRSession {
                 let frame: Frame = message.unwrap();
                 let time = CrossProcessInstant::now();
                 let this = this.clone();
-                task_source.queue(task!(xr_raf_callback: move || {
-                    this.root().raf_callback(frame, time, CanGc::deprecated_note());
+                task_source.queue(task!(xr_raf_callback: move |cx| {
+                    this.root().raf_callback(cx, frame, time);
                 }));
             }),
         );
@@ -414,7 +414,12 @@ impl XRSession {
     }
 
     /// <https://immersive-web.github.io/webxr/#xr-animation-frame>
-    fn raf_callback(&self, mut frame: Frame, time: CrossProcessInstant, can_gc: CanGc) {
+    fn raf_callback(
+        &self,
+        cx: &mut js::context::JSContext,
+        mut frame: Frame,
+        time: CrossProcessInstant,
+    ) {
         debug!("WebXR RAF callback {:?}", frame);
 
         // Step 1-2 happen in the xebxr device thread
@@ -434,7 +439,7 @@ impl XRSession {
 
         // TODO: how does this fit the webxr spec?
         for event in frame.events.drain(..) {
-            self.handle_frame_event(event, can_gc);
+            self.handle_frame_event(event, CanGc::from_cx(cx));
         }
 
         // Step 4
@@ -466,12 +471,7 @@ impl XRSession {
         }
 
         let time = self.global().performance().to_dom_high_res_time_stamp(time);
-        let frame = XRFrame::new(
-            self.global().as_window(),
-            self,
-            frame,
-            CanGc::deprecated_note(),
-        );
+        let frame = XRFrame::new(self.global().as_window(), self, frame, CanGc::from_cx(cx));
 
         // Step 8-9
         frame.set_active(true);
@@ -489,7 +489,7 @@ impl XRSession {
         for i in 0..len {
             let callback = self.current_raf_callback_list.borrow()[i].1.clone();
             if let Some(callback) = callback {
-                let _ = callback.Call__(time, &frame, ExceptionHandling::Report, can_gc);
+                let _ = callback.Call__(cx, time, &frame, ExceptionHandling::Report);
             }
         }
         self.outside_raf.set(true);

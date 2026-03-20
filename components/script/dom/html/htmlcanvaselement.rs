@@ -594,7 +594,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                 };
 
                 let Some(mut snapshot) = result else {
-                    let _ = callback.Call__(None, ExceptionHandling::Report, CanGc::from_cx(cx));
+                    let _ = callback.Call__(cx, None, ExceptionHandling::Report);
                     return;
                 };
 
@@ -618,7 +618,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
                 };
 
                 // Step 4.2.2: Invoke callback with « result » and "report".
-                let _ = callback.Call__(result, ExceptionHandling::Report, CanGc::from_cx(cx));
+                let _ = callback.Call__(cx, result, ExceptionHandling::Report);
             }));
 
         Ok(())

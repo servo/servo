@@ -14,7 +14,6 @@ use script_bindings::callback::ExceptionHandling;
 use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use script_bindings::root::Dom;
-use script_bindings::script_runtime::CanGc;
 use script_bindings::str::DOMString;
 use style::Atom;
 use style::dom::OpaqueNode;
@@ -273,13 +272,13 @@ impl xpath::Attribute for XPathWrapper<DomRoot<Attr>> {
 }
 
 impl xpath::NamespaceResolver for XPathWrapper<Rc<XPathNSResolver>> {
+    #[expect(unsafe_code)]
     fn resolve_namespace_prefix(&self, prefix: &str) -> Option<String> {
+        let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+        let cx = &mut cx;
+
         self.0
-            .LookupNamespaceURI__(
-                Some(DOMString::from(prefix)),
-                ExceptionHandling::Report,
-                CanGc::deprecated_note(),
-            )
+            .LookupNamespaceURI__(cx, Some(DOMString::from(prefix)), ExceptionHandling::Report)
             .ok()
             .flatten()
             .map(String::from)

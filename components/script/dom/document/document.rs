@@ -28,6 +28,7 @@ use encoding_rs::{Encoding, UTF_8};
 use fonts::WebFontDocumentContext;
 use html5ever::{LocalName, Namespace, QualName, local_name, ns};
 use hyper_serde::Serde;
+use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use layout_api::{
     PendingRestyle, ReflowGoal, ReflowPhasesRun, ReflowStatistics, RestyleReason,
@@ -196,7 +197,6 @@ use crate::image_animation::ImageAnimationManager;
 use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
 use crate::network_listener::{FetchResponseListener, NetworkListener};
-use crate::realms::enter_realm;
 use crate::script_runtime::CanGc;
 use crate::script_thread::ScriptThread;
 use crate::stylesheet_set::StylesheetSetRef;
@@ -1687,9 +1687,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks>
-    pub(crate) fn run_the_animation_frame_callbacks(&self, can_gc: CanGc) {
-        let _realm = enter_realm(self);
-
+    pub(crate) fn run_the_animation_frame_callbacks(&self, cx: &mut CurrentRealm) {
         self.running_animation_callbacks.set(true);
         let timing = self.global().performance().Now();
 
@@ -1697,7 +1695,7 @@ impl Document {
         for _ in 0..num_callbacks {
             let (_, maybe_callback) = self.animation_frame_list.borrow_mut().pop_front().unwrap();
             if let Some(callback) = maybe_callback {
-                callback.call(self, *timing, can_gc);
+                callback.call(cx, self, *timing);
             }
         }
         self.running_animation_callbacks.set(false);
@@ -3024,7 +3022,7 @@ impl Document {
     #[expect(clippy::redundant_iter_cloned)]
     pub(crate) fn broadcast_active_resize_observations(
         &self,
-        can_gc: CanGc,
+        cx: &mut js::context::JSContext,
     ) -> ResizeObservationDepth {
         let mut shallowest = ResizeObservationDepth::max();
         // Breaking potential re-borrow cycle on `resize_observers`:
@@ -3038,7 +3036,7 @@ impl Document {
             .map(|obs| DomRoot::from_ref(&*obs))
             .collect();
         for observer in iterator {
-            observer.broadcast_active_resize_observations(&mut shallowest, can_gc);
+            observer.broadcast_active_resize_observations(cx, &mut shallowest);
         }
         shallowest
     }
@@ -3167,7 +3165,7 @@ impl Document {
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#notify-intersection-observers-algo>
-    pub(crate) fn notify_intersection_observers(&self, can_gc: CanGc) {
+    pub(crate) fn notify_intersection_observers(&self, cx: &mut js::context::JSContext) {
         // Step 1
         // > Set document’s IntersectionObserverTaskQueued flag to false.
         self.intersection_observer_task_queued.set(false);
@@ -3182,7 +3180,7 @@ impl Document {
         // > For each IntersectionObserver object observer in notify list, run these steps:
         for intersection_observer in notify_list.iter() {
             // Step 3.1-3.5
-            intersection_observer.invoke_callback_if_necessary(can_gc);
+            intersection_observer.invoke_callback_if_necessary(cx);
         }
     }
 
@@ -3206,7 +3204,7 @@ impl Document {
             .task_manager()
             .intersection_observer_task_source()
             .queue(task!(notify_intersection_observers: move |cx| {
-                document.root().notify_intersection_observers(CanGc::from_cx(cx));
+                document.root().notify_intersection_observers(cx);
             }));
     }
 
@@ -4347,7 +4345,7 @@ impl Document {
     }
 
     /// An implementation of <https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events>.
-    pub(crate) fn update_animations_and_send_events(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn update_animations_and_send_events(&self, cx: &mut CurrentRealm) {
         // Only update the time if it isn't being managed by a test.
         if !self.layout_animations_test_enabled {
             self.timeline.update(self.window());
@@ -4368,7 +4366,6 @@ impl Document {
         self.window().perform_a_microtask_checkpoint(cx);
 
         // Steps 4 through 7 occur inside `send_pending_events().`
-        let _realm = enter_realm(self);
         self.animations().send_pending_events(self.window(), cx);
     }
 
@@ -6338,7 +6335,7 @@ pub(crate) enum AnimationFrameCallback {
 }
 
 impl AnimationFrameCallback {
-    fn call(&self, document: &Document, now: f64, can_gc: CanGc) {
+    fn call(&self, cx: &mut js::context::JSContext, document: &Document, now: f64) {
         match *self {
             AnimationFrameCallback::DevtoolsFramerateTick { ref actor_name } => {
                 let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name.clone(), now);
@@ -6348,7 +6345,7 @@ impl AnimationFrameCallback {
             AnimationFrameCallback::FrameRequestCallback { ref callback } => {
                 // TODO(jdm): The spec says that any exceptions should be suppressed:
                 // https://github.com/servo/servo/issues/6928
-                let _ = callback.Call__(Finite::wrap(now), ExceptionHandling::Report, can_gc);
+                let _ = callback.Call__(cx, Finite::wrap(now), ExceptionHandling::Report);
             },
         }
     }
