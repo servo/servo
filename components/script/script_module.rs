@@ -1527,7 +1527,7 @@ pub(crate) fn fetch_a_single_module_script(
         // be careful of a borrow hazard here (do not hold a RefCell over a possible GC pause)
         let pending_option = pending.borrow_mut().take();
         let new_pending =
-            pending_option.unwrap_or(Promise::new_in_current_realm(comp, CanGc::note()));
+            pending_option.unwrap_or_else(|| Promise::new_in_current_realm(comp, CanGc::note()));
         new_pending.append_native_handler(&handler, comp, CanGc::note());
         let _ = pending.borrow_mut().insert(new_pending);
 
