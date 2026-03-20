@@ -2118,39 +2118,23 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetEventListenerInfo(id, node, reply) => {
                 devtools::handle_get_event_listener_info(&self.devtools_state, id, &node, reply)
             },
-            DevtoolScriptControlMsg::GetRootNode(id, reply) => devtools::handle_get_root_node(
-                &self.devtools_state,
-                &documents,
-                id,
-                reply,
-                CanGc::from_cx(cx),
-            ),
+            DevtoolScriptControlMsg::GetRootNode(id, reply) => {
+                devtools::handle_get_root_node(cx, &self.devtools_state, &documents, id, reply)
+            },
             DevtoolScriptControlMsg::GetDocumentElement(id, reply) => {
                 devtools::handle_get_document_element(
+                    cx,
                     &self.devtools_state,
                     &documents,
                     id,
                     reply,
-                    CanGc::from_cx(cx),
                 )
             },
             DevtoolScriptControlMsg::GetChildren(id, node_id, reply) => {
-                devtools::handle_get_children(
-                    &self.devtools_state,
-                    id,
-                    &node_id,
-                    reply,
-                    CanGc::from_cx(cx),
-                )
+                devtools::handle_get_children(cx, &self.devtools_state, id, &node_id, reply)
             },
             DevtoolScriptControlMsg::GetAttributeStyle(id, node_id, reply) => {
-                devtools::handle_get_attribute_style(
-                    &self.devtools_state,
-                    id,
-                    &node_id,
-                    reply,
-                    CanGc::from_cx(cx),
-                )
+                devtools::handle_get_attribute_style(cx, &self.devtools_state, id, &node_id, reply)
             },
             DevtoolScriptControlMsg::GetStylesheetStyle(
                 id,
@@ -2159,6 +2143,7 @@ impl ScriptThread {
                 stylesheet,
                 reply,
             ) => devtools::handle_get_stylesheet_style(
+                cx,
                 &self.devtools_state,
                 &documents,
                 id,
@@ -2166,49 +2151,44 @@ impl ScriptThread {
                 selector,
                 stylesheet,
                 reply,
-                CanGc::from_cx(cx),
             ),
             DevtoolScriptControlMsg::GetSelectors(id, node_id, reply) => {
                 devtools::handle_get_selectors(
+                    cx,
                     &self.devtools_state,
                     &documents,
                     id,
                     &node_id,
                     reply,
-                    CanGc::from_cx(cx),
                 )
             },
             DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => {
                 devtools::handle_get_computed_style(&self.devtools_state, id, &node_id, reply)
             },
-            DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => devtools::handle_get_layout(
-                &self.devtools_state,
-                id,
-                &node_id,
-                reply,
-                CanGc::from_cx(cx),
-            ),
+            DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => {
+                devtools::handle_get_layout(cx, &self.devtools_state, id, &node_id, reply)
+            },
             DevtoolScriptControlMsg::GetXPath(id, node_id, reply) => {
                 devtools::handle_get_xpath(&self.devtools_state, id, &node_id, reply)
             },
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) => {
                 devtools::handle_modify_attribute(
+                    cx,
                     &self.devtools_state,
                     &documents,
                     id,
                     &node_id,
                     modifications,
-                    CanGc::from_cx(cx),
                 )
             },
             DevtoolScriptControlMsg::ModifyRule(id, node_id, modifications) => {
                 devtools::handle_modify_rule(
+                    cx,
                     &self.devtools_state,
                     &documents,
                     id,
                     &node_id,
                     modifications,
-                    CanGc::from_cx(cx),
                 )
             },
             DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => {
