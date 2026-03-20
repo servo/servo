@@ -3394,6 +3394,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn GetBoundingClientRect(&self, can_gc: CanGc) -> DomRoot<DOMRect> {
         let win = self.owner_window();
         let rect = self.upcast::<Node>().border_box().unwrap_or_default();
+        debug_assert!(rect.size.width.to_f64_px() >= 0.0 && rect.size.height.to_f64_px() >= 0.0);
         DOMRect::new(
             win.upcast(),
             rect.origin.x.to_f64_px(),
