@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use data_url::mime::Mime;
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use net_traits::request::InsecureRequestsPolicy;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_traits::DocumentActivity;
@@ -122,8 +123,8 @@ impl XMLDocument {
 
 impl XMLDocumentMethods<crate::DomTypeHolder> for XMLDocument {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-location>
-    fn GetLocation(&self) -> Option<DomRoot<Location>> {
-        self.upcast::<Document>().GetLocation()
+    fn GetLocation(&self, cx: &mut JSContext) -> Option<DomRoot<Location>> {
+        self.upcast::<Document>().GetLocation(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>

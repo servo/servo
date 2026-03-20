@@ -1863,9 +1863,7 @@ impl ScriptThread {
             ScriptThreadMessage::ReportCSSError(pipeline_id, filename, line, column, msg) => {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg)
             },
-            ScriptThreadMessage::Reload(pipeline_id) => {
-                self.handle_reload(pipeline_id, CanGc::from_cx(cx))
-            },
+            ScriptThreadMessage::Reload(pipeline_id) => self.handle_reload(pipeline_id, cx),
             ScriptThreadMessage::Resize(id, size, size_type) => {
                 self.handle_resize_message(id, size, size_type);
             },
@@ -2239,7 +2237,7 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GoForward(pipeline_id) => {
                 self.handle_traverse_history(pipeline_id, TraversalDirection::Forward(1))
             },
-            DevtoolScriptControlMsg::Reload(id) => self.handle_reload(id, CanGc::from_cx(cx)),
+            DevtoolScriptControlMsg::Reload(id) => self.handle_reload(id, cx),
             DevtoolScriptControlMsg::GetCssDatabase(reply) => {
                 devtools::handle_get_css_database(reply)
             },
@@ -4160,10 +4158,10 @@ impl ScriptThread {
         }
     }
 
-    fn handle_reload(&self, pipeline_id: PipelineId, can_gc: CanGc) {
+    fn handle_reload(&self, pipeline_id: PipelineId, cx: &mut js::context::JSContext) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
-            window.Location().reload_without_origin_check(can_gc);
+            window.Location(cx).reload_without_origin_check(cx);
         }
     }
 

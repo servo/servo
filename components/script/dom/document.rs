@@ -6104,9 +6104,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-location>
-    fn GetLocation(&self) -> Option<DomRoot<Location>> {
+    fn GetLocation(&self, cx: &mut js::context::JSContext) -> Option<DomRoot<Location>> {
         if self.is_fully_active() {
-            Some(self.window.Location())
+            Some(self.window.Location(cx))
         } else {
             None
         }
