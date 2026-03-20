@@ -1520,10 +1520,12 @@ pub(crate) fn fetch_a_single_module_script(
     let comp = InRealm::Entered(&realm);
     run_a_callback::<DomTypeHolder, _>(&global, || {
         let has_pending_fetch = pending.borrow().is_some();
-        pending
-            .borrow_mut()
-            .get_or_insert_with(|| Promise::new_in_current_realm(comp, CanGc::note()))
-            .append_native_handler(&handler, comp, CanGc::note());
+        // be careful of a borrow hazard here (do not hold a RefCell over a possible GC pause)
+        let pending_option = pending.borrow_mut().take();
+        let new_pending =
+            pending_option.unwrap_or_else(|| Promise::new_in_current_realm(comp, CanGc::note()));
+        new_pending.append_native_handler(&handler, comp, CanGc::note());
+        let _ = pending.borrow_mut().insert(new_pending);
 
         // Step 5. If moduleMap[(url, moduleType)] is "fetching", wait in parallel until that entry's value changes,
         // then queue a task on the networking task source to proceed with running the following steps.
