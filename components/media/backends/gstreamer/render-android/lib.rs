@@ -24,17 +24,17 @@ struct GStreamerBuffer {
 }
 
 impl Buffer for GStreamerBuffer {
-    fn to_vec(&self) -> Result<VideoFrameData, ()> {
+    fn to_vec(&self) -> Option<VideoFrameData> {
         // packed formats are guaranteed to be in a single plane
         if self.frame.format() == gstreamer_video::VideoFormat::Rgba {
-            let tex_id = self.frame.texture_id(0).map_err(|_| ())?;
-            Ok(if self.is_external_oes {
+            let tex_id = self.frame.texture_id(0).ok()?;
+            Some(if self.is_external_oes {
                 VideoFrameData::OESTexture(tex_id)
             } else {
                 VideoFrameData::Texture(tex_id)
             })
         } else {
-            Err(())
+            None
         }
     }
 }
@@ -124,8 +124,8 @@ impl Render for RenderAndroid {
             };
         }
 
-        let buffer = sample.buffer_owned().ok_or_else(|| ())?;
-        let caps = sample.caps().ok_or_else(|| ())?;
+        let buffer = sample.buffer_owned()?;
+        let caps = sample.caps()?;
 
         let is_external_oes = caps
             .structure(0)
@@ -148,8 +148,7 @@ impl Render for RenderAndroid {
             }
         }
 
-        let frame =
-            gstreamer_gl::GLVideoFrame::from_buffer_readable(buffer, &info).or_else(|_| Err(()))?;
+        let frame = gstreamer_gl::GLVideoFrame::from_buffer_readable(buffer, &info).ok()?;
 
         if self.gst_context.lock().unwrap().is_some() {
             if let Some(sync_meta) = frame.buffer().meta::<gstreamer_gl::GLSyncMeta>() {
