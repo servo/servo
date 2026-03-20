@@ -1867,7 +1867,7 @@ impl DocumentEventHandler {
                 return;
             };
 
-            document.handle_element_scroll_event(&element);
+            element.handle_scroll_event();
         }
     }
 
