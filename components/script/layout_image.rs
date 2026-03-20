@@ -23,7 +23,6 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::fetch::RequestWithGlobalScope;
 use crate::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::script_runtime::CanGc;
 
 struct LayoutImageContext {
     id: PendingImageId,
@@ -65,7 +64,7 @@ impl FetchResponseListener for LayoutImageContext {
             self.id,
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
         );
-        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
+        network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

@@ -405,7 +405,7 @@ impl FetchResponseListener for ClassicContext {
                 );
 
                 // Resource timing is expected to be available before "error" or "load" events are fired.
-                network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
+                network_listener::submit_timing(cx, &self, &response, &timing);
                 return;
             },
             _ => {},
@@ -480,7 +480,7 @@ impl FetchResponseListener for ClassicContext {
         finish_fetching_a_classic_script(&elem, self.kind, self.url.clone(), Ok(load), cx);
         // }
 
-        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
+        network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

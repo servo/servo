@@ -3915,7 +3915,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             element.media_data_processing_failure_steps();
         }
 
-        network_listener::submit_timing(&self, &status, &timing, CanGc::from_cx(cx));
+        network_listener::submit_timing(cx, &self, &status, &timing);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {

@@ -519,7 +519,7 @@ impl FetchResponseListener for LinkFetchContext {
             );
         }
 
-        submit_timing(&self, &response_result, &timing, CanGc::from_cx(cx));
+        submit_timing(cx, &self, &response_result, &timing);
 
         // Step 11.6. If processResponse is given, then call processResponse with response.
         //

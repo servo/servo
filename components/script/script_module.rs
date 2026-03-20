@@ -761,7 +761,7 @@ impl FetchResponseListener for ModuleContext {
                 .finish_load(LoadType::Script(url.clone()), cx);
         }
 
-        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
+        network_listener::submit_timing(cx, &self, &response, &timing);
 
         let Some(ModuleStatus::Fetching(pending)) =
             global.get_module_map_entry(&self.module_request)

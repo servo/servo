@@ -222,7 +222,7 @@ impl FetchResponseListener for ScriptFetchContext {
         // Step 6 Run onComplete given script.
         scope.on_complete(cx, Some(Script::Classic(script)));
 
-        submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
+        submit_timing(cx, &self, &response, &timing);
     }
 
     fn process_csp_violations(

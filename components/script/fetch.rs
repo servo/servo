@@ -646,7 +646,7 @@ impl FetchResponseListener for FetchContext {
         // ... trailerObject is not supported in Servo yet.
 
         // navigation submission is handled in servoparser/mod.rs
-        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
+        network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -697,7 +697,7 @@ impl FetchResponseListener for FetchLaterListener {
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
+        network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
@@ -763,13 +763,7 @@ pub(crate) fn load_whole_resource(
             FetchResponseMsg::ProcessResponseEOF(_, Ok(_), _) => {
                 let metadata = metadata.unwrap();
                 if let Some(timing) = &metadata.timing {
-                    submit_timing_data(
-                        global,
-                        url,
-                        InitiatorType::Other,
-                        timing,
-                        CanGc::from_cx(cx),
-                    );
+                    submit_timing_data(cx, global, url, InitiatorType::Other, timing);
                 }
                 return Ok((metadata, buf, muted_errors));
             },

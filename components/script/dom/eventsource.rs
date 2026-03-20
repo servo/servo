@@ -469,7 +469,7 @@ impl FetchResponseListener for EventSourceContext {
             self.reestablish_the_connection();
         }
 
-        network_listener::submit_timing(&self, &response, &timing, CanGc::from_cx(cx));
+        network_listener::submit_timing(cx, &self, &response, &timing);
     }
 
     fn process_csp_violations(&mut self, _request_id: RequestId, violations: Vec<Violation>) {
