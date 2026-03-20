@@ -4,8 +4,8 @@
 
 use core::f32;
 use std::cell::{Cell, RefCell};
-use std::mem;
 use std::sync::Arc;
+use std::{i32, mem};
 
 use app_units::Au;
 use base::id::ScrollTreeNodeId;
@@ -410,17 +410,6 @@ impl StackingContextContent {
             StackingContextContent::AtomicInlineStackingContainer { .. } => false,
         }
     }
-
-    fn for_scrollbar_slider(&self) -> bool {
-        if let StackingContextContent::Fragment {
-            scrollbar_slider, ..
-        } = self
-        {
-            scrollbar_slider.is_some()
-        } else {
-            false
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
@@ -481,6 +470,9 @@ pub struct StackingContext {
     /// <https://drafts.csswg.org/css-position-4/#paint-a-box-in-a-line-box>
     pub(super) atomic_inline_stacking_containers: Vec<StackingContext>,
 
+    /// Whether the stacking context is specifically for a scrollbar.
+    pub(super) is_specifically_for_scrollbar: bool,
+
     /// Information gathered about the painting order, for [Self::debug_print].
     debug_print_items: Option<RefCell<Vec<DebugPrintItem>>>,
 }
@@ -525,6 +517,7 @@ impl StackingContext {
             real_stacking_contexts_and_positioned_stacking_containers: vec![],
             float_stacking_containers: vec![],
             atomic_inline_stacking_containers: vec![],
+            is_specifically_for_scrollbar: false,
             debug_print_items: self.debug_print_items.is_some().then(|| vec![].into()),
         }
     }
@@ -539,6 +532,7 @@ impl StackingContext {
             real_stacking_contexts_and_positioned_stacking_containers: vec![],
             float_stacking_containers: vec![],
             atomic_inline_stacking_containers: vec![],
+            is_specifically_for_scrollbar: false,
             debug_print_items: debug.stacking_context_tree.then(|| vec![].into()),
         }
     }
@@ -561,6 +555,12 @@ impl StackingContext {
     }
 
     pub(crate) fn z_index(&self) -> i32 {
+        // If the `StackingContext` is specifically for a scrollbar and this is a root stacking context we need to ensure
+        // that it render above the descendant.
+        if self.is_specifically_for_scrollbar && self.initializing_fragment.is_none() {
+            return i32::MAX;
+        }
+
         self.initializing_fragment.as_ref().map_or(0, |fragment| {
             let fragment = fragment.borrow();
             fragment.style().effective_z_index(fragment.base.flags)
@@ -758,16 +758,11 @@ impl StackingContext {
 
         // Steps 1 and 2: Borders and background for the root
         let mut content_with_outlines = Vec::new();
-        let mut content_with_scrollbar = Vec::new();
         let mut contents = self.contents.iter().enumerate().peekable();
         while contents.peek().is_some_and(|(_, child)| {
             child.section() == StackingContextSection::OwnBackgroundsAndBorders
         }) {
             let (i, child) = contents.next().unwrap();
-            if child.for_scrollbar_slider() {
-                content_with_scrollbar.push(child);
-                continue;
-            }
             self.debug_push_print_item(DebugPrintField::Contents, i);
             child.build_display_list(builder, &self.atomic_inline_stacking_containers);
 
@@ -801,11 +796,6 @@ impl StackingContext {
             child.section() == StackingContextSection::DescendantBackgroundsAndBorders
         }) {
             let (i, child) = contents.next().unwrap();
-            if child.for_scrollbar_slider() {
-                content_with_scrollbar.push(child);
-                continue;
-            }
-
             self.debug_push_print_item(DebugPrintField::Contents, i);
             child.build_display_list(builder, &self.atomic_inline_stacking_containers);
 
@@ -826,10 +816,6 @@ impl StackingContext {
             .is_some_and(|(_, child)| child.section() == StackingContextSection::Foreground)
         {
             let (i, child) = contents.next().unwrap();
-            if child.for_scrollbar_slider() {
-                content_with_scrollbar.push(child);
-                continue;
-            }
             self.debug_push_print_item(DebugPrintField::Contents, i);
             child.build_display_list(builder, &self.atomic_inline_stacking_containers);
 
@@ -855,10 +841,6 @@ impl StackingContext {
                 &self.atomic_inline_stacking_containers,
                 Some(StackingContextSection::Outline),
             );
-        }
-
-        for content in content_with_scrollbar {
-            content.build_display_list(builder, &self.atomic_inline_stacking_containers);
         }
 
         if pushed_context {
@@ -1489,10 +1471,19 @@ impl BoxFragment {
         ) {
             new_clip_id = overflow_frame_data.clip_id;
 
-            // MYTODO: need to document or tidy this
+            // Additionally, if the container have a scrollbar, build a stacking context for the scrollbar.
+            // This is necessary to ensure that the scrollbar's painting order is correct in relation to other element.
+            // Particularly we should ensure that the scrollbar is painted above the descendant.
             if let Some(scrollbar_descriptor) = overflow_frame_data.scrollbar_descriptor {
+                // Following Firefox, we assume scrollbar as a positioned descendant, thus making a new stacking context.
+                let mut new_stacking_context = stacking_context.create_descendant(
+                    new_scroll_node_id,
+                    new_clip_id,
+                    fragment.retrieve_box_fragment().cloned().unwrap(),
+                    StackingContextType::RealStackingContext,
+                );
                 if let Some(horizontal_slider) = scrollbar_descriptor.horizontal {
-                    stacking_context
+                    new_stacking_context
                         .contents
                         .push(StackingContextContent::Fragment {
                             scroll_node_id: horizontal_slider.scroll_node_id,
@@ -1509,7 +1500,7 @@ impl BoxFragment {
                         });
                 }
                 if let Some(vertical_slider) = scrollbar_descriptor.vertical {
-                    stacking_context
+                    new_stacking_context
                         .contents
                         .push(StackingContextContent::Fragment {
                             scroll_node_id: vertical_slider.scroll_node_id,
@@ -1525,6 +1516,8 @@ impl BoxFragment {
                             scrollbar_slider: Some(Box::new(vertical_slider)),
                         });
                 }
+                new_stacking_context.is_specifically_for_scrollbar = true;
+                stacking_context.add_stacking_context(new_stacking_context);
             }
 
             if let Some(scroll_frame_data) = overflow_frame_data.scroll_frame_data {
