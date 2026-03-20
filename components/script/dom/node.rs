@@ -1339,7 +1339,7 @@ impl Node {
             // or child is non-null and a doctype is following child
             if child.is_some_and(|child| {
                 child
-                    .inclusively_following_siblings()
+                    .inclusively_following_siblings_unrooted(cx.no_gc())
                     .any(|child| child.is_doctype())
             }) {
                 return Err(Error::HierarchyRequest(None));
@@ -1824,9 +1824,10 @@ impl Node {
             -1 => {
                 let last_child = self.upcast::<Node>().GetLastChild();
                 match last_child.and_then(|node| {
-                    node.inclusively_preceding_siblings()
-                        .filter_map(DomRoot::downcast::<Element>)
+                    node.inclusively_preceding_siblings_unrooted(cx.no_gc())
+                        .filter_map(UnrootedDom::downcast::<Element>)
                         .find(|elem| is_delete_type(elem))
+                        .map(|elem| elem.as_rooted())
                 }) {
                     Some(element) => element,
                     None => return Ok(()),

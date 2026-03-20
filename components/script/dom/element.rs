@@ -4844,7 +4844,7 @@ impl VirtualMethods for Element {
         } else {
             if flags.intersects(ElementSelectorFlags::HAS_SLOW_SELECTOR_LATER_SIBLINGS) {
                 if let Some(next_child) = mutation.next_child() {
-                    for child in next_child.inclusively_following_siblings() {
+                    for child in next_child.inclusively_following_siblings_unrooted(cx.no_gc()) {
                         if child.is::<Element>() {
                             child.dirty(NodeDamage::Other);
                         }
