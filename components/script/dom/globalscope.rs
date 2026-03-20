@@ -2718,10 +2718,18 @@ impl GlobalScope {
         // Step 2. Let errorInfo be the result of extracting error information from exception.
         // Step 3. Let script be a script found in an implementation-defined way, or null.
         // This should usually be the running script (most notably during run a classic script).
-        // Step 4. If script is a classic script and script's muted errors is true, then set errorInfo[error] to null,
-        // errorInfo[message] to "Script error.", errorInfo[filename] to the empty string,
-        // errorInfo[lineno] to 0, and errorInfo[colno] to 0.
-        let error_info = crate::dom::bindings::error::ErrorInfo::from_value(error, cx, can_gc);
+        let error_info = if !error.is_null() {
+            ErrorInfo::from_value(error, cx, can_gc)
+        } else {
+            // Step 4. If script is a classic script and script's muted errors is true, then set
+            // errorInfo[error] to null, errorInfo[message] to "Script error.", errorInfo[filename]
+            // to the empty string, errorInfo[lineno] to 0, and errorInfo[colno] to 0.
+            ErrorInfo {
+                message: String::from("Script error."),
+                ..Default::default()
+            }
+        };
+
         // Step 5. If omitError is true, then set errorInfo[error] to null.
         //
         // `omitError` defaults to `false`
@@ -2759,7 +2767,6 @@ impl GlobalScope {
         // using ErrorEvent, with the cancelable attribute initialized to true,
         // and additional attributes initialized according to errorInfo.
 
-        // FIXME(#13195): muted errors.
         let event = ErrorEvent::new(
             self,
             atom!("error"),
