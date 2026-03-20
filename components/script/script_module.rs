@@ -1524,7 +1524,7 @@ pub(crate) fn fetch_a_single_module_script(
     let comp = InRealm::Entered(&realm);
     run_a_callback::<DomTypeHolder, _>(&global, || {
         let has_pending_fetch = pending.borrow().is_some();
-        // be careful of Borrow Hazard here
+        // be careful of a borrow hazard here (do not hold a RefCell over a possible GC pause)
         let pending_option = pending.borrow_mut().take();
         let new_pending =
             pending_option.unwrap_or(Promise::new_in_current_realm(comp, CanGc::note()));
