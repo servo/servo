@@ -369,7 +369,7 @@ impl HistoryMethods<crate::DomTypeHolder> for History {
         let direction = match delta.cmp(&0) {
             Ordering::Greater => TraversalDirection::Forward(delta as usize),
             Ordering::Less => TraversalDirection::Back(-delta as usize),
-            Ordering::Equal => return self.window.Location().Reload(CanGc::from_cx(cx)),
+            Ordering::Equal => return self.window.Location(cx).Reload(cx),
         };
 
         self.traverse_history(direction)

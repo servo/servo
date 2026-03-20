@@ -1434,8 +1434,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location>
-    fn Location(&self) -> DomRoot<Location> {
-        self.location.or_init(|| Location::new(self, CanGc::note()))
+    fn Location(&self, cx: &mut js::context::JSContext) -> DomRoot<Location> {
+        self.location.or_init(|| Location::new(cx, self))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-sessionstorage>

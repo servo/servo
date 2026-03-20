@@ -224,7 +224,7 @@ impl DocumentEmbedderControls {
                 ControlElement::ContextMenu(context_menu_nodes),
                 EmbedderControlResponse::ContextMenu(action),
             ) => {
-                context_menu_nodes.handle_context_menu_action(action, CanGc::from_cx(cx));
+                context_menu_nodes.handle_context_menu_action(action, cx);
             },
             (_, _) => unreachable!(
                 "The response to a form control should always match it's originating type."
@@ -407,7 +407,7 @@ pub(crate) struct ContextMenuNodes {
 }
 
 impl ContextMenuNodes {
-    fn handle_context_menu_action(&self, action: Option<ContextMenuAction>, can_gc: CanGc) {
+    fn handle_context_menu_action(&self, action: Option<ContextMenuAction>, cx: &mut JSContext) {
         let Some(action) = action else {
             return;
         };
@@ -456,7 +456,7 @@ impl ContextMenuNodes {
                 let _ = window.History().Forward();
             },
             ContextMenuAction::Reload => {
-                window.Location().reload_without_origin_check(can_gc);
+                window.Location(cx).reload_without_origin_check(cx);
             },
             ContextMenuAction::CopyLink => {
                 let Some(anchor_element) = &self.anchor_element else {
@@ -501,21 +501,21 @@ impl ContextMenuNodes {
                 window.Document().event_handler().handle_editing_action(
                     self.text_input_element.clone(),
                     EditingActionEvent::Cut,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             },
             ContextMenuAction::Copy => {
                 window.Document().event_handler().handle_editing_action(
                     self.text_input_element.clone(),
                     EditingActionEvent::Copy,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             },
             ContextMenuAction::Paste => {
                 window.Document().event_handler().handle_editing_action(
                     self.text_input_element.clone(),
                     EditingActionEvent::Paste,
-                    can_gc,
+                    CanGc::from_cx(cx),
                 );
             },
             ContextMenuAction::SelectAll => {

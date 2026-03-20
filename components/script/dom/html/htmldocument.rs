@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::HTMLDocumentBinding::HTMLDocumentMethods;
 use script_bindings::root::DomRoot;
@@ -20,8 +21,8 @@ pub(crate) struct HTMLDocument {
 
 impl HTMLDocumentMethods<crate::DomTypeHolder> for HTMLDocument {
     /// <https://html.spec.whatwg.org/multipage/#dom-document-location>
-    fn GetLocation(&self) -> Option<DomRoot<Location>> {
-        self.document.GetLocation()
+    fn GetLocation(&self, cx: &mut JSContext) -> Option<DomRoot<Location>> {
+        self.document.GetLocation(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
