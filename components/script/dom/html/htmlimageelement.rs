@@ -250,7 +250,6 @@ impl FetchResponseListener for ImageContext {
     }
 
     fn process_request_body(&mut self, _: RequestId) {}
-    fn process_request_eof(&mut self, _: RequestId) {}
 
     fn process_response(
         &mut self,

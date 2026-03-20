@@ -792,7 +792,6 @@ pub async fn main_fetch(
         // upload progress, so I'm keeping it here for now and pretending
         // the body got sent in one chunk
         target.process_request_body(request);
-        target.process_request_eof(request);
     }
 
     // Step 22.

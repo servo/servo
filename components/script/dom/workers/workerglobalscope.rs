@@ -133,8 +133,6 @@ impl ScriptFetchContext {
 impl FetchResponseListener for ScriptFetchContext {
     fn process_request_body(&mut self, _request_id: RequestId) {}
 
-    fn process_request_eof(&mut self, _request_id: RequestId) {}
-
     fn process_response(
         &mut self,
         _: &mut js::context::JSContext,

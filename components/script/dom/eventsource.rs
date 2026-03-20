@@ -366,10 +366,6 @@ impl FetchResponseListener for EventSourceContext {
         // TODO
     }
 
-    fn process_request_eof(&mut self, _: RequestId) {
-        // TODO
-    }
-
     fn process_response(
         &mut self,
         _: &mut js::context::JSContext,

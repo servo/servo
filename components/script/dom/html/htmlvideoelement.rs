@@ -411,9 +411,7 @@ struct PosterFrameFetchContext {
 }
 
 impl FetchResponseListener for PosterFrameFetchContext {
-    fn process_request_body(&mut self, _: RequestId) {}
-
-    fn process_request_eof(&mut self, _: RequestId) {
+    fn process_request_body(&mut self, _: RequestId) {
         self.fetch_canceller.ignore()
     }
 

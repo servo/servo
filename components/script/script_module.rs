@@ -699,9 +699,6 @@ impl FetchResponseListener for ModuleContext {
     // TODO(cybai): Perhaps add custom steps to perform fetch here?
     fn process_request_body(&mut self, _: RequestId) {}
 
-    // TODO(cybai): Perhaps add custom steps to perform fetch here?
-    fn process_request_eof(&mut self, _: RequestId) {}
-
     fn process_response(
         &mut self,
         _: &mut js::context::JSContext,
