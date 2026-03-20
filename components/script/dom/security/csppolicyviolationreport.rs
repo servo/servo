@@ -2,19 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use net_traits::request::Referrer;
 use serde::Serialize;
 use servo_url::ServoUrl;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::CSPViolationReportBodyBinding::CSPViolationReportBody;
+use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::ReportingObserverBinding::ReportBody;
 use crate::dom::bindings::codegen::Bindings::SecurityPolicyViolationEventBinding::{
     SecurityPolicyViolationEventDisposition, SecurityPolicyViolationEventInit,
 };
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::reporting::reportingobserver::ReportingObserver;
+use crate::dom::window::Window;
 
 #[derive(Clone)]
 pub(crate) struct SecurityPolicyViolationReport {
@@ -213,7 +216,16 @@ impl CSPViolationReportBuilder {
         self
     }
 
+    /// <https://w3c.github.io/webappsec-csp/#create-violation-for-global>
     pub fn build(self, global: &GlobalScope) -> SecurityPolicyViolationReport {
+        // Step 2. If the user agent is currently executing script, and can extract a source file’s URL,
+        // line number, and column number from the global, set violation’s source file, line number, and column number accordingly.
+        //
+        // Handled by caller
+
+        // Step 1. Let violation be a new violation whose global object is global,
+        // policy is policy, effective directive is directive, and resource is null.
+        // Step 5. Return violation.
         SecurityPolicyViolationReport {
             violated_directive: self.effective_directive.clone(),
             effective_directive: self.effective_directive.clone(),
@@ -222,18 +234,19 @@ impl CSPViolationReportBuilder {
                 true => SecurityPolicyViolationEventDisposition::Report,
                 false => SecurityPolicyViolationEventDisposition::Enforce,
             },
-            // https://w3c.github.io/webappsec-csp/#violation-referrer
-            referrer: match global.get_referrer() {
-                Referrer::Client(url) => ReportingObserver::strip_url_for_reports(url),
-                Referrer::ReferrerUrl(url) => ReportingObserver::strip_url_for_reports(url),
-                _ => "".to_owned(),
-            },
+            // Step 3. If global is a Window object, set violation’s referrer to global’s document’s referrer.
+            referrer: global
+                .downcast::<Window>()
+                .map(|window| window.Document().Referrer().into())
+                .unwrap_or_default(),
             sample: self.sample,
             blocked_url: self.resource,
             source_file: self.source_file,
             original_policy: self.original_policy,
             line_number: self.line_number,
             column_number: self.column_number,
+            // Step 4. Set violation’s status to the HTTP status code for
+            // the resource associated with violation’s global object.
             status_code: global.status_code().unwrap_or(0),
         }
     }
