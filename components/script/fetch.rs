@@ -531,10 +531,6 @@ impl FetchResponseListener for FetchContext {
         // TODO
     }
 
-    fn process_request_eof(&mut self, _: RequestId) {
-        // TODO
-    }
-
     fn process_response(
         &mut self,
         cx: &mut js::context::JSContext,
@@ -675,8 +671,6 @@ struct FetchLaterListener {
 impl FetchResponseListener for FetchLaterListener {
     fn process_request_body(&mut self, _: RequestId) {}
 
-    fn process_request_eof(&mut self, _: RequestId) {}
-
     fn process_response(
         &mut self,
         _: &mut js::context::JSContext,
@@ -750,8 +744,7 @@ pub(crate) fn load_whole_resource(
     let mut muted_errors = false;
     loop {
         match action_receiver.recv().unwrap() {
-            FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
-            },
+            FetchResponseMsg::ProcessRequestBody(..) => {},
             FetchResponseMsg::ProcessResponse(_, Ok(m)) => {
                 muted_errors = m.is_cors_cross_origin();
                 metadata = Some(match m {

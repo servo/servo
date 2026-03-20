@@ -106,10 +106,6 @@ impl FetchResponseListener for XHRContext {
         // todo
     }
 
-    fn process_request_eof(&mut self, _: RequestId) {
-        // todo
-    }
-
     fn process_response(
         &mut self,
         cx: &mut js::context::JSContext,

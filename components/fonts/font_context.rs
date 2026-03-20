@@ -1063,9 +1063,7 @@ impl RemoteWebFontDownloader {
         response_message: FetchResponseMsg,
     ) -> DownloaderResponseResult {
         match response_message {
-            FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
-                DownloaderResponseResult::InProcess
-            },
+            FetchResponseMsg::ProcessRequestBody(..) => DownloaderResponseResult::InProcess,
             FetchResponseMsg::ProcessCspViolations(_request_id, violations) => {
                 self.state
                     .as_ref()

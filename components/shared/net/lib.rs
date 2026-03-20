@@ -245,7 +245,6 @@ impl From<ReferrerPolicy> for ReferrerPolicyHeader {
 pub enum FetchResponseMsg {
     // todo: should have fields for transmitted/total bytes
     ProcessRequestBody(RequestId),
-    ProcessRequestEOF(RequestId),
     // todo: send more info about the response (or perhaps the entire Response)
     ProcessResponse(RequestId, Result<FetchMetadata, NetworkError>),
     ProcessResponseChunk(RequestId, DebugVec),
@@ -279,7 +278,6 @@ impl FetchResponseMsg {
     pub fn request_id(&self) -> RequestId {
         match self {
             FetchResponseMsg::ProcessRequestBody(id) |
-            FetchResponseMsg::ProcessRequestEOF(id) |
             FetchResponseMsg::ProcessResponse(id, ..) |
             FetchResponseMsg::ProcessResponseChunk(id, ..) |
             FetchResponseMsg::ProcessResponseEOF(id, ..) |
@@ -293,11 +291,6 @@ pub trait FetchTaskTarget {
     ///
     /// Fired when a chunk of the request body is transmitted
     fn process_request_body(&mut self, request: &Request);
-
-    /// <https://fetch.spec.whatwg.org/#process-request-end-of-file>
-    ///
-    /// Fired when the entire request finishes being transmitted
-    fn process_request_eof(&mut self, request: &Request);
 
     /// <https://fetch.spec.whatwg.org/#process-response>
     ///
@@ -358,10 +351,6 @@ impl FetchMetadata {
 impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     fn process_request_body(&mut self, request: &Request) {
         let _ = self.send(FetchResponseMsg::ProcessRequestBody(request.id));
-    }
-
-    fn process_request_eof(&mut self, request: &Request) {
-        let _ = self.send(FetchResponseMsg::ProcessRequestEOF(request.id));
     }
 
     fn process_response(&mut self, request: &Request, response: &Response) {
@@ -459,7 +448,6 @@ pub struct TlsSecurityInfo {
 
 impl FetchTaskTarget for IpcSender<WebSocketNetworkEvent> {
     fn process_request_body(&mut self, _: &Request) {}
-    fn process_request_eof(&mut self, _: &Request) {}
     fn process_response(&mut self, _: &Request, response: &Response) {
         if response.is_network_error() {
             let _ = self.send(WebSocketNetworkEvent::Fail);
@@ -479,7 +467,6 @@ pub struct DiscardFetch;
 
 impl FetchTaskTarget for DiscardFetch {
     fn process_request_body(&mut self, _: &Request) {}
-    fn process_request_eof(&mut self, _: &Request) {}
     fn process_response(&mut self, _: &Request, _: &Response) {}
     fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {}
     fn process_response_eof(&mut self, _: &Request, _: &Response) {}

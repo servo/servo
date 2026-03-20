@@ -101,7 +101,6 @@ pub(crate) trait FetchResponseListener: Send + 'static {
     }
 
     fn process_request_body(&mut self, request_id: RequestId);
-    fn process_request_eof(&mut self, request_id: RequestId);
     fn process_response(
         &mut self,
         cx: &mut js::context::JSContext,
@@ -150,9 +149,6 @@ impl<Listener: FetchResponseListener> NetworkListener<Listener> {
                 match message {
                     FetchResponseMsg::ProcessRequestBody(request_id) => {
                         fetch_listener.process_request_body(request_id)
-                    },
-                    FetchResponseMsg::ProcessRequestEOF(request_id) => {
-                        fetch_listener.process_request_eof(request_id)
                     },
                     FetchResponseMsg::ProcessResponse(request_id, meta) => {
                         fetch_listener.process_response(cx, request_id, meta)

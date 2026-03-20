@@ -3710,8 +3710,6 @@ struct HTMLMediaElementFetchListener {
 impl FetchResponseListener for HTMLMediaElementFetchListener {
     fn process_request_body(&mut self, _: RequestId) {}
 
-    fn process_request_eof(&mut self, _: RequestId) {}
-
     fn process_response(
         &mut self,
         cx: &mut js::context::JSContext,

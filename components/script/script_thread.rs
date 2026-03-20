@@ -3875,8 +3875,7 @@ impl ScriptThread {
             FetchResponseMsg::ProcessCspViolations(request_id, violations) => {
                 self.handle_csp_violations(pipeline_id, request_id, violations)
             },
-            FetchResponseMsg::ProcessRequestBody(..) | FetchResponseMsg::ProcessRequestEOF(..) => {
-            },
+            FetchResponseMsg::ProcessRequestBody(..) => {},
         }
     }
 
