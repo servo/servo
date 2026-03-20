@@ -91,7 +91,7 @@ pub struct Paint {
 
     /// An [`EventLoopWaker`] used to wake up the main embedder event loop when the renderer needs
     /// to run.
-    pub event_loop_waker: Box<dyn EventLoopWaker>,
+    pub(crate) event_loop_waker: Box<dyn EventLoopWaker>,
 
     /// Tracks whether we are in the process of shutting down, or have shut down and
     /// should shut down `Paint`. This is shared with the `Servo` instance.

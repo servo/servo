@@ -166,6 +166,8 @@ struct ServoInner {
     /// [`InputEventId`]s that have been handled, but for which the embedder has  
     /// not been notified yet.
     pending_handled_input_events: RefCell<Vec<PendingHandledInputEvent>>,
+    /// An [`EventLoopWaker`] used to wake up the main embedder event loop.
+    event_loop_waker: Box<dyn EventLoopWaker>,
 }
 
 impl ServoInner {
@@ -825,7 +827,7 @@ impl Servo {
             time_profiler_chan: time_profiler_chan.clone(),
             mem_profiler_chan: mem_profiler_chan.clone(),
             shutdown_state: shutdown_state.clone(),
-            event_loop_waker,
+            event_loop_waker: event_loop_waker.clone(),
             #[cfg(feature = "webxr")]
             webxr_registry: builder.webxr_registry,
         });
@@ -890,6 +892,7 @@ impl Servo {
             servo_errors: ServoErrorChannel::default(),
             _js_engine_setup: js_engine_setup,
             pending_handled_input_events: Default::default(),
+            event_loop_waker,
         }))
     }
 
@@ -961,6 +964,10 @@ impl Servo {
 
     pub(crate) fn paint_mut<'a>(&'a self) -> RefMut<'a, Paint> {
         self.0.paint.borrow_mut()
+    }
+
+    pub(crate) fn event_loop_waker(&self) -> &dyn EventLoopWaker {
+        &*self.0.event_loop_waker
     }
 
     pub(crate) fn webviews_mut<'a>(

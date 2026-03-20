@@ -518,7 +518,7 @@ impl WebView {
                         event_id,
                         webview_id,
                     });
-                self.inner().servo.paint().event_loop_waker.wake();
+                self.inner().servo.event_loop_waker().wake();
             }
         } else {
             self.inner().servo.constellation_proxy().send(
