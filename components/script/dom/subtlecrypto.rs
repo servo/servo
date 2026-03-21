@@ -35,13 +35,13 @@ use std::str::FromStr;
 
 use base64ct::{Base64UrlUnpadded, Encoding};
 use dom_struct::dom_struct;
-use js::conversions::ConversionResult;
+use js::conversions::{ConversionBehavior, ConversionResult};
 use js::jsapi::{Heap, JSObject};
-use js::jsval::{ObjectValue, UndefinedValue};
+use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::JS_ParseJSON;
-use js::rust::{HandleValue, MutableHandleValue};
-use js::typedarray::ArrayBufferU8;
+use js::rust::{HandleObject, MutableHandleValue, Trace};
+use js::typedarray::{ArrayBufferU8, HeapUint8Array};
 use strum::{EnumString, IntoStaticStr, VariantArray};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -49,25 +49,23 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
-    AeadParams, AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
-    AesKeyGenParams, Algorithm, AlgorithmIdentifier, Argon2Params, CShakeParams, ContextParams,
-    EcKeyAlgorithm, EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams,
-    EncapsulatedBits, EncapsulatedKey, HkdfParams, HmacImportParams, HmacKeyAlgorithm,
-    HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params, RsaHashedImportParams,
-    RsaHashedKeyAlgorithm, RsaHashedKeyGenParams, RsaKeyAlgorithm, RsaOaepParams, RsaPssParams,
-    SubtleCryptoMethods,
+    AesKeyAlgorithm, Algorithm, AlgorithmIdentifier, EcKeyAlgorithm, EncapsulatedBits,
+    EncapsulatedKey, HmacKeyAlgorithm, JsonWebKey, KeyAlgorithm, KeyFormat, RsaHashedKeyAlgorithm,
+    RsaKeyAlgorithm, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
 };
-use crate::dom::bindings::conversions::{SafeFromJSValConvertible, SafeToJSValConvertible};
+use crate::dom::bindings::conversions::{
+    SafeFromJSValConvertible, SafeToJSValConvertible, StringificationBehavior,
+};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_with_cx};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, serialize_jsval_to_json_utf8};
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::utils::set_dictionary_property;
+use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -166,10 +164,6 @@ impl CryptoAlgorithm {
             .ok_or(Error::NotSupported(Some(format!(
                 "Unsupported algorithm: {algorithm_name}"
             ))))
-    }
-
-    fn from_domstring(name: &DOMString) -> Fallible<Self> {
-        CryptoAlgorithm::try_from(&*name.str()).map_err(|_| Error::NotSupported(None))
     }
 }
 
@@ -2274,27 +2268,39 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 }
 
 /// Alternative to std::convert::TryFrom, with `&mut js::context::JSContext`
-trait TryFromWithCx<T>: Sized {
+trait TryFromWithCxAndName<T>: Sized {
     type Error;
 
-    fn try_from_with_cx(value: T, cx: &mut js::context::JSContext) -> Result<Self, Self::Error>;
+    fn try_from_with_cx_and_name(
+        value: T,
+        cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
+    ) -> Result<Self, Self::Error>;
 }
 
 /// Alternative to std::convert::TryInto, with `&mut js::context::JSContext`
-trait TryIntoWithCx<T>: Sized {
+trait TryIntoWithCxAndName<T>: Sized {
     type Error;
 
-    fn try_into_with_cx(self, cx: &mut js::context::JSContext) -> Result<T, Self::Error>;
+    fn try_into_with_cx_and_name(
+        self,
+        cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
+    ) -> Result<T, Self::Error>;
 }
 
-impl<T, U> TryIntoWithCx<U> for T
+impl<T, U> TryIntoWithCxAndName<U> for T
 where
-    U: TryFromWithCx<T>,
+    U: TryFromWithCxAndName<T>,
 {
     type Error = U::Error;
 
-    fn try_into_with_cx(self, cx: &mut js::context::JSContext) -> Result<U, Self::Error> {
-        U::try_from_with_cx(self, cx)
+    fn try_into_with_cx_and_name(
+        self,
+        cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
+    ) -> Result<U, Self::Error> {
+        U::try_from_with_cx_and_name(self, cx, algorithm_name)
     }
 }
 
@@ -2308,17 +2314,16 @@ struct SubtleAlgorithm {
     name: CryptoAlgorithm,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAlgorithm {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAlgorithm {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
-        cx: &mut js::context::JSContext,
+    fn try_from_with_cx_and_name(
+        _object: HandleObject<'a>,
+        _cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<Algorithm>(cx, value)?;
-
         Ok(SubtleAlgorithm {
-            name: CryptoAlgorithm::from_domstring(&dictionary.name)?,
+            name: algorithm_name,
         })
     }
 }
@@ -2355,21 +2360,32 @@ pub(crate) struct SubtleRsaHashedKeyGenParams {
     hash: DigestAlgorithm,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedKeyGenParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaHashedKeyGenParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue,
+    fn try_from_with_cx_and_name(
+        object: HandleObject,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary =
-            dictionary_from_jsval::<RootedTraceableBox<RsaHashedKeyGenParams>>(cx, value)?;
+        let hash = get_required_parameter(cx, object, c"hash", ())?;
 
         Ok(SubtleRsaHashedKeyGenParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.parent.name)?,
-            modulus_length: dictionary.parent.modulusLength,
-            public_exponent: dictionary.parent.publicExponent.to_vec(),
-            hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
+            name: algorithm_name,
+            modulus_length: get_required_parameter(
+                cx,
+                object,
+                c"modulusLength",
+                ConversionBehavior::Default,
+            )?,
+            public_exponent: get_required_parameter_in_box::<HeapUint8Array>(
+                cx,
+                object,
+                c"publicExponent",
+                (),
+            )?
+            .to_vec(),
+            hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
         })
     }
 }
@@ -2424,19 +2440,19 @@ struct SubtleRsaHashedImportParams {
     hash: DigestAlgorithm,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaHashedImportParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaHashedImportParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue,
+    fn try_from_with_cx_and_name(
+        object: HandleObject,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary =
-            dictionary_from_jsval::<RootedTraceableBox<RsaHashedImportParams>>(cx, value)?;
+        let hash = get_required_parameter(cx, object, c"hash", ())?;
 
         Ok(SubtleRsaHashedImportParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
+            name: algorithm_name,
+            hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
         })
     }
 }
@@ -2451,18 +2467,22 @@ struct SubtleRsaPssParams {
     salt_length: u32,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaPssParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaPssParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue,
+    fn try_from_with_cx_and_name(
+        object: HandleObject,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<RsaPssParams>(cx, value)?;
-
         Ok(SubtleRsaPssParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            salt_length: dictionary.saltLength,
+            name: algorithm_name,
+            salt_length: get_required_parameter(
+                cx,
+                object,
+                c"saltLength",
+                ConversionBehavior::EnforceRange,
+            )?,
         })
     }
 }
@@ -2477,23 +2497,17 @@ struct SubtleRsaOaepParams {
     label: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleRsaOaepParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleRsaOaepParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<RootedTraceableBox<RsaOaepParams>>(cx, value)?;
-
-        let label = dictionary.label.as_ref().map(|label| match label {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        });
-
         Ok(SubtleRsaOaepParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            label,
+            name: algorithm_name,
+            label: get_optional_buffer_source(cx, object, c"label")?,
         })
     }
 }
@@ -2508,18 +2522,19 @@ struct SubtleEcdsaParams {
     hash: DigestAlgorithm,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcdsaParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcdsaParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<RootedTraceableBox<EcdsaParams>>(cx, value)?;
+        let hash = get_required_parameter(cx, object, c"hash", ())?;
 
         Ok(SubtleEcdsaParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
+            name: algorithm_name,
+            hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
         })
     }
 }
@@ -2534,18 +2549,23 @@ struct SubtleEcKeyGenParams {
     named_curve: String,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcKeyGenParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcKeyGenParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<EcKeyGenParams>(cx, value)?;
-
         Ok(SubtleEcKeyGenParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            named_curve: dictionary.namedCurve.to_string(),
+            name: algorithm_name,
+            named_curve: get_required_parameter::<DOMString>(
+                cx,
+                object,
+                c"namedCurve",
+                StringificationBehavior::Default,
+            )?
+            .to_string(),
         })
     }
 }
@@ -2583,18 +2603,23 @@ struct SubtleEcKeyImportParams {
     named_curve: String,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcKeyImportParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcKeyImportParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<EcKeyImportParams>(cx, value)?;
-
         Ok(SubtleEcKeyImportParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            named_curve: dictionary.namedCurve.to_string(),
+            name: algorithm_name,
+            named_curve: get_required_parameter::<DOMString>(
+                cx,
+                object,
+                c"namedCurve",
+                StringificationBehavior::Default,
+            )?
+            .to_string(),
         })
     }
 }
@@ -2609,18 +2634,19 @@ struct SubtleEcdhKeyDeriveParams {
     public: Trusted<CryptoKey>,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleEcdhKeyDeriveParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleEcdhKeyDeriveParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<EcdhKeyDeriveParams>(cx, value)?;
+        let public = get_required_parameter::<DomRoot<CryptoKey>>(cx, object, c"public", ())?;
 
         Ok(SubtleEcdhKeyDeriveParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            public: Trusted::new(&dictionary.public),
+            name: algorithm_name,
+            public: Trusted::new(&public),
         })
     }
 }
@@ -2638,24 +2664,23 @@ struct SubtleAesCtrParams {
     length: u8,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesCtrParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesCtrParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<RootedTraceableBox<AesCtrParams>>(cx, value)?;
-
-        let counter = match &dictionary.counter {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
-
         Ok(SubtleAesCtrParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            counter,
-            length: dictionary.length,
+            name: algorithm_name,
+            counter: get_required_buffer_source(cx, object, c"counter")?,
+            length: get_required_parameter(
+                cx,
+                object,
+                c"length",
+                ConversionBehavior::EnforceRange,
+            )?,
         })
     }
 }
@@ -2693,18 +2718,22 @@ struct SubtleAesKeyGenParams {
     length: u16,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesKeyGenParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesKeyGenParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<AesKeyGenParams>(cx, value)?;
-
         Ok(SubtleAesKeyGenParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            length: dictionary.length,
+            name: algorithm_name,
+            length: get_required_parameter(
+                cx,
+                object,
+                c"length",
+                ConversionBehavior::EnforceRange,
+            )?,
         })
     }
 }
@@ -2719,18 +2748,22 @@ struct SubtleAesDerivedKeyParams {
     length: u16,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesDerivedKeyParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesDerivedKeyParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<AesDerivedKeyParams>(cx, value)?;
-
         Ok(SubtleAesDerivedKeyParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            length: dictionary.length,
+            name: algorithm_name,
+            length: get_required_parameter(
+                cx,
+                object,
+                c"length",
+                ConversionBehavior::EnforceRange,
+            )?,
         })
     }
 }
@@ -2745,23 +2778,17 @@ struct SubtleAesCbcParams {
     iv: Vec<u8>,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesCbcParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesCbcParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<RootedTraceableBox<AesCbcParams>>(cx, value)?;
-
-        let iv = match &dictionary.iv {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
-
         Ok(SubtleAesCbcParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            iv,
+            name: algorithm_name,
+            iv: get_required_buffer_source(cx, object, c"iv")?,
         })
     }
 }
@@ -2782,29 +2809,24 @@ struct SubtleAesGcmParams {
     tag_length: Option<u8>,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAesGcmParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAesGcmParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<RootedTraceableBox<AesGcmParams>>(cx, value)?;
-
-        let iv = match &dictionary.iv {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
-        let additional_data = dictionary.additionalData.as_ref().map(|data| match data {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        });
-
         Ok(SubtleAesGcmParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            iv,
-            additional_data,
-            tag_length: dictionary.tagLength,
+            name: algorithm_name,
+            iv: get_required_buffer_source(cx, object, c"iv")?,
+            additional_data: get_optional_buffer_source(cx, object, c"additionalData")?,
+            tag_length: get_optional_parameter(
+                cx,
+                object,
+                c"tagLength",
+                ConversionBehavior::EnforceRange,
+            )?,
         })
     }
 }
@@ -2822,19 +2844,25 @@ struct SubtleHmacImportParams {
     length: Option<u32>,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHmacImportParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleHmacImportParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<RootedTraceableBox<HmacImportParams>>(cx, value)?;
+        let hash = get_required_parameter(cx, object, c"hash", ())?;
 
         Ok(SubtleHmacImportParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
-            length: dictionary.length,
+            name: algorithm_name,
+            hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
+            length: get_optional_parameter(
+                cx,
+                object,
+                c"length",
+                ConversionBehavior::EnforceRange,
+            )?,
         })
     }
 }
@@ -2882,19 +2910,25 @@ struct SubtleHmacKeyGenParams {
     length: Option<u32>,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHmacKeyGenParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleHmacKeyGenParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<RootedTraceableBox<HmacKeyGenParams>>(cx, value)?;
+        let hash = get_required_parameter(cx, object, c"hash", ())?;
 
         Ok(SubtleHmacKeyGenParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
-            length: dictionary.length,
+            name: algorithm_name,
+            hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
+            length: get_optional_parameter(
+                cx,
+                object,
+                c"length",
+                ConversionBehavior::EnforceRange,
+            )?,
         })
     }
 }
@@ -2915,29 +2949,21 @@ pub(crate) struct SubtleHkdfParams {
     info: Vec<u8>,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleHkdfParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleHkdfParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<RootedTraceableBox<HkdfParams>>(cx, value)?;
-
-        let salt = match &dictionary.salt {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
-        let info = match &dictionary.info {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
+        let hash = get_required_parameter(cx, object, c"hash", ())?;
 
         Ok(SubtleHkdfParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
-            salt,
-            info,
+            name: algorithm_name,
+            hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
+            salt: get_required_buffer_source(cx, object, c"salt")?,
+            info: get_required_buffer_source(cx, object, c"info")?,
         })
     }
 }
@@ -2958,25 +2984,26 @@ pub(crate) struct SubtlePbkdf2Params {
     hash: DigestAlgorithm,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtlePbkdf2Params {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtlePbkdf2Params {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<RootedTraceableBox<Pbkdf2Params>>(cx, value)?;
-
-        let salt = match &dictionary.salt {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
+        let hash = get_required_parameter(cx, object, c"hash", ())?;
 
         Ok(SubtlePbkdf2Params {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            salt,
-            iterations: dictionary.iterations,
-            hash: normalize_algorithm::<DigestOperation>(cx, &dictionary.hash)?,
+            name: algorithm_name,
+            salt: get_required_buffer_source(cx, object, c"salt")?,
+            iterations: get_required_parameter(
+                cx,
+                object,
+                c"iterations",
+                ConversionBehavior::EnforceRange,
+            )?,
+            hash: normalize_algorithm::<DigestOperation>(cx, &hash)?,
         })
     }
 }
@@ -2991,23 +3018,17 @@ struct SubtleContextParams {
     context: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleContextParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleContextParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<RootedTraceableBox<ContextParams>>(cx, value)?;
-
-        let context = dictionary.context.as_ref().map(|context| match context {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        });
-
         Ok(SubtleContextParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            context,
+            name: algorithm_name,
+            context: get_optional_buffer_source(cx, object, c"context")?,
         })
     }
 }
@@ -3028,29 +3049,24 @@ struct SubtleAeadParams {
     tag_length: Option<u8>,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleAeadParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleAeadParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<RootedTraceableBox<AeadParams>>(cx, value)?;
-
-        let iv = match &dictionary.iv {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
-        let additional_data = dictionary.additionalData.as_ref().map(|data| match data {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        });
-
         Ok(SubtleAeadParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            iv,
-            additional_data,
-            tag_length: dictionary.tagLength,
+            name: algorithm_name,
+            iv: get_required_buffer_source(cx, object, c"iv")?,
+            additional_data: get_optional_buffer_source(cx, object, c"additionalData")?,
+            tag_length: get_optional_parameter(
+                cx,
+                object,
+                c"tagLength",
+                ConversionBehavior::EnforceRange,
+            )?,
         })
     }
 }
@@ -3071,37 +3087,24 @@ struct SubtleCShakeParams {
     customization: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleCShakeParams {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleCShakeParams {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<RootedTraceableBox<CShakeParams>>(cx, value)?;
-
-        let function_name =
-            dictionary
-                .functionName
-                .as_ref()
-                .map(|function_name| match function_name {
-                    ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-                    ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-                });
-        let customization =
-            dictionary
-                .customization
-                .as_ref()
-                .map(|customization| match customization {
-                    ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-                    ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-                });
-
         Ok(SubtleCShakeParams {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            length: dictionary.length,
-            function_name,
-            customization,
+            name: algorithm_name,
+            length: get_required_parameter(
+                cx,
+                object,
+                c"length",
+                ConversionBehavior::EnforceRange,
+            )?,
+            function_name: get_optional_buffer_source(cx, object, c"functionName")?,
+            customization: get_optional_buffer_source(cx, object, c"customization")?,
         })
     }
 }
@@ -3134,44 +3137,43 @@ struct SubtleArgon2Params {
     associated_data: Option<Vec<u8>>,
 }
 
-impl<'a> TryFromWithCx<HandleValue<'a>> for SubtleArgon2Params {
+impl<'a> TryFromWithCxAndName<HandleObject<'a>> for SubtleArgon2Params {
     type Error = Error;
 
-    fn try_from_with_cx(
-        value: HandleValue<'a>,
+    fn try_from_with_cx_and_name(
+        object: HandleObject<'a>,
         cx: &mut js::context::JSContext,
+        algorithm_name: CryptoAlgorithm,
     ) -> Result<Self, Self::Error> {
-        let dictionary = dictionary_from_jsval::<RootedTraceableBox<Argon2Params>>(cx, value)?;
-
-        let nonce = match &dictionary.nonce {
-            ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-            ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-        };
-        let secret_value = dictionary
-            .secretValue
-            .as_ref()
-            .map(|secret_value| match secret_value {
-                ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-                ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-            });
-        let associated_data =
-            dictionary
-                .associatedData
-                .as_ref()
-                .map(|associated_data| match associated_data {
-                    ArrayBufferViewOrArrayBuffer::ArrayBufferView(view) => view.to_vec(),
-                    ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer) => buffer.to_vec(),
-                });
-
         Ok(SubtleArgon2Params {
-            name: CryptoAlgorithm::from_domstring(&dictionary.parent.name)?,
-            nonce,
-            parallelism: dictionary.parallelism,
-            memory: dictionary.memory,
-            passes: dictionary.passes,
-            version: dictionary.version,
-            secret_value,
-            associated_data,
+            name: algorithm_name,
+            nonce: get_required_buffer_source(cx, object, c"nonce")?,
+            parallelism: get_required_parameter(
+                cx,
+                object,
+                c"parallelism",
+                ConversionBehavior::EnforceRange,
+            )?,
+            memory: get_required_parameter(
+                cx,
+                object,
+                c"memory",
+                ConversionBehavior::EnforceRange,
+            )?,
+            passes: get_required_parameter(
+                cx,
+                object,
+                c"passes",
+                ConversionBehavior::EnforceRange,
+            )?,
+            version: get_optional_parameter(
+                cx,
+                object,
+                c"version",
+                ConversionBehavior::EnforceRange,
+            )?,
+            secret_value: get_optional_buffer_source(cx, object, c"secretValue")?,
+            associated_data: get_optional_buffer_source(cx, object, c"associatedData")?,
         })
     }
 }
@@ -3230,17 +3232,123 @@ impl SafeToJSValConvertible for SubtleEncapsulatedBits {
     }
 }
 
-/// Helper to abstract the conversion process of a JS value into many different WebIDL dictionaries.
-fn dictionary_from_jsval<T>(cx: &mut js::context::JSContext, value: HandleValue) -> Fallible<T>
-where
-    T: SafeFromJSValConvertible<Config = ()>,
-{
-    let conversion = T::safe_from_jsval(cx.into(), value, (), CanGc::from_cx(cx))
-        .map_err(|_| Error::JSFailed)?;
-    match conversion {
-        ConversionResult::Success(dictionary) => Ok(dictionary),
-        ConversionResult::Failure(error) => Err(Error::Type(error.into_owned())),
+/// Helper to retrieve an optional paramter from WebIDL dictionary.
+#[expect(unsafe_code)]
+fn get_optional_parameter<T: SafeFromJSValConvertible>(
+    cx: &mut js::context::JSContext,
+    object: HandleObject,
+    parameter: &std::ffi::CStr,
+    option: T::Config,
+) -> Fallible<Option<T>> {
+    rooted!(&in(cx) let mut rval = UndefinedValue());
+    if unsafe {
+        get_dictionary_property(
+            cx.raw_cx(),
+            object,
+            parameter,
+            rval.handle_mut(),
+            CanGc::from_cx(cx),
+        )
+        .map_err(|_| Error::JSFailed)?
+    } && !rval.is_undefined()
+    {
+        let conversion_result =
+            T::safe_from_jsval(cx.into(), rval.handle(), option, CanGc::from_cx(cx))
+                .map_err(|_| Error::JSFailed)?;
+        match conversion_result {
+            ConversionResult::Success(value) => Ok(Some(value)),
+            ConversionResult::Failure(error) => Err(Error::Type(error.into())),
+        }
+    } else {
+        Ok(None)
     }
+}
+
+/// Helper to retrieve a required paramter from WebIDL dictionary.
+fn get_required_parameter<T: SafeFromJSValConvertible>(
+    cx: &mut js::context::JSContext,
+    object: HandleObject,
+    parameter: &std::ffi::CStr,
+    option: T::Config,
+) -> Fallible<T> {
+    get_optional_parameter(cx, object, parameter, option)?
+        .ok_or(Error::Type(c"Missing required parameter".into()))
+}
+
+/// Helper to retrieve an optional paramter, in RootedTraceableBox, from WebIDL dictionary.
+#[expect(unsafe_code)]
+fn get_optional_parameter_in_box<T: SafeFromJSValConvertible + Trace>(
+    cx: &mut js::context::JSContext,
+    object: HandleObject,
+    parameter: &std::ffi::CStr,
+    option: T::Config,
+) -> Fallible<Option<RootedTraceableBox<T>>> {
+    rooted!(&in(cx) let mut rval = UndefinedValue());
+    if unsafe {
+        get_dictionary_property(
+            cx.raw_cx(),
+            object,
+            parameter,
+            rval.handle_mut(),
+            CanGc::from_cx(cx),
+        )
+        .map_err(|_| Error::JSFailed)?
+    } && !rval.is_undefined()
+    {
+        let conversion_result: ConversionResult<T> = SafeFromJSValConvertible::safe_from_jsval(
+            cx.into(),
+            rval.handle(),
+            option,
+            CanGc::from_cx(cx),
+        )
+        .map_err(|_| Error::JSFailed)?;
+        match conversion_result {
+            ConversionResult::Success(value) => Ok(Some(RootedTraceableBox::new(value))),
+            ConversionResult::Failure(error) => Err(Error::Type(error.into())),
+        }
+    } else {
+        Ok(None)
+    }
+}
+
+/// Helper to retrieve a required paramter, in RootedTraceableBox, from WebIDL dictionary.
+fn get_required_parameter_in_box<T: SafeFromJSValConvertible + Trace>(
+    cx: &mut js::context::JSContext,
+    object: HandleObject,
+    parameter: &std::ffi::CStr,
+    option: T::Config,
+) -> Fallible<RootedTraceableBox<T>> {
+    get_optional_parameter_in_box(cx, object, parameter, option)?
+        .ok_or(Error::Type(c"Missing required parameter".into()))
+}
+
+/// Helper to retrieve an optional paramter in BufferSource from WebIDL dictionary, and get a copy
+/// of the bytes held by the buffer source according to
+/// <https://webidl.spec.whatwg.org/#dfn-get-buffer-source-copy>
+fn get_optional_buffer_source(
+    cx: &mut js::context::JSContext,
+    object: HandleObject,
+    parameter: &std::ffi::CStr,
+) -> Fallible<Option<Vec<u8>>> {
+    let buffer_source =
+        get_optional_parameter::<ArrayBufferViewOrArrayBuffer>(cx, object, parameter, ())?;
+    match buffer_source {
+        Some(ArrayBufferViewOrArrayBuffer::ArrayBufferView(view)) => Ok(Some(view.to_vec())),
+        Some(ArrayBufferViewOrArrayBuffer::ArrayBuffer(buffer)) => Ok(Some(buffer.to_vec())),
+        None => Ok(None),
+    }
+}
+
+/// Helper to retrieve a required paramter in BufferSource from WebIDL dictionary, and get a copy
+/// of the bytes held by the buffer source according to
+/// <https://webidl.spec.whatwg.org/#dfn-get-buffer-source-copy>
+fn get_required_buffer_source(
+    cx: &mut js::context::JSContext,
+    object: HandleObject,
+    parameter: &std::ffi::CStr,
+) -> Fallible<Vec<u8>> {
+    get_optional_buffer_source(cx, object, parameter)?
+        .ok_or(Error::Type(c"Missing required parameter".into()))
 }
 
 /// The returned type of the successful export key operation. `Bytes` should be used when the key
@@ -3620,12 +3728,13 @@ fn normalize_algorithm<Op: Operation>(
             // Stpe 2. Let initialAlg be the result of converting the ECMAScript object represented
             // by alg to the IDL dictionary type Algorithm, as defined by [WebIDL].
             // Step 3. If an error occurred, return the error and terminate this algorithm.
-            rooted!(&in(cx) let value = ObjectValue(object.get()));
-            let initial_algorithm = dictionary_from_jsval::<Algorithm>(cx, value.handle())?;
-
             // Step 4. Let algName be the value of the name attribute of initialAlg.
-            let algorithm_name =
-                CryptoAlgorithm::from_str_ignore_case(&initial_algorithm.name.str())?;
+            let algorithm_name = get_required_parameter::<DOMString>(
+                cx,
+                object.handle(),
+                c"name",
+                StringificationBehavior::Default,
+            )?;
 
             // Step 5.
             //     If registeredAlgorithms contains a key that is a case-insensitive string match
@@ -3662,25 +3771,14 @@ fn normalize_algorithm<Op: Operation>(
             //                 idlValue and the op set to the operation defined by the
             //                 specification that defines the algorithm identified by algName.
             //
-            // NOTE: Step 7 is done by writing algName back to the name attribute of the JS object
-            // before dictionary conversion in Step 6, in order to streamline the conversion. Step
-            // 9 and 10 are done by the calling `TryIntoWithCx::try_into_with_cx` within the trait
-            // implementation of `Op::RegisteredAlgorithm::from_object_value`.
-            rooted!(&in(cx) let mut algorithm_name_value = UndefinedValue());
-            algorithm_name.as_str().safe_to_jsval(
-                cx.into(),
-                algorithm_name_value.handle_mut(),
-                CanGc::from_cx(cx),
-            );
-            set_dictionary_property(
-                cx.into(),
-                object.handle(),
-                c"name",
-                algorithm_name_value.handle(),
-            )
-            .map_err(|_| Error::JSFailed)?;
+            // NOTE:
+            // - The desiredTypes in Step 5.2 are determined by the inner type of
+            //   `Op::RegisteredAlgorithm`.
+            // - Step 9 and 10 are done by the calling `try_into_with_cx_and_name` within the trait
+            //   implementation of `Op::RegisteredAlgorithm::from_object`.
+            let algorithm_name = CryptoAlgorithm::from_str_ignore_case(&algorithm_name.str())?;
             let normalized_algorithm =
-                Op::RegisteredAlgorithm::from_object_value(cx, algorithm_name, value.handle())?;
+                Op::RegisteredAlgorithm::from_object(cx, algorithm_name, object.handle())?;
 
             // Step 11. Return normalizedAlgorithm.
             Ok(normalized_algorithm)
@@ -3747,10 +3845,10 @@ trait Operation {
 
 trait NormalizedAlgorithm: Sized {
     /// Step 4 - 10 of <https://w3c.github.io/webcrypto/#algorithm-normalization-normalize-an-algorithm>
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self>;
     fn name(&self) -> CryptoAlgorithm;
 }
@@ -3774,19 +3872,29 @@ enum EncryptAlgorithm {
 }
 
 impl NormalizedAlgorithm for EncryptAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
-            CryptoAlgorithm::RsaOaep => Ok(EncryptAlgorithm::RsaOaep(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesCtr => Ok(EncryptAlgorithm::AesCtr(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesCbc => Ok(EncryptAlgorithm::AesCbc(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesGcm => Ok(EncryptAlgorithm::AesGcm(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesOcb => Ok(EncryptAlgorithm::AesOcb(value.try_into_with_cx(cx)?)),
+            CryptoAlgorithm::RsaOaep => Ok(EncryptAlgorithm::RsaOaep(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesCtr => Ok(EncryptAlgorithm::AesCtr(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesCbc => Ok(EncryptAlgorithm::AesCbc(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesGcm => Ok(EncryptAlgorithm::AesGcm(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesOcb => Ok(EncryptAlgorithm::AesOcb(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::ChaCha20Poly1305 => Ok(EncryptAlgorithm::ChaCha20Poly1305(
-                value.try_into_with_cx(cx)?,
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"encrypt\" operation",
@@ -3851,19 +3959,29 @@ enum DecryptAlgorithm {
 }
 
 impl NormalizedAlgorithm for DecryptAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
-            CryptoAlgorithm::RsaOaep => Ok(DecryptAlgorithm::RsaOaep(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesCtr => Ok(DecryptAlgorithm::AesCtr(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesCbc => Ok(DecryptAlgorithm::AesCbc(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesGcm => Ok(DecryptAlgorithm::AesGcm(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesOcb => Ok(DecryptAlgorithm::AesOcb(value.try_into_with_cx(cx)?)),
+            CryptoAlgorithm::RsaOaep => Ok(DecryptAlgorithm::RsaOaep(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesCtr => Ok(DecryptAlgorithm::AesCtr(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesCbc => Ok(DecryptAlgorithm::AesCbc(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesGcm => Ok(DecryptAlgorithm::AesGcm(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesOcb => Ok(DecryptAlgorithm::AesOcb(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::ChaCha20Poly1305 => Ok(DecryptAlgorithm::ChaCha20Poly1305(
-                value.try_into_with_cx(cx)?,
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"decrypt\" operation",
@@ -3928,22 +4046,30 @@ enum SignAlgorithm {
 }
 
 impl NormalizedAlgorithm for SignAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
-            CryptoAlgorithm::RsassaPkcs1V1_5 => {
-                Ok(SignAlgorithm::RsassaPkcs1V1_5(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::RsaPss => Ok(SignAlgorithm::RsaPss(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Ecdsa => Ok(SignAlgorithm::Ecdsa(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Ed25519 => Ok(SignAlgorithm::Ed25519(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Hmac => Ok(SignAlgorithm::Hmac(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::MlDsa44 | CryptoAlgorithm::MlDsa65 | CryptoAlgorithm::MlDsa87 => {
-                Ok(SignAlgorithm::MlDsa(value.try_into_with_cx(cx)?))
-            },
+            CryptoAlgorithm::RsassaPkcs1V1_5 => Ok(SignAlgorithm::RsassaPkcs1V1_5(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::RsaPss => Ok(SignAlgorithm::RsaPss(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ecdsa => Ok(SignAlgorithm::Ecdsa(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ed25519 => Ok(SignAlgorithm::Ed25519(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Hmac => Ok(SignAlgorithm::Hmac(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::MlDsa44 | CryptoAlgorithm::MlDsa65 | CryptoAlgorithm::MlDsa87 => Ok(
+                SignAlgorithm::MlDsa(object.try_into_with_cx_and_name(cx, algorithm_name)?),
+            ),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"sign\" operation",
                 algorithm_name.as_str()
@@ -3997,22 +4123,30 @@ enum VerifyAlgorithm {
 }
 
 impl NormalizedAlgorithm for VerifyAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
             CryptoAlgorithm::RsassaPkcs1V1_5 => Ok(VerifyAlgorithm::RsassaPkcs1V1_5(
-                value.try_into_with_cx(cx)?,
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
-            CryptoAlgorithm::RsaPss => Ok(VerifyAlgorithm::RsaPss(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Ecdsa => Ok(VerifyAlgorithm::Ecdsa(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Ed25519 => Ok(VerifyAlgorithm::Ed25519(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Hmac => Ok(VerifyAlgorithm::Hmac(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::MlDsa44 | CryptoAlgorithm::MlDsa65 | CryptoAlgorithm::MlDsa87 => {
-                Ok(VerifyAlgorithm::MlDsa(value.try_into_with_cx(cx)?))
-            },
+            CryptoAlgorithm::RsaPss => Ok(VerifyAlgorithm::RsaPss(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ecdsa => Ok(VerifyAlgorithm::Ecdsa(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ed25519 => Ok(VerifyAlgorithm::Ed25519(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Hmac => Ok(VerifyAlgorithm::Hmac(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::MlDsa44 | CryptoAlgorithm::MlDsa65 | CryptoAlgorithm::MlDsa87 => Ok(
+                VerifyAlgorithm::MlDsa(object.try_into_with_cx_and_name(cx, algorithm_name)?),
+            ),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"verify\" operation",
                 algorithm_name.as_str()
@@ -4072,22 +4206,26 @@ enum DigestAlgorithm {
 }
 
 impl NormalizedAlgorithm for DigestAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
             CryptoAlgorithm::Sha1 |
             CryptoAlgorithm::Sha256 |
             CryptoAlgorithm::Sha384 |
-            CryptoAlgorithm::Sha512 => Ok(DigestAlgorithm::Sha(value.try_into_with_cx(cx)?)),
+            CryptoAlgorithm::Sha512 => Ok(DigestAlgorithm::Sha(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::Sha3_256 | CryptoAlgorithm::Sha3_384 | CryptoAlgorithm::Sha3_512 => {
-                Ok(DigestAlgorithm::Sha3(value.try_into_with_cx(cx)?))
+                Ok(DigestAlgorithm::Sha3(
+                    object.try_into_with_cx_and_name(cx, algorithm_name)?,
+                ))
             },
-            CryptoAlgorithm::CShake128 | CryptoAlgorithm::CShake256 => {
-                Ok(DigestAlgorithm::CShake(value.try_into_with_cx(cx)?))
-            },
+            CryptoAlgorithm::CShake128 | CryptoAlgorithm::CShake256 => Ok(DigestAlgorithm::CShake(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"digest\" operation",
                 algorithm_name.as_str()
@@ -4132,19 +4270,27 @@ enum DeriveBitsAlgorithm {
 }
 
 impl NormalizedAlgorithm for DeriveBitsAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
-            CryptoAlgorithm::Ecdh => Ok(DeriveBitsAlgorithm::Ecdh(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::X25519 => Ok(DeriveBitsAlgorithm::X25519(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Hkdf => Ok(DeriveBitsAlgorithm::Hkdf(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Pbkdf2 => Ok(DeriveBitsAlgorithm::Pbkdf2(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Argon2D | CryptoAlgorithm::Argon2I | CryptoAlgorithm::Argon2ID => {
-                Ok(DeriveBitsAlgorithm::Argon2(value.try_into_with_cx(cx)?))
-            },
+            CryptoAlgorithm::Ecdh => Ok(DeriveBitsAlgorithm::Ecdh(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::X25519 => Ok(DeriveBitsAlgorithm::X25519(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Hkdf => Ok(DeriveBitsAlgorithm::Hkdf(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Pbkdf2 => Ok(DeriveBitsAlgorithm::Pbkdf2(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Argon2D | CryptoAlgorithm::Argon2I | CryptoAlgorithm::Argon2ID => Ok(
+                DeriveBitsAlgorithm::Argon2(object.try_into_with_cx_and_name(cx, algorithm_name)?),
+            ),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"deriveBits\" operation",
                 algorithm_name.as_str()
@@ -4199,13 +4345,15 @@ enum WrapKeyAlgorithm {
 }
 
 impl NormalizedAlgorithm for WrapKeyAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
-            CryptoAlgorithm::AesKw => Ok(WrapKeyAlgorithm::AesKw(value.try_into_with_cx(cx)?)),
+            CryptoAlgorithm::AesKw => Ok(WrapKeyAlgorithm::AesKw(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"wrapKey\" operation",
                 algorithm_name.as_str()
@@ -4242,13 +4390,15 @@ enum UnwrapKeyAlgorithm {
 }
 
 impl NormalizedAlgorithm for UnwrapKeyAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
-            CryptoAlgorithm::AesKw => Ok(UnwrapKeyAlgorithm::AesKw(value.try_into_with_cx(cx)?)),
+            CryptoAlgorithm::AesKw => Ok(UnwrapKeyAlgorithm::AesKw(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"unwrapKey\" operation",
                 algorithm_name.as_str()
@@ -4300,51 +4450,61 @@ enum GenerateKeyAlgorithm {
 }
 
 impl NormalizedAlgorithm for GenerateKeyAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
             CryptoAlgorithm::RsassaPkcs1V1_5 => Ok(GenerateKeyAlgorithm::RsassaPkcs1V1_5(
-                value.try_into_with_cx(cx)?,
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
-            CryptoAlgorithm::RsaPss => {
-                Ok(GenerateKeyAlgorithm::RsaPss(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::RsaOaep => {
-                Ok(GenerateKeyAlgorithm::RsaOaep(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::Ecdsa => Ok(GenerateKeyAlgorithm::Ecdsa(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Ecdh => Ok(GenerateKeyAlgorithm::Ecdh(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Ed25519 => {
-                Ok(GenerateKeyAlgorithm::Ed25519(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::X25519 => {
-                Ok(GenerateKeyAlgorithm::X25519(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::AesCtr => {
-                Ok(GenerateKeyAlgorithm::AesCtr(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::AesCbc => {
-                Ok(GenerateKeyAlgorithm::AesCbc(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::AesGcm => {
-                Ok(GenerateKeyAlgorithm::AesGcm(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::AesKw => Ok(GenerateKeyAlgorithm::AesKw(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Hmac => Ok(GenerateKeyAlgorithm::Hmac(value.try_into_with_cx(cx)?)),
+            CryptoAlgorithm::RsaPss => Ok(GenerateKeyAlgorithm::RsaPss(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::RsaOaep => Ok(GenerateKeyAlgorithm::RsaOaep(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ecdsa => Ok(GenerateKeyAlgorithm::Ecdsa(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ecdh => Ok(GenerateKeyAlgorithm::Ecdh(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ed25519 => Ok(GenerateKeyAlgorithm::Ed25519(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::X25519 => Ok(GenerateKeyAlgorithm::X25519(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesCtr => Ok(GenerateKeyAlgorithm::AesCtr(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesCbc => Ok(GenerateKeyAlgorithm::AesCbc(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesGcm => Ok(GenerateKeyAlgorithm::AesGcm(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesKw => Ok(GenerateKeyAlgorithm::AesKw(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Hmac => Ok(GenerateKeyAlgorithm::Hmac(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::MlKem512 | CryptoAlgorithm::MlKem768 | CryptoAlgorithm::MlKem1024 => {
-                Ok(GenerateKeyAlgorithm::MlKem(value.try_into_with_cx(cx)?))
+                Ok(GenerateKeyAlgorithm::MlKem(
+                    object.try_into_with_cx_and_name(cx, algorithm_name)?,
+                ))
             },
-            CryptoAlgorithm::MlDsa44 | CryptoAlgorithm::MlDsa65 | CryptoAlgorithm::MlDsa87 => {
-                Ok(GenerateKeyAlgorithm::MlDsa(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::AesOcb => {
-                Ok(GenerateKeyAlgorithm::AesOcb(value.try_into_with_cx(cx)?))
-            },
+            CryptoAlgorithm::MlDsa44 | CryptoAlgorithm::MlDsa65 | CryptoAlgorithm::MlDsa87 => Ok(
+                GenerateKeyAlgorithm::MlDsa(object.try_into_with_cx_and_name(cx, algorithm_name)?),
+            ),
+            CryptoAlgorithm::AesOcb => Ok(GenerateKeyAlgorithm::AesOcb(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::ChaCha20Poly1305 => Ok(GenerateKeyAlgorithm::ChaCha20Poly1305(
-                value.try_into_with_cx(cx)?,
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"generateKey\" operation",
@@ -4490,45 +4650,71 @@ enum ImportKeyAlgorithm {
 }
 
 impl NormalizedAlgorithm for ImportKeyAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
             CryptoAlgorithm::RsassaPkcs1V1_5 => Ok(ImportKeyAlgorithm::RsassaPkcs1V1_5(
-                value.try_into_with_cx(cx)?,
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
-            CryptoAlgorithm::RsaPss => Ok(ImportKeyAlgorithm::RsaPss(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::RsaOaep => {
-                Ok(ImportKeyAlgorithm::RsaOaep(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::Ecdsa => Ok(ImportKeyAlgorithm::Ecdsa(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Ecdh => Ok(ImportKeyAlgorithm::Ecdh(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Ed25519 => {
-                Ok(ImportKeyAlgorithm::Ed25519(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::X25519 => Ok(ImportKeyAlgorithm::X25519(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesCtr => Ok(ImportKeyAlgorithm::AesCtr(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesCbc => Ok(ImportKeyAlgorithm::AesCbc(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesGcm => Ok(ImportKeyAlgorithm::AesGcm(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesKw => Ok(ImportKeyAlgorithm::AesKw(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Hmac => Ok(ImportKeyAlgorithm::Hmac(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Hkdf => Ok(ImportKeyAlgorithm::Hkdf(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Pbkdf2 => Ok(ImportKeyAlgorithm::Pbkdf2(value.try_into_with_cx(cx)?)),
+            CryptoAlgorithm::RsaPss => Ok(ImportKeyAlgorithm::RsaPss(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::RsaOaep => Ok(ImportKeyAlgorithm::RsaOaep(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ecdsa => Ok(ImportKeyAlgorithm::Ecdsa(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ecdh => Ok(ImportKeyAlgorithm::Ecdh(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ed25519 => Ok(ImportKeyAlgorithm::Ed25519(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::X25519 => Ok(ImportKeyAlgorithm::X25519(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesCtr => Ok(ImportKeyAlgorithm::AesCtr(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesCbc => Ok(ImportKeyAlgorithm::AesCbc(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesGcm => Ok(ImportKeyAlgorithm::AesGcm(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesKw => Ok(ImportKeyAlgorithm::AesKw(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Hmac => Ok(ImportKeyAlgorithm::Hmac(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Hkdf => Ok(ImportKeyAlgorithm::Hkdf(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Pbkdf2 => Ok(ImportKeyAlgorithm::Pbkdf2(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::MlKem512 | CryptoAlgorithm::MlKem768 | CryptoAlgorithm::MlKem1024 => {
-                Ok(ImportKeyAlgorithm::MlKem(value.try_into_with_cx(cx)?))
+                Ok(ImportKeyAlgorithm::MlKem(
+                    object.try_into_with_cx_and_name(cx, algorithm_name)?,
+                ))
             },
-            CryptoAlgorithm::MlDsa44 | CryptoAlgorithm::MlDsa65 | CryptoAlgorithm::MlDsa87 => {
-                Ok(ImportKeyAlgorithm::MlDsa(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::AesOcb => Ok(ImportKeyAlgorithm::AesOcb(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::ChaCha20Poly1305 => Ok(ImportKeyAlgorithm::ChaCha20Poly1305(
-                value.try_into_with_cx(cx)?,
+            CryptoAlgorithm::MlDsa44 | CryptoAlgorithm::MlDsa65 | CryptoAlgorithm::MlDsa87 => Ok(
+                ImportKeyAlgorithm::MlDsa(object.try_into_with_cx_and_name(cx, algorithm_name)?),
+            ),
+            CryptoAlgorithm::AesOcb => Ok(ImportKeyAlgorithm::AesOcb(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
-            CryptoAlgorithm::Argon2D | CryptoAlgorithm::Argon2I | CryptoAlgorithm::Argon2ID => {
-                Ok(ImportKeyAlgorithm::Argon2(value.try_into_with_cx(cx)?))
-            },
+            CryptoAlgorithm::ChaCha20Poly1305 => Ok(ImportKeyAlgorithm::ChaCha20Poly1305(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Argon2D | CryptoAlgorithm::Argon2I | CryptoAlgorithm::Argon2ID => Ok(
+                ImportKeyAlgorithm::Argon2(object.try_into_with_cx_and_name(cx, algorithm_name)?),
+            ),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"importKey\" operation",
                 algorithm_name.as_str()
@@ -4725,39 +4911,61 @@ enum ExportKeyAlgorithm {
 }
 
 impl NormalizedAlgorithm for ExportKeyAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
             CryptoAlgorithm::RsassaPkcs1V1_5 => Ok(ExportKeyAlgorithm::RsassaPkcs1V1_5(
-                value.try_into_with_cx(cx)?,
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
-            CryptoAlgorithm::RsaPss => Ok(ExportKeyAlgorithm::RsaPss(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::RsaOaep => {
-                Ok(ExportKeyAlgorithm::RsaOaep(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::Ecdsa => Ok(ExportKeyAlgorithm::Ecdsa(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Ecdh => Ok(ExportKeyAlgorithm::Ecdh(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Ed25519 => {
-                Ok(ExportKeyAlgorithm::Ed25519(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::X25519 => Ok(ExportKeyAlgorithm::X25519(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesCtr => Ok(ExportKeyAlgorithm::AesCtr(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesCbc => Ok(ExportKeyAlgorithm::AesCbc(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesGcm => Ok(ExportKeyAlgorithm::AesGcm(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::AesKw => Ok(ExportKeyAlgorithm::AesKw(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Hmac => Ok(ExportKeyAlgorithm::Hmac(value.try_into_with_cx(cx)?)),
+            CryptoAlgorithm::RsaPss => Ok(ExportKeyAlgorithm::RsaPss(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::RsaOaep => Ok(ExportKeyAlgorithm::RsaOaep(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ecdsa => Ok(ExportKeyAlgorithm::Ecdsa(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ecdh => Ok(ExportKeyAlgorithm::Ecdh(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ed25519 => Ok(ExportKeyAlgorithm::Ed25519(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::X25519 => Ok(ExportKeyAlgorithm::X25519(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesCtr => Ok(ExportKeyAlgorithm::AesCtr(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesCbc => Ok(ExportKeyAlgorithm::AesCbc(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesGcm => Ok(ExportKeyAlgorithm::AesGcm(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesKw => Ok(ExportKeyAlgorithm::AesKw(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Hmac => Ok(ExportKeyAlgorithm::Hmac(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::MlKem512 | CryptoAlgorithm::MlKem768 | CryptoAlgorithm::MlKem1024 => {
-                Ok(ExportKeyAlgorithm::MlKem(value.try_into_with_cx(cx)?))
+                Ok(ExportKeyAlgorithm::MlKem(
+                    object.try_into_with_cx_and_name(cx, algorithm_name)?,
+                ))
             },
-            CryptoAlgorithm::MlDsa44 | CryptoAlgorithm::MlDsa65 | CryptoAlgorithm::MlDsa87 => {
-                Ok(ExportKeyAlgorithm::MlDsa(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::AesOcb => Ok(ExportKeyAlgorithm::AesOcb(value.try_into_with_cx(cx)?)),
+            CryptoAlgorithm::MlDsa44 | CryptoAlgorithm::MlDsa65 | CryptoAlgorithm::MlDsa87 => Ok(
+                ExportKeyAlgorithm::MlDsa(object.try_into_with_cx_and_name(cx, algorithm_name)?),
+            ),
+            CryptoAlgorithm::AesOcb => Ok(ExportKeyAlgorithm::AesOcb(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::ChaCha20Poly1305 => Ok(ExportKeyAlgorithm::ChaCha20Poly1305(
-                value.try_into_with_cx(cx)?,
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"exportKey\" operation",
@@ -4838,35 +5046,43 @@ enum GetKeyLengthAlgorithm {
 }
 
 impl NormalizedAlgorithm for GetKeyLengthAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
-            CryptoAlgorithm::AesCtr => {
-                Ok(GetKeyLengthAlgorithm::AesCtr(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::AesCbc => {
-                Ok(GetKeyLengthAlgorithm::AesCbc(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::AesGcm => {
-                Ok(GetKeyLengthAlgorithm::AesGcm(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::AesKw => Ok(GetKeyLengthAlgorithm::AesKw(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Hmac => Ok(GetKeyLengthAlgorithm::Hmac(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Hkdf => Ok(GetKeyLengthAlgorithm::Hkdf(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Pbkdf2 => {
-                Ok(GetKeyLengthAlgorithm::Pbkdf2(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::AesOcb => {
-                Ok(GetKeyLengthAlgorithm::AesOcb(value.try_into_with_cx(cx)?))
-            },
+            CryptoAlgorithm::AesCtr => Ok(GetKeyLengthAlgorithm::AesCtr(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesCbc => Ok(GetKeyLengthAlgorithm::AesCbc(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesGcm => Ok(GetKeyLengthAlgorithm::AesGcm(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesKw => Ok(GetKeyLengthAlgorithm::AesKw(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Hmac => Ok(GetKeyLengthAlgorithm::Hmac(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Hkdf => Ok(GetKeyLengthAlgorithm::Hkdf(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Pbkdf2 => Ok(GetKeyLengthAlgorithm::Pbkdf2(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::AesOcb => Ok(GetKeyLengthAlgorithm::AesOcb(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             CryptoAlgorithm::ChaCha20Poly1305 => Ok(GetKeyLengthAlgorithm::ChaCha20Poly1305(
-                value.try_into_with_cx(cx)?,
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
             CryptoAlgorithm::Argon2D | CryptoAlgorithm::Argon2I | CryptoAlgorithm::Argon2ID => {
-                Ok(GetKeyLengthAlgorithm::Argon2(value.try_into_with_cx(cx)?))
+                Ok(GetKeyLengthAlgorithm::Argon2(
+                    object.try_into_with_cx_and_name(cx, algorithm_name)?,
+                ))
             },
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"get key length\" operation",
@@ -4932,14 +5148,16 @@ enum EncapsulateAlgorithm {
 }
 
 impl NormalizedAlgorithm for EncapsulateAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
             CryptoAlgorithm::MlKem512 | CryptoAlgorithm::MlKem768 | CryptoAlgorithm::MlKem1024 => {
-                Ok(EncapsulateAlgorithm::MlKem(value.try_into_with_cx(cx)?))
+                Ok(EncapsulateAlgorithm::MlKem(
+                    object.try_into_with_cx_and_name(cx, algorithm_name)?,
+                ))
             },
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"encapsulate\" operation",
@@ -4977,14 +5195,16 @@ enum DecapsulateAlgorithm {
 }
 
 impl NormalizedAlgorithm for DecapsulateAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
             CryptoAlgorithm::MlKem512 | CryptoAlgorithm::MlKem768 | CryptoAlgorithm::MlKem1024 => {
-                Ok(DecapsulateAlgorithm::MlKem(value.try_into_with_cx(cx)?))
+                Ok(DecapsulateAlgorithm::MlKem(
+                    object.try_into_with_cx_and_name(cx, algorithm_name)?,
+                ))
             },
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"decapsulate\" operation",
@@ -5030,29 +5250,33 @@ enum GetPublicKeyAlgorithm {
 }
 
 impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
-    fn from_object_value(
+    fn from_object(
         cx: &mut js::context::JSContext,
         algorithm_name: CryptoAlgorithm,
-        value: HandleValue,
+        object: HandleObject,
     ) -> Fallible<Self> {
         match algorithm_name {
             CryptoAlgorithm::RsassaPkcs1V1_5 => Ok(GetPublicKeyAlgorithm::RsassaPkcs1v1_5(
-                value.try_into_with_cx(cx)?,
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
             )),
-            CryptoAlgorithm::RsaPss => {
-                Ok(GetPublicKeyAlgorithm::RsaPss(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::RsaOaep => {
-                Ok(GetPublicKeyAlgorithm::RsaOaep(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::Ecdsa => Ok(GetPublicKeyAlgorithm::Ecdsa(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Ecdh => Ok(GetPublicKeyAlgorithm::Ecdh(value.try_into_with_cx(cx)?)),
-            CryptoAlgorithm::Ed25519 => {
-                Ok(GetPublicKeyAlgorithm::Ed25519(value.try_into_with_cx(cx)?))
-            },
-            CryptoAlgorithm::X25519 => {
-                Ok(GetPublicKeyAlgorithm::X25519(value.try_into_with_cx(cx)?))
-            },
+            CryptoAlgorithm::RsaPss => Ok(GetPublicKeyAlgorithm::RsaPss(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::RsaOaep => Ok(GetPublicKeyAlgorithm::RsaOaep(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ecdsa => Ok(GetPublicKeyAlgorithm::Ecdsa(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ecdh => Ok(GetPublicKeyAlgorithm::Ecdh(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::Ed25519 => Ok(GetPublicKeyAlgorithm::Ed25519(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
+            CryptoAlgorithm::X25519 => Ok(GetPublicKeyAlgorithm::X25519(
+                object.try_into_with_cx_and_name(cx, algorithm_name)?,
+            )),
             _ => Err(Error::NotSupported(Some(format!(
                 "{} does not support \"getPublicKey\" operation",
                 algorithm_name.as_str()
