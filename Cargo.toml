@@ -295,7 +295,6 @@ xpath = { package = "servo-xpath", version = "0.0.6", path = "components/xpath" 
 
 # Independently versioned workspace local crates. These crates will not take part in auto-bumps.
 hyper_serde = { package = "servo-hyper-serde", version = "0.13.2", path = "components/hyper_serde" }
-blurmac = { version = "0.1.0", path = "third_party/blurmac" }
 
 # RSA key generation could be very slow without compilation
 # optimizations, in development mode. Without optimizations, WPT might

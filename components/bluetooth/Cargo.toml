@@ -16,24 +16,18 @@ path = "lib.rs"
 [dependencies]
 bitflags = { workspace = true }
 blurmock = { version = "0.1.2", optional = true }
+btleplug = { version = "0.12", optional = true }
 embedder_traits = { workspace = true }
+futures = { workspace = true, features = ["executor"] }
 log = { workspace = true }
 rand = { workspace = true }
 servo-base = { workspace = true }
 servo-bluetooth-traits = { workspace = true }
 servo-config = { workspace = true }
+tokio = { workspace = true, features = ["rt", "time", "sync"], optional = true }
 uuid = { workspace = true }
-
-[target.'cfg(target_os = "linux")'.dependencies]
-blurz = { version = "0.3", optional = true }
-
-[target.'cfg(target_os = "android")'.dependencies]
-blurdroid = { version = "0.1.2", optional = true }
-
-[target.'cfg(target_os = "macos")'.dependencies]
-blurmac = { workspace = true, optional = true }
 
 [features]
 default = ["bluetooth-test"]
 bluetooth-test = ["blurmock"]
-native-bluetooth = ["bluetooth-test", "blurdroid", "blurmac", "blurz"]
+native-bluetooth = ["bluetooth-test", "btleplug", "tokio"]

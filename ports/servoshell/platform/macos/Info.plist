@@ -24,6 +24,8 @@
 	<string>NSApplication</string>
 	<key>NSQuitAlwaysKeepsWindows</key>
 	<false/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Servo needs Bluetooth access to support the Web Bluetooth API</string>
 	<key>CFBundleSupportedPlatforms</key>
     <array>
         <string>MacOSX</string>
