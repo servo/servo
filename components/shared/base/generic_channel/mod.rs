@@ -176,11 +176,11 @@ where
     T: Serialize,
 {
     fn clone(&self) -> Self {
-        match self.0 {
-            GenericSenderVariants::Ipc(ref chan) => {
+        match &self.0 {
+            GenericSenderVariants::Ipc(chan) => {
                 GenericSender(GenericSenderVariants::Ipc(chan.clone()))
             },
-            GenericSenderVariants::Crossbeam(ref chan) => {
+            GenericSenderVariants::Crossbeam(chan) => {
                 GenericSender(GenericSenderVariants::Crossbeam(chan.clone()))
             },
         }
@@ -196,11 +196,11 @@ impl<T: Serialize> fmt::Debug for GenericSender<T> {
 impl<T: Serialize> GenericSender<T> {
     #[inline]
     pub fn send(&self, msg: T) -> SendResult {
-        match self.0 {
-            GenericSenderVariants::Ipc(ref sender) => sender
+        match &self.0 {
+            GenericSenderVariants::Ipc(sender) => sender
                 .send(msg)
-                .map_err(|e| SendError::SerializationError(format!("{e}"))),
-            GenericSenderVariants::Crossbeam(ref sender) => {
+                .map_err(|e| SendError::SerializationError(e.to_string())),
+            GenericSenderVariants::Crossbeam(sender) => {
                 sender.send(Ok(msg)).map_err(|_| SendError::Disconnected)
             },
         }
@@ -370,9 +370,9 @@ where
 {
     #[inline]
     pub fn recv(&self) -> ReceiveResult<T> {
-        match self.0 {
-            GenericReceiverVariants::Ipc(ref receiver) => Ok(receiver.recv()?),
-            GenericReceiverVariants::Crossbeam(ref receiver) => {
+        match &self.0 {
+            GenericReceiverVariants::Ipc(receiver) => Ok(receiver.recv()?),
+            GenericReceiverVariants::Crossbeam(receiver) => {
                 // `recv()` returns an error if the channel is disconnected
                 let msg = receiver.recv()?;
                 // `msg` must be `ok` because the corresponding [`GenericSender::Crossbeam`] will
@@ -384,9 +384,9 @@ where
 
     #[inline]
     pub fn try_recv(&self) -> TryReceiveResult<T> {
-        match self.0 {
-            GenericReceiverVariants::Ipc(ref receiver) => Ok(receiver.try_recv()?),
-            GenericReceiverVariants::Crossbeam(ref receiver) => {
+        match &self.0 {
+            GenericReceiverVariants::Ipc(receiver) => Ok(receiver.try_recv()?),
+            GenericReceiverVariants::Crossbeam(receiver) => {
                 let msg = receiver.try_recv()?;
                 Ok(msg.expect("Infallible"))
             },
@@ -396,19 +396,17 @@ where
     /// Blocks up to the specific duration attempting to receive a message.
     #[inline]
     pub fn try_recv_timeout(&self, timeout: Duration) -> Result<T, TryReceiveError> {
-        match self.0 {
-            GenericReceiverVariants::Ipc(ref ipc_receiver) => {
+        match &self.0 {
+            GenericReceiverVariants::Ipc(ipc_receiver) => {
                 ipc_receiver.try_recv_timeout(timeout).map_err(|e| e.into())
             },
-            GenericReceiverVariants::Crossbeam(ref receiver) => {
-                match receiver.recv_timeout(timeout) {
-                    Ok(Ok(value)) => Ok(value),
-                    Ok(Err(_)) => unreachable!("Infallable"),
-                    Err(RecvTimeoutError::Disconnected) => {
-                        Err(TryReceiveError::ReceiveError(ReceiveError::Disconnected))
-                    },
-                    Err(RecvTimeoutError::Timeout) => Err(TryReceiveError::Empty),
-                }
+            GenericReceiverVariants::Crossbeam(receiver) => match receiver.recv_timeout(timeout) {
+                Ok(Ok(value)) => Ok(value),
+                Ok(Err(_)) => unreachable!("Infallable"),
+                Err(RecvTimeoutError::Disconnected) => {
+                    Err(TryReceiveError::ReceiveError(ReceiveError::Disconnected))
+                },
+                Err(RecvTimeoutError::Timeout) => Err(TryReceiveError::Empty),
             },
         }
     }
