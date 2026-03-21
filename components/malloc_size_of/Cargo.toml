@@ -27,7 +27,7 @@ markup5ever = { workspace = true }
 mime = { workspace = true }
 parking_lot = { workspace = true }
 resvg = { workspace = true }
-servo_allocator = { workspace = true }
+servo-allocator = { workspace = true }
 servo_arc = { workspace = true }
 smallvec = { workspace = true }
 string_cache = { workspace = true }

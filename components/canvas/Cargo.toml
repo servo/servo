@@ -34,7 +34,7 @@ profile_traits = { workspace = true }
 pollster = { version = "0.4", optional = true }
 rustc-hash = { workspace = true }
 servo-tracing = { workspace = true }
-servo_config = { workspace = true }
+servo-config = { workspace = true }
 stylo = { workspace = true }
 tracing = { workspace = true, optional = true }
 vello = { workspace = true, optional = true }

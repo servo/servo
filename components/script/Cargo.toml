@@ -131,8 +131,8 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["preserve_order"] }
 servo-media = { workspace = true }
 servo_arc = { workspace = true }
-servo_config = { workspace = true }
-servo_geometry = { workspace = true }
+servo-config = { workspace = true }
+servo-geometry = { workspace = true }
 servo-url = { workspace = true }
 sha1 = { workspace = true }
 sha2 = { workspace = true }

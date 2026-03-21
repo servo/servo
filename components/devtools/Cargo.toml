@@ -33,7 +33,7 @@ rand = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-servo_config = { workspace = true }
+servo-config = { workspace = true }
 servo-url = { workspace = true }
 uuid = { workspace = true }
 

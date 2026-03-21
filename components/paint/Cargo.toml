@@ -43,9 +43,9 @@ profile_traits = { workspace = true }
 rayon = { workspace = true }
 rustc-hash = { workspace = true }
 servo-tracing = { workspace = true }
-servo_allocator = { workspace = true }
-servo_config = { workspace = true }
-servo_geometry = { workspace = true }
+servo-allocator = { workspace = true }
+servo-config = { workspace = true }
+servo-geometry = { workspace = true }
 smallvec = { workspace = true }
 stylo_traits = { workspace = true }
 surfman = { workspace = true }
