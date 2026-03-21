@@ -94,7 +94,11 @@ fn verify_first_paint(servo_test: &ServoTest, data_url: &str, expected_fp: i32) 
         .url(Url::parse(data_url).unwrap())
         .build();
 
-    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "await new Promise(requestAnimationFrame);",
+    );
 
     let paint_entries = evaluate_javascript(
         &servo_test,
