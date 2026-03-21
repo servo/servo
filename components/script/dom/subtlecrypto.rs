@@ -37,10 +37,10 @@ use base64ct::{Base64UrlUnpadded, Encoding};
 use dom_struct::dom_struct;
 use js::conversions::{ConversionBehavior, ConversionResult};
 use js::jsapi::{Heap, JSObject};
-use js::jsval::{ObjectValue, UndefinedValue};
+use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::JS_ParseJSON;
-use js::rust::{HandleObject, HandleValue, MutableHandleValue, Trace};
+use js::rust::{HandleObject, MutableHandleValue, Trace};
 use js::typedarray::{ArrayBufferU8, HeapUint8Array};
 use strum::{EnumString, IntoStaticStr, VariantArray};
 
@@ -49,13 +49,9 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
-    AeadParams, AesCbcParams, AesCtrParams, AesDerivedKeyParams, AesGcmParams, AesKeyAlgorithm,
-    AesKeyGenParams, Algorithm, AlgorithmIdentifier, Argon2Params, CShakeParams, ContextParams,
-    EcKeyAlgorithm, EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, EcdsaParams,
-    EncapsulatedBits, EncapsulatedKey, HkdfParams, HmacImportParams, HmacKeyAlgorithm,
-    HmacKeyGenParams, JsonWebKey, KeyAlgorithm, KeyFormat, Pbkdf2Params, RsaHashedImportParams,
-    RsaHashedKeyAlgorithm, RsaHashedKeyGenParams, RsaKeyAlgorithm, RsaOaepParams, RsaPssParams,
-    SubtleCryptoMethods,
+    AesKeyAlgorithm, Algorithm, AlgorithmIdentifier, EcKeyAlgorithm, EncapsulatedBits,
+    EncapsulatedKey, HmacKeyAlgorithm, JsonWebKey, KeyAlgorithm, KeyFormat, RsaHashedKeyAlgorithm,
+    RsaKeyAlgorithm, SubtleCryptoMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::{
     ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey, ObjectOrString,
@@ -69,7 +65,7 @@ use crate::dom::bindings::reflector::{DomGlobal, Reflector, reflect_dom_object_w
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, serialize_jsval_to_json_utf8};
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::utils::{get_dictionary_property, set_dictionary_property};
+use crate::dom::bindings::utils::get_dictionary_property;
 use crate::dom::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -168,10 +164,6 @@ impl CryptoAlgorithm {
             .ok_or(Error::NotSupported(Some(format!(
                 "Unsupported algorithm: {algorithm_name}"
             ))))
-    }
-
-    fn from_domstring(name: &DOMString) -> Fallible<Self> {
-        CryptoAlgorithm::try_from(&*name.str()).map_err(|_| Error::NotSupported(None))
     }
 }
 
@@ -3237,19 +3229,6 @@ impl SafeToJSValConvertible for SubtleEncapsulatedBits {
             ciphertext,
         });
         encapsulated_bits.safe_to_jsval(cx, rval, can_gc);
-    }
-}
-
-/// Helper to abstract the conversion process of a JS value into many different WebIDL dictionaries.
-fn dictionary_from_jsval<T>(cx: &mut js::context::JSContext, value: HandleValue) -> Fallible<T>
-where
-    T: SafeFromJSValConvertible<Config = ()>,
-{
-    let conversion = T::safe_from_jsval(cx.into(), value, (), CanGc::from_cx(cx))
-        .map_err(|_| Error::JSFailed)?;
-    match conversion {
-        ConversionResult::Success(dictionary) => Ok(dictionary),
-        ConversionResult::Failure(error) => Err(Error::Type(error.into_owned())),
     }
 }
 
