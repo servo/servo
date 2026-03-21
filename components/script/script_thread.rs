@@ -612,10 +612,10 @@ impl ScriptThread {
                         }
                     }
                 });
-                // Step 19 of <https://html.spec.whatwg.org/multipage/#navigate>
+                // Step 20 of <https://html.spec.whatwg.org/multipage/#navigate>
                 global
                     .task_manager()
-                    .dom_manipulation_task_source()
+                    .navigation_traversal_task_source()
                     .queue(task);
             } else {
                 script_thread

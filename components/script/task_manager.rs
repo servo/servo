@@ -158,4 +158,5 @@ impl TaskManager {
         IntersectionObserver
     );
     task_source_functions!(self, webgpu_task_source, WebGPU);
+    task_source_functions!(self, navigation_traversal_task_source, NavigationTraversal);
 }
