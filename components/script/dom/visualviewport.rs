@@ -10,6 +10,7 @@ use euclid::{Rect, Scale, Size2D};
 use paint_api::PinchZoomInfos;
 use script_bindings::codegen::GenericBindings::VisualViewportBinding::VisualViewportMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::inheritance::Castable;
 use script_bindings::num::Finite;
 use script_bindings::root::{Dom, DomRoot};
 use script_bindings::script_runtime::CanGc;
@@ -105,6 +106,20 @@ impl VisualViewport {
         let old_scale = self.scale.replace(pinch_zoom_infos.zoom_factor);
 
         self.check_for_update(old_rect, old_scale)
+    }
+
+    /// <https://drafts.csswg.org/cssom-view/#scrolling-events>
+    ///
+    /// > Whenever a visual viewport gets scrolled (whether in response to user
+    /// > interaction or by an API), the user agent must run these steps:
+    pub(crate) fn handle_scroll_event(&self) {
+        // Step 1:  Let vv be the VisualViewport object that was scrolled.
+        // Note: This is self.
+        // Step 2: Let doc be vv’s associated document.
+        // Steps 3 and 4 are shared with other scroll targets.
+        self.window
+            .Document()
+            .finish_handle_scroll_event(self.upcast());
     }
 }
 

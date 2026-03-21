@@ -985,15 +985,15 @@ struct FontNetworkTimingHandler {
 impl NetworkTimingHandler for FontNetworkTimingHandler {
     fn submit_timing(&self, url: ServoUrl, response: ResourceFetchTiming) {
         let global = self.global.clone();
-        self.task_source.queue(task!(network_timing: move || {
+        self.task_source.queue(task!(network_timing: move |cx| {
             submit_timing(
+                cx,
                 &FontFetchListener {
                     url,
                     global
                 },
                 &Ok(()),
                 &response,
-                CanGc::note(),
             );
         }));
     }
@@ -1434,8 +1434,8 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location>
-    fn Location(&self) -> DomRoot<Location> {
-        self.location.or_init(|| Location::new(self, CanGc::note()))
+    fn Location(&self, cx: &mut js::context::JSContext) -> DomRoot<Location> {
+        self.location.or_init(|| Location::new(cx, self))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-sessionstorage>
@@ -2515,8 +2515,8 @@ impl Window {
         // Even though the note mention the scrollend, it is relevant to the scroll as well.
         if reflow_phases_run.contains(ReflowPhasesRun::UpdatedScrollNodeOffset) {
             match element {
-                Some(el) => self.Document().handle_element_scroll_event(el),
-                None => self.Document().handle_viewport_scroll_event(),
+                Some(element) if !scroll_id.is_root() => element.handle_scroll_event(),
+                _ => self.Document().handle_viewport_scroll_event(),
             };
         }
     }
@@ -3302,8 +3302,7 @@ impl Window {
             self.has_changed_visual_viewport_dimension.set(true);
         }
         if changes.intersects(VisualViewportChanges::OffsetChanged) {
-            self.Document()
-                .handle_visual_viewport_scroll_event(&visual_viewport);
+            visual_viewport.handle_scroll_event();
         }
     }
 

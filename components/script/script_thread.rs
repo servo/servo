@@ -1863,9 +1863,7 @@ impl ScriptThread {
             ScriptThreadMessage::ReportCSSError(pipeline_id, filename, line, column, msg) => {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg)
             },
-            ScriptThreadMessage::Reload(pipeline_id) => {
-                self.handle_reload(pipeline_id, CanGc::from_cx(cx))
-            },
+            ScriptThreadMessage::Reload(pipeline_id) => self.handle_reload(pipeline_id, cx),
             ScriptThreadMessage::Resize(id, size, size_type) => {
                 self.handle_resize_message(id, size, size_type);
             },
@@ -2118,39 +2116,23 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetEventListenerInfo(id, node, reply) => {
                 devtools::handle_get_event_listener_info(&self.devtools_state, id, &node, reply)
             },
-            DevtoolScriptControlMsg::GetRootNode(id, reply) => devtools::handle_get_root_node(
-                &self.devtools_state,
-                &documents,
-                id,
-                reply,
-                CanGc::from_cx(cx),
-            ),
+            DevtoolScriptControlMsg::GetRootNode(id, reply) => {
+                devtools::handle_get_root_node(cx, &self.devtools_state, &documents, id, reply)
+            },
             DevtoolScriptControlMsg::GetDocumentElement(id, reply) => {
                 devtools::handle_get_document_element(
+                    cx,
                     &self.devtools_state,
                     &documents,
                     id,
                     reply,
-                    CanGc::from_cx(cx),
                 )
             },
             DevtoolScriptControlMsg::GetChildren(id, node_id, reply) => {
-                devtools::handle_get_children(
-                    &self.devtools_state,
-                    id,
-                    &node_id,
-                    reply,
-                    CanGc::from_cx(cx),
-                )
+                devtools::handle_get_children(cx, &self.devtools_state, id, &node_id, reply)
             },
             DevtoolScriptControlMsg::GetAttributeStyle(id, node_id, reply) => {
-                devtools::handle_get_attribute_style(
-                    &self.devtools_state,
-                    id,
-                    &node_id,
-                    reply,
-                    CanGc::from_cx(cx),
-                )
+                devtools::handle_get_attribute_style(cx, &self.devtools_state, id, &node_id, reply)
             },
             DevtoolScriptControlMsg::GetStylesheetStyle(
                 id,
@@ -2159,6 +2141,7 @@ impl ScriptThread {
                 stylesheet,
                 reply,
             ) => devtools::handle_get_stylesheet_style(
+                cx,
                 &self.devtools_state,
                 &documents,
                 id,
@@ -2166,49 +2149,44 @@ impl ScriptThread {
                 selector,
                 stylesheet,
                 reply,
-                CanGc::from_cx(cx),
             ),
             DevtoolScriptControlMsg::GetSelectors(id, node_id, reply) => {
                 devtools::handle_get_selectors(
+                    cx,
                     &self.devtools_state,
                     &documents,
                     id,
                     &node_id,
                     reply,
-                    CanGc::from_cx(cx),
                 )
             },
             DevtoolScriptControlMsg::GetComputedStyle(id, node_id, reply) => {
                 devtools::handle_get_computed_style(&self.devtools_state, id, &node_id, reply)
             },
-            DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => devtools::handle_get_layout(
-                &self.devtools_state,
-                id,
-                &node_id,
-                reply,
-                CanGc::from_cx(cx),
-            ),
+            DevtoolScriptControlMsg::GetLayout(id, node_id, reply) => {
+                devtools::handle_get_layout(cx, &self.devtools_state, id, &node_id, reply)
+            },
             DevtoolScriptControlMsg::GetXPath(id, node_id, reply) => {
                 devtools::handle_get_xpath(&self.devtools_state, id, &node_id, reply)
             },
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) => {
                 devtools::handle_modify_attribute(
+                    cx,
                     &self.devtools_state,
                     &documents,
                     id,
                     &node_id,
                     modifications,
-                    CanGc::from_cx(cx),
                 )
             },
             DevtoolScriptControlMsg::ModifyRule(id, node_id, modifications) => {
                 devtools::handle_modify_rule(
+                    cx,
                     &self.devtools_state,
                     &documents,
                     id,
                     &node_id,
                     modifications,
-                    CanGc::from_cx(cx),
                 )
             },
             DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => {
@@ -2239,7 +2217,7 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GoForward(pipeline_id) => {
                 self.handle_traverse_history(pipeline_id, TraversalDirection::Forward(1))
             },
-            DevtoolScriptControlMsg::Reload(id) => self.handle_reload(id, CanGc::from_cx(cx)),
+            DevtoolScriptControlMsg::Reload(id) => self.handle_reload(id, cx),
             DevtoolScriptControlMsg::GetCssDatabase(reply) => {
                 devtools::handle_get_css_database(reply)
             },
@@ -3947,7 +3925,7 @@ impl ScriptThread {
                     // submit_timing will only accept timing that is of type ResourceTimingType::Resource
                     let mut resource_timing = timing.clone();
                     resource_timing.timing_type = ResourceTimingType::Resource;
-                    submit_timing(&iframe_ctx, &eof, &resource_timing, CanGc::from_cx(cx));
+                    submit_timing(cx, &iframe_ctx, &eof, &resource_timing);
                 }
             }
 
@@ -4159,10 +4137,10 @@ impl ScriptThread {
         }
     }
 
-    fn handle_reload(&self, pipeline_id: PipelineId, can_gc: CanGc) {
+    fn handle_reload(&self, pipeline_id: PipelineId, cx: &mut js::context::JSContext) {
         let window = self.documents.borrow().find_window(pipeline_id);
         if let Some(window) = window {
-            window.Location().reload_without_origin_check(can_gc);
+            window.Location(cx).reload_without_origin_check(cx);
         }
     }
 

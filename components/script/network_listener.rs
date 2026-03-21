@@ -5,6 +5,7 @@
 use std::sync::{Arc, Mutex};
 
 use content_security_policy::Violation;
+use js::context::JSContext;
 use net_traits::request::RequestId;
 use net_traits::{
     BoxedFetchCallback, FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming,
@@ -19,7 +20,6 @@ use crate::dom::performance::performanceentry::PerformanceEntry;
 use crate::dom::performance::performanceresourcetiming::{
     InitiatorType, PerformanceResourceTiming,
 };
-use crate::script_runtime::CanGc;
 use crate::task_source::SendableTaskSource;
 
 pub(crate) trait ResourceTimingListener {
@@ -28,10 +28,10 @@ pub(crate) trait ResourceTimingListener {
 }
 
 pub(crate) fn submit_timing<T: ResourceTimingListener>(
+    cx: &mut JSContext,
     listener: &T,
     result: &Result<(), NetworkError>,
     resource_timing: &ResourceFetchTiming,
-    can_gc: CanGc,
 ) {
     // https://www.w3.org/TR/resource-timing/#resources-included-in-the-performanceresourcetiming-interface
     // If a resource fetch is aborted because it failed a fetch precondition
@@ -70,23 +70,23 @@ pub(crate) fn submit_timing<T: ResourceTimingListener>(
     }
 
     submit_timing_data(
+        cx,
         &listener.resource_timing_global(),
         url,
         initiator_type,
         resource_timing,
-        can_gc,
     );
 }
 
 pub(crate) fn submit_timing_data(
+    cx: &mut JSContext,
     global: &GlobalScope,
     url: ServoUrl,
     initiator_type: InitiatorType,
     resource_timing: &ResourceFetchTiming,
-    can_gc: CanGc,
 ) {
     let performance_entry =
-        PerformanceResourceTiming::new(global, url, initiator_type, None, resource_timing, can_gc);
+        PerformanceResourceTiming::new(cx, global, url, initiator_type, None, resource_timing);
     global
         .performance()
         .queue_entry(performance_entry.upcast::<PerformanceEntry>());
@@ -103,14 +103,14 @@ pub(crate) trait FetchResponseListener: Send + 'static {
     fn process_request_body(&mut self, request_id: RequestId);
     fn process_response(
         &mut self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     );
     fn process_response_chunk(&mut self, request_id: RequestId, chunk: Vec<u8>);
     fn process_response_eof(
         self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
