@@ -26,7 +26,7 @@ pub enum ScriptHangAnnotation {
     GeolocationEvent,
     ImageCacheMsg,
     InputEvent,
-    NavigationTraversalEvent,
+    NavigationAndTraversalEvent,
     NetworkEvent,
     Rendering,
     Resize,

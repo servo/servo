@@ -35,7 +35,7 @@ pub(crate) enum TaskSourceName {
     /// <https://drafts.csswg.org/css-font-loading/#task-source>
     FontLoading,
     /// <https://html.spec.whatwg.org/multipage/#navigation-and-traversal-task-source>
-    NavigationTraversal,
+    NavigationAndTraversal,
     Networking,
     PerformanceTimeline,
     PortMessage,
@@ -69,8 +69,8 @@ impl From<TaskSourceName> for ScriptThreadEventCategory {
             TaskSourceName::FileReading => ScriptThreadEventCategory::FileRead,
             TaskSourceName::FontLoading => ScriptThreadEventCategory::FontLoading,
             TaskSourceName::Geolocation => ScriptThreadEventCategory::GeolocationEvent,
-            TaskSourceName::NavigationTraversal => {
-                ScriptThreadEventCategory::NavigationTraversalEvent
+            TaskSourceName::NavigationAndTraversal => {
+                ScriptThreadEventCategory::NavigationAndTraversalEvent
             },
             TaskSourceName::Networking => ScriptThreadEventCategory::NetworkEvent,
             TaskSourceName::PerformanceTimeline => {

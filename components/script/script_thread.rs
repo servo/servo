@@ -615,7 +615,7 @@ impl ScriptThread {
                 // Step 20 of <https://html.spec.whatwg.org/multipage/#navigate>
                 global
                     .task_manager()
-                    .navigation_traversal_task_source()
+                    .navigation_and_traversal_task_source()
                     .queue(task);
             } else {
                 script_thread
@@ -1617,9 +1617,9 @@ impl ScriptThread {
                         f
                     )
                 },
-                ScriptThreadEventCategory::NavigationTraversalEvent => {
+                ScriptThreadEventCategory::NavigationAndTraversalEvent => {
                     time_profile!(
-                        ProfilerCategory::ScriptNavigationTraversalEvent,
+                        ProfilerCategory::ScriptNavigationAndTraversalEvent,
                         None,
                         profiler_chan,
                         f
