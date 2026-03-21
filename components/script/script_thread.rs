@@ -641,7 +641,7 @@ impl ScriptThread {
                     return;
                 };
                 let target_global = target_window.as_global_scope();
-                let initiator_global = target_window.as_global_scope();
+                let initiator_global = initiator_window.as_global_scope();
                 let target_global = Trusted::new(target_global);
                 let initiator_global = Trusted::new(initiator_global);
                 let sender = script_thread
